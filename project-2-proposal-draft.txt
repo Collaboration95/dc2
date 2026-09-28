@@ -1,0 +1,311 @@
+PROJECT 2 PROPOSAL — DRAFT FOR TEAM AND LECTURER REVIEW
+Flickpond: a cloud-native media processing platform built from microservices
+Date: 28 September 2026
+
+1. PROJECT DETAILS
+
+Project sponsor: [Name, title and contact, if applicable; otherwise state
+"team-proposed project"].
+Project members and team number: [Confirm the Project 2 roster and team number].
+Project period: proposal by 4 October; lecturer review on 7 October; main
+implementation and consultation 8–20 October; presentation on the assigned
+23, 24 or 26 October slot; final report by 16 November 2026. Confirm dates
+against Canvas before submission.
+
+2. OVERVIEW AND BUSINESS PROBLEM
+
+Small content teams and application developers repeatedly need the same video
+capabilities: secure upload, processing into playable formats, job status,
+access control and delivery. Building each capability separately for every
+application duplicates work and makes security and operations inconsistent.
+Flickpond Project 2 proposes to turn the existing video application into a
+reusable media processing platform. The existing Flickpond browser application
+will be one consumer. A small second client, such as a course-media publishing
+script or portal, will use documented platform APIs to submit a video and
+retrieve an authorised playback result. This second client is a demonstration
+of reuse, not a second full product.
+
+The platform's seed is an owned video asset and its processing job. Producers
+are the Flickpond application and the second client. Consumers are authorised
+playback clients and operators who monitor jobs. The proposed value is faster
+integration of a new use case, consistent access control, and independent
+scaling of CPU-heavy processing without scaling the user-facing API at the
+same rate. We will measure those claims rather than infer them from a diagram.
+
+3. STARTING POINT AND PROJECT 2 CHANGE
+
+Project 1 already has a browser interface, nginx, one FastAPI application,
+PostgreSQL, Redis/RQ, MinIO, FFmpeg workers, a recovery process, authentication
+and per-user job ownership. It supports upload, asynchronous processing,
+status, retry, editing and authorised playback. The existing worker can run in
+multiple replicas. Its Project 1 proposal describes a modular monolith plus
+an asynchronous worker; it also lists broader features such as discovery and
+moderation. Those planned features must not be presented as delivered merely
+because they appear in that proposal.
+
+The current API and worker share job tables, repository code and storage
+contracts. Multiple containers alone do not establish independently owned
+business services. Project 2's main architectural change is to extract a
+Processing Service from the FastAPI application, define its own data and API
+contracts, and deploy it separately from a Media Service. This is the
+microservices objective recalled from the project discussion. The written
+course briefing calls for a cloud-native, scalable platform, one working
+application, security and automation; it does not explicitly prescribe a
+microservices count or Kubernetes.
+
+4. GOALS, USE CASES AND SCOPE
+
+Core use case A: an authenticated producer submits a video through the Media
+Service; the Processing Service accepts a job; an FFmpeg worker produces an
+MP4 and, when available, HLS output; the client observes state and plays an
+authorised output. Failures end in a visible failed state and can be retried.
+
+Core use case B: the second client uses the same documented API contracts to
+submit and retrieve media without importing application internals or writing
+directly to either database. We will record its implementation effort and
+which platform capabilities it reused.
+
+Core use case C: an operator increases worker replicas under a repeatable job
+load, observes queue wait and processing throughput, and demonstrates recovery
+after a worker exits during processing.
+
+Must deliver: two independently deployable business services with separate
+data ownership; a working end-to-end flow through both; the existing browser
+application; one small additional API client; versioned API and message
+contracts; owner-scoped access and service-to-service authentication; worker
+scaling and crash recovery; automated build/test/security/deployment scripts;
+and recorded performance, security and reliability evidence.
+
+Should deliver, after the core flow is stable: direct-to-object-store upload
+using a short-lived signed URL, because the current API receives the full file
+and can become a bottleneck under simultaneous uploads. This is a separate
+capacity improvement; the microservice split itself will not solve byte-path
+pressure. The team will report it as implemented only if tested end to end.
+
+Outside this Project 2 build: discovery/search, public sharing, moderation,
+analytics, billing, multi-tenancy, live streaming, third-party video download,
+and a production-scale Kubernetes cluster. These may be future platform use
+cases, but including them now would weaken the architecture and evidence work.
+
+5. GENERAL ARCHITECTURE AND SERVICE OWNERSHIP
+
+Logical flow:
+
+  Flickpond UI / second client
+            |
+            v
+     HTTPS gateway (nginx or cloud load balancer)
+         |                         |
+         v                         v
+  Media Service             Processing Service
+  - accounts/auth           - job API and state machine
+  - asset ownership         - queue/outbox publisher
+  - upload validation       - result metadata and retry
+  - source objects          - output access and cleanup
+  - media database          - processing database
+         |                         |
+         | authenticated command   v
+         +--------------------> Redis/RQ queue
+                                   |
+                                   v
+                            N FFmpeg workers
+                                   |
+                                   v
+                         private object storage
+
+The gateway serves the browser and routes public API paths. It is not a
+business service. The Media Service owns user identities, video asset records,
+ownership and original upload keys. The Processing Service owns job records,
+processing states, output keys, retries and worker orchestration. FFmpeg
+workers and the recovery process are Processing Service runtimes and access
+only its database and queue. PostgreSQL may initially be one managed instance
+with two databases or isolated schemas and credentials; each service has an
+exclusive migration path and no cross-service SQL or foreign key. Separate
+physical database instances are not required for the demonstration.
+
+Object storage is shared infrastructure, but each service uses scoped
+credentials. The Media Service owns and can write original objects. Processing
+workers may read originals by reference but can write or delete only their
+derived-output prefix. The Processing Service owns derived objects. There is no direct
+cross-service table access. A shared repository may hold versioned API
+schemas and test fixtures, but not shared ORM models or hidden calls into
+another service's internal Python modules.
+
+The browser keeps its familiar paths through gateway routing where practical.
+The Media Service handles /auth and /upload; the Processing Service handles
+/jobs and authorised HLS delivery. Each user-facing job request verifies the
+user identity and checks the job's owner ID. The Media Service authenticates
+the submit-job command with a service credential and passes an immutable user
+ID and asset ID. The Processing Service never trusts a browser-supplied owner
+ID. The present browser cookie uses a symmetric JWT secret. For Project 2,
+the proposed cutover is to have Media sign short-lived tokens with a private
+key and Processing verify them with a public key; only Media can issue user
+tokens. Internal commands use a separate service credential. Key rotation,
+expiry, audience checks and forged-token tests will be documented. Gateway
+routing preserves the browser cookie flow where practical.
+
+The first cut retains the existing server-mediated upload path to reduce
+migration risk. After an object is safely stored, the Media Service calls a
+versioned Processing Service command such as POST /internal/jobs with asset ID,
+owner ID and source-object reference. A stable idempotency key makes retries
+return the same job. The Processing Service records the job and an enqueue
+intent in its own database transaction. An outbox publisher sends the job ID
+to Redis/RQ; the worker atomically claims it. This avoids leaving a durable
+queued row without a queue message if Redis is temporarily unavailable.
+Duplicate delivery remains safe because only one worker may claim a queued
+job. A reconciliation task detects abandoned submission or deletion steps.
+During migration, existing jobs will be inventoried and copied to the new
+Processing database with stable IDs, then compared by status and output key
+before gateway cutover. The old route stays available until parity tests pass.
+Rollback before accepting new writes is a route switch; after new writes begin,
+the team will use a database snapshot or a forward repair plan rather than
+assume that switching images can undo a data migration.
+
+The processing response identifies the job, which the existing client polls.
+Completed jobs expose a short-lived authorised output URL. HLS playlists stay
+behind owner checks; segment bytes may be redirected to short-lived object
+URLs. A deleted asset triggers a documented processing cleanup request and a
+reconciliation pass for partial failures. Service API calls have timeouts and
+bounded retries; clients get an explicit pending or failed state rather than
+an indefinite wait. We will document where consistency is eventual.
+
+6. ARCHITECTURAL JUSTIFICATION AND ALTERNATIVES
+
+The main reason to extract Processing is a clear domain boundary and a
+different resource profile. Upload and identity require responsive HTTP and
+controlled access; FFmpeg consumes CPU and disk and can backlog. A separate
+Processing Service can evolve its job lifecycle and worker capacity without
+requiring the Media Service to own its tables or deploy on every change.
+The second client tests whether the boundary provides actual reuse.
+
+We will record an architecture decision comparing three options: retain the
+modular monolith and worker; extract Processing only (chosen); or split
+identity, upload, catalogue, delivery and processing into many services.
+Keeping the monolith has the lowest operational cost but leaves the shared
+job model and release coupling. A larger split creates more network calls,
+security surfaces, distributed consistency problems and deployment work than
+the timebox supports. The chosen two-service design is the smallest credible
+microservices migration for this project, provided data ownership and
+independent deployment are demonstrated. It may still be slower and costlier
+to operate than Project 1; the report will quantify these costs where possible.
+
+7. PHYSICAL DEPLOYMENT, SECURITY AND AUTOMATION
+
+The proposed reference deployment is a cloud staging environment with a
+public HTTPS gateway/load balancer, separate container deployments for Media
+and Processing, independently scaled Processing workers, managed PostgreSQL,
+private Redis and private S3-compatible object storage. An AWS implementation
+could use ECS/Fargate, RDS PostgreSQL, ElastiCache Redis and S3. The exact
+provider and size will be fixed after budget/credit review. Local Docker
+Compose remains the reproducible development environment. The deployment
+diagram will show public/private network paths, security groups, secrets,
+storage and database ownership. A single-host Compose demo alone will not be
+claimed as proof of host-level resilience or cloud autoscaling.
+
+Security controls include TLS at the public edge; private data services;
+least-privilege storage and database credentials per service; secret injection
+outside source control; authenticated internal commands; short-lived output
+URLs; input size and type validation; owner and operator authorization; and
+safe error messages. Tests will try cross-user access, forged service calls,
+expired signatures and invalid media. The CI/CD pipeline will run linting,
+unit and contract tests, container builds, dependency/container scans and an
+integration smoke test. A staging deployment will use versioned images and
+database migrations with a documented rollback path. Logs will carry a
+request/job correlation ID across the gateway, both services and workers;
+metrics will include HTTP latency/error rate, queue depth, queue wait,
+processing duration and failures.
+
+8. QUALITY ATTRIBUTES AND ACCEPTANCE EVIDENCE
+
+These are targets to test, not claims about the current system. Test data,
+hardware, network, duration, commands and raw results will be recorded.
+
+- Functional: demonstrate upload -> queued -> processing -> done -> playback
+  in the browser and the second client. Exercise an invalid file and a retry.
+- Boundary: independently build and redeploy Processing without a Media
+  Service database migration; prove that its database credentials cannot read
+  Media tables and vice versa; run a contract compatibility test.
+- Scalability: compare one and two workers processing a fixed set of identical
+  short videos on the same infrastructure. Report completed jobs/minute,
+  queue wait p50/p95, CPU and the limiting resource. The preselected success
+  criterion is a clear throughput or queue-wait improvement without duplicate
+  outputs; do not promise a 2x gain on CPU-constrained hardware.
+- API performance: run a 50-user status-polling workload and report p90
+  non-video latency and errors against the Project 1 target of <=2 seconds.
+  Upload concurrency is measured separately because it has a different
+  bottleneck. If direct upload is delivered, compare it against the old path.
+- Recovery: terminate a worker mid-job, show the lease/reaper outcome and
+  verify the job reaches a terminal state or a bounded retry, with no silent
+  permanent processing state. Temporarily block Redis and show that the
+  outbox/reconciliation path eventually queues the committed job.
+- Security: cross-account reads and HLS access are denied; a forged internal
+  command is denied; scans and findings are recorded with remediation.
+- Reuse: record the second client's code size/effort and its use of published
+  contracts. Explain which capabilities it avoided implementing itself.
+
+9. WORK PLAN AND EFFORT
+
+Assuming five confirmed members at approximately 10 person-days each, the
+planning budget is 50 person-days. Reallocate if the Project 2 roster has
+four members. Work is divided by deliverable, with integration and review
+shared across the team:
+
+  Domain analysis, ADRs and API/data contracts                 8 person-days
+  Service extraction, database split and reliable job flow   15 person-days
+  Cloud staging, infrastructure and CI/CD                      8 person-days
+  Security and observability                                   7 person-days
+  Tests, load/recovery experiments and second client           8 person-days
+  Proposal, presentation, report and team coordination        4 person-days
+  TOTAL                                                       50 person-days
+
+By 4 October: submit this proposal with team/sponsor fields, use-case scope,
+logical architecture and rough estimates. By 7 October: review lecturer
+feedback and settle the deployment/budget decision. During 8–13 October:
+freeze contracts, split data ownership and make the existing browser flow work
+through both services. During 14–20 October: finish the second client,
+security/CI/cloud staging and load/recovery tests. Before the assigned
+presentation: rehearse the live workflow, worker scaling experiment and
+failure scenario. By 16 November: incorporate feedback, final measurements,
+decisions, limitations and actual effort in the report. Fortnightly progress
+reports will state completed work, hours by member, blockers and next steps.
+
+10. RISKS, DECISIONS AND DELIVERABLES
+
+The main migration risk is the existing shared jobs table and Python
+repository. We will map reads/writes before extraction, move ownership behind
+contracts, test parity against the existing API, and retain a pre-cutover
+snapshot and the previous deployment image.
+Cross-service partial failure is addressed by idempotent commands, an outbox
+and reconciliation. CPU limits may hide scaling gains; tests will use recorded
+resources and report the bottleneck honestly. Managed cloud services may exceed
+budget; the team will settle provider, credits and fallback at lecturer review.
+The course may require a different application/platform framing; obtain
+lecturer feedback before expanding scope.
+
+Final deliverables: working platform and Flickpond application; source and
+deployment repository URL; two architecture views (logical and physical),
+service/data/API contracts and ADRs; automated pipeline and test scripts;
+recorded performance, recovery, security and reuse evidence; presentation;
+fortnightly progress records; and final project report. These are proposed
+deliverables, not completed outcomes.
+
+11. SOURCE NOTES FOR THIS DRAFT
+
+Local evidence: Media_player/README.md; Media_player/docs/proposal.md;
+Media_player/docs/contract.md; Media_player/docs/sprint1-plan.md;
+Media_player/docs/sprint2-report.md; Media_player/docs/scaling-notes.md;
+docs/briefing-notes.md; docs/presentation-notes.md; and the original course
+documents under docs/reference/. The course source takes precedence over
+these extracted notes if wording differs.
+
+External architecture references (accessed 28 September 2026):
+Microsoft, Identify microservice boundaries:
+https://learn.microsoft.com/en-us/azure/architecture/microservices/model/microservice-boundaries
+Microsoft, Data considerations for microservices:
+https://learn.microsoft.com/en-us/azure/architecture/microservices/design/data-considerations
+AWS, Transactional outbox pattern:
+https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html
+AWS, Strangler Fig pattern:
+https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/strangler-fig.html
+Martin Fowler, Microservice Trade-Offs:
+https://martinfowler.com/articles/microservice-trade-offs.html
