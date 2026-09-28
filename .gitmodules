@@ -1,0 +1,4 @@
+[submodule "Media_player"]
+	path = Media_player
+	url = https://github.com/Flickpond/Media_player.git
+	branch = main
