@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 420" width="1000" height="420" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+  </defs>
+  <style>
+    .t{font-size:14px;font-weight:bold;fill:#0f172a}
+    .s{font-size:12px;fill:#334155}
+    .h{font-size:13px;font-weight:bold;fill:#64748b;letter-spacing:1px}
+    .ln{stroke:#475569;stroke-width:1.6;fill:none}
+    .dash{stroke-dasharray:5 4}
+  </style>
+  <rect width="1000" height="420" fill="#ffffff"/>
+
+  <text class="h" x="105" y="34" text-anchor="middle">PEOPLE</text>
+  <text class="h" x="335" y="34" text-anchor="middle">APPLICATIONS</text>
+  <text class="h" x="655" y="34" text-anchor="middle">PLATFORM</text>
+  <text class="h" x="920" y="34" text-anchor="middle">OPERATIONS</text>
+
+  <!-- People -->
+  <rect x="20" y="70" width="170" height="70" rx="10" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text class="t" x="105" y="99" text-anchor="middle">Content owners</text>
+  <text class="s" x="105" y="119" text-anchor="middle">producers: submit videos</text>
+
+  <rect x="20" y="175" width="170" height="70" rx="10" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text class="t" x="105" y="204" text-anchor="middle">Viewers</text>
+  <text class="s" x="105" y="224" text-anchor="middle">consumers: watch results</text>
+
+  <rect x="20" y="280" width="170" height="70" rx="10" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text class="t" x="105" y="309" text-anchor="middle">Integrators</text>
+  <text class="s" x="105" y="329" text-anchor="middle">build apps on the API</text>
+
+  <!-- Applications -->
+  <rect x="240" y="95" width="190" height="76" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="1.5"/>
+  <text class="t" x="335" y="126" text-anchor="middle">FlickPond web app</text>
+  <text class="s" x="335" y="147" text-anchor="middle">existing browser client</text>
+
+  <rect x="240" y="240" width="190" height="76" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="1.5"/>
+  <text class="t" x="335" y="271" text-anchor="middle">Publisher CLI</text>
+  <text class="s" x="335" y="292" text-anchor="middle">new: batch course videos</text>
+
+  <!-- Platform -->
+  <rect x="490" y="50" width="330" height="330" rx="14" fill="#f8fafc" stroke="#0f172a" stroke-width="1.8"/>
+  <text class="t" x="655" y="76" text-anchor="middle">FlickPond Media Platform</text>
+
+  <rect x="505" y="90" width="300" height="46" rx="8" fill="#e2e8f0" stroke="#64748b"/>
+  <text class="t" x="655" y="109" text-anchor="middle" style="font-size:13px">Published HTTPS API</text>
+  <text class="s" x="655" y="126" text-anchor="middle">auth · upload · status · playback</text>
+
+  <rect x="505" y="155" width="140" height="92" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+  <text class="t" x="575" y="186" text-anchor="middle" style="font-size:13px">Media</text>
+  <text class="t" x="575" y="203" text-anchor="middle" style="font-size:13px">Management</text>
+  <text class="s" x="575" y="225" text-anchor="middle">accounts · assets</text>
+
+  <rect x="665" y="155" width="140" height="92" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text class="t" x="735" y="194" text-anchor="middle" style="font-size:13px">Processing</text>
+  <text class="s" x="735" y="214" text-anchor="middle">jobs · FFmpeg</text>
+  <text class="s" x="735" y="230" text-anchor="middle">workers</text>
+  <path class="ln" d="M645,201 L663,201" marker-end="url(#a)"/>
+
+  <rect x="505" y="265" width="300" height="46" rx="8" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text class="t" x="655" y="284" text-anchor="middle" style="font-size:13px">Private object storage</text>
+  <text class="s" x="655" y="301" text-anchor="middle">source videos · MP4 and HLS outputs</text>
+
+  <text class="s" x="655" y="345" text-anchor="middle" style="font-style:italic">Clients use only the published API,</text>
+  <text class="s" x="655" y="362" text-anchor="middle" style="font-style:italic">never databases or service internals</text>
+
+  <!-- Operations -->
+  <rect x="860" y="150" width="120" height="110" rx="10" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text class="t" x="920" y="180" text-anchor="middle">Operators</text>
+  <text class="s" x="920" y="202" text-anchor="middle">deploy releases</text>
+  <text class="s" x="920" y="220" text-anchor="middle">scale workers</text>
+  <text class="s" x="920" y="238" text-anchor="middle">inspect jobs</text>
+
+  <!-- Arrows -->
+  <path class="ln" d="M190,105 L238,128" marker-end="url(#a)"/>
+  <path class="ln" d="M190,115 L238,262" marker-end="url(#a)"/>
+  <path class="ln" d="M190,210 L238,150" marker-end="url(#a)"/>
+  <path class="ln dash" d="M190,315 L238,290" marker-end="url(#a)"/>
+  <text class="s" x="214" y="345" text-anchor="middle" style="font-size:11px">builds</text>
+  <path class="ln" d="M430,133 L503,113" marker-end="url(#a)"/>
+  <path class="ln" d="M430,278 C478,278 468,126 503,126" marker-end="url(#a)"/>
+  <path class="ln" d="M858,205 L822,205" marker-end="url(#a)"/>
+</svg>

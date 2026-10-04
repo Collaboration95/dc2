@@ -14,6 +14,12 @@ Use the originals to settle exact wording, team allocations, dates, or changes f
 
 ## Current Project 2 planning
 
+**Project proposal:** [project-2-proposal.md](project-2-proposal.md) (Word copy: `project-2-proposal.docx`, diagrams in `images/`). Rebuild the Word copy after editing the Markdown:
+
+```bash
+sed -E 's#\]\(images/([a-z-]+)\.svg\)#](images/\1.png){width=6.2in}#' project-2-proposal.md | pandoc -f markdown-implicit_figures --reference-doc=proposal-reference.docx -o project-2-proposal.docx
+```
+
 Start with [the Project 2 extension TLDR](project-2-tldr.md) for a quick Cert 1 versus Project 2 comparison and member review checklist.
 
 Review [the Project 2 report draft](project-2-report-draft.md). It follows the original report template and distinguishes inherited functionality, planned work and pending evidence. DOCX conversion requires approval of the Markdown draft.

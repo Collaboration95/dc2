@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 540" width="1000" height="540" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+  </defs>
+  <style>
+    .t{font-size:12.5px;font-weight:bold;fill:#0f172a}
+    .s{font-size:11px;fill:#334155}
+    .h{font-size:14px;font-weight:bold;fill:#0f172a}
+    .ln{stroke:#475569;stroke-width:1.5;fill:none}
+    .st{fill:#eef2ff;stroke:#6366f1;stroke-width:1.3}
+    .gate{fill:#fee2e2;stroke:#dc2626;stroke-width:1.5}
+  </style>
+  <rect width="1000" height="540" fill="#ffffff"/>
+
+  <text class="h" x="15" y="24">DevSecOps pipeline (GitHub Actions)</text>
+
+  <!-- 8 stages: x = 15 + i*122, width 110 -->
+  <rect class="st" x="15"  y="38" width="110" height="58" rx="8"/>
+  <text class="t" x="70"  y="62" text-anchor="middle">Pull request</text>
+  <text class="s" x="70"  y="80" text-anchor="middle">branch + review</text>
+
+  <rect class="st" x="137" y="38" width="110" height="58" rx="8"/>
+  <text class="t" x="192" y="62" text-anchor="middle">Lint + unit</text>
+  <text class="s" x="192" y="80" text-anchor="middle">Ruff · pytest · Vitest</text>
+
+  <rect class="st" x="259" y="38" width="110" height="58" rx="8"/>
+  <text class="t" x="314" y="62" text-anchor="middle">SAST</text>
+  <text class="s" x="314" y="80" text-anchor="middle">SonarCloud</text>
+
+  <rect class="st" x="381" y="38" width="110" height="58" rx="8"/>
+  <text class="t" x="436" y="62" text-anchor="middle">Contract +</text>
+  <text class="t" x="436" y="78" text-anchor="middle">integration</text>
+  <text class="s" x="436" y="91" text-anchor="middle">both services</text>
+
+  <rect class="st" x="503" y="38" width="110" height="58" rx="8"/>
+  <text class="t" x="558" y="62" text-anchor="middle">Build images</text>
+  <text class="s" x="558" y="80" text-anchor="middle">tag = git SHA</text>
+
+  <rect class="gate" x="625" y="38" width="110" height="58" rx="8"/>
+  <text class="t" x="680" y="62" text-anchor="middle">Image scan</text>
+  <text class="s" x="680" y="80" text-anchor="middle">Trivy gate</text>
+
+  <rect class="st" x="747" y="38" width="110" height="58" rx="8"/>
+  <text class="t" x="802" y="62" text-anchor="middle">Deploy script</text>
+  <text class="s" x="802" y="80" text-anchor="middle">per service</text>
+
+  <rect class="st" x="869" y="38" width="116" height="58" rx="8"/>
+  <text class="t" x="927" y="62" text-anchor="middle">Smoke test</text>
+  <text class="s" x="927" y="80" text-anchor="middle">CLI upload → play</text>
+
+  <path class="ln" d="M125,67 L135,67" marker-end="url(#a)"/>
+  <path class="ln" d="M247,67 L257,67" marker-end="url(#a)"/>
+  <path class="ln" d="M369,67 L379,67" marker-end="url(#a)"/>
+  <path class="ln" d="M491,67 L501,67" marker-end="url(#a)"/>
+  <path class="ln" d="M613,67 L623,67" marker-end="url(#a)"/>
+  <path class="ln" d="M735,67 L745,67" marker-end="url(#a)"/>
+  <path class="ln" d="M857,67 L867,67" marker-end="url(#a)"/>
+
+  <text class="s" x="15" y="118"><tspan font-weight="bold">Blocking:</tspan> failed tests, failed contract checks, fixable HIGH/CRITICAL image findings.</text>
+  <text class="s" x="15" y="135"><tspan font-weight="bold">Report-only:</tspan> SonarCloud and OWASP ZAP (weekly and after deploy), with recorded dispositions.</text>
+
+  <!-- Cloud VM -->
+  <rect x="15" y="150" width="970" height="375" rx="14" fill="#f8fafc" stroke="#0f172a" stroke-width="1.6"/>
+  <text class="h" x="35" y="176">Cloud VM · Docker Compose · private network (only 443 exposed)</text>
+  <path class="ln" d="M802,96 L802,148" stroke-dasharray="5 4" marker-end="url(#a)"/>
+  <text class="s" x="810" y="135">pull SHA-tagged images</text>
+
+  <!-- ingress -->
+  <text class="s" x="40" y="212">clients (HTTPS)</text>
+  <path class="ln" d="M75,218 L75,236" marker-end="url(#a)"/>
+  <rect x="35" y="238" width="135" height="60" rx="8" fill="#ffffff" stroke="#64748b"/>
+  <text class="t" x="102" y="262" text-anchor="middle">Ingress</text>
+  <text class="s" x="102" y="280" text-anchor="middle">nginx + TLS</text>
+
+  <rect x="215" y="228" width="190" height="80" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+  <text class="t" x="310" y="258" text-anchor="middle">Media Management</text>
+  <text class="s" x="310" y="276" text-anchor="middle">public API · auth · upload</text>
+  <text class="s" x="310" y="292" text-anchor="middle">image: media:&lt;sha&gt;</text>
+
+  <rect x="455" y="228" width="190" height="80" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text class="t" x="550" y="258" text-anchor="middle">Processing API</text>
+  <text class="s" x="550" y="276" text-anchor="middle">internal only</text>
+  <text class="s" x="550" y="292" text-anchor="middle">image: processing:&lt;sha&gt;</text>
+
+  <rect x="695" y="228" width="120" height="44" rx="8" fill="#ffffff" stroke="#d97706"/>
+  <text class="t" x="755" y="255" text-anchor="middle">Redis / RQ</text>
+
+  <rect x="845" y="228" width="120" height="44" rx="8" fill="#ffffff" stroke="#d97706"/>
+  <text class="t" x="905" y="255" text-anchor="middle">Recovery</text>
+
+  <rect x="707" y="322" width="250" height="56" rx="8" fill="#ffffff" stroke="#d97706"/>
+  <rect x="701" y="316" width="250" height="56" rx="8" fill="#ffffff" stroke="#d97706"/>
+  <rect x="695" y="310" width="250" height="56" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text class="t" x="820" y="333" text-anchor="middle">Workers × 1 / 2 / 3</text>
+  <text class="s" x="820" y="352" text-anchor="middle">FFmpeg · 2 vCPU cap each</text>
+
+  <!-- postgres -->
+  <rect x="215" y="350" width="430" height="155" rx="10" fill="#ffffff" stroke="#64748b"/>
+  <text class="t" x="430" y="499" text-anchor="middle">PostgreSQL 16 (one server, two databases)</text>
+  <rect x="235" y="372" width="185" height="96" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <text class="t" x="327" y="398" text-anchor="middle">media_db</text>
+  <text class="s" x="327" y="418" text-anchor="middle">role: media_svc</text>
+  <text class="s" x="327" y="436" text-anchor="middle">own Alembic history</text>
+  <text class="s" x="327" y="454" text-anchor="middle">accounts · assets</text>
+  <rect x="440" y="372" width="185" height="96" rx="8" fill="#fef3c7" stroke="#d97706"/>
+  <text class="t" x="532" y="398" text-anchor="middle">processing_db</text>
+  <text class="s" x="532" y="418" text-anchor="middle">role: processing_svc</text>
+  <text class="s" x="532" y="436" text-anchor="middle">own Alembic history</text>
+  <text class="s" x="532" y="454" text-anchor="middle">jobs · attempts · outputs</text>
+
+  <rect x="695" y="420" width="270" height="70" rx="8" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text class="t" x="830" y="447" text-anchor="middle">Object storage (MinIO, private)</text>
+  <text class="s" x="830" y="467" text-anchor="middle">sources · outputs · presigned URLs</text>
+
+  <!-- arrows -->
+  <path class="ln" d="M170,268 L213,268" marker-end="url(#a)"/>
+  <path d="M405,262 L453,262" stroke="#0f172a" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <text class="s" x="429" y="250" text-anchor="middle" style="font-size:10px">token</text>
+  <path class="ln" d="M645,250 L693,250" marker-end="url(#a)"/>
+  <path class="ln" d="M755,272 L755,308" marker-end="url(#a)"/>
+  <path class="ln" d="M310,308 L310,370" marker-end="url(#a)"/>
+  <path class="ln" d="M550,308 L540,370" marker-end="url(#a)"/>
+  <path class="ln" d="M695,350 L627,400" marker-end="url(#a)"/>
+  <path class="ln" d="M820,366 L820,418" marker-end="url(#a)"/>
+  <path class="ln" d="M845,250 L817,250" marker-end="url(#a)"/>
+  <text class="s" x="905" y="290" text-anchor="middle" style="font-size:10px">re-enqueues lost jobs</text>
+</svg>
