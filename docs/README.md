@@ -14,6 +14,8 @@ Use the originals to settle exact wording, team allocations, dates, or changes f
 
 ## Current Project 2 planning
 
+Start with [the Project 2 extension TLDR](project-2-tldr.md) for a quick Cert 1 versus Project 2 comparison and member review checklist.
+
 Review [the Project 2 report draft](project-2-report-draft.md). It follows the original report template and distinguishes inherited functionality, planned work and pending evidence. DOCX conversion requires approval of the Markdown draft.
 
 Read [the implemented baseline and three-day plan](project-2-baseline-and-plan.txt) for the current feature comparison, proposed commitments and agentic time estimates. This plan uses a pinned snapshot of implemented Project 1 code. It does not depend on future Project 1 features.
