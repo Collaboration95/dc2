@@ -1,12 +1,14 @@
 PROJECT 2 PROPOSAL — DRAFT FOR TEAM AND LECTURER REVIEW
-Flickpond: a cloud-native media processing platform built from microservices
-Date: 28 September 2026
+FlickPond: extending Project 1 into a reusable cloud media platform
+Date: 3 October 2026
 
 1. PROJECT DETAILS
 
-Project sponsor: [Name, title and contact, if applicable; otherwise state
-"team-proposed project"].
-Project members and team number: [Confirm the Project 2 roster and team number].
+Project sponsor: team-proposed project; no external sponsor identified.
+Project team: Team 17, comprising Guruprasath Gopal, Ibrahim Mammadov and
+Nguyễn Kim Long. The three-member team was approved in Prof Heng's email of
+22 September 2026. Members come from two Project 1 teams and have chosen
+FlickPond, the project from Ibrahim's original team, as the shared baseline.
 Project period: proposal by 4 October; lecturer review on 7 October; main
 implementation and consultation 8–20 October; presentation on the assigned
 23, 24 or 26 October slot; final report by 16 November 2026. Confirm dates
@@ -26,32 +28,48 @@ retrieve an authorised playback result. This second client is a demonstration
 of reuse, not a second full product.
 
 The platform's seed is an owned video asset and its processing job. Producers
-are the Flickpond application and the second client. Consumers are authorised
-playback clients and operators who monitor jobs. The proposed value is faster
+are content owners submitting videos through Flickpond or the second client.
+Consumers are authorised viewers accessing processed videos through clients;
+application developers reuse the platform APIs, and operators monitor jobs.
+The proposed value is faster
 integration of a new use case, consistent access control, and independent
 scaling of CPU-heavy processing without scaling the user-facing API at the
 same rate. We will measure those claims rather than infer them from a diagram.
 
 3. STARTING POINT AND PROJECT 2 CHANGE
 
-Project 1 already has a browser interface, nginx, one FastAPI application,
-PostgreSQL, Redis/RQ, MinIO, FFmpeg workers, a recovery process, authentication
-and per-user job ownership. It supports upload, asynchronous processing,
-status, retry, editing and authorised playback. The existing worker can run in
-multiple replicas. Its Project 1 proposal describes a modular monolith plus
-an asynchronous worker; it also lists broader features such as discovery and
-moderation. Those planned features must not be presented as delivered merely
-because they appear in that proposal.
+The original Project 1 PDF proposes a modular monolith plus an asynchronous
+worker. Its broad scope includes accounts, upload and video metadata, adaptive
+playback, external video references, search, moderation and analytics. It also
+already proposes worker scaling, cloud deployment and DevSecOps. Those goals
+alone must therefore not be described as the new Project 2 contribution.
+
+The local implementation documentation records a browser interface, nginx,
+one FastAPI application, PostgreSQL, Redis/RQ, MinIO, FFmpeg workers, recovery,
+authentication and per-user job ownership. Upload, asynchronous processing,
+status and authorised playback form the baseline workflow; worker replication
+also exists. Retry and editing appear in later code and handoff documents, but
+their complete browser integration must be checked at the baseline freeze.
+The team will record the reused commit and verify the baseline before changes.
+Features listed in the original proposal are planned scope, not proof that
+they were delivered.
 
 The current API and worker share job tables, repository code and storage
 contracts. Multiple containers alone do not establish independently owned
 business services. Project 2's main architectural change is to extract a
 Processing Service from the FastAPI application, define its own data and API
-contracts, and deploy it separately from a Media Service. This is the
-microservices objective recalled from the project discussion. The written
-course briefing calls for a cloud-native, scalable platform, one working
-application, security and automation; it does not explicitly prescribe a
-microservices count or Kubernetes.
+contracts, and deploy it separately from a Media Service. A small independent
+client will demonstrate that another use case can reuse those capabilities.
+The new work includes service/data ownership, authenticated service contracts,
+handling failures across the new boundary, adapting deployment automation,
+and repeatable tests of reuse, scaling and recovery in the new architecture.
+The course briefing calls for a cloud-native, scalable platform, at least one
+working application, security and automation; the two-service design is our
+proposed approach, not a prescribed service count.
+
+Both the original PDF and the local proposal contain conflicting statements
+about third-party video downloads. This Project 2 scope covers owned-video
+uploads only, so those conflicting requirements do not enter this build.
 
 4. GOALS, USE CASES AND SCOPE
 
@@ -82,10 +100,30 @@ and can become a bottleneck under simultaneous uploads. This is a separate
 capacity improvement; the microservice split itself will not solve byte-path
 pressure. The team will report it as implemented only if tested end to end.
 
-Outside this Project 2 build: discovery/search, public sharing, moderation,
-analytics, billing, multi-tenancy, live streaming, third-party video download,
-and a production-scale Kubernetes cluster. These may be future platform use
-cases, but including them now would weaken the architecture and evidence work.
+Proposed outside this Project 2 build: discovery/search, public sharing,
+moderation, analytics, billing, multi-tenancy, live streaming, third-party
+video download, and a production-scale Kubernetes cluster. The team will ask
+the lecturer to confirm that the broad Project 1 feature list need not all be
+completed as part of this focused platform extension.
+
+Alignment with the course criteria (briefing pages 5, 8 and 9):
+
+- Business ecosystem/platform: content owners supply video assets; viewers
+  consume processed outputs; another application reuses secure media APIs.
+- Platform engineering: documented service contracts and data ownership;
+  demonstrate the second client without access to application internals.
+- Scalability: compare processing throughput and queue wait with one and two
+  workers; measure API latency separately and record resource constraints.
+- Cloud native design: deploy the service/worker boundary on cloud resources
+  with private data services, object storage and independently adjustable
+  processing capacity; explain the selected services and operational cost.
+- DevOps and security: adapt scripted build/test/security/deployment steps for
+  both services and verify access control across the new boundary.
+- Working application: retain Flickpond's upload-to-playback browser flow.
+  The small second client provides additional evidence of platform reuse.
+
+The briefing specifies at least one application. The small second client is
+our chosen reuse demonstration, not an additional course requirement.
 
 5. GENERAL ARCHITECTURE AND SERVICE OWNERSHIP
 
@@ -97,21 +135,23 @@ Logical flow:
      HTTPS gateway (nginx or cloud load balancer)
          |                         |
          v                         v
-  Media Service             Processing Service
-  - accounts/auth           - job API and state machine
-  - asset ownership         - queue/outbox publisher
-  - upload validation       - result metadata and retry
-  - source objects          - output access and cleanup
-  - media database          - processing database
-         |                         |
-         | authenticated command   v
-         +--------------------> Redis/RQ queue
-                                   |
-                                   v
-                            N FFmpeg workers
-                                   |
-                                   v
-                         private object storage
+  Media Service -- authenticated --> Processing Service
+  - accounts/auth     job command    - job API and state machine
+  - asset ownership                 - queue/outbox publisher
+  - upload validation               - result metadata and retry
+  - source objects                  - output access and cleanup
+         |                                    |
+         v                                    v
+    Media database                   Processing database
+                                              |
+                                              v
+                                       Redis/RQ queue
+                                              |
+                                              v
+                                       N FFmpeg workers
+                                              |
+                                              v
+                                    private object storage
 
 The gateway serves the browser and routes public API paths. It is not a
 business service. The Media Service owns user identities, video asset records,
@@ -245,20 +285,20 @@ hardware, network, duration, commands and raw results will be recorded.
 
 9. WORK PLAN AND EFFORT
 
-Assuming five confirmed members at approximately 10 person-days each, the
-planning budget is 50 person-days. Reallocate if the Project 2 roster has
-four members. Work is divided by deliverable, with integration and review
-shared across the team:
+With three approved members at approximately 10 person-days each, the planning
+budget is 30 person-days. Work is divided by deliverable, with integration and
+review shared across the team. The small second client uses the existing
+video workflow; it does not require a second complete product:
 
-  Domain analysis, ADRs and API/data contracts                 8 person-days
-  Service extraction, database split and reliable job flow   15 person-days
-  Cloud staging, infrastructure and CI/CD                      8 person-days
-  Security and observability                                   7 person-days
-  Tests, load/recovery experiments and second client           8 person-days
-  Proposal, presentation, report and team coordination        4 person-days
-  TOTAL                                                       50 person-days
+  Domain analysis, ADRs and API/data contracts                 3 person-days
+  Service extraction, database split and reliable job flow   11 person-days
+  Cloud staging, infrastructure and CI/CD                      4 person-days
+  Security and observability                                   3 person-days
+  Tests, load/recovery experiments and second client           6 person-days
+  Proposal, presentation, report and team coordination        3 person-days
+  TOTAL                                                       30 person-days
 
-By 4 October: submit this proposal with team/sponsor fields, use-case scope,
+By 4 October: submit this proposal with team details, use-case scope,
 logical architecture and rough estimates. By 7 October: review lecturer
 feedback and settle the deployment/budget decision. During 8–13 October:
 freeze contracts, split data ownership and make the existing browser flow work
@@ -289,7 +329,30 @@ recorded performance, recovery, security and reuse evidence; presentation;
 fortnightly progress records; and final project report. These are proposed
 deliverables, not completed outcomes.
 
-11. SOURCE NOTES FOR THIS DRAFT
+11. SIMPLE CONFIRMATIONS FOR THE LECTURER
+
+1. Is reusing this Project 1 baseline acceptable for our combined team,
+   provided we clearly identify our new Project 2 contributions?
+2. Can search, moderation and analytics from the original proposal remain
+   outside our Project 2 scope so we can focus on the platform extensions?
+
+These confirm the proposed approach; they do not ask the lecturer to choose
+the architecture or design the team's project.
+
+12. SOURCE NOTES FOR THIS DRAFT
+
+Original Project 1 proposal: Project Proposal_Ibrahim.pdf, supplied on
+3 October 2026, at /Users/speedpowermac/Downloads/Project Proposal_Ibrahim.pdf.
+Pages 1-2 describe the business problem and modular-monolith/worker approach;
+pages 2-5 give functional and quality scope; pages 5-7 give the original
+five-member, 50-person-day plan. These are Project 1 intentions, not Project 2
+requirements or proof of completed implementation.
+
+Course requirements checked against docs/reference/01 Briefing.pdf:
+page 5 (platform, scalability, cloud, automation, security and one application),
+page 6 (effort and schedule), page 8 (proposal sections) and page 9 (evidence
+and feasibility questions). The approved three-member exception comes from
+the user-supplied email exchange, not the standard team-size guidance.
 
 Local evidence: Media_player/README.md; Media_player/docs/proposal.md;
 Media_player/docs/contract.md; Media_player/docs/sprint1-plan.md;

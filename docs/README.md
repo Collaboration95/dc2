@@ -11,3 +11,11 @@ It explicitly separates course requirements from proposals and unanswered questi
 ## Source priority
 
 Use the originals to settle exact wording, team allocations, dates, or changes from lecturers. The presentation schedule provides specific team slots; the briefing only gives tentative presentation dates. The report template is a structure to fill with evidence, not proof that a capability has already been built.
+
+## Current Project 2 planning
+
+Review [the Project 2 report draft](project-2-report-draft.md). It follows the original report template and distinguishes inherited functionality, planned work and pending evidence. DOCX conversion requires approval of the Markdown draft.
+
+Read [the implemented baseline and three-day plan](project-2-baseline-and-plan.txt) for the current feature comparison, proposed commitments and agentic time estimates. This plan uses a pinned snapshot of implemented Project 1 code. It does not depend on future Project 1 features.
+
+[The requirements guide](project-2-requirements-and-scope.txt) explains the course requirements. Its original 30-person-day allocation does not represent the current three-day agentic plan.

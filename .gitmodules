@@ -1,4 +1,4 @@
 [submodule "Media_player"]
 	path = Media_player
-	url = https://github.com/Flickpond/Media_player.git
-	branch = main
+	url = https://github.com/Collaboration95/Media_player.git
+	branch = guru/project-2-docs
