@@ -110,7 +110,7 @@
 
   <!-- Object storage -->
   <rect x="497" y="345" width="202" height="56" rx="8" fill="#f1f5f9" stroke="#94a3b8"/>
-  <text class="t" x="598" y="368" text-anchor="middle">Private object storage</text>
+  <text class="t" x="598" y="368" text-anchor="middle">Amazon S3 (private)</text>
   <text class="s" x="598" y="386" text-anchor="middle">presigned URLs only</text>
   <path class="ln" d="M560,310 L560,343" marker-end="url(#a)"/>
   <path class="ln" d="M755,345 L701,368" marker-end="url(#a)"/>

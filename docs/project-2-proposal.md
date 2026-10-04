@@ -18,7 +18,7 @@ Team 17 combines members from two Project 1 teams. Prof Boon Kui Heng approved t
 
 ### 1.1 Context
 
-FlickPond is a video application built in Project 1. Users register, upload their own videos, and FlickPond converts each upload into MP4 and adaptive HLS streams (360p, 480p and 720p) with FFmpeg workers. Owners then follow the job status and play the result through a signed, owner-checked link. The system runs on FastAPI, PostgreSQL, Redis with RQ, MinIO object storage, nginx and a browser frontend, and it was deployed with TLS on Alibaba Cloud.
+FlickPond is a video application built in Project 1. Users register, upload their own videos, and FlickPond converts each upload into MP4 and adaptive HLS streams (360p, 480p and 720p) with FFmpeg workers. Owners then follow the job status and play the result through a signed, owner-checked link. The system runs on FastAPI, PostgreSQL, Redis with RQ, MinIO object storage, nginx and a browser frontend, deployed with TLS on a single cloud virtual machine.
 
 FlickPond works, but it is built as **one application**. A single API handles identity, uploads, jobs and playback. The API, the workers and the recovery task share the same job models and one database, and the jobs table has a foreign key to the users table. Another product cannot reuse the video workflow without importing FlickPond's code or reading its database.
 
@@ -108,23 +108,37 @@ Exact paths and schemas will be published as OpenAPI documents and checked by co
 | ID | Decision | Rationale | Alternative considered |
 | --- | ---------- | ---------- | ---------- |
 | AD-01 | Extract **Processing** as the only new service | It has distinct rules, lifecycle and scaling needs, which gives the most value per unit of effort | Keep the modular monolith (shared data blocks independent ownership); split into four services (more contracts and operations than the business need justifies) |
-| AD-02 | **Database per service** on one PostgreSQL server: separate databases, roles and migration histories | Real ownership boundary at low cost; either role is refused access to the other's tables | Separate database servers: more cost, little extra value at our scale |
+| AD-02 | **Database per service** on one Amazon RDS for PostgreSQL instance: separate databases, roles and migration histories | Real ownership boundary at low cost; either role is refused access to the other's tables | Separate database servers: more cost, little extra value at our scale |
 | AD-03 | **Synchronous submit, asynchronous processing**: the REST call creates the job; the queue drives the work | Keeps the existing Redis/RQ workers and gives clients an immediate job reference | New event broker: adds operations without a demonstrated need |
 | AD-04 | **Idempotent `SubmitJob` keyed on `asset_id`** plus the existing reconciliation task | Makes retries across the boundary safe without a distributed transaction or an outbox | Transactional outbox: added only if experiments show reconciliation is not enough |
 | AD-05 | **Presigned URLs** for source reads and output delivery | Workers never hold Media Management's storage credentials; viewers get time-limited access | Shared storage credentials across services |
 | AD-06 | **Service token + forwarded owner identity** for internal calls, on a private network | Simple and testable; Processing still enforces ownership itself | Mutual TLS: stronger, but too much certificate work for a two-service demonstration |
-| AD-07 | **One cloud VM with Docker Compose** and worker replicas capped at 2 vCPU each | Low cost, reuses the team's existing tooling, and gives a fair and repeatable scaling experiment | Kubernetes / managed container service: operational overhead outside the project's focus |
-| AD-08 | **Fresh demonstration data** | Avoids migrating historical accounts and videos, and keeps effort on the contribution | Migrating Project 1 data |
+| AD-07 | **Run the services on one Amazon EC2 instance with Docker Compose**, worker replicas capped at 2 vCPU each | Low cost, reuses the team's existing Compose tooling, and gives a fair and repeatable scaling experiment | Amazon ECS on Fargate or EKS: better for production scaling, but adds operational work outside the project's focus |
+| AD-08 | **Use AWS managed services for state and operations**: RDS for PostgreSQL, S3, ECR, SSM Parameter Store and CloudWatch | No database or storage server to run; S3 presigned URLs and bucket policies give least-privilege media access natively; managed backups and metrics | Self-hosting PostgreSQL and MinIO on the instance: cheaper, but more operational work and weaker isolation |
+| AD-09 | **Define the AWS resources in Terraform** (VPC, security groups, EC2, RDS, S3, ECR, IAM) | The environment can be recreated and reviewed like code; changes go through pull requests | Console set-up: faster at first, but not repeatable or reviewable |
+| AD-10 | **Fresh demonstration data** | Avoids migrating historical accounts and videos, and keeps effort on the contribution | Migrating Project 1 data |
 
 ### 2.5 Physical architecture and delivery pipeline
 
 ![Figure 4. Delivery pipeline and cloud deployment](images/deployment-pipeline.svg)
 
-*Figure 4. Every change passes the GitHub Actions pipeline. Versioned images are deployed per service to one cloud VM, where only HTTPS is exposed. Databases, the queue and storage stay on the private network.*
+*Figure 4. Every change passes the GitHub Actions pipeline. Images are pushed to Amazon ECR and deployed per service to an EC2 instance through AWS Systems Manager. Only HTTPS is exposed; RDS sits in a private subnet and S3 buckets are private.*
 
-We will host the demonstration on a **separate Alibaba Cloud ECS instance in Singapore**, not the shared Project 1 deployment. Alibaba Cloud is the provider the team already used in Project 1. Development uses 4 vCPU / 8 GiB. For the scaling experiment, the instance is temporarily resized to 8 vCPU / 16 GiB so that three 2-vCPU workers have room alongside the other services. The instance is stopped outside work and test sessions, and the target cloud budget is under S$100 for the project.
+The whole platform runs on **AWS in the Singapore region (ap-southeast-1)**:
 
-The same Compose files run locally and in the cloud, so every scenario can be reproduced on a developer machine before it is run in the cloud.
+| Need | AWS service | How we use it |
+| ---------- | ------------ | ---------------------------------------- |
+| Compute | Amazon EC2 | One instance runs ingress, both service APIs, Redis, the workers and the recovery task with Docker Compose. 4 vCPU / 8 GiB for development; resized to 8 vCPU / 16 GiB for the scaling experiment so three 2-vCPU workers have room |
+| Relational data | Amazon RDS for PostgreSQL | Single-AZ instance in a private subnet holding `media_db` and `processing_db`, each with its own role |
+| Media files | Amazon S3 | Private, encrypted `sources` and `outputs` buckets with Block Public Access; access only through presigned URLs |
+| Images | Amazon ECR | One repository per service; images tagged with the commit SHA |
+| Secrets | SSM Parameter Store | Service token, database passwords and JWT signing key as SecureString parameters |
+| Deployment access | IAM + SSM | GitHub Actions assumes a deploy role through OIDC (no stored access keys) and deploys with SSM Run Command; no SSH port is open |
+| Observability and cost | CloudWatch, AWS Budgets | Container logs and CPU/memory metrics for the experiments; budget alerts at 50% and 80% |
+
+All resources are defined in Terraform. The EC2 and RDS instances are stopped outside work and test sessions, and the target AWS spend is under US$100 for the project.
+
+The same images also run locally with Docker Compose, using PostgreSQL and MinIO containers (MinIO speaks the S3 API) in place of RDS and S3, so every scenario can be reproduced on a developer machine before it runs on AWS.
 
 ---
 
@@ -143,7 +157,7 @@ The same Compose files run locally and in the cloud, so every scenario can be re
 ### 3.2 Use cases in scope
 
 | ID | Use case | Applications |
-| --- | ------------------------------------------ | ---------- |
+| ------ | ------------------------------------------ | ---------- |
 | UC-1 | Register, log in and upload an owned video | Web app, CLI |
 | UC-2 | Process the video into MP4 and HLS (360p/480p/720p), with HLS as best effort | Platform |
 | UC-3 | Track job status and play the processed result | Web app, CLI |
@@ -168,9 +182,10 @@ FFmpeg uses every core it can find, so the CPU caps make the comparison fair: on
 
 **Cloud-native design.**
 
-- Services are packaged as immutable, versioned containers.
-- APIs and workers are stateless; durable state lives in PostgreSQL and object storage.
-- Configuration and secrets are kept outside the images.
+- Services are packaged as immutable, versioned containers stored in Amazon ECR.
+- APIs and workers are stateless; durable state lives in managed services (RDS and S3).
+- Configuration and secrets are kept outside the images, in SSM Parameter Store.
+- The environment is defined in Terraform and can be recreated from code.
 - Health checks drive the deployment.
 - Workers are disposable: interrupted jobs are reconciled rather than lost.
 - Each service is released independently, with no change to the other service.
@@ -189,7 +204,7 @@ FFmpeg uses every core it can find, so the CPU caps make the comparison fair: on
 - A deploy script releases each service and checks its health, then the CLI runs an upload-to-playback smoke test.
 - An OWASP ZAP dynamic scan (DAST) runs weekly and after each deploy.
 - Report-only findings receive a recorded disposition.
-- We will fix the known fixable HIGH finding in the inherited image and the MinIO setup issue on fresh machines in week 1.
+- We will fix the known fixable HIGH finding in the inherited image in week 1.
 
 **Security controls and tests.**
 
@@ -199,9 +214,10 @@ FFmpeg uses every core it can find, so the CPU caps make the comparison fair: on
 | Owner checks in Media Management **and** Processing | User A cannot read, retry or play User B's assets |
 | Internal API requires a service token and is not publicly routed | Forged and token-less internal calls are rejected; the port is unreachable from outside |
 | Separate database roles | Each service's credentials are refused on the other's database |
-| Presigned, time-limited storage URLs; private buckets | Expired and tampered URLs fail; no public bucket listing |
+| Presigned, time-limited S3 URLs; private buckets with Block Public Access; each service's IAM role reaches only its own bucket | Expired and tampered URLs fail; no public bucket listing; each role is denied on the other bucket |
 | Input checks on type and 100 MiB size | Invalid and oversized uploads are rejected |
-| Only port 443 exposed; secrets in Compose secrets, never in git | External port scan; secret scanning in CI |
+| Security groups expose only 443 (and 80 for certificate renewal); RDS accepts connections only from the EC2 security group; no SSH | External port scan; RDS unreachable from the internet |
+| Secrets in SSM Parameter Store; GitHub Actions uses short-lived OIDC credentials | No secrets in git or images (secret scanning in CI); no long-lived AWS keys exist |
 
 **Availability and recovery.** Durable job states, conditional claims and the reconciliation task make failures visible and recoverable. We will test three failure cases:
 
@@ -229,7 +245,7 @@ These targets are our starting commitments. After a short baseline run in week 2
 - The remaining Project 1 feature list (profiles, password reset, titles and tags, sharing modes, external videos).
 - Search, public discovery, moderation workflows and product analytics.
 - Crop/clip editor UI, thumbnails, 4K output, and direct or resumable uploads above 100 MiB.
-- Kubernetes, autoscaling, multi-host or multi-zone failover, and migration to another cloud provider.
+- Kubernetes (EKS), ECS/Fargate, Auto Scaling groups, and multi-AZ or multi-region failover.
 - Historical data migration, malware scanning and full key rotation.
 
 ### 3.6 How this proposal answers the briefing's key questions
@@ -241,7 +257,7 @@ These targets are our starting commitments. After a short baseline run in week 2
 | What does a new use case gain over building from scratch? | The full workflow, its security controls and its scaling through one API. Shown by the Publisher CLI and its recorded effort (§3.3) |
 | What scale can it support, and how is that proven? | Throughput grows with workers until the CPU limit. Proven by the 1/2/3-worker experiment and the API load tests (§3.4) |
 | How are benefits measured? | The quality scenarios and targets in §3.4, reported against raw results |
-| What value does the cloud-native design add? | Independent release and scaling, disposable workers with recoverable state, and automated, gated delivery (§2.5, §3.3) |
+| What value does the cloud-native design add? | Independent release and scaling, disposable workers with recoverable state, managed AWS data services, infrastructure as code, and automated, gated delivery (§2.5, §3.3) |
 
 ---
 
@@ -253,13 +269,13 @@ The briefing expects about 10 person-days per participant. Our estimate is **31 
 
 | # | Work package | Lead | Person-days |
 | ---- | ------------------------------------------ | -------------- | -------: |
-| 1 | Freeze baseline, reproducible local setup, fix the inherited scan and MinIO issues | Guruprasath | 2 |
+| 1 | Freeze baseline, reproducible local setup, fix the inherited scan finding | Guruprasath | 1 |
 | 2 | Domain analysis, service contracts and OpenAPI documents | Long (team review) | 3 |
 | 3 | Extract Processing: service, own database and migrations, workers and recovery task | Ibrahim | 6 |
 | 4 | Adapt Media Management: asset records, Processing client, web app routes and retry | Ibrahim | 3 |
 | 5 | Boundary security: service token, owner checks, database roles, presigned URLs, negative tests | Guruprasath | 3 |
 | 6 | Publisher CLI and contract tests | Long | 2 |
-| 7 | Cloud environment, per-service deploy scripts, pipeline adaptation, smoke test | Guruprasath | 4 |
+| 7 | AWS environment in Terraform (VPC, EC2, RDS, S3, ECR, IAM), OIDC deploy role, per-service deployment, pipeline adaptation, smoke test | Guruprasath | 5 |
 | 8 | Experiments: scaling, load, recovery and playback; raw results | Long | 3 |
 | 9 | Integration fixes and repeat checks | All | 2 |
 | 10 | Progress reports, presentation and final report | All | 3 |
@@ -274,7 +290,7 @@ The resulting split is about 10 person-days for each member.
 | 4 Oct | Proposal submitted |
 | 5–7 Oct | Baseline frozen and reproducible; domain model and contracts drafted; lecturer review on 7 Oct |
 | 8–14 Oct | Processing extracted with its own data; web app working end to end across the boundary; CLI started; first progress report |
-| 15–20 Oct | Security controls and tests; cloud deployment and pipeline; baseline run, then final experiments |
+| 15–20 Oct | Security controls and tests; AWS deployment and pipeline; baseline run, then final experiments |
 | 21–25 Oct | Fixes, demonstration rehearsal and presentation preparation |
 | 26 Oct, 14:35–15:15 | Team 17 presentation |
 | 27 Oct–16 Nov | Final report, including presentation feedback; second progress report |
@@ -284,12 +300,12 @@ The resulting split is about 10 person-days for each member.
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
 | Shared job and identity code is more tangled than expected | Delays the extraction | Do the extraction first; reach one working upload-to-playback flow before any other work |
-| Cloud account or resize delays | Late experiments | Identical Compose stack runs locally; provision the ECS instance in week 1 |
+| AWS account limits or cost overrun | Late experiments or blocked environment | Provision with Terraform in week 1 and check the vCPU quota early; budget alerts; stop instances when idle; identical Compose stack runs locally |
 | Scaling shows little gain | Weak scalability evidence | CPU caps per worker; profile the bottleneck and report it honestly |
 | Three-member team | Less capacity than a 4–5 member team | Narrow scope, no new product features, clear ownership per work package |
 
 ### 4.4 Assumptions
 
-- The team has access to an Alibaba Cloud account and test credentials in week 1.
+- The team has an AWS account with enough EC2 vCPU quota in ap-southeast-1 by week 1.
 - The frozen Project 1 baseline is used as is. Missing Project 1 features are not completed.
 - All demonstration data is new test content owned by the team.
