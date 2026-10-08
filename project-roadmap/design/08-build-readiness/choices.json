@@ -1,0 +1,36 @@
+[
+  {
+    "id": "08-demo",
+    "title": "Presentation demo delivery",
+    "status": "recommended",
+    "recommended": "08-live-fallback",
+    "why": "Integrated workflow should be visible; slow experiments need traceable evidence.",
+    "options": [
+      {
+        "id": "08-live-fallback",
+        "label": "Live workflow + recorded experiments",
+        "advantages": [
+          "Shows both clients and repeatable measurements"
+        ],
+        "disadvantages": [
+          "Requires rehearsed fallback"
+        ],
+        "best_when": "Environment passes rehearsal",
+        "impact": "Recorded clips/logs labelled with date, release and run ID"
+      },
+      {
+        "id": "08-recorded",
+        "label": "Recorded workflow",
+        "advantages": [
+          "Predictable slot timing"
+        ],
+        "disadvantages": [
+          "Less interactive; current deployment not proven"
+        ],
+        "best_when": "Live environment unavailable",
+        "impact": "Disclose recording date and limitations; never call it live"
+      }
+    ],
+    "confirmation": "Team confirms rehearsal mode before 26 Oct; personal clicks do not approve delivery."
+  }
+]

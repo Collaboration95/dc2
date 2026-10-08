@@ -1,0 +1,294 @@
+PROJECT 2: REQUIREMENTS AND A MANAGEABLE PROPOSAL
+Team 17 | Planning guide | 4 October 2026
+
+For the current implemented baseline and time estimate, use project-2-baseline-and-plan.txt.
+That plan supersedes this guide's effort allocation and broader implementation recommendations.
+The course requirements below remain applicable.
+
+This guide uses the course documents in docs/reference/, the root proposal,
+and the professor's email supplied in this chat. It does not check the code.
+This guide recommends a scope. The lecturer did not approve each detail.
+Check Canvas for later instructions and exact submission times.
+
+1. WHAT THE PROFESSOR APPROVED
+
+Prof Heng approved the three-member team on 22 September and created Team 17.
+The latest supplied reply accepts reuse of FlickPond and the focused direction.
+It accepts excluding search, moderation and analytics from Project 2.
+It also requires a clear account of the team's new contribution.
+It requires techniques from all three certificate courses.
+DDD must help identify and design the microservices. Refactor boundaries if necessary.
+
+This reply does not approve every implementation detail in the existing draft.
+It does not remove the course requirements for evidence and deliverables.
+Record the email as the basis for the team-size exception and focused scope.
+
+2. CERTIFICATE AND PROJECT REQUIREMENTS
+
+The certificate is the Graduate Certificate in Architecting Scalable Systems.
+The briefing assigns 50% to the group project and 50% to the written exam.
+Each component requires at least 40%. The overall certificate score requires 50%.
+The briefing states a 60% GPA threshold for stacking toward the MTech.
+That threshold does not guarantee admission.
+
+For participants without company sponsorship, presentation contributes 20%.
+The report contributes 30%, including 5% peer assessment.
+For company-sponsored participants, presentation contributes 15% and the report 25%.
+Sponsor assessment contributes another 10%. The exam remains 50%.
+Complete peer assessment with unique ranks before its deadline.
+
+The project must satisfy these six requirements:
+
+- Build a platform that supports a business ecosystem.
+- Demonstrate scalability with evidence.
+- Build a cloud native application with appropriate cloud services.
+- Script suitable development and deployment activities.
+- Implement the minimum security controls needed for the chosen scope.
+- Build at least one application that demonstrates the platform.
+
+Deliver a working system, source repository or archive, and a project report.
+Also deliver DevSecOps pipeline scripts and test scripts.
+Explain architectural decisions, quality attributes, and the development lifecycle.
+
+The documents prescribe no service count, cloud provider, or Kubernetes requirement.
+Autoscaling appears as an example in the presentation guidance.
+The team must demonstrate scalability.
+A second application is not mandatory. A small client is useful evidence of reuse.
+
+3. WHAT EACH COURSE SHOULD CONTRIBUTE
+
+Architecting Software Solutions:
+Explain the business problem, stakeholders, architecture choices and trade-offs.
+Define measurable scenarios for performance, recovery, security and maintainability.
+Record test conditions, observed results and limitations.
+
+Platform Engineering:
+Explain reusable capabilities, domain boundaries, APIs and data ownership.
+Identify the seed, producers and consumers.
+Show how another application uses the platform without duplicating its processing code.
+Explain platform operations and data management.
+
+Cloud Native Solution Design:
+Show the deployed cloud environment and its network and storage boundaries.
+Explain why the selected services suit the workload.
+Demonstrate separate processing capacity and explain failure behavior.
+
+DevSecOps:
+Show repeatable build, test, security checks and deployment steps.
+Record a successful pipeline run and a deployment smoke test.
+
+The supplied documents do not enumerate every technique taught in class.
+Check this evidence map against your course materials before submission.
+
+4. THE SMALLEST RECOMMENDED SCOPE
+
+Business problem:
+Small content teams repeatedly implement secure video upload, processing and access.
+A reusable platform lets another application use those capabilities through stable APIs.
+
+Core workflow:
+An authenticated owner uploads a video, requests processing, checks status and accesses the result.
+The platform also handles invalid input and a failed processing attempt.
+
+Platform participants:
+- Seed: an owned video asset, linked to a processing job.
+- Producers: content owners who submit videos through client applications.
+- Consumers: authorised viewers who access processed videos through client applications.
+- Integrators: developers who reuse the published APIs.
+
+Proposed implementation:
+- Retain FlickPond as the main application.
+- Define Media Management and Processing as candidate domain boundaries.
+- Extract Processing if domain analysis supports that boundary.
+- Give each service exclusive ownership of its records and migrations.
+- Use separate credentials to prevent direct access to another service's tables.
+- Deploy the services separately and vary worker capacity independently.
+- Add one small script that uploads a video and retrieves its processing result.
+- Use one cloud demonstration environment and one repeatable test workload.
+
+The worker belongs to Processing. It does not need another business-service boundary.
+Separate databases can share one database server if credentials enforce ownership.
+Existing authentication can remain with Media Management for this project.
+Explain that choice rather than creating an identity service without a domain need.
+
+The exact service split remains a design decision until the team completes DDD.
+Keep the platform workflow, cloud deployment and required evidence as firm commitments.
+
+5. HOW TO SHOW DDD
+
+Domain-driven design (DDD) uses business concepts to define models and boundaries.
+A bounded context defines where one domain model and its terms apply.
+An aggregate groups records whose business rules need a consistency boundary.
+A domain event records a meaningful business change.
+
+Produce a compact domain model before committing to the service split:
+
+- Define terms such as Asset, Owner, ProcessingJob and Output.
+- Identify the responsibilities of Media Management and Processing.
+- Define candidate aggregates and their business rules.
+- Show how the contexts communicate through commands, APIs or relevant events.
+- Compare the proposed boundaries with the inherited design.
+- Explain why extraction helps ownership, independent change or separate scaling.
+
+Example rules to check with the team:
+Only an authorised owner can request processing of an asset.
+A completed job refers to an available output.
+A repeated submission cannot create unintended duplicate processing.
+
+These are candidate rules, not checked behavior of the current system.
+Do not invent events or implement event sourcing merely to show DDD terminology.
+Use the model to justify the boundary and its contracts.
+
+6. EVIDENCE TO COMMIT TO
+
+Functional evidence:
+Demonstrate upload, processing, status and authorised playback in FlickPond.
+Demonstrate the small client's use of the same published APIs.
+
+Scalability evidence:
+Compare one worker with two workers using the same workload and recorded resources.
+Measure completed jobs per minute, queue wait and errors.
+Provide sufficient CPU capacity for the comparison.
+Record the limiting resource. Do not promise twice the throughput without measurements.
+Select a numeric acceptance target after a short baseline test.
+State the measurement plan in the proposal before that test.
+
+Recovery evidence:
+Terminate a worker during processing.
+Show recovery or an explicit failure within a defined time limit.
+Check that retries do not produce conflicting job states or unintended duplicate outputs.
+Document how committed jobs reach the queue after a temporary queue failure.
+Choose a reliable mechanism. The assignment does not prescribe an outbox implementation.
+
+Security evidence:
+Test cross-owner access, unauthenticated requests and forged internal commands.
+Keep storage private. Protect credentials and public transport.
+Check input type and size. Record security findings and their treatment.
+
+Automation evidence:
+Demonstrate scripted build, tests, security checks and cloud deployment.
+Record the deployed version and the smoke-test result.
+
+Reuse and maintainability evidence:
+Record the small client's implementation effort and the capabilities it reuses.
+Show that it needs no access to service internals or databases.
+Explain independent deployment and contract compatibility.
+Do not claim a percentage effort saving without a defensible comparison.
+
+Worker recovery does not prove survival of a cloud host or availability-zone failure.
+Manual replica changes do not prove autoscaling.
+Label each demonstrated capability accurately.
+
+7. WHAT TO REMOVE FROM THE CURRENT DRAFT'S FIRM COMMITMENTS
+
+Keep search, moderation and product analytics outside the implementation scope.
+Operational metrics remain necessary evidence. They differ from product analytics.
+Also exclude billing, multi-tenancy, live streaming and third-party downloads.
+
+Defer these changes unless a core requirement needs them:
+- Direct upload through signed object-store URLs.
+- A new token algorithm and a complete key-rotation system.
+- New HLS delivery mechanisms or a new media format.
+- Migration of historical Project 1 data.
+- Automated asset deletion across services.
+- A full portal for the second client.
+- Multi-region deployment and a Kubernetes cluster.
+
+For the demonstration, prefer a fresh dataset if historical migration is unnecessary.
+Retain existing working media formats when they meet the chosen use case.
+Keep authentication and ownership checks mandatory across the service boundary.
+Defer a custom outbox only if a simpler mechanism meets the stated recovery criteria.
+Do not defer durable job tracking, bounded retries or visible failure states.
+
+The current draft includes many of these mechanisms as firm promises.
+They are team design choices, not explicit course requirements.
+The latest email resolves the draft's two lecturer-confirmation questions.
+Replace those questions with the approved position and its DDD condition.
+Replace the generic presentation dates with Team 17's listed slot.
+
+8. PROPOSAL CONTENT AND SUGGESTED WORDING
+
+The proposal needs these seven sections:
+1. Project title.
+2. Sponsor details, if applicable.
+3. Team members.
+4. Context and business problem.
+5. General architecture. A logical view is sufficient at proposal stage.
+6. Scope, use cases and how the implementation demonstrates the course requirements.
+7. Rough work breakdown and effort estimates.
+
+Suggested core scope:
+
+Team 17 will extend FlickPond into a reusable cloud media processing platform.
+We will apply DDD to define Media Management and Processing boundaries.
+We will refactor the baseline where the domain analysis requires changes.
+The implementation will support authenticated upload, asynchronous processing, status and authorised playback.
+FlickPond and a small independent client will use the published platform APIs.
+We will demonstrate cloud deployment, worker scalability and recovery with repeatable tests.
+We will automate build, test, security checks and deployment.
+We will document reused components, new contributions, measured results and limitations.
+Search, moderation and product analytics remain outside this implementation scope.
+
+Add a diagram, an evidence map and the effort estimate to this wording.
+Avoid assigning every optional implementation mechanism to the core scope.
+Distinguish implemented scope, design-only scope and deferred scope.
+
+9. EFFORT AND DATES
+
+The briefing expects about 10 person-days per member.
+Three approved members therefore imply about 30 person-days in total.
+This is a planning estimate, not a guarantee of available team time.
+
+Suggested allocation:
+- Domain model, decisions and contracts: 3 person-days.
+- Service extraction and the integrated workflow: 8 person-days.
+- Cloud deployment and automation: 4 person-days.
+- Security and reliable failure handling: 3 person-days.
+- Small client and measured tests: 4 person-days.
+- Proposal, progress records, presentation and report: 4 person-days.
+- Integration contingency: 4 person-days.
+Total: 30 person-days.
+
+Reduce optional work if the team's actual availability is lower.
+Reserve time for integration, evidence and presentation rehearsal.
+
+Documented dates, in Singapore time:
+- 4 October 2026: proposal submission and Canvas team registration.
+- 7 October: lecturer proposal review.
+- 8-20 October: main project work and consultation.
+- 26 October, 14:35-15:15: Team 17 presentation, including questions.
+- 2-6 November: tentative written-exam period in the briefing.
+- 16 November: final report, including presentation feedback.
+
+Submit progress reports fortnightly to PM Progress Reports in Canvas.
+Include completed work, hours per member, problems and the next two weeks' tasks.
+Submit the proposal to PM Project Proposals in Canvas.
+The supplied files do not establish exact submission times or later Canvas changes.
+
+10. SOURCES AND LIMITS
+
+docs/reference/01 Briefing.pdf, V2.6:
+Pages 3-5: competencies, assessment split and mandatory project outputs.
+Pages 6-9: effort, dates, proposal sections and evidence questions.
+Pages 12-14: pass thresholds, assessment weights, peer assessment and progress reports.
+
+docs/reference/02 Project Report Template for Practice Project.docx:
+Sections 1-5: scope, conduct, architecture, DDD, persistence, quality attributes and DevOps.
+The template permits different scopes for architecture, design and implementation.
+It does not excuse missing mandatory working-system requirements.
+
+docs/reference/04 Project Presentation Guidelines & Schedule.pdf, V2.8:
+Page 1: architecture, DDD, lifecycle and demonstration expectations.
+Page 2: Team 17 presentation slot.
+
+User-supplied professor correspondence:
+22 September 2026: three-member Team 17 approval.
+Latest supplied reply: reuse, focused scope and application of all three courses.
+The supplied reply does not show its own date.
+
+project-2-proposal-draft.txt:
+Existing proposed commitments and baseline descriptions.
+The guide does not independently check those descriptions against Media_player code.
+
+This guide covers the practice project and the certificate assessment described locally.
+It does not establish university application, admission or graduation procedures beyond those documents.

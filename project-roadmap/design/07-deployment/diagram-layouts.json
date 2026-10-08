@@ -1,0 +1,392 @@
+{
+  "diagrams": [
+    {
+      "id": "07-physical",
+      "pageId": "page:team17-physical",
+      "name": "07 · Physical deployment",
+      "nodes": [
+        [
+          "07-host",
+          20,
+          150,
+          1340,
+          640,
+          "Single AZ · shared host network boundary",
+          "grey",
+          "none"
+        ],
+        [
+          "07-capacity",
+          20,
+          0,
+          400,
+          110,
+          "Nonburstable x86 EC2 ≥8 vCPU\n6 worker vCPU + ≥2 headroom\nEncrypted EBS | not high availability",
+          "grey",
+          "none"
+        ],
+        [
+          "07-client",
+          500,
+          0,
+          360,
+          110,
+          "Web + Publisher CLI\nHTTPS session cookie",
+          "blue",
+          "solid"
+        ],
+        [
+          "07-edge",
+          500,
+          210,
+          360,
+          110,
+          "nginx TLS · only public 443\nDNS-01; no port 80 / SSH",
+          "blue",
+          "solid"
+        ],
+        [
+          "07-mm",
+          250,
+          370,
+          350,
+          120,
+          "Media Management\nAPI + submission/cleanup\nOwn version + secrets",
+          "green",
+          "solid"
+        ],
+        [
+          "07-p",
+          850,
+          370,
+          350,
+          120,
+          "Processing API + recovery/cleanup\nSeparate cleanup secret mount\nOwn version + migration history",
+          "orange",
+          "solid"
+        ],
+        [
+          "07-worker",
+          490,
+          540,
+          320,
+          100,
+          "1 / 2 / 3 workers · 2 vCPU each\nOutput Put only | no source key",
+          "orange",
+          "solid"
+        ],
+        [
+          "07-q",
+          880,
+          540,
+          290,
+          100,
+          "Redis / RQ\nProcessing-only network",
+          "orange",
+          "solid"
+        ],
+        [
+          "07-mdb",
+          230,
+          660,
+          360,
+          90,
+          "media_db · media_runtime\nOwn migration history",
+          "green",
+          "solid"
+        ],
+        [
+          "07-pdb",
+          850,
+          660,
+          360,
+          90,
+          "processing_db · processing_runtime\nOne PostgreSQL server / two DBs",
+          "orange",
+          "solid"
+        ],
+        [
+          "07-src",
+          30,
+          860,
+          380,
+          120,
+          "Private source S3 objects\nMM source RW/delete\nWorkers: signed GET only",
+          "green",
+          "solid"
+        ],
+        [
+          "07-out",
+          510,
+          860,
+          380,
+          120,
+          "Private output S3 objects\nWorker: Put only | cleanup: List/Delete\nMM: GET/sign only",
+          "orange",
+          "solid"
+        ],
+        [
+          "07-mgmt",
+          1000,
+          860,
+          350,
+          120,
+          "ECR / SSM / CloudWatch\nOutbound HTTPS; scoped host role\nNo host S3 / workload AssumeRole",
+          "blue",
+          "solid"
+        ],
+        [
+          "07-note",
+          20,
+          1040,
+          1340,
+          120,
+          "Worker → MM source-access uses private bridge; no public worker listener. Both DB paths reach one listener; roles isolate DBs.\nIMDS blocked; 3 scoped workload secret mounts. S3 HTTPS endpoints public; objects private. Shared-host risk remains.",
+          "grey",
+          "none"
+        ]
+      ],
+      "edges": [
+        [
+          "07-client",
+          "07-edge",
+          "HTTPS 443"
+        ],
+        [
+          "07-edge",
+          "07-mm",
+          "/api"
+        ],
+        [
+          "07-mm",
+          "07-p",
+          "Private REST + owner/token"
+        ],
+        [
+          "07-mm",
+          "07-mdb",
+          "Own SQL"
+        ],
+        [
+          "07-p",
+          "07-pdb",
+          "Own SQL"
+        ],
+        [
+          "07-p",
+          "07-q",
+          "Enqueue"
+        ],
+        [
+          "07-q",
+          "07-worker",
+          "Claim"
+        ],
+        [
+          "07-worker",
+          "07-pdb",
+          "Attempt fencing"
+        ],
+        [
+          "07-mm",
+          "07-src",
+          "Source access"
+        ],
+        [
+          "07-worker",
+          "07-src",
+          "Signed GET"
+        ],
+        [
+          "07-worker",
+          "07-out",
+          "Output write"
+        ],
+        [
+          "07-mgmt",
+          "07-host",
+          "Manage / pull / logs"
+        ],
+        [
+          "07-worker",
+          "07-mm",
+          "Source-access refresh"
+        ],
+        [
+          "07-p",
+          "07-out",
+          "Cleanup List/Delete"
+        ]
+      ],
+      "nativeArrowBends": {
+        "shape:t4r68pmyhwA_6kMAd5lGH": -240,
+        "shape:glgT5sEHwGXK2QKBxJY0s": 180,
+        "shape:rJh_E3ETBG-TLMZ0wfWxs": -140
+      }
+    },
+    {
+      "id": "07-release",
+      "pageId": "page:team17-release",
+      "name": "07 · Release pipeline",
+      "nodes": [
+        [
+          "07-pr",
+          0,
+          0,
+          300,
+          140,
+          "1 · Changed-service PR\nLint / unit / frontend / integration\nContracts + boundary + secrets",
+          "blue",
+          "solid"
+        ],
+        [
+          "07-img",
+          370,
+          0,
+          300,
+          140,
+          "2 · Build + image scan\nFixable HIGH / CRITICAL block\nSeparate service images",
+          "blue",
+          "solid"
+        ],
+        [
+          "07-triage",
+          740,
+          0,
+          300,
+          140,
+          "3 · Sonar / ZAP reports\nExplicit owner + disposition\nUntriaged/high-risk blocks: proposed",
+          "blue",
+          "solid"
+        ],
+        [
+          "07-reg",
+          1110,
+          0,
+          300,
+          140,
+          "4 · ECR release\nVersion + commit + exact digest\nImmutable tags",
+          "blue",
+          "solid"
+        ],
+        [
+          "07-permit",
+          1110,
+          260,
+          300,
+          140,
+          "5 · Promotion permission\nManual gate recommended\nWebsite clicks are not approval",
+          "violet",
+          "solid"
+        ],
+        [
+          "07-oidc",
+          740,
+          260,
+          300,
+          140,
+          "6 · GitHub OIDC\nRepo/environment subject + audience\nScoped short-lived deploy role",
+          "violet",
+          "solid"
+        ],
+        [
+          "07-deploy",
+          370,
+          260,
+          300,
+          140,
+          "7 · Automated SSM release\nOwn additive migration + drain\nReplace only changed service",
+          "orange",
+          "solid"
+        ],
+        [
+          "07-smoke",
+          0,
+          260,
+          300,
+          140,
+          "8 · Readiness + HTTPS CLI smoke\nUpload → process → play\nOwner denial + clean test asset",
+          "green",
+          "solid"
+        ],
+        [
+          "07-rollback",
+          0,
+          530,
+          670,
+          130,
+          "FAIL · previous service digest; keep compatible schema\nRepeat health + smoke; report failed rollback\nNo blind shared-server restore / migration downgrade",
+          "red",
+          "solid"
+        ],
+        [
+          "07-evidence",
+          740,
+          530,
+          670,
+          130,
+          "PASS · record commit, digest, schema, redacted checks + time\nClock: first automation after approval/artifact ready, before OIDC → smoke pass\nExclude manual gate wait; MM unchanged for P release. All results NOT RUN",
+          "green",
+          "solid"
+        ],
+        [
+          "07-release-note",
+          0,
+          740,
+          1410,
+          95,
+          "Inherited Sonar and ZAP findings are report-only; execution failures and mandatory tests/image gates differ.\nPlanned triage/promotion policy requires team confirmation. Manual permission → automated delivery.",
+          "grey",
+          "none"
+        ]
+      ],
+      "edges": [
+        [
+          "07-pr",
+          "07-img",
+          ""
+        ],
+        [
+          "07-img",
+          "07-triage",
+          ""
+        ],
+        [
+          "07-triage",
+          "07-reg",
+          ""
+        ],
+        [
+          "07-reg",
+          "07-permit",
+          ""
+        ],
+        [
+          "07-permit",
+          "07-oidc",
+          ""
+        ],
+        [
+          "07-oidc",
+          "07-deploy",
+          ""
+        ],
+        [
+          "07-deploy",
+          "07-smoke",
+          ""
+        ],
+        [
+          "07-smoke",
+          "07-rollback",
+          "Fail"
+        ],
+        [
+          "07-smoke",
+          "07-evidence",
+          "Pass"
+        ]
+      ]
+    }
+  ]
+}

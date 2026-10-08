@@ -1,0 +1,256 @@
+{
+  "version": 1,
+  "date": "2026-10-09",
+  "status": "Steps 02\u201308 documentation prepared; application implementation not started",
+  "baseline": "885453726d629c524bf511d665311863d9bc70a5",
+  "persona_note": "Fictional planning personas. Names, images and situations are assumptions, not user research. Stable IDs are for project documentation, not application role names.",
+  "personas": [
+    {
+      "id": "P-01",
+      "name": "Maya",
+      "role": "Course coordinator",
+      "category": "Primary content owner",
+      "channel": "Publisher CLI, then browser review",
+      "basis": "P1 \u00a73, \u00a74.2\u20134.3. P2 \u00a71.2\u20131.3, \u00a73.1\u20133.2.",
+      "context": "Maya prepares recordings that her course team owns. She has a folder of clips ready for processing.",
+      "goal": "Submit the folder once, see each result, retry failures and check playback.",
+      "pain": "Separate upload and conversion tools require repeated manual work. A failed encode can interrupt the preparation task.",
+      "needs": [
+        "One result per submitted file, including readable failures.",
+        "A retry that uses the stored source.",
+        "Owner-only status and output access."
+      ],
+      "success": "The batch reports every file. Successful outputs play. Failed jobs can be retried without another upload.",
+      "boundary": "Maya\u2019s account owns her uploads. The demo does not model shared team ownership, student access or an LMS.",
+      "use_cases": [
+        "UC-1",
+        "UC-2",
+        "UC-3",
+        "UC-4",
+        "UC-5"
+      ]
+    },
+    {
+      "id": "P-02",
+      "name": "Arun",
+      "role": "Independent trainer",
+      "category": "Secondary content owner",
+      "channel": "FlickPond web app",
+      "basis": "P1 \u00a73, \u00a74.2\u20134.3. P2 \u00a71.2, \u00a73.2.",
+      "context": "Arun creates his own short training videos. He submits and checks one video through the browser.",
+      "goal": "Upload a video, follow its status and watch the processed result.",
+      "pain": "Video formats vary. Conversion takes time. An unclear failure leaves him unsure what to do next.",
+      "needs": [
+        "A supported video upload with clear input errors.",
+        "Visible queued, processing, done or failed status.",
+        "Playable MP4 output and best-effort HLS."
+      ],
+      "success": "His video becomes playable, or a visible failure offers a stored-source retry. Another owner cannot access it.",
+      "boundary": "Arun reviews his own output. This does not create a public channel, sharing settings, search or analytics.",
+      "use_cases": [
+        "UC-1",
+        "UC-2",
+        "UC-3",
+        "UC-4"
+      ]
+    },
+    {
+      "id": "P-03",
+      "name": "Jules",
+      "role": "Application developer",
+      "category": "Integrator",
+      "channel": "Published API and Publisher CLI source",
+      "basis": "P2 \u00a71.3, \u00a73.1, \u00a73.3\u20133.4.",
+      "context": "Jules adds video preparation to a content tool. The Publisher CLI is the project\u2019s concrete example of that integration.",
+      "goal": "Use the published API without copying the service implementation.",
+      "pain": "Each application otherwise needs storage, processing, status and access-control integration.",
+      "needs": [
+        "Documented authentication and workflow operations.",
+        "Consistent status and error responses.",
+        "A reference client with no database credentials or service imports."
+      ],
+      "success": "The CLI completes the same workflow through the API. Its implementation effort and size can be recorded.",
+      "boundary": "Jules does not require a developer portal, tenant system, API billing or a third application.",
+      "use_cases": [
+        "UC-1",
+        "UC-3",
+        "UC-4",
+        "UC-5"
+      ]
+    },
+    {
+      "id": "P-04",
+      "name": "Sam",
+      "role": "Platform operator",
+      "category": "Operational stakeholder",
+      "channel": "Deployment pipeline and operational tools",
+      "basis": "P2 \u00a73.1\u20133.4, UC-6\u2013UC-7.",
+      "context": "Sam operates the demonstration platform. Backlogs and new releases require changes to processing capacity and software versions.",
+      "goal": "Change worker capacity and release Processing while keeping Media Management unchanged.",
+      "pain": "A coupled release can disturb the user-facing application. Unclear job failures make recovery difficult to check.",
+      "needs": [
+        "Visible job outcomes and recovery behavior.",
+        "Independent worker scaling with recorded resources.",
+        "A versioned release, smoke test and rollback path."
+      ],
+      "success": "Scaling and release experiments produce traceable results. A Processing release passes its smoke test and can be rolled back.",
+      "boundary": "Sam is an operator persona, not a new product administrator feature. The scope excludes an operations dashboard and an autoscaler.",
+      "use_cases": [
+        "UC-6",
+        "UC-7"
+      ]
+    }
+  ],
+  "use_cases": [
+    {
+      "id": "UC-1",
+      "name": "Register, log in and upload an owned video",
+      "actors": "Maya / Arun. Jules integrates the API.",
+      "channel": "Web app and CLI",
+      "before": "The person owns the demonstration content. Registration or login establishes the caller.",
+      "story": "As a content owner, I want to submit a supported video so that I can prepare it for playback.",
+      "acceptance": [
+        "A valid authenticated upload of at most 100 MiB records the caller as owner and starts asynchronous work.",
+        "The client receives a reference it can use to track the submitted item.",
+        "The platform rejects anonymous, unsupported and oversized uploads."
+      ],
+      "evidence": "Owned upload result plus anonymous, invalid-type and oversized rejection cases.",
+      "source": "P2 \u00a72.3 and UC-1. P1 \u00a74.1\u20134.2 supplies background."
+    },
+    {
+      "id": "UC-2",
+      "name": "Process video into playable outputs",
+      "actors": "Platform, for Maya / Arun",
+      "channel": "Background platform workflow",
+      "before": "The platform accepted a valid source.",
+      "story": "As a content owner, I want compatible outputs without manually running a converter.",
+      "acceptance": [
+        "A successful job provides MP4 output.",
+        "Suitable sources produce best-effort HLS at the supported ladder heights. HLS failure can retain the MP4 fallback.",
+        "A processing failure leaves a visible failure state rather than an indefinite success claim."
+      ],
+      "evidence": "Source and job reference, state history, MP4 playback and HLS/fallback evidence.",
+      "source": "P2 UC-2, \u00a73.3. P1 \u00a74.3."
+    },
+    {
+      "id": "UC-3",
+      "name": "Track status and access playback",
+      "actors": "Maya / Arun as owner-viewers",
+      "channel": "Web app and CLI",
+      "before": "The caller owns the submitted item.",
+      "story": "As an owner, I want to see the processing result and check the resulting video.",
+      "acceptance": [
+        "The owner can retrieve queued, processing, done or failed status.",
+        "The browser plays the completed output. The CLI reports status and provides authorised output access.",
+        "Another owner cannot retrieve that item\u2019s status or playback access through the API."
+      ],
+      "evidence": "Owner status, browser playback, CLI output and cross-owner rejection.",
+      "source": "P2 UC-3, \u00a72.3, \u00a73.3."
+    },
+    {
+      "id": "UC-4",
+      "name": "Retry from the stored source",
+      "actors": "Maya / Arun",
+      "channel": "Web app and CLI",
+      "before": "The caller owns a failed job and its source remains available.",
+      "story": "As an owner, I want to retry a failed encode without transferring the same video again.",
+      "acceptance": [
+        "An authorised retry uses the existing source. The browser must not upload its remembered file again.",
+        "Only a failed job is eligible. The platform rejects other states and other owners.",
+        "The retry has a visible result. Attempts must not create unintended duplicate outputs."
+      ],
+      "evidence": "Failed-to-retry workflow, unchanged source, no re-upload, rejection cases and output check.",
+      "source": "P2 \u00a72.3, UC-4, \u00a73.4. Current gap: frontend/app.js lines 410\u2013412."
+    },
+    {
+      "id": "UC-5",
+      "name": "Bulk-publish a folder and report results",
+      "actors": "Maya. Jules builds the integration.",
+      "channel": "Publisher CLI",
+      "before": "Maya has credentials and a folder of team-owned demonstration videos.",
+      "story": "As a course coordinator, I want a batch command so that I avoid repeating the same web upload task.",
+      "acceptance": [
+        "The CLI submits the folder through the published API and reports each file\u2019s outcome.",
+        "Failures remain visible in the batch result. This planning choice prevents a single success message from hiding failed files.",
+        "The client uses no service-code imports and no database credentials."
+      ],
+      "evidence": "CLI command, per-file results, dependency review and actual implementation effort.",
+      "source": "P2 \u00a71.3, UC-5, \u00a73.3\u20133.4. Per-file failure visibility is the chosen business acceptance interpretation."
+    },
+    {
+      "id": "UC-6",
+      "name": "Scale processing capacity independently",
+      "actors": "Sam",
+      "channel": "Operator-controlled worker scaling",
+      "before": "A fixed test backlog and enough host capacity are available.",
+      "story": "As an operator, I want to change worker capacity without changing the user-facing service.",
+      "acceptance": [
+        "Worker count changes from one to two to three without scaling or redeploying Media Management.",
+        "The planned comparison uses thirty identical 60-second 720p clips and two vCPU per worker.",
+        "Results record throughput, queue wait, processing time, failures, CPU and memory against the proposal targets."
+      ],
+      "evidence": "Worker configurations, unchanged Media Management version and the scaling results.",
+      "source": "P2 UC-6, \u00a73.3\u20133.4."
+    },
+    {
+      "id": "UC-7",
+      "name": "Release Processing and demonstrate rollback",
+      "actors": "Sam",
+      "channel": "Operator and deployment pipeline",
+      "before": "A previous Processing image and a new candidate image exist.",
+      "story": "As an operator, I want a separate Processing release so that I can change it without releasing Media Management.",
+      "acceptance": [
+        "The pipeline deploys the new version and runs an upload-to-playback smoke test.",
+        "The Media Management container and media_db migrations remain unchanged.",
+        "The release can return to the previous image. The initial release-plus-smoke target remains at most ten minutes."
+      ],
+      "evidence": "Image references, release timing, smoke output, unchanged components and rollback result.",
+      "source": "P2 UC-7, \u00a73.4."
+    }
+  ],
+  "business_decisions": [
+    {
+      "id": "BS-01",
+      "decision": "Focus the demonstration on owned training content",
+      "reason": "Use course recordings and independent training clips as concrete examples of the small content teams in the proposals.",
+      "source": "P1 \u00a73; P2 \u00a71.2\u20131.3"
+    },
+    {
+      "id": "BS-02",
+      "decision": "Treat the authenticated uploader as the owner",
+      "reason": "\u201cCourse team\u201d is a business setting. It does not introduce organisations, shared ownership or team accounts.",
+      "source": "P2 \u00a72.3, \u00a73.3"
+    },
+    {
+      "id": "BS-03",
+      "decision": "Use the owner as the demonstrated viewer",
+      "reason": "Maya and Arun consume their own outputs. A separate learner-access or sharing system is outside this scope.",
+      "source": "P2 \u00a72.3, \u00a73.5"
+    },
+    {
+      "id": "BS-04",
+      "decision": "Define publishing as preparing owner-accessible outputs",
+      "reason": "The CLI does not make a video public, publish to an LMS or distribute it to students.",
+      "source": "P2 \u00a71.3, UC-5, \u00a73.5"
+    },
+    {
+      "id": "BS-05",
+      "decision": "Keep the web app and CLI as the two clients",
+      "reason": "The CLI demonstrates reuse. No developer portal or third application is needed.",
+      "source": "P2 \u00a71.3, \u00a73.3"
+    },
+    {
+      "id": "BS-06",
+      "decision": "Keep UC-1 through UC-7 and all proposal quality targets",
+      "reason": "These acceptance stories clarify the submitted scope. They do not replace its numeric targets.",
+      "source": "P2 \u00a73.2\u20133.4"
+    },
+    {
+      "id": "BS-07",
+      "decision": "Carry the boundary question into step 03",
+      "reason": "Two services remain the proposal direction. Detailed DDD must test their suitability before implementation.",
+      "source": "F-01; P2 \u00a72.3"
+    }
+  ],
+  "preparation_page": "build-preparation.html"
+}

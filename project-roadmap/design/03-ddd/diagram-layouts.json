@@ -1,0 +1,329 @@
+{
+  "context": {
+    "title": "03 DDD — Context authority (draft)",
+    "subtitle": "Media Management owns access and source intent. Processing owns valid attempts and outputs.",
+    "nodes": [
+      [
+        "clients",
+        0,
+        90,
+        430,
+        110,
+        "Web + Publisher CLI\nHTTPS cookie session",
+        "grey"
+      ],
+      [
+        "mm",
+        0,
+        330,
+        470,
+        220,
+        "MEDIA MANAGEMENT\nAccount + Asset + delivery\nPublic /jobs id = AssetId\nDurable pending submissions",
+        "blue"
+      ],
+      [
+        "proc",
+        900,
+        330,
+        470,
+        220,
+        "PROCESSING\nInternal JobId is separate\nJobs + attempts + output refs\nOwn queue, workers and reaper",
+        "green"
+      ],
+      [
+        "mdb",
+        0,
+        790,
+        470,
+        130,
+        "media_db — MM role\nAccount / Asset / submission intent\nOwn migration history",
+        "blue"
+      ],
+      [
+        "pdb",
+        900,
+        790,
+        470,
+        130,
+        "processing_db — P role\nJob / attempts / output refs\nOwn migration history",
+        "green"
+      ]
+    ],
+    "edges": [
+      [
+        "clients",
+        "mm",
+        "Public API",
+        0
+      ],
+      [
+        "mm",
+        "proc",
+        "SubmitJob: idempotent AssetId",
+        0
+      ],
+      [
+        "proc",
+        "mm",
+        "Scoped source-access request",
+        180
+      ],
+      [
+        "proc",
+        "mm",
+        "Live owner-filtered results",
+        -180
+      ],
+      [
+        "mm",
+        "mdb",
+        "Own data",
+        0
+      ],
+      [
+        "proc",
+        "pdb",
+        "Own data",
+        0
+      ]
+    ],
+    "notes": [
+      [
+        0,
+        980,
+        1370,
+        "Translation: MM combines Asset + live Processing result on read; submitted outage returns 503.\nPending maps to queued/pending; error maps to failed/error. No stored encode-state cache.\nSource access: MM checks local owner/revision/deletion; P checks its current reserved attempt."
+      ]
+    ]
+  },
+  "aggregates": {
+    "title": "03 DDD — Aggregates and invariants (draft)",
+    "subtitle": "Logical consistency boundaries; identifiers cross contexts, tables and credentials do not.",
+    "nodes": [
+      [
+        "account",
+        0,
+        170,
+        500,
+        130,
+        "MM: ACCOUNT ROOT\nOwnerId + account identity\nCredentials stay in MM",
+        "blue"
+      ],
+      [
+        "asset",
+        0,
+        430,
+        500,
+        210,
+        "MM: ASSET ROOT\nPublic AssetId + OwnerId\nImmutable source + revision\nPending intent + deletion state",
+        "blue"
+      ],
+      [
+        "projection",
+        0,
+        840,
+        500,
+        160,
+        "MM: READ-TIME PUBLIC VIEW\nAsset + live Processing result\nNo stored encode-state cache",
+        "blue"
+      ],
+      [
+        "job",
+        850,
+        170,
+        500,
+        210,
+        "P: PROCESSING JOB ROOT\nInternal JobId != public AssetId\nUnique AssetId + owner + revision\nAuthoritative job state",
+        "green"
+      ],
+      [
+        "attempt",
+        850,
+        490,
+        500,
+        160,
+        "P: ATTEMPT ENTITY\nReserved queued ID on submit/retry\nClaim retains that ID + sets lease",
+        "green"
+      ],
+      [
+        "output",
+        850,
+        840,
+        500,
+        160,
+        "P: OUTPUT SET VALUE\nWinning primary ref; optional HLS\nPlain MP4 / inherited MKV or MP3",
+        "green"
+      ]
+    ],
+    "edges": [
+      [
+        "account",
+        "asset",
+        "Local owner reference",
+        0
+      ],
+      [
+        "asset",
+        "projection",
+        "Compose local fields",
+        0
+      ],
+      [
+        "job",
+        "attempt",
+        "Reserve on submit / retry",
+        0
+      ],
+      [
+        "attempt",
+        "output",
+        "Matching-attempt commit",
+        0
+      ],
+      [
+        "asset",
+        "job",
+        "Opaque IDs; no cross-service FK",
+        0
+      ],
+      [
+        "output",
+        "projection",
+        "Live read + translate",
+        0
+      ]
+    ],
+    "notes": [
+      [
+        0,
+        1080,
+        1350,
+        "Queue delivery carries (job_id, attempt_id); claims and results must match the current reserved ID.\nPlain uploads require MP4. Inherited conversion edits retain MKV/MP3 primary output compatibility."
+      ]
+    ]
+  },
+  "lifecycle": {
+    "title": "03 DDD — Submission and processing (draft)",
+    "subtitle": "Asset handoff state and Processing state describe different facts. A submitted Asset can have a failed job.",
+    "nodes": [
+      [
+        "pending",
+        0,
+        180,
+        340,
+        140,
+        "MM: PENDING\nSource + intent durable\nPublic: queued / pending",
+        "blue"
+      ],
+      [
+        "submitted",
+        510,
+        180,
+        340,
+        140,
+        "MM: SUBMITTED\nLive Processing read\nDownstream outage: 503",
+        "blue"
+      ],
+      [
+        "error",
+        1020,
+        180,
+        340,
+        140,
+        "MM: ERROR\nPermanent handoff rejection\nPublic: failed / error",
+        "orange"
+      ],
+      [
+        "queued",
+        0,
+        610,
+        280,
+        130,
+        "P: QUEUED\nAttemptId already reserved",
+        "green"
+      ],
+      [
+        "processing",
+        410,
+        610,
+        340,
+        160,
+        "P: PROCESSING\nClaim keeps reserved AttemptId\nCurrent valid lease",
+        "green"
+      ],
+      [
+        "done",
+        970,
+        510,
+        340,
+        130,
+        "P: DONE\nPrimary output committed\nOptional HLS",
+        "green"
+      ],
+      [
+        "failed",
+        970,
+        850,
+        340,
+        130,
+        "P: FAILED\nSafe failure reason\nSource retained",
+        "orange"
+      ],
+      [
+        "stale",
+        0,
+        1220,
+        620,
+        140,
+        "OLD ATTEMPT RESULT\nWrong AttemptId / expired claim\nReject publication; reconcile orphan objects",
+        "red"
+      ]
+    ],
+    "edges": [
+      [
+        "pending",
+        "submitted",
+        "Accepted",
+        0
+      ],
+      [
+        "pending",
+        "error",
+        "Permanent rejection",
+        180
+      ],
+      [
+        "queued",
+        "processing",
+        "Claim same ID",
+        0
+      ],
+      [
+        "processing",
+        "done",
+        "Valid attempt + primary",
+        0
+      ],
+      [
+        "processing",
+        "failed",
+        "Failure / fenced expiry",
+        0
+      ],
+      [
+        "failed",
+        "queued",
+        "Retry reserves next AttemptId",
+        -280
+      ]
+    ],
+    "notes": [
+      [
+        0,
+        1430,
+        1360,
+        "SubmitJob / new RetryJob reserves the queued attempt; RQ carries (job_id, attempt_id).\nMissing delivery re-enqueues the same pair. Retry request replay reserves no additional attempt.\nOnly winning refs publish: MP4 for plain upload; MKV/MP3 for inherited conversion edits."
+      ]
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+sequenceDiagram
+    participant MM as Media Management
+    participant P as Processing + DB
+    participant Q as Redis/RQ
+    participant W as Worker
+    Note over MM,W: Design only — all protocols not run
+    MM->>MM: Commit source + pending Asset before 202
+    MM->>P: Submit same asset ID (5s timeout)
+    alt P unavailable
+        MM->>MM: Durable periodic backoff ≤60s, alert 5min, escalate 30min
+    else Job committed
+        P->>Q: Enqueue current attempt after commit
+        Note over P,Q: Lost entry + surviving hash: DB scan repairs membership ≤2min
+        Q->>W: Deliver attempt ID
+        W->>P: Conditional first claim of reserved attempt ID + 60s lease
+        W->>MM: Refresh owner/revision source URL (900s)
+        loop Every 15s during encode
+            W->>P: Heartbeat only current processing + unexpired lease
+        end
+        alt Worker killed or lease lost
+            Note over W: Stop/kill FFmpeg, cannot publish
+            P->>P: 15s sweep marks expired attempt failed ≤5min
+            MM->>P: Explicit retry ID creates one new attempt
+        else Valid completion
+            W->>P: Publish verified attempt outputs under live fence
+        end
+    end
+    Note over MM,P: Cancel and Submit share guard, stale completions rejected

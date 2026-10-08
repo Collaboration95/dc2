@@ -1,0 +1,366 @@
+{
+  "status": "designed; not implemented",
+  "records": [
+    {
+      "id": "AD-01",
+      "title": "Extract Processing as the only new service",
+      "status": "designed; not implemented",
+      "owner": "Long (architecture documentation); Ibrahim (implementation review); team review pending",
+      "context": "The baseline has separate worker processes, but API, workers and reaper share Job code, credentials and one user-linked database. F-01 asks the team to justify suitable microservices in detailed DDD. Candidate contexts are Identity, Media, Processing and Delivery.",
+      "alternatives": [
+        "Keep a modular monolith: simpler calls and transactions, but retain common release/data ownership unless the product only needs internal reuse.",
+        "Split Identity, Media, Processing and Delivery: small responsibility sets, but adds three boundaries, identity/playback coordination and releases for this team."
+      ],
+      "decision": "Combine Identity, Media and Delivery in Media Management (MM); extract Processing (P) as one separately owned/deployed service. MM owns Account, Asset and owner access. P owns Job, Attempt, Output, asynchronous queue/FFmpeg and job reconciliation. Worker/reaper containers are processes within P, not further business services. Separate lifecycle, consistency rules and change ownership justify the boundary; CPU profile supports it but is not its sole justification.",
+      "positive_consequences": [
+        "Asset acceptance and owner access remain coherent without distributing account rules.",
+        "P can change FFmpeg, attempt rules and migrations without importing MM models or altering media_db.",
+        "Both web and CLI reuse the same public workflow."
+      ],
+      "negative_consequences": [
+        "Extra network contract, authentication and eventually consistent status add work.",
+        "Same host CPU, storage and database server remain shared failure/resource boundaries.",
+        "Small team still coordinates two deployable services; service separation alone does not ensure faster processing."
+      ],
+      "validation": [
+        "Review aggregates and invariants against detailed step 03 DDD and F-01.",
+        "Verify MM cannot import P ORM/domain modules or query processing_db; P cannot read media_db.",
+        "Release P with unchanged MM image/media_db migrations; run web/CLI upload-to-playback contract smoke checks.",
+        "Compare 1/2/3 worker throughput under CPU caps; record results rather than claim an unmeasured improvement."
+      ],
+      "validation_status": "Planned implementation checks; no runtime or measurement evidence produced by this documentation task.",
+      "use_cases": [
+        "UC-1",
+        "UC-2",
+        "UC-3",
+        "UC-5",
+        "UC-6",
+        "UC-7"
+      ],
+      "sources": [
+        "P2 §1.4, §2.3, AD-01",
+        "F01 F-01",
+        "C01",
+        "C02",
+        "C06",
+        "BS"
+      ]
+    },
+    {
+      "id": "AD-02",
+      "title": "Two service databases on one PostgreSQL server",
+      "status": "designed; not implemented",
+      "owner": "Long (architecture documentation); Ibrahim (implementation review); team review pending",
+      "context": "Current jobs.owner_id references users.id within the shared database; API and workers use the same DSN. The proposed services need enforceable data and migration ownership with low operational cost.",
+      "alternatives": [
+        "One database and shared tables: cheap, but permits cross-service joins and couples migrations.",
+        "Two schemas with broad roles: less setup, but weaker separation if grants remain shared.",
+        "Separate PostgreSQL servers: independent capacity/failure isolation at greater demonstration cost."
+      ],
+      "decision": "Use one PostgreSQL server with media_db and processing_db. MM runtime role can connect/use only media_db; P API, workers and reaper roles can access only processing_db with permissions appropriate to their process. Each service has its own migration history and migration role limited to its database. Revoke default cross-database CONNECT and broad privileges; runtime roles are not superusers and cannot create roles/databases. owner_id/asset_id in P are opaque identifiers, not foreign keys into MM. No federated query, FDW or shared ORM table.",
+      "positive_consequences": [
+        "Database permissions make service ownership testable.",
+        "One server lowers operating cost and setup effort.",
+        "Independent schema changes are possible within published contract compatibility."
+      ],
+      "negative_consequences": [
+        "One server outage affects both databases; connections, CPU and I/O compete.",
+        "Cross-service consistency requires API checks and reconciliation instead of SQL joins.",
+        "Separate database names alone are insufficient without grants and role checks."
+      ],
+      "validation": [
+        "For each runtime/migration credential, prove own allowed operations and denied other-database connection/table access.",
+        "Inspect role grants for superuser, default CONNECT, public schemas and cross-database extensions.",
+        "Apply each service migration independently without the other service credentials or migration execution."
+      ],
+      "validation_status": "Planned implementation checks; no runtime or measurement evidence produced by this documentation task.",
+      "use_cases": [
+        "UC-1",
+        "UC-2",
+        "UC-3",
+        "UC-7"
+      ],
+      "sources": [
+        "P2 AD-02, §2.3",
+        "C01 lines 39, 76, 128",
+        "C02 lines 50–53"
+      ]
+    },
+    {
+      "id": "AD-03",
+      "title": "Synchronous durable submission; asynchronous Redis/RQ processing",
+      "status": "designed; not implemented",
+      "owner": "Long (architecture documentation); Ibrahim (implementation review); team review pending",
+      "context": "Clients need an immediate accepted-item reference while FFmpeg is long-running. Redis/RQ already queues and executes processing. Upload acceptance must remain durable during a P outage.",
+      "alternatives": [
+        "Synchronous FFmpeg in upload request: simpler chain, but long requests and no independent worker workflow.",
+        "New event broker between services: decouples delivery but adds new infrastructure/contract operation.",
+        "Publish directly from MM into P queue: avoids HTTP but exposes worker import paths and couples clients to P internals."
+      ],
+      "decision": "MM writes the immutable source then commits Asset(pending) plus intake request-key intent before attempting synchronous authenticated SubmitJob. P commits a durable queued Job plus first queued Attempt in processing_db; enqueue (job_id, attempt_id) to Redis/RQ only after commit. Queue publication failure leaves accepted recoverable work. MM returns 202 {job_id: asset_id} after durable intake. Pending owner reads return 200 status=queued, submission_status=pending, with no playback links; this is the public intake projection, not confirmation of a P Job. Submitted owner/list reads use live P queries; P dependency outage or a missing submitted Job returns 503. No mandatory stored encode-state cache/freshness fields. Bounded timeouts preserve MM responsiveness. MM never accesses Redis; no event broker.",
+      "positive_consequences": [
+        "Immediate owner-visible asset reference and durable intake across P outage.",
+        "Reuse existing RQ/FFmpeg without a new transport.",
+        "Only P owns task payloads and queue permissions."
+      ],
+      "negative_consequences": [
+        "DB commit and enqueue are separate actions; reconciliation is necessary.",
+        "Status polling and submit calls add network latency.",
+        "Pending admission can build backlog while P is unavailable; durability does not guarantee a finish time."
+      ],
+      "validation": [
+        "Stop P, upload valid content, restart MM and verify asset/source/pending survive; restore P and observe submission.",
+        "Lose queue entry after committed Job and verify eventual enqueue without a second Job.",
+        "Verify upload returns before FFmpeg completes and MM has no Redis credentials.",
+        "Measure proposed polling/login targets after implementation; do not infer them from diagram.",
+        "Verify pending reads are queued/pending without outputs, while submitted dependency failure/missing Job is 503.",
+        "Verify SubmitJob commits Job and first queued Attempt before enqueue, and claim starts that same Attempt."
+      ],
+      "validation_status": "Planned implementation checks; no runtime or measurement evidence produced by this documentation task.",
+      "use_cases": [
+        "UC-1",
+        "UC-2",
+        "UC-3",
+        "UC-5"
+      ],
+      "sources": [
+        "P2 AD-03, §3.3–3.4",
+        "C03",
+        "C06",
+        "C08",
+        "U04",
+        "K05 owner content and OpenAPI, reconciled 9 October 2026"
+      ]
+    },
+    {
+      "id": "AD-04",
+      "title": "Idempotency by asset_id with durable reconciliation",
+      "status": "designed; not implemented",
+      "owner": "Long (architecture documentation); Ibrahim (implementation review); team review pending",
+      "context": "A submit response may be lost after P commits. MM must retry an accepted asset without creating an extra job, and database/queue writes cannot form one distributed transaction. The existing reaper handles some local gaps, not the new MM-to-P pending gap.",
+      "alternatives": [
+        "Distributed transaction across both DBs and Redis: complex and incompatible with a small HTTP/RQ boundary.",
+        "Transactional outbox/event relay: strong delivery bookkeeping, but adds implementation and operations not selected in the proposal.",
+        "Blind retry without durable intent/uniqueness: may lose submissions or create duplicate work."
+      ],
+      "decision": "P enforces unique asset_id and an immutable canonical fingerprint of owner, source revision/digest/type/size and ordered operations. source_url and its expiry are excluded. Same-request SubmitJob replay returns the existing Job/current Attempt; changed owner/payload is rejected. MM durably retains pending intent/correlation and resubmits by asset_id. New web/CLI uploads and edits use owner/operation-scoped Idempotency-Key to avoid creating duplicate Assets before SubmitJob. P reserves first queued Attempt in Submit commit. For RetryJob, look up retained retry_request_id before state checks; a replay returns the current result without a new Attempt, while a new failed-state retry atomically reserves next queued Attempt and updates the current pointer before enqueue. Workers claim only the already-reserved current queued Attempt; they do not mint it. P owns missing-delivery/stale-attempt reconciliation and winning-completion fencing, publishing durable refs under attempt-specific keys. MM composes submitted public projections from live P reads, not a required stored status cache. No distributed transaction or event broker. P submission_guards stores an owner-bound row per asset_id and serialises Submit/Cancel on that row; stable asset-ID cancellation can precede Job creation and tombstones reject delayed Submit. Guards remain throughout the demo. MM persists immutable derived-edit operations with the pending Asset for faithful Submit replay.",
+      "positive_consequences": [
+        "Safe submit replay after timeout without a second Job.",
+        "Durable pending record covers P outage independently of P reaper.",
+        "No cross-service transaction or event broker; one asset-to-job correlation.",
+        "Attempt isolation prevents a late attempt from replacing the current published output."
+      ],
+      "negative_consequences": [
+        "Submission and queue delivery are eventually reconciled; no exactly-once execution is promised. Submitted reads need live P availability and return 503 on dependency failure.",
+        "Reconciliation scheduling, stale-attempt fencing and cleanup require step 06 implementation.",
+        "A pending row is not proof of delivery; logging and meaningful outcome visibility remain necessary."
+      ],
+      "validation": [
+        "Concurrently replay same asset_id with fresh source URLs: one Job and unchanged identity.",
+        "Change owner/revision/request under same asset_id: reject without modifying existing job.",
+        "Drop SubmitJob response after commit: pending MM replay obtains existing Job.",
+        "Kill MM between intake/submit/ack steps and verify pending work remains recoverable.",
+        "Race late and winning attempts: only winning refs published; orphan attempt outputs not served.",
+        "Specify and exercise recovery timings separately in step 06; inherited reaper defaults do not satisfy proposal targets by assertion.",
+        "Check stable upload/edit request keys select one Asset; changed fingerprint conflicts.",
+        "Replay retry_request_id after the Job finishes: no new Attempt; changed new retry from nonfailed is 409.",
+        "Verify claim/enqueue use the current durable attempt_id created at Submit/Retry commit.",
+        "Race Submit/Cancel in both orders, including lost Submit acknowledgement: cancel by asset_id succeeds, no delayed resurrection, guard remains throughout demo.",
+        "Restart pending derived edit after source copy: replay retains identical ordered operations; source-dependent geometry failure becomes visible asynchronous failure."
+      ],
+      "validation_status": "Planned implementation checks; no runtime or measurement evidence produced by this documentation task.",
+      "use_cases": [
+        "UC-1",
+        "UC-2",
+        "UC-3",
+        "UC-4",
+        "UC-5"
+      ],
+      "sources": [
+        "P2 AD-04, §3.3–3.4",
+        "C05",
+        "C06",
+        "C08",
+        "U04",
+        "K05 owner content and OpenAPI, reconciled 9 October 2026"
+      ]
+    },
+    {
+      "id": "AD-05",
+      "title": "Presigned source reads and private output delivery with separate credentials",
+      "status": "designed; not implemented",
+      "owner": "Long (architecture documentation); Ibrahim (implementation review); team review pending",
+      "context": "Today API and worker MinIO clients use the same bucket credentials. A source URL minted at submit can expire while queued; storing expiring playback URLs would also make successful results brittle.",
+      "alternatives": [
+        "Shared bucket-wide credentials: easy reuse but worker can access MM-owned source objects.",
+        "Public source/output buckets: avoids signing but breaks owner access and private storage.",
+        "Store one submit-time URL permanently: simple payload but queue delay invalidates work."
+      ],
+      "decision": "Keep private source and output stores with separate permissions. MM source role writes/reads/signs sources; workers receive no source credentials. SubmitJob includes transient source_url and expiry per proposal, both excluded from the immutable fingerprint and not durable source truth. ReadSource grants a single-object GET URL with a 15-minute design default via MM POST /internal/v1/assets/{asset_id}/source-access: reverse scoped service token, X-Owner-Id and revision. MM checks its own owner, revision and nondeleted Asset, accepting no arbitrary URL/bucket/key. P checks its live Attempt locally; no MM callback/cross-DB lookup. Workers validate configured storage origins/prefixes and avoid arbitrary redirects. Workers write only attempt-specific outputs; P cleanup has separate scoped permissions. MM has output-read/sign only, including playlist reads. P persists winning durable Output refs; MM composes submitted responses from live P reads and signs fresh 15-minute primary-output/segment URLs without storing them. Standard intake produces MP4 plus best-effort HLS; MKV/MP3 primary outputs are inherited edit compatibility only. HLS playlists remain on MM owner routes; segment redirects are freshly signed.",
+      "positive_consequences": [
+        "Workers cannot list/read the source bucket through long-lived credentials.",
+        "Queue delay and retry can obtain a fresh URL for the same source revision.",
+        "MP4 data/segments can flow directly from object storage, while HLS playlists retain correct API-relative paths.",
+        "Output references survive playback URL expiry."
+      ],
+      "negative_consequences": [
+        "A presigned URL is bearer access until expiry; owner checking governs issuance, not every subsequent object GET.",
+        "Workers need MM source-access availability to refresh; reciprocal call direction introduces a runtime dependency, but no circular authorisation lookup.",
+        "Per-bucket roles, correct signing endpoints and HLS session continuity require implementation checks.",
+        "Attempt output isolation creates orphan cleanup work; worker write-only permissions limit direct output inspection."
+      ],
+      "validation": [
+        "Queue until submit URL expires, then fetch through source-access and process successfully.",
+        "Reject wrong owner/revision, deleted asset, missing/wrong reverse token and arbitrary object-key requests.",
+        "Prove workers cannot access sources by storage credential and MM cannot write output objects.",
+        "Expire/tamper playback URL, reject cross-owner API/HLS access, reject playlist path traversal.",
+        "Play real HLS in browser; master/rendition playlists remain on MM routes and segments use private signed redirects.",
+        "Verify no URL tokens in durable output records or ordinary logs; signer uses consumer-reachable HTTPS host.",
+        "Verify source/output grant expiry defaults to 15 minutes and ReadSource response carries expires_at plus immutable descriptor.",
+        "Reject unconfigured source origins/prefixes and arbitrary redirects; confirm source URLs/expiries are not durable identifiers.",
+        "Verify standard intake remains MP4/best-effort HLS; MKV/MP3 are only explicit inherited edit conversions."
+      ],
+      "validation_status": "Planned implementation checks; no runtime or measurement evidence produced by this documentation task.",
+      "use_cases": [
+        "UC-1",
+        "UC-2",
+        "UC-3",
+        "UC-4"
+      ],
+      "sources": [
+        "P2 AD-05, §3.3",
+        "C07",
+        "C09",
+        "C10",
+        "U04",
+        "K05 owner content and OpenAPI, reconciled 9 October 2026"
+      ]
+    },
+    {
+      "id": "AD-06",
+      "title": "Private internal API with scoped service token and forwarded owner",
+      "status": "designed; not implemented",
+      "owner": "Long (architecture documentation); Ibrahim (implementation review); team review pending",
+      "context": "Public callers authenticate to MM; P still needs an enforceable caller/owner boundary without sharing users tables. A private network alone does not establish authority.",
+      "alternatives": [
+        "Private network without service authentication: reachable internal caller can issue work.",
+        "Reuse end-user cookie directly in P: makes P depend on MM session/account implementation.",
+        "Mutual TLS: stronger peer identity, but adds certificate operations beyond the selected demonstration."
+      ],
+      "decision": "MM authenticates browser and CLI through the existing HTTPS cookie session; CLI uses a cookie jar. No new public bearer-token flow. Only MM is publicly routed for /auth, /upload and /jobs. MM-to-P calls carry a scoped service token and owner_id derived from the verified session, never an untrusted public owner header. P authorises service token and filters all GetJob/ListJobs/RetryJob operations by stored owner_id. Submit binds immutable owner+asset. Reverse source-access token is distinct/scoped to that operation; MM checks owner/revision/not-deleted and P owns attempt validation. Internal APIs, queue and DB ports are private; object contents remain private although capability-authorised HTTPS object retrieval is possible. MM authorises existing operator sessions for /admin/jobs, then forwards each target owner and batches reads by owner through the same owner-filtered P API. There is no unscoped P admin operation. Step 05 defines X-Owner-Id and direction-specific scoped service tokens.",
+      "positive_consequences": [
+        "Small boundary that can be exercised with negative tests.",
+        "P cannot be bypassed by guessing a Job UUID or omitting owner filters.",
+        "No copied accounts or public authentication protocol addition required for CLI."
+      ],
+      "negative_consequences": [
+        "Forwarded owner is trusted as asserted by authorised MM; compromised MM credentials remain a trust risk.",
+        "Static service tokens require secret handling and eventual rotation; full key rotation is out of scope.",
+        "Private network does not isolate failures or remove need for TLS/public object endpoint design."
+      ],
+      "validation": [
+        "Reject missing/forged/wrong-scope token; reject cross-owner read/list/retry.",
+        "Attempt public access to P, Redis and PostgreSQL: unavailable.",
+        "CLI completes login/upload/poll/retry with cookie jar; logout/expiry remain explicit.",
+        "Exercise operator compatibility separately with ordinary user rejection and per-target owner forwarding with no unscoped P API.",
+        "Verify secrets absent from source/image/logs; deployment injects them."
+      ],
+      "validation_status": "Planned implementation checks; no runtime or measurement evidence produced by this documentation task.",
+      "use_cases": [
+        "UC-1",
+        "UC-3",
+        "UC-4",
+        "UC-5",
+        "UC-7"
+      ],
+      "sources": [
+        "P2 AD-06, §3.3",
+        "C04",
+        "C11",
+        "U04",
+        "K05 owner content and OpenAPI, reconciled 9 October 2026"
+      ]
+    },
+    {
+      "id": "AD-07",
+      "title": "AWS containers in one small environment; product selection deferred",
+      "status": "designed; not implemented",
+      "owner": "Long (architecture documentation); Ibrahim (implementation review); team review pending",
+      "context": "The accepted proposal commits to AWS and independently deployable containers with private durable storage. Existing containers provide a starting point; a three-member team cannot justify Kubernetes or multiple environments solely for the demonstration.",
+      "alternatives": [
+        "Kubernetes: powerful orchestration but excess operating work for this scope.",
+        "Multiple environments or multi-zone infrastructure: better isolation at extra cost, excluded from current proposal.",
+        "One inseparable application image/release: easy operation but cannot demonstrate P-only release."
+      ],
+      "decision": "Plan one small AWS environment running separate MM and P container release units; P includes API, worker and reaper processes. Preserve developer-local container execution. One PostgreSQL server hosts the two owned databases; media is in private object storage, Redis/RQ stays internal. Logical reference deployment shares one compute host: host outage and CPU/memory/I/O contention affect both services. Only HTTPS application and authorised object-access endpoints are public; internal P API, DB and queue have no public routes. Exact AWS products, host capacity, storage/network topology, secret delivery and SKU/cost decisions are deferred to step 07; this ADR does not select ECS, EC2, Lightsail, RDS, S3 or another product. Per-service versioned release, health checks and upload-to-playback smoke test are planned capabilities.",
+      "positive_consequences": [
+        "Builds on existing packaging and limits demonstration operating effort.",
+        "Independent container releases provide a concrete way to test UC-7.",
+        "Same logical stack can be rehearsed locally."
+      ],
+      "negative_consequences": [
+        "Single-host reference deployment is a shared SPOF and resource ceiling; two services are not high availability.",
+        "1/2/3 workers at 2 vCPU each require enough aggregate host capacity; caps alone do not reserve CPU.",
+        "P outage intake assumes MM, source storage and media_db remain reachable; host/database/storage outage is broader.",
+        "No AWS infrastructure, deployment or quality target is proved by this logical design."
+      ],
+      "validation": [
+        "In step 07 resolve products/cost/security topology and demonstrate private internal ports plus HTTPS object capability access.",
+        "Record CPU, memory, queue and storage contention under fixed backlog; verify MM release unchanged.",
+        "Deploy P version and rollback prior image without MM/media_db change, against proposal ≤10-minute target.",
+        "Preserve raw smoke/performance/security results; report shared-host limits."
+      ],
+      "validation_status": "Planned implementation checks; no runtime or measurement evidence produced by this documentation task.",
+      "use_cases": [
+        "UC-6",
+        "UC-7"
+      ],
+      "sources": [
+        "P2 AD-07, §2.5, §3.3–3.5",
+        "C01",
+        "U04"
+      ]
+    },
+    {
+      "id": "AD-08",
+      "title": "Use fresh owned demonstration data",
+      "status": "designed; not implemented",
+      "owner": "Long (architecture documentation); Ibrahim (implementation review); team review pending",
+      "context": "The team needs repeatable evidence on the selected local baseline, not migration of historic accounts and videos. Existing Job UUIDs and borrowed edit sources would complicate the new Asset model.",
+      "alternatives": [
+        "Migrate historic users/jobs/storage keys: preserves history but adds mappings, migration testing and ownership risk.",
+        "Reuse arbitrary third-party data: convenient but unsuitable as owned, repeatable demonstration content."
+      ],
+      "decision": "Start the new service databases with new test accounts and team-owned video sources. No historical data migration or reinterpretation of existing Job IDs is required. Public compatibility /jobs/{id} names now carry MM asset_id; P has a separate internal Job UUID. Document this semantic change and keep original materials unchanged. Use identified test fixtures and planned fixed clips; record actual preparation and results later.",
+      "positive_consequences": [
+        "Keeps project effort on service ownership, contracts and evidence.",
+        "No historical cross-service foreign-key or job-to-asset migration obligation.",
+        "Stable demonstration inputs support comparable experiments."
+      ],
+      "negative_consequences": [
+        "Historical accounts/links are not preserved.",
+        "New public-ID semantics need compatibility documentation even though data is fresh.",
+        "Fresh fixtures do not demonstrate production migration or general real-world performance."
+      ],
+      "validation": [
+        "Initialise empty databases independently; create/register owners via MM.",
+        "Show /upload reference equals public Asset ID and differs from internal P Job UUID.",
+        "Verify demo content provenance and hash/count of fixed experiment inputs.",
+        "Check original proposal/source files remain unmodified and no migration claim is made."
+      ],
+      "validation_status": "Planned implementation checks; no runtime or measurement evidence produced by this documentation task.",
+      "use_cases": [
+        "UC-1",
+        "UC-5",
+        "UC-6",
+        "UC-7"
+      ],
+      "sources": [
+        "P2 AD-08, §3.5, §4.4",
+        "F01 D-01",
+        "C03",
+        "U04"
+      ]
+    }
+  ]
+}

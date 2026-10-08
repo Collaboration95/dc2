@@ -1,0 +1,12 @@
+{
+  "diagrams": [
+    {
+      "id": "06-recovery-sequence",
+      "title": "Durable intake and irreversible lease recovery",
+      "source": "recovery.mmd",
+      "svg": "recovery-board.svg"
+    }
+  ],
+  "boardUrl": "https://www.tldraw.com/f/VlAHwy0_tdoQir9rWeSqB",
+  "pageId": "page:team17-recovery"
+}

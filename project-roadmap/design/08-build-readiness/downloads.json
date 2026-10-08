@@ -1,0 +1,37 @@
+[
+  {
+    "file": "report-outline.txt",
+    "label": "Full report skeleton",
+    "description": "Original sections; results not collected"
+  },
+  {
+    "file": "evidence-index.csv",
+    "label": "Evidence index",
+    "description": "E-01–E-10; blank observations"
+  },
+  {
+    "file": "evidence-manifest.template.json",
+    "label": "Reusable run manifest",
+    "description": "Null fields until measured"
+  },
+  {
+    "file": "effort-log.csv",
+    "label": "Member effort ledger",
+    "description": "Project 1/2 actual hours separately"
+  },
+  {
+    "file": "progress-template.txt",
+    "label": "Progress report template",
+    "description": "Actual hours, issues and next fortnight"
+  },
+  {
+    "file": "presentation-source-map.txt",
+    "label": "Presentation source map",
+    "description": "Dates, sources and feedback placeholders"
+  },
+  {
+    "file": "first-build-work-order.txt",
+    "label": "First local build order",
+    "description": "Future sequence; no application changes"
+  }
+]

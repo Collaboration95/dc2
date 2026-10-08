@@ -1,0 +1,766 @@
+{
+  "prepared": "2026-10-09",
+  "timezone": "Asia/Singapore",
+  "steps": [
+    {
+      "title": "Approval and local baseline recorded",
+      "short": "Scope & baseline",
+      "owner": "Guruprasath \u00b7 team review",
+      "report": "1.4 \u00b7 2.1\u20132.3",
+      "depends": "Start here",
+      "intro": "The lecturer accepts the proposal. The user selected the current local Media_player commit. Step 02 can proceed.",
+      "actions": [
+        "Retain the lecturer\u2019s supplied feedback as F-01. The only open design comment asks for detailed DDD justification of the microservice choices.",
+        "Use local commit 885453726d629c524bf511d665311863d9bc70a5 as the implementation starting point. Upstream changes are not a prerequisite.",
+        "Keep the future repository transition separate. The user plans to remove the submodule arrangement and use the team\u2019s own remote later.",
+        "Keep the business and scope register from step 02. Continue the member effort ledger alongside later work."
+      ],
+      "outputs": [
+        "Approval and baseline decisions: records/project-decisions.txt. The original proposal remains unchanged.",
+        "Step 02 business statement, personas, use cases and contribution map are prepared in business-scope.html."
+      ],
+      "decisions": "Working-plan decision D-01 replaces the historical 890c5ec starting-point reference with local 8854537. No pull, upstream comparison, remote change or submodule migration is needed for this step. Detailed DDD remains an explicit future action, not completed evidence.",
+      "done": "The approval and baseline questions are resolved. Routine project records can continue without blocking the business and scope work.",
+      "sources": [
+        [
+          "decisions",
+          "F-01, D-01\u2013D-03"
+        ],
+        [
+          "proposal",
+          "\u00a71.1, \u00a72.3"
+        ]
+      ]
+    },
+    {
+      "title": "Business and scope prepared",
+      "short": "Business & scope",
+      "owner": "Long \u00b7 all members",
+      "report": "1.1\u20131.4 \u00b7 3.1.4",
+      "depends": "Step 01",
+      "intro": "The scope now has a concrete audience, four fictional personas, a business context diagram and acceptance stories for all seven use cases.",
+      "actions": [
+        "Use owned training content as the demonstration setting: a course team\u2019s clips and an independent trainer\u2019s videos.",
+        "Use P-01 Maya and P-02 Arun as content owners and owner-viewers. Use P-03 Jules as the integrator and P-04 Sam as the operator.",
+        "Keep the authenticated uploader as the owner. Do not add shared team ownership, learner accounts or public sharing.",
+        "Use UC-1 through UC-7 and their acceptance stories to keep the workflow and operations in scope.",
+        "Reuse the prepared scope and contribution tables in report sections 1.1\u20131.4. Use the context diagram as input to later platform design."
+      ],
+      "outputs": [
+        "Business statement, stakeholder register, four doodle personas, context diagram and a representative owner journey.",
+        "Seven use-case acceptance stories, explicit exclusions, inherited/new contribution map and business decisions BS-01\u2013BS-07.",
+        "Stable persona and use-case IDs in business-scope.json. All fictional persona details are labelled."
+      ],
+      "decisions": "Course teams and trainers are concrete examples of the approved small-content-team audience. Publishing means preparing owner-accessible outputs. The web app and Publisher CLI remain the two clients. The two-service design still needs the lecturer-requested DDD justification in step 03.",
+      "done": "Step 02 material is prepared for team review. There is no unresolved business-scope question blocking the next discussion. Step 03 remains unstarted.",
+      "sources": [
+        [
+          "project1",
+          "\u00a73\u20134"
+        ],
+        [
+          "proposal",
+          "\u00a71.2\u20131.3, \u00a73.1\u20133.5"
+        ],
+        [
+          "decisions",
+          "F-01, D-03"
+        ]
+      ],
+      "status": "prepared",
+      "deliverable": "business-scope.html"
+    },
+    {
+      "title": "Domain model prepared",
+      "short": "DDD & ownership",
+      "owner": "Long \u00b7 team review",
+      "report": "3.1.4 \u00b7 3.2.3",
+      "depends": "Step 02",
+      "intro": "The domain model tests the two-service choice against a modular monolith and a four-service split. It documents models, rules, ownership and conditions that would invalidate the choice.",
+      "actions": [
+        "Glossary, workflow discovery and comparison of service-boundary alternatives.",
+        "Account / Asset and ProcessingJob / Attempt / Output models, with invariants and state transitions.",
+        "Context map, aggregate and lifecycle diagrams on an editable tldraw board.",
+        "A direct response to the lecturer\u2019s DDD comment, with implementation and evidence checks still pending."
+      ],
+      "outputs": [
+        "Glossary, workflow discovery and comparison of service-boundary alternatives.",
+        "Account / Asset and ProcessingJob / Attempt / Output models, with invariants and state transitions.",
+        "Context map, aggregate and lifecycle diagrams on an editable tldraw board.",
+        "A direct response to the lecturer\u2019s DDD comment, with implementation and evidence checks still pending."
+      ],
+      "decisions": "Media Management owns identity, Assets and access. Processing owns attempts, outputs and recovery. The main reason is data and release ownership. Workers already scale separately in the baseline.",
+      "done": "Design documentation is prepared for team review. Runtime results are not established. Step 06 and later implementation remain ahead.",
+      "sources": [
+        [
+          "proposal",
+          "\u00a72.2\u20132.4, Figure 3"
+        ],
+        "job",
+        "worker",
+        [
+          "report",
+          "\u00a73.1.4"
+        ],
+        [
+          "decisions",
+          "F-01"
+        ]
+      ],
+      "status": "prepared",
+      "deliverable": "design-studio.html#ddd"
+    },
+    {
+      "title": "Logical architecture prepared",
+      "short": "Logical design & ADRs",
+      "owner": "Long \u00b7 Ibrahim review",
+      "report": "3.1.1\u20133.1.3 \u00b7 3.3",
+      "depends": "Step 03",
+      "intro": "The logical design shows inherited and proposed components, their responsibilities and the decisions needed for an independent Processing release.",
+      "actions": [
+        "Before/after architecture and an upload-to-playback sequence.",
+        "AD-01 through AD-08, with alternatives, trade-offs, consequences and verification obligations.",
+        "Explicit process, service, data and infrastructure boundaries.",
+        "Compatibility and single-environment limitations, with exact AWS products left to step 07."
+      ],
+      "outputs": [
+        "Before/after architecture and an upload-to-playback sequence.",
+        "AD-01 through AD-08, with alternatives, trade-offs, consequences and verification obligations.",
+        "Explicit process, service, data and infrastructure boundaries.",
+        "Compatibility and single-environment limitations, with exact AWS products left to step 07."
+      ],
+      "decisions": "Retain two services and separate database ownership. Keep the web and CLI on one public facade. Use durable intake and reconciliation without introducing a new event broker.",
+      "done": "Design documentation is prepared for team review. Runtime results are not established. Step 06 and later implementation remain ahead.",
+      "sources": [
+        [
+          "proposal",
+          "AD-01\u2013AD-08"
+        ],
+        "main",
+        "compose",
+        [
+          "report",
+          "\u00a73.1, \u00a73.3"
+        ]
+      ],
+      "status": "prepared",
+      "deliverable": "design-studio.html#architecture"
+    },
+    {
+      "title": "Contracts and data model prepared",
+      "short": "API & data contracts",
+      "owner": "Long \u00b7 Ibrahim",
+      "report": "3.1.4 \u00b7 3.2.3\u20133.2.4",
+      "depends": "Steps 03\u201304",
+      "intro": "The contract pack gives implementers concrete public and private interfaces, persistence ownership and replay behavior. These are design specifications, not running endpoints.",
+      "actions": [
+        "Three OpenAPI documents: public facade, private Processing API and private source-access API.",
+        "Two-database logical schema, credential ownership, transactions, retention and compatibility rules.",
+        "Illustrative payloads and 25 planned contract cases, including duplicate requests and uncertain deletion.",
+        "Editable tldraw API/data diagrams, plus local SVG snapshots and diagram sources."
+      ],
+      "outputs": [
+        "Three OpenAPI documents: public facade, private Processing API and private source-access API.",
+        "Two-database logical schema, credential ownership, transactions, retention and compatibility rules.",
+        "Illustrative payloads and 25 planned contract cases, including duplicate requests and uncertain deletion.",
+        "Editable tldraw API/data diagrams, plus local SVG snapshots and diagram sources."
+      ],
+      "decisions": "Keep public job_id as an Asset ID. Processing uses a separate internal ID. Reserve attempts before enqueue. Cancel by Asset ID after uncertain submission. Use live state reads and separate storage credentials.",
+      "done": "Design documentation is prepared for team review. Runtime results are not established. Step 06 and later implementation remain ahead.",
+      "sources": [
+        [
+          "proposal",
+          "\u00a72.3, AD-02\u2013AD-06"
+        ],
+        "auth",
+        "upload",
+        "jobs",
+        "storage",
+        [
+          "report",
+          "\u00a73.2.3\u20133.2.4"
+        ]
+      ],
+      "status": "prepared",
+      "deliverable": "design-studio.html#contracts"
+    },
+    {
+      "title": "Security and recovery prepared",
+      "short": "Recovery & trust",
+      "owner": "Guruprasath \u00b7 Ibrahim",
+      "report": "3.2.4 \u00b7 4.2\u20134.3",
+      "depends": "Step 05",
+      "intro": "Recovery protocols, attempt fencing, trust controls and negative-test plans are documented. Timing defaults remain recommendations; all runtime checks are not run.",
+      "actions": [
+        "Read the prepared sections and source locators.",
+        "Compare the planning defaults and alternatives; viewing does not record approval.",
+        "Carry the documented checks into a later authorised implementation task and collect actual evidence."
+      ],
+      "outputs": [
+        "Commitments and defaults",
+        "Threat and trust matrix",
+        "Residual risk",
+        "Attempt fencing and liveness",
+        "Failure protocols",
+        "Timeouts, transport retries and errors",
+        "Delete, source refresh and orphan cleanup"
+      ],
+      "decisions": "Accepted proposal commitments stay fixed. How to detect interrupted encoding (recommended); After an interrupted attempt (recommended); Recover boundary delivery (recommended). Recommended defaults await team confirmation. All runtime results are not run.",
+      "done": "Documentation prepared for team review. Implementation and measured acceptance remain pending.",
+      "sources": [
+        [
+          "proposal",
+          "\u00a73.3\u20133.4"
+        ],
+        "reaper",
+        "config",
+        "repository",
+        "recovery_tests"
+      ],
+      "original_planning_actions": [
+        "Draw failure sequences for a worker interruption, a lost queue entry and a Processing outage during upload.",
+        "Define the durable record for each recovery step. Specify who retries submission and how attempts avoid stale writes or duplicate outputs.",
+        "Choose timing and liveness rules that meet two-minute queue repair and five-minute worker detection targets.",
+        "Define service-token validation and bind forwarded owner identity to the stored asset/job. Reject owner changes on an idempotent request.",
+        "Define private storage access and signed-URL expiry. Explain how queued work gets a fresh source URL and how outputs are written.",
+        "Create a negative-test matrix for sessions, cross-owner operations, forged internal calls, database roles, storage URLs, upload limits and external ports."
+      ],
+      "status": "prepared",
+      "prepared_link": "build-preparation.html#security",
+      "runtime_status": "not run",
+      "team_confirmation": "pending for recommended defaults; proposal commitments already recorded"
+    },
+    {
+      "title": "Deployment and release plan prepared",
+      "short": "AWS & delivery",
+      "owner": "Guruprasath",
+      "report": "3.2.1\u20133.2.2 \u00b7 5.1\u20135.3",
+      "depends": "Steps 04\u201306",
+      "intro": "The AWS container release plan compares hosting, storage and promotion choices. Exact account, capacity, credentials and budget remain cloud prerequisites.",
+      "actions": [
+        "Read the prepared sections and source locators.",
+        "Compare the planning defaults and alternatives; viewing does not record approval.",
+        "Carry the documented checks into a later authorised implementation task and collect actual evidence."
+      ],
+      "outputs": [
+        "Accepted scope, planned defaults",
+        "Physical architecture",
+        "Workload credentials and residual risk",
+        "Fair worker capacity and persistence",
+        "Automated per-service releases",
+        "Release and rollback runbook",
+        "Local/cloud configuration and secret inventory",
+        "Reproducible local build preparation",
+        "Infrastructure bootstrap plan \u2014 no execution",
+        "Cost model, not a live quote",
+        "Team decisions for cloud; documentation ready for local build"
+      ],
+      "decisions": "Accepted proposal commitments stay fixed. Container compute (recommended); PostgreSQL hosting (recommended); Object storage on AWS (recommended); Release promotion permission (recommended); Workload credential delivery (recommended). Recommended defaults await team confirmation. All runtime results are not run.",
+      "done": "Documentation prepared for team review. Implementation and measured acceptance remain pending.",
+      "sources": [
+        [
+          "proposal",
+          "AD-07, \u00a72.5, UC-7"
+        ],
+        "compose",
+        "ci",
+        "dast",
+        [
+          "report",
+          "\u00a73.2, \u00a75"
+        ]
+      ],
+      "original_planning_actions": [
+        "Choose the AWS account, region, container host, private object storage, image registry and secret delivery mechanism.",
+        "Compare managed and self-hosted components. Record cost, effort, capacity and failure trade-offs without treating hosting alone as cloud-native evidence.",
+        "Draw the physical deployment diagram: network boundaries, nodes, ports, TLS, service credentials and persistent stores.",
+        "Plan capacity for three workers at 2 vCPU each, plus resources for the API, databases and queue.",
+        "Design per-service image versioning, pipeline triggers, quality gates, deployment health checks, smoke test and rollback.",
+        "Define source control, review responsibilities, local/cloud configuration and the reproducible MinIO setup."
+      ],
+      "status": "prepared",
+      "prepared_link": "build-preparation.html#deployment",
+      "runtime_status": "not run",
+      "team_confirmation": "pending for recommended defaults; proposal commitments already recorded"
+    },
+    {
+      "title": "Evidence and build gate prepared",
+      "short": "Evidence plan \u00b7 coding gate",
+      "owner": "Long \u00b7 all members",
+      "report": "2 \u00b7 4 \u00b7 all report sections",
+      "depends": "Steps 01\u201307",
+      "intro": "Evidence protocols, report structure and the first local work order are prepared. Local build planning is ready; team approval and cloud execution prerequisites remain separate.",
+      "actions": [
+        "Read the prepared sections and source locators.",
+        "Compare the planning defaults and alternatives; viewing does not record approval.",
+        "Carry the documented checks into a later authorised implementation task and collect actual evidence."
+      ],
+      "outputs": [
+        "Gate interpretation",
+        "Evidence protocols E-01\u2013E-10",
+        "Definitions and analysis",
+        "Contract coverage stays in step 05",
+        "Build gate checklist",
+        "Report, presentation and work order"
+      ],
+      "decisions": "Accepted proposal commitments stay fixed. Presentation demo delivery (recommended). Recommended defaults await team confirmation. All runtime results are not run.",
+      "done": "Documentation prepared for team review. Implementation and measured acceptance remain pending.",
+      "sources": [
+        [
+          "proposal",
+          "\u00a73.4, \u00a74"
+        ],
+        [
+          "report",
+          "\u00a71\u20136"
+        ],
+        [
+          "presentation",
+          "p. 1"
+        ],
+        "brief"
+      ],
+      "original_planning_actions": [
+        "Create a working report from a copy of the original template. Preserve the original file.",
+        "Map every report subsection to an owner, design artifact, test and evidence location.",
+        "Write the experiment protocols using the exact initial proposal targets. Record fixture hashes, resources, timing definitions and failure conditions.",
+        "Create an evidence index with target, actual value, result, revision, configuration, raw log and limitation fields.",
+        "Agree how to record per-member effort, actual milestones, feedback and the AI tool declaration.",
+        "Review the coding gate together. Record decisions and unresolved items that do not block the first integrated workflow."
+      ],
+      "status": "prepared",
+      "prepared_link": "build-preparation.html#readiness",
+      "runtime_status": "not run",
+      "team_confirmation": "pending for recommended defaults; proposal commitments already recorded"
+    },
+    {
+      "title": "Implement one integrated workflow",
+      "short": "Build after the gate",
+      "owner": "Ibrahim \u00b7 parallel tracks",
+      "report": "Update 2.2 \u00b7 3 \u00b7 5",
+      "depends": "Step 08 approved by the team",
+      "intro": "Begin with the smallest complete path across the new boundary. Reuse the existing video engine and browser.",
+      "actions": [
+        "Establish the reproducible frozen baseline and resolve the inherited image finding.",
+        "Extract Processing with its database, roles, migrations, private contract, workers and recovery.",
+        "Adapt Media Management with asset records, a Processing client, compatible routes and stored-source retry.",
+        "Complete the web upload-to-playback flow before optional polish.",
+        "Implement the Publisher CLI, boundary tests and deployment automation in parallel after contracts stabilise.",
+        "Update diagrams and ADRs when implementation changes a decision. Record actual work and hours as it occurs."
+      ],
+      "outputs": [
+        "A working cross-service web flow, then the CLI\u2019s folder-publish flow and retry.",
+        "Per-service deployment scripts, smoke tests and commit-linked implementation evidence."
+      ],
+      "decisions": "Proposal milestone: integrated web workflow by 14 October, CLI started. Security, AWS and experiments follow in the 15\u201320 October window. This sequence is a plan, not a claim that those milestones already passed.",
+      "done": "The integrated workflow runs with separate data ownership. The CLI uses only the published API. Required boundary checks pass.",
+      "sources": [
+        [
+          "proposal",
+          "\u00a73.2, \u00a74.1\u20134.2"
+        ],
+        "baseline"
+      ],
+      "status": "not started"
+    },
+    {
+      "title": "Measure and assemble evidence",
+      "short": "Validate & explain",
+      "owner": "Long \u00b7 Guruprasath",
+      "report": "4.1\u20134.4 \u00b7 5 \u00b7 2.3",
+      "depends": "Step 09 and test environment ready",
+      "intro": "Run the agreed experiments against a recorded release. Preserve failed results and limitations as well as successful runs.",
+      "actions": [
+        "Run the 1/2/3-worker backlog experiment with fixed clips, explicit CPU caps and recorded system resources.",
+        "Run the 50-user status test and separate 20-user login test. Check playback in a real browser.",
+        "Run all three failure experiments, owner/security tests and the database isolation checks.",
+        "Release Processing independently. Time deployment and smoke test. Demonstrate rollback to the previous image.",
+        "Record CLI implementation effort and size. Check for service imports and database credentials.",
+        "Write result tables and plots from raw data. Link each conclusion to its run and limitation."
+      ],
+      "outputs": [
+        "A release-specific evidence pack, results against every target, and updated report sections 4\u20135.",
+        "Proposal milestone: AWS deployment and experiments during 15\u201320 October. Preserve 21\u201325 October for fixes and rehearsal."
+      ],
+      "decisions": "A worker replica count is not throughput evidence. Historical 660 ms status reads do not prove the new boundary meets its target. Manual scaling is not autoscaling. An interrupted worker test does not prove host or zone failover.",
+      "done": "Every submitted claim has a result or an explicit gap. Raw results reproduce the charts and support the final narrative.",
+      "sources": [
+        [
+          "proposal",
+          "\u00a73.3\u20133.4, \u00a74.2"
+        ],
+        "baseline",
+        [
+          "slides",
+          "p. 9"
+        ]
+      ]
+    },
+    {
+      "title": "Prepare and rehearse the presentation",
+      "short": "Presentation",
+      "owner": "All members",
+      "report": "Presentation \u00b7 report feedback log",
+      "depends": "Step 10 evidence available",
+      "intro": "Tell the project story from the business problem to the measured outcome. Reuse report diagrams and evidence.",
+      "actions": [
+        "Build the six presentation sections using the original guidelines and their suggested timings.",
+        "Show the inherited-versus-new contribution table, actual milestones, unresolved issues and member effort.",
+        "Prepare one integrated demo through the web app and CLI. Include architecture and quality evidence.",
+        "Prepare recorded evidence and logs for slow or unreliable live experiments. Label recorded evidence clearly.",
+        "Rehearse the full 40-minute slot, including questions. Check the current Canvas slot and Zoom details.",
+        "Prepare a feedback log and assign a member to record lecturer comments."
+      ],
+      "outputs": [
+        "Final slides, an executable demo script, a fallback evidence pack and a rehearsal record.",
+        "Suggested readiness target: 25 October. Scheduled presentation: 26 October, 14:35\u201315:15 Singapore time."
+      ],
+      "decisions": "Use 31.5 minutes of speaking/demo and 8.5 minutes of questions across the six segments. Show average Project 2 effort and combined Project 1+2 effort, as the consolidated briefing requests.",
+      "done": "The team can finish within 40 minutes, explain each major decision, and trace each result to evidence.",
+      "sources": [
+        [
+          "presentation",
+          "p. 1\u20132"
+        ],
+        "brief",
+        [
+          "proposal",
+          "\u00a74.2"
+        ]
+      ]
+    },
+    {
+      "title": "Finish the report and submission",
+      "short": "Final handover",
+      "owner": "All members",
+      "report": "Full template \u00b7 submission package",
+      "depends": "Presentation and feedback recorded",
+      "intro": "Use the final report to explain the delivered system, its evidence and its limitations. Include presentation feedback.",
+      "actions": [
+        "Resolve or explicitly document each presentation comment. Record the resolution and supporting evidence.",
+        "Complete every applicable template section using actual architecture, results, milestones and member effort.",
+        "Check source citations, figure labels, links, appendices, AI disclosure and the inherited/new contribution statement.",
+        "Package the working-system instructions, code URL/archive, pipeline scripts, test scripts and evidence index.",
+        "Check the report format and exact submission time in Canvas. Submit the report by 16 November.",
+        "Complete peer assessment with unique ranks by the separately notified deadline. Continue fortnightly progress reports while required."
+      ],
+      "outputs": [
+        "A final report that follows the original template, plus the code and reproducible delivery/test package.",
+        "Suggested internal review target: 13 November. Course report deadline: 16 November 2026."
+      ],
+      "decisions": "Do not describe proposal diagrams as delivered architecture unless the implementation matches. Report any missed target plainly. Keep peer assessment separate from member-hour totals.",
+      "done": "The submission package is complete, the report includes presentation feedback, and the team retains submission receipts.",
+      "sources": [
+        [
+          "report",
+          "\u00a71\u20136"
+        ],
+        [
+          "slides",
+          "p. 5\u20136, 13\u201314"
+        ],
+        "brief",
+        [
+          "proposal",
+          "\u00a74.2"
+        ]
+      ]
+    }
+  ],
+  "milestones": [
+    [
+      "4 Oct",
+      "Course / proposal",
+      "Proposal and team registration",
+      "Past date. The proposal records submission. Check the actual receipt and team registration in Canvas.",
+      "course"
+    ],
+    [
+      "7 Oct",
+      "Course",
+      "Lecturer proposal review",
+      "Scheduled review date. The user now supplied the only feedback: the proposal is accepted, with detailed DDD justification required. The original feedback message date is unknown.",
+      "course"
+    ],
+    [
+      "11 Oct",
+      "Suggested internal target",
+      "Design pack ready for implementation",
+      "Catch-up target proposed on 9 October. Complete steps 01\u201308. The proposal originally placed baseline/domain/contracts in 5\u20137 October.",
+      "suggested"
+    ],
+    [
+      "14 Oct",
+      "Proposal milestone",
+      "Integrated boundary and first progress report",
+      "By the end of 8\u201314 October: separate Processing data, web workflow working, CLI started. Confirm the exact progress submission date in Canvas.",
+      "proposal"
+    ],
+    [
+      "20 Oct",
+      "Proposal milestone",
+      "AWS delivery and experiments complete",
+      "The 15\u201320 October window includes security, deployment, pipeline, baseline run and final experiments.",
+      "proposal"
+    ],
+    [
+      "25 Oct",
+      "Suggested internal target",
+      "Rehearsal and presentation pack ready",
+      "Use the proposal\u2019s 21\u201325 October window for fixes, evidence and rehearsal. Avoid new optional features.",
+      "suggested"
+    ],
+    [
+      "26 Oct",
+      "Scheduled course slot",
+      "Team 17 presentation \u00b7 14:35\u201315:15",
+      "40 minutes including questions. Singapore time (UTC+8). Original schedule page 2. Check Canvas for changes and Zoom details.",
+      "course"
+    ],
+    [
+      "2\u20136 Nov",
+      "Tentative course window",
+      "Written examination",
+      "Tentative in the briefing. Check Canvas for the confirmed date. Protect preparation time while completing the report.",
+      "tentative"
+    ],
+    [
+      "13 Nov",
+      "Suggested internal target",
+      "Final report reviewed by all members",
+      "Three days of margin before the stated deadline. Include presentation comments, actual results, effort and limitations.",
+      "suggested"
+    ],
+    [
+      "16 Nov",
+      "Course deadline",
+      "Final report submission",
+      "Deadline in briefing page 6. Exact cutoff time and upload format are not established by these local files.",
+      "course"
+    ]
+  ],
+  "sources": {
+    "proposal": [
+      "P",
+      "Team 17 proposal",
+      "project-documentation/Team17-Proposal.docx",
+      "\u00a7\u00a71\u20134, AD-01\u2013AD-08, UC-1\u2013UC-7. Authority for team commitments, targets, effort and exclusions."
+    ],
+    "brief": [
+      "B",
+      "Consolidated briefing",
+      "project-documentation/briefing-requirements.txt",
+      "Authority for the consolidated course constraints, including lecturer guidance. Checked against the original slides."
+    ],
+    "slides": [
+      "B0",
+      "Original briefing slides",
+      "project-documentation/original-reference/01 Briefing.pdf",
+      "V2.6. Reviewed all 14 PDF pages. Cover says \u201cTotal Slides: 16\u201d, but this supplied file contains 14 pages."
+    ],
+    "presentation": [
+      "G",
+      "Presentation guidelines and schedule",
+      "project-documentation/original-reference/04 Project Presentation Guidelines & Schedule.pdf",
+      "V2.8. Page 1: the six presentation segments. Page 2: Team 17, 26 October 2026, 14:35\u201315:15 Singapore time."
+    ],
+    "report": [
+      "R",
+      "Original report template",
+      "project-documentation/original-reference/02 Project Report Template for Practice Project.docx",
+      "Authority for report structure. All text and tables reviewed, including persistence guidance and sections 1\u20136."
+    ],
+    "notes": [
+      "N",
+      "Report template notes",
+      "project-documentation/original-reference/report-template-notes.md",
+      "Historical working interpretation, not an approved proposal. Some unresolved questions are superseded by Team17-Proposal.docx."
+    ],
+    "baseline": [
+      "H",
+      "Historical baseline inspection",
+      "project-documentation/project-2-baseline-and-plan.txt",
+      "4 October 2026. Prior inspection of 890c5ec and historical effort estimates. Not fresh runtime evidence or the current scope contract."
+    ],
+    "guide": [
+      "H2",
+      "Earlier requirements and scope guide",
+      "project-documentation/project-2-requirements-and-scope.txt",
+      "Supplementary course context. Earlier 30-person-day allocation and suggested exclusions yield to the submitted 31-person-day proposal."
+    ],
+    "readme": [
+      "I",
+      "Reference index",
+      "project-documentation/README.md",
+      "Source-priority guidance. Several links name files that are absent at those paths. Use the real original paths listed here."
+    ],
+    "main": [
+      "C1",
+      "API composition",
+      "Media_player/app/main.py",
+      "One FastAPI application registers auth, upload, jobs, HLS and operator routes."
+    ],
+    "auth": [
+      "C2",
+      "Authentication dependency",
+      "Media_player/app/api/deps.py",
+      "Cookie token and shared users-table lookup. No bearer-token support here."
+    ],
+    "upload": [
+      "C3",
+      "Upload API",
+      "Media_player/app/api/uploads.py",
+      "Video type checks, 100 MiB limit, source storage, job creation, then enqueue."
+    ],
+    "job": [
+      "C4",
+      "Job model",
+      "Media_player/app/models/job.py",
+      "jobs.owner_id references users.id. No separate Asset aggregate or recorded attempts in this model."
+    ],
+    "repository": [
+      "C5",
+      "Job repository",
+      "Media_player/app/repositories/jobs.py",
+      "Owner filtering, conditional state changes, retry preparation and stale-job queries."
+    ],
+    "jobs": [
+      "C6",
+      "Job routes",
+      "Media_player/app/api/jobs.py",
+      "Status, listing, stored-source retry, edits, deletion and operator routes."
+    ],
+    "hls": [
+      "C7",
+      "HLS delivery",
+      "Media_player/app/api/hls.py",
+      "Owner-checked playlist bodies and signed segment redirects."
+    ],
+    "worker": [
+      "C8",
+      "Worker task",
+      "Media_player/app/worker/tasks.py",
+      "Worker claims and state updates use the shared job repository."
+    ],
+    "reaper": [
+      "C9",
+      "Recovery task",
+      "Media_player/app/worker/reaper.py",
+      "Fails stale processing rows, re-enqueues some missing RQ jobs and removes old orphan source objects."
+    ],
+    "config": [
+      "C10",
+      "Settings",
+      "Media_player/app/config.py",
+      "Defaults: 60-second recovery interval, 1,800-second processing lease, 3,600-second orphan/queued grace."
+    ],
+    "compose": [
+      "C11",
+      "Compose deployment",
+      "Media_player/docker-compose.yml",
+      "API, workers and reaper share credentials and PostgreSQL DSN. Worker replica count can change. No CPU caps are specified."
+    ],
+    "frontend": [
+      "C12",
+      "Browser application",
+      "Media_player/frontend/app.js",
+      "Authentication, upload, polling, playback, library and editing controls. Retry at lines 410\u2013412 uploads lastFile again."
+    ],
+    "ci": [
+      "C13",
+      "CI workflow",
+      "Media_player/.github/workflows/ci.yml",
+      "Lint, Python/frontend/integration tests, image build, Sonar and Trivy. Sonar is optional/report-only. Trivy gates fixable HIGH/CRITICAL findings."
+    ],
+    "dast": [
+      "C14",
+      "DAST workflow",
+      "Media_player/.github/workflows/dast.yml",
+      "Authenticated ZAP scan. Findings are report-only. A scan execution error fails the job."
+    ],
+    "storage": [
+      "C15",
+      "Worker storage",
+      "Media_player/app/worker/storage.py",
+      "Current workers use MinIO credentials to read sources and write outputs."
+    ],
+    "ladder": [
+      "C16",
+      "HLS generation",
+      "Media_player/app/worker/hls.py",
+      "Best-effort renditions at up to 360p, 480p and 720p, constrained by source height."
+    ],
+    "authroute": [
+      "C17",
+      "Authentication routes",
+      "Media_player/app/api/auth.py",
+      "Registration, login, logout and current user. Secure HttpOnly cookie. Logout removes the cookie, not the token\u2019s validity."
+    ],
+    "auth_tests": [
+      "T1",
+      "Authorization tests",
+      "Media_player/tests/test_authorization.py",
+      "Tests exist for anonymous access, owner filtering and operator restrictions. Not executed during this planning review."
+    ],
+    "retry_tests": [
+      "T2",
+      "Retry tests",
+      "Media_player/tests/test_job_retry.py",
+      "Tests exist for stored-source retry and queue/commit failure handling. Not executed during this planning review."
+    ],
+    "recovery_tests": [
+      "T3",
+      "Recovery tests",
+      "Media_player/tests/test_reaper.py",
+      "Tests cover stale processing, missing RQ jobs and orphan objects. No new timing result is established."
+    ],
+    "decisions": [
+      "F",
+      "Lecturer feedback and user decisions",
+      "project-roadmap/records/project-decisions.txt",
+      "User-supplied approval, open DDD action, selected local baseline and future repository transition. Recorded 9 October 2026. Original feedback date unknown."
+    ],
+    "project1": [
+      "P1",
+      "Original Project 1 proposal",
+      "project-documentation/original-reference/Project Proposal_Ibrahim.pdf",
+      "Original PDF found in Downloads. This additional reference copy is byte-identical. Audience and earlier feature intent only. Team17-Proposal.docx controls Project 2 scope."
+    ]
+  },
+  "business_scope": {
+    "status": "prepared",
+    "page": "business-scope.html",
+    "data": "business-scope.json",
+    "next_step_started": true
+  },
+  "design_pack": {
+    "status": "prepared",
+    "page": "design-studio.html",
+    "steps": [
+      3,
+      4,
+      5
+    ],
+    "implementation_started": false,
+    "boards": {
+      "ddd": "https://www.tldraw.com/f/XrUnIaX54_73b_PD3Rm60",
+      "architecture": "https://www.tldraw.com/f/0GOUcscLFXmGeNDXAJTx5",
+      "contracts": "https://www.tldraw.com/f/gQ--V5nITyYnsrUIUwiFK"
+    }
+  },
+  "preparation_pack": {
+    "status": "prepared",
+    "page": "build-preparation.html",
+    "steps": [
+      6,
+      7,
+      8
+    ],
+    "implementation_started": false,
+    "runtime_status": "not run",
+    "local_build": "planning inputs prepared; execution belongs to a later authorised task",
+    "cloud_execution": "prerequisites and approval pending",
+    "review_clicks_are_approval": false,
+    "board": "https://www.tldraw.com/f/VlAHwy0_tdoQir9rWeSqB"
+  }
+}

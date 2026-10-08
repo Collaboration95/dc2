@@ -1,0 +1,172 @@
+{
+  "title": "Security and recovery — pre-build design",
+  "sections": [
+    {
+      "id": "06-status",
+      "title": "Commitments and defaults",
+      "paragraphs": [
+        "Accepted proposal: two services, separate database roles, AWS containers, web and CLI; recovery and security targets remain unchanged. This pack is design only: all runtime tests are not run.",
+        "Recommended defaults below permit later local implementation. Team confirmation means recording a choice; clicking a website modal only changes the viewer’s review state and grants no approval. Fictional planning personas remain P-01 Maya, P-02 Arun, P-03 Jules and P-04 Sam."
+      ],
+      "bullets": [],
+      "choice_ids": []
+    },
+    {
+      "id": "06-trust",
+      "title": "Threat and trust matrix",
+      "paragraphs": [],
+      "bullets": [],
+      "choice_ids": [],
+      "table": {
+        "headers": [
+          "Boundary / threat",
+          "Control to implement",
+          "Evidence"
+        ],
+        "rows": [
+          [
+            "Client → MM / stolen session, operator abuse",
+            "Secure HttpOnly session cookie for web and CLI cookie jar; inherited expiry/hash; same-origin/CSRF check on mutations. MM checks owner on every asset API including list, HLS, edit, delete and retry; operator privilege checked before forwarding a specific owner. Logout clears cookie but does not revoke a stolen token.",
+            "E-08; CT-10/18/19"
+          ],
+          [
+            "MM ↔ P / forged owner or token",
+            "MM, P API and source-fetching workers join private interservice bridge; worker calls MM source-access directly. Distinct MM→P and P→MM secrets; reject missing/wrong-direction token. Every internal API requires owner; compare header/body/stored owner, constrain lists, never permit owner mutation. Reverse source endpoint checks live Asset/revision locally.",
+            "E-08; CT-04/09"
+          ],
+          [
+            "Source URL / SSRF and capability leak",
+            "900s single-object GET; exact configured HTTPS origin/port and source-prefix allowlist, immutable descriptor/digest/size checks; reject userinfo, IP literals, unconfigured hosts and redirects. No arbitrary URL/key input; redact URL query. Refresh before claim download if expired or insufficient lifetime.",
+            "E-08; CT-08/09"
+          ],
+          [
+            "Object stores / excessive credentials",
+            "Three mounted principals: MM source read/write/delete + output read/sign; worker output Put + minimal multipart, no Delete or source access; separate P cleanup output List/Delete. Private objects and scoped prefixes. No S3 host profile; containers blocked from IMDS. Source reads use signed GET only.",
+            "E-08; CT-10"
+          ],
+          [
+            "Databases / default privilege escape",
+            "Separate media_runtime and processing_runtime; own CONNECT/DML only; revoke PUBLIC CONNECT/TEMP and schema CREATE/unwanted USAGE. Isolated migration owners, no cross-role membership, extensions or runtime DDL; test opposite database refusal and correct DML. Shared PostgreSQL network cannot isolate logical databases; roles enforce this boundary.",
+            "E-08; CT-15"
+          ],
+          [
+            "Upload / overload or deceptive input",
+            "100 MiB FILE bytes, sniff type/container and enforce geometry/operations. Allow bounded multipart overhead at nginx and middleware; adjust inherited global Content-Length guard. Test exact 100 MiB, +1 byte, overhead and streaming request.",
+            "E-08; CT-20"
+          ],
+          [
+            "Release / leaked secrets and vulnerable images",
+            "Secrets outside git/images/logs; fail on secret findings or failed tests; zero fixable HIGH/CRITICAL image findings. Record static/dynamic scan execution and triage, rather than claiming all report-only scanners block findings. HTTPS alone public.",
+            "E-08/E-07"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "06-residual",
+      "title": "Residual risk",
+      "paragraphs": [
+        "A compromised trusted service token can fabricate forwarded human identity, especially for new Assets: stored-owner checks cannot prove genuine user intent. Private routing and least privilege limit exposure; isolate/replace compromised secrets operationally. Full key rotation, malware scanning and multi-zone failover remain outside scope.",
+        "Presigned links are bearer capabilities until expiry. A deleted source may already be downloaded. Cancellation fences publication; it cannot erase another process’s memory."
+      ],
+      "bullets": [],
+      "choice_ids": []
+    },
+    {
+      "id": "06-fence",
+      "title": "Attempt fencing and liveness",
+      "paragraphs": [
+        "Recommended: heartbeat every 15s, lease expires 60s after the last successful heartbeat, recovery sweep every 15s; queued-age threshold 30s with scan every 15s. Use database time. These replace inherited long timers and require measurement, not just configuration.",
+        "Claim atomically checks current reserved attempt ID, queued state and live job, and sets processing/lease. Only the conditional first-claim winner may encode; every duplicate-claim loser exits. Heartbeat and completion require that current attempt ID, processing state, live job, and an existing lease strictly later than database now. An expired lease cannot be resurrected. Cancel atomically tombstones/invalidates the current attempt. Recovery uses the same conditional state predicates.",
+        "On rejected heartbeat, stop/kill the FFmpeg process group immediately; if DB is unreachable, kill by the locally tracked last confirmed lease expiry, with conservative clock margin. Uploads use attempt prefixes; only a valid unexpired completion may publish verified primary output. A stale worker cannot overwrite a winner.",
+        "Never hold a database lock during HTTP, Redis, object I/O or FFmpeg. A claim is a durable fence, not a long transaction. Heartbeat supervisor must remain responsive while FFmpeg is running."
+      ],
+      "bullets": [],
+      "choice_ids": [
+        "06-lease"
+      ]
+    },
+    {
+      "id": "06-failures",
+      "title": "Failure protocols",
+      "paragraphs": [],
+      "bullets": [],
+      "choice_ids": [
+        "06-retry",
+        "06-reconcile"
+      ],
+      "table": {
+        "headers": [
+          "Injection",
+          "Durable mechanism and visible outcome",
+          "Bound / limitation"
+        ],
+        "rows": [
+          [
+            "Kill worker mid-encode",
+            "P sweep marks expired processing attempt failed (interrupted), revokes claim, records cleanup. Owner explicitly retries stored source with stable retry_request_id; exactly one new attempt. Old output cannot publish.",
+            "≤60+15s detection design budget, ≤5min acceptance target; retry must succeed without duplicate published outputs."
+          ],
+          [
+            "Remove queue entry, retain RQ hash",
+            "DB queued current attempts are authority. Inspect actual ready/deferred/scheduled membership and valid claimed state, never RqJob.exists alone. Atomically repair or replace orphan RQ bookkeeping for deterministic job+attempt dispatch under short queue-repair coordination; duplicate messages lose conditional claim.",
+            "Queued age ≥30s; next scan ≤15s; ≤2min from injected loss to restored runnable entry. Redis/DB and reconciler must remain available."
+          ],
+          [
+            "P unavailable during upload",
+            "MM commits immutable source + pending Asset/request key before 202. Show queued/submission_status=pending; submitted reads return 503 while P is down. Durable next_submit_at survives restart. Replay identical asset/fingerprint, refreshing URL only.",
+            "One bounded HTTP send per reconciliation tick; delays 2/4/8s up to 60s plus jitter. Durable periodic reconciliation continues until submitted, deleted or environment reset. Alert at 5min pending; escalate at 30min and retain an operational issue until resolved. Public response remains queued/submission_status=pending, without an error field; no pause/resume command."
+          ],
+          [
+            "Process crash versus host outage",
+            "Process crash with DB/reconciler surviving uses above bounds. Shared host outage stops workers and recovery together; durable volume recovery/restart and reconciliation are prerequisites.",
+            "No ≤5min host failover claim. Measure outage and restart separately; no invented backup/restore result."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "06-retry-budget",
+      "title": "Timeouts, transport retries and errors",
+      "paragraphs": [
+        "Recommended private HTTP connect timeout 2s, total 5s. Three bounded transport retries after the initial request (maximum four sends), delays 1/2/4s with jitter; retry only connection uncertainty, 429 with bounded Retry-After, or 502/503/504, and only with stable idempotent identity. One upload foreground Submit send has a 5s budget; durable reconciliation uses one send per scheduled tick, not nested retry loops. Never sleep or retain DB locks inside intake.",
+        "One explicit user retry creates exactly one encode attempt, regardless of transport replays; there is no three-encode-attempt budget or automatic encode retry default. Source refresh/download: connect 2s, idle 15s, total 120s; at most three transport retries, restart to a fresh temporary file, verify descriptor before encode. Publication and delete retries retain the same attempt/object identity. Download or upload budget exhaustion fails the attempt visibly; user retry remains explicit.",
+        "Taxonomy: 401 authentication; 403 operator/CSRF; 404 hidden absent/wrong owner; 409 payload/revision/state conflict; 410 retained deleted replay; 413 file size; 415 type; 422 admission structure; 503 downstream/consistency. Attempt failures: interrupted, source_unavailable, source_invalid, encode_failed, output_failed. Plain uploads require verified MP4 primary output to mark done. Inherited MKV/MP3 edits require their verified primary output as specified in step 05; HLS failure is a best-effort warning. Expose safe code/message/request ID, never credentials or raw FFmpeg input."
+      ],
+      "bullets": [],
+      "choice_ids": []
+    },
+    {
+      "id": "06-delete",
+      "title": "Delete, source refresh and orphan cleanup",
+      "paragraphs": [
+        "MM tombstones and records cleanup intent atomically, then cancels by asset_id. P submit/cancel share an owner-bound submission guard: cancel-first rejects later submit; submit-first invalidates its attempt. Keep guard throughout demonstration; retained keys/tombstones ≥7 days and until cleanup ends. New grants fail immediately after MM deletion. Delete source only after P cancellation acknowledgment; repeat cleanup safely.",
+        "Recommended orphan scan every 15min with 1h grace: remove only staged sources absent from committed/in-flight intake records, or failed/stale attempt prefixes absent from winning refs and active leases. Keep a staging reservation during slow intake. An unexpired active attempt is never an orphan. Source deletion cannot remove a derived Asset’s independent source copy. Cleanup failures retain intents and alert after 5min; never report physical deletion just because 204 returned."
+      ],
+      "bullets": [],
+      "choice_ids": []
+    }
+  ],
+  "sources": [
+    {
+      "path": "../../../project-documentation/Team17-Proposal.docx",
+      "locator": "§2.3–2.5; §3.3–3.4; §4",
+      "note": "Accepted proposal; initial targets retained. Resolve actual proposal via roadmap source index."
+    },
+    {
+      "path": "../05-contracts/content.json",
+      "locator": "status-projection; internal-contracts; transactions; privileges",
+      "note": "Prepared contracts, not running behavior."
+    },
+    {
+      "path": "../../records/project-decisions.txt",
+      "locator": "F-01; D-01",
+      "note": "Accepted scope; working local baseline 8854537 supersedes historical 890c5ec."
+    },
+    {
+      "path": "../../roadmap-data.json",
+      "locator": "steps 06–08; milestones",
+      "note": "Planning obligations and course dates; no runtime evidence."
+    }
+  ]
+}

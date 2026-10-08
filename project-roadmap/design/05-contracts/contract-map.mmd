@@ -1,0 +1,11 @@
+flowchart LR
+  W["Arun • Web app\nMaya • Publisher CLI"] -->|"HTTPS + session cookie"| M["Media Management\n/api facade\npublic job_id = asset_id"]
+  M -->|"service token + owner\nSubmit / Get / Retry / Delete"| P["Processing\n/internal/v1/jobs\ninternal job_id"]
+  P -->|"job state + durable output refs"| M
+  P -->|"different service token + owner\nsource-access / revision"| G["Media source capability API\nprivate; own Asset checks"]
+  G -->|"short-lived source GET URL"| P
+  M -->|"owner-authorised playback link"| W
+  P -->|"queue / attempt ID"| Q["Processing workers\ncurrent attempt only"]
+  Q -->|"renew source grant if needed"| G
+  Q -->|"attempt-specific output keys"| O["Private output objects"]
+  M -->|"read / sign only"| O

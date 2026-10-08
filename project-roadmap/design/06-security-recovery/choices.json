@@ -1,0 +1,104 @@
+[
+  {
+    "id": "06-lease",
+    "title": "How to detect interrupted encoding",
+    "status": "recommended",
+    "recommended": "06-heartbeat",
+    "why": "Duration varies; liveness distinguishes healthy long work.",
+    "options": [
+      {
+        "id": "06-heartbeat",
+        "label": "Heartbeat lease",
+        "advantages": [
+          "Detects stopped workers quickly"
+        ],
+        "disadvantages": [
+          "Requires independent supervisor"
+        ],
+        "best_when": "Long encodes vary",
+        "impact": "15s heartbeat; 60s expiry; 15s sweep; expired leases never renew"
+      },
+      {
+        "id": "06-fixed",
+        "label": "Fixed lease",
+        "advantages": [
+          "Simple timer"
+        ],
+        "disadvantages": [
+          "Long jobs falsely expire or detection slows"
+        ],
+        "best_when": "Duration is strictly bounded",
+        "impact": "Would require new measured maximum-duration rationale"
+      }
+    ],
+    "confirmation": "Team confirmation pending; heartbeat is the documented default. Modal click is personal review only."
+  },
+  {
+    "id": "06-retry",
+    "title": "After an interrupted attempt",
+    "status": "recommended",
+    "recommended": "06-explicit",
+    "why": "Visible failure and explicit retry meet the accepted target.",
+    "options": [
+      {
+        "id": "06-explicit",
+        "label": "Mark failed; user retries",
+        "advantages": [
+          "Predictable attempt history"
+        ],
+        "disadvantages": [
+          "User action required"
+        ],
+        "best_when": "Scope stays narrow",
+        "impact": "One attempt per stable retry ID"
+      },
+      {
+        "id": "06-auto",
+        "label": "Bounded automatic retry",
+        "advantages": [
+          "Less user intervention"
+        ],
+        "disadvantages": [
+          "More load and policy complexity"
+        ],
+        "best_when": "Measurements justify it",
+        "impact": "Would require a recorded encode budget and backoff; not selected"
+      }
+    ],
+    "confirmation": "Team confirmation pending; transport retries do not change this encode policy."
+  },
+  {
+    "id": "06-reconcile",
+    "title": "Recover boundary delivery",
+    "status": "recommended",
+    "recommended": "06-scan",
+    "why": "AD-04 fixes reconciliation as the proposal baseline.",
+    "options": [
+      {
+        "id": "06-scan",
+        "label": "Durable reconciliation",
+        "advantages": [
+          "Reuses existing recovery approach"
+        ],
+        "disadvantages": [
+          "Needs scans and fences"
+        ],
+        "best_when": "Two services and narrow scope",
+        "impact": "Pending Assets and queued attempts drive replay"
+      },
+      {
+        "id": "06-outbox",
+        "label": "Transactional outbox",
+        "advantages": [
+          "Explicit delivery ledger"
+        ],
+        "disadvantages": [
+          "Adds schema and dispatcher"
+        ],
+        "best_when": "Experiments show reconciliation insufficient",
+        "impact": "Conditional escalation only; no implementation in this pack"
+      }
+    ],
+    "confirmation": "Proposal AD-04 accepted; team confirms scan details, not a new architecture approval."
+  }
+]

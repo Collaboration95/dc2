@@ -1,0 +1,141 @@
+08 REPORT SKELETON — FlickPond, Team 17
+Members: Guruprasath Gopal; Ibrahim Mammadov; Nguyễn Kim Long
+Original template unchanged; full section numbering retained. Owner assignments below are recommended. Each section separates design, implementation and measured evidence.
+
+1 Introduction
+Owner: All | Source/design: proposal §1 | Evidence: E-10
+Implementation/results: not collected.
+
+1.1 Background
+Owner: Ibrahim | Source/design: proposal §1.1; decisions D-01 | Evidence: E-10
+Implementation/results: not collected.
+
+1.2 Business Needs
+Owner: Long | Source/design: proposal §1.2–1.3 | Evidence: E-09
+Implementation/results: not collected.
+
+1.3 Stakeholders
+Owner: Long | Source/design: ../../business-scope.json; P-01 Maya, P-02 Arun, P-03 Jules, P-04 Sam | Evidence: E-10
+Implementation/results: not collected.
+
+1.4 Project Scope
+Owner: All | Source/design: proposal §3 | Evidence: E-01–E-10
+Implementation/results: not collected.
+
+1.4.1 Functionality in scope
+Owner: All | Source/design: proposal §3.2 | Evidence: E-10
+Implementation/results: not collected.
+
+1.4.2 Functionality out of scope
+Owner: All | Source/design: proposal §3.5 | Evidence: none
+Implementation/results: not collected.
+
+2 Project Conduct
+Owner: All | Source/design: proposal §4 | Evidence: effort-log.csv
+Implementation/results: not collected.
+
+2.1 Project Plan
+Owner: Long | Source/design: proposal §4.1–4.2; 31 person-days estimate | Evidence: effort-log.csv
+Implementation/results: not collected.
+
+2.2 Project Status
+Owner: All | Source/design: progress-template.txt | Evidence: evidence-index.csv
+Implementation/results: not collected.
+
+2.3 Project Metrics
+Owner: All | Source/design: actual milestones; per-member Project 1/2 hours | Evidence: effort-log.csv
+Implementation/results: not collected.
+
+3 Solution Overview
+Owner: Ibrahim | Source/design: ../03-ddd; ../04-architecture | Evidence: E-10
+Implementation/results: not collected.
+
+3.1 Logical Architecture & Design
+Owner: Long | Source/design: ../04-architecture/content.json | Evidence: E-10
+Implementation/results: not collected.
+
+3.1.1 Key Architectural Decisions
+Owner: Long | Source/design: ../04-architecture/AD-01.md–AD-08.md | Evidence: E-01–E-10
+Implementation/results: not collected.
+
+3.1.2 Tiers and Layers
+Owner: Ibrahim | Source/design: ../04-architecture/logical-architecture.md | Evidence: E-10
+Implementation/results: not collected.
+
+3.1.3 Nodes and Subsystems
+Owner: Ibrahim | Source/design: ../04-architecture/content.json | Evidence: E-10
+Implementation/results: not collected.
+
+3.1.4 Platform Design
+Owner: Long | Source/design: ../03-ddd/content.json; ../05-contracts/content.json | Evidence: E-08/E-09
+Implementation/results: not collected.
+
+3.2 Physical Architecture & Design
+Owner: Guruprasath | Source/design: ../07-deployment/content.json; diagram-manifest.json | Evidence: E-07
+Implementation/results: not collected.
+
+3.2.1 Key Architectural Decisions
+Owner: Guruprasath | Source/design: ../07-deployment/content.json; diagram-manifest.json | Evidence: E-07
+Implementation/results: not collected.
+
+3.2.2 Technology and Services
+Owner: Guruprasath | Source/design: ../07-deployment/content.json; actual resources/budget pending | Evidence: E-01/E-07
+Implementation/results: not collected.
+
+3.2.3 Persistence Design
+Owner: Ibrahim | Source/design: ../05-contracts/persistence-model.json | Evidence: E-08
+Implementation/results: not collected.
+
+3.2.4 Detailed Design
+Owner: Ibrahim | Source/design: ../06-security-recovery/content.json | Evidence: E-04–E-06
+Implementation/results: not collected.
+
+3.3 Other Architectural Decisions
+Owner: All | Source/design: ../04-architecture; choices 06/08 | Evidence: E-01–E-10
+Implementation/results: not collected.
+
+3.4 Architectural Limitation
+Owner: All | Source/design: 06 residual risk; single-host limitation | Evidence: E-04/E-06
+Implementation/results: not collected.
+
+4 Quality Attributes
+Owner: Long | Source/design: proposal §3.4 unchanged | Evidence: E-01–E-10
+Implementation/results: not collected.
+
+4.1 Performance
+Owner: Long | Source/design: 08 E-01–E-03 protocols | Evidence: E-01–E-03
+Implementation/results: not collected.
+
+4.2 Availability
+Owner: Ibrahim | Source/design: 06 protocols | Evidence: E-04–E-06
+Implementation/results: not collected.
+
+4.3 Security
+Owner: Guruprasath | Source/design: 06 trust matrix | Evidence: E-08
+Implementation/results: not collected.
+
+4.4 Extensibility and Maintainability
+Owner: Long | Source/design: proposal reuse/independent release | Evidence: E-07/E-09
+Implementation/results: not collected.
+
+5 DevOps and Development Lifecycle
+Owner: Guruprasath | Source/design: ../07-deployment/content.json; diagram-manifest.json | Evidence: E-07
+Implementation/results: not collected.
+
+5.1 Source Control Strategy
+Owner: Guruprasath | Source/design: decisions D-01/D-02; baseline 8854537 | Evidence: E-07
+Implementation/results: not collected.
+
+5.2 Continuous Integration
+Owner: Guruprasath | Source/design: proposal §3.3; inherited CI versus selected gates | Evidence: E-08/E-07
+Implementation/results: not collected.
+
+5.3 Continuous Delivery
+Owner: Guruprasath | Source/design: ../07-deployment/content.json; release/rollback design | Evidence: E-07
+Implementation/results: not collected.
+
+6 <other things to be highlighted>
+Owner: All | Source/design: inherited/new contributions; feedback; AI declaration | Evidence: evidence-index.csv
+Implementation/results: not collected.
+
+Appendices: raw run manifests/logs; contracts; scripts; effort; milestone receipts; feedback responses; source citations; AI use (this pack prepared with Codex; verify final declaration).

@@ -1,0 +1,215 @@
+[
+  {
+    "id": "07-compute",
+    "title": "Container compute",
+    "status": "recommended",
+    "recommended": "07-ec2",
+    "why": "Lowest setup effort while reserving six worker vCPU plus headroom.",
+    "options": [
+      {
+        "id": "07-ec2",
+        "label": "One nonburstable EC2 + Compose",
+        "advantages": [
+          "Reuse container tooling; per-service version manifests",
+          "At least 8 vCPU supports fair worker caps"
+        ],
+        "disadvantages": [
+          "Shared host failure/credential boundary",
+          "OS, database and backup operations remain team work"
+        ],
+        "best_when": "Short-lived course demonstration",
+        "impact": "Recommended; confirm shared-host residual risk, region/SKU and budget."
+      },
+      {
+        "id": "07-fargate",
+        "label": "ECS Fargate + RDS + managed Redis",
+        "advantages": [
+          "Distinct task IAM roles and task isolation",
+          "Less host maintenance"
+        ],
+        "disadvantages": [
+          "More IAM/network/release setup",
+          "ALB, database, queue and networking cost"
+        ],
+        "best_when": "Stronger workload isolation is required",
+        "impact": "Keep two logical services, one PostgreSQL server/two DBs and 2-vCPU workers; reprice."
+      },
+      {
+        "id": "07-inherited-provider",
+        "label": "Inherited non-AWS VM provider",
+        "advantages": [
+          "Familiar existing operations"
+        ],
+        "disadvantages": [
+          "Does not satisfy accepted AD-07 AWS commitment"
+        ],
+        "best_when": "Only after a recorded proposal amendment",
+        "impact": "Disallowed within current scope; no default fallback."
+      }
+    ],
+    "confirmation": "Team must confirm host isolation compromise, account, capacity and budget; a UI click is not authorisation."
+  },
+  {
+    "id": "07-database",
+    "title": "PostgreSQL hosting",
+    "status": "recommended",
+    "recommended": "07-selfhost",
+    "why": "Accepted constraint: one PostgreSQL server with two owned databases/roles/migration histories. Self-hosted vs RDS hosting remains a recommended choice.",
+    "options": [
+      {
+        "id": "07-selfhost",
+        "label": "PostgreSQL on encrypted EBS",
+        "advantages": [
+          "One server/two DBs fits accepted AD-02",
+          "Low setup overhead"
+        ],
+        "disadvantages": [
+          "Team patches, backs up and restores",
+          "Host outage affects both services"
+        ],
+        "best_when": "Small demo with tested restore",
+        "impact": "Default; enforce roles and retain separate migration histories."
+      },
+      {
+        "id": "07-rds",
+        "label": "One RDS PostgreSQL instance, two DBs",
+        "advantages": [
+          "Managed engine operations and backups"
+        ],
+        "disadvantages": [
+          "Extra cost/network setup",
+          "Restore coordination still affects both DBs"
+        ],
+        "best_when": "Budget favours managed persistence",
+        "impact": "Preserves AD-02; configure private access and check grants/restore behavior."
+      }
+    ],
+    "confirmation": "Confirm host vs RDS and backup owner before cloud bootstrap; two server separation is outside this default."
+  },
+  {
+    "id": "07-storage",
+    "title": "Object storage on AWS",
+    "status": "recommended",
+    "recommended": "07-s3",
+    "why": "Private managed source/output objects avoid another durable server on the demo host.",
+    "options": [
+      {
+        "id": "07-s3",
+        "label": "Managed S3 source/output stores",
+        "advantages": [
+          "Managed durable storage",
+          "Presigned source/output reads"
+        ],
+        "disadvantages": [
+          "Per-service credentials must be scoped",
+          "Requests/egress and endpoint parity need verification"
+        ],
+        "best_when": "AWS demonstration",
+        "impact": "Recommended; public HTTPS endpoints with private objects and no anonymous listing."
+      },
+      {
+        "id": "07-minio-aws",
+        "label": "Self-hosted MinIO on AWS",
+        "advantages": [
+          "Reuse local S3-compatible interface"
+        ],
+        "disadvantages": [
+          "More storage backup/patch burden",
+          "Host-coupled data; browser endpoint TLS work"
+        ],
+        "best_when": "Only when managed storage cannot fit confirmed constraints",
+        "impact": "Still AWS hosting; source-build recipe and separate MM/worker/cleanup principals required, not root keys."
+      }
+    ],
+    "confirmation": "Confirm S3 permissions/lifecycle/cost and restricted credential risk; local MinIO remains the local development plan."
+  },
+  {
+    "id": "07-promotion",
+    "title": "Release promotion permission",
+    "status": "recommended",
+    "recommended": "07-manual-gate",
+    "why": "A reviewer checks digest, migrations and triaged reports before automated delivery.",
+    "options": [
+      {
+        "id": "07-manual-gate",
+        "label": "Manual promotion, automated deploy",
+        "advantages": [
+          "Concrete digest/reports are reviewable",
+          "Controls limited demonstration spend"
+        ],
+        "disadvantages": [
+          "Reviewer availability adds wait time"
+        ],
+        "best_when": "Early course releases",
+        "impact": "After permission, automation runs deploy, health, smoke and rollback; UC-7 starts at first automation after approval/artifact readiness, before OIDC/SSM; gate wait is reported separately."
+      },
+      {
+        "id": "07-auto-gate",
+        "label": "Automatic promotion and deploy",
+        "advantages": [
+          "No reviewer waiting",
+          "Same repeatable release routine"
+        ],
+        "disadvantages": [
+          "Needs established exception/triage rules",
+          "Faulty gates may promote unsafe changes"
+        ],
+        "best_when": "Gates and rollback are already proven",
+        "impact": "Requires team-confirmed policy; mandatory tests and fixable HIGH/CRITICAL gates remain."
+      }
+    ],
+    "confirmation": "Confirm reviewers, branch/environment permissions and triage policy; this modal grants no deployment permission."
+  },
+  {
+    "id": "07-credentials",
+    "title": "Workload credential delivery",
+    "status": "recommended",
+    "recommended": "07-demo-keys",
+    "why": "Scoped demo keys minimise setup on the planned shared EC2 host; the host-compromise risk remains and has NOT been approved.",
+    "options": [
+      {
+        "id": "07-demo-keys",
+        "label": "Three scoped demo keys in SecureString",
+        "advantages": [
+          "Small setup effort; works with Compose",
+          "Separate MM, worker Put-only and cleanup List/Delete credentials"
+        ],
+        "disadvantages": [
+          "Long-lived keys need manual rotation/revocation",
+          "Host administrators/host compromise can read all mounted secrets; containers are not a hard boundary"
+        ],
+        "best_when": "Team explicitly accepts the limited demonstration shared-host risk",
+        "impact": "Host role has no S3/workload AssumeRole. Block container IMDS; inject separate permission-limited files outside git/images; mount matching credentials only. Rotate/revoke keys and remove copies at teardown. Current demo risk NOT APPROVED."
+      },
+      {
+        "id": "07-sts-broker",
+        "label": "Short-lived STS credentials with refresh broker",
+        "advantages": [
+          "Credentials expire; fewer persistent workload keys",
+          "Separate restricted roles preserve the three storage scopes"
+        ],
+        "disadvantages": [
+          "Broker, refresh scheduling and injection are extra implementation work",
+          "Broker/host authority can access all roles; refresh failure can interrupt storage and signing"
+        ],
+        "best_when": "Team can implement and test refresh lifecycle on Compose",
+        "impact": "Trusted host broker assumes separate workload roles, refreshes before expiry and injects scoped credentials. Containers cannot access broker authority or IMDS. Test expiry, refresh failure, presigned-URL validity and teardown; host compromise remains a risk."
+      },
+      {
+        "id": "07-task-iam",
+        "label": "Separate Fargate task IAM roles",
+        "advantages": [
+          "Managed task credential delivery; no static workload keys",
+          "Separate tasks provide stronger workload isolation"
+        ],
+        "disadvantages": [
+          "More compute/network/release configuration",
+          "Managed database/queue/edge and network costs need a new estimate"
+        ],
+        "best_when": "Credential and workload isolation outweigh minimum setup effort",
+        "impact": "Use separate MM, worker and cleanup task roles with their respective S3 scopes; keep task execution roles separate. No MM and Processing co-location in one task. Confirm the Fargate compute option and budget; two logical services and one PostgreSQL server/two DBs remain."
+      }
+    ],
+    "confirmation": "Required before cloud setup: accept the shared-host demo compromise or select a stronger credential plan; name rotation/cleanup owner and confirm budget. A modal click records no approval and provisions nothing."
+  }
+]

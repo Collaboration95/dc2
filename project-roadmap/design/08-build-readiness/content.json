@@ -1,0 +1,197 @@
+{
+  "title": "Build readiness and evidence — pre-build only",
+  "sections": [
+    {
+      "id": "08-status",
+      "title": "Gate interpretation",
+      "paragraphs": [
+        "Accepted proposal targets are retained below; experiments are not run and observations are not collected. Local baseline is 8854537; no upstream or cloud access is needed for this design pack.",
+        "Recommended: local implementation can start with documented defaults in a later authorised task. This task stops at step 08. Cloud execution remains blocked until real account access, credentials, resource capacity and budget are recorded as approved. Unknown resource IDs and actual costs remain pending.",
+        "31 person-days is the accepted estimate, never actual hours. Confirm day length before converting logged hours; do not assume eight hours. Modal review clicks and download actions are user-only state, not stakeholder approval or evidence."
+      ],
+      "bullets": [],
+      "choice_ids": []
+    },
+    {
+      "id": "08-protocols",
+      "title": "Evidence protocols E-01–E-10",
+      "paragraphs": [],
+      "bullets": [],
+      "choice_ids": [],
+      "table": {
+        "headers": [
+          "ID",
+          "Exact protocol",
+          "Target / interpretation"
+        ],
+        "rows": [
+          [
+            "E-01 — Processing scaling",
+            "Use 30 distinct fresh Assets containing identical owned 60s 720p video with audio; record source SHA-256, codec/audio metadata. Same MP4 + best-effort 360/480/720p HLS, FFmpeg version/preset/threads and memory caps. 1/2/3 workers, each exactly 2 vCPU; fixed MM/DB/queue resources and no CPU overcommit. Load generator on separate host. One untimed warmup job per worker per configuration, then drain/reset before timing, then three full backlog repeats per worker count in recorded rotated order. Reset data/queue, never reuse output or cached status/history as processing.",
+            "2 workers ≥1.6×; 3 ≥2.1× one-worker jobs/min; median queue wait falls at each step; zero failed jobs."
+          ],
+          [
+            "E-02 — Status latency",
+            "Separate generator; 50 concurrent authenticated owners poll live status for 180s with fixed fixture mix and 1s per-user pacing. Record ramp and a separate 30s warmup; timed interval starts only at 50 users. Freeze endpoint mix before final tests, preserve per-route latency and request counts. Three repeats; include timeouts and unexpected responses.",
+            "p90 ≤700ms; errors <1%."
+          ],
+          [
+            "E-03 — Login latency",
+            "Separate test: 20 concurrent login users, independent cookie jars, valid credentials and logout/reset between iterations, 1s pacing. Recommended NEW duration: 180s per repeat after 30s warmup, three repeats; this duration is not specified by the proposal. Record hash-cost configuration and all responses.",
+            "p90 <2s; error count reported (no invented proposal error threshold)."
+          ],
+          [
+            "E-04 — Killed worker",
+            "Three fresh runs: wait for processing/FFmpeg start, timestamp SIGKILL of worker process group, keep P/DB/reconciler alive; observe failed state through MM. Explicit owner retry same source with stable retry ID. Save lease, sweep, state and output refs; inject stale completion to check fence.",
+            "Recovery state within 5min from kill; retry succeeds; one published winner, no duplicate outputs."
+          ],
+          [
+            "E-05 — Lost queue entry",
+            "Three fresh runs: commit queued attempt; remove ready entry before claim while retaining RQ job hash. Start timer at removal; observe repaired runnable membership and subsequent claim. Also cover enqueue failure and duplicate dispatch; capture DB/RQ snapshots.",
+            "Re-enqueue within 2min from loss; current attempt alone claims."
+          ],
+          [
+            "E-06 — P outage intake",
+            "Three runs: disable private P endpoint before upload; verify 202 only after durable source/Asset, queued/submission_status=pending without public error, and restart persistence. Restore P at 90s; observe same-ID submission and completion. Separate timer-bound run holds outage past 5min operational alert and 30min escalation, verifies periodic bounded sends continue, then restores P and observes convergence without pause/resume. Check submitted reads return 503.",
+            "Durable acceptance, visible pending, no duplicate job; timers are recommended policy, not a proposal outage SLA."
+          ],
+          [
+            "E-07 — Independent release",
+            "Start clock at the first automated release action after promotion and gated artifact readiness, before OIDC/SSM dispatch, image pull or migrations; stop after automated CLI upload-to-playback smoke succeeds. Record gate wait separately and component timings. Record MM container ID/digest/start time and media_db migration version before/after. Roll back P to previous compatible digest and repeat smoke; record rollback separately. Reject incompatible P migrations before deployment; do not reverse MM migrations.",
+            "Deploy + smoke ≤10min; MM container and media_db migrations unchanged; rollback verified."
+          ],
+          [
+            "E-08 — Boundary security",
+            "Run all negative controls in 06 plus all 25 CT cases linked below on recorded images/config. Include missing/expired cookie, wrong owner on every API, operator abuse, both tokens, source SSRF/redirect/expiry/tamper, object-role and DB denials, exact file-size boundaries and external ports. Save expected/actual per case and scan artifacts.",
+            "100% security negatives rejected; zero fixable HIGH/CRITICAL image findings."
+          ],
+          [
+            "E-09 — Reuse and effort",
+            "Record CLI work sessions from first implementation through working integration; inspect dependency/import graph, source/config and shipped artifacts for service imports or DB credentials; record code size separately. Aggregate actual hours per member/project. Team must state its person-day conversion before judging time budget.",
+            "Zero service imports; zero DB credentials; CLI within 2 person-days. No assumed 8h day."
+          ],
+          [
+            "E-10 — Playback and clients",
+            "Run upload/status/MP4 and best-effort HLS playback through browser and CLI, owner A/B, audio-capable source and URL renewal. Save browser/network traces and CLI outputs; retry uses stored source without file upload.",
+            "Working integrated web + CLI; MP4 playable; HLS outcome and audio explicitly recorded."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "08-metrics",
+      "title": "Definitions and analysis",
+      "paragraphs": [
+        "Record UTC timestamps plus monotonic elapsed clocks, revision/image digests, environment, CPU/memory limits, fixture hash, preset, timer settings, generator host and raw logs in every run manifest. For failure bounds, sample state at ≤1s; include polling delay. Operational timing budgets assume surviving DB, queue and reconciler.",
+        "Scaling: makespan = first backlog acceptance to last terminal result, including submission/queue/encode/output publication. Throughput = successful jobs ×60/makespan seconds; queue wait = attempt start − queued_at; processing time = terminal_at − start_at including output writes. Record each attempt, every failed job, partial HLS warning, CPU utilisation and peak RSS. Never exclude failure time or divide by successful-only duration.",
+        "Report all nine scaling runs; median throughput per worker count yields speedup versus one worker. Pool queue waits by count and show per-run medians. Zero failed jobs required across all runs. Show ranges and bottlenecks; three repeats do not establish a capacity guarantee.",
+        "Latency p90 uses nearest-rank ceil(0.9N) over all timed attempts, retaining timeout duration; report error count/total, route and repeat. Each status repeat must meet both thresholds; each login repeat must meet latency threshold. Warmup excluded only by predeclared interval; failed measured runs remain in the report. Reruns get new IDs and reasons, never overwrite misses.",
+        "Freeze fixture, presets, endpoint mix, limits, repetition plan and targets after short week-two baseline, before final tests. Record original target, any revised target, reason/date/team record and report against both. Proposal §3.4 table itself remains unchanged."
+      ],
+      "bullets": [],
+      "choice_ids": []
+    },
+    {
+      "id": "08-contracts",
+      "title": "Contract coverage stays in step 05",
+      "paragraphs": [
+        "Link ../05-contracts/contract-cases.json and its three OpenAPI documents; do not rewrite or renumber CT-01–CT-25. All 25 are not run. E-08 captures case-level results; E-04–E-06 also supply timed CT-11/12/13/16/24 evidence. CT conformance cannot substitute for timing or a working demo."
+      ],
+      "bullets": [
+        "public.openapi.json; processing.openapi.json; media-internal.openapi.json — ../05-contracts/",
+        "evidence-index.csv and evidence-manifest.template.json — blank actual fields until collection"
+      ],
+      "choice_ids": []
+    },
+    {
+      "id": "08-gates",
+      "title": "Build gate checklist",
+      "paragraphs": [],
+      "bullets": [],
+      "choice_ids": [],
+      "table": {
+        "headers": [
+          "Gate",
+          "Before local build",
+          "Cloud entry and later release checks"
+        ],
+        "rows": [
+          [
+            "Scope and contracts",
+            "Two services/two DB roles; web+CLI; 25 CT IDs; current local baseline; defaults documented. Implementation/results pending.",
+            "Before provision: record team deviations and selected contract. Before promotion: verify implemented compatibility against that contract."
+          ],
+          [
+            "Recovery and security",
+            "Designs/policies and planned cases recorded; implementation/results pending.",
+            "Before provision: record private routing, database/object roles, secret delivery and TLS plans. Before promotion: pass deployed isolation, port, secret and recovery checks."
+          ],
+          [
+            "Resources and money",
+            "Local configuration and credentials planned; AWS access is not a prerequisite.",
+            "Before provision: verify account/region/access, approved budget, selected host/stores/registry, role and TLS plans, capacity/quotas and persistence plan; unknown values pending. Before promotion: verify deployed limits and capacity, including 6 worker vCPU plus service headroom."
+          ],
+          [
+            "Evidence",
+            "Collection formats and workload recorded; actual values empty.",
+            "Before provision: plan a separate generator and fair caps. Before final experiments: verify deployed generator/resources and freeze targets. Measurements/results pending."
+          ],
+          [
+            "Release",
+            "Local smoke, compatibility and rollback designs recorded; implementation/results pending.",
+            "Before provision: record release/rollback and bootstrap plans with credential/budget approval. Before promotion: gated digests, deployed smoke/isolation checks, P migration compatibility and rollback rehearsal pass."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "08-deliverables",
+      "title": "Report, presentation and work order",
+      "paragraphs": [
+        "Downloads supply the original report section skeleton, per-project/member effort ledger, actual-hours progress template, source mapping and first-build work order. No build or provisioning is performed.",
+        "Maintain proposal milestones: web integrated, CLI started (not complete), and first progress report 14 Oct; deployment/experiments 15–20 Oct; fixes/rehearsal 21–25 Oct; presentation 26 Oct 2026, 14:35–15:15 Singapore; feedback/report through 16 Nov. Exact report cutoff and current Canvas slot remain unverified. Internal readiness targets 11 Oct, rehearsal 25 Oct, report review 13 Nov are planning targets, not course deadlines."
+      ],
+      "bullets": [],
+      "choice_ids": [
+        "08-demo"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "path": "../../../project-documentation/Team17-Proposal.docx",
+      "locator": "§2.3–2.5; §3.3–3.4; §4",
+      "note": "Accepted proposal; initial targets retained. Resolve actual proposal via roadmap source index."
+    },
+    {
+      "path": "../05-contracts/content.json",
+      "locator": "status-projection; internal-contracts; transactions; privileges",
+      "note": "Prepared contracts, not running behavior."
+    },
+    {
+      "path": "../../records/project-decisions.txt",
+      "locator": "F-01; D-01",
+      "note": "Accepted scope; working local baseline 8854537 supersedes historical 890c5ec."
+    },
+    {
+      "path": "../../roadmap-data.json",
+      "locator": "steps 06–08; milestones",
+      "note": "Planning obligations and course dates; no runtime evidence."
+    },
+    {
+      "path": "../../../project-documentation/original-reference/02 Project Report Template for Practice Project.docx",
+      "locator": "Contents §§1–6",
+      "note": "Original section names preserved in report-outline.txt; original file unchanged."
+    },
+    {
+      "path": "../../../project-documentation/briefing-requirements.txt",
+      "locator": "Effort, progress reports and presentation requirements",
+      "note": "Per-member Project 1/2 effort, actual milestones and average effort required."
+    },
+    {
+      "path": "../05-contracts/contract-cases.json",
+      "locator": "CT-01–CT-25",
+      "note": "Linked authoritative case descriptions; all not run."
+    }
+  ]
+}

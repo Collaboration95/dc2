@@ -1,0 +1,17 @@
+[
+  {
+    "file": "recovery.mmd",
+    "label": "Editable recovery sequence",
+    "description": "Mermaid sequence source"
+  },
+  {
+    "file": "recovery.svg",
+    "label": "Recovery preview",
+    "description": "Native SVG design, not measured evidence"
+  },
+  {
+    "file": "recovery-board.svg",
+    "label": "Board-derived recovery preview",
+    "description": "SVG export from editable recovery page"
+  }
+]

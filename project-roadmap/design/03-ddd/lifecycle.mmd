@@ -1,0 +1,29 @@
+flowchart TB
+  subgraph AS["Asset submission: Media Management"]
+    PE["pending
+source + intent durable
+public queued / pending"] -->|"Acceptance confirmed"| SU["submitted
+internal JobId linked
+live read or 503"]
+    PE -->|"Timeout / outage: reconcile same AssetId"| PE
+    PE -->|"Permanent rejection"| ER["error
+public failed / error"]
+    ER -->|"Resolved immutable intent"| PE
+  end
+  SU -.->|"Separate Processing lifecycle"| QU
+  subgraph PS["Processing job: authoritative state"]
+    QU["queued
+AttemptId already reserved"] -->|"Claim same reserved AttemptId"| PC["processing
+current AttemptId + valid lease"]
+    PC -->|"Matching attempt + primary ref"| DO["done
+optional HLS"]
+    PC -->|"Matching failure or fenced expiry"| FA["failed
+safe reason"]
+    FA -->|"Retry reserves next ID; same source / job"| QU
+    QU -->|"Missing delivery: re-enqueue same pair"| QU
+  end
+  ST["Old attempt completion / failure"] -->|"Wrong AttemptId or expired claim"| RE["Reject publication
+private orphans reconciled"]
+  DO --> OP["Attempt-specific primary refs
+plain MP4 / inherited MKV or MP3
+URLs signed on demand"]

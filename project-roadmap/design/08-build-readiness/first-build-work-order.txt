@@ -1,0 +1,9 @@
+08 first-build work order — future local implementation only
+1. Preserve 8854537; reproduce local baseline, record failures and fix inherited image finding.
+2. Implement separate database roles/migrations and private P schemas from step 05; prove isolation.
+3. Extract jobs/attempts, conditional claim/lease fence, worker and queue repair; retain FFmpeg behavior.
+4. Add MM durable Asset intake, same-ID submission and source grants; adjust multipart size guard.
+5. Integrate compatible web upload → status → audio playback, then stored-source retry and guarded deletion.
+6. Build independent Publisher CLI; log actual hours; run all 25 CT and security checks.
+7. Prepare local release/smoke/rollback and evidence scripts; freeze targets before final experiments.
+Cloud execution waits for verified access and approved budget/capacity from step 07. No commands executed by this order.

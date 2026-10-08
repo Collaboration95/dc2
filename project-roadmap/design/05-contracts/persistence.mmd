@@ -1,0 +1,21 @@
+flowchart TB
+ subgraph MM["media_db • Media Management owns migrations"]
+  U["users\nid · email · hash · role"]
+  A["assets\nasset_id · owner_id · source revision\nsubmission state · processing_job_id · operations"]
+  K["request_keys\nowner + operation + key unique"]
+  C["cleanup_intents\nasset tombstone + pending cleanup"]
+  U -->|"local FK"| A
+  K -->|"local FK"| A
+  C -->|"local FK"| A
+ end
+ subgraph PP["processing_db • Processing owns migrations"]
+  J["submission_guards + jobs\njob_id · unique asset_id · owner reference\nstatus · current_attempt_id"]
+  T["attempts\njob_id · attempt_id · number\nretry_request_id · lease · state"]
+  O["outputs\njob_id · attempt_id · kind\nprivate object key"]
+  D["cleanup_intents\njob tombstone + output cleanup"]
+  J -->|"local FK"| T
+  T -->|"local FK"| O
+  J -->|"local FK"| D
+ end
+ A -.->|"asset / owner IDs only\nNO cross-database foreign key"| J
+

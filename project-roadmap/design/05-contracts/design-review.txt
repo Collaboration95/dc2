@@ -1,0 +1,66 @@
+Independent step 05 design review — PASS
+Rechecked 9 October 2026. All three previous findings are RESOLVED.
+No remaining meaningful design blocker or new product scope identified.
+Design review only: no app execution, runtime tests, dependency installation,
+GitHub or cloud access. Only this review report was changed by this recheck.
+
+RESOLVED — P1: cancellation after an uncertain/in-flight SubmitJob.
+Evidence:
+  processing.openapi.json: paths["/assets/{asset_id}/job"].delete;
+    paths["/jobs"].post.description
+  persistence-model.json: processing_db.submission_guards,
+    transactions[1] (Submit processing), transactions[5] (Delete),
+    retention entry "Request keys and tombstones"
+  content.json: internal-contracts, persistence, transactions, data-inventory
+  contract-cases.json: CT-24
+MM can cancel by stable asset_id without knowing the internal job UUID.
+Submit and cancellation serialize on the same owner-bound persistent guard.
+Cancel-first reserves a deleted guard and later Submit returns 410;
+Submit-first cancellation tombstones the job, cancels attempts and schedules
+output cleanup. Another owner receives 404. Guard retention lasts for the
+entire demo environment. This resolves the lost-response and delayed-submit
+barrier without cross-database access or circular authorization.
+
+RESOLVED — P1: durable resubmission payload for accepted derived edits.
+Evidence:
+  persistence-model.json: media_db.assets, immutable operations JSON
+  public.openapi.json: paths["/jobs/{job_id}/edit"].post.description
+  processing.openapi.json: paths["/jobs"].post.description and
+    components.schemas.SubmitJob.properties.operations
+  content.json: persistence
+  contract-cases.json: CT-25
+The public edit contract explicitly commits immutable operations with the
+derived Asset and request key in one MM transaction before submission.
+Reconciliation replays those saved operations, preserving the Processing
+fingerprint through MM restart or Processing outage. The independent source
+copy remains durable and does not depend on the parent deletion lifecycle.
+
+RESOLVED — P2: admission versus source-dependent validation.
+Evidence:
+  contract-cases.json: CT-20.expected
+  public.openapi.json and processing.openapi.json:
+    components.schemas.EditOperation
+CT-20 now distinguishes admission errors (413/415/422 before acceptance)
+from source-dependent geometry/probe failures (visible failed attempt after
+202). The operation schemas and asynchronous claim/download workflow are
+compatible with this distinction; synchronous probing is not required.
+
+Nonblocking wording precision:
+  processing.openapi.json:
+    paths["/assets/{asset_id}/job"].delete.responses["204"].description
+This sentence promises a cleanup intent even when no job exists, while
+processing_db.cleanup_intents is keyed by job_id. The operation description
+already distinguishes cancel-first guard creation from submit-first output
+cleanup, so the intended behavior is clear and the cancellation barrier is
+sound. Suggested wording: "Owner-bound cancellation guard committed; job
+cancellation and output cleanup intent committed when a job exists."
+No new cleanup table or placeholder job is needed.
+
+Static review checks:
+All eight step 05 JSON documents parsed. Local OpenAPI references resolve,
+path parameters match templates and operation IDs are unique within each
+specification. The content.json persistence, transaction and retention tables
+match persistence-model.json. Illustrative examples preserve separate public
+Asset and internal Processing IDs and queued attempt identity.
+These checks are design-only evidence. Contract cases, including CT-24/25,
+remain deliberately not run; runtime verification belongs to later work.

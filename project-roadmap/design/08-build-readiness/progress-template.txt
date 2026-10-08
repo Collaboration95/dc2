@@ -1,0 +1,8 @@
+08 progress report — reporting period: [pending]
+Completed work: [link revisions/evidence; not collected]
+Actual hours by member, Project 1 and Project 2 separately: [not collected]
+Actual milestones/date versus planned milestone: [not collected]
+Problems/impact/owner: [pending]
+Next two weeks: task, owner, planned date, dependency [pending]
+Targets/deviations/feedback: [pending]
+Source: ../../../project-documentation/briefing-requirements.txt

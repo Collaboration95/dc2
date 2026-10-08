@@ -1,0 +1,42 @@
+[
+  {
+    "file": "deployment-plan.md",
+    "label": "Deployment plan",
+    "description": "Source-linked physical architecture, delivery and bootstrap plan; not executed."
+  },
+  {
+    "file": "deployment-report.html",
+    "label": "Native HTML report",
+    "description": "Offline readable report and options modals; clicks are not approval."
+  },
+  {
+    "file": "physical-architecture.mmd",
+    "label": "Physical diagram source",
+    "description": "Editable Mermaid source."
+  },
+  {
+    "file": "physical-architecture.svg",
+    "label": "Physical diagram SVG",
+    "description": "Editable vector export; planned architecture."
+  },
+  {
+    "file": "release-pipeline.mmd",
+    "label": "Release pipeline source",
+    "description": "Editable Mermaid source."
+  },
+  {
+    "file": "release-pipeline.svg",
+    "label": "Release pipeline SVG",
+    "description": "Editable vector export; planned gates and rollout."
+  },
+  {
+    "file": "choices.json",
+    "label": "Five decision comparisons",
+    "description": "Compute, database, storage, promotion and credential alternatives; no approval recorded."
+  },
+  {
+    "file": "diagram-layouts.json",
+    "label": "Native editable layout source",
+    "description": "Node positions, edges and native arrow routing for the two assigned board pages."
+  }
+]

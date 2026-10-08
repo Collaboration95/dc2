@@ -1,0 +1,19 @@
+Step 07 documentation verification — 9 October 2026
+Scope: project-roadmap/design/07-deployment/ only; assigned shared-board pages only.
+Prepared: content, five choices, downloads, native HTML, source-linked Markdown,
+Mermaid and native layout sources, SVGs and actual page/shape-ID manifest.
+PASS: JSON contract fields; globally prefixed unique IDs; choice/recommendation
+references; table widths; local source/report/download links; SVG XML and text
+visibility; native report JavaScript syntax. Native diagrams reviewed via board screenshots.
+Board: VlAHwy0_tdoQir9rWeSqB
+Physical: page:team17-physical — 28 actual shapes in diagram-manifest.json
+Release: page:team17-release — 20 actual shapes in diagram-manifest.json
+Native SVG text visibility/theme-shadow export defect normalized in own SVGs.
+Local HTML browser preview was blocked by browser URL protocol policy; no
+workaround attempted. Modal interaction and responsive visual QA are NOT RUN.
+All application builds/tests, security/recovery/scaling measurements, AWS
+availability checks, account actions, provisioning and releases are NOT RUN.
+Accepted scope is distinguished from recommended defaults and pending team
+cloud decisions. Current shared-host demo credential risk is NOT APPROVED.
+Original proposal/target table and application files remain unchanged.
+Documentation is ready to guide local build; cloud confirmations remain required.

@@ -1,0 +1,90 @@
+sequenceDiagram
+  autonumber
+  participant C as Owner web / CLI
+  participant MM as Media Management
+  participant M as media_db
+  participant P as Processing API
+  participant D as processing_db
+  participant Q as Redis / RQ
+  participant W as P worker
+  participant S as Source bucket
+  participant O as Output bucket
+
+  Note over C,O: PROPOSED — designed, not implemented. HTTP calls are synchronous; RQ work is asynchronous. Public /jobs ID means asset_id.
+  C->>MM: /auth login; existing HTTPS cookie session
+  MM-->>C: Session cookie (CLI keeps cookie jar)
+  C->>MM: POST /upload with cookie + video + stable Idempotency-Key
+  MM->>MM: Verify owner, video type and measured size <= 100 MiB
+  MM->>S: Store source using MM source credentials
+  MM->>M: Commit Asset + source descriptor + pending intent + request key
+  M-->>MM: Durable intake confirmed
+  MM->>S: ReadSource GET grant (15-minute design default)
+  MM->>P: SubmitJob(asset_id, owner_id, source, operations, source_url, expiry) + token + X-Owner-Id
+  P->>D: Lock owner-bound asset guard; commit Job + queued Attempt or return existing
+  D-->>P: Durable internal Job UUID + state
+  P->>Q: Enqueue job_id + attempt_id after DB commit
+  Note over P,Q: Queue gaps belong to P reconciliation; Redis is not Job truth.
+  alt Submit acknowledgement received
+    P-->>MM: Job UUID + queued state
+    MM->>M: Record internal correlation + submitted state; clear pending
+  else Acknowledgement lost after commit; idempotent transport retry
+    Note over MM,M: Durable pending intent survives; MM resubmits it.
+    MM->>S: Mint fresh source_url for same revision
+    MM->>P: Repeat SubmitJob(same asset/owner/revision/request, new URL)
+    P->>D: Find same fingerprint; URL and expiry excluded
+    D-->>P: Existing Job UUID and current state
+    P-->>MM: Existing Job; no new job or retry attempt
+    MM->>M: Reconcile correlation + submitted state; clear pending
+  end
+  MM-->>C: 202 accepted; public reference = asset_id
+  Note over MM,M: P outage: durable upload still 202; pending status reads are 200 queued/pending with no outputs.
+
+  Q-->>W: Asynchronous RQ delivery of job_id + reserved attempt_id
+  W->>D: Claim current reserved queued Attempt; never create at claim
+  D-->>W: Claim + job/owner/asset/revision
+  alt Submit source_url is expired or refresh is needed
+    W->>W: Validate its live Attempt locally
+    W->>MM: POST /internal/v1/assets/{asset_id}/source-access; reverse token + X-Owner-Id + revision
+    MM->>M: Check own Asset owner, immutable revision, not-deleted
+    M-->>MM: Source authorised
+    Note over MM,P: MM does not call P or read processing_db to validate attempts.
+    MM->>S: ReadSource: fresh single-object GET, 15-minute default
+    MM-->>W: source_url + expires_at + immutable descriptor
+  else Submit URL remains usable
+    W->>W: Use temporary source_url; never source credentials
+  end
+  W->>S: Download using presigned GET
+  S-->>W: Source bytes
+  W->>W: Standard MP4 + best-effort HLS; MKV/MP3 are edit-only compatibility
+  W->>O: Write job/attempt-specific output objects; output-write credentials only
+  W->>D: Conditional winning-attempt completion; publish durable refs
+  D-->>W: Done + MP4 ref + optional HLS ref
+
+  loop Owner polls through same entrypoint
+    C->>MM: GET /jobs/{asset_id} + cookie
+    MM->>M: Owner + live Asset lookup; internal correlation
+    MM->>P: Owner-scoped GetJob + MM service token
+    P->>D: Filter by stored owner and Job UUID
+    D-->>P: State + durable output refs
+    P-->>MM: Observed Job result (no playback URL)
+    MM->>M: Compose public response from live P result; no required stored cache
+    MM->>O: Sign 15-minute primary output GET with output-read/sign role
+    MM-->>C: Live owner status + primary output URL + MM HLS route if available
+  end
+  C->>O: Temporary signed primary-output GET
+  O-->>C: Primary-output bytes
+  opt HLS available — playlists remain on owner-authorised MM routes
+    C->>MM: GET /jobs/{asset_id}/hls/master.m3u8 + cookie
+    MM->>M: Owner Asset + live P output prefix; validate HLS path
+    MM->>O: Read playlist using output-read role
+    O-->>MM: Playlist bytes
+    MM-->>C: Playlist body; private no-store; relative URIs stay on MM
+    C->>MM: Rendition playlist via same owner route
+    MM-->>C: Authorised playlist body
+    C->>MM: Segment via same owner route
+    MM->>MM: Recheck owner + safe path; sign segment
+    MM-->>C: 307 fresh signed segment URL
+    C->>O: Signed segment GET
+    O-->>C: Segment bytes
+  end
+  Note over C,O: Durable refs stay in P. Submitted P outage/missing Job: 503. Retry reserves one queued Attempt by retry_request_id; Submit replay creates none.

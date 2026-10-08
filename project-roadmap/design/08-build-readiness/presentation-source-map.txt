@@ -1,0 +1,11 @@
+08 presentation plan — 26 October 2026, 14:35–15:15 Singapore (scheduled; verify Canvas)
+1 Introduction/problem/scope → proposal §1/3; report 1; 4min.
+2 Conduct/milestones/effort → proposal §4; report 2; actual Project 1/2 per-member hours and averages; 4min.
+3 Architecture/platform → report 3; steps 03–07 diagrams; 7min.
+4 Quality/results → report 4; E-01–E-06/E-08/E-09 raw runs including misses; 6min.
+5 DevOps/integrated demo → report 5; E-10/E-07 web+CLI and labelled recording fallback; 8min.
+6 Limitations/contribution/next steps → report 3.4/6; inherited versus new; 2.5min.
+Questions 8.5min; total 40min. Timings are roadmap recommendations, not observed rehearsal.
+Guidelines source: ../../../project-documentation/original-reference/04 Project Presentation Guidelines & Schedule.pdf, pp.1–2, via ../../roadmap-data.json presentation step.
+Rehearsal actual duration: not collected. Feedback/date/response/evidence: not collected.
+Final report 16 November 2026; exact cutoff pending. 14 Oct: web integrated, CLI started (not complete); retain 20/25 October and 13 November planning milestones.

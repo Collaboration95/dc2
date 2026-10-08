@@ -1,0 +1,11 @@
+id,target,actual_value,result,status,revision,configuration,raw_log,limitation,owner,collected_at
+E-01,2 workers ≥1.6×; 3 ≥2.1× one-worker jobs/min; median queue wait falls at each step; zero failed jobs.,,,not run,,,,,,
+E-02,p90 ≤700ms; errors <1%.,,,not run,,,,,,
+E-03,p90 <2s; error count reported (no invented proposal error threshold).,,,not run,,,,,,
+E-04,"Recovery state within 5min from kill; retry succeeds; one published winner, no duplicate outputs.",,,not run,,,,,,
+E-05,Re-enqueue within 2min from loss; current attempt alone claims.,,,not run,,,,,,
+E-06,"Durable acceptance, visible pending, no duplicate job; timers are recommended policy, not a proposal outage SLA.",,,not run,,,,,,
+E-07,Deploy + smoke ≤10min; MM container and media_db migrations unchanged; rollback verified.,,,not run,,,,,,
+E-08,100% security negatives rejected; zero fixable HIGH/CRITICAL image findings.,,,not run,,,,,,
+E-09,Zero service imports; zero DB credentials; CLI within 2 person-days. No assumed 8h day.,,,not run,,,,,,
+E-10,Working integrated web + CLI; MP4 playable; HLS outcome and audio explicitly recorded.,,,not run,,,,,,

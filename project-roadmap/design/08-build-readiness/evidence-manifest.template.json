@@ -1,0 +1,81 @@
+{
+  "schema_version": "08-v1",
+  "id": null,
+  "protocol_id": null,
+  "status": "not run",
+  "collected_at_utc": null,
+  "revision": null,
+  "image_digests": {},
+  "environment": {
+    "kind": null,
+    "resources": [],
+    "generator_host": null
+  },
+  "fixture": {
+    "sha256": null,
+    "duration_seconds": null,
+    "height": null,
+    "audio": null
+  },
+  "configuration": {
+    "worker_count": null,
+    "vcpu_each": null,
+    "memory_cap": null,
+    "ffmpeg_version": null,
+    "preset": null,
+    "hls_policy": null,
+    "timers": {}
+  },
+  "repeat": null,
+  "warmup_interval": null,
+  "measurement_interval": null,
+  "target_freeze_record": null,
+  "measurements": {},
+  "failures": [],
+  "raw_artifacts": [],
+  "limitations": [],
+  "result": null,
+  "owner": null,
+  "protocol_catalog": [
+    {
+      "id": "E-01",
+      "topic": "scaling"
+    },
+    {
+      "id": "E-02",
+      "topic": "status"
+    },
+    {
+      "id": "E-03",
+      "topic": "login"
+    },
+    {
+      "id": "E-04",
+      "topic": "worker kill"
+    },
+    {
+      "id": "E-05",
+      "topic": "lost queue"
+    },
+    {
+      "id": "E-06",
+      "topic": "Processing outage"
+    },
+    {
+      "id": "E-07",
+      "topic": "independent release"
+    },
+    {
+      "id": "E-08",
+      "topic": "security"
+    },
+    {
+      "id": "E-09",
+      "topic": "CLI reuse"
+    },
+    {
+      "id": "E-10",
+      "topic": "playback"
+    }
+  ]
+}

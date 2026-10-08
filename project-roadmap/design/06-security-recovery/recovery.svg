@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="660" viewBox="0 0 940 660" role="img" aria-labelledby="title desc">
+<title id="title">Recovery and irreversible lease fencing</title>
+<desc id="desc">Design sequence for durable pending intake, queue repair, heartbeat and explicit retry. Not runtime evidence.</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="#334155"/></marker></defs>
+<rect width="940" height="660" fill="#f8fafc"/>
+<g font-family="Arial,sans-serif" fill="#172554">
+<text x="30" y="32" font-size="22">Recovery protocol • design only / not run</text>
+<rect x="20" y="50" width="160" height="40" rx="8" fill="#dbeafe"/>
+<text x="100" y="76" text-anchor="middle" font-size="16">MM</text>
+<path d="M100 90 V605" stroke="#94a3b8" stroke-dasharray="5 5"/>
+<rect x="255" y="50" width="160" height="40" rx="8" fill="#dbeafe"/>
+<text x="335" y="76" text-anchor="middle" font-size="16">Processing + DB</text>
+<path d="M335 90 V605" stroke="#94a3b8" stroke-dasharray="5 5"/>
+<rect x="495" y="50" width="160" height="40" rx="8" fill="#dbeafe"/>
+<text x="575" y="76" text-anchor="middle" font-size="16">Redis / RQ</text>
+<path d="M575 90 V605" stroke="#94a3b8" stroke-dasharray="5 5"/>
+<rect x="720" y="50" width="160" height="40" rx="8" fill="#dbeafe"/>
+<text x="800" y="76" text-anchor="middle" font-size="16">Worker</text>
+<path d="M800 90 V605" stroke="#94a3b8" stroke-dasharray="5 5"/>
+<text x="105" y="115" font-size="14">Commit pending; Submit same ID after durable intake</text>
+<path d="M100 125 H335" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="340" y="170" font-size="14">Commit job / attempt; enqueue after transaction</text>
+<path d="M335 180 H575" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="580" y="225" font-size="14">Lost membership repaired from DB queued attempts ≤2min</text>
+<path d="M575 235 H800" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="340" y="280" font-size="14">First claim wins; current attempt ID; lease 60s</text>
+<path d="M800 290 H335" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="105" y="335" font-size="14">Refresh source: owner + revision; GET URL 900s</text>
+<path d="M800 345 H100" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="340" y="390" font-size="14">Heartbeat 15s: current + processing + UNEXPIRED</text>
+<path d="M800 400 H335" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="340" y="445" font-size="14">Expired lease: fail; kill FFmpeg; reject late publish</text>
+<path d="M335 455 H800" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="105" y="500" font-size="14">Explicit user retry: stable ID; one new attempt</text>
+<path d="M100 510 H335" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="30" y="552" width="880" height="85" rx="8" fill="#e2e8f0"/>
+<text x="45" y="577" font-size="14">P outage: pending replay ≤60s backoff • alert 5min • escalate 30min; periodic replay continues</text>
+<text x="45" y="599" font-size="14">Cancel / Submit share guard • no DB lock during external I/O • attempt-prefix cleanup</text>
+<text x="45" y="621" font-size="14">Process-crash timing assumes surviving DB/reconciler; host outage has no failover promise.</text>
+</g></svg>

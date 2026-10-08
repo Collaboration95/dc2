@@ -1,0 +1,119 @@
+{
+  "status": "design only",
+  "tables": [
+    [
+      "media_db.users",
+      "id UUID PK; email unique; password_hash; role; created_at.",
+      "Retain existing password/session behavior. Only MM reads user records."
+    ],
+    [
+      "media_db.assets",
+      "id UUID PK; owner_id FK users; filename; source key/revision/digest/type/size; submission_state; processing_job_id reference; source_asset_id reference; immutable operations JSON; submitted_at; last_submit_error; next_submit_at; created_at; deleted_at.",
+      "Sources are immutable. Submission changes do not replace a committed source. Derived sources are independent copies."
+    ],
+    [
+      "media_db.request_keys",
+      "owner_id; operation; request_key UUID; request_hash; asset_id FK; created_at.",
+      "Unique owner + operation + request_key. Match the fingerprint before replay."
+    ],
+    [
+      "media_db.cleanup_intents",
+      "asset_id PK/FK; processing_deleted_at; source_deleted_at; next_try_at; last_error.",
+      "Written atomically with the Asset tombstone. Each cleanup action can repeat safely."
+    ],
+    [
+      "processing_db.jobs",
+      "id UUID PK; asset_id unique; owner_id reference; source descriptor; request_hash; operations JSON; status; current_attempt_id; timestamps; deleted_at.",
+      "No FK to MM. Enforce immutable owner/source and one job per Asset."
+    ],
+    [
+      "processing_db.submission_guards",
+      "asset_id UUID PK; owner_id reference; job_id nullable reference; deleted_at.",
+      "Submit and cancel lock the same row. Cancellation can reserve a tombstone before a job exists. No foreign key to MM."
+    ],
+    [
+      "processing_db.attempts",
+      "id UUID PK; job_id FK; attempt_number; retry_request_id nullable; state; queued/start/finish times; lease_expires_at; safe_error.",
+      "Unique job + number. Unique job + nonnull retry_request_id. Only the current queued attempt can claim."
+    ],
+    [
+      "processing_db.outputs",
+      "id UUID PK; job_id FK; attempt_id FK; kind; object_key; media_type; size; digest.",
+      "Output keys belong to that attempt. One published primary output. Optional HLS manifest."
+    ],
+    [
+      "processing_db.cleanup_intents",
+      "job_id PK/FK; output_prefixes; next_try_at; last_error.",
+      "Delete only Processing-owned outputs. Keep tombstones long enough to defeat stale completions and replay."
+    ]
+  ],
+  "transactions": [
+    [
+      "Accept upload",
+      "After object write, create Asset(pending) and request key together. Unique key selects the winner.",
+      "Storage and SQL are not atomic. Track/remove losing staged objects and old orphans. Never delete another request\u2019s source."
+    ],
+    [
+      "Submit processing",
+      "Lock the owner-bound Asset guard. Reject a tombstone. Create job + first queued attempt under unique asset_id and associate the guard. Commit before returning acceptance.",
+      "Publish (job_id, attempt_id) to RQ after commit. Reconcile missing delivery from durable queued attempts."
+    ],
+    [
+      "Claim work",
+      "Conditional claim on current attempt ID, queued state and live job.",
+      "Fetch source and run FFmpeg without holding a database lock."
+    ],
+    [
+      "Complete work",
+      "After verifying uploaded output, publish its references and mark done only for the still-current live attempt.",
+      "Discard stale completion. Clean abandoned attempt prefixes. Storage deletion is not one SQL transaction."
+    ],
+    [
+      "Retry",
+      "Lock failed job, reserve next attempt, save retry_request_id and update current pointer together.",
+      "Enqueue after commit. A failed enqueue leaves recoverable queued work."
+    ],
+    [
+      "Delete",
+      "MM writes Asset tombstone and cleanup intent. P locks or creates the same owner-bound Asset guard used by Submit, then tombstones/cancels the job if present.",
+      "MM calls P by asset_id, without needing a lost job_id response. Submit-first and cancel-first both converge. Then clean owned objects."
+    ]
+  ],
+  "retention": [
+    [
+      "Accounts",
+      "SQL email/hash/role in media_db.",
+      "Retain for the demonstration environment. No plaintext passwords. No historical user migration."
+    ],
+    [
+      "Source video",
+      "Immutable private object plus source descriptor in media_db.",
+      "Retain until owner deletion or deliberate environment reset. MM alone deletes it after cleanup prerequisites."
+    ],
+    [
+      "Output media",
+      "Private primary media plus HLS objects. Output refs in processing_db.",
+      "Retain winning outputs with the Asset. Remove failed/unpublished attempt objects after a grace period defined in step 06."
+    ],
+    [
+      "Job and attempt history",
+      "SQL records, safe errors and timestamps.",
+      "Retain through experiments and report evidence collection. Remove during deliberate environment teardown."
+    ],
+    [
+      "Request keys and tombstones",
+      "SQL request identity and deleted markers.",
+      "Retain active-asset request keys. Retain deleted markers and keys for at least 7 days and until cleanup finishes. Retain Processing submission guards throughout the demo environment."
+    ],
+    [
+      "Operational logs",
+      "Structured job/attempt IDs, durations and safe diagnostics.",
+      "Planning default: 30 days. Exclude passwords, tokens, full signed URLs and source content. Preserve sanitised experiment evidence separately."
+    ],
+    [
+      "Secrets and signed URLs",
+      "Configuration secrets; transient HTTPS capabilities.",
+      "Never persist into report artifacts or source control. URLs are not durable business identifiers."
+    ]
+  ]
+}

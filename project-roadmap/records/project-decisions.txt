@@ -1,0 +1,80 @@
+Team 17 decisions and lecturer feedback
+Recorded from the user in this chat on 9 October 2026 (Singapore).
+The date of the lecturer's original message was not supplied.
+
+F-01 Lecturer feedback, quoted exactly as supplied by the user:
+"I had reviewed your proposal and am fine with it. Please consider the following comments. Do get started with the project conduct promptly.
+2.3 Finding the service boundary
+When you perform DDD in detail during the project conduct, do convince yourselves that the choices of the microservices are suitable."
+
+Status: Proposal accepted. The user identifies this as the only feedback.
+Open action: In step 03, use detailed DDD to test and justify the proposed
+microservice choices. Proposal acceptance does not prove that the design
+or implementation already meets its targets. No additional scope approval
+question is pending on the evidence supplied here.
+
+D-01 Local baseline
+The user selected the current local Media_player commit as the starting point.
+Verified commit: 885453726d629c524bf511d665311863d9bc70a5.
+The working tree was clean at inspection.
+The proposal's historical 890c5ec reference is superseded for the working plan
+by this explicit user decision. The original proposal remains unchanged.
+Upstream comparisons, fetches and changes are not prerequisites.
+
+D-02 Repository transition
+The user plans to stop using Media_player as a submodule and move to the
+team's own repository/remote later. This is a future repository action.
+This task did not pull, change remotes, alter submodule metadata or migrate
+repository history. The new remote was not specified.
+
+D-03 Earlier step 02 turn boundary (historical)
+Complete step 02 Business and Scope only, including stakeholder personas,
+business context, scope, use-case acceptance stories and contribution map.
+Do not perform detailed DDD, design service internals or change application code.
+
+Source P1
+Original Project 1 proposal:
+/Users/speedpowermac/Downloads/Project Proposal_Ibrahim.pdf
+A byte-identical additional reference copy is available at:
+project-documentation/original-reference/Project Proposal_Ibrahim.pdf
+SHA-256: 7b2abf876bdeed2025c089d6b761fb110e506cc55bde67c2a700a1c32a025b31
+The original file remains at its original path.
+
+Persona provenance
+P-01 Maya, P-02 Arun, P-03 Jules and P-04 Sam are fictional planning personas.
+Audience roles derive from the Project 1 and Team 17 proposals.
+Names, appearance and example work situations are design assumptions.
+They do not represent interviews, real customers, system roles or new features.
+
+D-04 Steps 03–05 design preparation
+The user authorised detailed DDD, logical architecture/decisions and API/data
+contracts, with GPT-6.1 Sol subagents and editable tldraw representations.
+The scope supersedes the historical step-02-only boundary of D-03 for this turn.
+Prepared design pack: project-roadmap/design-studio.html.
+No application code, git remotes, original project materials or infrastructure
+changed. At that turn, steps 06 onward remained future work; D-05 records the later scope.
+
+F-01 design response
+Step 03 now documents the considered suitability argument, alternatives and
+falsification/verification conditions for Media Management and Processing.
+This is a design response for team review, not a new lecturer approval or
+proof of implementation behavior. Runtime validation is still pending.
+
+
+D-05 Steps 06–08 preparation, 9 October 2026
+The user authorised documentation and website preparation through step 08.
+Prepared pack: project-roadmap/build-preparation.html. Runtime checks are not
+run. Application implementation and infrastructure execution have not started.
+The two-service/two-database-role boundary, AWS containers, web and CLI,
+security/recovery scenarios and 1/2/3 workers at 2 vCPU remain proposal
+commitments. Original proposal targets and course sources remain unchanged.
+Recommended defaults in choices.json require explicit team confirmation.
+Comparison modals and personal review marks record no selection or approval.
+Local build inputs are prepared for a later authorised implementation task.
+Cloud execution additionally requires verified account/region, credentials,
+capacity, TLS, secret delivery and budget approval; those remain pending.
+AD-01–AD-08 comparisons are derived from recorded architecture decisions.
+They show the proposal option already recorded, not a reopened user choice.
+One shared editable step 06/07 board was supplied by the user:
+https://www.tldraw.com/f/VlAHwy0_tdoQir9rWeSqB
+SVG previews are saved artifacts; board edits do not update the site.

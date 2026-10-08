@@ -1,0 +1,177 @@
+[
+  {
+    "id": "CT-01",
+    "case": "Upload replay",
+    "input": "Same owner/key/file twice",
+    "expected": "Same asset ID, one accepted Asset and one eventual Processing job.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-02",
+    "case": "Upload conflict",
+    "input": "Same owner/key, different file digest",
+    "expected": "409; preserve original Asset.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-03",
+    "case": "Submit replay",
+    "input": "Same asset/owner/source/options, refreshed signed URL",
+    "expected": "200 existing job. No duplicate attempt.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-04",
+    "case": "Submit owner attack",
+    "input": "Valid service token, wrong owner for existing asset",
+    "expected": "404. No mutation or information leak.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-05",
+    "case": "Submit payload conflict",
+    "input": "Same asset/owner, changed source revision or operations",
+    "expected": "409. Existing job remains unchanged.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-06",
+    "case": "Retry replay",
+    "input": "Repeat retry_request_id after first attempt starts or finishes",
+    "expected": "202 current job; no second new attempt.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-07",
+    "case": "Retry state",
+    "input": "New retry ID while job is queued, processing or done",
+    "expected": "409. Wrong owner remains 404.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-08",
+    "case": "Source expiry",
+    "input": "Queued source URL expired before claim",
+    "expected": "Refresh grant for matching owner/revision; valid source still readable without source credentials.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-09",
+    "case": "Source access denial",
+    "input": "Wrong owner/revision, deleted asset or wrong-direction token",
+    "expected": "404 owner/deleted; 409 revision; 401 invalid token. No signed URL.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-10",
+    "case": "Output ownership",
+    "input": "Owner A requests B\u2019s MP4/HLS or attempts path traversal",
+    "expected": "404; no key/URL leak.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-11",
+    "case": "Delayed completion",
+    "input": "Attempt A finishes after retry attempt B becomes current",
+    "expected": "No state/output overwrite. Only current attempt can publish.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-12",
+    "case": "Queue outage",
+    "input": "Job commits but enqueue fails, or RQ hash survives lost queue entry",
+    "expected": "Durable queued work remains discoverable. Step 06 proves repair within target.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-13",
+    "case": "Processing outage",
+    "input": "Upload while Processing is unreachable",
+    "expected": "202 after durable intake; queued/pending visible; retry SubmitJob later with same asset ID.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-14",
+    "case": "Status outage",
+    "input": "Read a submitted Asset while Processing is unreachable",
+    "expected": "503, not a synthetic fresh state.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-15",
+    "case": "DB isolation",
+    "input": "Connect/query opposite database using each runtime role",
+    "expected": "Denied. Correct database DML succeeds; DDL requires own migration role.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-16",
+    "case": "Delete while encoding",
+    "input": "Delete Asset before a worker finishes",
+    "expected": "Public 404; new source grants denied; stale output never published; cleanup repeats safely.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-17",
+    "case": "Edit independence",
+    "input": "Create derived Asset, then delete original",
+    "expected": "Derived immutable source remains available. No new editor UI required.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-18",
+    "case": "Web/CLI compatibility",
+    "input": "Same workflow via both clients",
+    "expected": "Response shapes stable; retry sends no file; HLS playlists remain facade-relative.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-19",
+    "case": "Operator boundary",
+    "input": "Normal user attempts admin; operator manages another owner\u2019s item",
+    "expected": "403 for normal user. Operator checked in MM; Processing still receives a specific owner.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-20",
+    "case": "Input invariants",
+    "input": "Over-limit, wrong MIME/container, duplicate operations or invalid geometry",
+    "expected": "Admission errors return 413/415/422 before acceptance. Source-dependent geometry/probe failures produce a visible failed attempt after 202; they are not promised synchronous rejections.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-21",
+    "case": "Deleted key replay",
+    "input": "Reuse a retained upload/edit key for a deleted Asset",
+    "expected": "410. Never recreate the deleted Asset implicitly.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-22",
+    "case": "Output commit",
+    "input": "Mark done without a verified primary output or from deleted job",
+    "expected": "Transition rejected; no playable success claim.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-24",
+    "case": "Cancel after uncertain Submit",
+    "input": "Submit commits but its response is lost; owner deletes the Asset",
+    "expected": "MM cancels by asset_id. P locks the submission guard, cancels any job and rejects delayed submissions with 410. Test cancel-first and submit-first ordering.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-25",
+    "case": "Pending edit replay",
+    "input": "Restart MM or interrupt Processing before the derived edit is submitted",
+    "expected": "Pending Asset stores source descriptor and immutable operations in one transaction. Replayed Submit preserves the original edit fingerprint.",
+    "status": "not run"
+  },
+  {
+    "id": "CT-23",
+    "case": "Schema conformance",
+    "input": "Validate requests/responses and examples against contracts",
+    "expected": "No unresolved references; real handlers must implement the documented cases later.",
+    "status": "not run"
+  }
+]

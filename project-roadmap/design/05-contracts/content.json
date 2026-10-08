@@ -1,0 +1,470 @@
+{
+  "title": "Contracts and persistence",
+  "sections": [
+    {
+      "id": "contract-decisions",
+      "title": "The decisions that make the split implementable",
+      "paragraphs": [
+        "This is a design contract for the next implementation phase. None of these files installs services, changes the application or proves the targets.",
+        "Keep the existing public routes under /api. Treat the public job_id as an Asset identifier owned by Media Management. Processing gets a separate internal job_id.",
+        "Use the existing secure session cookie for both browser and CLI. The CLI keeps an HTTPS cookie jar. A new bearer-token login flow is unnecessary.",
+        "Use versioned internal routes under /internal/v1. Public compatibility version 1 keeps existing paths. OpenAPI version 1.0.0-design marks an unimplemented specification."
+      ],
+      "table": {
+        "headers": [
+          "Decision",
+          "Selected behavior",
+          "Reason"
+        ],
+        "rows": [
+          [
+            "C-01 \u00b7 Identity",
+            "Public id = asset_id. Internal job_id is separate.",
+            "Clients never depend on Processing\u2019s persistence identity."
+          ],
+          [
+            "C-02 \u00b7 Intake",
+            "Commit a source and pending Asset before accepting upload.",
+            "A Processing outage does not lose an accepted source."
+          ],
+          [
+            "C-03 \u00b7 Submission",
+            "Unique asset_id plus a canonical request fingerprint.",
+            "Repeated SubmitJob calls return the same job. Changed content is a conflict."
+          ],
+          [
+            "C-04 \u00b7 Retry",
+            "Stable retry_request_id, one new attempt, stored source.",
+            "A lost HTTP response must not create another attempt."
+          ],
+          [
+            "C-05 \u00b7 Playback",
+            "Processing returns durable output keys. Media Management authorises and signs output reads.",
+            "Expiring URLs do not become durable state."
+          ],
+          [
+            "C-06 \u00b7 Source access",
+            "Initial signed read URL plus private capability refresh from Media Management.",
+            "Backlogs do not require long-lived source credentials."
+          ],
+          [
+            "C-07 \u00b7 Compatibility",
+            "Retain list, delete, edit, HLS and existing operator routes.",
+            "The inherited UI should not become a set of broken buttons."
+          ],
+          [
+            "C-08 \u00b7 Data isolation",
+            "Separate databases, service roles and migration histories.",
+            "Ownership is an enforceable data boundary, not just a diagram."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "public-routes",
+      "title": "Public API and compatibility",
+      "paragraphs": [
+        "The downloadable public OpenAPI document specifies requests, responses, authentication and errors. Route names below exclude the nginx /api prefix.",
+        "The browser continues to read id, filename, status, output_url, hls_url and error. New submission_status is additive. Omit unavailable output fields.",
+        "Update the web and CLI to send a stable Idempotency-Key for upload, retry and edit requests. Older callers may omit it, but then request replay is not guaranteed."
+      ],
+      "table": {
+        "headers": [
+          "Routes",
+          "Preserved behavior",
+          "Designed change"
+        ],
+        "rows": [
+          [
+            "POST /auth/register, /auth/login; POST /auth/logout; GET /auth/me",
+            "Existing credentials, User shape, cookie and logout limitations.",
+            "CLI uses the same cookie session. No new identity service."
+          ],
+          [
+            "POST /upload",
+            "Multipart file; 100 MiB file limit; 202 {job_id}.",
+            "The id belongs to an Asset. Pending durable intake is accepted during a temporary Processing outage."
+          ],
+          [
+            "GET /jobs; GET /jobs/{job_id}",
+            "Owner-only array/detail shapes, pagination and safe errors.",
+            "MM pages Asset records and batches internal status reads. Do not claim a fresh status during a downstream outage."
+          ],
+          [
+            "POST /jobs/{job_id}/retry",
+            "202, same source, only failed jobs.",
+            "Web uses the retry route instead of re-upload. Internal retries deduplicate by request ID."
+          ],
+          [
+            "GET /jobs/{job_id}/hls/{path}",
+            "Owner-checked playlist body and signed segment redirects.",
+            "MM derives allowed output paths from Processing references. Playlists stay on the facade."
+          ],
+          [
+            "DELETE /jobs/{job_id}",
+            "Remove the library item.",
+            "Tombstone and durable cleanup intent before 204. Asynchronous cleanup crosses the boundary through an API."
+          ],
+          [
+            "POST /jobs/{job_id}/edit",
+            "Existing operation variants only.",
+            "Create a derived Asset with an independent immutable source copy. Do not build the missing crop/clip widgets."
+          ],
+          [
+            "GET /admin/jobs; DELETE /admin/jobs/{job_id}",
+            "Existing operator privilege checks.",
+            "MM authorises the operator and forwards each target\u2019s owner. No unscoped Processing API."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "status-projection",
+      "title": "What the user sees while submission is pending",
+      "paragraphs": [
+        "The four public states remain queued, processing, done and failed. Asset submission state is a separate concern.",
+        "Media Management owns submission_state: pending, submitted or error. Processing owns the encode result. Never turn a successful historical projection into a fresh status claim."
+      ],
+      "table": {
+        "headers": [
+          "Condition",
+          "Public response",
+          "Authority"
+        ],
+        "rows": [
+          [
+            "Durable Asset, no confirmed Processing job",
+            "200 queued, submission_status=pending. No output links.",
+            "MM\u2019s pending record. Reconciler retries SubmitJob."
+          ],
+          [
+            "Submission permanently rejected",
+            "200 failed, submission_status=error, safe error.",
+            "MM records the rejection. User retry is 409 until its cause is corrected."
+          ],
+          [
+            "Processing accepted the job",
+            "200 with Processing status and submission_status=submitted.",
+            "Live owner-filtered Processing read."
+          ],
+          [
+            "Submitted Asset but Processing unreachable",
+            "503 with a safe retryable error.",
+            "Do not silently return cached done or start another job."
+          ],
+          [
+            "Submitted Asset but its job is missing",
+            "503 with a consistency error; record a reconciliation issue.",
+            "No synthetic success. Investigate the missing durable record."
+          ],
+          [
+            "Deleted or another owner\u2019s Asset",
+            "404. Same response for both cases.",
+            "MM authorisation and tombstone."
+          ],
+          [
+            "Processing job done",
+            "Short-lived output_url, optional hls_url.",
+            "Winning attempt\u2019s durable output references."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "idempotency",
+      "title": "Two different kinds of duplicate request",
+      "paragraphs": [
+        "Upload replay and processing replay are separate problems. A stable Asset identifier cannot deduplicate an upload that accidentally creates two Assets.",
+        "For upload, scope Idempotency-Key by owner and operation. Compare a fingerprint of file digest, byte length, sniffed type and normalised filename. Concurrent duplicates must select one durable Asset.",
+        "For SubmitJob, enforce one job per asset_id. Compare owner, immutable source descriptor and ordered operations. Exclude the signed URL and its expiry from this fingerprint.",
+        "For RetryJob, look for the saved retry_request_id before checking the current state. A replay returns the job\u2019s current result without creating another attempt.",
+        "Different owners receive 404. A changed payload for the same owner and identifier receives 409. A retained deleted result receives 410 for an idempotency replay.",
+        "Only requests with a stable public key get replay guarantees. The new browser and CLI must retain that key across uncertain network responses. A processing retry never uploads file bytes."
+      ]
+    },
+    {
+      "id": "internal-contracts",
+      "title": "Private service contracts",
+      "paragraphs": [],
+      "table": {
+        "headers": [
+          "Operation",
+          "Request",
+          "Response and rule"
+        ],
+        "rows": [
+          [
+            "SubmitJob \u00b7 POST /internal/v1/jobs",
+            "Service token, X-Owner-Id, asset_id, owner_id, source descriptor, source_url, expiry, optional operations.",
+            "201 new or 200 existing ProcessingJob. Owner/header/body must agree. Source asset ID must match."
+          ],
+          [
+            "GetJob \u00b7 GET /internal/v1/jobs/{job_id}",
+            "Service token plus X-Owner-Id.",
+            "Owner-filtered ProcessingJob, attempts and durable output references. Another owner is 404."
+          ],
+          [
+            "ListJobs \u00b7 GET /internal/v1/jobs?asset_ids=\u2026",
+            "Owner header and up to 200 explicit Asset IDs.",
+            "Matching nondeleted records. No unscoped list. Missing submitted records are discrepancies."
+          ],
+          [
+            "RetryJob \u00b7 POST /internal/v1/jobs/{job_id}/retry",
+            "Owner header plus retry_request_id.",
+            "202 confirmed new attempt or replay. New retry from a nonfailed state is 409."
+          ],
+          [
+            "CancelAssetJob \u00b7 DELETE /internal/v1/assets/{asset_id}/job",
+            "Owner header and stable Asset ID, even when no internal job ID is known.",
+            "204 after an owner-bound guard/tombstone commits. It also rejects delayed Submit calls. Another owner is 404."
+          ],
+          [
+            "Source access \u00b7 POST /internal/v1/assets/{asset_id}/source-access",
+            "Separate reverse-direction token, owner header and source revision.",
+            "Fresh single-object GET URL and immutable descriptor. MM checks only its own live Asset and owner."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "storage",
+      "title": "Storage without shared source credentials",
+      "paragraphs": [
+        "Media Management owns source objects. Processing owns output objects. Use separate private stores or enforced prefixes with separate credentials. The exact AWS storage product remains step 07 work.",
+        "Workers receive no Media Management storage credentials. They read source objects through signed URLs. An initial URL accompanies SubmitJob, but only the immutable descriptor is durable.",
+        "At claim time, Processing checks the active attempt. It requests fresh source access when needed. MM checks the owner, source revision and nondeleted Asset without querying Processing.",
+        "The source endpoint accepts no arbitrary URL, bucket or object key. Workers allow only the configured storage origins and expected key prefixes. They must not follow arbitrary redirects.",
+        "Processing writes outputs under an attempt-specific prefix. MM holds read/sign access to outputs, with no output-write permission. Processing holds no permission to delete source objects.",
+        "Design default: source and output GET URLs expire after 15 minutes. Refresh before source download and obtain new output access through the API. Never log the URL query string.",
+        "The two service tokens are different, direction-specific configuration secrets. A valid MM token represents a trusted service caller; Processing still compares forwarded ownership with its records.",
+        "Compromise of a trusted service remains a risk. This scheme does not cryptographically prove that a forwarded human request was genuine. Step 06 must test and document this boundary."
+      ]
+    },
+    {
+      "id": "persistence",
+      "title": "Two databases and explicit ownership",
+      "paragraphs": [
+        "The data model below is a proposed logical schema. Field choices support the contracts and invariants. It is not a migration script.",
+        "Keep a users-to-assets foreign key inside media_db. Keep job, attempt and output foreign keys inside processing_db. Cross-service IDs are references only.",
+        "The public identifier remains asset_id even when the web calls it job_id. Separate internal identities prevent the browser from depending on the Processing model."
+      ],
+      "table": {
+        "headers": [
+          "Database / table",
+          "Key data",
+          "Rules"
+        ],
+        "rows": [
+          [
+            "media_db.users",
+            "id UUID PK; email unique; password_hash; role; created_at.",
+            "Retain existing password/session behavior. Only MM reads user records."
+          ],
+          [
+            "media_db.assets",
+            "id UUID PK; owner_id FK users; filename; source key/revision/digest/type/size; submission_state; processing_job_id reference; source_asset_id reference; immutable operations JSON; submitted_at; last_submit_error; next_submit_at; created_at; deleted_at.",
+            "Sources are immutable. Submission changes do not replace a committed source. Derived sources are independent copies."
+          ],
+          [
+            "media_db.request_keys",
+            "owner_id; operation; request_key UUID; request_hash; asset_id FK; created_at.",
+            "Unique owner + operation + request_key. Match the fingerprint before replay."
+          ],
+          [
+            "media_db.cleanup_intents",
+            "asset_id PK/FK; processing_deleted_at; source_deleted_at; next_try_at; last_error.",
+            "Written atomically with the Asset tombstone. Each cleanup action can repeat safely."
+          ],
+          [
+            "processing_db.jobs",
+            "id UUID PK; asset_id unique; owner_id reference; source descriptor; request_hash; operations JSON; status; current_attempt_id; timestamps; deleted_at.",
+            "No FK to MM. Enforce immutable owner/source and one job per Asset."
+          ],
+          [
+            "processing_db.submission_guards",
+            "asset_id UUID PK; owner_id reference; job_id nullable reference; deleted_at.",
+            "Submit and cancel lock the same row. Cancellation can reserve a tombstone before a job exists. No foreign key to MM."
+          ],
+          [
+            "processing_db.attempts",
+            "id UUID PK; job_id FK; attempt_number; retry_request_id nullable; state; queued/start/finish times; lease_expires_at; safe_error.",
+            "Unique job + number. Unique job + nonnull retry_request_id. Only the current queued attempt can claim."
+          ],
+          [
+            "processing_db.outputs",
+            "id UUID PK; job_id FK; attempt_id FK; kind; object_key; media_type; size; digest.",
+            "Output keys belong to that attempt. One published primary output. Optional HLS manifest."
+          ],
+          [
+            "processing_db.cleanup_intents",
+            "job_id PK/FK; output_prefixes; next_try_at; last_error.",
+            "Delete only Processing-owned outputs. Keep tombstones long enough to defeat stale completions and replay."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "transactions",
+      "title": "Consistency and transaction boundaries",
+      "paragraphs": [],
+      "table": {
+        "headers": [
+          "Operation",
+          "One local transaction",
+          "Outside the transaction"
+        ],
+        "rows": [
+          [
+            "Accept upload",
+            "After object write, create Asset(pending) and request key together. Unique key selects the winner.",
+            "Storage and SQL are not atomic. Track/remove losing staged objects and old orphans. Never delete another request\u2019s source."
+          ],
+          [
+            "Submit processing",
+            "Lock the owner-bound Asset guard. Reject a tombstone. Create job + first queued attempt under unique asset_id and associate the guard. Commit before returning acceptance.",
+            "Publish (job_id, attempt_id) to RQ after commit. Reconcile missing delivery from durable queued attempts."
+          ],
+          [
+            "Claim work",
+            "Conditional claim on current attempt ID, queued state and live job.",
+            "Fetch source and run FFmpeg without holding a database lock."
+          ],
+          [
+            "Complete work",
+            "After verifying uploaded output, publish its references and mark done only for the still-current live attempt.",
+            "Discard stale completion. Clean abandoned attempt prefixes. Storage deletion is not one SQL transaction."
+          ],
+          [
+            "Retry",
+            "Lock failed job, reserve next attempt, save retry_request_id and update current pointer together.",
+            "Enqueue after commit. A failed enqueue leaves recoverable queued work."
+          ],
+          [
+            "Delete",
+            "MM writes Asset tombstone and cleanup intent. P locks or creates the same owner-bound Asset guard used by Submit, then tombstones/cancels the job if present.",
+            "MM calls P by asset_id, without needing a lost job_id response. Submit-first and cancel-first both converge. Then clean owned objects."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "privileges",
+      "title": "Database roles and migrations",
+      "paragraphs": [
+        "Use media_runtime and processing_runtime as non-superuser login roles. Give each CONNECT only to its own database and DML only on its own schema.",
+        "Use separate migration credentials for each service. Runtime containers do not receive owner or migration credentials. Keep migration histories separate.",
+        "Explicitly revoke default PUBLIC database CONNECT/TEMP privileges and unwanted schema privileges before granting access. Separate role names alone do not enforce the boundary.",
+        "Deny cross-service role membership and cross-database access mechanisms. Verify each runtime credential against both databases using negative connection/query tests.",
+        "Create databases and grant roles through controlled environment setup. Each service then applies only its own migrations. Do not start Processing by depending on MM to migrate its tables."
+      ]
+    },
+    {
+      "id": "data-inventory",
+      "title": "Data handling for the demonstration",
+      "paragraphs": [],
+      "table": {
+        "headers": [
+          "Data",
+          "Format and storage",
+          "Retention and handling choice"
+        ],
+        "rows": [
+          [
+            "Accounts",
+            "SQL email/hash/role in media_db.",
+            "Retain for the demonstration environment. No plaintext passwords. No historical user migration."
+          ],
+          [
+            "Source video",
+            "Immutable private object plus source descriptor in media_db.",
+            "Retain until owner deletion or deliberate environment reset. MM alone deletes it after cleanup prerequisites."
+          ],
+          [
+            "Output media",
+            "Private primary media plus HLS objects. Output refs in processing_db.",
+            "Retain winning outputs with the Asset. Remove failed/unpublished attempt objects after a grace period defined in step 06."
+          ],
+          [
+            "Job and attempt history",
+            "SQL records, safe errors and timestamps.",
+            "Retain through experiments and report evidence collection. Remove during deliberate environment teardown."
+          ],
+          [
+            "Request keys and tombstones",
+            "SQL request identity and deleted markers.",
+            "Retain active-asset request keys. Retain deleted markers and keys for at least 7 days and until cleanup finishes. Retain Processing submission guards throughout the demo environment."
+          ],
+          [
+            "Operational logs",
+            "Structured job/attempt IDs, durations and safe diagnostics.",
+            "Planning default: 30 days. Exclude passwords, tokens, full signed URLs and source content. Preserve sanitised experiment evidence separately."
+          ],
+          [
+            "Secrets and signed URLs",
+            "Configuration secrets; transient HTTPS capabilities.",
+            "Never persist into report artifacts or source control. URLs are not durable business identifiers."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "cases",
+      "title": "Contract cases to implement after this design",
+      "paragraphs": [
+        "The contract-case register contains inputs and expected results. These are planned checks, not passing test results.",
+        "Schema checks cannot prove cross-field rules, transactions, authorisation or timing. The integration and runtime checks remain necessary."
+      ]
+    },
+    {
+      "id": "compatibility-cost",
+      "title": "Keep the inherited interface honest",
+      "paragraphs": [
+        "Preserving the existing edit and delete routes adds real design work. It does not add new Project 1 product features. Make their regressions visible in the test plan.",
+        "The derived-Asset copy costs storage and I/O. It avoids a source reference across deletion lifecycles. If the team later removes these inherited routes, record a scope/compatibility amendment first.",
+        "Fresh demonstration data avoids migrating old identifiers. It does not permit undocumented behavior changes for the new web workflow.",
+        "The remaining work after step 05 is implementation and evidence: failure/security validation in step 06, physical/cloud selection in step 07 and executable test protocols in step 08."
+      ]
+    },
+    {
+      "id": "sources",
+      "title": "Source anchors",
+      "paragraphs": [],
+      "table": {
+        "headers": [
+          "Source",
+          "What it supports"
+        ],
+        "rows": [
+          [
+            "project-documentation/Team17-Proposal.docx \u00a72.3\u20132.5, AD-01\u2013AD-08, \u00a73.2\u20133.4",
+            "Service contract commitments, ownership, security and use cases."
+          ],
+          [
+            "project-roadmap/records/project-decisions.txt F-01 and D-01",
+            "Lecturer feedback and selected local baseline."
+          ],
+          [
+            "Media_player/app/api/auth.py; app/api/jobs.py; app/api/hls.py; app/api/uploads.py",
+            "Current public routes, cookies, signed delivery and retry behavior."
+          ],
+          [
+            "Media_player/app/schemas/job.py; app/schemas/edit.py; app/models/job.py",
+            "Inherited response, operation variants and shared data model."
+          ],
+          [
+            "Original report template \u00a73.1.4, \u00a73.2.3\u20133.2.4",
+            "Platform, persistence and representative detailed design."
+          ],
+          [
+            "https://spec.openapis.org/oas/v3.1.0.html",
+            "OpenAPI document structure used for the design files."
+          ],
+          [
+            "https://www.postgresql.org/docs/16/ddl-priv.html",
+            "Default privileges and explicit grants/revokes for database isolation."
+          ]
+        ]
+      }
+    }
+  ]
+}

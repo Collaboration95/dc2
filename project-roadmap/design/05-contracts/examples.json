@@ -1,0 +1,59 @@
+{
+  "note": "Illustrative design examples; .invalid URLs are not live endpoints. Use HTTPS cookie sessions, never the service token, at the public API.",
+  "submitJob": {
+    "asset_id": "8dba875d-73af-476c-8084-bcd84dd0baf6",
+    "owner_id": "57385427-914d-4934-a0b7-7b409f09a9a2",
+    "source": {
+      "asset_id": "8dba875d-73af-476c-8084-bcd84dd0baf6",
+      "revision": 1,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "size_bytes": 2400000,
+      "media_type": "video/mp4"
+    },
+    "source_url": "https://storage.example.invalid/sources/example?signature=illustration",
+    "source_url_expires_at": "2026-10-09T02:15:00Z"
+  },
+  "acceptedUpload": {
+    "job_id": "8dba875d-73af-476c-8084-bcd84dd0baf6"
+  },
+  "pendingPublicAsset": {
+    "id": "8dba875d-73af-476c-8084-bcd84dd0baf6",
+    "filename": "lesson.mp4",
+    "status": "queued",
+    "submission_status": "pending"
+  },
+  "processingJob": {
+    "job_id": "cbf3ee6f-9a0a-4716-9b18-1d9cd05febd8",
+    "asset_id": "8dba875d-73af-476c-8084-bcd84dd0baf6",
+    "owner_id": "57385427-914d-4934-a0b7-7b409f09a9a2",
+    "status": "queued",
+    "source": {
+      "asset_id": "8dba875d-73af-476c-8084-bcd84dd0baf6",
+      "revision": 1,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "size_bytes": 2400000,
+      "media_type": "video/mp4"
+    },
+    "current_attempt": {
+      "attempt_id": "3f7c4d3a-40f3-426c-b4d7-4bc034da4781",
+      "number": 1,
+      "state": "queued",
+      "queued_at": "2026-10-09T02:00:00Z"
+    },
+    "outputs": [],
+    "created_at": "2026-10-09T02:00:00Z",
+    "updated_at": "2026-10-09T02:00:00Z"
+  },
+  "retryRequest": {
+    "retry_request_id": "29a926aa-71db-4260-9c64-0012f969cde4"
+  },
+  "sourceAccessRequest": {
+    "revision": 1
+  },
+  "ownerMismatch": {
+    "error": "not found"
+  },
+  "payloadConflict": {
+    "error": "asset already submitted with different source or operations"
+  }
+}

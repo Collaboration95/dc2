@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="460" viewBox="0 0 1060 460" role="img" aria-labelledby="title desc">
+<title id="title">FlickPond business context</title><desc id="desc">Maya uses the Publisher CLI and Arun uses the web app. Both clients submit owned video through the published API and receive status and authorised output access. Jules builds the CLI. Sam operates the platform. No internal service boundaries are shown.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#64717c"/></marker></defs>
+<rect width="1060" height="460" fill="white"/>
+<g fill="none" stroke="#64717c" stroke-width="2" marker-end="url(#arrow)"><path d="M204 115H278"/><path d="M204 285H278"/><path d="M490 100H612"/><path d="M490 270H550V160H612"/><path d="M770 238V321"/><path d="M612 351H556V313H490"/><path d="M612 331H580V143H490"/><path d="M388 49V80" stroke-dasharray="5 4"/><path d="M938 85H897V143H861" stroke-dasharray="5 4"/></g>
+<g font-family="Arial,sans-serif" text-anchor="middle" fill="#182126">
+<g stroke="#ccd5dc" fill="#f5f7f9"><rect x="24" y="75" width="180" height="85" rx="7"/><rect x="24" y="245" width="180" height="85" rx="7"/><rect x="279" y="80" width="211" height="81" rx="7"/><rect x="279" y="245" width="211" height="85" rx="7"/><rect x="612" y="320" width="249" height="82" rx="7"/></g>
+<rect x="612" y="74" width="249" height="164" rx="7" fill="#edf2ff" stroke="#204bdb" stroke-width="2"/>
+<text x="113" y="105" font-size="19" font-weight="bold">P-01 Maya</text><text x="113" y="132" font-size="15">Course coordinator</text>
+<text x="113" y="276" font-size="19" font-weight="bold">P-02 Arun</text><text x="113" y="304" font-size="15">Independent trainer</text>
+<text x="384" y="116" font-size="19" font-weight="bold">Publisher CLI</text><text x="384" y="141" font-size="15">Folder of owned clips</text>
+<text x="384" y="281" font-size="19" font-weight="bold">FlickPond web app</text><text x="384" y="307" font-size="15">One owned video</text>
+<text x="738" y="112" font-size="21" font-weight="bold">FlickPond platform</text><text x="738" y="143" font-size="16">Published API</text><text x="738" y="174" font-size="15">Upload · process · track</text><text x="738" y="201" font-size="15">Retry · authorise playback</text>
+<text x="738" y="351" font-size="17" font-weight="bold">Status and playable outputs</text><text x="738" y="379" font-size="15">Returned to the owner’s client</text>
+<text x="385" y="28" font-size="16" font-weight="bold">P-03 Jules · integrator</text>
+<text x="962" y="31" font-size="16" font-weight="bold">P-04 Sam</text><text x="962" y="57" font-size="15">Operator</text>
+<text x="548" y="70" font-size="13" fill="#59646e">Owned video</text>
+<text x="290" y="416" font-size="15">Maya and Arun also act as owner-viewers.</text>
+<text x="532" y="447" font-size="14" fill="#59646e">Seed: owned video asset + processing job. No public-sharing or classroom-access workflow.</text>
+</g></svg>

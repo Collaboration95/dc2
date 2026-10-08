@@ -1,0 +1,61 @@
+{
+  "boardId": "gQ--V5nITyYnsrUIUwiFK",
+  "boardUrl": "https://www.tldraw.com/f/gQ--V5nITyYnsrUIUwiFK",
+  "status": "Editable native tldraw shapes, draft design",
+  "diagrams": [
+    {
+      "id": "contract-map",
+      "pageId": "page:K1u0eEwLqqo1d1qLMqNVE",
+      "shapeIds": [
+        "shape:FKx6_wRRoZ71J8Y5VI_vo",
+        "shape:media",
+        "shape:processing",
+        "shape:bsZd-7PU9XBAXLRIFpwfQ",
+        "shape:6oSxJ3hunGfwD9TkmZ5Lu",
+        "shape:lOD3Ji1u9iS3V_YZ5xCSI",
+        "shape:clients",
+        "shape:source",
+        "shape:8YVaNiqO2wIF-YWNWMcGT",
+        "shape:sFecW-cjHP2lsfeGrqZxs",
+        "shape:outputs",
+        "shape:workers",
+        "shape:WSLN69vfiivtAoMV4UWeK",
+        "shape:LndK8rxbXrO4e6zdA9dl_"
+      ],
+      "svg": "contract-map.svg",
+      "source": "contract-map.mmd",
+      "width": 1279,
+      "height": 787.9973945617676
+    },
+    {
+      "id": "persistence",
+      "pageId": "page:dpar5NNYHQ4foR8ofLQpn",
+      "shapeIds": [
+        "shape:Pry7dLLbUaMjWJF1pUTY0",
+        "shape:a",
+        "shape:bLeNcTWwn1BG5Q3vh1E_p",
+        "shape:pc",
+        "shape:o0sxmxZo5iHrnud9HzNI4",
+        "shape:4nyAEf2HfOlYhoBQqtitz",
+        "shape:mc",
+        "shape:xUlkyYSeNdrU2KGtH7nAW",
+        "shape:fUbj527xUnx8DBYfc7Qfl",
+        "shape:j",
+        "shape:k",
+        "shape:23pDytX7hMdWHk5g1M6A2",
+        "shape:o",
+        "shape:irpFW7NDetr-ijF6FFvdN",
+        "shape:t",
+        "shape:u",
+        "shape:LaZ4FUmygkhG5m-2XnHjx",
+        "shape:tum9nKdChNZX373BIFhFQ",
+        "shape:no-cross-db-note"
+      ],
+      "svg": "persistence.svg",
+      "source": "persistence.mmd",
+      "width": 1404,
+      "height": 921.0052070617676
+    }
+  ],
+  "svg_note": "Text visibility and theme shadow normalised for portable browser display; native board shapes remain editable."
+}

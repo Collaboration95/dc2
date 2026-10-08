@@ -1,0 +1,23 @@
+flowchart TB
+  clients["Web + Publisher CLI | HTTPS cookie"] -->|"443 only"| edge
+  subgraph host["AWS single-AZ EC2 | nonburstable x86 >=8 vCPU | public subnet"]
+    edge["nginx TLS | DNS-01 | no port 80"] -->|"/api"| mm["Media Management + reconciler"]
+    mm <-->|"private REST | directional tokens + owner"| proc["Processing API + recovery"]
+    mm --> mdb["media_db | media_runtime"]
+    proc --> pdb["processing_db | processing_runtime"]
+    proc --> queue["Redis / RQ"]
+    queue --> workers["1 / 2 / 3 workers | 2 vCPU each"]
+    workers --> pdb
+    workers -->|"private source-access refresh"| mm
+    cleanup["Processing cleanup | separate List/Delete credential"] --> pdb
+    dbnote["One PostgreSQL server | encrypted EBS | own migrations"]
+    sec["Separate service secret mounts | IMDS blocked"]
+  end
+  mm -->|"source RW/delete"| src["Private source S3 objects"]
+  mm -->|"output GET/sign only"| out["Private output S3 objects"]
+  workers -->|"single-object signed source GET"| src
+  workers -->|"owned attempt Put only"| out
+  cleanup -->|"owned output List/Delete"| out
+  clients -->|"authorised signed HTTPS GET"| out
+  mgmt["ECR / SSM / CloudWatch | outbound HTTPS"] -.-> host
+  note["S3 endpoints public HTTPS; objects private. Host role has no S3. Shared-host risk remains."]

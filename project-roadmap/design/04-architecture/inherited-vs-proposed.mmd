@@ -1,0 +1,64 @@
+flowchart LR
+  subgraph BEFORE["INHERITED — observed local 8854537"]
+    direction TB
+    BWeb["FlickPond browser"] -->|"HTTP cookie /auth /upload /jobs"| BApi["One FastAPI application<br/>Account, upload, Job, playback<br/>edit/delete/admin compatibility"]
+    BApi -->|"shared ORM and DSN"| BDb[("One PostgreSQL database<br/>users ← jobs.owner_id FK")]
+    BApi -->|"enqueue Job ID"| BQ[("Redis / RQ")]
+    BQ -.->|"asynchronous task"| BW["Worker replicas<br/>already separate containers<br/>FFmpeg: MP4 + best-effort HLS"]
+    BR["Existing reaper container<br/>stale Jobs + source orphans"] --> BDb
+    BR --> BQ
+    BW -->|"same Job model / DSN"| BDb
+    BApi -->|"read/write/sign"| BS[("Private media objects<br/>one bucket; shared credentials")]
+    BW -->|"read source / write output"| BS
+    BR -->|"source cleanup"| BS
+    BWeb -->|"presigned MP4 / segments"| BS
+    BNote["Process separation and worker replication exist.<br/>Data, credentials, migrations and code remain shared.<br/>Current browser retry reuploads the file."]
+  end
+
+  subgraph AFTER["PROPOSED — designed, not implemented"]
+    direction TB
+    AClients["FlickPond web + Publisher CLI<br/>same HTTPS entrypoint; cookie jar"] -->|"/auth /upload /jobs — public ID = asset_id"| MM["Media Management — public facade<br/>Account + Asset + live composed projection<br/>owner checks; intake; MP4/HLS delivery<br/>existing edit/delete/admin compatibility"]
+    subgraph RUNTIME["One small shared compute environment — host SPOF and resource ceiling"]
+      direction TB
+      MM
+      MS["MM pending-submission reconciler<br/>durable pending assets; HTTP replay"]
+      PA["Processing — private API<br/>Job + Attempt + Output<br/>service token + owner-filtered contract"]
+      W["P worker replicas<br/>claim reserved queued Attempt<br/>standard MP4/HLS; edit-only MKV/MP3"]
+      R["P reaper/reconciler<br/>queue / stale attempts / output cleanup"]
+      Q[("Private Redis / RQ<br/>P-owned only")]
+    end
+    subgraph PG["One PostgreSQL server — shared server failure boundary"]
+      direction LR
+      MDB[("media_db<br/>MM role + migrations<br/>Account / Asset / pending / correlation")]
+      PDB[("processing_db<br/>P roles + migrations<br/>Job / Attempts / Output refs")]
+    end
+    MM -->|"own database only"| MDB
+    MS --> MDB
+    MM -->|"synchronous Submit / Query / Retry<br/>token + owner; asset_id idempotency"| PA
+    MS -->|"resubmit pending / correlate"| PA
+    PA -->|"commit Job + queued Attempt first"| PDB
+    PA -->|"enqueue job_id + attempt_id"| Q
+    Q -.->|"asynchronous RQ task"| W
+    W -->|"claim / fenced completion"| PDB
+    R --> PDB
+    R --> Q
+    SRC[("Private source bucket<br/>MM source-write/read/sign role")]
+    OUT[("Private output bucket<br/>attempt-specific keys<br/>durable published refs, never URLs")]
+    MM -->|"store immutable source / source cleanup"| SRC
+    W -->|"source-access HTTP when URL expires<br/>reverse scoped token + owner + revision"| MM
+    W -.->|"15-minute ReadSource GET<br/>no source credentials"| SRC
+    W -->|"output-write only"| OUT
+    R -->|"separate output-cleanup role"| OUT
+    MM -->|"separate output-read/sign only"| OUT
+    AClients -->|"15-minute signed primary / segment GET"| OUT
+    ANote["MM checks source owner/revision/not-deleted locally; no callback to P.<br/>P enforces live attempts; only winner publishes durable output refs.<br/>HLS playlists remain on MM owner routes; segments get signed redirects.<br/>Queued/pending is MM intake; submitted status uses live P or 503.<br/>No mandatory stored status cache/freshness fields or event broker.<br/>Exact AWS products deferred to step 07; recovery implementation to step 06."]
+  end
+  BNote ~~~ ANote
+  classDef inherited fill:#f1f5f9,stroke:#64748b,color:#0f172a;
+  classDef mm fill:#dbeafe,stroke:#2563eb,color:#172554;
+  classDef processing fill:#dcfce7,stroke:#16a34a,color:#14532d;
+  classDef note fill:#fff7ed,stroke:#d97706,color:#7c2d12;
+  class BWeb,BApi,BDb,BQ,BW,BR,BS inherited;
+  class MM,MS,MDB,SRC mm;
+  class PA,W,R,Q,PDB,OUT processing;
+  class BNote,ANote note;

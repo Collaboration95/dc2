@@ -1,0 +1,11 @@
+flowchart LR
+  pr["Changed-service PR"] --> gate["Lint + tests + contracts + secrets"]
+  gate --> image["Build + scan each image | fixable HIGH/CRITICAL block"]
+  image --> report["Sonar/ZAP reports | explicit triage"]
+  report --> registry["ECR version + immutable digest"]
+  registry --> promote["Manual promotion permission | recommended"]
+  promote --> auth["GitHub OIDC | scoped deploy role"]
+  auth --> deploy["SSM | own additive migration | replace only changed service"]
+  deploy --> health["Readiness + HTTPS CLI upload-to-playback smoke"]
+  health -->|"pass"| evidence["Release evidence | measured time | MM unchanged for P release"]
+  health -->|"fail"| rollback["Previous digest | keep compatible schema | repeat checks"]

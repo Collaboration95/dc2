@@ -1,0 +1,510 @@
+{
+  "id": "03-ddd",
+  "title": "03 — Domain analysis and service-boundary rationale",
+  "status": "Draft design — implementation and measurements pending",
+  "baseline": "885453726d629c524bf511d665311863d9bc70a5",
+  "sections": [
+    {
+      "id": "ddd-status",
+      "title": "Status, scope and lecturer response",
+      "paragraphs": [
+        "Draft design for team review, grounded in the accepted Team 17 proposal and selected local baseline 885453726d629c524bf511d665311863d9bc70a5. This analysis describes intended models, boundaries and verification obligations. It supplies no runtime proof, migration, application changes or new measurements. The historical proposal baseline 890c5ec is superseded for planning by records/project-decisions.txt, D-01; the proposal remains authoritative for scope.",
+        "The lecturer accepted the proposal and asked the team to convince itself, through detailed DDD, that the microservices are suitable. Our considered answer is a Media Management context and a Processing context: owned source intake and access decisions share a model, while attempts, claim validity, recovery and output publication share another. The strongest potential benefit is independent data, migration and release ownership. Worker replicas and asynchronous encoding already exist, so these are inherited capabilities rather than evidence that extraction itself creates scalability. This conclusion remains falsifiable by the checks below. [project-roadmap/records/project-decisions.txt, F-01; project-documentation/Team17-Proposal.docx, §§1.4, 2.3–2.4; Media_player/docker-compose.yml, services.worker; Media_player/docs/scaling-notes.md, §4 “Free — already built”.]",
+        "P-01 Maya, P-02 Arun, P-03 Jules and P-04 Sam are fictional planning personas, not security roles. Playback is demonstrated by the owning account. Publishing means preparing owner-accessible media. Course-team examples introduce no team ownership, learners, LMS, public channel or third client. Jules uses the same API through the CLI; Sam operates deployments and workers rather than a new dashboard. [project-roadmap/business-scope.json, persona_note, personas P-01–P-04, business_decisions BS-01–BS-05; Team17-Proposal.docx, §§3.1–3.5.]"
+      ]
+    },
+    {
+      "id": "ddd-glossary",
+      "title": "Ubiquitous language",
+      "paragraphs": [
+        "The public API preserves the existing /upload, /jobs and /auth vocabulary. In the proposed adapter, public job_id and /jobs/{id} refer to a Media Management AssetId. ProcessingJobId is a distinct internal UUID. Documentation and logs must label the two explicitly; a legacy route name must never become evidence of shared aggregate identity. This is a designed compatibility addition, not current baseline behavior. [Team17-Proposal.docx, §2.3 “Media Management keeps the routes”; Media_player/app/api/uploads.py, upload_video; Media_player/app/api/jobs.py, get_job_by_id.]"
+      ],
+      "table": {
+        "headers": [
+          "Term",
+          "Meaning and boundary"
+        ],
+        "rows": [
+          [
+            "Account / OwnerId",
+            "An authenticated account owns each asset. Media Management owns identity; Processing holds an opaque OwnerId reference, not a User entity."
+          ],
+          [
+            "Asset / AssetId",
+            "Stable public identity for an owned stored source and its submission intent. Survives processing retries."
+          ],
+          [
+            "SourceRef / SourceRevision",
+            "Durable private source object reference and immutable revision. A signed source URL is a temporary capability, not the source identity."
+          ],
+          [
+            "SubmissionState",
+            "Media Management handoff state: pending, submitted or error. Separate from encode progress."
+          ],
+          [
+            "ProcessingJob / ProcessingJobId",
+            "Processing aggregate for one AssetId and immutable source revision, including current attempt and authoritative encode state."
+          ],
+          [
+            "Attempt / AttemptId",
+            "A queued execution reserved during SubmitJob or RetryJob, identified before queue delivery. Claim starts that same AttemptId; the current pointer fences claims, completion and failure."
+          ],
+          [
+            "OutputRef / OutputSet",
+            "Durable references for the winning attempt’s primary output and optional HLS. Plain uploads require MP4; inherited conversion edits may produce MKV or MP3. Never stored expiring playback URLs."
+          ],
+          [
+            "Publish / Playback",
+            "Prepare owner-accessible results, then grant short-lived access after owner checks. No public distribution."
+          ],
+          [
+            "Reconciliation",
+            "Repeated comparison of durable intent/state with handoff or queue delivery to repair gaps. It is not a cross-service transaction."
+          ],
+          [
+            "Projection",
+            "Public view composed on read from the MM Asset and live owner-filtered Processing result. No persistent encode-state cache, observed_at or projection-version fields are selected."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "ddd-workflow",
+      "title": "Workflow discovery: commands and business facts",
+      "paragraphs": [
+        "Follow the verbs register, upload, submit, claim, encode, complete, inspect, retry and play. A business fact records what became true; a command can be rejected. The table describes intended effects and transaction boundaries, not deployed event messages. [Team17-Proposal.docx, §2.3 and §3.2 core workflow; project-roadmap/business-scope.json, UC-1–UC-7.]",
+        "Attempt reservation, claim and replay behavior follow the authored step 05 contract. [project-roadmap/design/05-contracts/content.json, transactions, status-projection and persistence; project-roadmap/design/05-contracts/processing.openapi.json, SubmitJob/RetryJob and schemas Attempt, ProcessingJob, Output, EditOperation.]"
+      ],
+      "table": {
+        "headers": [
+          "Command / actor",
+          "Authoritative rule and business fact",
+          "Context"
+        ],
+        "rows": [
+          [
+            "Register / log in — Maya or Arun",
+            "Credentials authenticate an Account; account identity determines owner. Retain HTTPS cookie sessions, including a CLI cookie jar; no new public bearer-token flow.",
+            "Media Management"
+          ],
+          [
+            "Upload owned source — Maya or Arun; batch per file — Maya/Jules",
+            "Validate supported video and ≤100 MiB; store private source; commit Asset + pending submission intent. AssetAccepted means durable intake, not a completed job.",
+            "Media Management"
+          ],
+          [
+            "SubmitJob — Media Management reconciler/client",
+            "Authenticate service and owner; reserve/lock the AssetId submission guard and reject a deleted guard. Check immutable source and ordered operations; commit the job, first queued AttemptId and current pointer together, then publish (job_id, attempt_id) to RQ.",
+            "Processing"
+          ],
+          [
+            "ClaimJob — worker",
+            "Atomically claim the already-reserved current AttemptId from queued → processing on a live job. Claim establishes the lease without minting another ID; duplicate or obsolete queue deliveries cannot claim.",
+            "Processing"
+          ],
+          [
+            "Refresh source access — live Processing attempt",
+            "Processing validates its own live attempt. Media Management verifies scoped reverse service token, owner, AssetId, SourceRevision and not-deleted Asset; issues a fresh temporary URL.",
+            "Both, with local checks"
+          ],
+          [
+            "CompleteAttempt / FailAttempt — worker",
+            "Only the currently valid AttemptId may commit results or failure. A primary output is required for done: MP4 for plain uploads, inherited MKV/MP3 conversion output where requested; HLS remains optional. Stale results remain unpublished.",
+            "Processing"
+          ],
+          [
+            "Get / list / play — owning account",
+            "Check owner in Media Management; Processing queries also filter forwarded owner. Translate durable results into owner-accessible playback capabilities.",
+            "Media Management front door"
+          ],
+          [
+            "Retry failed asset — owning account",
+            "After replay lookup by retry_request_id, a new retry locks the failed job, reserves a queued AttemptId and updates the current pointer in one transaction. Enqueue that pair after commit. Same source/job; browser calls retry instead of re-uploading.",
+            "Media Management → Processing"
+          ],
+          [
+            "Reconcile — service-local tasks",
+            "Repair pending submission, missing queue delivery and expired claims using each service’s own data. Record failures rather than invent progress.",
+            "Both, separate duties"
+          ],
+          [
+            "Scale / release / rollback — Sam",
+            "Operational commands produce experiment evidence; they are not new product-domain commands or proof already achieved.",
+            "Processing operations"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "ddd-baseline",
+      "title": "Local evidence and inherited coupling",
+      "paragraphs": [
+        "The current Job combines owner_id, source_key, output_key, hls_key, status and error, and owner_id has a ForeignKey to users.id. The API creates/reads/retries these rows; workers import the same repository transitions; the reaper imports the same database, models and storage services. This is direct evidence of shared data/model ownership. It does not establish that the current runtime is unreliable or that every deployment must be coupled. [Media_player/app/models/job.py, Job; Media_player/app/api/uploads.py, upload_video; Media_player/app/api/jobs.py, get_jobs/retry_job_by_id; Media_player/app/worker/tasks.py, process_job_async; Media_player/app/worker/reaper.py, run_once.]",
+        "The baseline has separate api, worker and reaper containers and supports worker replicas; a split is therefore unnecessary merely to launch more workers. The proposed contribution is removing shared Job/User schema ownership and making a Processing release possible without a Media Management image or media_db migration. Neither throughput gains nor release independence follows automatically from drawing two boxes. [Media_player/docker-compose.yml, services.api/worker/reaper; Media_player/docs/scaling-notes.md, §4; Team17-Proposal.docx, §§1.4, 2.4 AD-01–AD-02, 3.4.]",
+        "The baseline repository uses expected status conditions but no AttemptId. A late attempt A can return after recovery marks failed and retry B reaches processing; checking only status=processing cannot distinguish A from B. The draft adds attempt fencing and attempt-specific keys. Existing reaper defaults are lease 1800 s, orphan grace 3600 s and interval 60 s, which do not demonstrate proposal recovery within 5 min or missing-queue recovery within 2 min. Configuration, timing and queue-presence logic need explicit validation. [Media_player/app/repositories/jobs.py, _transition/mark_stale_failed; Media_player/app/worker/tasks.py, process_job_async; Media_player/app/config.py, Settings.reaper_*; Media_player/app/worker/reaper.py, run_once; Team17-Proposal.docx, §3.4.]",
+        "The baseline web retry handler calls handleFile(lastFile), although the API already supports stored-source retry. The proposed adapter must close this workflow gap. Edit/delete/admin behavior found in the selected baseline is compatibility work for step 05; it does not justify adding new editor or administration features to the agreed business scope. [Media_player/frontend/app.js, jobRetry click handler, lines 410–412; Media_player/app/api/jobs.py, retry_job_by_id/edit_job_by_id/_delete_job_and_storage/admin_router; Team17-Proposal.docx, §3.5.]"
+      ]
+    },
+    {
+      "id": "ddd-alternatives",
+      "title": "Boundary alternatives: evidence without weighted scores",
+      "paragraphs": [
+        "No numerical weighting is assigned: requirements, local code and proposed experiment obligations are different kinds of evidence. Two contexts are a design hypothesis, not a scored or measured winner. Logical modules inside Media Management remain useful even though they are not independently deployed contexts. [Team17-Proposal.docx, §§2.3–2.4 AD-01, 4.3; records/project-decisions.txt, F-01.]"
+      ],
+      "table": {
+        "headers": [
+          "Alternative",
+          "What it can satisfy",
+          "Cost / limitation",
+          "Assessment"
+        ],
+        "rows": [
+          [
+            "Modular monolith + worker",
+            "Same owner workflow, API reuse and existing worker replication; fewer remote failure cases.",
+            "A shared schema still prevents independent data ownership. Internal modules could be strong, but independent releases would need demonstrated migration isolation.",
+            "Credible simpler alternative if extraction cannot earn its ownership/release benefit. Do not reject it merely on CPU scaling."
+          ],
+          [
+            "Two contexts: Media Management + Processing",
+            "Keeps owner/asset access local; isolates job/attempt/queue/output model, database roles and Processing migrations.",
+            "Adds authentication, live downstream status dependency, pending handoff, source refresh and recovery across a network boundary.",
+            "Selected draft because it directly tests AD-01/02 and UC-7 with one principal workflow contract. All benefits pending verification."
+          ],
+          [
+            "Four contexts: Identity + Media + Processing + Delivery",
+            "Could offer independent identity or delivery products if there were distinct consumers and policies.",
+            "More contracts, tokens, remote ownership checks and release units without current independent business rules or actors.",
+            "Not justified by owner-only playback and two clients. Revisit only if scope/evidence changes; do not implement speculative services."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "ddd-consolidation",
+      "title": "Why Identity, Media and Delivery stay together",
+      "paragraphs": [
+        "Ownership binds intake, listing, retry and playback: each public decision needs the caller and an Asset. Separate Identity and Delivery services would distribute the same owner rule and introduce remote lookups for routine user actions. This is the proposal’s change-cohesion rationale, supported by the baseline’s shared CurrentUser and owner-filtered access; it is not measured proof that these concerns always change together. [Team17-Proposal.docx, §2.3; Media_player/app/api/deps.py, CurrentUser; Media_player/app/api/jobs.py, get_jobs/get_job_by_id; Media_player/app/api/hls.py, get_hls_part.]",
+        "Media Management retains logical account/authentication, asset-intake and delivery modules. The combined context owns the meaning of “this caller may access this source/output.” Processing owns “this attempt may publish this result.” These are different rules. Neither context may join or update the other’s tables. An Account and an Asset are separate aggregates even when they share a context/database; consolidation is not a claim that every write is one transaction. [Team17-Proposal.docx, §§2.3–2.4 AD-02, AD-06.]"
+      ]
+    },
+    {
+      "id": "ddd-aggregates",
+      "title": "Aggregates, entities and value objects",
+      "paragraphs": [
+        "Aggregate boundaries follow rules that must hold on each authoritative write. Separate database roles enforce ownership; identifier references crossing the boundary are not ORM relationships. Collection sizes and physical table design remain implementation decisions. [Team17-Proposal.docx, §2.3 Figure 3 and §2.4 AD-02.]",
+        "The response projection is a composition, not another stored aggregate or table. Attempt and output rules are reconciled to step 05. [project-roadmap/design/05-contracts/content.json, transactions, status-projection and persistence; project-roadmap/design/05-contracts/processing.openapi.json, SubmitJob/RetryJob and schemas Attempt, ProcessingJob, Output, EditOperation.]"
+      ],
+      "table": {
+        "headers": [
+          "Aggregate / object",
+          "Owned concepts",
+          "Invariants / enforcement"
+        ],
+        "rows": [
+          [
+            "Account — Media Management root",
+            "AccountId/OwnerId; unique account identity; password hash. Session is a temporary credential.",
+            "Registration/login retain baseline hashing and expiry checks. No persona becomes a new role. Processing never owns credentials or a User row."
+          ],
+          [
+            "Asset — Media Management root",
+            "AssetId, OwnerId, filename, SourceRef, immutable SourceRevision, submission intent, immutable ordered operations JSON for derived edits, internal ProcessingJobId link, optional origin AssetId, deletion/tombstone metadata.",
+            "Uploader becomes owner; schema/type/size admission checks and durable source precede acceptance. Pending derived Asset, saved operations and request key commit together for replay. Owner/source/operations cannot change under the same submission identity. Deleted assets cannot mint capabilities; source-dependent geometry may fail asynchronously."
+          ],
+          [
+            "Public view composed on read — Media Management",
+            "MM Asset/submission fields combined with a live owner-filtered Processing result; response-only output access.",
+            "No stored encode-state cache or mandatory freshness/version fields. Pending maps to queued/pending; submission error maps to failed/error. Submitted downstream outage or missing job returns 503. Processing authorizes retry against its current state."
+          ],
+          [
+            "ProcessingJob — Processing root",
+            "Distinct ProcessingJobId; opaque AssetId and OwnerId; immutable source identity; JobState; current AttemptId; result references and safe failure.",
+            "Submit first locks the owner-bound Asset submission guard and rejects its tombstone. Unique AssetId acceptance then returns the same job for the same immutable source/operations; conflicting same-owner intent is 409 and another owner is 404. Job state, current attempt and output publication remain atomic."
+          ],
+          [
+            "Submission guard — Processing consistency record",
+            "processing_db.submission_guards: AssetId key, OwnerId reference, optional internal JobId, deleted_at; may exist before a job.",
+            "Submit and CancelAssetJob lock the same owner-bound row. Cancel-first reserves a tombstone; submit-first cancels the associated job. Delayed same-owner submit after cancellation is 410. Keep guards throughout the demo; no MM foreign key."
+          ],
+          [
+            "Attempt — Processing entity within job boundary",
+            "Reserved AttemptId, attempt number, retry_request_id, queued/start/finish times, lease and outcome; attempt-specific output prefix.",
+            "SubmitJob/RetryJob reserves the queued identity and current pointer atomically. Claim must match this reserved ID and never allocates another. Completion/failure/reaper writes fence that current attempt; stale attempts cannot overwrite newer outputs."
+          ],
+          [
+            "OutputSet — Processing owned value",
+            "Primary OutputRef, optional HLS master/parts prefix, publishing AttemptId.",
+            "done requires a valid primary ref matching requested operations: plain upload MP4; inherited convert-to-MKV/MP3 stays compatible. Only winning attempt refs become visible. HLS is optional; never persist signed playback URLs."
+          ],
+          [
+            "SourceRef / OutputRef / Revision / Failure — value objects",
+            "Stable private object location and immutable revision; bounded safe error; opaque identifiers.",
+            "Validate permitted buckets/prefixes and nonempty required values. No arbitrary worker source URL becomes a durable authoritative ref or broad storage credential."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "ddd-context-map",
+      "title": "Context map, authority and translation boundary",
+      "paragraphs": [
+        "Clients are downstream of Media Management’s public API. For intake, Media Management is upstream: it supplies the owned Asset identity/source intent consumed by Processing. For processing results, Processing is upstream of Media Management’s public view composed on read. These direction labels describe model authority per interaction, not one universal hierarchy. The bidirectional HTTP dependency is kept explicit. [Team17-Proposal.docx, §2.3 contract table; §3.2 core workflow.]",
+        "Media Management’s adapter translates Asset → SubmitJob and GetJob result → public legacy /jobs view. Processing exposes a small versioned published language containing identifiers, immutable revision, statuses, safe errors and durable output refs, rather than its ORM objects. Processing maps the request into its own job/attempt model. Clients import no service implementation and hold no database credentials. [Team17-Proposal.docx, §§2.3, 3.3 platform engineering, 3.4 reusability.]",
+        "SubmitJob retains a presigned source_url as the proposal states. The draft excludes the expiring URL from the immutable idempotency fingerprint: changing a capability must not create or conflict with a job for the same owner/AssetId/source revision. A live worker can request fresh access from POST /internal/v1/assets/{asset_id}/source-access using a reverse-direction scoped service token plus owner_id and source_revision. Media Management checks token scope, its own owner, immutable revision and not-deleted state. It does not call Processing to validate attempts or read processing_db. Processing validates its live attempt before requesting access and before committing results. These are designed additions resolving capability expiry; implementation and negative tests are pending.",
+        "Media Management has source credentials and output-read/sign permission only. Processing workers have output-write permission and no source credentials; sources are obtained through temporary URLs. Source and output bucket credentials are separated. A valid source URL is a bearer capability until expiry, so local live-attempt validation and short TTL limit issuance but do not retract a URL already issued to an old attempt. Attempt fencing remains necessary regardless of URL expiry. [Team17-Proposal.docx, §2.4 AD-05–AD-06 and §3.3 security controls; Media_player/app/services/output_urls.py, MinioOutputUrlSigner.]"
+      ]
+    },
+    {
+      "id": "ddd-submission",
+      "title": "Asset submission states and outage behavior",
+      "paragraphs": [
+        "Asset submission state expresses durable handoff intent. A pending Asset can be accepted while Processing is temporarily unavailable, then resubmitted idempotently by MM. The legacy public response is 200 with status=queued and submission_status=pending, with no output links. This represents local pending work; it does not assert that a Processing queue record already exists. [Team17-Proposal.docx, AD-03–AD-04 and §3.3 Availability and recovery; project-roadmap/design/05-contracts/content.json, status-projection.]",
+        "pending → submitted follows a successful SubmitJob or duplicate response linking the durable ProcessingJobId. Timeouts leave pending. A lost response after remote commit is recovered by the same AssetId submission. Permanent rejection records submission_state=error and maps to public status=failed, submission_status=error with a safe error; user retry is 409 until the cause is corrected. These compatibility statuses preserve the distinction through submission_status. [project-roadmap/design/05-contracts/content.json, status-projection and idempotency.]",
+        "submitted remains submitted across Processing queued → processing → done/failed and stored-source retries. MM composes status on each read using live owner-filtered Processing results; no persistent last-observed encode-state projection is selected. If Processing is unreachable, return 503; if a linked job is missing, return 503 and record a consistency/reconciliation issue. Do not substitute a cached done result or create another job. Public IDs remain AssetId. [project-roadmap/design/05-contracts/content.json, status-projection; processing.openapi.json, GetJob/GetJobs.]"
+      ],
+      "table": {
+        "headers": [
+          "Asset handoff state",
+          "Authority",
+          "Public response"
+        ],
+        "rows": [
+          [
+            "pending",
+            "MM source and local intent durable; remote acceptance unknown.",
+            "200 status=queued, submission_status=pending; no outputs."
+          ],
+          [
+            "submitted",
+            "Live owner-filtered Processing read.",
+            "200 Processing status, submission_status=submitted; 503 on downstream outage or missing linked job."
+          ],
+          [
+            "error",
+            "MM records permanent submission rejection.",
+            "200 status=failed, submission_status=error and safe error; user retry 409 until corrected."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "ddd-lifecycle",
+      "title": "Processing state, attempt identity and stale completion",
+      "paragraphs": [
+        "SubmitJob locks the owner-bound Asset submission guard, rejects its tombstone, then creates the job, first queued AttemptId and current pointer in one transaction. RetryJob checks saved retry_request_id first; a replay creates nothing. A new authorized retry locks the failed job, reserves the next queued attempt and updates the current pointer atomically. RQ receives (job_id, attempt_id) after commit. Missing queue delivery re-enqueues this reserved pair without allocating a new attempt. [project-roadmap/design/05-contracts/content.json, transactions, status-projection and persistence; project-roadmap/design/05-contracts/processing.openapi.json, SubmitJob/RetryJob and schemas Attempt, ProcessingJob, Output, EditOperation.]",
+        "queued → processing conditionally claims the already-reserved current AttemptId on a nondeleted job; it establishes the lease and does not mint another identity. Completion/failure requires matching current AttemptId, expected processing state, live job and valid claim in one authoritative operation. The reaper invalidates the same attempt before recovery. A stale queue delivery or old result cannot act on a newer reservation, including when the newer attempt is processing. done requires the expected primary output: MP4 for plain uploads; MKV/MP3 for inherited conversion edits where requested. This is a designed improvement over baseline status-only transitions; runtime checks remain pending. [project-roadmap/design/05-contracts/content.json, transactions; processing.openapi.json, Attempt/Output/EditOperation and cancelAssetJob.]",
+        "Write objects under attempt-specific keys. Publish only the winning OutputSet references in the authoritative job transition; stale attempts may leave private unreferenced objects but cannot overwrite winning objects. Reconcile orphan outputs after an agreed grace period. “No duplicate outputs” must be verified as no duplicate committed/public results plus eventual orphan cleanup, not claimed as exactly-once FFmpeg execution or a multi-system atomic commit. [Team17-Proposal.docx, §§3.3–3.4 recovery and UC-4.]",
+        "The lease policy, heartbeat or maximum encode duration, reaper cadence and queue-delivery checks must support the 5-minute worker recovery and 2-minute queue-loss targets without expiring healthy encodes. The baseline reaper tests only RQ job-record existence; a surviving RQ record with lost queue membership must also be covered. Sources older than URL TTL need fresh access; delayed capability issuance must not make expired claims publishable. [Media_player/app/worker/reaper.py, run_once; Media_player/app/queue.py, enqueue_job; Media_player/app/config.py, Settings; Team17-Proposal.docx, §3.4.]"
+      ]
+    },
+    {
+      "id": "ddd-domain-events",
+      "title": "Conceptual domain events, polling and reconciliation",
+      "paragraphs": [
+        "AssetAccepted, JobSubmitted, AttemptReserved, AttemptClaimed, AttemptFailed, AttemptCompleted and AssetMarkedDeleted name business facts for reasoning, logs and test assertions. No deployed event schema, subscription, broker or cross-context event delivery is promised. SourceAccessGranted is a temporary access/audit fact, not a new durable media entity. [Team17-Proposal.docx, §2.4 AD-03–AD-04.]",
+        "Cross-context coordination uses authenticated HTTP, owner-filtered polling and reconciliation. Media Management repairs durable pending submissions and composes public results on read. Processing repairs durable queued attempts without queue delivery by re-enqueuing their existing (job_id, attempt_id) pair, expires stale attempts and reconciles its orphan outputs. Media Management owns orphan source cleanup from its Asset records; Processing must not retain the baseline source sweeper that queries shared Job.source_key and deletes Media Management sources. [Media_player/app/worker/reaper.py, run_once/list_source_keys/source cleanup; Team17-Proposal.docx, §2.4 AD-02–AD-05.]",
+        "Reconciliation is the selected simple recovery hypothesis. If failure tests show it cannot meet agreed recovery or cannot converge without lost intent, revisit AD-04’s outbox alternative using evidence. Polling and reconciliation neither provide immediate consistency nor eliminate duplicate deliveries."
+      ]
+    },
+    {
+      "id": "ddd-ownership",
+      "title": "Ownership matrix",
+      "paragraphs": [
+        "Physical co-location on one PostgreSQL server does not permit cross-database reads or writes. Proposed separate media_db and processing_db roles and migration histories must be tested in both directions. Sharing opaque identifiers does not imply referential integrity across services. [Team17-Proposal.docx, §2.4 AD-02 and §3.3 security controls.]"
+      ],
+      "table": {
+        "headers": [
+          "Concern",
+          "Media Management authority",
+          "Processing authority",
+          "Boundary rule"
+        ],
+        "rows": [
+          [
+            "Accounts / authentication",
+            "Account and HTTPS cookie session",
+            "Service-token validation only; OwnerId reference",
+            "No password/session table sharing. CLI uses cookie jar."
+          ],
+          [
+            "Asset / source",
+            "Owner, intake checks, immutable source, pending handoff, tombstone",
+            "AssetId/revision references; fetch via source capability",
+            "No Processing source credentials or source-table access."
+          ],
+          [
+            "Submission identity",
+            "Stable public AssetId; durable pending intent including immutable derived-edit operations",
+            "Owner-bound submission_guards row serializes Submit/Cancel; unique AssetId → internal JobId",
+            "Cancel by AssetId even without a JobId response; guard tombstones persist throughout the demo. URL excluded from immutable source/operations fingerprint."
+          ],
+          [
+            "Job / attempts / result",
+            "Owner-facing view composed on read and commands; no persistent encode-state cache",
+            "Authoritative job state, valid claims, attempts, durable OutputSet",
+            "No Media Management writes to Processing state/tables."
+          ],
+          [
+            "Queue / worker / reaper",
+            "No queue imports/credentials needed for submit",
+            "Own RQ delivery of reserved (job_id, attempt_id), claim lifecycle, missing delivery repair and attempt expiry",
+            "REST handoff; queue stays internal to Processing."
+          ],
+          [
+            "Playback / HLS",
+            "Owner checks; output-read/sign; legacy route adapter",
+            "Output-write only for worker; validated published refs",
+            "Private durable refs; short-lived capabilities minted on demand."
+          ],
+          [
+            "Source cleanup / output cleanup",
+            "Unreferenced owned sources; derived source copies",
+            "Unpublished or orphan attempt outputs",
+            "Each uses its own metadata and scoped storage role."
+          ],
+          [
+            "Deployment / migrations",
+            "Own image and media_db migration history",
+            "Own API/worker/reaper images and processing_db migration history",
+            "UC-7 must demonstrate unchanged MM version/migrations."
+          ],
+          [
+            "Edit/delete/admin compatibility",
+            "Legacy authorization; derived immutable source copy + operations; Asset tombstone and durable cleanup intent",
+            "CancelAssetJob by AssetId through shared submission guard; cancel attempts and clean owned outputs",
+            "Existing behavior only. MM always calls DELETE /internal/v1/assets/{asset_id}/job; source-dependent geometry can fail asynchronously."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "ddd-compatibility",
+      "title": "Compatibility additions and explicit design limits",
+      "paragraphs": [
+        "The selected baseline includes edit, delete and admin routes. Step 05 retains their compatibility without expanding product scope. A derived edit gets an independent immutable source copy. MM commits its pending Asset, immutable ordered operations JSON and request key together before submission; reconciliation replays those saved operations after an outage. Copy/commit failure cannot report 202 acceptance. Schema/type/size checks govern media admission; source-dependent edit geometry failures may become asynchronous failed attempts after 202. Existing authorization and source-state checks still apply. [Media_player/app/api/jobs.py, edit_job_by_id/admin_router; project-roadmap/design/05-contracts/public.openapi.json, editAsset; project-roadmap/design/05-contracts/content.json, persistence and compatibility-cost.]",
+        "For public deletion, MM commits its Asset tombstone and durable cleanup intent before returning 204, then always calls private DELETE /internal/v1/assets/{asset_id}/job. Stable Asset identity permits cancellation even when SubmitJob committed but its response and internal JobId were lost. Processing Submit and CancelAssetJob serialize on the same owner-bound submission_guards row. Cancel-first creates a guard tombstone that rejects delayed same-owner Submit with 410; submit-first tombstones the job, cancels queued/live attempts and schedules output cleanup. Repeated same-owner cancellation is 204 and another owner is 404. Retain guards throughout the demo. MM and P then clean their own objects through repeatable cleanup steps. [project-roadmap/design/05-contracts/processing.openapi.json, submitJob and cancelAssetJob; project-roadmap/design/05-contracts/content.json, transactions, persistence and data-inventory.]",
+        "Tombstoned assets cannot receive new source/playback capabilities, and attempt publication must reject a cancelled or deleted job. An already-issued presigned URL can remain usable until expiry. The guard and cleanup protocol is a designed recovery mechanism, not a distributed storage/SQL transaction or a measured result.",
+        "Proposal decisions are retained: AD-01 two services; AD-02 separate databases/roles on one server; AD-03 HTTP submit plus asynchronous queue; AD-04 AssetId idempotency and reconciliation; AD-05 temporary storage capabilities; AD-06 private service-token calls and forwarded owner; AD-07 container deployment on AWS with exact hosting choice outside this DDD; AD-08 fresh demonstration data. The diagrams are logical models, not selected AWS services or runtime deployments. [Team17-Proposal.docx, §2.4 AD-01–AD-08.]"
+      ]
+    },
+    {
+      "id": "ddd-falsification",
+      "title": "What would falsify or weaken the two-context decision",
+      "paragraphs": [
+        "Falsification concerns the suitability claim, not automatic scope expansion. Report failed experiments honestly and use them to revise the design or its claimed benefits. No weighted score can replace these observations. [records/project-decisions.txt, F-01; Team17-Proposal.docx, §§3.4, 4.3.]"
+      ],
+      "bullets": [
+        "If Processing releases repeatedly require the Media Management image, media_db migration or shared ORM imports, independent ownership has not been achieved; prefer stronger internal modularity or revise the boundary.",
+        "If all required consistency checks need a shared transaction or callbacks into the other service on the critical path, the proposed small translation boundary is insufficient; reconsider responsibilities.",
+        "If pending submissions, lost replies, queue loss or stale attempts cannot converge within proposal targets without extra infrastructure disproportionate to this demo, reassess AD-04 and the simpler modular-monolith alternative.",
+        "If polling/source-refresh network costs prevent the specified status/login targets while comparable baseline tests pass, report the regression and reduce boundary overhead before claiming suitability.",
+        "If worker scaling shows little gain, the scalability target fails but does not by itself prove the data boundary wrong: inherited workers can scale in both designs, and shared-host CPU/storage may dominate.",
+        "If genuinely independent identity or delivery rules/consumers emerge, consolidation may need review; current personas and owner-only scope supply no such evidence.",
+        "If the second client imports service code or needs database credentials, the reuse claim fails even with two deployed services."
+      ]
+    },
+    {
+      "id": "ddd-verification",
+      "title": "Test obligations and evidence still pending",
+      "paragraphs": [
+        "Every row is a required implementation or experiment obligation, not an executed result. Keep exact scenarios and initial targets from the proposal; any permitted target adjustment must be recorded before final tests rather than justified after seeing results. [Team17-Proposal.docx, §3.4 introductory paragraph; project-roadmap/business-scope.json, BS-06.]"
+      ],
+      "table": {
+        "headers": [
+          "Obligation",
+          "Required evidence / criterion",
+          "Source"
+        ],
+        "rows": [
+          [
+            "Owned intake and playback",
+            "Anonymous, invalid-type, >100 MiB and cross-owner read/list/retry/play requests rejected. Test MM and P owner checks separately.",
+            "Proposal §§2.3, 3.3; UC-1/3/4"
+          ],
+          [
+            "Idempotent remote handoff",
+            "Concurrent identical AssetId submissions, changed signed URL, lost reply after commit and Processing outage converge to one job. Owner/revision conflicts rejected; durable pending intent survives MM restart.",
+            "Proposal AD-03/04; §3.3 outage case; designed immutable fingerprint"
+          ],
+          [
+            "Source capability refresh",
+            "Queue wait beyond source URL TTL and retries obtain fresh access. Wrong owner/revision, deleted asset, missing/forged/wrong-scope reverse token rejected; no P callback or foreign DB lookup by MM.",
+            "Proposal AD-05/06; designed source-access route"
+          ],
+          [
+            "Claim and attempt fencing",
+            "Verify initial submit and each new retry reserve exactly one queued AttemptId before enqueue; stable retry_request_id replay allocates none. Claim retains the reserved ID. Race duplicate/stale queue pairs and reaper/retry/completion; attempt A cannot claim or publish/fail attempt B.",
+            "Step 05 content.json, transactions/idempotency; processing.openapi.json, Attempt and RetryJob"
+          ],
+          [
+            "Recovery and cleanup",
+            "Kill worker mid-encode: requeued or failed within 5 min, retry succeeds, no duplicate published outputs. Lose queue entry after job commit: recovered within 2 min, including residual RQ record case. Orphan source/output cleanup stays in owning context.",
+            "Proposal §3.4 availability; baseline reaper.run_once"
+          ],
+          [
+            "Output durability / HLS",
+            "Stored references remain valid after URL expiry; fresh owner-checked URLs work; expired/tampered URLs rejected. Plain upload requires MP4; inherited MKV/MP3 conversion requires its requested primary type. Verify optional HLS fallback and playlist/segment authorization.",
+            "Proposal UC-2/3, AD-05, §3.3"
+          ],
+          [
+            "Projection / public adapter",
+            "Public IDs consistently AssetId; internal JobIds distinct. Pending returns queued/pending with no output; submission error failed/error; submitted reads live Processing status. Submitted outage or missing linked job returns 503. Verify no persistent encode cache is required; existing web routes and cookie CLI work.",
+            "Step 05 content.json, status-projection/public-routes; processing.openapi.json, GetJob/GetJobs"
+          ],
+          [
+            "Database / storage isolation",
+            "Each role refused access to other DB. Worker source credentials absent; source and output credentials scoped separately; MM cannot write output; worker cannot read arbitrary source. Private endpoint and bucket negative checks.",
+            "Proposal AD-02/05/06; §3.3"
+          ],
+          [
+            "Legacy edit/delete/admin",
+            "Verify pending derived operations survive restart/outage and replay unchanged; independent source survives parent delete. Schema/type/size rejects occur before acceptance; validly admitted edits with unsupported source geometry may fail asynchronously. Race Submit/Cancel in both orders, including lost Submit response: MM cancels by AssetId, guard prevents delayed resurrection, same-owner repeated cancel is 204, other owner 404, and late attempt publication is fenced. Verify cleanup and guard retention throughout demo.",
+            "Step 05 content.json, transactions/persistence/data-inventory; processing.openapi.json, submitJob/cancelAssetJob; public.openapi.json, editAsset"
+          ],
+          [
+            "Independent release",
+            "New Processing version deployed plus upload-to-playback smoke ≤10 min; MM container/version and media_db migrations unchanged; previous image rollback demonstrated.",
+            "Proposal UC-7, §3.4 deployability"
+          ],
+          [
+            "Capacity and latency",
+            "30 identical 60 s 720p clips, 1/2/3 workers at 2 vCPU: ≥1.6×/≥2.1× jobs/min, falling median queue wait, zero failed jobs; record CPU/memory. 50 concurrent status users for 3 min p90≤700 ms, <1% errors; 20 concurrent logins separately p90<2 s.",
+            "Proposal §3.4 scalability/performance"
+          ],
+          [
+            "API-only CLI and release quality",
+            "Per-file batch outcomes; zero service imports and DB credentials; ≤2 person-days recorded effort. All security negatives rejected; zero fixable HIGH/CRITICAL image findings at release.",
+            "Proposal UC-5; §§3.3–3.4"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "ddd-open-decisions",
+      "title": "Unresolved design checks for steps 04 and 05",
+      "paragraphs": [
+        "The contracts are now authored in step 05. These remaining implementation checks must be settled and tested before runtime claims; none authorizes new business features."
+      ],
+      "bullets": [
+        "Choose lease/heartbeat and queue-reconciliation intervals that satisfy recovery targets while tolerating healthy long encodes; tune against the selected local baseline rather than inherited 30/60-minute defaults.",
+        "Validate the selected read-time public mappings and 503 behavior against step 05; finalize submission rejection/backoff implementation. No persistent encode-state cache, observed_at or projection-version fields are selected.",
+        "Finalize reverse-token asset/revision scope, source-capability TTL and logging redaction. Media Management checks only local owner/revision/deletion; Processing owns live-attempt validation.",
+        "Validate the selected AssetId cancellation/guard protocol under submit-first, cancel-first and lost-response races. Exercise derived-source copy crash windows, immutable operations replay and asynchronous geometry failure; verify existing owner/operator checks and cleanup.",
+        "Confirm HLS manifest/segment reference format and owner-checked signing using MM output-read/sign rights and P worker output-write rights.",
+        "Record physical storage policies, hosting choice, rollout sequencing and experiment resources in step 04; this DDD makes no AWS service selection or measured runtime assertions."
+      ]
+    },
+    {
+      "id": "ddd-sources",
+      "title": "Evidence references and how to read the diagrams",
+      "paragraphs": [
+        "P2 denotes project-documentation/Team17-Proposal.docx, sections 1.4, 2.2–2.5, 3.1–3.5 and 4.3–4.4. The reading extract /tmp/team17-review/Team17-Proposal.txt is a convenience; the DOCX is authoritative. Local evidence refers to Media_player files at the user-selected baseline, with named classes/functions/sections rather than unstable upstream links. No GitHub access or upstream comparison was required.",
+        "Planning evidence: project-roadmap/business-scope.json (personas, UC-1–UC-7, BS-01–BS-07) and project-roadmap/records/project-decisions.txt (F-01 and D-01). D-03 records the earlier step-02-only turn; the current request explicitly authorizes step 03.",
+        "context.mmd shows authority and translation; aggregates.mmd shows logical consistency boundaries rather than physical ER tables; lifecycle.mmd keeps submission and encode state machines separate and shows the attempt fence. All three are draft editable logical diagrams. diagram-manifest.json records their assigned board, pages/shapes and exported previews where available.",
+        "Reconciliation reference: project-roadmap/design/05-contracts/content.json, sections status-projection, idempotency, persistence and transactions; project-roadmap/design/05-contracts/processing.openapi.json, SubmitJob/RetryJob/GetJob/GetJobs and schemas Attempt, ProcessingJob, Output, EditOperation. These settle attempt reservation before enqueue, live read-time composition and inherited primary output types. They remain unimplemented design contracts.",
+        "Deletion/edit reconciliation: project-roadmap/design/05-contracts/processing.openapi.json, submitJob and cancelAssetJob; public.openapi.json, editAsset; content.json, persistence, transactions and data-inventory. Processing owns submission guards retained throughout the demo; MM owns replayable immutable derived operations. The existing core ownership diagrams remain applicable."
+      ]
+    }
+  ]
+}

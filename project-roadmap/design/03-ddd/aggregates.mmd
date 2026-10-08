@@ -1,0 +1,31 @@
+flowchart TB
+  subgraph MM["Media Management: owned access and source intent"]
+    AC["Account root
+OwnerId + credentials"]
+    AS["Asset root
+AssetId + OwnerId
+immutable SourceRef / revision
+submission state + tombstone"]
+    PR["Read-time public view
+Asset + live Processing result
+no stored encode cache"]
+    AC -->|"Local owner reference"| AS
+    AS --> PR
+  end
+  AS -->|"Opaque IDs only
+no cross-service FK"| J
+  subgraph PP["Processing: valid attempts and result publication"]
+    J["ProcessingJob root
+internal JobId != public AssetId
+unique AssetId + owner + revision"]
+    A["Attempt entity
+queued AttemptId reserved on submit/retry
+claim retains ID + establishes lease"]
+    R["OutputSet value
+primary ref / optional HLS
+plain MP4 / inherited MKV or MP3
+winning attempt refs only"]
+    J -->|"Reserve before enqueue"| A
+    A -->|"Atomic matching-attempt commit"| R
+  end
+  R -->|"Live read and translate"| PR

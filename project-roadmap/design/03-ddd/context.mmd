@@ -1,0 +1,24 @@
+flowchart TB
+  C["Web + Publisher CLI
+HTTPS cookie session"] --> MM["Media Management
+Identity + Media + Delivery"]
+  MM --> T["Translation boundary
+Asset intent / live public view"]
+  T -->|"SubmitJob + owner
+asset_id idempotency"| P["Processing
+Job + Attempt + Output"]
+  P -->|"Live owner-filtered results
+submitted outage: 503"| T
+  P -->|"Scoped source-access request
+owner + immutable revision"| MM
+  MM --> M["media_db
+Account + Asset + pending intent"]
+  P --> D["processing_db
+Jobs + attempts + output refs"]
+  P --> Q["RQ workers + reconciliation
+Live claim checked locally"]
+  MM --> S["Private source bucket
+MM credentials only"]
+  Q -->|"Temporary source URL"| S
+  Q -->|"Write attempt-specific keys"| O["Private output bucket"]
+  MM -->|"Read / sign for owner"| O

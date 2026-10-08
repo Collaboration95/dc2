@@ -1,0 +1,30 @@
+- Use Team17-Proposal.docx to determine this team's specific scope and commitments.
+- Build a working distributed application.
+- Demonstrate scalability with repeatable measurements.
+- Demonstrate cloud-native design through appropriate cloud capabilities, including managed services where suitable.
+- Do not treat cloud hosting alone as evidence of cloud-native design.
+- Provide at least one working web or mobile frontend.
+- Demonstrate the application as one integrated system.
+- Treat a reusable platform as preferred rather than mandatory under the lecturer's guidance.
+- Demonstrate competencies in Architecting Software Solutions, Platform Engineering and Cloud Native Solution Design.
+- Explain the business problem, architecture decisions and quality attributes.
+- For a platform, identify its seed, producers, consumers and reusable capabilities.
+- Support claims about reuse and cloud-native benefits with evidence.
+- Explain the selected cloud services and infrastructure.
+- Automate development and deployment activities through a DevOps pipeline.
+- Submit the pipeline scripts and test scripts.
+- Implement the minimum security controls needed for the chosen scope.
+- Prioritize scalability, cloud-native design and integrated delivery over additional security features.
+- Reuse of the earlier project is encouraged but optional.
+- Identify the current project's contribution separately from inherited capabilities.
+- Use domain analysis and DDD to justify any proposed microservice boundaries.
+- Do not treat microservices, Kubernetes, autoscaling or a particular cloud provider as course-mandated technologies.
+- Explain how the proposed scope demonstrates scalability, cloud-native design, platform engineering and DevOps.
+- A logical architecture is sufficient at proposal stage when deployment details are undecided.
+- Proposal details may change while the core project requirements remain satisfied.
+- Track each member's effort separately for the earlier and current projects.
+- Include completed work, hours per member, problems and the next two weeks' tasks in each progress report.
+- Use the assigned team slot and current Canvas schedule for the presentation date, time and Zoom link.
+- Report actual milestones and member effort in the presentation and final report.
+- Report average effort for the current project and for both projects at the presentation.
+

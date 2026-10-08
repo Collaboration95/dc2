@@ -1,0 +1,166 @@
+{
+  "version": 2,
+  "status": "Draft logical design; no runtime proof",
+  "boardId": "XrUnIaX54_73b_PD3Rm60",
+  "boardUrl": "https://www.tldraw.com/f/XrUnIaX54_73b_PD3Rm60",
+  "content": "content.json",
+  "baseline": "885453726d629c524bf511d665311863d9bc70a5",
+  "editable": true,
+  "layoutSource": "diagram-layouts.json",
+  "renderNote": "Real editable tldraw geo/text shapes with bound arrows. Mermaid sources give equivalent logical models; compact manual layouts reduce crossings. SVG exports obtained from editor.getSvgString.",
+  "diagrams": [
+    {
+      "id": "context",
+      "title": "03 DDD — Context and authority",
+      "pageId": "page:page",
+      "pageUrl": "https://www.tldraw.com/f/XrUnIaX54_73b_PD3Rm60?page=page%3Apage",
+      "shapeIds": [
+        "shape:ddd-context-mm",
+        "shape:1lfYMG7kEDrjLphUyKVEE",
+        "shape:ddd-context-clients",
+        "shape:ddd-context-mdb",
+        "shape:UFxPsgQjyQJzQNqrzmGmz",
+        "shape:ddd-context-pdb",
+        "shape:ORBRN1i_eEctZMi3OfLWi",
+        "shape:TS5XfXnk7xrcYR42VYy0a",
+        "shape:ddd-context-note-0",
+        "shape:ddd-context-proc",
+        "shape:ddd-context-title",
+        "shape:ddd-context-subtitle",
+        "shape:_bg8OLVsE1e1OvBx9ZRqv",
+        "shape:WOwA8UpD0cTmupt_Ns6ku"
+      ],
+      "nodeIds": {
+        "title": "shape:ddd-context-title",
+        "subtitle": "shape:ddd-context-subtitle",
+        "clients": "shape:ddd-context-clients",
+        "mm": "shape:ddd-context-mm",
+        "proc": "shape:ddd-context-proc",
+        "mdb": "shape:ddd-context-mdb",
+        "pdb": "shape:ddd-context-pdb",
+        "note-0": "shape:ddd-context-note-0"
+      },
+      "arrowIds": [
+        "shape:UFxPsgQjyQJzQNqrzmGmz",
+        "shape:TS5XfXnk7xrcYR42VYy0a",
+        "shape:_bg8OLVsE1e1OvBx9ZRqv",
+        "shape:ORBRN1i_eEctZMi3OfLWi",
+        "shape:1lfYMG7kEDrjLphUyKVEE",
+        "shape:WOwA8UpD0cTmupt_Ns6ku"
+      ],
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "w": 1370,
+        "h": 1051.9921875
+      },
+      "source": "context.mmd",
+      "svg": "context.svg",
+      "width": 1434,
+      "height": 1115.9921875,
+      "review": "Reconciled to step 05: queued attempt reservation, live read-time composition and primary output compatibility; visually inspected."
+    },
+    {
+      "id": "aggregates",
+      "title": "03 DDD — Aggregates and invariants",
+      "pageId": "page:ddd-aggregates",
+      "pageUrl": "https://www.tldraw.com/f/XrUnIaX54_73b_PD3Rm60?page=page%3Addd-aggregates",
+      "shapeIds": [
+        "shape:Mf3CJpInCKPkmkG9VefOy",
+        "shape:ddd-aggregates-title",
+        "shape:ThPaA3KVPSW9LepUyJziB",
+        "shape:ddd-aggregates-job",
+        "shape:ddd-aggregates-projection",
+        "shape:EJz-F_23dciLIRHmIfUIS",
+        "shape:ddd-aggregates-note-0",
+        "shape:TdwZ37S83CVj1uZgEugZZ",
+        "shape:ddd-aggregates-subtitle",
+        "shape:ddd-aggregates-account",
+        "shape:ddd-aggregates-attempt",
+        "shape:ddd-aggregates-output",
+        "shape:ddd-aggregates-asset",
+        "shape:wl1zmSACXDx_r6W1XKWHn",
+        "shape:Q0XA5VgxiLfK3YvJCJBZ3"
+      ],
+      "nodeIds": {
+        "title": "shape:ddd-aggregates-title",
+        "subtitle": "shape:ddd-aggregates-subtitle",
+        "account": "shape:ddd-aggregates-account",
+        "asset": "shape:ddd-aggregates-asset",
+        "projection": "shape:ddd-aggregates-projection",
+        "job": "shape:ddd-aggregates-job",
+        "attempt": "shape:ddd-aggregates-attempt",
+        "output": "shape:ddd-aggregates-output",
+        "note-0": "shape:ddd-aggregates-note-0"
+      },
+      "arrowIds": [
+        "shape:EJz-F_23dciLIRHmIfUIS",
+        "shape:wl1zmSACXDx_r6W1XKWHn",
+        "shape:Q0XA5VgxiLfK3YvJCJBZ3",
+        "shape:ThPaA3KVPSW9LepUyJziB",
+        "shape:TdwZ37S83CVj1uZgEugZZ",
+        "shape:Mf3CJpInCKPkmkG9VefOy"
+      ],
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "w": 1370,
+        "h": 1127.9947891235352
+      },
+      "source": "aggregates.mmd",
+      "svg": "aggregates.svg",
+      "width": 1434,
+      "height": 1191.9947891235352,
+      "review": "Reconciled to step 05: queued attempt reservation, live read-time composition and primary output compatibility; visually inspected."
+    },
+    {
+      "id": "lifecycle",
+      "title": "03 DDD — Submission and processing",
+      "pageId": "page:ddd-lifecycle",
+      "pageUrl": "https://www.tldraw.com/f/XrUnIaX54_73b_PD3Rm60?page=page%3Addd-lifecycle",
+      "shapeIds": [
+        "shape:ddd-lifecycle-failed",
+        "shape:ddd-lifecycle-error",
+        "shape:ddd-lifecycle-done",
+        "shape:Z5QQ6HbEpphKm0uOV94mp",
+        "shape:PCMQrnqLVz7KmL4zaLGUO",
+        "shape:ddd-lifecycle-pending",
+        "shape:ddd-lifecycle-title",
+        "shape:ddd-lifecycle-stale",
+        "shape:0LfvbhM0hTGInMCB83-WT",
+        "shape:ddd-lifecycle-submitted",
+        "shape:ddd-lifecycle-processing",
+        "shape:ddd-lifecycle-queued",
+        "shape:W1rZZIel_hLSZgVpAc0yK",
+        "shape:ddd-lifecycle-note-0",
+        "shape:IGWUlItjKxvCzKPop3N4u",
+        "shape:Td2oPxM1aCt9Lvy5_QxVl",
+        "shape:ddd-lifecycle-subtitle"
+      ],
+      "nodeIds": null,
+      "arrowIds": [
+        "shape:Z5QQ6HbEpphKm0uOV94mp",
+        "shape:PCMQrnqLVz7KmL4zaLGUO",
+        "shape:0LfvbhM0hTGInMCB83-WT",
+        "shape:W1rZZIel_hLSZgVpAc0yK",
+        "shape:IGWUlItjKxvCzKPop3N4u",
+        "shape:Td2oPxM1aCt9Lvy5_QxVl"
+      ],
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "w": 1370,
+        "h": 1501.9921875
+      },
+      "source": "lifecycle.mmd",
+      "svg": "lifecycle.svg",
+      "width": 1434,
+      "height": 1565.9921875,
+      "review": "Reconciled to step 05: queued attempt reservation, live read-time composition and primary output compatibility; visually inspected."
+    }
+  ],
+  "reconciledAgainst": [
+    "project-roadmap/design/05-contracts/content.json",
+    "project-roadmap/design/05-contracts/processing.openapi.json"
+  ]
+}
