@@ -15,8 +15,8 @@ private cookie jar dedicated to that local run. All global options precede the
 command. Replace the port/CA paths below with the runtime helper's safe state.
 
 ```sh
-python -m publisher --base-url https://localhost:PORT/api --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json register maya@example.test
-python -m publisher --base-url https://localhost:PORT/api --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json login maya@example.test
+python -m publisher --base-url https://localhost:PORT/api --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json register 22222222-2222-4222-8222-222222222222@example.com
+python -m publisher --base-url https://localhost:PORT/api --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json login 22222222-2222-4222-8222-222222222222@example.com
 python -m publisher --base-url https://localhost:PORT/api --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json publish ./videos --wait --max-polls 60 --interval 2
 python -m publisher --base-url https://localhost:PORT/api --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json status ASSET_UUID
 python -m publisher --base-url https://localhost:PORT/api --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json output ASSET_UUID

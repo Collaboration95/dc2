@@ -18,6 +18,7 @@ ASSET = "11111111-1111-4111-8111-111111111111"
 USER = "22222222-2222-4222-8222-222222222222"
 KEY = "33333333-3333-4333-8333-333333333333"
 BASE = "https://media.test/api"
+EMAIL = f"{USER}@example.com"
 
 
 def job(status="done", **extra):
@@ -40,12 +41,12 @@ def factory(tmp_path):
 
 def test_cookie_survives_process_restart_and_is_secure(tmp_path):
     def register(request):
-        assert json.loads(request.content) == {"email": "a@example.test", "password": "private"}
+        assert json.loads(request.content) == {"email": EMAIL, "password": "private"}
         return httpx.Response(
             201,
             json={
                 "id": USER,
-                "email": "a@example.test",
+                "email": EMAIL,
                 "role": "user",
                 "password": "DO NOT PRINT",
             },
@@ -57,7 +58,7 @@ def test_cookie_survives_process_restart_and_is_secure(tmp_path):
         )
 
     first = PublicClient(BASE, tmp_path / "cookies", transport=httpx.MockTransport(register))
-    assert "password" not in first.authenticate("register", "a@example.test", "private")
+    assert "password" not in first.authenticate("register", EMAIL, "private")
     first.close()
     assert (tmp_path / "cookies").stat().st_mode & 0o777 == 0o600
 
@@ -255,10 +256,10 @@ def test_cli_auth_password_stdin(monkeypatch, tmp_path, capsys, command):
         monkeypatch,
         lambda req: httpx.Response(
             200,
-            json={"id": USER, "email": "a@example.test", "role": "user", "token": "do-not-print"},
+            json={"id": USER, "email": EMAIL, "role": "user", "token": "do-not-print"},
         ),
     )
-    assert cli.main(args(tmp_path, command, "a@example.test", "--password-stdin")) == 0
+    assert cli.main(args(tmp_path, command, EMAIL, "--password-stdin")) == 0
     output = capsys.readouterr().out
     assert "private-fixture" not in output and "do-not-print" not in output
     assert json.loads(output)["user"]["id"] == USER
@@ -268,11 +269,9 @@ def test_cli_interactive_password(monkeypatch, tmp_path):
     monkeypatch.setattr(cli.getpass, "getpass", lambda prompt: "fixture")
     install_peer(
         monkeypatch,
-        lambda req: httpx.Response(
-            200, json={"id": USER, "email": "a@example.test", "role": "user"}
-        ),
+        lambda req: httpx.Response(200, json={"id": USER, "email": EMAIL, "role": "user"}),
     )
-    assert cli.main(args(tmp_path, "login", "a@example.test")) == 0
+    assert cli.main(args(tmp_path, "login", EMAIL)) == 0
 
 
 @pytest.mark.parametrize(
@@ -423,7 +422,7 @@ def test_public_schema_conformance_and_explicit_ca(tmp_path, monkeypatch):
                 operation["requestBody"]["content"]["application/json"]["schema"],
                 json.loads(req.content),
             )
-            data = {"id": USER, "email": "a@example.test", "role": "user"}
+            data = {"id": USER, "email": EMAIL, "role": "user"}
             status = 201 if route.endswith("register") else 200
         elif req.method == "POST":
             UUID(req.headers["idempotency-key"])
@@ -440,8 +439,8 @@ def test_public_schema_conformance_and_explicit_ca(tmp_path, monkeypatch):
 
     client = PublicClient(BASE, tmp_path / "cookies", str(ca), transport=httpx.MockTransport(peer))
     try:
-        client.authenticate("register", "a@example.test", "password-fixture")
-        client.authenticate("login", "a@example.test", "password-fixture")
+        client.authenticate("register", EMAIL, "password-fixture")
+        client.authenticate("login", EMAIL, "password-fixture")
         video = tmp_path / "clip.mp4"
         video.write_bytes(b"fixture video")
         assert client.upload(video, KEY) == ASSET

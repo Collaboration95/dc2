@@ -80,7 +80,7 @@ def test_explicit_ca_secure_cookie_restart_and_untrusted_rejection(tmp_path):
     try:
         first = PublicClient(base, tmp_path / "cookies", str(cert), timeout=2)
         try:
-            first.authenticate("login", "a@example.test", "fixture-only")
+            first.authenticate("login", f"{owner}@example.com", "fixture-only")
         finally:
             first.close()
         second = PublicClient(base, tmp_path / "cookies", str(cert), timeout=2)
