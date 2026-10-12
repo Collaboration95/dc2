@@ -74,3 +74,12 @@ Processing intake currently stores queued work only. Worker dispatch, heartbeat,
 queue reconciliation, Media Management Asset integration, retry/cancel/output
 handling, Publisher CLI, AWS and scaling/recovery experiments remain to implement.
 No end-to-end extraction, video-processing or cloud result is claimed yet.
+
+13 October: reviewed execution plan and foundation complete
+Project 14 contains six epics and eighteen child issues with personas and dependencies.
+PR25 planning, PR26 foundation and PR27 cache correction are merged after review
+and green CI. See docs/execution/progress.json and reviews/ for evidence.
+Make setup/test/up now provides locked dependencies, fast offline checks, private
+storage, separate databases, scoped TLS trust and an 8 CPU local Lima VM.
+460 Python and 124 frontend fast tests pass; combined Python coverage gates pass.
+Processing/Media/clients product lanes follow; no full workflow is claimed yet.
