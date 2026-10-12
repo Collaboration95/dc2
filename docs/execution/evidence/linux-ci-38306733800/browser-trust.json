@@ -1,0 +1,11 @@
+{
+  "tested_at": "2026-10-12T20:52:30.442843+00:00",
+  "browser": "155.0",
+  "trusted_https": "PASS",
+  "untrusted_certificate_rejected": "PASS",
+  "ignore_https_errors": false,
+  "trust_mechanism": "project-profile NSS certutil CA import",
+  "engine": "Firefox",
+  "ca_file": "/home/runner/work/dc2/dc2/.local/runs/ci-trust/tls/ca.crt",
+  "live_infrastructure_url": null
+}
