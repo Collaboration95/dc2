@@ -1,0 +1,24 @@
+{
+  "source_revision": "331354d",
+  "files": [
+    {
+      "file": "experiment-f08091aa30704434a261d778bf35caa5.json",
+      "sha256": "ed0d4845f3f8a5b242703b088c01e705cacd4be106c832d7602bf90523ab6624",
+      "original_sha256": "ed0d4845f3f8a5b242703b088c01e705cacd4be106c832d7602bf90523ab6624",
+      "original_path": ".local/runs/final-local/releases/experiment-f08091aa30704434a261d778bf35caa5.json"
+    },
+    {
+      "file": "f08091aa30704434a261d778bf35caa5.json",
+      "sha256": "40e2111004e5b1e5a78b2d5d85b62422bc461234ed8a8823f9ec6df5b65c4170",
+      "original_sha256": "709d04807891bc96f0add9b56043f7dccfab3a4c9a48e3707b1440a1955cc128",
+      "original_path": ".local/runs/final-local/releases/f08091aa30704434a261d778bf35caa5.json"
+    },
+    {
+      "file": "ee75c606b4434e61bca4ee1f0ad500dd.json",
+      "sha256": "2ab1619a1c28f24fe12c0c18d3d7b545de82471c7268aa741bd4dfa49e131a51",
+      "original_sha256": "d6d14818f61c4b3f5d22092da4a1af1489c52376b1e9bbd74574859b92c728ca",
+      "original_path": ".local/runs/final-local/releases/ee75c606b4434e61bca4ee1f0ad500dd.json"
+    }
+  ],
+  "redaction": "secret-value defense and capability URL query removal; command output was hashed by runner"
+}
