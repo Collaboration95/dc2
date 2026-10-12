@@ -27,7 +27,7 @@ def safe_hls_path(path):
 async def part(
     job_id: UUID, path: str, user: CurrentUser, session: Session, storage: Store, peer: Peer
 ):
-    asset = await get_asset(session, job_id, user.id)
+    asset = await get_asset(session, job_id, user.id, lock=True)
     safe = safe_hls_path(path)
     if asset.submission_state != "submitted":
         raise MediaError(404, "not found")

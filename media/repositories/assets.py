@@ -64,10 +64,12 @@ async def replay(
     return asset
 
 
-async def list_assets(session, owner_id, limit, offset):
+async def list_assets(session, owner_id, limit, offset, *, lock=False):
     query = select(Asset).where(Asset.deleted_at.is_(None))
     if owner_id is not None:
         query = query.where(Asset.owner_id == owner_id)
+    if lock:
+        query = query.with_for_update()
     return list(
         await session.scalars(
             query.order_by(Asset.created_at.desc(), Asset.id).limit(limit).offset(offset)

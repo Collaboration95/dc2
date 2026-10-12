@@ -28,7 +28,7 @@ async def listing(
     limit: Limit = 50,
     offset: Offset = 0,
 ):
-    assets = await list_assets(session, user.id, limit, offset)
+    assets = await list_assets(session, user.id, limit, offset, lock=True)
     return await lifecycle.project_page(assets, peer, storage, settings)
 
 
@@ -36,7 +36,7 @@ async def listing(
 async def read(
     job_id: UUID, user: CurrentUser, session: Session, peer: Peer, storage: Store, settings: Config
 ):
-    asset = await get_asset(session, job_id, user.id)
+    asset = await get_asset(session, job_id, user.id, lock=True)
     job = await lifecycle.live_job(peer, asset) if asset.submission_state == "submitted" else None
     return await lifecycle.projection(asset, job, storage, settings)
 
@@ -88,7 +88,7 @@ async def admin_listing(
     limit: Limit = 50,
     offset: Offset = 0,
 ):
-    assets = await list_assets(session, None, limit, offset)
+    assets = await list_assets(session, None, limit, offset, lock=True)
     return await lifecycle.project_page(assets, peer, storage, settings)
 
 
