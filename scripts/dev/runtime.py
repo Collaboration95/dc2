@@ -283,9 +283,9 @@ def images(state):
         if labels.get("org.opencontainers.image.revision") != MINIO_COMMIT:
             raise ValueError("Prebuilt MinIO image does not match the pinned source revision")
         print("Reusing verified prebuilt MinIO image; source compilation skipped.")
-        compose(state, "build", "processing")
+        compose(state, "build", "processing", "media")
     else:
-        compose(state, "build", "minio", "processing")
+        compose(state, "build", "minio", "processing", "media")
 
 
 def smoke(state):
@@ -306,7 +306,7 @@ def smoke(state):
                     raise TimeoutError(f"Loopback port {port} did not become reachable") from None
                 time.sleep(0.1)
     context = ssl.create_default_context(cafile=state["ca_file"])
-    for route in ("/health", "/", "/minio/health/live"):
+    for route in ("/health", "/api/health", "/", "/minio/health/live"):
         with urllib.request.urlopen(
             state["public_url"] + route, context=context, timeout=10
         ) as reply:

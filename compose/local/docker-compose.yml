@@ -4,6 +4,29 @@ x-processing: &processing
     context: ${DC2_ROOT}
     dockerfile: deploy/processing.Dockerfile
 
+x-media: &media
+  image: ${DC2_MEDIA_IMAGE:?Run runtime.py env first}
+  build:
+    context: ${DC2_ROOT}
+    dockerfile: deploy/media.Dockerfile
+
+x-media-env: &media-env
+  MEDIA_POSTGRES_DSN: ${MEDIA_POSTGRES_DSN:?}
+  MEDIA_JWT_SECRET: ${MEDIA_JWT_SECRET:?}
+  MEDIA_PUBLIC_URL: ${MEDIA_PUBLIC_URL:?}
+  MEDIA_PROCESSING_URL: ${MEDIA_PROCESSING_URL:?}
+  MEDIA_PROCESSING_SERVICE_TOKEN: ${MEDIA_PROCESSING_SERVICE_TOKEN:?}
+  MEDIA_SOURCE_SERVICE_TOKEN: ${MEDIA_SOURCE_SERVICE_TOKEN:?}
+  MEDIA_MINIO_ENDPOINT: ${MEDIA_MINIO_ENDPOINT:?}
+  MEDIA_MINIO_USE_SSL: ${MEDIA_MINIO_USE_SSL:?}
+  MEDIA_MINIO_REGION: ${MEDIA_MINIO_REGION:?}
+  MEDIA_MINIO_ACCESS_KEY: ${MEDIA_MINIO_ACCESS_KEY:?}
+  MEDIA_MINIO_SECRET_KEY: ${MEDIA_MINIO_SECRET_KEY:?}
+  MEDIA_MINIO_SOURCE_BUCKET: ${MEDIA_MINIO_SOURCE_BUCKET:?}
+  MEDIA_MINIO_OUTPUT_BUCKET: ${MEDIA_MINIO_OUTPUT_BUCKET:?}
+  MEDIA_MINIO_PUBLIC_ENDPOINT: ${MEDIA_MINIO_PUBLIC_ENDPOINT:?}
+  MEDIA_MINIO_PUBLIC_USE_SSL: ${MEDIA_MINIO_PUBLIC_USE_SSL:?}
+
 services:
   postgres:
     cpus: 0.25
@@ -26,6 +49,40 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+
+  media-migrate:
+    <<: *media
+    command: [python, -m, alembic, -c, media/alembic.ini, upgrade, head]
+    environment:
+      MEDIA_POSTGRES_DSN: ${MEDIA_MIGRATION_DSN:?}
+    networks: [media-data]
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  media:
+    <<: *media
+    cpus: 0.5
+    mem_limit: 384m
+    environment: *media-env
+    networks: [media-data, interservice, object-data, edge]
+    depends_on:
+      media-migrate: {condition: service_completed_successfully}
+      storage-bootstrap: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  media-recovery:
+    <<: *media
+    command: [python, -m, media.recovery]
+    cpus: 0.125
+    mem_limit: 192m
+    environment: *media-env
+    networks: [media-data, interservice, object-data]
+    depends_on:
+      media: {condition: service_healthy}
 
   processing-migrate:
     <<: *processing
@@ -179,6 +236,7 @@ services:
     networks: [edge, object-data]
     depends_on:
       minio: {condition: service_healthy}
+      media: {condition: service_healthy}
     healthcheck:
       test: [CMD, wget, -q, -O, /dev/null, "http://127.0.0.1:8080/health"]
       interval: 3s
