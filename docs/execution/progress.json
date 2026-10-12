@@ -1,5 +1,5 @@
 {
-  "stage": "final-local-acceptance-measurements",
+  "stage": "corrected-final-measurements",
   "baseline": "b32d489566144202fbf6fc3887ce25d5321444fd",
   "project": {
     "id": "PVT_kwHOBBatWM4Bmtkx",
@@ -172,10 +172,11 @@
     },
     "V4": {
       "number": 23,
-      "state": "In progress",
+      "state": "Review",
       "pr": 31,
       "evidence": [
-        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
+        "Actual full good/bad release experiment PASS at331354d in226.828s: goodpromotion101.197s, realactive drain34.077s, exactbadAPIexit42 thenautomaticrollback+publicsmoke, unchangedMediaandmigration. Exactcandidate scanszero fixableHIGH/CRITICAL. Priorfailuresretained; reviewsPASS."
       ]
     },
     "V5": {
@@ -279,9 +280,9 @@
     }
   ],
   "limitations": [
-    "First full scaling invocation failed after one-hour owner session expiry during eighth-batch preparation. Seven completed batches remain diagnostic; no full acceptance claim.",
-    "Session renewal correction2cb8da8 requires a fresh full nine-batch run. Final root workflow/recovery/release now run before the corrected measurements.",
-    "Project-local VM disk has10.6GiB free; expand its sparse disk40to64GiB after live checks to retain failed data and fit a fresh full run. CPU/memory quotas unchanged."
+    "V1/V2 fullMac andLinux workflow/recovery accepted; V4 actualgood/bad release andautomaticrollback accepted; groupedPR31 remainsdraft untilV3/finalreview/merge.",
+    "Firstfullscaling invocation failedsessionexpiry; retainedasFAIL. A freshcompletecorrectedrun isactivefromf46599f in.worktrees/final-measurements RUN_IDv3-final; separatefull latencyfollows onlyifpass.",
+    "Project-onlyLima diskexpanded40to64GiB preservingfaileddata;8CPU/8GiB andservicequotas unchanged."
   ],
   "aws_actions_performed": false,
   "active_worktrees": [
@@ -289,13 +290,13 @@
       "branch": "wave/03-local-acceptance",
       "path": ".",
       "owner": "coordinator",
-      "scope": "Final local verification/recovery/release at2cb8da8; preserveHEAD untilreleaseproof completes"
+      "scope": "Finaldocs/CI/evidencereconciliation; noVMworkloads duringmeasurement"
     },
     {
-      "branch": "review/scaling-session",
-      "path": ".worktrees/scaling-session-review",
-      "owner": "Nietzsche Solxhigh",
-      "scope": "Bounded offline session-expiry correction rereview"
+      "branch": "work/final-measurements",
+      "path": ".worktrees/final-measurements",
+      "owner": "coordinator",
+      "scope": "FROZENf46599f fullscalingandthenlatency; ownsVMexclusively untilcomplete"
     }
   ]
 }
