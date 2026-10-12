@@ -165,6 +165,7 @@ function showSignedIn(user) {
 
 function showSignedOut() {
   currentUser = null;
+  pendingUpload = pendingRetry = pendingEdit = null;
   el.auth.hidden = false;
   el.app.hidden = true;
   stopPolling();
@@ -281,12 +282,31 @@ el.navAdmin.addEventListener("click", () => switchView("admin"));
 // escape hatch is choosing a different file, not waiting forever).
 // ---------------------------------------------------------------------------
 
-let lastFile = null;
+let pendingUpload = null;
+let pendingRetry = null;
+let pendingEdit = null;
+let retrying = false;
+let editSubmitting = false;
 let uploading = false;
 let activeJobId = null;
 // The last job document the upload card was showing, so its Edit button has
 // something to hand the editor.
 let activeJobDoc = null;
+
+// A transport replay is one intent. Only a confirmed response clears its key.
+// Two attempts bound automatic replay; later button presses retain unresolved keys.
+async function intentRequest(url, init, key) {
+  const request = { ...init, headers: { ...init.headers, "Idempotency-Key": key } };
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const res = await fetch(url, request);
+      if (res.status >= 500 && attempt === 0) continue;
+      return res;
+    } catch (err) {
+      if (attempt === 1) throw err;
+    }
+  }
+}
 
 const POLL_INTERVAL_MS = 2000;
 const PROGRESS_LABEL = { queued: "Queued...", processing: "Processing..." };
@@ -341,6 +361,13 @@ function followJob(scope, jobId, handlers) {
         setAuthStatus("Your session expired. Sign in again.");
         return;
       }
+      if (res.status === 503) {
+        if (pollRuns[scope] !== run) return;
+        handlers.onError(new Error("Processing is temporarily unavailable. Status will be checked again."));
+        pollTimers[scope] = setTimeout(() => tick(attempt + 1), POLL_INTERVAL_MS);
+        return;
+      }
+      if (!res.ok) throw new Error(`Status request failed: ${res.status}`);
       job = await res.json();
     } catch (err) {
       if (pollRuns[scope] !== run) return;
@@ -376,6 +403,7 @@ function resetJobCard() {
   el.activeJob.hidden = true;
   el.jobProgress.hidden = true;
   el.jobActions.hidden = true;
+  el.jobRetry.hidden = false;
   el.jobEdit.hidden = true;
   activeJobDoc = null;
   clearUploadPlayer();
@@ -408,8 +436,41 @@ el.fileInput.addEventListener("change", () => {
 });
 
 el.jobRetry.addEventListener("click", () => {
-  if (lastFile) handleFile(lastFile);
+  if (pendingUpload) handleFile(pendingUpload.file, pendingUpload.key);
+  else retryStoredSource();
 });
+
+async function retryStoredSource() {
+  if (retrying || !activeJobId || activeJobDoc?.status !== "failed") return;
+  retrying = true;
+  el.jobRetry.disabled = true;
+  pendingRetry ??= crypto.randomUUID();
+  try {
+    const res = await intentRequest(`${API}/jobs/${activeJobId}/retry`, { method: "POST" }, pendingRetry);
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      showSignedOut();
+      setAuthStatus("Your session expired. Sign in again.");
+      return;
+    }
+    if (res.status < 500 && (!res.ok || data.job_id)) pendingRetry = null;
+    if (!res.ok || !data.job_id) {
+      setStatus(`Could not retry: ${apiErrorMessage(data, res.status)}`);
+      return;
+    }
+    stopPolling("upload");
+    el.jobActions.hidden = true;
+    activeJobId = data.job_id;
+    activeJobDoc = { ...activeJobDoc, status: "queued" };
+    setBadge("queued");
+    pollUploadJob(data.job_id);
+  } catch (err) {
+    setStatus(`Retry delivery is uncertain: ${err.message}. Retry again to replay this request.`);
+  } finally {
+    retrying = false;
+    el.jobRetry.disabled = false;
+  }
+}
 el.jobChooseDifferent.addEventListener("click", () => el.fileInput.click());
 el.jobDelete.addEventListener("click", deleteActiveJob);
 
@@ -439,14 +500,14 @@ async function deleteActiveJob() {
     stopPolling();
     resetJobCard();
     activeJobId = null;
-    lastFile = null;
+    pendingUpload = pendingRetry = null;
     setStatus("Video deleted.");
   } catch (err) {
     setStatus(`Request failed: ${err.message}`);
   }
 }
 
-async function handleFile(file) {
+async function handleFile(file, replayKey) {
   if (uploading) return; // A rapid second drop cannot double-post the first.
 
   if (file.type && !ALLOWED_CONTENT_TYPES.has(file.type)) {
@@ -462,7 +523,8 @@ async function handleFile(file) {
   stopPolling();
   resetJobCard();
   activeJobId = null;
-  lastFile = file;
+  pendingUpload = { file, key: replayKey ?? crypto.randomUUID() };
+  pendingRetry = null;
   setBusy(true);
   setStatus("Uploading...");
 
@@ -470,7 +532,7 @@ async function handleFile(file) {
     const body = new FormData();
     body.append("file", file);
 
-    const res = await fetch(`${API}/upload`, { method: "POST", body });
+    const res = await intentRequest(`${API}/upload`, { method: "POST", body }, pendingUpload.key);
     const data = await res.json().catch(() => ({}));
 
     if (res.status === 401) {
@@ -480,8 +542,12 @@ async function handleFile(file) {
       return;
     }
 
-    if (!res.ok) {
-      setStatus(`Upload failed: ${data.error ?? res.status}`);
+    if (res.status < 500 && (!res.ok || data.job_id)) pendingUpload = null;
+    if (!res.ok || !data.job_id) {
+      setStatus(`Upload failed: ${apiErrorMessage(data, res.status)}`);
+      el.activeJob.hidden = false;
+      el.jobFilename.textContent = file.name;
+      el.jobActions.hidden = !pendingUpload;
       setBusy(false);
       return;
     }
@@ -494,7 +560,10 @@ async function handleFile(file) {
     setBusy(false);
     pollUploadJob(data.job_id);
   } catch (err) {
-    setStatus(`Request failed: ${err.message}`);
+    setStatus(`Request failed: ${err.message}. Retry to replay this upload.`);
+    el.activeJob.hidden = false;
+    el.jobFilename.textContent = file.name;
+    el.jobActions.hidden = false;
     setBusy(false);
   }
 }
@@ -505,6 +574,7 @@ function pollUploadJob(jobId) {
   followJob("upload", jobId, {
     onJob(job, attempt) {
       activeJobDoc = job;
+      el.jobRetry.hidden = job.status !== "failed";
       setBadge(job.status);
       el.jobEdit.hidden = job.status !== "done";
       el.jobProgress.hidden = job.status !== "processing";
@@ -514,7 +584,9 @@ function pollUploadJob(jobId) {
         // Give the form back; a stuck job otherwise never releases it.
         el.jobActions.hidden = false;
       } else {
-        setStatus(PROGRESS_LABEL[job.status] ?? job.status);
+        setStatus(job.submission_status === "pending"
+          ? "Received. Waiting for Processing to become available..."
+          : (PROGRESS_LABEL[job.status] ?? job.status));
       }
     },
     onDone(job) {
@@ -995,18 +1067,21 @@ for (const box of [el.editCrop, el.editClip, el.editDownscale, el.editUpscale, e
 el.editForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const operations = editOperations();
-  if (!editingJob || operations.length === 0) return;
+  if (editSubmitting || !editingJob || operations.length === 0) return;
+  editSubmitting = true;
 
+  const signature = JSON.stringify([editingJob.id, operations]);
+  if (pendingEdit?.signature !== signature) pendingEdit = { signature, key: crypto.randomUUID() };
   el.editProcess.disabled = true;
   el.editResult.hidden = true;
   setEditStatus("Sending the edit...");
 
   try {
-    const res = await fetch(`${API}/jobs/${editingJob.id}/edit`, {
+    const res = await intentRequest(`${API}/jobs/${editingJob.id}/edit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ operations }),
-    });
+    }, pendingEdit.key);
 
     if (res.status === 401) {
       showSignedOut();
@@ -1015,6 +1090,7 @@ el.editForm.addEventListener("submit", async (event) => {
     }
 
     const data = await res.json().catch(() => ({}));
+    if (res.status < 500 && (!res.ok || data.job_id)) pendingEdit = null;
     if (!res.ok || !data.job_id) {
       setEditStatus(`Could not start the edit: ${apiErrorMessage(data, res.status)}`);
       updateProcessButton();
@@ -1044,6 +1120,8 @@ el.editForm.addEventListener("submit", async (event) => {
   } catch (err) {
     setEditStatus(`Request failed: ${err.message}`);
     updateProcessButton();
+  } finally {
+    editSubmitting = false;
   }
 });
 
@@ -1112,6 +1190,29 @@ function renderLibrary() {
     name.textContent = job.filename;
     head.append(name);
     if (job.status === "done") head.append(makeEditButton(job));
+    if (job.status === "failed") {
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "btn-ghost card-retry";
+      retry.textContent = "Retry";
+      retry.setAttribute("aria-label", `Retry ${job.filename}`);
+      retry.addEventListener("click", () => {
+        if (retrying) return;
+        switchView("upload");
+        stopPolling("upload");
+        resetJobCard();
+        pendingUpload = null;
+        if (activeJobId !== job.id) pendingRetry = null;
+        activeJobId = job.id;
+        activeJobDoc = job;
+        el.activeJob.hidden = false;
+        el.jobFilename.textContent = job.filename;
+        setBadge("failed");
+        el.jobActions.hidden = false;
+        retryStoredSource();
+      });
+      head.append(retry);
+    }
     head.append(makeDeleteButton(job));
     body.appendChild(head);
 

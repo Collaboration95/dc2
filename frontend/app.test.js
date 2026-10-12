@@ -211,7 +211,7 @@ describe("upload", () => {
 
   it("falls back to the status code when the error body is unreadable", async () => {
     const el = await loadApp();
-    fetchMock.mockResolvedValueOnce({
+    fetchMock.mockResolvedValue({
       ok: false,
       status: 500,
       json: async () => {
@@ -226,7 +226,7 @@ describe("upload", () => {
 
   it("reports a network failure rather than hanging", async () => {
     const el = await loadApp();
-    fetchMock.mockRejectedValueOnce(new Error("connection refused"));
+    fetchMock.mockRejectedValue(new Error("connection refused"));
 
     await uploadFile(el);
 
@@ -428,21 +428,24 @@ describe("upload", () => {
     expect(el.status.textContent).toContain("connection refused");
   });
 
-  it("re-runs the last file from the retry button, and does nothing before one exists", async () => {
+  it("retries a failed stored source without uploading again", async () => {
     const el = await loadApp();
-
     el.jobRetry.dispatchEvent(new Event("click"));
     expect(fetchMock).not.toHaveBeenCalled();
-
-    fetchMock.mockResolvedValue(jsonResponse({ job_id: "job-1", status: "queued" }));
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "job-1" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "job-1", status: "failed" }));
     await uploadFile(el);
     fetchMock.mockClear();
-    fetchMock.mockResolvedValue(jsonResponse({ job_id: "job-2", status: "queued" }));
-
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "job-1" }))
+      .mockResolvedValue(jsonResponse({ id: "job-1", status: "queued" }));
     el.jobRetry.dispatchEvent(new Event("click"));
-    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
-
-    expect(fetchMock.mock.calls[0][0]).toBe("/api/upload");
+    await vi.advanceTimersByTimeAsync(0);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/jobs/job-1/retry");
+    expect(init.method).toBe("POST");
+    expect(init.body).toBeUndefined();
+    expect(init.headers["Idempotency-Key"]).toMatch(/^[a-f0-9-]{36}$/);
+    expect(fetchMock.mock.calls.some(([url]) => url === "/api/upload")).toBe(false);
   });
 });
 
@@ -1917,5 +1920,163 @@ describe("editor", () => {
     expect(el.editPlayer.querySelector("video")).toBeNull();
     expect(FakePlyr.created[0].destroyed).toBe(true);
     expect(el.viewLibrary.hidden).toBe(false);
+  });
+});
+
+describe("public intent replay", () => {
+  it("replays an upload after a lost response with identical file and key, then uses a fresh key for a new upload", async () => {
+    const el = await loadApp();
+    fetchMock.mockRejectedValueOnce(new Error("response lost"))
+      .mockResolvedValueOnce(jsonResponse({ job_id: "one" }))
+      .mockResolvedValue(jsonResponse({ status: "done" }));
+    await uploadFile(el);
+    const posts = fetchMock.mock.calls.filter(([url]) => url === "/api/upload");
+    expect(posts).toHaveLength(2);
+    expect(posts[0][1].headers["Idempotency-Key"]).toBe(posts[1][1].headers["Idempotency-Key"]);
+    expect(posts[0][1].body.get("file")).toBe(posts[1][1].body.get("file"));
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "two" }));
+    await uploadFile(el);
+    const newPost = fetchMock.mock.calls.filter(([url]) => url === "/api/upload").at(-1);
+    expect(newPost[1].headers["Idempotency-Key"]).not.toBe(posts[0][1].headers["Idempotency-Key"]);
+  });
+
+  it("retains an unresolved upload key for the retry button after bounded transport failures", async () => {
+    const el = await loadApp();
+    fetchMock.mockRejectedValue(new Error("lost"));
+    await uploadFile(el);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const original = fetchMock.mock.calls[0][1];
+    expect(el.jobActions.hidden).toBe(false);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "one" }))
+      .mockResolvedValue(jsonResponse({ status: "queued", submission_status: "pending" }));
+    el.jobRetry.dispatchEvent(new Event("click"));
+    await vi.advanceTimersByTimeAsync(0);
+    const replay = fetchMock.mock.calls[2][1];
+    expect(replay.headers["Idempotency-Key"]).toBe(original.headers["Idempotency-Key"]);
+    expect(replay.body.get("file")).toBe(original.body.get("file"));
+    expect(el.status.textContent).toContain("Waiting for Processing");
+  });
+
+  it("keeps a retry intent through 503 and creates a new one only after confirmed acceptance", async () => {
+    const el = await loadApp();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "one" }))
+      .mockResolvedValueOnce(jsonResponse({ status: "failed" }));
+    await uploadFile(el);
+    fetchMock.mockClear();
+    fetchMock.mockResolvedValue(jsonResponse({ error: "temporarily unavailable" }, false, 503));
+    el.jobRetry.dispatchEvent(new Event("click"));
+    el.jobRetry.dispatchEvent(new Event("click"));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const key = fetchMock.mock.calls[0][1].headers["Idempotency-Key"];
+    expect(fetchMock.mock.calls[1][1].headers["Idempotency-Key"]).toBe(key);
+    expect(el.status.textContent).toContain("temporarily unavailable");
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "one" }))
+      .mockResolvedValueOnce(jsonResponse({ status: "failed" }));
+    el.jobRetry.dispatchEvent(new Event("click"));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock.mock.calls[2][1].headers["Idempotency-Key"]).toBe(key);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "one" }))
+      .mockResolvedValueOnce(jsonResponse({ status: "queued" }));
+    el.jobRetry.dispatchEvent(new Event("click"));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock.mock.calls[4][1].headers["Idempotency-Key"]).not.toBe(key);
+    expect(fetchMock.mock.calls.every(([url]) => url !== "/api/upload")).toBe(true);
+  });
+
+  it.each([401, 409, 404])("handles stored retry rejection %s", async (code) => {
+    const el = await loadApp();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "one" }))
+      .mockResolvedValueOnce(jsonResponse({ status: "failed" }));
+    await uploadFile(el);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: "rejected" }, false, code));
+    el.jobRetry.dispatchEvent(new Event("click"));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(el.jobRetry.disabled).toBe(false);
+    if (code === 401) expect(el.authStatus.textContent).toContain("session expired");
+    else expect(el.status.textContent).toContain("Could not retry");
+  });
+
+  it("allows manual replay after a lost stored-retry response without uploading", async () => {
+    const el = await loadApp();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "one" }))
+      .mockResolvedValueOnce(jsonResponse({ status: "failed" }));
+    await uploadFile(el);
+    fetchMock.mockClear();
+    fetchMock.mockRejectedValue(new Error("lost"));
+    el.jobRetry.dispatchEvent(new Event("click"));
+    await vi.advanceTimersByTimeAsync(0);
+    const key = fetchMock.mock.calls[0][1].headers["Idempotency-Key"];
+    expect(el.status.textContent).toContain("uncertain");
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "one" }))
+      .mockResolvedValueOnce(jsonResponse({ status: "queued" }));
+    el.jobRetry.dispatchEvent(new Event("click"));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock.mock.calls[2][1].headers["Idempotency-Key"]).toBe(key);
+    expect(fetchMock.mock.calls[2][1].body).toBeUndefined();
+  });
+
+  it("offers stored retry from the library after page load without any remembered file", async () => {
+    const el = await loadApp();
+    fetchMock.mockResolvedValueOnce(jsonResponse([{ id: "one", filename: "old.mp4", status: "failed" }]));
+    el.navLibrary.dispatchEvent(new Event("click"));
+    await vi.advanceTimersByTimeAsync(0);
+    fetchMock.mockClear();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "one" }))
+      .mockResolvedValueOnce(jsonResponse({ status: "queued" }));
+    el.libraryGrid.querySelector(".card-retry").dispatchEvent(new Event("click"));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/jobs/one/retry");
+    expect(el.jobFilename.textContent).toBe("old.mp4");
+    expect(el.viewUpload.hidden).toBe(false);
+  });
+
+  it("reports a status outage and resumes checking without projecting an invented state", async () => {
+    const el = await loadApp();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "one" }))
+      .mockResolvedValueOnce(jsonResponse({ error: "unavailable" }, false, 503))
+      .mockResolvedValueOnce(jsonResponse({ status: "done" }));
+    await uploadFile(el);
+    expect(el.status.textContent).toContain("temporarily unavailable");
+    expect(el.jobBadge.textContent).toBe("Queued");
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(el.status.textContent).toBe("Processing complete.");
+  });
+
+  it("does not treat a missing asset as a queued job", async () => {
+    const el = await loadApp();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "one" }))
+      .mockResolvedValueOnce(jsonResponse({ error: "absent" }, false, 404));
+    await uploadFile(el);
+    expect(el.status.textContent).toContain("Status request failed: 404");
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("replays immutable edits with a stable key and treats the next confirmed user edit as new", async () => {
+    const el = await loadApp();
+    fetchMock.mockResolvedValueOnce(jsonResponse([{ id: "source", filename: "old.mp4", status: "done" }]));
+    el.navLibrary.dispatchEvent(new Event("click"));
+    await vi.advanceTimersByTimeAsync(0);
+    el.libraryGrid.querySelector(".card-edit").dispatchEvent(new Event("click"));
+    el.editConvert.checked = true;
+    el.editConvert.dispatchEvent(new Event("change"));
+    fetchMock.mockClear();
+    fetchMock.mockRejectedValue(new Error("lost"));
+    el.editForm.dispatchEvent(new Event("submit", { cancelable: true }));
+    await vi.advanceTimersByTimeAsync(0);
+    const original = fetchMock.mock.calls[0][1];
+    expect(fetchMock.mock.calls[1][1].body).toBe(original.body);
+    expect(fetchMock.mock.calls[1][1].headers["Idempotency-Key"]).toBe(original.headers["Idempotency-Key"]);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "derived" }))
+      .mockResolvedValueOnce(jsonResponse({ status: "failed" }));
+    el.editForm.dispatchEvent(new Event("submit", { cancelable: true }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock.mock.calls[2][1].headers["Idempotency-Key"]).toBe(original.headers["Idempotency-Key"]);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "derived2" }))
+      .mockResolvedValueOnce(jsonResponse({ status: "queued" }));
+    el.editForm.dispatchEvent(new Event("submit", { cancelable: true }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock.mock.calls[4][1].headers["Idempotency-Key"]).not.toBe(original.headers["Idempotency-Key"]);
   });
 });
