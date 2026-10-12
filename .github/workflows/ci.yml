@@ -177,15 +177,6 @@ jobs:
     name: Processing worker, recovery and database ownership
     runs-on: ubuntu-latest
     timeout-minutes: 12
-    env:
-      COMPOSE_PROJECT_NAME: dc2-processing-ci-${{ github.run_id }}
-      PROCESSING_SERVICE_TOKEN: ci-only-processing-service-token
-      PROCESSING_POSTGRES_DSN: postgresql+asyncpg://processing_runtime:dc2_local_processing@127.0.0.1:55432/processing_db
-      P2_POSTGRES_PORT: '55432'
-      P2_REDIS_PORT: '56379'
-      PROCESSING_REDIS_URL: redis://127.0.0.1:56379/0
-      PROCESSING_QUEUE_NAME: processing-ci
-      RUN_PROCESSING_TESTS: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -198,22 +189,50 @@ jobs:
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
       - run: uv sync --locked --extra dev --extra browser
+      - uses: actions/cache@v4
+        with:
+          path: .cache/minio
+          key: minio-source-20960b6a2ddb9594ee418035b3c7c7fe92ae6a12
+      - name: Configure isolated image tags and pinned storage source
+        id: images
+        run: |
+          .venv/bin/python - <<'PYTHON'
+          import os
+          from scripts.dev.runtime import configure, fetch_minio
+          env, state = configure('ci-processing')
+          fetch_minio()
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('processing=' + env['DC2_PROCESSING_IMAGE'] + '\n')
+              output.write('minio=' + env['DC2_MINIO_IMAGE'] + '\n')
+          PYTHON
       - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - name: Build actual Processing API and worker image
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: deploy/processing.Dockerfile
           load: true
-          tags: dc2-processing:dev
+          tags: ${{ steps.images.outputs.processing }}
           cache-from: type=gha,scope=processing
           cache-to: type=gha,scope=processing,mode=max
+      - name: Load cached pinned storage image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/dast/minio.Dockerfile
+          build-contexts: minio_source=.cache/minio/20960b6a2ddb9594ee418035b3c7c7fe92ae6a12
+          load: true
+          tags: ${{ steps.images.outputs.minio }}
+          cache-from: |
+            type=gha,scope=browser-minio
+            type=gha,scope=integration-minio
+          cache-to: type=gha,scope=processing-minio,mode=max
       - name: Install real media fixture encoder
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-      - name: Start isolated Processing with a bounded readiness wait
-        run: docker compose -f docker-compose.processing.yml up --no-build -d --wait --wait-timeout 180 processing
-      - run: make integration-coverage
+      - name: Run real owned PostgreSQL Redis and storage acceptance
+        run: .venv/bin/python -m scripts.dev.owned_checks --run-id ci-processing --no-build
       - uses: actions/upload-artifact@v4
         with:
           name: processing-coverage-data
@@ -221,12 +240,10 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
-      - name: Capture stack logs
+      - run: make logs RUN_ID=ci-processing
         if: failure()
-        run: docker compose -f docker-compose.processing.yml logs --no-color
-      - name: Tear down only this runner-owned stack
+      - run: make down RUN_ID=ci-processing
         if: always()
-        run: docker compose -f docker-compose.processing.yml down -v
 
   browser-trust:
     name: Local HTTPS and Firefox trust
