@@ -113,12 +113,26 @@ def owned_checks(run_id, *, all_services=False, build=True):
                     labels = metadata["Config"].get("Labels") or {}
                     if labels.get("org.opencontainers.image.revision") != MINIO_COMMIT:
                         raise ValueError("Test storage image must match pinned source")
-        services = ["postgres", "redis", "minio", "storage-bootstrap", "processing-migrate"]
-        if all_services:
-            services.append("media-migrate")
+        # Only persistent services belong in --wait. Compose versions differ in
+        # whether an already-completed one-shot is accepted there, and a running
+        # migrator without a healthcheck is not proof that its migration finished.
         test_compose(
-            "up", "--no-build", "-d", "--wait", "--wait-timeout", "180", *services, timeout=240
+            "up",
+            "--no-build",
+            "-d",
+            "--wait",
+            "--wait-timeout",
+            "180",
+            "postgres",
+            "redis",
+            "minio",
+            timeout=240,
         )
+        one_shots = ["storage-bootstrap", "processing-migrate"]
+        if all_services:
+            one_shots.append("media-migrate")
+        for service in one_shots:
+            test_compose("run", "--rm", "-T", "--no-deps", service, timeout=120)
         wait_ports((state["postgres_port"], *ports))
         env = integration_environment(values, state, *ports, all_services=all_services)
         if all_services:
