@@ -5,5 +5,7 @@ services:
     build:
       context: .
       dockerfile: deploy/dast/minio.Dockerfile
+      additional_contexts:
+        minio_source: ${DC2_MINIO_SOURCE:-./.cache/minio/20960b6a2ddb9594ee418035b3c7c7fe92ae6a12}
     healthcheck:
       test: [ "CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:9000/minio/health/live" ]
