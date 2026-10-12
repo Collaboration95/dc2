@@ -1,0 +1,55 @@
+{
+  "tiers": [
+    "fast",
+    "legacy-integration",
+    "processing-integration",
+    "media-integration"
+  ],
+  "packages": [
+    {
+      "package": "app",
+      "combined": 93.15687540348613,
+      "raw_branch": 87.03703703703704,
+      "num_statements": 1333,
+      "num_branches": 216,
+      "covered_lines": 1255,
+      "covered_branches": 188
+    },
+    {
+      "package": "processing",
+      "combined": 98.69281045751634,
+      "raw_branch": 94.82758620689656,
+      "num_statements": 897,
+      "num_branches": 174,
+      "covered_lines": 892,
+      "covered_branches": 165
+    },
+    {
+      "package": "media",
+      "combined": 98.19140919366993,
+      "raw_branch": 96.01769911504425,
+      "num_statements": 1101,
+      "num_branches": 226,
+      "covered_lines": 1086,
+      "covered_branches": 217
+    },
+    {
+      "package": "media_engine",
+      "combined": 99.4186046511628,
+      "raw_branch": 98.0,
+      "num_statements": 122,
+      "num_branches": 50,
+      "covered_lines": 122,
+      "covered_branches": 49
+    },
+    {
+      "package": "publisher",
+      "combined": 98.42767295597484,
+      "raw_branch": 96.55172413793103,
+      "num_statements": 260,
+      "num_branches": 58,
+      "covered_lines": 257,
+      "covered_branches": 56
+    }
+  ]
+}

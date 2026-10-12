@@ -1,0 +1,34 @@
+{
+  "ci_run": 38300284726,
+  "head_revision": "c0a7315c44ce89c03c8adb7b51ab39a1aca569d9",
+  "tested_merge_revision": "a9c14b925213fc5b3ff61d141be0bc74363144fc",
+  "scope": "Linux real workflow, package gates and scoped browser trust",
+  "source": "https://github.com/Collaboration95/dc2/actions/runs/38300284726",
+  "files": [
+    {
+      "file": "browser-trust.json",
+      "sha256": "19a9753cdd3ca36ff6bdef0e9692d51dc8e2dd82aa4b690f66a6febd4666113f",
+      "bytes": 374
+    },
+    {
+      "file": "runner-capacity.json",
+      "sha256": "ac0635d00b0897fb3d36a3aaa5f0bfed1f1a087838d89ede064a25f49794516e",
+      "bytes": 95
+    },
+    {
+      "file": "result.json",
+      "sha256": "27aa7a7bf2c769aa2620401aa882e9c07aa8dbc58898293a7b315c60c46628e0",
+      "bytes": 54366
+    },
+    {
+      "file": "browser-playing.png",
+      "sha256": "a6967e08ceea66b1e328a17c83a99fbe3ecd754558531d8ea0f38ea5596b6445",
+      "bytes": 93406
+    },
+    {
+      "file": "gate.json",
+      "sha256": "c5ef3464b5e6f4167facd594f116cb4531519da42c215be9a643cc48b11fcc38",
+      "bytes": 1278
+    }
+  ]
+}
