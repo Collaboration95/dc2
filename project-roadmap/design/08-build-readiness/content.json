@@ -149,7 +149,7 @@
       "title": "Report, presentation and work order",
       "paragraphs": [
         "Downloads supply the original report section skeleton, per-project/member effort ledger, actual-hours progress template, source mapping and first-build work order. No build or provisioning is performed.",
-        "Maintain proposal milestones: web integrated, CLI started (not complete), and first progress report 14 Oct; deployment/experiments 15–20 Oct; fixes/rehearsal 21–25 Oct; presentation 26 Oct 2026, 14:35–15:15 Singapore; feedback/report through 16 Nov. Exact report cutoff and current Canvas slot remain unverified. Internal readiness targets 11 Oct, rehearsal 25 Oct, report review 13 Nov are planning targets, not course deadlines."
+        "Maintain proposal milestones: web integrated and CLI started (not complete) on 14 Oct; deployment/experiments 15–20 Oct; fixes/rehearsal 21–25 Oct; presentation 26 Oct 2026, 14:35–15:15 Singapore; feedback/report through 16 Nov. Weekly progress reporting follows user override D-06: the first and only progress report due is 16 October 2026; no additional progress report deadlines or recurrence tasks. Original course sources remain unchanged. Exact final report cutoff and current Canvas slot remain unverified. Internal readiness targets 11 Oct, rehearsal 25 Oct, report review 13 Nov are planning targets, not course deadlines."
       ],
       "bullets": [],
       "choice_ids": [
@@ -170,8 +170,8 @@
     },
     {
       "path": "../../records/project-decisions.txt",
-      "locator": "F-01; D-01",
-      "note": "Accepted scope; working local baseline 8854537 supersedes historical 890c5ec."
+      "locator": "F-01; D-01; D-06",
+      "note": "Accepted scope; working local baseline 8854537 supersedes historical 890c5ec. D-06 is the user override for weekly reporting and the single progress report due 16 October 2026, not an original course requirement."
     },
     {
       "path": "../../roadmap-data.json",

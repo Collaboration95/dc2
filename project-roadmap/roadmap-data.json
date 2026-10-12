@@ -404,19 +404,19 @@
       "depends": "Step 10 evidence available",
       "intro": "Tell the project story from the business problem to the measured outcome. Reuse report diagrams and evidence.",
       "actions": [
-        "Build the six presentation sections using the original guidelines and their suggested timings.",
+        "Build all six required presentation content segments using the original guidelines. Their approximate suggested timings do not mandate a talk length.",
         "Show the inherited-versus-new contribution table, actual milestones, unresolved issues and member effort.",
         "Prepare one integrated demo through the web app and CLI. Include architecture and quality evidence.",
         "Prepare recorded evidence and logs for slow or unreliable live experiments. Label recorded evidence clearly.",
-        "Rehearse the full 40-minute slot, including questions. Check the current Canvas slot and Zoom details.",
+        "Rehearse to finish within the allocated 40-minute slot, including questions. The provided guidelines state no explicit minimum talk length; there is no need to fill unused time. Check the current Canvas slot and Zoom details.",
         "Prepare a feedback log and assign a member to record lecturer comments."
       ],
       "outputs": [
         "Final slides, an executable demo script, a fallback evidence pack and a rehearsal record.",
         "Suggested readiness target: 25 October. Scheduled presentation: 26 October, 14:35\u201315:15 Singapore time."
       ],
-      "decisions": "Use 31.5 minutes of speaking/demo and 8.5 minutes of questions across the six segments. Show average Project 2 effort and combined Project 1+2 effort, as the consolidated briefing requests.",
-      "done": "The team can finish within 40 minutes, explain each major decision, and trace each result to evidence.",
+      "decisions": "Optional internal working plan: 25 minutes speaking/demo (Overview 2, Project Conduct 2, Logical Architecture 5, Physical Architecture 5, DevOps / Lifecycle 4, Demonstration 7), up to 10 minutes Q&A and 5 minutes buffer. This is a planning recommendation, not a lecturer requirement or new approval (D-07). Show average Project 2 effort and combined Project 1+2 effort, as the consolidated briefing requests.",
+      "done": "The team can cover all six required content segments and finish within the allocated 40 minutes including questions, explain each major decision, and trace each result to evidence. No explicit minimum talk length is stated in the provided guidelines.",
       "sources": [
         [
           "presentation",
@@ -442,7 +442,7 @@
         "Check source citations, figure labels, links, appendices, AI disclosure and the inherited/new contribution statement.",
         "Package the working-system instructions, code URL/archive, pipeline scripts, test scripts and evidence index.",
         "Check the report format and exact submission time in Canvas. Submit the report by 16 November.",
-        "Complete peer assessment with unique ranks by the separately notified deadline. Continue fortnightly progress reports while required."
+        "Complete peer assessment with unique ranks by the separately notified deadline. Weekly progress reporting follows user override D-06: the first and only report due is 16 October 2026."
       ],
       "outputs": [
         "A final report that follows the original template, plus the code and reproducible delivery/test package.",
@@ -492,9 +492,16 @@
     [
       "14 Oct",
       "Proposal milestone",
-      "Integrated boundary and first progress report",
-      "By the end of 8\u201314 October: separate Processing data, web workflow working, CLI started. Confirm the exact progress submission date in Canvas.",
+      "Integrated boundary and CLI started",
+      "By the end of 8\u201314 October: separate Processing data, web workflow working, CLI started (not complete).",
       "proposal"
+    ],
+    [
+      "16 Oct",
+      "User override D-06",
+      "Weekly progress report \u2014 first and only due",
+      "Due 16 October 2026 per user decision D-06 in records/project-decisions.txt. No additional progress report deadlines or recurrence tasks.",
+      "user"
     ],
     [
       "20 Oct",
@@ -514,7 +521,7 @@
       "26 Oct",
       "Scheduled course slot",
       "Team 17 presentation \u00b7 14:35\u201315:15",
-      "40 minutes including questions. Singapore time (UTC+8). Original schedule page 2. Check Canvas for changes and Zoom details.",
+      "Allocated 40 minutes including questions; this is not a mandatory talk length. The provided guidelines state no explicit minimum. Singapore time (UTC+8). Original schedule page 2. Check Canvas for changes and Zoom details.",
       "course"
     ],
     [
@@ -540,6 +547,12 @@
     ]
   ],
   "sources": {
+    "reporting-override": [
+      "D-06",
+      "User progress reporting override",
+      "project-roadmap/records/project-decisions.txt",
+      "D-06: weekly reporting; first and only progress report due 16 October 2026. User instruction supersedes the original reporting cadence for this working plan."
+    ],
     "proposal": [
       "P",
       "Team 17 proposal",
@@ -562,7 +575,7 @@
       "G",
       "Presentation guidelines and schedule",
       "project-documentation/original-reference/04 Project Presentation Guidelines & Schedule.pdf",
-      "V2.8. Page 1: the six presentation segments. Page 2: Team 17, 26 October 2026, 14:35\u201315:15 Singapore time."
+      "V2.8. Page 1: six required content segments with approximate suggested time allocation (40 minutes), including Q&A; no explicit minimum talk length stated. Page 2: Team 17, 26 October 2026, 14:35\u201315:15 Singapore time."
     ],
     "report": [
       "R",

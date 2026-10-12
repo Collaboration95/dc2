@@ -78,3 +78,31 @@ They show the proposal option already recorded, not a reopened user choice.
 One shared editable step 06/07 board was supplied by the user:
 https://www.tldraw.com/f/VlAHwy0_tdoQir9rWeSqB
 SVG previews are saved artifacts; board edits do not update the site.
+
+
+D-06 Progress reporting override, 9 October 2026
+The user instructed: change fortnightly progress reports to weekly reports.
+The first report is due 16 October 2026, and it is the ONLY progress report
+due. No additional weekly deadlines or recurrence tasks are authorised.
+This explicit user override governs the working roadmap and preparation
+artifacts; it is not a claim that the original course sources specify weekly
+reporting. Original project-documentation files remain unchanged.
+Keep the 14 October milestone: web integrated and CLI started (not complete).
+Remove only its progress-report association. Use a weekly reporting template
+with next-week plans; record actual work, hours, issues and linked evidence.
+
+D-07 Presentation timing clarification, 9 October 2026
+Source-based clarification following the user's interpretation of the slot.
+Original source: project-documentation/original-reference/04 Project Presentation Guidelines & Schedule.pdf.
+Page 1 says "General Presentation Outline with approximate suggested time
+allocation (40 minutes)" and includes Q&A. The provided guidelines state no
+explicit minimum talk length. Page 2 schedules Team 17 for 26 October 2026,
+14:35–15:15 Singapore time. The allocated 40 minutes include questions;
+they do not require a 40-minute talk or filling unused time.
+Preserve the six required content segments: Overview, Project Conduct,
+Logical Architecture, Physical Architecture, DevOps / Lifecycle, Demonstration.
+Optional internal planning recommendation: 25 minutes speaking/demo
+(2, 2, 5, 5, 4, 7 respectively), up to 10 minutes Q&A and 5 minutes buffer.
+This shorter working plan is not a lecturer requirement, new lecturer approval
+or observed rehearsal result. Original source files and scheduled slot remain
+unchanged. D-06 and the first and only progress report due 16 October remain.

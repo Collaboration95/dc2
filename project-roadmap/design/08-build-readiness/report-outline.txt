@@ -39,7 +39,7 @@ Owner: Long | Source/design: proposal §4.1–4.2; 31 person-days estimate | Evi
 Implementation/results: not collected.
 
 2.2 Project Status
-Owner: All | Source/design: progress-template.txt | Evidence: evidence-index.csv
+Owner: All | Source/design: progress-template.txt; ../../records/project-decisions.txt D-06 (weekly reporting; first and only progress report due 16 October 2026) | Evidence: evidence-index.csv
 Implementation/results: not collected.
 
 2.3 Project Metrics

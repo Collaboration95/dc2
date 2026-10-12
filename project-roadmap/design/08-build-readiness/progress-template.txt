@@ -1,8 +1,10 @@
-08 progress report — reporting period: [pending]
+08 weekly progress report — first and only due: 16 October 2026
+Reporting period: [record actual weekly dates]
 Completed work: [link revisions/evidence; not collected]
 Actual hours by member, Project 1 and Project 2 separately: [not collected]
 Actual milestones/date versus planned milestone: [not collected]
 Problems/impact/owner: [pending]
-Next two weeks: task, owner, planned date, dependency [pending]
+Next week: task, owner, planned date, dependency [pending]
 Targets/deviations/feedback: [pending]
-Source: ../../../project-documentation/briefing-requirements.txt
+Reporting cadence and sole due date: ../../records/project-decisions.txt, D-06 (user override; no further deadlines or recurrence tasks).
+Report content adapted from: ../../../project-documentation/briefing-requirements.txt (original unchanged; weekly cadence is not attributed to this source).
