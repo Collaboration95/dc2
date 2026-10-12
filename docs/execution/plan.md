@@ -123,8 +123,9 @@ unrelated path filter cannot leave a required check permanently pending.
 
 Local TLS uses a project-generated CA/certificate and explicit trust settings for
 CLI/tests. Real browser selection: pinned Playwright Firefox in a project-local
-installation/profile, with Firefox enterprise Certificates.Install policy importing
-only the local CA into that browser. The coordinator owns its launcher and pinned
+installation with its CA imported through NSS certutil into a project-local
+temporary profile. The policy-based plan was replaced after an actual trust failure;
+positive and negative verification now pass without changing system trust. The coordinator owns its launcher and pinned
 tooling. `make browser-trust-smoke` must prove trusted HTTPS navigation and an
 untrusted-certificate rejection before foundation acceptance; no certificate-error
 bypass or insecure browser flags. SANs cover public API and media URL hostnames. Do not modify the system trust store or turn off

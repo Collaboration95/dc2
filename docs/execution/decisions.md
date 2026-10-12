@@ -31,3 +31,12 @@
 - R5: coverage80% means combined statement/branch coverage, separately gated for
   live packages with unexecuted production files included. Branch rates are also
   reported. Legacy app and frontend gates stay intact.
+
+- 2026-10-13 F3 runtime correction: Playwright Firefox155.0 did not apply the
+  Certificates.Install policy during automation, including an explicit alternate
+  policy path. Replace it with existing NSS certutil importing the local CA into
+  each temporary project profile. The trusted HTTPS positive and unrelated-CA
+  negative both pass with ignore_https_errors=false. No system trust modification.
+- F3 capacity evidence: pinned Lima2.2.1 VZ VM boots8vCPU/8GiB under .local/lima;
+  DockerDesktop remains unchanged. A container capped at2CPUs reports cgroup
+  cpu.max=200000 100000. This proves resource/quota feasibility, not throughput.

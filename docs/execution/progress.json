@@ -1,5 +1,5 @@
 {
-  "stage": "planning-passed-awaiting-merge",
+  "stage": "foundation-in-progress",
   "baseline": "b32d489566144202fbf6fc3887ce25d5321444fd",
   "project": {
     "id": "PVT_kwHOBBatWM4Bmtkx",
@@ -10,32 +10,38 @@
   "issues": {
     "G1": {
       "number": 7,
-      "state": "Review",
+      "state": "Done",
       "pr": 25,
       "evidence": [
-        "docs/execution/plan.md, backlog.json and Project14 native hierarchy verified."
+        "docs/execution/plan.md, backlog.json and Project14 native hierarchy verified.",
+        "PR25 merged after independentSolxhighPASS and allCIchecks on8b8aeab."
       ]
     },
     "G2": {
       "number": 8,
-      "state": "Review",
+      "state": "Done",
       "pr": 25,
       "evidence": [
         "Plan and24GitHubitems created; independentSolxhighreview running.",
-        "Independent Sol xhigh PASS in planning-rereview.md; all five fixes applied."
+        "Independent Sol xhigh PASS in planning-rereview.md; all five fixes applied.",
+        "PR25 merged after independentSolxhighPASS and allCIchecks on8b8aeab."
       ]
     },
     "F1": {
       "number": 9,
-      "state": "Backlog",
+      "state": "In progress",
       "pr": null,
-      "evidence": []
+      "evidence": [
+        "Foundation worktree and coordinator infrastructure lane started after planning merge."
+      ]
     },
     "F2": {
       "number": 10,
-      "state": "Backlog",
+      "state": "In progress",
       "pr": null,
-      "evidence": []
+      "evidence": [
+        "Foundation worktree and coordinator infrastructure lane started after planning merge."
+      ]
     },
     "F3": {
       "number": 11,
@@ -131,12 +137,33 @@
         "G1",
         "G2"
       ],
-      "state": "review",
-      "review": "PASS: docs/execution/reviews/planning-rereview.md"
+      "state": "merged",
+      "review": "PASS: docs/execution/reviews/planning-rereview.md",
+      "merge_commit": "6ea8b9b"
     }
   ],
   "limitations": [
-    "Docker2CPU/2GiB cannot prove fair3worker scaling; investigate project-local runtime."
+    "Full scaling not measured yet; project-local8CPU8GiBVM and2CPUquota verified."
   ],
-  "aws_actions_performed": false
+  "aws_actions_performed": false,
+  "active_worktrees": [
+    {
+      "branch": "wave/01-foundation",
+      "path": ".",
+      "owner": "coordinator",
+      "scope": "F3 TLS/browser/capacity andintegration"
+    },
+    {
+      "branch": "work/foundation-tools",
+      "path": ".worktrees/foundation-tools",
+      "owner": "Jason gpt-6.1-sol high",
+      "scope": "F1/F2"
+    },
+    {
+      "branch": "work/foundation-runtime",
+      "path": ".worktrees/foundation-runtime",
+      "owner": "Curie gpt-6.1-sol high",
+      "scope": "F3 runtime/storage"
+    }
+  ]
 }
