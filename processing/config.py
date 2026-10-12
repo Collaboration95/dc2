@@ -7,9 +7,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="PROCESSING_", extra="ignore")
 
-    postgres_dsn: str
+    postgres_dsn: str = Field(repr=False)
     service_token: SecretStr = SecretStr("")
-    migration_dsn: str | None = None
+    migration_dsn: str | None = Field(default=None, repr=False)
 
     redis_url: SecretStr = SecretStr("")
     queue_name: str = "processing"

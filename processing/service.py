@@ -67,7 +67,7 @@ async def submit_job(
             raise ProcessingError(410, "Asset processing is deleted")
 
         if guard.job_id is not None:
-            job = await session.get(Job, guard.job_id)
+            job = await session.scalar(select(Job).where(Job.id == guard.job_id).with_for_update())
             if job is None or job.owner_id != owner_id:
                 raise ProcessingError(503, "Processing submission is inconsistent")
             if job.deleted_at is not None:

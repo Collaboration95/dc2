@@ -37,7 +37,10 @@ def enqueue_attempt(job_id: UUID, attempt_id: UUID, *, queue=None):
         if target.connection.lpos(target.key, identifier) is not None:
             return False
         started = StartedJobRegistry(target.name, connection=target.connection)
-        if identifier in started.get_job_ids(cleanup=False):
+        # Expired started entries are stale metadata, not runnable membership.
+        redis_now = target.connection.time()[0]
+        live_entries = target.connection.zrangebyscore(started.key, redis_now, "+inf")
+        if identifier in {started.parse_job_id(entry) for entry in live_entries}:
             return False
         # Recreate reserved payload even when a surviving hash reports queued/failed.
         # Never trust that hash as proof of list/started-registry membership.

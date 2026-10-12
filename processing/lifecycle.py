@@ -4,7 +4,7 @@ No lock is held while fetching media or running FFmpeg. A unique lease token
 prevents even a duplicate delivery of the same Attempt from writing as its owner.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
@@ -133,7 +133,7 @@ class Claim:
     owner_id: UUID
     source: dict
     operations: list
-    source_url: str
+    source_url: str = field(repr=False)
     source_url_expires_at: datetime
     deadline_at: datetime
 

@@ -22,6 +22,8 @@ from processing.worker.storage import OutputStore
 from processing.worker.supervisor import AttemptDeadline, LeaseLost, Supervisor
 
 logger = logging.getLogger(__name__)
+# HTTPX INFO messages contain request URLs, including signed capabilities.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 async def renew_source(client, work, settings):

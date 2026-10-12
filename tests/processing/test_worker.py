@@ -194,3 +194,121 @@ def test_entrypoint_specific_config_requirements():
     configured.require_recovery()
     with pytest.raises(ValueError, match="heartbeat interval"):
         cfg(lease_seconds=10, heartbeat_seconds=10)
+
+
+@pytest.mark.parametrize("error", [None, LeaseLost(), AttemptDeadline(), OSError("secret")])
+async def test_execute_success_and_fenced_failures(monkeypatch, tmp_path, error):
+    attempt = work()
+    monkeypatch.setattr(tasks.lifecycle, "claim", AsyncMock(return_value=attempt))
+    complete = AsyncMock(return_value=True)
+    monkeypatch.setattr(tasks.lifecycle, "finish", complete)
+    monkeypatch.setattr("processing.worker.supervisor.heartbeat", AsyncMock(return_value=True))
+    monkeypatch.setattr(
+        tasks, "pipeline", AsyncMock(side_effect=error, return_value=[{"output": "ack"}])
+    )
+    if error is None:
+        assert await tasks.execute(
+            None, attempt.job_id, attempt.attempt_id, cfg(), client=object(), store=object()
+        )
+        assert complete.call_args.kwargs["outputs"] == [{"output": "ack"}]
+    elif isinstance(error, LeaseLost):
+        assert not await tasks.execute(
+            None, attempt.job_id, attempt.attempt_id, cfg(), client=object(), store=object()
+        )
+        complete.assert_not_awaited()
+    else:
+        assert await tasks.execute(
+            None, attempt.job_id, attempt.attempt_id, cfg(), client=object(), store=object()
+        )
+        assert "secret" not in complete.call_args.kwargs["error"]
+    monkeypatch.setattr(tasks.lifecycle, "claim", AsyncMock(return_value=None))
+    assert not await tasks.execute(None, uuid4(), uuid4(), cfg())
+
+
+async def test_execute_owns_transport(monkeypatch):
+    attempt = work()
+    monkeypatch.setattr(tasks.lifecycle, "claim", AsyncMock(return_value=attempt))
+    monkeypatch.setattr(tasks.lifecycle, "finish", AsyncMock(return_value=True))
+    monkeypatch.setattr("processing.worker.supervisor.heartbeat", AsyncMock(return_value=True))
+    monkeypatch.setattr(tasks, "pipeline", AsyncMock(return_value=[]))
+    monkeypatch.setattr(tasks, "OutputStore", Mock())
+    assert await tasks.execute(None, attempt.job_id, attempt.attempt_id, cfg())
+
+
+def test_rq_task_entry_closes_owned_pool(monkeypatch):
+    engine = SimpleNamespace(dispose=AsyncMock())
+    monkeypatch.setattr(tasks, "get_settings", cfg)
+    monkeypatch.setattr(tasks, "create_async_engine", Mock(return_value=engine))
+    monkeypatch.setattr(tasks, "async_sessionmaker", Mock(return_value=object()))
+    execute = AsyncMock(return_value=True)
+    monkeypatch.setattr(tasks, "execute", execute)
+    assert tasks.process_attempt(str(uuid4()), str(uuid4()))
+    execute.assert_awaited_once()
+    engine.dispose.assert_awaited_once()
+
+
+def test_worker_main_uses_forking_rq_worker(monkeypatch):
+    from processing.worker import __main__ as entry
+
+    cfg = Settings(
+        postgres_dsn="postgresql://unused@unused/db",
+        redis_url="redis://unused",
+        source_service_token="reverse",
+        minio_access_key="writer",
+        minio_secret_key="test",
+    )
+    monkeypatch.setattr(entry, "get_settings", lambda: cfg)
+    target = SimpleNamespace(connection=object())
+    monkeypatch.setattr(entry, "get_queue", lambda: target)
+    worker = Mock()
+    monkeypatch.setattr("rq.Worker", Mock(return_value=worker))
+    monkeypatch.setattr("sys.argv", ["processing.worker", "--burst"])
+    entry.main()
+    worker.work.assert_called_once_with(burst=True)
+
+
+async def test_total_deadline_is_not_reset_between_stages(monkeypatch):
+    monkeypatch.setattr("processing.worker.supervisor.heartbeat", AsyncMock(return_value=True))
+    async with Supervisor(None, work(), cfg()) as sup:
+        sup.deadline = time.monotonic() + 0.03
+        await sup.guard(asyncio.sleep(0.02))
+        with pytest.raises(AttemptDeadline):
+            await sup.guard(asyncio.sleep(0.02))
+
+
+async def test_cancel_stops_descendant_when_process_leader_already_exited(monkeypatch, tmp_path):
+    import os
+
+    monkeypatch.setattr("processing.worker.supervisor.heartbeat", AsyncMock(return_value=True))
+    pid_file = tmp_path / "child-pid"
+    child_script = (
+        f"import os,time,pathlib; pathlib.Path({str(pid_file)!r}).write_text(str(os.getpid())); "
+        "time.sleep(60)"
+    )
+    script = f"import subprocess,sys; subprocess.Popen([sys.executable, '-c', {child_script!r}])"
+    async with Supervisor(None, work(), cfg()) as sup:
+        task = asyncio.create_task(sup.run([sys.executable, "-c", script]))
+        async with asyncio.timeout(2):
+            while not pid_file.exists():  # noqa: ASYNC110 - bounded process readiness
+                await asyncio.sleep(0.01)
+        sup.lost.set()
+        with pytest.raises(LeaseLost):
+            await asyncio.wait_for(task, 2)
+        child_pid = int(pid_file.read_text())
+        # Reaping orphaned children can lag; distinguish a zombie from a live process.
+        async with asyncio.timeout(2):
+            while True:  # noqa: ASYNC110 - bounded process death polling
+                process = await asyncio.create_subprocess_exec(
+                    "ps", "-o", "stat=", "-p", str(child_pid), stdout=asyncio.subprocess.PIPE
+                )
+                output, _ = await process.communicate()
+                if not output.strip() or output.strip().startswith(b"Z"):
+                    break
+                await asyncio.sleep(0.01)
+        with pytest.raises(ProcessLookupError):
+            # On macOS the adopted process is already reaped; Linux may retain
+            # zombies briefly, so this final assertion applies only there.
+            if sys.platform == "darwin":
+                os.kill(child_pid, 0)
+            else:
+                raise ProcessLookupError

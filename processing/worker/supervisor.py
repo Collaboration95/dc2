@@ -87,13 +87,15 @@ class Supervisor:
             stderr=asyncio.subprocess.PIPE,
             start_new_session=True,
         )
+        completed = False
         try:
             stdout, _stderr = await self.guard(process.communicate())
             if process.returncode != 0:
                 raise ValueError("the video could not be processed; check the source or edit")
+            completed = True
             return stdout.decode()
         finally:
-            if process.returncode is None:
+            if not completed or process.returncode is None:
                 # SIGKILL bounds cancellation even when a child ignores SIGTERM.
                 with suppress(ProcessLookupError):
                     os.killpg(process.pid, signal.SIGKILL)
