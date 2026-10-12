@@ -117,8 +117,10 @@ class Client:
         result["elapsed_ms"] = (time.monotonic() - start) * 1000
         return data, result
 
-    async def checked(self, method, path, *, expected=200, **kwargs):
+    async def checked(self, method, path, *, expected=200, artifacts=None, record=None, **kwargs):
         data, sample = await self.request(method, path, expected=expected, **kwargs)
+        if artifacts is not None:
+            artifacts.append("operations.jsonl", {"utc": utc(), **(record or {}), **sample})
         if sample["error"]:
             raise EvidenceError(f"HTTP {method} operation failed: {sample['error']}")
         return data

@@ -2,6 +2,8 @@
 
 import asyncio
 import json
+import threading
+from types import SimpleNamespace
 from uuid import uuid4
 
 import httpx
@@ -390,7 +392,11 @@ async def test_attempt_change_between_ready_and_terminal_fails(job, tmp_path):
 async def test_queue_ready_requires_exact_runnable_membership(tmp_path):
     class Queue:
         def queue_snapshot(self):
-            return {"ready_attempt_ids": ["a", "b"], "started_attempt_ids": []}
+            return {
+                "ready_attempt_ids": ["a", "b"],
+                "started_attempt_ids": [],
+                "intermediate_attempt_ids": [],
+            }
 
     artifact = Artifacts(tmp_path / "run")
     await runner.wait_queue(
@@ -429,104 +435,271 @@ async def test_bounded_mutation_finishes_before_cancellation_cleanup():
     assert events == ["mutation-finished", "cleanup"]
 
 
-@pytest.mark.asyncio
-async def test_full_selection_prequeues_and_warms_every_replica(monkeypatch, tmp_path, job):
-    events = []
-    active = []
-    phase_counts = []
-    prepared = []
-    records = {}
-    paused = set()
+@pytest.fixture
+def scaling_model(monkeypatch, tmp_path, job):
+    """Pending Redis dequeues survive pause, but disconnect on a container stop."""
+    model = SimpleNamespace(
+        events=[],
+        active=set(),
+        paused=set(),
+        pending=set(),
+        known=set(),
+        phase_counts=[],
+        prepared=[],
+        records={},
+        assignments={},
+        stop_entered=threading.Event(),
+        stop_release=threading.Event(),
+        cancel_stop=False,
+        bad_assignment=False,
+        fail_upload=False,
+        fail_stop=None,
+        uploads=0,
+    )
+    docker_type = runner.Docker
 
-    class Docker:
+    class Docker(docker_type):
         def __init__(self, state, artifacts):
-            pass
+            self.state = {"compose_project": "own"}
+            self.owned_worker_ids = set()
+            self.artifacts = artifacts
+            model.docker = self
 
         def preflight(self):
-            assert not active
+            assert not model.active
             return {}, []
 
         def compose(self, *args):
-            assert args == ("stop", "worker")
-            active.clear()
+            assert args == ("ps", "--all", "-q", "worker")
+            return " ".join(model.known)
 
         def start_workers(self, count):
-            active[:] = [f"worker-{i}" for i in range(count)]
-            events.append(("launch", count, len(prepared)))
-            return [{"id": key} for key in active]
+            model.known = {f"worker-{i}" for i in range(count)}
+            self.owned_worker_ids = set(model.known)
+            model.active = set(model.known)
+            model.pending = set(model.known)  # Already-issued blocking dequeue per replica.
+            model.events.append(("launch", count, len(model.prepared)))
+            return [{"id": key} for key in sorted(model.active)]
 
-        def command(self, operation, worker):
-            if operation == "pause":
-                paused.add(worker)
+        def command(self, operation, *args):
+            if operation == "stop":
+                assert args[:2] == ("--time", "10")
+                ids = args[2:]
+                if model.cancel_stop and len(model.active) > 1:
+                    model.stop_entered.set()
+                    assert model.stop_release.wait(1)
+                    model.cancel_stop = False
+                for worker in ids:
+                    model.events.append(("stop", worker))
+                    if worker == model.fail_stop:
+                        raise EvidenceError("offline stop failure")
+                    model.active.discard(worker)
+                    model.pending.discard(worker)
+            elif operation == "unpause":
+                model.paused.discard(args[0])
+            elif operation == "start":
+                model.active.add(args[0])
+                model.pending.add(args[0])
             else:
-                paused.remove(worker)
+                raise AssertionError("Pause/unpause cannot isolate outstanding Redis dequeues")
+
+        def worker_states(self, ids):
+            return [
+                {
+                    "id": key,
+                    "hostname": key,
+                    "running": key in model.active,
+                    "paused": key in model.paused,
+                    "service": "worker",
+                    "project": "own",
+                }
+                for key in ids
+            ]
+
+        def all_running(self):
+            return self.worker_states(sorted(model.active))
+
+        def warmup_assignment(self, attempt):
+            return {
+                "attempt_id": attempt,
+                "rq_worker_name": "rq-offline",
+                "hostname": "wrong-worker" if model.bad_assignment else model.assignments[attempt],
+            }
 
         def encoding_metadata(self, worker):
             return {"preset": "veryfast", "ffmpeg_version": "fake offline"}
 
         def queue_snapshot(self):
-            return {"ready_attempt_ids": list(prepared), "started_attempt_ids": []}
+            return {
+                "ready_attempt_ids": list(model.prepared),
+                "started_attempt_ids": [],
+                "intermediate_attempt_ids": [],
+            }
 
         def stats(self, containers):
             return []
 
-    class Session:
-        async def close(self):
-            pass
+    def respond(request):
+        model.uploads += 1
+        if model.fail_upload and not model.active and len(model.prepared) == 1:
+            raise httpx.ReadTimeout("private URL and body must never be retained")
+        asset = str(uuid4())
+        original = {
+            **job,
+            "asset_id": asset,
+            "job_id": str(uuid4()),
+            "current_attempt": {**job["current_attempt"], "attempt_id": str(uuid4())},
+        }
+        model.records[asset] = selected(original)
+        if model.active:
+            # Redis delivers to issued requests, even if the requesting worker were frozen.
+            assert len(model.pending) == 1
+            consumer = next(iter(model.pending))
+            model.assignments[model.records[asset]["attempt_id"]] = consumer
+            model.events.append(("warmup", consumer))
+        else:
+            model.prepared.append(model.records[asset]["attempt_id"])
+        return httpx.Response(
+            202, json={"job_id": asset, "source_url": "https://secret/?token=bad"}
+        )
+
+    clients = []
+
+    def session(*args, **kwargs):
+        client = Client("http://localhost", transport=httpx.MockTransport(respond))
+        clients.append(client)
+        return client
 
     async def owner(state, artifact, index):
-        return {"id": job["owner_id"], "client": Session()}
-
-    async def upload(person, path):
-        asset = str(uuid4())
-        original = dict(job)
-        original["asset_id"] = asset
-        original["job_id"] = str(uuid4())
-        original["current_attempt"] = {**job["current_attempt"], "attempt_id": str(uuid4())}
-        records[asset] = selected(original)
-        if active:
-            assert len(set(active) - paused) == 1  # Exactly one replica can take this warmup.
-            events.append(("warmup", tuple(set(active) - paused)))
-        else:
-            prepared.append(records[asset]["attempt_id"])
-        return asset
+        return {"id": job["owner_id"], "client": session()}
 
     async def wait_jobs(client, person, assets, **kwargs):
         if kwargs.get("queued"):
-            assert not active and len(assets) == 30
-            phase_counts.append((kwargs["phase"], len(assets)))
+            assert not model.active and len(assets) == 30
+            model.phase_counts.append((kwargs["phase"], len(assets)))
             for asset in assets:
                 kwargs["identities"][asset] = (
-                    records[asset]["job_id"],
-                    records[asset]["attempt_id"],
+                    model.records[asset]["job_id"],
+                    model.records[asset]["attempt_id"],
                 )
-        elif active and prepared:
-            assert len(prepared) == 30
-            prepared.clear()
-        return [records[asset] for asset in assets]
+        elif model.active and model.prepared:
+            assert len(model.prepared) == 30
+            model.prepared.clear()
+        return [model.records[asset] for asset in assets]
 
     path = tmp_path / "source.mp4"
     path.write_bytes(b"offline")
     monkeypatch.setattr(runner, "Docker", Docker)
-    monkeypatch.setattr(runner, "Client", lambda *a, **kw: Session())
+    monkeypatch.setattr(runner, "Client", session)
     monkeypatch.setattr(runner, "owner", owner)
-    monkeypatch.setattr(runner, "upload", upload)
     monkeypatch.setattr(runner, "wait_jobs", wait_jobs)
     monkeypatch.setattr(runner, "fixture", lambda *args: (path, {"sha256": "a" * 64}))
-    args = runner.parser().parse_args(["scaling", "--run-id", "offline"])
-    artifact = Artifacts(tmp_path / "run")
-    result = await runner.scaling(
-        args, {"PROCESSING_SERVICE_TOKEN": "private"}, {"processing_port": 1}, artifact, {}
-    )
-    assert result["acceptance_eligible"]  # Simulation checks scheduling, not numerical acceptance.
-    assert len(phase_counts) == 9
-    assert len([e for e in events if e[0] == "warmup"]) == 18
-    launches = [e for e in events if e[0] == "launch"]
+    model.args = runner.parser().parse_args(["scaling", "--run-id", "offline"])
+    model.artifact = Artifacts(tmp_path / "run")
+    model.clients = clients
+
+    async def run():
+        return await runner.scaling(
+            model.args,
+            {"PROCESSING_SERVICE_TOKEN": "private"},
+            {"processing_port": 1},
+            model.artifact,
+            {},
+        )
+
+    model.run = run
+    return model
+
+
+@pytest.mark.asyncio
+async def test_full_selection_prequeues_and_warms_every_replica(scaling_model):
+    model = scaling_model
+    result = await model.run()
+    assert result["acceptance_eligible"]  # Scheduling simulation is not experiment evidence.
+    assert len(model.phase_counts) == 9
+    assert len([e for e in model.events if e[0] == "warmup"]) == 18
+    launches = [e for e in model.events if e[0] == "launch"]
     assert [(launches[i + 1][1], launches[i + 1][2]) for i in range(0, len(launches), 2)] == [
         (workers, 30) for _, workers in runner.run_order(3)
     ]
-    assert not active and not paused
-    assert "private" not in (artifact.directory / "runs.json").read_text()
+    assert not model.active and not model.pending
+    assert "private" not in (model.artifact.directory / "runs.json").read_text()
+    warmups = jsonl(model.artifact, "warmups.jsonl")
+    assert len(warmups) == 18
+    assert all(w["worker_id"] == w["assignment"]["hostname"] for w in warmups)
+    submissions = jsonl(model.artifact, "submissions.jsonl")
+    assert len(submissions) == 270 + 18
+    assert len({s["asset_id"] for s in submissions}) == 288
+    intervals = jsonl(model.artifact, "intervals.jsonl")
+    for interval in intervals:
+        first = next(s for s in submissions if s["phase"] == interval["phase"])
+        assert interval["first_acceptance_monotonic"] == first["acknowledged_monotonic"]
+        assert interval["first_acceptance_utc"] == first["utc"]
+
+
+def jsonl(artifacts, name):
+    return [json.loads(line) for line in (artifacts.directory / name).read_text().splitlines()]
+
+
+@pytest.mark.asyncio
+async def test_wrong_warmup_assignment_is_retained_and_rejected(scaling_model):
+    scaling_model.bad_assignment = True
+    with pytest.raises(EvidenceError, match="selected replica"):
+        await scaling_model.run()
+    assert not scaling_model.active and not scaling_model.pending
+    assert (
+        jsonl(scaling_model.artifact, "warmups.jsonl")[0]["assignment"]["hostname"]
+        == "wrong-worker"
+    )
+
+
+@pytest.mark.asyncio
+async def test_cancellation_during_warmup_stop_reconciles_every_worker(scaling_model):
+    model = scaling_model
+    model.cancel_stop = True
+    task = asyncio.create_task(model.run())
+    # The first two-worker warmup blocks inside the actual scaling mutation path.
+    assert await asyncio.to_thread(model.stop_entered.wait, 1)
+    task.cancel()
+    model.stop_release.set()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert not model.active and not model.pending
+    assert all(c.http.is_closed for c in model.clients)
+
+
+@pytest.mark.asyncio
+async def test_cleanup_attempts_remaining_workers_after_one_failure(scaling_model):
+    model = scaling_model
+    docker = runner.Docker({}, model.artifact)
+    docker.start_workers(3)
+    model.fail_stop = "worker-0"
+    model.paused = {"worker-0", "worker-1"}
+    with pytest.raises(EvidenceError, match="cleanup failed"):
+        await runner.blocking(docker.stop_workers)
+    assert model.active == {"worker-0"}
+    assert not model.paused
+    cleanups = jsonl(model.artifact, "cleanup.jsonl")
+    assert [row["worker_id"] for row in cleanups if row["error"]] == ["worker-0"]
+    assert {e[1] for e in model.events if e[0] == "stop"} == model.known
+
+
+@pytest.mark.asyncio
+async def test_partial_submission_failure_retains_acknowledgements(scaling_model):
+    model = scaling_model
+    model.fail_upload = True
+    with pytest.raises(EvidenceError, match="Upload failed: timeout"):
+        await model.run()
+    submissions = jsonl(model.artifact, "submissions.jsonl")
+    assert [s["phase"] for s in submissions] == ["r1-w1-warmup", "r1-w1", "r1-w1"]
+    acknowledged, failed = submissions[-2:]
+    assert acknowledged["asset_id"] in model.records
+    assert acknowledged["sequence"] == 1 and acknowledged["status_code"] == 202
+    assert acknowledged["utc"] and acknowledged["acknowledged_monotonic"] > 0
+    assert failed["asset_id"] is None and failed["sequence"] == 2
+    assert failed["error"] == "timeout" and 0 <= failed["elapsed_ms"] < 1000
+    assert not model.active and not model.pending
+    assert "secret" not in (model.artifact.directory / "submissions.jsonl").read_text()
 
 
 def test_resource_stats_preserve_percent_and_sampled_peak():
@@ -603,3 +776,326 @@ def test_invalid_error_counts_fail(errors):
     runs[0]["metrics"]["errors"] = errors
     with pytest.raises(EvidenceError, match="failed-job"):
         runner.scaling_targets(runs)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("expected", [[], ["measured-attempt"]])
+async def test_real_rq_intermediate_entries_fail_clean_and_prelaunch_checks(
+    monkeypatch, tmp_path, expected
+):
+    import contextlib
+    import io
+
+    from fakeredis import FakeRedis
+    from redis import Redis
+    from rq import Queue
+    from rq.intermediate_queue import IntermediateQueue
+
+    connection = FakeRedis()
+    queue = Queue("offline", connection=connection)
+    queue.enqueue("math.floor", 1, job_id="old-attempt")
+    Queue.lmove(connection, queue.key, timeout=1)
+    if expected:
+        queue.enqueue("math.floor", 2, job_id=expected[0])
+    monkeypatch.setenv("PROCESSING_REDIS_URL", "redis://unused")
+    monkeypatch.setenv("PROCESSING_QUEUE_NAME", queue.name)
+    monkeypatch.setattr(Redis, "from_url", lambda *a, **kw: connection)
+    docker = runner.Docker({"docker_host": None, "docker_config": "unused"})
+
+    def compose(*args):
+        # Execute the runner's actual read-only diagnostic against locked RQ/FakeRedis.
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exec(args[-1], {})
+        return output.getvalue()
+
+    monkeypatch.setattr(docker, "compose", compose)
+    artifact = Artifacts(tmp_path / "run")
+    with pytest.raises(EvidenceError, match="intermediate work"):
+        await runner.wait_queue(
+            docker,
+            expected,
+            deadline=runner.time.monotonic() + 1,
+            artifacts=artifact,
+            phase="clean" if not expected else "prelaunch",
+        )
+    snapshot = jsonl(artifact, "queue.jsonl")[0]
+    assert snapshot["ready_attempt_ids"] == expected
+    assert snapshot["started_attempt_ids"] == []
+    assert snapshot["intermediate_attempt_ids"] == ["old-attempt"]
+    assert IntermediateQueue(queue.key, connection).get_job_ids() == ["old-attempt"]
+
+
+def test_real_rq_assignment_diagnostic_reads_job_worker_and_hostname(monkeypatch):
+    import contextlib
+    import io
+    import sys
+
+    from fakeredis import FakeRedis
+    from redis import Redis
+    from rq import Queue, Worker
+
+    connection = FakeRedis()
+    queue = Queue("offline", connection=connection)
+    job = queue.enqueue("math.floor", 1, job_id=str(uuid4()))
+    worker = Worker([queue], connection=connection, name="observed-rq-worker")
+    worker.register_birth()
+    pipeline = connection.pipeline()
+    job.prepare_for_execution(worker.name, pipeline)
+    pipeline.execute()
+    monkeypatch.setenv("PROCESSING_REDIS_URL", "redis://unused")
+    monkeypatch.setattr(Redis, "from_url", lambda *a, **kw: connection)
+    docker = runner.Docker({"docker_host": None, "docker_config": "unused"})
+
+    def compose(*args):
+        output = io.StringIO()
+        monkeypatch.setattr(sys, "argv", ["-c", args[-1]])
+        with contextlib.redirect_stdout(output):
+            exec(args[-2], {})
+        return output.getvalue()
+
+    monkeypatch.setattr(docker, "compose", compose)
+    assert docker.warmup_assignment(job.id) == {
+        "attempt_id": job.id,
+        "rq_worker_name": worker.name,
+        "hostname": worker.hostname,
+    }
+
+
+@pytest.mark.asyncio
+async def test_failed_private_observation_retains_actual_http_sample(job, tmp_path):
+    client = Client(
+        "http://localhost",
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(503, json={"password": "hidden-response-body"})
+        ),
+    )
+    artifact = Artifacts(tmp_path / "run")
+    try:
+        with pytest.raises(EvidenceError, match="unexpected_status"):
+            await runner.wait_jobs(
+                client,
+                {"id": job["owner_id"]},
+                [job["asset_id"]],
+                deadline=runner.time.monotonic() + 1,
+                artifacts=artifact,
+                phase="measured",
+                digest="a" * 64,
+            )
+    finally:
+        await client.close()
+    sample = jsonl(artifact, "operations.jsonl")[0]
+    assert sample["status_code"] == 503 and sample["error"] == "unexpected_status"
+    assert 0 <= sample["elapsed_ms"] < 1000
+    assert sample["asset_ids"] == [job["asset_id"]]
+    assert sample["phase"] == "measured" and sample["operation"] == "processing_observation"
+    assert "hidden-response-body" not in json.dumps(sample)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("topic,count", [("login", 20), ("status", 50)])
+async def test_concurrent_phases_retain_logout_separately(tmp_path, topic, count):
+    artifact = Artifacts(tmp_path / "run")
+    gate = asyncio.Event()
+    arrivals = []
+    people = []
+
+    async def respond(request):
+        if request.url.path.endswith("logout"):
+            return httpx.Response(503, json={"cookie": "hidden-body"})
+        arrivals.append(request)
+        if len(arrivals) == count:
+            gate.set()
+        await gate.wait()
+        if topic == "login":
+            return httpx.Response(
+                200, json={"id": "owner"}, headers={"set-cookie": "access_token=private; Path=/"}
+            )
+        return httpx.Response(200, json={"id": "asset", "status": "done"})
+
+    for index in range(count):
+        people.append(
+            {
+                "index": index,
+                "id": "owner",
+                "asset_id": "asset",
+                "credentials": {"email": "private", "password": "private"},
+                "client": Client("http://localhost", transport=httpx.MockTransport(respond)),
+            }
+        )
+    operations = []
+    try:
+        samples = await runner.latency_phase(
+            people,
+            topic,
+            0.2,
+            artifacts=artifact,
+            repeat=1,
+            timed=True,
+            operations=operations,
+        )
+    finally:
+        for person in people:
+            await person["client"].close()
+    assert len(arrivals) == len(samples) == count
+    assert all(s["status_code"] == 200 and s["error"] is None for s in samples)
+    if topic == "login":
+        assert len(operations) == count
+        assert all(
+            s["status_code"] == 503 and s["error"] == "unexpected_status" for s in operations
+        )
+        assert all(s["timed"] is False and s["interval_timed"] is True for s in operations)
+        assert all(0 <= s["elapsed_ms"] < 1000 for s in operations)
+        assert jsonl(artifact, "operations.jsonl") == operations
+        assert "private" not in (artifact.directory / "operations.jsonl").read_text()
+        assert not any(p["client"].http.cookies for p in people)
+    else:
+        assert not operations
+
+
+def test_login_proposal_assessment_has_no_numeric_error_threshold():
+    result = runner.latency_metrics(
+        [
+            {"elapsed_ms": 100, "error": None},
+            {"elapsed_ms": 100, "error": "unexpected_status"},
+        ],
+        "login",
+    )
+    assert result["latency_pass"] and result["p90_ms"] == 100
+    assert result["errors"] == 1 and result["error_fraction"] == 0.5
+    assert result["errors_pass"] is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "login_error,eligible", [("unexpected_status", True), ("invalid_login_session", False)]
+)
+async def test_performance_targets_separate_observed_errors_from_protocol_eligibility(
+    monkeypatch, tmp_path, job, login_error, eligible
+):
+    fixed = fixed_containers()
+    own = fixed + [
+        {
+            "id": "worker",
+            "service": "worker",
+            "project": "own",
+            "running": True,
+            "cpu_limit": 2,
+            "memory_limit_bytes": runner.WORKER_MEMORY,
+        }
+    ]
+
+    class Docker:
+        def __init__(self, *args):
+            pass
+
+        def command(self, *args):
+            if args[0] == "info":
+                return json.dumps({"NCPU": 8, "MemTotal": 8 * runner.GIB, "CgroupVersion": "2"})
+            return {
+                "cpu.max": "200000 100000",
+                "memory.max": str(runner.WORKER_MEMORY),
+                "cpuset.cpus.effective": "0-7",
+            }[args[-1].split("/")[-1]]
+
+        def all_running(self):
+            return own
+
+        def stats(self, *args):
+            return []
+
+    class Session:
+        async def close(self):
+            pass
+
+    async def owner(*args):
+        return {"index": args[-1], "client": Session(), "id": job["owner_id"]}
+
+    async def upload(*args, **kwargs):
+        return str(uuid4())
+
+    async def wait_jobs(*args, **kwargs):
+        return [selected(job)]
+
+    async def latency_phase(people, topic, duration, **kwargs):
+        if topic == "login":
+            kwargs["operations"].append({"error": "unexpected_status"})
+        return [
+            {
+                "client": p["index"],
+                "elapsed_ms": 100,
+                "error": login_error if topic == "login" and p["index"] == 0 else None,
+            }
+            for p in people
+        ]
+
+    monkeypatch.setattr(runner, "Docker", Docker)
+    monkeypatch.setattr(runner, "Client", lambda *a, **kw: Session())
+    monkeypatch.setattr(runner, "owner", owner)
+    monkeypatch.setattr(runner, "upload", upload)
+    monkeypatch.setattr(runner, "wait_jobs", wait_jobs)
+    monkeypatch.setattr(runner, "latency_phase", latency_phase)
+    monkeypatch.setattr(
+        runner, "fixture", lambda *a: (tmp_path / "source.mp4", {"sha256": "a" * 64})
+    )
+    args = runner.parser().parse_args(
+        [
+            "performance",
+            "--run-id",
+            "offline",
+            "--login-hash-cost",
+            "bcrypt rounds=12",
+        ]
+    )
+    result = await runner.performance(
+        args,
+        {"PROCESSING_SERVICE_TOKEN": "private"},
+        {"processing_port": 1, "compose_project": "own"},
+        Artifacts(tmp_path / "run"),
+        {},
+    )
+    assert result["criteria_pass"]  # Original numeric proposal thresholds pass.
+    assert result["acceptance_eligible"] is eligible
+    assert result["protocol_eligible"] is eligible
+    assert result["operational_errors"] == 12  # Three repeats: login+warmup+two logout failures.
+    login_runs = [r for r in result["targets"] if r["topic"] == "login"]
+    assert len(login_runs) == 3
+    assert all(
+        r["metrics"]["errors"] == 1 and r["metrics"]["logout_errors"] == 2 for r in login_runs
+    )
+
+
+@pytest.mark.parametrize("protocol_valid,expected_exit", [(True, 0), (False, 1)])
+def test_cli_reports_protocol_invalidity_separately_from_numeric_targets(
+    monkeypatch, tmp_path, protocol_valid, expected_exit
+):
+    monkeypatch.setattr(runner.runtime, "ROOT", tmp_path)
+    monkeypatch.setattr(
+        runner.runtime,
+        "configure",
+        lambda run_id: (
+            {},
+            {
+                "public_url": "https://localhost",
+                "compose_project": "own",
+                "ca_file": "unused",
+            },
+        ),
+    )
+    monkeypatch.setattr(runner, "host_command", lambda args: "" if "status" in args else "ecd9d5f")
+
+    async def performance(*args):
+        return {
+            "criteria_pass": True,
+            "protocol_eligible": protocol_valid,
+            "acceptance_eligible": protocol_valid,
+            "operational_errors": 2,
+            "label": "full local",
+        }
+
+    monkeypatch.setattr(runner, "performance", performance)
+    assert runner.main(["performance", "--run-id", "offline"]) == expected_exit
+    manifest_path = next((tmp_path / "artifacts").rglob("manifest.json"))
+    result = json.loads(manifest_path.read_text())["result"]
+    assert result["criteria_pass"] and result["operational_errors"] == 2
+    assert result["acceptance_pass"] is protocol_valid

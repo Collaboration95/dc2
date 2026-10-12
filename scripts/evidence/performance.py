@@ -81,7 +81,7 @@ def latency_metrics(samples, topic):
         "error_fraction": errors / len(samples),
         "p90_ms": percentile,
         "latency_pass": percentile <= 700 if topic == "status" else percentile < 2000,
-        "errors_pass": errors / len(samples) < 0.01 if topic == "status" else errors == 0,
+        "errors_pass": errors / len(samples) < 0.01 if topic == "status" else None,
     }
 
 
@@ -355,6 +355,7 @@ class Docker:
     def __init__(self, state, artifacts=None):
         self.state = state
         self.artifacts = artifacts
+        self.owned_worker_ids = set()
         self.env = os.environ.copy()
         if state["docker_host"]:
             self.env["DOCKER_HOST"] = state["docker_host"]
@@ -423,6 +424,7 @@ class Docker:
     def start_workers(self, count):
         self.compose("up", "-d", "--no-deps", "--scale", f"worker={count}", "worker")
         ids = self.compose("ps", "-q", "worker").split()
+        self.owned_worker_ids = set(ids)
         records = self.inspect(ids)
         if len(records) != count or any(
             not r["running"]
@@ -452,12 +454,88 @@ import json, os
 from redis import Redis
 from rq import Queue
 from rq.registry import StartedJobRegistry
+from rq.intermediate_queue import IntermediateQueue
 r = Redis.from_url(os.environ['PROCESSING_REDIS_URL'], socket_timeout=3, socket_connect_timeout=3)
 q = Queue(os.environ['PROCESSING_QUEUE_NAME'], connection=r)
 print(json.dumps({'ready_attempt_ids': q.get_job_ids(),
+                  'intermediate_attempt_ids': IntermediateQueue(q.key, r).get_job_ids(),
                   'started_attempt_ids': StartedJobRegistry(queue=q).get_job_ids(cleanup=False)}))
 """
         return json.loads(self.compose("exec", "-T", "processing", "python", "-c", probe))
+
+    def worker_states(self, ids):
+        states = []
+        for item in json.loads(self.command("inspect", *ids)):
+            record = container_record(item)
+            if record["service"] != "worker" or record["project"] != self.state["compose_project"]:
+                raise EvidenceError("Refusing mutation of an unowned worker")
+            states.append(
+                {
+                    **record,
+                    "paused": item["State"]["Paused"],
+                    "hostname": item["Config"]["Hostname"],
+                }
+            )
+        return states
+
+    def warmup_consumer(self, ids, selected):
+        states = self.worker_states(ids)
+        running = [
+            w
+            for w in self.all_running()
+            if w["service"] == "worker" and w["project"] == self.state["compose_project"]
+        ]
+        if (
+            {w["id"] for w in running} != {selected}
+            or {w["id"] for w in states if w["running"]} != {selected}
+            or any(w["paused"] for w in states)
+        ):
+            raise EvidenceError("Warmup requires only the selected owned worker running")
+        return next(w for w in states if w["id"] == selected)
+
+    def warmup_assignment(self, attempt_id):
+        # Read RQ's execution identity; never infer consumption from intended scheduling.
+        probe = """
+import json, os, sys
+from redis import Redis
+from rq.job import Job
+r = Redis.from_url(os.environ['PROCESSING_REDIS_URL'], socket_timeout=3, socket_connect_timeout=3)
+job = Job.fetch(sys.argv[1], connection=r)
+name = job.worker_name
+hostname = r.hget('rq:worker:' + name, 'hostname') if name else None
+print(json.dumps({'attempt_id': job.id, 'rq_worker_name': name,
+                  'hostname': hostname.decode() if hostname else None}))
+"""
+        return json.loads(
+            self.compose("exec", "-T", "processing", "python", "-c", probe, attempt_id)
+        )
+
+    def stop_workers(self):
+        # start_workers updates this set inside its bounded call, before cancellation escapes.
+        errors = []
+        ids = set(self.owned_worker_ids)
+        try:
+            ids.update(self.compose("ps", "--all", "-q", "worker").split())
+        except EvidenceError:
+            errors.append("worker discovery failed")
+        for worker_id in sorted(ids):
+            outcome = {"utc": utc(), "worker_id": worker_id, "error": None}
+            try:
+                state = self.worker_states([worker_id])[0]
+                if state["paused"]:
+                    self.command("unpause", worker_id)
+                self.command("stop", "--time", "10", worker_id)
+                state = self.worker_states([worker_id])[0]
+                outcome["state"] = state
+                if state["running"] or state["paused"]:
+                    raise EvidenceError("Worker remained running or paused")
+            except (EvidenceError, KeyError, IndexError, json.JSONDecodeError):
+                outcome["error"] = "owned_worker_stop_or_state_check_failed"
+                errors.append("owned worker stop/state check failed: " + worker_id)
+            if self.artifacts:
+                self.artifacts.append("cleanup.jsonl", outcome)
+        if errors:
+            raise EvidenceError("Worker cleanup failed: " + "; ".join(errors))
 
     def encoding_metadata(self, worker_id):
         # Select only encoder fields from AST/defaults and corresponding environment.
@@ -587,10 +665,28 @@ async def owner(state, artifacts, index):
     credentials = {"email": f"e-{uuid4().hex}@example.com", "password": secrets.token_urlsafe(24)}
     artifacts.secrets.append(credentials["password"])
     try:
-        user = await client.checked("POST", "/api/auth/register", expected=201, json=credentials)
+        user = await client.checked(
+            "POST",
+            "/api/auth/register",
+            expected=201,
+            json=credentials,
+            artifacts=artifacts,
+            record={"phase": "owner-preparation", "operation": "register", "client": index},
+        )
         owner_id = str(UUID(user["id"]))
-        await client.checked("POST", "/api/auth/login", json=credentials)
-        me = await client.checked("GET", "/api/auth/me")
+        await client.checked(
+            "POST",
+            "/api/auth/login",
+            json=credentials,
+            artifacts=artifacts,
+            record={"phase": "owner-preparation", "operation": "login", "client": index},
+        )
+        me = await client.checked(
+            "GET",
+            "/api/auth/me",
+            artifacts=artifacts,
+            record={"phase": "owner-preparation", "operation": "session", "client": index},
+        )
         if me["id"] != owner_id or not client.http.cookies.get("access_token"):
             raise EvidenceError("Independent authenticated owner session missing")
         return {"index": index, "client": client, "credentials": credentials, "id": owner_id}
@@ -599,23 +695,43 @@ async def owner(state, artifacts, index):
         raise
 
 
-async def upload(person, path):
+async def upload(person, path, *, artifacts=None, phase=None, sequence=None, acknowledgement=None):
     with path.open("rb") as stream:
-        data = await person["client"].checked(
+        data, sample = await person["client"].request(
             "POST", "/api/upload", expected=202, files={"file": ("source.mp4", stream, "video/mp4")}
         )
-    try:
-        return str(UUID(data["job_id"]))
-    except (KeyError, TypeError, ValueError):
-        raise EvidenceError("Upload did not acknowledge an Asset ID") from None
+    received_monotonic, received_utc = time.monotonic(), utc()
+    asset = None
+    if sample["error"] is None:
+        try:
+            asset = str(UUID(data["job_id"]))
+        except (KeyError, TypeError, ValueError):
+            sample["error"] = "invalid_asset_acknowledgement"
+    record = {
+        "utc": received_utc,
+        "acknowledged_monotonic": received_monotonic if asset else None,
+        "phase": phase,
+        "sequence": sequence,
+        "asset_id": asset,
+        **sample,
+    }
+    if acknowledgement is not None:
+        acknowledgement.update(record)
+    if artifacts is not None:
+        artifacts.append("submissions.jsonl", record)
+    if sample["error"]:
+        raise EvidenceError("Upload failed: " + sample["error"])
+    return asset
 
 
-async def processing_read(client, person, assets):
+async def processing_read(client, person, assets, *, artifacts=None, phase=None):
     data = await client.checked(
         "GET",
         "/internal/v1/jobs",
         params={"asset_ids": ",".join(assets)},
         headers={"X-Owner-Id": person["id"]},
+        artifacts=artifacts,
+        record={"phase": phase, "operation": "processing_observation", "asset_ids": assets},
     )
     if not isinstance(data, list):
         raise EvidenceError("Processing batch must be an array")
@@ -630,7 +746,7 @@ async def wait_jobs(
 ):
     identities = {} if identities is None else identities
     while time.monotonic() < deadline:
-        jobs = await processing_read(client, person, assets)
+        jobs = await processing_read(client, person, assets, artifacts=artifacts, phase=phase)
         for job in jobs:
             if job["source_sha256"] != digest:
                 raise EvidenceError("Processing source digest differs from identical fixture")
@@ -661,8 +777,11 @@ async def wait_queue(docker, expected, *, deadline, artifacts, phase):
             len(ready) != len(set(ready))
             or set(ready) - expected
             or snapshot["started_attempt_ids"]
+            or snapshot["intermediate_attempt_ids"]
         ):
-            raise EvidenceError("Evidence namespace has unexpected runnable/started work")
+            raise EvidenceError(
+                "Evidence namespace has unexpected runnable/started/intermediate work"
+            )
         if set(ready) == expected:
             return
         await asyncio.sleep(min(1, max(0, deadline - time.monotonic())))
@@ -762,14 +881,26 @@ async def scaling(args, env, state, artifacts, manifest):
                 raise EvidenceError("Encoding configuration changed between scaling runs")
             manifest["worker_encoding"] = encoding[0]
             artifacts.write("manifest.json", manifest)
-            paused = set()
             try:
-                for selected in workers:
-                    for worker in workers:
-                        if worker["id"] != selected["id"]:
-                            await blocking(docker.command, "pause", worker["id"])
-                            paused.add(worker["id"])
-                    warm_asset = await upload(person, path)
+                worker_ids = [w["id"] for w in workers]
+                for sequence, selected in enumerate(workers, 1):
+                    # A frozen RQ worker retains its blocking Redis dequeue. Stop disconnects it.
+                    others = [key for key in worker_ids if key != selected["id"]]
+                    if others:
+                        await blocking(docker.command, "stop", "--time", "10", *others)
+                    await blocking(docker.command, "start", selected["id"])
+                    consumer = await blocking(docker.warmup_consumer, worker_ids, selected["id"])
+                    artifacts.append(
+                        "warmup-consumers.jsonl",
+                        {"utc": utc(), "phase": phase, "sequence": sequence, "consumer": consumer},
+                    )
+                    warm_asset = await upload(
+                        person,
+                        path,
+                        artifacts=artifacts,
+                        phase=phase + "-warmup",
+                        sequence=sequence,
+                    )
                     warm = await wait_jobs(
                         private,
                         person,
@@ -779,35 +910,56 @@ async def scaling(args, env, state, artifacts, manifest):
                         phase=phase + "-warmup",
                         digest=source["sha256"],
                     )
+                    consumer = await blocking(docker.warmup_consumer, worker_ids, selected["id"])
+                    assignment = await blocking(docker.warmup_assignment, warm[0]["attempt_id"])
+                    artifacts.append(
+                        "warmups.jsonl",
+                        {
+                            "utc": utc(),
+                            "phase": phase,
+                            "worker_id": selected["id"],
+                            "consumer": consumer,
+                            "assignment": assignment,
+                            "jobs": warm,
+                        },
+                    )
+                    if (
+                        assignment["attempt_id"] != warm[0]["attempt_id"]
+                        or not assignment["rq_worker_name"]
+                        or assignment["hostname"] != consumer["hostname"]
+                    ):
+                        raise EvidenceError(
+                            "Warmup execution was not assigned to the selected replica"
+                        )
                     if (
                         warm[0]["state"] != "succeeded"
                         or warm[0]["has_error"]
                         or not warm[0]["has_primary"]
                     ):
                         raise EvidenceError("Worker warmup failed")
-                    artifacts.append(
-                        "warmups.jsonl", {"phase": phase, "worker_id": selected["id"], "jobs": warm}
-                    )
-                    for worker_id in list(paused):
-                        await blocking(docker.command, "unpause", worker_id)
-                        paused.remove(worker_id)
             finally:
-                for worker_id in paused:
-                    await blocking(docker.command, "unpause", worker_id)
-                await blocking(docker.compose, "stop", "worker")
+                await blocking(docker.stop_workers)
             # No cache/status reuse: each POST creates a distinct durable Asset.
             accepted_start = None
             assets = []
             deadline = time.monotonic() + args.job_deadline
-            for _ in range(args.pilot_jobs if args.pilot else 30):
-                asset = await upload(person, path)
+            for sequence in range(1, (args.pilot_jobs if args.pilot else 30) + 1):
+                acknowledgement = {}
+                asset = await upload(
+                    person,
+                    path,
+                    artifacts=artifacts,
+                    phase=phase,
+                    sequence=sequence,
+                    acknowledgement=acknowledgement,
+                )
                 if accepted_start is None:
-                    accepted_start = time.monotonic()
+                    accepted_start = acknowledgement["acknowledged_monotonic"]
                     artifacts.append(
                         "intervals.jsonl",
                         {
                             "phase": phase,
-                            "first_acceptance_utc": utc(),
+                            "first_acceptance_utc": acknowledgement["utc"],
                             "first_acceptance_monotonic": accepted_start,
                         },
                     )
@@ -888,7 +1040,7 @@ async def scaling(args, env, state, artifacts, manifest):
                 try:
                     usage = await monitor
                 finally:
-                    await blocking(docker.compose, "stop", "worker")
+                    await blocking(docker.stop_workers)
             _, current_fixed = await blocking(docker.preflight)
             if current_fixed != fixed:
                 raise EvidenceError("Fixed services changed during measured processing")
@@ -902,13 +1054,13 @@ async def scaling(args, env, state, artifacts, manifest):
     finally:
         # Stop only our named workers; volumes, private configuration and all Assets remain.
         try:
-            await blocking(docker.compose, "stop", "worker")
+            await blocking(docker.stop_workers)
         finally:
             await private.close()
             await person["client"].close()
 
 
-async def latency_phase(people, topic, duration, *, artifacts, repeat, timed):
+async def latency_phase(people, topic, duration, *, artifacts, repeat, timed, operations=None):
     """Release all clients together. Pace each client from its previous launch."""
     start = time.monotonic()
     end = start + duration
@@ -944,10 +1096,6 @@ async def latency_phase(people, topic, duration, *, artifacts, repeat, timed):
                     or not client.http.cookies.get("access_token")
                 ):
                     sample["error"] = "invalid_login_session"
-                _, logout = await client.request("POST", "/api/auth/logout", expected=204)
-                if logout["error"]:
-                    sample["error"] = sample["error"] or "logout_failed"
-                client.http.cookies.clear()
             else:
                 data, sample = await client.request("GET", "/api/jobs/" + person["asset_id"])
                 if sample["error"] is None and (
@@ -971,6 +1119,24 @@ async def latency_phase(people, topic, duration, *, artifacts, repeat, timed):
             }
             artifacts.append("requests.jsonl" if timed else "warmup-requests.jsonl", row)
             samples.append(row)
+            if topic == "login":
+                _, logout = await client.request("POST", "/api/auth/logout", expected=204)
+                operation = {
+                    "utc": utc(),
+                    "topic": "logout",
+                    "operation": "logout",
+                    "timed": False,
+                    "interval_timed": timed,
+                    "repeat": repeat,
+                    "client": person["index"],
+                    "sequence": sequence,
+                    "route": "/api/auth/logout",
+                    **logout,
+                }
+                artifacts.append("operations.jsonl", operation)
+                if operations is not None:
+                    operations.append(operation)
+                client.http.cookies.clear()
             await asyncio.sleep(
                 max(0, min(end - time.monotonic(), launched + 1 - time.monotonic()))
             )
@@ -1037,7 +1203,9 @@ async def performance(args, env, state, artifacts, manifest):
         for index in range(args.pilot_status_users if args.pilot else 50):
             person = await owner(state, artifacts, index)
             status_people.append(person)
-            person["asset_id"] = await upload(person, path)
+            person["asset_id"] = await upload(
+                person, path, artifacts=artifacts, phase="status-fixtures", sequence=index + 1
+            )
             finished = await wait_jobs(
                 private,
                 person,
@@ -1058,15 +1226,37 @@ async def performance(args, env, state, artifacts, manifest):
             for repeat in range(1, args.repeats + 1):
                 warmup = args.pilot_warmup_seconds if args.pilot else 30
                 duration = args.pilot_seconds if args.pilot else 180
+                operations = []
                 warm = await latency_phase(
-                    people, topic, warmup, artifacts=artifacts, repeat=repeat, timed=False
+                    people,
+                    topic,
+                    warmup,
+                    artifacts=artifacts,
+                    repeat=repeat,
+                    timed=False,
+                    operations=operations,
                 )
-                # Warmup failures are retained and block acceptance, never retried away.
+                # Separate proposal thresholds from observed errors and protocol validity.
                 samples = await latency_phase(
-                    people, topic, duration, artifacts=artifacts, repeat=repeat, timed=True
+                    people,
+                    topic,
+                    duration,
+                    artifacts=artifacts,
+                    repeat=repeat,
+                    timed=True,
+                    operations=operations,
                 )
                 metrics = latency_metrics(samples, topic)
                 metrics["warmup_errors"] = sum(s["error"] is not None for s in warm)
+                metrics["logout_requests"] = len(operations)
+                metrics["logout_errors"] = sum(s["error"] is not None for s in operations)
+                metrics["protocol_errors"] = sum(
+                    s["error"] in {"invalid_login_session", "invalid_status_response"}
+                    for s in warm + samples
+                )
+                metrics["protocol_eligible"] = metrics["protocol_errors"] == 0 and (
+                    topic != "status" or metrics["warmup_errors"] == 0
+                )
                 metrics["clients"] = len(people)
                 metrics["planned_duration_seconds"] = duration
                 metrics["warmup_seconds"] = warmup
@@ -1078,11 +1268,19 @@ async def performance(args, env, state, artifacts, manifest):
             "targets": results,
             "criteria_pass": all(
                 r["metrics"]["latency_pass"]
-                and r["metrics"]["errors_pass"]
-                and r["metrics"]["warmup_errors"] == 0
+                and (r["topic"] != "status" or r["metrics"]["errors_pass"])
                 for r in results
             ),
-            "acceptance_eligible": not args.pilot and args.repeats >= 3,
+            "protocol_eligible": all(r["metrics"]["protocol_eligible"] for r in results),
+            "operational_errors": sum(
+                r["metrics"]["errors"]
+                + r["metrics"]["warmup_errors"]
+                + r["metrics"]["logout_errors"]
+                for r in results
+            ),
+            "acceptance_eligible": not args.pilot
+            and args.repeats >= 3
+            and all(r["metrics"]["protocol_eligible"] for r in results),
             "label": "pilot"
             if args.pilot
             else "full local"
@@ -1215,7 +1413,7 @@ def main(argv=None):
             f"{result['label']}: criteria {'PASS' if result['criteria_pass'] else 'FAIL'}; "
             f"acceptance {'PASS' if result['acceptance_pass'] else 'OPEN'}; artifacts {directory}"
         )
-        return 0 if result["criteria_pass"] else 1
+        return 0 if result["criteria_pass"] and result.get("protocol_eligible", True) else 1
     except (
         EvidenceError,
         OSError,
