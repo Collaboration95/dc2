@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import re
 import threading
 from types import SimpleNamespace
 from uuid import uuid4
@@ -197,6 +198,16 @@ def test_incomplete_or_invalid_runs_fail(mutation):
 
 
 def fixed_containers():
+    profile = {
+        "media": 1.0,
+        "processing": 0.5,
+        "postgres": 0.125,
+        "minio": 0.125,
+        "redis": 0.0625,
+        "nginx": 0.0625,
+        "processing-recovery": 0.0625,
+        "media-recovery": 0.0625,
+    }
     return [
         {
             "id": name,
@@ -206,8 +217,20 @@ def fixed_containers():
             "cpu_limit": cpu,
             "memory_limit_bytes": 256 * 2**20,
         }
-        for name, cpu in runner.FIXED_CPU.items()
+        for name, cpu in profile.items()
     ]
+
+
+def test_compose_and_runner_share_fixed_two_cpu_budget():
+    compose = runner.runtime.COMPOSE.read_text()
+    actual = {}
+    for name, body in re.findall(r"^  ([\w-]+):\n(.*?)(?=^  [\w-]+:|^\S|\Z)", compose, re.M | re.S):
+        cpu = re.search(r"^    cpus: ([\d.]+)$", body, re.M)
+        if cpu:
+            actual[name] = float(cpu[1])
+    assert actual.pop("worker") == 2
+    assert actual == runner.FIXED_CPU
+    assert sum(actual.values()) == 2
 
 
 def test_capacity_real_quotas_and_other_namespaces():
@@ -223,7 +246,7 @@ def test_capacity_real_quotas_and_other_namespaces():
         runner.capacity_check(info, fixed + [{**other, "cpu_limit": 0}], "own")
     with pytest.raises(EvidenceError, match="memory"):
         runner.capacity_check({**info, "MemTotal": 4 * runner.GIB}, fixed, "own")
-    fixed[0]["cpu_limit"] = 1
+    fixed[0]["cpu_limit"] = 0.5  # Reject the previous Media resource profile.
     with pytest.raises(EvidenceError, match="CPU quotas"):
         runner.capacity_check(info, fixed, "own")
 

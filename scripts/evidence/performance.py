@@ -26,14 +26,14 @@ GIB = 2**30
 WORKER_MEMORY = 1536 * 2**20
 TERMINAL = {"succeeded", "failed", "cancelled", "abandoned"}
 FIXED_CPU = {
-    "media": 0.5,
+    "media": 1.0,
     "processing": 0.5,
-    "postgres": 0.25,
-    "minio": 0.25,
-    "redis": 0.125,
-    "nginx": 0.125,
-    "processing-recovery": 0.125,
-    "media-recovery": 0.125,
+    "postgres": 0.125,
+    "minio": 0.125,
+    "redis": 0.0625,
+    "nginx": 0.0625,
+    "processing-recovery": 0.0625,
+    "media-recovery": 0.0625,
 }
 FIXED_SERVICES = set(FIXED_CPU)
 
