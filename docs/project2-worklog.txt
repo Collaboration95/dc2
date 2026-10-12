@@ -105,3 +105,15 @@ Media while keeping the nonworker total2CPU. FullV3 remains pending.
 The combined worktree has passed realCLI30good/1bad publishing and storedretry,
 and real browser upload/worker-kill/retry/playback/deletion. FinalcombinedV1/V2
 and performance/release evidence still remain; see execution reviews and progress.
+
+Media merged; clients reviewed; measured evidence underway (13 October)
+PR29 merged atb4a9f56 after770 fastPython/127realintegration checks, MediaR1
+rereviewPASS andall15remotechecks. M1-M3/E3Done. C1/C2corrections also have
+independentPASS; integrated827Python/152frontend+realTLS pass andPublisher98.43%
+coverage. ClientPRisbeingpublished.
+MacFirefoxdecoded-framecopyfailure was reproduced; the project browser helper
+nowusespinnedChromeForTesting withscopedkeytrust/CAvalidation onMac, NSSFirefox
+onLinux. Actualtrusted/untrustedcontrolsandbrowserretry/playback/deletionpassed.
+Fullnine-run30x60s720p1/2/3worker experiment isrunning onfrozenintegration621c03a
+inseparatev3-scale namespace. Core-runtimeacceptance isnotdeclareduntilfinalV1/V2
+assertionfixesverifythesameproductioncode; measurementidentitiesremainrecorded.

@@ -287,6 +287,29 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.processing.yml down -v
 
+  publisher-https:
+    name: Independent Publisher HTTPS and cookie persistence
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.17'
+          enable-cache: true
+          cache-local-path: .cache/uv
+          cache-dependency-glob: uv.lock
+      - run: uv sync --locked --extra dev --extra browser
+      - name: Require real trusted/untrusted HTTPS and persisted Secure cookie
+        run: >-
+          .venv/bin/python -m pytest -q -p scripts.dev.pytest_plugin
+          --require-integration tests/publisher/test_https.py --no-cov
+        env:
+          PUBLISHER_HTTPS_TEST: '1'
+
   browser-trust:
     name: Local HTTPS and Firefox trust
     runs-on: ubuntu-latest
@@ -392,19 +415,21 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    needs: [legacy-integration, processing-intake, media-integration, browser-trust, coverage-gate]
+    needs: [legacy-integration, processing-intake, media-integration, publisher-https, browser-trust, coverage-gate]
     steps:
       - name: Require successful real integration, trust and package gates
         env:
           LEGACY_RESULT: ${{ needs.legacy-integration.result }}
           PROCESSING_RESULT: ${{ needs.processing-intake.result }}
           MEDIA_RESULT: ${{ needs.media-integration.result }}
+          PUBLISHER_RESULT: ${{ needs.publisher-https.result }}
           TRUST_RESULT: ${{ needs.browser-trust.result }}
           COVERAGE_RESULT: ${{ needs.coverage-gate.result }}
         run: |
           test "$LEGACY_RESULT" = success
           test "$PROCESSING_RESULT" = success
           test "$MEDIA_RESULT" = success
+          test "$PUBLISHER_RESULT" = success
           test "$TRUST_RESULT" = success
           test "$COVERAGE_RESULT" = success
 

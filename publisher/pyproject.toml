@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dc2-publisher"
+version = "0.1.0"
+description = "Independent cookie-authenticated Media Publisher CLI"
+requires-python = ">=3.12"
+dependencies = ["httpx>=0.28,<1"]
+
+[project.scripts]
+publisher = "publisher.cli:main"
+
+[tool.setuptools]
+packages = ["publisher"]
+package-dir = {publisher = "."}
