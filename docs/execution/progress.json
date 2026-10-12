@@ -1,5 +1,5 @@
 {
-  "stage": "product-implementation",
+  "stage": "product-review-and-integration",
   "baseline": "b32d489566144202fbf6fc3887ce25d5321444fd",
   "project": {
     "id": "PVT_kwHOBBatWM4Bmtkx",
@@ -70,15 +70,19 @@
     },
     "P2": {
       "number": 13,
-      "state": "Backlog",
+      "state": "In progress",
       "pr": null,
-      "evidence": []
+      "evidence": [
+        "P1 and P2 commits integrated for runtime checks; P3 implementation and owned-service verification in progress."
+      ]
     },
     "P3": {
       "number": 14,
-      "state": "Backlog",
+      "state": "In progress",
       "pr": null,
-      "evidence": []
+      "evidence": [
+        "P1 and P2 commits integrated for runtime checks; P3 implementation and owned-service verification in progress."
+      ]
     },
     "M1": {
       "number": 15,
@@ -199,29 +203,44 @@
     {
       "branch": "wave/02-processing",
       "path": ".",
-      "owner": "coordinator",
-      "scope": "Shared runtime, CI and integration"
+      "owner": "coordinator + Meitner Sol xhigh reviewer",
+      "scope": "Processing grouped PR, shared runtime and CI"
     },
     {
       "branch": "work/processing",
       "path": ".worktrees/processing",
-      "owner": "Carson gpt-6.1-sol high",
-      "agent_id": "01a13126-8f4b-7681-834d-79676acf8149",
-      "scope": "P1/P2/P3"
+      "owner": "Carson Sol high",
+      "scope": "P1-P3 final evidence"
     },
     {
       "branch": "work/media",
       "path": ".worktrees/media",
-      "owner": "Parfit gpt-6.1-sol high",
-      "agent_id": "01a13126-8fa3-78e0-97a1-24e2b134e6d1",
-      "scope": "M1/M2/M3"
+      "owner": "Herschel Sol xhigh reviewer",
+      "scope": "M1-M3 independent review"
     },
     {
-      "branch": "work/clients",
-      "path": ".worktrees/clients",
-      "owner": "Noether gpt-6.1-sol high",
-      "agent_id": "01a13126-8ecb-7151-abcc-149be84c0260",
-      "scope": "C1/C2"
+      "branch": "work/clients-fixes",
+      "path": ".worktrees/clients-fixes",
+      "owner": "Bohr Sol high",
+      "scope": "Client review R1-R3 corrections"
+    },
+    {
+      "branch": "work/evidence",
+      "path": ".worktrees/evidence",
+      "owner": "James Sol xhigh reviewer",
+      "scope": "V3 runner review; live measurements pending"
+    },
+    {
+      "branch": "work/release",
+      "path": ".worktrees/release",
+      "owner": "implementation complete",
+      "scope": "V4 runner awaiting integration/live evidence"
+    },
+    {
+      "branch": "work/integration",
+      "path": ".worktrees/integration",
+      "owner": "coordinator",
+      "scope": "Real two-service web/CLI/fault acceptance and shared Media runtime"
     }
   ]
 }
