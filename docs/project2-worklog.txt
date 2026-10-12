@@ -41,5 +41,36 @@ code, Docker excludes planning assets, and current root guidance supersedes the
 old team's operational rules. Application source behavior is unchanged by the move.
 
 Implementation status
-Repository migration complete locally; remote publication and baseline checks
-are in progress. Service extraction has not yet been validated.
+The migration is pushed to Collaboration95/dc2 Main at b7f749f. Its CI run
+38254040593 passed. All original app/, frontend/ and migrations/ files remain
+byte-identical to the source after the first implementation slice below.
+The roadmap's only HTML modifications in the move repair 160 source links;
+all resolve at the new paths, with text/styles/illustrations preserved.
+
+First coding slice: independent Processing intake
+- Separate processing/ API, configuration, database metadata and migration history.
+- Atomic Job/Attempt creation, stable AssetId replay and owner-filtered read/batch.
+- Separate media_db and processing_db runtime/migration roles; no cross-service
+  user/asset foreign keys and no Media Management package inside the P image.
+- Standalone local Docker stack and dedicated CI job. No AWS resources created.
+- Reproducible setup and remaining scope: docs/processing-intake.txt.
+
+Validation on 12 October 2026
+- Root Python suite: 431 passed, 65 integration tests skipped when not enabled;
+  inherited application coverage 86.77% (80% gate).
+- Focused Processing plus real PostgreSQL suite: 91 passed, including 21 database
+  tests; Processing coverage 86.69% (80% gate).
+- Frontend: 124 passed, three live tests skipped; existing coverage gates passed.
+- Application/Processing/test/migration lint passed.
+- Fresh-volume Docker boot applies database bootstrap and migration successfully.
+- Live HTTP: create 201, replay with renewed source URL 200, same job/attempt IDs,
+  readback 200, other owner 404. API container restart retains the same IDs.
+- Database ownership: runtime data writes work, runtime DDL fails, opposite
+  database connections fail for both runtime and migration roles. Bootstrap rerun
+  preserves data. Eight concurrent identical submissions create only one attempt.
+
+Remaining implementation
+Processing intake currently stores queued work only. Worker dispatch, heartbeat,
+queue reconciliation, Media Management Asset integration, retry/cancel/output
+handling, Publisher CLI, AWS and scaling/recovery experiments remain to implement.
+No end-to-end extraction, video-processing or cloud result is claimed yet.

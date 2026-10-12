@@ -12,4 +12,8 @@ tests
 docs
 project-documentation
 project-roadmap
+frontend/node_modules
+frontend/coverage
+coverage.xml
+processing-coverage.xml
 

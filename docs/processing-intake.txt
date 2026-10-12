@@ -1,0 +1,75 @@
+PROCESSING INTAKE MILESTONE
+
+This is the first implemented part of the Project 2 extraction. Processing can
+accept and retrieve durable jobs independently of Media Management. It does not
+yet execute those jobs. The inherited web app still uses the original stack.
+
+Implemented
+- POST /internal/v1/jobs: new asset creates one Job and queued Attempt atomically;
+  replay returns the existing identity; changed immutable input returns 409.
+- GET /internal/v1/jobs/{job_id}: owner-filtered lookup.
+- GET /internal/v1/jobs?asset_ids=uuid,uuid: owner-filtered batch lookup.
+- A configured shared service token and forwarded X-Owner-Id; no OIDC.
+- Separate SQLAlchemy metadata and Alembic history. Processing has no imports
+  from app/ and no foreign keys to Media Management users or assets.
+- PostgreSQL bootstrap creates media_db and processing_db with separate runtime
+  and migration roles. Runtime may use its tables but cannot alter the schema
+  or connect to the other service database.
+
+Start from the repository root
+1. Create .env from .env.example if it does not already exist. Set
+   PROCESSING_SERVICE_TOKEN to a generated value. Keep .env out of Git.
+2. Run:
+   docker compose -f docker-compose.processing.yml up --build -d --wait processing
+3. Readiness: http://127.0.0.1:8010/health
+   Interactive private API reference: http://127.0.0.1:8010/docs
+
+This standalone stack uses its own volume and localhost PostgreSQL port 55432.
+It neither migrates nor replaces the inherited Compose database. Both services'
+new databases are fresh demonstration data; media_db awaits the MM extraction.
+The bootstrap runs on an empty volume. To reconcile grants/passwords on this
+development volume without deleting its data, run:
+   docker compose -f docker-compose.processing.yml exec -T postgres \
+     sh /docker-entrypoint-initdb.d/10-project2.sh
+Changing .env alone does not rotate passwords in an existing database.
+
+Migration credentials only reach processing-migrate. The API container gets the
+runtime credential. The migration command can also run from the root:
+   python -m alembic -c processing/alembic.ini upgrade head
+For that host command supply PROCESSING_POSTGRES_DSN, optionally with
+PROCESSING_MIGRATION_DSN as the migration override. Use PostgreSQL URL escaping
+for passwords containing reserved URL characters.
+
+Tests
+Create a Python 3.12 virtual environment and install: pip install -e '.[dev]'
+Without services: python -m pytest -q
+Lint: python -m ruff check app processing tests migrations
+
+For real database checks, start the stack above, then set these host variables:
+   RUN_PROCESSING_TESTS=1
+   PROCESSING_POSTGRES_DSN=postgresql+asyncpg://processing_runtime:dc2_local_processing@127.0.0.1:55432/processing_db
+   PROCESSING_SERVICE_TOKEN=<the local service token>
+Then run:
+   python -m pytest -q tests/processing \
+     tests/integration/test_processing_intake.py \
+     tests/integration/test_database_ownership.py --cov=processing
+The shown database password is only the Compose development default. Set the
+matching MEDIA/PROCESSING_RUNTIME_PASSWORD and MIGRATION_PASSWORD variables
+for ownership tests if you changed those defaults, and P2_POSTGRES_PORT if changed.
+
+The dedicated CI job builds this image, starts fresh databases, applies its
+migration, probes the actual container, and runs the intake/ownership tests.
+
+Next implementation slice
+Connect an attempt-aware Processing worker and queue reconciliation, preserving
+the existing FFmpeg behavior. Implement heartbeat/expiry and stale-result checks.
+Then connect Media Management's durable Asset intake through the HTTP contract
+and its presigned source-access endpoint. Complete stored-source retry, cancel,
+output references and playback before calling this an end-to-end extraction.
+Do not attach the inherited worker: it uses the old database and job-only queue
+payload and cannot execute these newly reserved attempts safely.
+
+Limits
+Synthetic metadata is sufficient for intake tests. It is not evidence of video
+processing, source URL fetching, queue delivery, scaling, recovery or AWS hosting.
+Jobs remain queued in this milestone. /health reports this explicitly.

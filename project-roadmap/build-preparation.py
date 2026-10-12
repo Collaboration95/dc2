@@ -30,9 +30,11 @@ def source_links(sources):
             # Extracted review text is temporary; link its unchanged original.
             if path.endswith('Team17-Proposal.txt'):
                 path = 'project-documentation/Team17-Proposal.docx'
-            target = BASE / path
+            # Preserve historical labels while resolving the flattened application.
+            target_path = path.removeprefix('Media_player/')
+            target = BASE / target_path
             if target.exists() and not Path(path).is_absolute():
-                url = '../' + quote(path, safe='/')
+                url = '../' + quote(target_path, safe='/')
         label = s.get('locator') or path or url or 'Source'
         link = '<a href="'+escape(url, quote=True)+'">'+fmt(label)+'</a>' if url else fmt(label)
         items.append('<li>'+link+' <span class="source-note">'+fmt(s.get('note',''))+'</span></li>')

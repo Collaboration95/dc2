@@ -25,7 +25,7 @@ jobs:
       - name: Install development dependencies
         run: python -m pip install -e '.[dev]'
       - name: Ruff lint
-        run: python -m ruff check app tests migrations
+        run: python -m ruff check app processing tests migrations
       - name: Python unit tests
         run: python -m pytest -q --cov=app --cov-report=term --cov-report=xml:coverage.xml
       - name: Upload Python coverage
@@ -167,6 +167,45 @@ jobs:
           tags: flickpond-api:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  processing-intake:
+    name: Processing intake and database ownership
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PROCESSING_SERVICE_TOKEN: ci-only-processing-service-token
+      PROCESSING_POSTGRES_DSN: postgresql+asyncpg://processing_runtime:dc2_local_processing@127.0.0.1:55432/processing_db
+      RUN_PROCESSING_TESTS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install development dependencies
+        run: python -m pip install -e '.[dev]'
+      - name: Build and start isolated Processing stack
+        run: docker compose -f docker-compose.processing.yml up --build -d --wait processing
+      - name: Check container readiness
+        run: curl --fail --silent --show-error http://127.0.0.1:8010/health
+      - name: Test intake durability and database ownership
+        run: >-
+          python -m pytest -q tests/processing
+          tests/integration/test_processing_intake.py
+          tests/integration/test_database_ownership.py
+          --cov=processing --cov-report=term --cov-report=xml:processing-coverage.xml
+      - name: Upload Processing coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: processing-coverage
+          path: processing-coverage.xml
+          if-no-files-found: error
+      - name: Capture stack logs
+        if: failure()
+        run: docker compose -f docker-compose.processing.yml logs --no-color
+      - name: Tear down isolated stack
+        if: always()
+        run: docker compose -f docker-compose.processing.yml down -v
 
   # Trivy blocks fixable HIGH/CRITICAL vulnerabilities, including ones
   # introduced by the base image; update the image or dependencies rather

@@ -38,7 +38,7 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["app*"]
+include = ["app*", "processing*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -54,6 +54,7 @@ select = ["E", "F", "I", "UP", "B", "ASYNC"]
 [tool.coverage.run]
 branch = true
 source = ["app"]
+omit = ["processing/migrations/*"]
 
 [tool.coverage.report]
 fail_under = 80

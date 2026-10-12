@@ -423,5 +423,7 @@ sweeps those; the reasoning is in
 The former `Media_player` submodule now lives directly in this repository.
 Run application, test and Docker commands from this root; no submodule checkout
 is needed. See [current decisions and work log](docs/project2-worklog.txt).
+For the first independent Processing service, see
+[local setup and current scope](docs/processing-intake.txt).
 The original application documentation follows below.
 
