@@ -264,6 +264,7 @@ async def test_edit_uses_independent_copy_and_saved_operations(
             session, peer, storage, asset.owner_id, asset.id, request, uuid4()
         )
         if mode == "ok":
+            assert stage.write_uncertain is False
             assert result.source_key != asset.source_key
             assert (
                 result.source_asset_id == asset.id

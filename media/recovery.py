@@ -85,6 +85,7 @@ async def reconcile(factory, peer, storage, settings):
                         < now() - timedelta(seconds=settings.orphan_grace_seconds),
                         ~select(Asset.id).where(Asset.source_key == StagedObject.key).exists(),
                     )
+                    .order_by(StagedObject.created_at, StagedObject.key)
                     .limit(settings.recovery_batch_size)
                     .with_for_update(skip_locked=True)
                 )
@@ -94,7 +95,12 @@ async def reconcile(factory, peer, storage, settings):
                     await storage.delete_source(stage.key)
                 except Exception:
                     continue
-                await session.execute(delete(StagedObject).where(StagedObject.key == stage.key))
+                if stage.write_uncertain:
+                    # No finite quiet period proves that a timed-out remote PUT
+                    # stopped. Retain its key for later DELETEs, even if absent.
+                    stage.created_at = now()
+                else:
+                    await session.execute(delete(StagedObject).where(StagedObject.key == stage.key))
                 counts["orphan"] += 1
     return counts
 

@@ -52,7 +52,7 @@ def inspect_upload(file):
 
 async def stage(session, key):
     async with session.begin():
-        session.add(StagedObject(key=key))
+        session.add(StagedObject(key=key, write_uncertain=True))
 
 
 async def discard_stage(session, storage, key):
@@ -67,7 +67,14 @@ async def discard_stage(session, storage, key):
                 return
             adopted = await session.scalar(select(Asset.id).where(Asset.source_key == key))
             if adopted is None:
-                await storage.delete_source(key)
+                if staged.write_uncertain:
+                    staged.created_at = now()
+                try:
+                    await storage.delete_source(key)
+                except Exception:
+                    return
+                if staged.write_uncertain:
+                    return
             await session.execute(delete(StagedObject).where(StagedObject.key == key))
     except Exception:
         return
@@ -76,6 +83,11 @@ async def discard_stage(session, storage, key):
 async def accept(session, storage, asset, operation, key, digest):
     try:
         async with session.begin():
+            # Serialize adoption with cleanup. If a completed reservation already
+            # expired, do not accept an Asset whose source may have been removed.
+            staged = await session.get(StagedObject, asset.source_key, with_for_update=True)
+            if staged is None:
+                raise MediaError(503, "source intake reservation expired")
             session.add(asset)
             await session.flush()
             if key:
@@ -122,6 +134,7 @@ async def upload(session, storage, owner_id, file, key):
             staged = await session.get(StagedObject, source_key, with_for_update=True)
             await storage.put_source(source_key, file.file, size, media_type)
             staged.created_at = now()
+            staged.write_uncertain = False
     except Exception as exc:
         await discard_stage(session, storage, source_key)
         raise MediaError(503, "source storage unavailable") from exc

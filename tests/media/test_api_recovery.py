@@ -257,13 +257,15 @@ async def test_database_dependency_allocates_app_local_pool_without_connecting(s
     await app.state.engine.dispose()
 
 
+@pytest.mark.parametrize("uncertain", [False, True])
 async def test_reconcile_due_intents_and_orphan_grace(
-    session, settings, peer, storage, monkeypatch
+    session, settings, peer, storage, monkeypatch, uncertain
 ):
     from media import recovery
 
     ids = [uuid4() for _ in range(3)]
-    old_stage = StagedObject(key="orphan", created_at=now() - timedelta(hours=2))
+    stamp = now() - timedelta(hours=2)
+    old_stage = StagedObject(key="orphan", created_at=stamp, write_uncertain=uncertain)
     session.scalars.side_effect = [[ids[0]], [ids[1]], [ids[2]], [old_stage]]
 
     @asynccontextmanager
@@ -275,6 +277,11 @@ async def test_reconcile_due_intents_and_orphan_grace(
     counts = await recovery.reconcile(factory, peer, storage, settings)
     assert counts == {"submission": 1, "retry": 1, "cleanup": 1, "orphan": 1}
     storage.delete_source.assert_awaited_once_with("orphan")
+    if uncertain:
+        assert old_stage.created_at > stamp
+        session.execute.assert_not_awaited()
+    else:
+        session.execute.assert_awaited_once()
     from sqlalchemy.dialects.postgresql import dialect
 
     query = str(session.scalars.call_args.args[0].compile(dialect=dialect()))

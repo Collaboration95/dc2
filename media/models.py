@@ -1,7 +1,18 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, Uuid
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    Uuid,
+    true,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -87,3 +98,6 @@ class StagedObject(Base):
     __tablename__ = "staged_objects"
     key: Mapped[str] = mapped_column(Text, primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    # Until the writer confirms completion, even an acknowledged DELETE can be
+    # overtaken by a late PUT. Recovery must retain this authority and rescan.
+    write_uncertain: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())

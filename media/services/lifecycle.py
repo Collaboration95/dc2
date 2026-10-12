@@ -267,6 +267,7 @@ async def edit(session, peer, storage, owner_id, parent_id, request, key):
             staged = await session.get(StagedObject, source_key, with_for_update=True)
             size, sha256 = await storage.copy_output_source(output, source_key)
             staged.created_at = now()
+            staged.write_uncertain = False
     except Exception as exc:
         await discard_stage(session, storage, source_key)
         if isinstance(exc, MediaError):

@@ -703,11 +703,18 @@ async def test_media_runtime_ddl_and_opposite_database_denied(lane):
         await other.dispose()
 
 
-async def test_inflight_stage_reservation_skips_orphan_cleanup_until_adoption(lane, monkeypatch):
+@pytest.mark.parametrize("operation", ["upload", "edit"])
+async def test_inflight_stage_reservation_skips_orphan_cleanup_until_adoption(
+    lane, monkeypatch, operation
+):
     from media.services import intake
 
+    if operation == "edit":
+        parent_id = await upload(lane)
+        await done(lane, parent_id)
     entered, release = asyncio.Event(), asyncio.Event()
     original_stage, original_put = intake.stage, lane.objects.put_source
+    original_copy = lane.objects.copy_output_source
     own_keys = []
 
     async def old_stage(session, key):
@@ -726,9 +733,29 @@ async def test_inflight_stage_reservation_skips_orphan_cleanup_until_adoption(la
         entered.set()
         await release.wait()
 
+    async def slow_copy(*args):
+        result = await original_copy(*args)
+        entered.set()
+        await release.wait()
+        return result
+
+    async def request():
+        if operation == "upload":
+            return await upload(lane)
+        response = await lane.clients[0].post(
+            f"/jobs/{parent_id}/edit",
+            json={"operations": [{"operation": "clip", "params": {"start": 0, "end": 3}}]},
+        )
+        assert response.status_code == 202
+        return response.json()["job_id"]
+
     monkeypatch.setattr(intake, "stage", old_stage)
+    from media.services import lifecycle
+
+    monkeypatch.setattr(lifecycle, "stage", old_stage)
     lane.objects.put_source = slow_put
-    uploading = asyncio.create_task(upload(lane))
+    lane.objects.copy_output_source = slow_copy
+    uploading = asyncio.create_task(request())
     try:
         await asyncio.wait_for(entered.wait(), 5)
         async with lane.factory() as session:
@@ -760,7 +787,9 @@ async def test_orphan_cleanup_removes_only_old_unadopted_source(lane):
             [
                 StagedObject(key=asset.source_key, created_at=now() - timedelta(hours=2)),
                 StagedObject(key=fresh, created_at=now()),
-                StagedObject(key=orphan, created_at=now() - timedelta(hours=2)),
+                StagedObject(
+                    key=orphan, created_at=now() - timedelta(hours=2), write_uncertain=False
+                ),
             ]
         )
         await session.commit()
@@ -768,6 +797,9 @@ async def test_orphan_cleanup_removes_only_old_unadopted_source(lane):
     assert counts["orphan"] == 1
     assert orphan not in lane.objects.sources and fresh in lane.objects.sources
     assert asset.source_key in lane.objects.sources
+    async with lane.factory() as session:
+        assert await session.get(StagedObject, orphan) is None
+        assert await session.get(StagedObject, fresh) is not None
 
 
 async def test_concurrent_retry_key_has_one_durable_uuid_and_cross_asset_conflicts(lane):
@@ -931,3 +963,187 @@ async def test_lost_database_commit_ack_does_not_discard_adopted_source(lane, mo
         assert (
             await session.get(RequestKey, (lane.users[0].id, "upload", key))
         ).asset_id == asset_id
+
+
+@pytest.mark.parametrize("operation", ["upload", "edit"])
+@pytest.mark.parametrize("finish_after", ["response", "first-cleanup", "parent-delete"])
+async def test_uncertain_source_write_retains_cleanup_after_late_put(lane, operation, finish_after):
+    parent_id = await upload(lane)
+    await done(lane, parent_id)
+    operations = [{"operation": "clip", "params": {"start": 0, "end": 3}}]
+    # Protect a healthy adopted upload and edit, including the edit after parent deletion.
+    healthy = await lane.clients[0].post(f"/jobs/{parent_id}/edit", json={"operations": operations})
+    assert healthy.status_code == 202
+    healthy_id = healthy.json()["job_id"]
+    healthy_asset = await row(lane, healthy_id)
+    parent_asset = await row(lane, parent_id)
+    async with lane.factory() as session:
+        session.add_all(
+            StagedObject(key=a.source_key, created_at=now() - timedelta(hours=2))
+            for a in [parent_asset, healthy_asset]
+        )
+        await session.commit()
+
+    release, completed = asyncio.Event(), asyncio.Event()
+    pending, writers = {}, []
+
+    async def remote_put(key, data):
+        await release.wait()
+        lane.objects.sources[key] = data
+        completed.set()
+
+    async def uncertain_put(key, stream, size, media_type):
+        pending[key] = stream.read()
+        assert len(pending[key]) == size
+        writers.append(asyncio.create_task(remote_put(key, pending[key])))
+        raise TimeoutError("remote PUT remains in flight")
+
+    async def uncertain_copy(output, key):
+        pending[key] = lane.objects.outputs[output.object_key]
+        writers.append(asyncio.create_task(remote_put(key, pending[key])))
+        raise TimeoutError("remote copy PUT remains in flight")
+
+    lane.objects.put_source = uncertain_put
+    lane.objects.copy_output_source = uncertain_copy
+    request_key = uuid4()
+    headers = {"Idempotency-Key": str(request_key)}
+    fresh_engine = create_async_engine(lane.settings.postgres_dsn, poolclass=NullPool)
+    fresh_factory = async_sessionmaker(fresh_engine, expire_on_commit=False)
+
+    async def age(key):
+        async with fresh_factory() as session:
+            await session.execute(
+                update(StagedObject)
+                .where(StagedObject.key == key)
+                .values(created_at=now() - timedelta(hours=2))
+            )
+            await session.commit()
+
+    async def verify_ledger(key):
+        async with fresh_factory() as session:
+            staged = await session.get(StagedObject, key)
+            assert staged is not None and staged.write_uncertain
+            assert staged.created_at > now() - timedelta(seconds=lane.settings.orphan_grace_seconds)
+            assert await session.scalar(select(Asset.id).where(Asset.source_key == key)) is None
+            assert await session.get(RequestKey, (lane.users[0].id, operation, request_key)) is None
+
+    try:
+        if operation == "upload":
+            response = await lane.clients[0].post(
+                "/upload", files={"file": ("late.mp4", VIDEO, "video/mp4")}, headers=headers
+            )
+        else:
+            response = await lane.clients[0].post(
+                f"/jobs/{parent_id}/edit", json={"operations": operations}, headers=headers
+            )
+        assert response.status_code == 503
+        (key,) = pending
+        assert lane.objects.deleted.count(key) == 1 and key not in lane.objects.sources
+        await verify_ledger(key)
+        assert (await reconcile(fresh_factory, lane.peer, lane.objects, lane.settings))[
+            "orphan"
+        ] == 0
+
+        if finish_after != "response":
+            await age(key)
+            counts = await reconcile(fresh_factory, lane.peer, lane.objects, lane.settings)
+            assert counts["orphan"] == 1 and lane.objects.deleted.count(key) == 2
+            await verify_ledger(key)
+        if finish_after == "parent-delete":
+            assert (await lane.clients[0].delete(f"/jobs/{parent_id}")).status_code == 204
+            assert parent_asset.source_key not in lane.objects.sources
+        # Complete only after HTTP failure, optionally after recovery and parent deletion.
+        release.set()
+        await asyncio.wait_for(completed.wait(), 5)
+        assert lane.objects.sources[key] == VIDEO
+        assert (await reconcile(fresh_factory, lane.peer, lane.objects, lane.settings))[
+            "orphan"
+        ] == 0
+        assert key in lane.objects.sources
+        await age(key)
+        assert (await reconcile(fresh_factory, lane.peer, lane.objects, lane.settings))[
+            "orphan"
+        ] == 1
+        assert key not in lane.objects.sources
+        await verify_ledger(key)
+
+        # Even another late completion after cleanup remains discoverable.
+        lane.objects.sources[key] = pending[key]
+        await age(key)
+        assert (await reconcile(fresh_factory, lane.peer, lane.objects, lane.settings))[
+            "orphan"
+        ] == 1
+        assert key not in lane.objects.sources
+        await verify_ledger(key)
+        assert (await reconcile(fresh_factory, lane.peer, lane.objects, lane.settings))[
+            "orphan"
+        ] == 0
+        assert healthy_asset.source_key in lane.objects.sources
+        assert healthy_asset.source_key not in lane.objects.deleted
+        if finish_after != "parent-delete":
+            assert parent_asset.source_key in lane.objects.sources
+            assert parent_asset.source_key not in lane.objects.deleted
+
+        # A replacement application/pool still serves the healthy adopted child.
+        fresh_app = create_app()
+        fresh_app.state.engine = fresh_engine
+        fresh_app.state.http_client = lane.app.state.http_client
+        fresh_app.dependency_overrides.update(lane.app.dependency_overrides)
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=fresh_app),
+            base_url="https://media.test",
+            cookies=lane.clients[0].cookies,
+        ) as client:
+            assert (await client.get(f"/jobs/{healthy_id}")).status_code == 200
+    finally:
+        release.set()
+        await asyncio.gather(*writers)
+        await fresh_engine.dispose()
+
+
+@pytest.mark.parametrize("operation", ["upload", "edit"])
+async def test_completed_stage_cleanup_before_adoption_cannot_accept_missing_source(
+    lane, monkeypatch, operation
+):
+    from media.services import intake, lifecycle
+
+    if operation == "edit":
+        parent_id = await upload(lane)
+        await done(lane, parent_id)
+    original_accept = intake.accept
+    keys = []
+
+    async def delayed_accept(session, storage, asset, *args):
+        keys.append(asset.source_key)
+        async with lane.factory() as independent:
+            stage = await independent.get(StagedObject, asset.source_key)
+            assert stage is not None and not stage.write_uncertain
+            stage.created_at = now() - timedelta(hours=2)
+            await independent.commit()
+        assert (await reconcile(lane.factory, lane.peer, lane.objects, lane.settings))[
+            "orphan"
+        ] == 1
+        return await original_accept(session, storage, asset, *args)
+
+    monkeypatch.setattr(intake, "accept", delayed_accept)
+    monkeypatch.setattr(lifecycle, "accept", delayed_accept)
+    key = uuid4()
+    if operation == "upload":
+        response = await lane.clients[0].post(
+            "/upload",
+            files={"file": ("expired.mp4", VIDEO, "video/mp4")},
+            headers={"Idempotency-Key": str(key)},
+        )
+    else:
+        response = await lane.clients[0].post(
+            f"/jobs/{parent_id}/edit",
+            json={"operations": [{"operation": "clip", "params": {"start": 0, "end": 3}}]},
+            headers={"Idempotency-Key": str(key)},
+        )
+    assert response.status_code == 503
+    (source,) = keys
+    assert source not in lane.objects.sources
+    async with lane.factory() as session:
+        assert await session.get(StagedObject, source) is None
+        assert await session.scalar(select(Asset.id).where(Asset.source_key == source)) is None
+        assert await session.get(RequestKey, (lane.users[0].id, operation, key)) is None
