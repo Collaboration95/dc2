@@ -1,5 +1,5 @@
 {
-  "stage": "foundation-in-progress",
+  "stage": "foundation-cache-correction",
   "baseline": "b32d489566144202fbf6fc3887ce25d5321444fd",
   "project": {
     "id": "PVT_kwHOBBatWM4Bmtkx",
@@ -29,31 +29,42 @@
     },
     "F1": {
       "number": 9,
-      "state": "In progress",
-      "pr": null,
+      "state": "Done",
+      "pr": 26,
       "evidence": [
-        "Foundation worktree and coordinator infrastructure lane started after planning merge."
+        "Foundation worktree and coordinator infrastructure lane started after planning merge.",
+        "PR26 localfoundationchecks pass; independentreview and remoteCI pending.",
+        "PR26 merged; independent foundation PASS and all13CIchecks pass on3ed9d03."
       ]
     },
     "F2": {
       "number": 10,
       "state": "In progress",
-      "pr": null,
+      "pr": 26,
       "evidence": [
-        "Foundation worktree and coordinator infrastructure lane started after planning merge."
+        "Foundation worktree and coordinator infrastructure lane started after planning merge.",
+        "PR26 localfoundationchecks pass; independentreview and remoteCI pending.",
+        "PR26 merged; independent foundation PASS and all13CIchecks pass on3ed9d03.",
+        "FinalreviewaddedP2MinIOcachefinding duringPR26merge; correctivePRrequired beforeproductwave."
       ]
     },
     "F3": {
       "number": 11,
-      "state": "Backlog",
-      "pr": null,
-      "evidence": []
+      "state": "Done",
+      "pr": 26,
+      "evidence": [
+        "PR26 localfoundationchecks pass; independentreview and remoteCI pending.",
+        "PR26 merged; independent foundation PASS and all13CIchecks pass on3ed9d03."
+      ]
     },
     "P1": {
       "number": 12,
       "state": "Backlog",
       "pr": null,
-      "evidence": []
+      "evidence": [
+        "Foundation merged; frozen interfaces and localruntime/testgates available.",
+        "ProductwaveheldforF2cachecorrection andfinalreview."
+      ]
     },
     "P2": {
       "number": 13,
@@ -71,7 +82,10 @@
       "number": 15,
       "state": "Backlog",
       "pr": null,
-      "evidence": []
+      "evidence": [
+        "Foundation merged; frozen interfaces and localruntime/testgates available.",
+        "ProductwaveheldforF2cachecorrection andfinalreview."
+      ]
     },
     "M2": {
       "number": 16,
@@ -89,13 +103,19 @@
       "number": 18,
       "state": "Backlog",
       "pr": null,
-      "evidence": []
+      "evidence": [
+        "Foundation merged; frozen interfaces and localruntime/testgates available.",
+        "ProductwaveheldforF2cachecorrection andfinalreview."
+      ]
     },
     "C2": {
       "number": 19,
       "state": "Backlog",
       "pr": null,
-      "evidence": []
+      "evidence": [
+        "Foundation merged; frozen interfaces and localruntime/testgates available.",
+        "ProductwaveheldforF2cachecorrection andfinalreview."
+      ]
     },
     "V1": {
       "number": 20,
@@ -140,6 +160,19 @@
       "state": "merged",
       "review": "PASS: docs/execution/reviews/planning-rereview.md",
       "merge_commit": "6ea8b9b"
+    },
+    {
+      "number": 26,
+      "url": "https://github.com/Collaboration95/dc2/pull/26",
+      "group": "foundation",
+      "issues": [
+        "F1",
+        "F2",
+        "F3"
+      ],
+      "state": "merged-with-follow-up",
+      "review": "InitialPASS amended by lateR1cachefinding; F2/E1reopened for correction",
+      "merge_commit": "dbc9a4bb7adc4234b60178f78f115b98acd5232e"
     }
   ],
   "limitations": [

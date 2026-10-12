@@ -250,7 +250,33 @@ jobs:
           sudo apt-get install -y libnss3-tools
           .venv/bin/python -m playwright install-deps firefox
       - run: make browser-install RUN_ID=ci-trust
+      - name: Prepare pinned storage build
+        id: storage
+        run: |
+          .venv/bin/python - <<'PY'
+          import os
+          from scripts.dev.runtime import configure, fetch_minio
+          env, state = configure('ci-trust')
+          fetch_minio()
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('image=' + env['DC2_MINIO_IMAGE'] + '\n')
+          PY
+      - uses: docker/setup-buildx-action@v3
+      - name: Restore or build pinned storage image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/dast/minio.Dockerfile
+          build-contexts: minio_source=.cache/minio/20960b6a2ddb9594ee418035b3c7c7fe92ae6a12
+          load: true
+          tags: ${{ steps.storage.outputs.image }}
+          cache-from: |
+            type=gha,scope=browser-minio
+            type=gha,scope=integration-minio
+          cache-to: type=gha,scope=browser-minio,mode=max
       - run: make up RUN_ID=ci-trust
+        env:
+          DC2_USE_PREBUILT_MINIO: '1'
       - run: make smoke-infra RUN_ID=ci-trust
       # Parent helper seeds a temporary Firefox NSS profile with the project CA.
       # Certificates.Install was ignored under automation; verification remains enabled.
