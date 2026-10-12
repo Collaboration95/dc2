@@ -885,3 +885,49 @@ async def test_playback_grant_serializes_before_tombstone_and_later_reads_are_de
         await asyncio.gather(
             reading, *([deleting] if deleting is not None else []), return_exceptions=True
         )
+
+
+async def test_lost_database_commit_ack_does_not_discard_adopted_source(lane, monkeypatch):
+    from contextlib import asynccontextmanager
+
+    from media.services import intake
+
+    asset_id, key = uuid4(), uuid4()
+    source_key = f"sources/{lane.users[0].id}/{asset_id}/committed.mp4"
+    lane.objects.sources[source_key] = VIDEO
+    asset = Asset(
+        id=asset_id,
+        owner_id=lane.users[0].id,
+        filename="committed.mp4",
+        source_key=source_key,
+        source_revision=1,
+        source_sha256=hashlib.sha256(VIDEO).hexdigest(),
+        source_size_bytes=len(VIDEO),
+        source_media_type="video/mp4",
+        operations=[],
+    )
+    async with lane.factory() as session:
+        await intake.stage(session, source_key)
+        real_begin, calls = session.begin, []
+
+        @asynccontextmanager
+        async def lost_commit_ack():
+            async with real_begin():
+                yield
+            raise OSError("controlled commit acknowledgement loss")
+
+        def begin():
+            calls.append(1)
+            return lost_commit_ack() if len(calls) == 1 else real_begin()
+
+        monkeypatch.setattr(session, "begin", begin)
+        with pytest.raises(OSError):
+            await intake.accept(session, lane.objects, asset, "upload", key, "a" * 64)
+    committed = await row(lane, str(asset_id))
+    assert committed.source_key == source_key
+    assert lane.objects.sources[source_key] == VIDEO and source_key not in lane.objects.deleted
+    async with lane.factory() as session:
+        assert await session.get(StagedObject, source_key) is None
+        assert (
+            await session.get(RequestKey, (lane.users[0].id, "upload", key))
+        ).asset_id == asset_id

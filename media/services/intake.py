@@ -3,7 +3,7 @@ import re
 from pathlib import PurePosixPath
 from uuid import uuid4
 
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from starlette.concurrency import run_in_threadpool
 
@@ -56,14 +56,21 @@ async def stage(session, key):
 
 
 async def discard_stage(session, storage, key):
-    # Only this request's UUID key is discarded. Failure leaves durable orphan
-    # cleanup evidence; never clean the winning request's object on a replay.
+    # An intake commit acknowledgement can be lost after the Asset was adopted.
+    # Lock its reservation and verify non-adoption before deleting any bytes.
+    # Missing reservation means adoption or completed cleanup, never permission
+    # to discard a durable source. DB unavailability leaves janitor evidence.
     try:
-        await storage.delete_source(key)
+        async with session.begin():
+            staged = await session.get(StagedObject, key, with_for_update=True)
+            if staged is None:
+                return
+            adopted = await session.scalar(select(Asset.id).where(Asset.source_key == key))
+            if adopted is None:
+                await storage.delete_source(key)
+            await session.execute(delete(StagedObject).where(StagedObject.key == key))
     except Exception:
         return
-    async with session.begin():
-        await session.execute(delete(StagedObject).where(StagedObject.key == key))
 
 
 async def accept(session, storage, asset, operation, key, digest):

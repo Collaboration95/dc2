@@ -21,8 +21,8 @@ async def transaction():
 def session():
     mock = MagicMock()
     mock.begin.side_effect = transaction
-    mock.get = AsyncMock()
-    mock.scalar = AsyncMock()
+    mock.get = AsyncMock(return_value=None)
+    mock.scalar = AsyncMock(return_value=None)
     mock.scalars = AsyncMock()
     mock.execute = AsyncMock()
     mock.flush = AsyncMock()

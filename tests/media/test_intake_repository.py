@@ -77,6 +77,7 @@ async def test_replay_never_resurrects_tombstones_or_changes_sources(session, as
 
 
 async def test_stage_discard_failure_retains_crash_cleanup_intent(session, storage):
+    session.get.return_value = StagedObject(key="own-stage")
     await intake.stage(session, "own-stage")
     assert isinstance(session.add.call_args.args[0], StagedObject)
     storage.delete_source.side_effect = OSError()
@@ -90,6 +91,7 @@ async def test_stage_discard_failure_retains_crash_cleanup_intent(session, stora
 async def test_accept_race_discards_only_loser_and_returns_winner(
     session, storage, asset, monkeypatch
 ):
+    session.get.return_value = StagedObject(key=asset.source_key)
     session.flush.side_effect = IntegrityError(
         "insert", {}, Exception("controlled unique collision")
     )
@@ -104,6 +106,7 @@ async def test_accept_unrelated_constraint_or_commit_failure_has_no_false_succes
     session, storage, asset, monkeypatch
 ):
     monkeypatch.setattr(intake, "replay", AsyncMock(return_value=None))
+    session.get.return_value = StagedObject(key=asset.source_key)
     session.flush.side_effect = IntegrityError("insert", {}, Exception("controlled rejection"))
     with pytest.raises(MediaError):
         await intake.accept(session, storage, asset, "upload", uuid4(), "digest")
@@ -137,8 +140,19 @@ async def test_upload_storage_loss_discards_own_staged_object(
     session, storage, user, upload_file, monkeypatch
 ):
     monkeypatch.setattr(intake, "replay", AsyncMock(return_value=None))
+    session.get.return_value = StagedObject(key="pending")
     storage.put_source.side_effect = OSError()
     with pytest.raises(MediaError) as error:
         await intake.upload(session, storage, user.id, upload_file, None)
     assert error.value.status_code == 503
     assert storage.delete_source.call_args.args[0] == storage.put_source.call_args.args[0]
+
+
+async def test_discard_never_deletes_an_adopted_source_or_missing_reservation(session, storage):
+    session.get.return_value = None
+    await intake.discard_stage(session, storage, "durable-source")
+    storage.delete_source.assert_not_awaited()
+    session.get.return_value = StagedObject(key="durable-source")
+    session.scalar.return_value = uuid4()
+    await intake.discard_stage(session, storage, "durable-source")
+    storage.delete_source.assert_not_awaited()
