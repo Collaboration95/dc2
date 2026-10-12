@@ -277,9 +277,9 @@
     }
   ],
   "limitations": [
-    "Final macOS verify/recovery and live V4 remain pending while the measurement VM is isolated.",
-    "Full fair scaling is in progress on frozen621c03a; full status/login follows only after scaling passes. No final V3 claim yet.",
-    "Actual Linux full workflow passed in CI38300284726; retained evidence under docs/execution/evidence/linux-ci-38300284726."
+    "First full scaling invocation failed after one-hour owner session expiry during eighth-batch preparation. Seven completed batches remain diagnostic; no full acceptance claim.",
+    "Session renewal correction2cb8da8 requires a fresh full nine-batch run. Final root workflow/recovery/release now run before the corrected measurements.",
+    "Project-local VM disk has10.6GiB free; expand its sparse disk40to64GiB after live checks to retain failed data and fit a fresh full run. CPU/memory quotas unchanged."
   ],
   "aws_actions_performed": false,
   "active_worktrees": [
@@ -287,13 +287,13 @@
       "branch": "wave/03-local-acceptance",
       "path": ".",
       "owner": "coordinator",
-      "scope": "Final accepted runner corrections, CI, evidence and handoff"
+      "scope": "Final local verification/recovery/release at2cb8da8; preserveHEAD untilreleaseproof completes"
     },
     {
-      "branch": "work/integration",
-      "path": ".worktrees/integration",
-      "owner": "coordinator",
-      "scope": "Frozen621c03a; serialized full scaling then latency; no competing VM workloads"
+      "branch": "review/scaling-session",
+      "path": ".worktrees/scaling-session-review",
+      "owner": "Nietzsche Solxhigh",
+      "scope": "Bounded offline session-expiry correction rereview"
     }
   ]
 }

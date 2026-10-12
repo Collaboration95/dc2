@@ -177,7 +177,9 @@ def browser_workflow(scenario):
         page = browser.new_page()
         page.set_default_timeout(15000)
         media = BrowserMediaRequests()
-        page.on("response", media.seen)
+        # Native HLS can announce a response before Chromium exposes its body.
+        # Only completed requests can supply the playlist/segment graph.
+        page.on("requestfinished", lambda request: media.seen(request.response()))
 
         def request_seen(request):
             path = urlparse(request.url).path

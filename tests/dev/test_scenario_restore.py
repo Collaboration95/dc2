@@ -145,9 +145,10 @@ def test_callable_workflow_arms_guard_before_fault(
     if workflow is e2e_clients.browser_workflow:
         from contextlib import nullcontext
 
+        page_events = []
         page = SimpleNamespace(
             set_default_timeout=lambda _: None,
-            on=lambda *a: None,
+            on=lambda event, callback: page_events.append(event),
             goto=lambda *a, **kw: None,
             evaluate=lambda _: True,
         )
@@ -164,6 +165,8 @@ def test_callable_workflow_arms_guard_before_fault(
         else:
             workflow(scenario, tmp_path / "controlled.mp4")
     assert caught.value is error
+    if workflow is e2e_clients.browser_workflow:
+        assert "requestfinished" in page_events and "response" not in page_events
     assert stack.active == stack.counts
     assert tuple(row["service"] for row in stack.events[-1]["outcomes"]) == services
     fault_index = next(i for i, args in enumerate(stack.calls) if args[0] in ("stop", "kill"))
