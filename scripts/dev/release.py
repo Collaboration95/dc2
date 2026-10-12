@@ -431,7 +431,7 @@ asyncio.run(main())
             (ids,),
         )
 
-    def drain(self):
+    def drain(self, *, expected_attempt=None):
         started = time.monotonic()
         before = self.active_attempts()
         self.operation["drain"] = {
@@ -442,6 +442,21 @@ asyncio.run(main())
         }
         self.operation.setdefault("drain_history", []).append(self.operation["drain"])
         self.save()
+        if expected_attempt is not None:
+            captured = next((row for row in before if row["id"] == expected_attempt), None)
+            if (
+                not captured
+                or captured["state"] != "processing"
+                or captured["job_status"] != "processing"
+                or captured["finished"]
+                or captured["current_attempt_id"] != expected_attempt
+            ):
+                raise ReleaseError(
+                    "evidence upload is no longer processing immediately before drain"
+                )
+            self.operation["active_work"]["captured_attempt"] = captured
+            self.operation["active_work"]["captured_at"] = utcnow()
+            self.save()
         # Recovery remains running to make interrupted leases visibly failed.
         self.compose("stop", "--timeout", "60", "worker", cap=70)
         # A worker can claim one last attempt between SELECT and SIGTERM.
@@ -812,7 +827,7 @@ asyncio.run(main())
         self.operation["processing_revisions_after_rollback"] = revisions
         self.save()
 
-    def release(self, *, additive=False, bad_from=None):
+    def release(self, *, additive=False, bad_from=None, active_work=False):
         self.begin("injected-release" if bad_from else "release", RELEASE_SECONDS)
         prior = None
         try:
@@ -846,6 +861,13 @@ asyncio.run(main())
             self.step("migration-policy", lambda: self.migration_check(previous, source, additive))
             if self.source() != source:
                 raise ReleaseError("source changed before deployment")
+            # Evidence only: baseline smoke and all candidate proof gates have
+            # finished before introducing real work. Keep HTTP cookies in memory.
+            request = None
+            if active_work:
+                request = self.step(
+                    "evidence-public-upload", lambda: public_smoke(self, prepare_drain=True)
+                )
             pending = {
                 "previous": prior,
                 "candidate": image,
@@ -855,7 +877,14 @@ asyncio.run(main())
             }
             self.journal["pending"] = pending
             self.save()  # Crash recovery intent is durable before any mutation.
-            self.step("worker-drain", self.drain)
+            self.step(
+                "worker-drain",
+                (lambda: self.drain(expected_attempt=self.operation["active_work"]["attempt_id"]))
+                if active_work
+                else self.drain,
+            )
+            if active_work:
+                self.step("evidence-public-outcome", lambda: public_drain_outcome(self, request))
             self.step("candidate-apply", lambda: self.apply(image, workers, migrate=True))
             proof["smoke"] = self.step("candidate-public-smoke", self.smoke)
             self.step("media-unchanged", lambda: self.unchanged(media))
@@ -926,14 +955,15 @@ asyncio.run(main())
 
     def evidence(self, additive=False):
         started = time.monotonic()
-        if self.release(additive=additive):
+        if self.release(additive=additive, active_work=True):
             return 1
         good = self.operation
         good_image = self.journal["current"]
         result = self.release(bad_from=good_image)
         bad = self.operation
         passed = (
-            result == 2
+            active_drain_evidence(good)
+            and result == 2
             and bad["status"] == "failed_rolled_back"
             and self.journal["current"] == good_image
             and self.journal["pending"] is None
@@ -961,6 +991,8 @@ asyncio.run(main())
             "restored_image": self.journal["current"],
             "bad_release_exit": result,
             "candidate_failure": bad.get("candidate_failure"),
+            "active_work": good.get("active_work"),
+            "good_drain": good.get("drain"),
         }
         atomic_json(self.directory / ("experiment-" + good["id"] + ".json"), evidence)
         return 0 if passed else 1
@@ -1010,7 +1042,67 @@ def require_tested(proof, image):
         raise ReleaseError("rollback image lacks exact source fingerprint test evidence")
 
 
-def public_smoke(runner):
+def active_drain_evidence(operation):
+    """An idle drain or a different upload cannot satisfy the experiment."""
+    work = operation.get("active_work", {})
+    attempt = work.get("attempt_id")
+    captured = work.get("captured_attempt", {})
+    terminal = work.get("terminal_attempt", {})
+    drain = operation.get("drain", {})
+    return bool(
+        attempt
+        and work.get("job_id")
+        and work.get("asset_id")
+        and work.get("public_processing_at")
+        and work.get("captured_at")
+        and captured.get("id") == attempt
+        and captured.get("state") == "processing"
+        and captured.get("job_status") == "processing"
+        and captured.get("current_attempt_id") == attempt
+        and not captured.get("finished", True)
+        and captured in drain.get("attempts_before", [])
+        and terminal.get("id") == attempt
+        and terminal in drain.get("attempts_after", [])
+        and terminal_attempt(terminal)
+        and work.get("public_terminal_status") == terminal.get("job_status")
+        and work.get("public_terminal_status") in ("done", "failed")
+        and (work["public_terminal_status"] != "failed" or work.get("public_has_error"))
+        and work.get("public_terminal_at")
+        and work.get("deleted_at")
+        and drain.get("finished_at")
+    )
+
+
+def public_drain_outcome(runner, request):
+    work = runner.operation["active_work"]
+    rows = runner.operation["drain"]["attempts_after"]
+    terminal = next((row for row in rows if row["id"] == work["attempt_id"]), None)
+    if not terminal or not terminal_attempt(terminal):
+        raise ReleaseError("evidence upload has no captured terminal attempt")
+    work["terminal_attempt"] = terminal
+    runner.save()
+    while True:
+        job = request("/api/jobs/" + work["asset_id"])
+        status = job["status"]
+        if status in ("done", "failed"):
+            if status != terminal["job_status"] or (status == "failed" and not job.get("error")):
+                raise ReleaseError("evidence public outcome does not match the drained attempt")
+            work.update(
+                public_terminal_status=status,
+                public_has_error=bool(job.get("error")),
+                public_terminal_at=utcnow(),
+            )
+            runner.save()
+            break
+        if status not in ("queued", "processing"):
+            raise ReleaseError("evidence public outcome returned an unknown job state")
+        time.sleep(min(0.25, runner.remaining()))
+    request("/api/jobs/" + work["asset_id"], method="DELETE", expected=204)
+    work["deleted_at"] = utcnow()
+    runner.save()
+
+
+def public_smoke(runner, *, prepare_drain=False):
     """Real upload, durable processing and playable bytes through Media HTTPS only."""
     base = runner.state["public_url"]
     parsed = urlsplit(base)
@@ -1031,7 +1123,7 @@ def public_smoke(runner):
         urllib.request.HTTPSHandler(context=context),
         LocalRedirects(),
     )
-    deadline = min(runner.deadline, time.monotonic() + 90)
+    deadline = runner.deadline if prepare_drain else min(runner.deadline, time.monotonic() + 90)
 
     def request(path, *, method="GET", data=None, headers=None, expected=200, raw=False):
         # Permit capabilities only on this run's TLS origin, never arbitrary hosts.
@@ -1041,7 +1133,11 @@ def public_smoke(runner):
             raise ReleaseError("smoke playback URL is outside the local HTTPS origin")
         left = min(runner.remaining(10), deadline - time.monotonic())
         if left <= 0:
-            raise ReleaseError("public workflow smoke exceeded 90 seconds")
+            raise ReleaseError(
+                "public evidence workflow deadline exceeded"
+                if prepare_drain
+                else "public workflow smoke exceeded 90 seconds"
+            )
         try:
             with opener.open(
                 urllib.request.Request(url, data=data, headers=headers or {}, method=method),
@@ -1088,10 +1184,13 @@ def public_smoke(runner):
                 "-f",
                 "lavfi",
                 "-i",
-                "color=c=blue:s=160x90:r=10:d=1",
+                "testsrc2=size=1280x720:rate=24:duration=30"
+                if prepare_drain
+                else "color=c=blue:s=160x90:r=10:d=1",
                 "-an",
                 "-c:v",
                 "libx264",
+                *(["-preset", "ultrafast"] if prepare_drain else []),
                 "-threads",
                 "1",
                 "-pix_fmt",
@@ -1104,7 +1203,7 @@ def public_smoke(runner):
                 "+bitexact",
                 str(fixture),
             ],
-            cap=10,
+            cap=30 if prepare_drain else 10,
         )
         video = fixture.read_bytes()
         boundary = "dc2-release-" + uuid.uuid4().hex
@@ -1124,6 +1223,39 @@ def public_smoke(runner):
             expected=202,
         )
         asset = str(uuid.UUID(accepted["job_id"]))
+        if prepare_drain:
+            work = {
+                "asset_id": asset,
+                "uploaded_at": utcnow(),
+                "fixture_sha256": hashlib.sha256(video).hexdigest(),
+                "fixture_seconds": 30,
+                "fixture_width": 1280,
+                "fixture_height": 720,
+            }
+            runner.operation["active_work"] = work
+            runner.save()
+            while True:
+                job = request("/api/jobs/" + asset)
+                if job["status"] not in ("queued", "processing"):
+                    raise ReleaseError("evidence upload finished before processing confirmation")
+                if job["status"] == "processing":
+                    rows = runner.diagnostic(
+                        "processing",
+                        """SELECT j.id::text AS job_id, a.id::text AS attempt_id
+                        FROM jobs j JOIN attempts a ON a.id=j.current_attempt_id
+                        WHERE j.asset_id=$1::uuid AND j.status='processing'
+                        AND a.state='processing' AND a.finished_at IS NULL""",
+                        (asset,),
+                    )
+                    if len(rows) == 1:
+                        work.update(
+                            job_id=str(uuid.UUID(rows[0]["job_id"])),
+                            attempt_id=str(uuid.UUID(rows[0]["attempt_id"])),
+                            public_processing_at=utcnow(),
+                        )
+                        runner.save()
+                        return request
+                time.sleep(min(0.25, runner.remaining()))
         while True:
             job = request("/api/jobs/" + asset)
             if job["status"] == "failed":

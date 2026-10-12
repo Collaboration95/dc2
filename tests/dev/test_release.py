@@ -116,7 +116,7 @@ def arrange(runner, monkeypatch, *, failed_image=None, failed_smoke=False):
 
     monkeypatch.setattr(runner, "scan", scan)
     monkeypatch.setattr(runner, "migration_check", lambda *args: None)
-    monkeypatch.setattr(runner, "drain", lambda: None)
+    arrange_active_work(runner, monkeypatch)
 
     def apply(image, workers, *, migrate):
         # Observe recovery intent on disk at the actual mutation boundary.
@@ -138,6 +138,40 @@ def arrange(runner, monkeypatch, *, failed_image=None, failed_smoke=False):
 
     monkeypatch.setattr(runner, "smoke", smoke)
     return state
+
+
+ASSET = "12345678-1234-1234-1234-123456789abc"
+JOB = "22345678-1234-1234-1234-123456789abc"
+ATTEMPT = "32345678-1234-1234-1234-123456789abc"
+
+
+def arrange_active_work(runner, monkeypatch):
+    """Real evidence drain/outcome; mock public upload and service boundaries."""
+    active = interrupted_attempt(ATTEMPT)
+    terminal = {**active, "state": "succeeded", "finished": True, "job_status": "done"}
+
+    def prepare(runner, *, prepare_drain):
+        assert prepare_drain
+        assert runner.journal["pending"] is None
+        assert runner.operation["candidate_proof"]["scan"]
+        assert any(step["name"] == "baseline-public-smoke" for step in runner.operation["steps"])
+        runner.operation["active_work"] = {
+            "asset_id": ASSET,
+            "job_id": JOB,
+            "attempt_id": ATTEMPT,
+            "public_processing_at": release.utcnow(),
+        }
+        runner.save()
+        return lambda *a, **kw: {"status": "done"}
+
+    monkeypatch.setattr(release, "public_smoke", prepare)
+    monkeypatch.setattr(runner, "active_attempts", lambda: [active])
+    monkeypatch.setattr(runner, "attempt_states", lambda ids: [terminal])
+    monkeypatch.setattr(
+        runner,
+        "drain",
+        lambda **kw: release.Runner.drain(runner, **kw) if kw else None,
+    )
 
 
 @pytest.mark.parametrize("image", ["latest", "processing:tag", "sha256:short", GOOD.upper(), None])
@@ -1128,3 +1162,285 @@ def test_command_can_hash_merged_stderr_without_storing_fault_logs(runner, monke
         runner.operation["command_evidence"][0]["stdout_sha256"]
         == hashlib.sha256(output.encode()).hexdigest()
     )
+
+
+def test_evidence_upload_uses_public_http_and_persists_owned_ids(runner, monkeypatch):
+    calls, _ = arrange_http(runner, monkeypatch, job_statuses=["queued", "processing"])
+    commands = []
+    command = runner.command
+
+    def capture(args, **kw):
+        commands.append((args, kw))
+        return command(args, **kw)
+
+    def diagnostic(service, query, parameters):
+        assert service == "processing" and parameters == (ASSET,)
+        assert "j.asset_id=$1::uuid" in query and "a.id=j.current_attempt_id" in query
+        assert "a.finished_at IS NULL" in query
+        return [{"job_id": JOB, "attempt_id": ATTEMPT}]
+
+    monkeypatch.setattr(runner, "diagnostic", diagnostic)
+    monkeypatch.setattr(runner, "command", capture)
+    deadline = runner.deadline
+    request = release.public_smoke(runner, prepare_drain=True)
+    assert callable(request) and runner.deadline == deadline
+    work = json.loads(runner.journal_path.read_text())["operations"][-1]["active_work"]
+    assert (work["asset_id"], work["job_id"], work["attempt_id"]) == (ASSET, JOB, ATTEMPT)
+    assert work["fixture_seconds"] == 30 and work["public_processing_at"]
+    assert commands[0][0][commands[0][0].index("-i") + 1].endswith(":duration=30")
+    assert commands[0][1]["cap"] == 30
+    assert not any(call[0] == "DELETE" or call[1] == "/output.mp4" for call in calls)
+    assert "private-cookie" not in runner.journal_path.read_text()
+    assert "private-url" not in runner.journal_path.read_text()
+
+
+@pytest.mark.parametrize("statuses", [["done"], ["failed"], ["unknown"]])
+def test_evidence_cannot_prepare_already_finished_upload(runner, monkeypatch, statuses):
+    calls, _ = arrange_http(runner, monkeypatch, job_statuses=statuses)
+    monkeypatch.setattr(runner, "diagnostic", lambda *a: pytest.fail("terminal upload queried"))
+    with pytest.raises(release.ReleaseError, match="before processing confirmation"):
+        release.public_smoke(runner, prepare_drain=True)
+    assert runner.operation["active_work"]["asset_id"] == ASSET
+    assert "attempt_id" not in runner.operation["active_work"]
+    assert sum(call[1] == "/api/upload" for call in calls) == 1
+
+
+def test_processing_public_status_alone_does_not_confirm_attempt(runner, monkeypatch):
+    arrange_http(runner, monkeypatch, job_statuses=["processing", "done"])
+    monkeypatch.setattr(runner, "diagnostic", lambda *a: [])
+    with pytest.raises(release.ReleaseError, match="before processing confirmation"):
+        release.public_smoke(runner, prepare_drain=True)
+    assert "attempt_id" not in runner.operation["active_work"]
+
+
+def test_evidence_processing_poll_stays_within_original_release_deadline(runner, monkeypatch):
+    calls, _ = arrange_http(runner, monkeypatch, job_statuses=["queued"])
+    deadline = runner.deadline
+
+    def expire(_):
+        runner.deadline = time.monotonic() - 1
+
+    monkeypatch.setattr(release.time, "sleep", expire)
+    with pytest.raises(release.ReleaseError, match="overall operation deadline"):
+        release.public_smoke(runner, prepare_drain=True)
+    assert runner.deadline < deadline
+    assert sum(call[1] == "/api/upload" for call in calls) == 1
+
+
+def test_ordinary_release_never_prepares_evidence_work(runner, monkeypatch):
+    arrange(runner, monkeypatch)
+    monkeypatch.setattr(release, "public_smoke", lambda *a, **kw: pytest.fail("evidence upload"))
+    assert runner.release() == 0
+    assert "active_work" not in runner.operation
+    assert not any(step["name"].startswith("evidence-") for step in runner.operation["steps"])
+
+
+def test_evidence_upload_is_after_baseline_build_scan_source_and_before_pending(
+    runner, monkeypatch
+):
+    arrange(runner, monkeypatch)
+    prepare = release.public_smoke
+
+    def check(runner, **kw):
+        names = [step["name"] for step in runner.operation["steps"]]
+        assert names.index("baseline-public-smoke") < names.index("build")
+        assert (
+            names.index("build")
+            < names.index("migration-policy")
+            < names.index("evidence-public-upload")
+        )
+        assert names.count("trivy") == 2 and runner.journal["pending"] is None
+        assert runner.operation["limit_seconds"] == 600
+        return prepare(runner, **kw)
+
+    monkeypatch.setattr(release, "public_smoke", check)
+    assert runner.release(active_work=True) == 0
+    assert release.active_drain_evidence(runner.operation)
+    names = [step["name"] for step in runner.operation["steps"]]
+    assert names.index("worker-drain") < names.index("evidence-public-outcome")
+    assert names.index("evidence-public-outcome") < names.index("candidate-public-smoke")
+
+
+def test_failed_candidate_scan_prevents_evidence_upload(runner, monkeypatch):
+    arrange(runner, monkeypatch)
+    scan = runner.scan
+
+    def reject(image):
+        if image == GOOD:
+            raise release.ReleaseError("scan unavailable")
+        return scan(image)
+
+    monkeypatch.setattr(runner, "scan", reject)
+    monkeypatch.setattr(release, "public_smoke", lambda *a, **kw: pytest.fail("upload before scan"))
+    assert runner.release(active_work=True) == 1
+    assert runner.journal["pending"] is None
+
+
+@pytest.mark.parametrize("change", ["idle", "other", "finished", "retried", "job-done"])
+def test_evidence_requires_exact_processing_attempt_at_stop_boundary(runner, monkeypatch, change):
+    runner.begin("test", 600)
+    row = interrupted_attempt(ATTEMPT)
+    rows = [row]
+    if change == "idle":
+        rows = []
+    elif change == "other":
+        row["id"] = "other"
+    elif change == "finished":
+        row["finished"] = True
+    elif change == "retried":
+        row["current_attempt_id"] = "replacement"
+    else:
+        row["job_status"] = "done"
+    runner.operation["active_work"] = {"attempt_id": ATTEMPT}
+    monkeypatch.setattr(runner, "active_attempts", lambda: rows)
+    monkeypatch.setattr(runner, "compose", lambda *a, **kw: pytest.fail("stop after lost capture"))
+    with pytest.raises(release.ReleaseError, match="immediately before drain"):
+        runner.drain(expected_attempt=ATTEMPT)
+    assert "captured_attempt" not in runner.operation["active_work"]
+
+
+@pytest.mark.parametrize("status", ["done", "failed"])
+def test_evidence_captures_real_drain_and_public_terminal_before_delete(
+    runner, monkeypatch, status
+):
+    arrange(runner, monkeypatch)
+    prepare = release.public_smoke
+    terminal = {
+        **interrupted_attempt(ATTEMPT),
+        "state": "succeeded" if status == "done" else "abandoned",
+        "finished": True,
+        "job_status": status,
+        "has_error": status == "failed",
+        "attempt_error": "worker interrupted" if status == "failed" else None,
+    }
+    monkeypatch.setattr(runner, "attempt_states", lambda ids: [terminal])
+    calls = []
+
+    def upload(runner, **kw):
+        prepare(runner, **kw)
+        statuses = iter(["processing", status])
+
+        def request(path, **kwargs):
+            assert path == "/api/jobs/" + ASSET
+            calls.append(kwargs.get("method", "GET"))
+            if kwargs.get("method") == "DELETE":
+                disk = json.loads(runner.journal_path.read_text())["operations"][-1]["active_work"]
+                assert disk["public_terminal_status"] == status
+                assert disk["terminal_attempt"] == terminal
+                assert "deleted_at" not in disk and kwargs["expected"] == 204
+                return b""
+            return {
+                "status": next(statuses),
+                "error": "private-error" if status == "failed" else None,
+            }
+
+        return request
+
+    monkeypatch.setattr(release, "public_smoke", upload)
+    monkeypatch.setattr(release.time, "sleep", lambda _: None)
+    assert runner.release(active_work=True) == 0
+    assert calls == ["GET", "GET", "DELETE"]
+    assert release.active_drain_evidence(runner.operation)
+    assert "private-error" not in runner.journal_path.read_text()
+    assert runner.operation["drain"]["grace_seconds"] == 60
+
+
+@pytest.mark.parametrize("reply", [{"status": "failed"}, {"status": "unexpected"}])
+def test_unproven_public_outcome_rolls_back_and_cannot_pass(runner, monkeypatch, reply):
+    state = arrange(runner, monkeypatch)
+    prepare = release.public_smoke
+
+    def upload(runner, **kw):
+        prepare(runner, **kw)
+        return lambda *a, **kw: reply
+
+    monkeypatch.setattr(release, "public_smoke", upload)
+    assert runner.release(active_work=True) == 2
+    assert state["live"] == OLD and runner.journal["pending"] is None
+    assert not release.active_drain_evidence(runner.operation)
+
+
+def test_public_failed_outcome_requires_visible_error(runner, monkeypatch):
+    arrange(runner, monkeypatch)
+    runner.begin("test", 600)
+    terminal = {
+        **interrupted_attempt(ATTEMPT),
+        "state": "failed",
+        "finished": True,
+        "job_status": "failed",
+        "has_error": True,
+        "attempt_error": "interrupted",
+    }
+    runner.operation.update(
+        active_work={"attempt_id": ATTEMPT, "asset_id": ASSET},
+        drain={"attempts_after": [terminal]},
+    )
+    with pytest.raises(release.ReleaseError, match="does not match"):
+        release.public_drain_outcome(runner, lambda *a, **kw: {"status": "failed", "error": None})
+    assert "deleted_at" not in runner.operation["active_work"]
+
+
+@pytest.mark.parametrize("change", ["empty-before", "other-after", "no-public", "no-delete"])
+def test_experiment_rejects_vacuous_or_incomplete_good_drain(runner, monkeypatch, change):
+    arrange_candidate_startup(runner, monkeypatch)
+    actual = runner.release
+
+    def corrupt(**kwargs):
+        result = actual(**kwargs)
+        if kwargs.get("active_work"):
+            if change == "empty-before":
+                runner.operation["drain"]["attempts_before"] = []
+            elif change == "other-after":
+                runner.operation["drain"]["attempts_after"] = [interrupted_attempt("other")]
+            elif change == "no-public":
+                runner.operation["active_work"].pop("public_terminal_at")
+            else:
+                runner.operation["active_work"].pop("deleted_at")
+        return result
+
+    monkeypatch.setattr(runner, "release", corrupt)
+    assert runner.evidence() == 1
+    experiment = json.loads(next(runner.directory.glob("experiment-*.json")).read_text())
+    assert experiment["status"] == "failed" and experiment["bad_release_exit"] == 2
+
+
+def test_experiment_contains_nonempty_good_drain_and_public_outcome(runner, monkeypatch):
+    arrange_candidate_startup(runner, monkeypatch)
+    assert runner.evidence() == 0
+    experiment = json.loads(next(runner.directory.glob("experiment-*.json")).read_text())
+    assert experiment["active_work"]["attempt_id"] == ATTEMPT
+    assert experiment["active_work"]["terminal_attempt"]["id"] == ATTEMPT
+    assert experiment["active_work"]["public_terminal_status"] == "done"
+    assert experiment["good_drain"]["attempts_before"]
+    assert experiment["good_drain"]["attempts_after"]
+
+
+def test_successful_active_drain_adds_no_artificial_wait(runner, monkeypatch):
+    arrange(runner, monkeypatch)
+    monkeypatch.setattr(release.time, "sleep", lambda _: pytest.fail("unneeded delay"))
+    assert runner.release(active_work=True) == 0
+    assert release.active_drain_evidence(runner.operation)
+
+
+def test_public_terminal_poll_cannot_extend_promotion_deadline(runner, monkeypatch):
+    arrange_http(runner, monkeypatch, job_statuses=["processing", "queued"])
+    monkeypatch.setattr(runner, "diagnostic", lambda *a: [{"job_id": JOB, "attempt_id": ATTEMPT}])
+    request = release.public_smoke(runner, prepare_drain=True)
+    runner.operation["drain"] = {
+        "attempts_after": [
+            {
+                **interrupted_attempt(ATTEMPT),
+                "state": "succeeded",
+                "finished": True,
+                "job_status": "done",
+            }
+        ]
+    }
+
+    def expire(_):
+        runner.deadline = time.monotonic() - 1
+
+    monkeypatch.setattr(release.time, "sleep", expire)
+    with pytest.raises(release.ReleaseError, match="overall operation deadline"):
+        release.public_drain_outcome(runner, request)
+    assert "deleted_at" not in runner.operation["active_work"]
