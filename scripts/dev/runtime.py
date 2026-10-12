@@ -271,7 +271,18 @@ def fetch_minio():
 
 def images(state):
     fetch_minio()
-    compose(state, "build", "minio", "processing")
+    if os.environ.get("DC2_USE_PREBUILT_MINIO") == "1":
+        # CI loads a cached build of this exact pinned source before starting
+        # the runtime. Refuse an absent or differently sourced image.
+        image = read_env(Path(state["env_file"]))["DC2_MINIO_IMAGE"]
+        result = run(["docker", "image", "inspect", image], capture_output=True, text=True)
+        labels = json.loads(result.stdout)[0]["Config"].get("Labels") or {}
+        if labels.get("org.opencontainers.image.revision") != MINIO_COMMIT:
+            raise ValueError("Prebuilt MinIO image does not match the pinned source revision")
+        print("Reusing verified prebuilt MinIO image; source compilation skipped.")
+        compose(state, "build", "processing")
+    else:
+        compose(state, "build", "minio", "processing")
 
 
 def smoke(state):

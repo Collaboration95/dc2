@@ -135,3 +135,30 @@ def test_project_vm_selection_checks_health_and_stays_scoped(tmp_path, monkeypat
         assert host is None
     assert "DOCKER_CONTEXT" not in calls[0]["env"]
     assert os.environ["DOCKER_CONTEXT"] == "desktop-linux"
+
+
+@pytest.mark.parametrize("revision,accepted", [(runtime.MINIO_COMMIT, True), ("wrong", False)])
+def test_prebuilt_storage_requires_pinned_revision(tmp_path, monkeypatch, revision, accepted):
+    from types import SimpleNamespace
+
+    _, state = runtime.configure("cached", tmp_path)
+    monkeypatch.setenv("DC2_USE_PREBUILT_MINIO", "1")
+    monkeypatch.setattr(runtime, "fetch_minio", lambda: None)
+    monkeypatch.setattr(
+        runtime,
+        "run",
+        lambda *a, **kw: SimpleNamespace(
+            stdout=json.dumps(
+                [{"Config": {"Labels": {"org.opencontainers.image.revision": revision}}}]
+            )
+        ),
+    )
+    builds = []
+    monkeypatch.setattr(runtime, "compose", lambda state, *parts: builds.append(parts))
+    if accepted:
+        runtime.images(state)
+        assert builds == [("build", "processing")]
+    else:
+        with pytest.raises(ValueError, match="pinned source"):
+            runtime.images(state)
+        assert builds == []
