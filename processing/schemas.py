@@ -127,3 +127,13 @@ class ProcessingJob(BaseModel):
     error: str | None = None
     created_at: AwareDatetime
     updated_at: AwareDatetime
+
+
+class RetryJob(StrictObject):
+    retry_request_id: UUID
+
+
+class SourceAccess(StrictObject):
+    source_url: AnyUrl
+    expires_at: AwareDatetime
+    source: Source

@@ -2,12 +2,12 @@ import hashlib
 import json
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from processing.errors import ProcessingError
-from processing.models import Attempt, Job, SubmissionGuard, utcnow
+from processing.models import Attempt, Job, SubmissionGuard
 from processing.schemas import AttemptResponse, ProcessingJob, SubmitJob
 
 
@@ -33,7 +33,7 @@ def job_response(job: Job, attempt: Attempt) -> ProcessingJob:
             finished_at=attempt.finished_at,
             error=attempt.error,
         ),
-        outputs=[],
+        outputs=job.outputs or [],
         error=job.error,
         created_at=job.created_at,
         updated_at=job.updated_at,
@@ -80,7 +80,7 @@ async def submit_job(
             result = job_response(job, attempt)
             created = False
         else:
-            now = utcnow()
+            now = await session.scalar(select(func.clock_timestamp()))
             job_id, attempt_id = uuid4(), uuid4()
             job = Job(
                 id=job_id,

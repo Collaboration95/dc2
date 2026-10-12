@@ -44,7 +44,13 @@ def test_non_postgres_dsn_rejected():
 
 
 def test_models_have_only_processing_tables_and_foreign_keys():
-    assert set(Base.metadata.tables) == {"jobs", "attempts", "submission_guards"}
+    assert set(Base.metadata.tables) == {
+        "jobs",
+        "attempts",
+        "submission_guards",
+        "retry_requests",
+        "cleanup_intents",
+    }
     assert all(model.metadata is Base.metadata for model in (Job, Attempt, SubmissionGuard))
     for table in Base.metadata.tables.values():
         for fk in table.foreign_keys:

@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -38,6 +38,7 @@ class Job(Base):
             initially="DEFERRED",
         )
     )
+    outputs: Mapped[list] = mapped_column(JSONB, default=list, server_default=text("'[]'::jsonb"))
     error: Mapped[str | None]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -63,6 +64,34 @@ class Attempt(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     error: Mapped[str | None]
+
+    lease_token: Mapped[UUID | None]
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deadline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    dispatch_count: Mapped[int] = mapped_column(default=0, server_default="0")
+    next_dispatch_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    dispatch_error: Mapped[str | None]
+
+
+class RetryRequest(Base):
+    __tablename__ = "retry_requests"
+    __table_args__ = (UniqueConstraint("job_id", "request_id"),)
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    job_id: Mapped[UUID] = mapped_column(ForeignKey("jobs.id", ondelete="CASCADE"))
+    request_id: Mapped[UUID]
+    attempt_id: Mapped[UUID] = mapped_column(ForeignKey("attempts.id", ondelete="CASCADE"))
+
+
+class CleanupIntent(Base):
+    __tablename__ = "cleanup_intents"
+    attempt_id: Mapped[UUID] = mapped_column(
+        ForeignKey("attempts.id", ondelete="CASCADE"), primary_key=True
+    )
+    job_id: Mapped[UUID] = mapped_column(ForeignKey("jobs.id", ondelete="CASCADE"))
+    next_try_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    tries: Mapped[int] = mapped_column(default=0, server_default="0")
+    last_error: Mapped[str | None]
 
 
 class SubmissionGuard(Base):

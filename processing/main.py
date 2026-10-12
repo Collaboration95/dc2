@@ -10,11 +10,11 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from processing import service
+from processing import lifecycle, service
 from processing.auth import get_owner_id
 from processing.database import get_session
 from processing.errors import ProcessingError
-from processing.schemas import ProcessingJob, SubmitJob
+from processing.schemas import ProcessingJob, RetryJob, SubmitJob
 
 Owner = Annotated[UUID, Depends(get_owner_id)]
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -117,6 +117,23 @@ def create_app() -> FastAPI:
     )
     async def read(job_id: UUID, owner_id: Owner, session: Session):
         return await service.get_job(session, owner_id, job_id)
+
+    @application.post(
+        "/internal/v1/jobs/{job_id}/retry",
+        response_model=ProcessingJob,
+        status_code=202,
+        response_model_exclude_none=True,
+        operation_id="retryJob",
+    )
+    async def retry(job_id: UUID, request: RetryJob, owner_id: Owner, session: Session):
+        return await lifecycle.retry_job(session, owner_id, job_id, request.retry_request_id)
+
+    @application.delete(
+        "/internal/v1/assets/{asset_id}/job", status_code=204, operation_id="cancelAssetJob"
+    )
+    async def cancel(asset_id: UUID, owner_id: Owner, session: Session):
+        await lifecycle.cancel_asset(session, owner_id, asset_id)
+        return Response(status_code=204)
 
     return application
 
