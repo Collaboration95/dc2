@@ -4,6 +4,8 @@ import json
 import time
 from uuid import uuid4
 
+import httpx
+
 from scripts.dev.runtime import compose
 from scripts.dev.scenario import Scenario, fixture
 
@@ -125,13 +127,21 @@ def processing_outage(scenario, source):
         command(scenario, "restart", "media")
         # Readiness polling is distinct from retrying a failing acceptance assertion.
         deadline = time.monotonic() + 30
-        while time.monotonic() < deadline:
-            reply = client.get("health")
-            if reply.status_code == 200:
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("Media did not restart")
+            try:
+                reply = client.get("health", timeout=min(1.0, remaining))
+            except httpx.TransportError:
+                ready = False
+            else:
+                ready = reply.status_code == 200
+            remaining = deadline - time.monotonic()
+            if ready and remaining > 0:
                 break
-            time.sleep(0.5)
-        else:
-            raise TimeoutError("Media did not restart")
+            if remaining > 0:
+                time.sleep(min(0.5, remaining))
         restored = scenario.request(client, "GET", f"jobs/{asset}", 200, route="/jobs/{job_id}")
         assert restored["submission_status"] == "pending"
         assert scenario.upload(client, source, key)["job_id"] == asset
