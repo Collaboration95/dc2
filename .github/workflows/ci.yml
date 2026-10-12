@@ -311,7 +311,7 @@ jobs:
           PUBLISHER_HTTPS_TEST: '1'
 
   browser-trust:
-    name: Local HTTPS and Firefox trust
+    name: Local HTTPS and browser trust
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

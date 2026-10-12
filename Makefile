@@ -13,7 +13,7 @@ export PLAYWRIGHT_BROWSERS_PATH := $(CURDIR)/.local/playwright
         coverage-report integration integration-coverage clean test-app test-processing test-media \
         test-media-engine test-publisher test-cli publisher up down logs smoke-infra images env status local-tls \
         browser browser-install browser-open browser-trust-smoke capacity-install capacity-start capacity-status capacity-stop capacity-env \
-        e2e verify-local evidence-status evidence-scaling evidence-recovery release rollback
+        e2e verify-local evidence-status evidence-performance evidence-scaling evidence-recovery evidence-release release rollback
 
 help: ## List project commands
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_ -]+:.*## / {printf "%-24s %s\n", $$1, $$2}' Makefile
@@ -21,7 +21,7 @@ help: ## List project commands
 setup: ## Install locked Python/frontend dependencies locally; preserve .env
 	$(BOOTSTRAP_PYTHON) -m scripts.dev.setup
 
-setup-browser: setup browser-install ## Setup plus parent-managed project-local Firefox
+setup-browser: setup browser-install ## Setup plus the pinned project browser
 
 doctor: ## Check local tools and installed dependencies without services
 	$(PYTHON) -m scripts.dev.doctor
@@ -85,19 +85,19 @@ local-tls: ## Generate project-local TLS through the parent helper
 	@test -f scripts/dev/tls.py || { echo 'scripts/dev/tls.py is pending parent integration' >&2; exit 2; }
 	$(PYTHON) scripts/dev/tls.py --run-id "$(RUN_ID)"
 
-browser-trust-smoke: ## Real Firefox trusted positive/untrusted negative through parent helper
+browser-trust-smoke: ## Trusted positive/untrusted negative in the actual project browser
 	@test -f scripts/dev/browser.py || { echo 'scripts/dev/browser.py is pending parent integration' >&2; exit 2; }
 	$(PYTHON) scripts/dev/browser.py trust-smoke --run-id "$(RUN_ID)"
 
-browser-install: ## Install project-local Firefox through the parent helper
+browser-install: ## Install the pinned browser under this project
 	@test -f scripts/dev/browser.py || { echo 'scripts/dev/browser.py is pending parent integration' >&2; exit 2; }
 	$(PYTHON) scripts/dev/browser.py install --run-id "$(RUN_ID)"
 
-browser-open: ## Open the project-trusted Firefox profile through the parent helper
+browser-open: ## Open the scoped project browser
 	@test -f scripts/dev/browser.py || { echo 'scripts/dev/browser.py is pending parent integration' >&2; exit 2; }
 	$(PYTHON) scripts/dev/browser.py open --run-id "$(RUN_ID)"
 
-browser: browser-open ## Open project-trusted Firefox (alias of browser-open)
+browser: browser-open ## Open the scoped project browser (alias of browser-open)
 
 capacity-install capacity-start capacity-status capacity-stop capacity-env: ## Delegate isolated capacity ACTION
 	@test -f scripts/dev/capacity.py || { echo 'scripts/dev/capacity.py is pending parent integration' >&2; exit 2; }
@@ -105,14 +105,15 @@ capacity-install capacity-start capacity-status capacity-stop capacity-env: ## D
 
 e2e: ## Full HTTPS browser/CLI workflow, supplied by integration wave
 	@test -f scripts/dev/e2e.py || { echo 'scripts/dev/e2e.py is pending integration wave' >&2; exit 2; }
-	$(PYTHON) scripts/dev/e2e.py --run-id "$(RUN_ID)"
+	$(PYTHON) -m scripts.dev.e2e --run-id "$(RUN_ID)"
 
-verify-local: doctor lint test coverage smoke-infra browser-trust-smoke e2e ## Full enabled local verification
+verify-local: ## Fast checks, isolated real integration/coverage, and full client workflows
+	$(PYTHON) -m scripts.dev.verify --run-id "$(RUN_ID)"
 
-evidence-status evidence-scaling evidence-recovery: ## Evidence runners supplied by evidence wave
+evidence-status evidence-performance evidence-scaling evidence-recovery evidence-release: ## Measured local experiments; extra options in EVIDENCE_ARGS
 	@test -f scripts/dev/evidence.py || { echo 'scripts/dev/evidence.py is pending evidence wave' >&2; exit 2; }
-	$(PYTHON) scripts/dev/evidence.py $(patsubst evidence-%,%,$@) --run-id "$(RUN_ID)"
+	$(PYTHON) -m scripts.dev.evidence $(patsubst evidence-%,%,$@) --run-id "$(RUN_ID)" $(EVIDENCE_ARGS)
 
 release rollback: ## Local release/rollback runners supplied by evidence wave
 	@test -f scripts/dev/release.py || { echo 'scripts/dev/release.py is pending release wave' >&2; exit 2; }
-	$(PYTHON) scripts/dev/release.py $@ --run-id "$(RUN_ID)"
+	$(PYTHON) -m scripts.dev.release $@ --run-id "$(RUN_ID)" $(RELEASE_ARGS)

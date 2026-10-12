@@ -143,7 +143,7 @@ make help
 Python runtime dependencies include `httpx`; `dev` and optional `browser` extras
 are pinned through `uv.lock`. Setup installs both extras into `.venv`, without
 downloading a browser. `make browser-install RUN_ID=local` delegates project-local
-Firefox installation to the parent browser helper. `make setup-browser` runs
+installation to the browser helper (Chrome for Testing on macOS; Firefox on Linux). `make setup-browser` runs
 setup and that helper. `make browser RUN_ID=local` (or `browser-open`) opens its trusted profile.
 `make doctor-infra` additionally
 checks Docker/Compose, FFmpeg/ffprobe, OpenSSL, NSS `certutil`, and the runtime,
@@ -222,7 +222,7 @@ make capacity-status       # isolated capacity helper; no global Docker changes
 `images`, `capacity-install/start/stop/env` are also available. Runtime state is
 `.local/runs/<RUN_ID>/state.json` with `public_url`, `postgres_port`,
 `processing_port`, `ca_file`, `compose_project`, `env_file`; secrets stay in its
-private environment file. Firefox trust uses a temporary NSS profile seeded with
+private environment file. On Linux, Firefox trust uses a temporary NSS profile seeded with
 the project CA by the parent helper; system trust and certificate verification
 remain intact. Its smoke must prove trusted HTTPS success and untrusted HTTPS
 rejection. Full workflow/evidence/release targets fail clearly until their waves
@@ -544,3 +544,10 @@ For the first independent Processing service, see
 [local setup and current scope](docs/processing-intake.txt).
 The original application documentation follows below.
 
+
+On macOS the pinned Chrome for Testing launcher validates the generated server
+certificate against the project CA, then pins that certificate's public key for
+that browser process. Linux uses Firefox with a temporary NSS CA profile. Neither
+changes system trust; `make browser-trust-smoke` checks the trusted endpoint and
+rejects an unrelated certificate. The macOS choice avoids a reproduced decoded-
+frame copy failure in the bundled Firefox builds during H.264 playback.
