@@ -2,7 +2,7 @@
 
 **13 October 2026, Singapore (UTC+8): product PRs #25–#30 are merged.
 V1/V2 workflow and recovery evidence and V4 release evidence PASS.
-V3 measurements and V5 final review/merge remain PENDING; PR31 is draft.**
+V3 scaling PASS; full latency and V5 final review/merge remain PENDING; PR31 is draft.**
 These results belong to the tested sources below. No final Main SHA is certified.
 The working target is **three elapsed agentic days, five maximum**, applying 80/20:
 reuse the media engine/frontend and prove service boundaries, separate ownership,
@@ -12,9 +12,9 @@ The proposal's **31 person-days** is its effort allocation, not this coding sche
 ## Morning actions
 
 1. Leave `.worktrees/final-measurements` **frozen at `f46599f`**, `RUN_ID=v3-final`.
-   The parent owns its full nine-batch scaling run and the VM exclusively.
+   Full nine-batch scaling passed; the separate latency run now owns the VM exclusively.
    Do not start Docker, builds, browsers, FFmpeg or other live workloads until released.
-2. If scaling passes, let the parent run the separate full latency experiment
+2. Let the separate full latency experiment finish
    (21 minutes of warmup/measurement, plus preparation). Record all original targets,
    raw evidence and misses in the table below. Keep V3/E5 open if unmet.
 3. After measurement releases the VM, restore/check root `RUN_ID=local` and fill
@@ -122,8 +122,8 @@ scope. New measurements must come from complete runs; pilots cannot replace them
 | V1: full HTTPS web/CLI and 25 contract dispositions | **PASS at `422609b`**: 1,083 fast Python / 152 frontend / 130 real integration; full Mac E2E **122.740s**. UI login, decoded HLS/MP4, 30-good/1-rejected Publisher batch, stored retry and deletion. [Contract/evidence review](reviews/contract-final.md) |
 | Linux full workflow/CI | **All 15 checks PASS**, [run 38303856295](https://github.com/Collaboration95/dc2/actions/runs/38303856295), branch head `422609b`; tested merge `e1062bd8`. No current Linux E2E duration or completed Sonar analysis claimed. |
 | V2: failure ≤300s; queue repair ≤120s; restart convergence | **PASS, 190.602s**: kill visibility **69.195s**, queue repair **23.507s**; surviving queue metadata, same-key retry/no duplicate primary, durable pending work through Media restart and restored Processing convergence. |
-| V3 scaling: nine batches, 30 identical 60s 720p clips each, 1/2/3 workers | **PENDING — parent fill:** full `f46599f` run path/hash, throughput/queue/processing/CPU/memory/failures and source applicability. |
-| V3 targets: 2 workers ≥1.6×; 3 ≥2.1×; falling median queue wait; zero failures | **PENDING — parent fill:** speedups, queue medians and each target verdict, including misses. |
+| V3 scaling: nine batches, 30 identical 60s 720p clips each, 1/2/3 workers | **PASS at `f46599f`:** 270 successes, zero failures or missing HLS; median throughput 2.337 / 4.749 / 6.743 jobs/min. [Report and raw evidence](reviews/scaling-validation.md). |
+| V3 targets: 2 workers ≥1.6×; 3 ≥2.1×; falling median queue wait; zero failures | **All PASS:** speedups 2.032× / 2.885×; pooled median queue wait 375.381 / 175.976 / 120.360 seconds. |
 | V3 status: 50 users, 180s, p90 ≤700ms, errors <1% | **PENDING — parent fill:** all three repeats' p90/errors and raw path/hash. |
 | V3 login: separate 20 users, p90 <2s | **PENDING — parent fill:** all three repeats' p90/errors/session outcomes and actual hash cost. |
 | V4: Processing promotion/smoke ≤600s; active drain; bad startup/rollback | **PASS at `331354d`, 226.828s total**: good **101.197s**, real active drain **34.077s**, bad + restoration **125.621s**. Exact candidate scans: zero fixable HIGH/CRITICAL; actual API exit **42**, automatic exact-good-image rollback/public smoke, Media identities/images and `media_db` revision unchanged. [Release report](reviews/release-validation.md) |
@@ -133,7 +133,7 @@ Tracked source packs: [Mac V1/V2 index](evidence/local-workflow-422609b/index.js
 [V4 index](evidence/release-331354d/index.json), [capacity](evidence/runtime-capacity.json).
 Mac harness `422609b` used runtime build `2cb8da8`; indexed runtime inputs match.
 The [older Linux pack](evidence/linux-ci-38300284726/index.json) retains its older head;
-current run 38303856295 artifacts still need parent retention.
+latest CI 38306733800 also passed all 15 checks with 1,085 fast Python tests; its [full Linux proof](evidence/linux-ci-38306733800/index.json) is retained.
 
 ## Reproduce after exclusive measurements finish
 

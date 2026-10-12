@@ -365,3 +365,13 @@ The existing root local URL is down; parent confirmation remains required.
 Only handoff.md and this worklog were edited. Source/link/hash and whitespace
 checks are offline; no VM, Docker, build, browser, FFmpeg or live test was run.
 No AWS/Alibaba, roadmap design or original academic document changes were made.
+
+13 October, 06:08 Singapore: full corrected scaling passed
+Frozen f46599f completed all nine fresh batches: 270 successful jobs, no failed
+jobs and no missing HLS. Median throughput was 2.337 / 4.749 / 6.743 jobs/min
+for one/two/three workers. Speedups 2.032x and 2.885x exceed the original 1.6x
+and 2.1x targets. Pooled median queue wait fell 375.381 / 175.976 / 120.360s.
+Raw JSON/CSV and compressed JSONL, checked by decompressed SHA-256, are retained
+in docs/execution/evidence/scaling-f46599f. The earlier failed invocation remains
+separate under failed-scaling-621c03a. Full status/login latency follows serially.
+V3, final review and Main acceptance remain pending at this checkpoint.

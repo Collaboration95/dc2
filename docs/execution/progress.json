@@ -1,5 +1,5 @@
 {
-  "stage": "corrected-final-measurements",
+  "stage": "final-latency-and-evidence-review",
   "baseline": "b32d489566144202fbf6fc3887ce25d5321444fd",
   "project": {
     "id": "PVT_kwHOBBatWM4Bmtkx",
@@ -167,7 +167,8 @@
       "state": "In progress",
       "pr": 31,
       "evidence": [
-        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
+        "Full fair scaling PASSf46599f:9batches270success0failed0missingHLS; speedups2.032x/2.885x; pooledqueue375.381/175.976/120.360s. Fullstatus/login latency stillrunning; V3notDone yet."
       ]
     },
     "V4": {
@@ -280,9 +281,9 @@
     }
   ],
   "limitations": [
-    "V1/V2 fullMac andLinux workflow/recovery accepted; V4 actualgood/bad release andautomaticrollback accepted; groupedPR31 remainsdraft untilV3/finalreview/merge.",
-    "Firstfullscaling invocation failedsessionexpiry; retainedasFAIL. A freshcompletecorrectedrun isactivefromf46599f in.worktrees/final-measurements RUN_IDv3-final; separatefull latencyfollows onlyifpass.",
-    "Project-onlyLima diskexpanded40to64GiB preservingfaileddata;8CPU/8GiB andservicequotas unchanged."
+    "FullscalingPASS; fullstatus/login latency and finalindependentreview/Mainverification stillpending.",
+    "FirstfullscalingFAIL retainedseparately; no resultsplicing. New270jobscompleteonclean f46599f with unchangedoriginaltargets.",
+    "MeasurementVM remains exclusive to frozenfinal-measurements until latencycompletes; rootdemo local isdown."
   ],
   "aws_actions_performed": false,
   "active_worktrees": [

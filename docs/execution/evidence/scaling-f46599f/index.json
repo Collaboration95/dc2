@@ -1,0 +1,306 @@
+{
+  "original_directory": ".worktrees/final-measurements/artifacts/evidence/v3-final/scaling-20261013T044836-3e6912ee",
+  "experiment_status": "completed",
+  "source_revision": "f46599f8048b30087a4e9a8b8a0e1108dcc6fe03",
+  "acceptance_pass": true,
+  "fixture": "Generated video omitted; exact hash, FFmpeg/probe metadata and generation command remain in manifest. All original JSON/CSV/JSONL records retained.",
+  "records": [
+    {
+      "file": "cleanup.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "cleanup.jsonl",
+      "original_bytes": 18544,
+      "original_sha256": "38f50b963b1d82e132800acd0c60beebaf1d20267030c5294776c3494ee9cd3e",
+      "stored_bytes": 1100,
+      "stored_sha256": "f934915bb9000ee4010ee05fbc6dce36f9619613fefabd13528904b67c53f28f"
+    },
+    {
+      "file": "intervals.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "intervals.jsonl",
+      "original_bytes": 1134,
+      "original_sha256": "b38d187a9524ebeda233642efb8096c5631e8440d89e98c076345ff1c041055f",
+      "stored_bytes": 296,
+      "stored_sha256": "b42ee16faab091b21e4fc5ab29009d50f70b6cf6de73d218472bea65856ef7c9"
+    },
+    {
+      "file": "manifest.json",
+      "encoding": "original",
+      "original_name": "manifest.json",
+      "original_bytes": 8501,
+      "original_sha256": "3b7253828308673b8f9a0fa256261e1de15e0f10418b59b70a5495e5a9344389",
+      "stored_bytes": 8501,
+      "stored_sha256": "3b7253828308673b8f9a0fa256261e1de15e0f10418b59b70a5495e5a9344389"
+    },
+    {
+      "file": "observations.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "observations.jsonl",
+      "original_bytes": 55054359,
+      "original_sha256": "ee17a61fdd7c68e9d7dd7e23c2235181f4e6e1a81b74a2f821883dc718e522a9",
+      "stored_bytes": 533224,
+      "stored_sha256": "7d247031da2a936129c32ec377fe8bd812d9b535de5b15c0eb2e52b6e03b56a9"
+    },
+    {
+      "file": "operations.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "operations.jsonl",
+      "original_bytes": 5668344,
+      "original_sha256": "f848f5e2549862a5ca9c7fd889ed6b6f9a1b249be61ae0299866129299379a65",
+      "stored_bytes": 126016,
+      "stored_sha256": "64bd9af84f47f5ae6e787d46797486c3e0c0f49dc3cd83eb6d8acd72697a19fd"
+    },
+    {
+      "file": "preflight.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "preflight.jsonl",
+      "original_bytes": 71064,
+      "original_sha256": "aab44668416d3ec046a39f19bdd9f0b6650e7f18b74713aba01392adb6ed14d3",
+      "stored_bytes": 1643,
+      "stored_sha256": "159427d0f7141467167feb87cd2fadd9ccaba1499b3361fa9a7931ebc9aded7d"
+    },
+    {
+      "file": "queue.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "queue.jsonl",
+      "original_bytes": 13653,
+      "original_sha256": "dc45fe8a2e21c1b6c7f84b79fb1dea5e4eb178a183cfa4bb7b628385d0a289a8",
+      "stored_bytes": 6478,
+      "stored_sha256": "579799c64b0fabe4cd983f05aa8fd54a370e9dc5a00b922b26ccb20977534aaf"
+    },
+    {
+      "file": "quotas.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "quotas.jsonl",
+      "original_bytes": 16092,
+      "original_sha256": "c67edaf98df134591b031efcb20b3e0f8691668fbc2280491de9e993a62c8762",
+      "stored_bytes": 947,
+      "stored_sha256": "e6627d66334b3d93df31d8f33984a0de3ab55f9ce7221d74c5db4b32b50c6ebd"
+    },
+    {
+      "file": "r1-w1-jobs.csv",
+      "encoding": "original",
+      "original_name": "r1-w1-jobs.csv",
+      "original_bytes": 10071,
+      "original_sha256": "e6c479b0ab0d723a0417cf5ea05aaba638701df7dd72dfe552c68b589d1562df",
+      "stored_bytes": 10071,
+      "stored_sha256": "e6c479b0ab0d723a0417cf5ea05aaba638701df7dd72dfe552c68b589d1562df"
+    },
+    {
+      "file": "r1-w1-jobs.json",
+      "encoding": "original",
+      "original_name": "r1-w1-jobs.json",
+      "original_bytes": 19736,
+      "original_sha256": "6f85ab40d533839a8abbaadba564dc2c2e9ebde51e534f78b4c083decc2e3db5",
+      "stored_bytes": 19736,
+      "stored_sha256": "6f85ab40d533839a8abbaadba564dc2c2e9ebde51e534f78b4c083decc2e3db5"
+    },
+    {
+      "file": "r1-w2-jobs.csv",
+      "encoding": "original",
+      "original_name": "r1-w2-jobs.csv",
+      "original_bytes": 10070,
+      "original_sha256": "5879fdb6b3e6d27292ee46ac76306c9b3784344d920536a79ab9541fd4f1df73",
+      "stored_bytes": 10070,
+      "stored_sha256": "5879fdb6b3e6d27292ee46ac76306c9b3784344d920536a79ab9541fd4f1df73"
+    },
+    {
+      "file": "r1-w2-jobs.json",
+      "encoding": "original",
+      "original_name": "r1-w2-jobs.json",
+      "original_bytes": 19735,
+      "original_sha256": "ae1cd3a4a1ec85de1511f270981a6a3b646de3f15ee81106cc795d2859ea8f99",
+      "stored_bytes": 19735,
+      "stored_sha256": "ae1cd3a4a1ec85de1511f270981a6a3b646de3f15ee81106cc795d2859ea8f99"
+    },
+    {
+      "file": "r1-w3-jobs.csv",
+      "encoding": "original",
+      "original_name": "r1-w3-jobs.csv",
+      "original_bytes": 10080,
+      "original_sha256": "dbc22cd645f19ac77294f934a882e399d05a75e3464f3cbf2d152a5cabf35c17",
+      "stored_bytes": 10080,
+      "stored_sha256": "dbc22cd645f19ac77294f934a882e399d05a75e3464f3cbf2d152a5cabf35c17"
+    },
+    {
+      "file": "r1-w3-jobs.json",
+      "encoding": "original",
+      "original_name": "r1-w3-jobs.json",
+      "original_bytes": 19745,
+      "original_sha256": "dd8485791bab12d0a4c0419ebd82247f4795839ecc28769156034d2c3383e691",
+      "stored_bytes": 19745,
+      "stored_sha256": "dd8485791bab12d0a4c0419ebd82247f4795839ecc28769156034d2c3383e691"
+    },
+    {
+      "file": "r2-w1-jobs.csv",
+      "encoding": "original",
+      "original_name": "r2-w1-jobs.csv",
+      "original_bytes": 10078,
+      "original_sha256": "3217c77410d050e1d61f414d88e7bfbece0ad7bb6165907e7ff58059c2e18290",
+      "stored_bytes": 10078,
+      "stored_sha256": "3217c77410d050e1d61f414d88e7bfbece0ad7bb6165907e7ff58059c2e18290"
+    },
+    {
+      "file": "r2-w1-jobs.json",
+      "encoding": "original",
+      "original_name": "r2-w1-jobs.json",
+      "original_bytes": 19743,
+      "original_sha256": "f8dbea0b0018e0d1efc13a0742f3dfc44886bf52de28738ee967e57ccadec851",
+      "stored_bytes": 19743,
+      "stored_sha256": "f8dbea0b0018e0d1efc13a0742f3dfc44886bf52de28738ee967e57ccadec851"
+    },
+    {
+      "file": "r2-w2-jobs.csv",
+      "encoding": "original",
+      "original_name": "r2-w2-jobs.csv",
+      "original_bytes": 10078,
+      "original_sha256": "3da16a706af2754fd7582b1a30576939b50fd0e80407101e3504986f1c87710d",
+      "stored_bytes": 10078,
+      "stored_sha256": "3da16a706af2754fd7582b1a30576939b50fd0e80407101e3504986f1c87710d"
+    },
+    {
+      "file": "r2-w2-jobs.json",
+      "encoding": "original",
+      "original_name": "r2-w2-jobs.json",
+      "original_bytes": 19743,
+      "original_sha256": "90bc4bbef982d29c64ba6c32833a21e258ec998136f3878590397dc7aec23161",
+      "stored_bytes": 19743,
+      "stored_sha256": "90bc4bbef982d29c64ba6c32833a21e258ec998136f3878590397dc7aec23161"
+    },
+    {
+      "file": "r2-w3-jobs.csv",
+      "encoding": "original",
+      "original_name": "r2-w3-jobs.csv",
+      "original_bytes": 10073,
+      "original_sha256": "f452a40adc28832a5ff7c5490758af5eab266f316e125664c4fef3139d96b36d",
+      "stored_bytes": 10073,
+      "stored_sha256": "f452a40adc28832a5ff7c5490758af5eab266f316e125664c4fef3139d96b36d"
+    },
+    {
+      "file": "r2-w3-jobs.json",
+      "encoding": "original",
+      "original_name": "r2-w3-jobs.json",
+      "original_bytes": 19738,
+      "original_sha256": "34f267af8d5d29a6958cbccefe45a26f636d985c23ec6cc3f0db527757ece4d4",
+      "stored_bytes": 19738,
+      "stored_sha256": "34f267af8d5d29a6958cbccefe45a26f636d985c23ec6cc3f0db527757ece4d4"
+    },
+    {
+      "file": "r3-w1-jobs.csv",
+      "encoding": "original",
+      "original_name": "r3-w1-jobs.csv",
+      "original_bytes": 10072,
+      "original_sha256": "292e0f3c3315b77f3d4f061807b1d858d3e8cf98977cd68aca35f0cb792d7be4",
+      "stored_bytes": 10072,
+      "stored_sha256": "292e0f3c3315b77f3d4f061807b1d858d3e8cf98977cd68aca35f0cb792d7be4"
+    },
+    {
+      "file": "r3-w1-jobs.json",
+      "encoding": "original",
+      "original_name": "r3-w1-jobs.json",
+      "original_bytes": 19737,
+      "original_sha256": "fb498cd0af18c75c9c02e3c9b885756a86828edf87cbc9e5c652dbfe94fbdcd7",
+      "stored_bytes": 19737,
+      "stored_sha256": "fb498cd0af18c75c9c02e3c9b885756a86828edf87cbc9e5c652dbfe94fbdcd7"
+    },
+    {
+      "file": "r3-w2-jobs.csv",
+      "encoding": "original",
+      "original_name": "r3-w2-jobs.csv",
+      "original_bytes": 10082,
+      "original_sha256": "2111af8c4bb335f18263d5a4d193ca04c0edc279c0d210cb3eba5c92fbeb010c",
+      "stored_bytes": 10082,
+      "stored_sha256": "2111af8c4bb335f18263d5a4d193ca04c0edc279c0d210cb3eba5c92fbeb010c"
+    },
+    {
+      "file": "r3-w2-jobs.json",
+      "encoding": "original",
+      "original_name": "r3-w2-jobs.json",
+      "original_bytes": 19747,
+      "original_sha256": "60198f892ddce42410fae43b9e93395daaeb82700b275cf04f28451a42c21d45",
+      "stored_bytes": 19747,
+      "stored_sha256": "60198f892ddce42410fae43b9e93395daaeb82700b275cf04f28451a42c21d45"
+    },
+    {
+      "file": "r3-w3-jobs.csv",
+      "encoding": "original",
+      "original_name": "r3-w3-jobs.csv",
+      "original_bytes": 10081,
+      "original_sha256": "6617cccaf14c78ced35985d82dc5d3690a6adf615384e71275e6c740f623d3c6",
+      "stored_bytes": 10081,
+      "stored_sha256": "6617cccaf14c78ced35985d82dc5d3690a6adf615384e71275e6c740f623d3c6"
+    },
+    {
+      "file": "r3-w3-jobs.json",
+      "encoding": "original",
+      "original_name": "r3-w3-jobs.json",
+      "original_bytes": 19746,
+      "original_sha256": "53f9175a2fa7037121695dbaf8c5599568df5ce1ba5a2c0997db4c02b559de4a",
+      "stored_bytes": 19746,
+      "stored_sha256": "53f9175a2fa7037121695dbaf8c5599568df5ce1ba5a2c0997db4c02b559de4a"
+    },
+    {
+      "file": "resources.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "resources.jsonl",
+      "original_bytes": 2613385,
+      "original_sha256": "f875635f3a1e31343525cde3b3e2f55c492980febefbb786c0091b54c8cbc8b5",
+      "stored_bytes": 134199,
+      "stored_sha256": "ce987046ba205592641e119731a43d4796466b21f55819269db81cee5a48b73f"
+    },
+    {
+      "file": "runs.json",
+      "encoding": "original",
+      "original_name": "runs.json",
+      "original_bytes": 46214,
+      "original_sha256": "146e9817888f38b7cee820a8382f4633342ad986179794958ecbce52e042ef9b",
+      "stored_bytes": 46214,
+      "stored_sha256": "146e9817888f38b7cee820a8382f4633342ad986179794958ecbce52e042ef9b"
+    },
+    {
+      "file": "submissions.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "submissions.jsonl",
+      "original_bytes": 69393,
+      "original_sha256": "75a962148861255583cd1473b612ae89301cf3607d7751d76308d42e41224e23",
+      "stored_bytes": 16017,
+      "stored_sha256": "55c914e0c4c5b231b8126c1811d3b92bedf06029657e628a6dcbaa2d9c84a4e8"
+    },
+    {
+      "file": "targets.csv",
+      "encoding": "original",
+      "original_name": "targets.csv",
+      "original_bytes": 234,
+      "original_sha256": "15b69dad11eab6fe2fc9f1c22b03a63abf99603851e3ea1c170cae3e34bbf1e0",
+      "stored_bytes": 234,
+      "stored_sha256": "15b69dad11eab6fe2fc9f1c22b03a63abf99603851e3ea1c170cae3e34bbf1e0"
+    },
+    {
+      "file": "targets.json",
+      "encoding": "original",
+      "original_name": "targets.json",
+      "original_bytes": 977,
+      "original_sha256": "09bfc2c1b29ff6d1cab69bfd29c470878f50e75dc4d75ed8f66d9bf6f26459df",
+      "stored_bytes": 977,
+      "stored_sha256": "09bfc2c1b29ff6d1cab69bfd29c470878f50e75dc4d75ed8f66d9bf6f26459df"
+    },
+    {
+      "file": "warmup-consumers.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "warmup-consumers.jsonl",
+      "original_bytes": 7686,
+      "original_sha256": "a48e9504fd8d7a1394ca612af8d764284d32502f48fec83193e7b5a871a37d1f",
+      "stored_bytes": 837,
+      "stored_sha256": "6bc471a3c629bb61545758653e384f4e46e4acfba1d1272934404213c1303615"
+    },
+    {
+      "file": "warmups.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "warmups.jsonl",
+      "original_bytes": 20394,
+      "original_sha256": "9aaa8ae3f0ccbfdf7eaceab4c0e82409ea63677983c5f28e3c721e0a9986cca6",
+      "stored_bytes": 3448,
+      "stored_sha256": "3d76602592751f271f659bda6790449501c8e7516f9ffdc0e0f644db4e372636"
+    }
+  ]
+}

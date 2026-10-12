@@ -1,0 +1,1203 @@
+[
+  {
+    "repeat": 1,
+    "workers": 1,
+    "metrics": {
+      "jobs": 30,
+      "successes": 30,
+      "errors": 0,
+      "makespan_seconds": 773.3834895420005,
+      "throughput_jobs_min": 2.3274352560409124,
+      "queue_wait_seconds": [
+        25.550414085388184,
+        49.39603805541992,
+        74.08644700050354,
+        97.89125490188599,
+        122.31718516349792,
+        146.26317191123962,
+        170.63023495674133,
+        195.14483904838562,
+        219.27078795433044,
+        243.32731890678406,
+        267.54592299461365,
+        291.3047170639038,
+        315.28035497665405,
+        339.67469692230225,
+        363.99353408813477,
+        387.7741758823395,
+        411.33139300346375,
+        435.29273986816406,
+        459.5890190601349,
+        483.5548768043518,
+        507.4592020511627,
+        531.5307941436768,
+        555.8176689147949,
+        579.6553800106049,
+        604.292417049408,
+        628.0815858840942,
+        652.3615119457245,
+        676.6484398841858,
+        700.7872538566589,
+        725.3888649940491
+      ],
+      "processing_seconds": [
+        23.953332901000977,
+        24.593628883361816,
+        24.182854175567627,
+        24.312718152999878,
+        24.052473783493042,
+        24.201399087905884,
+        24.526634216308594,
+        24.059830904006958,
+        24.24859094619751,
+        24.196072101593018,
+        23.954970121383667,
+        24.0691020488739,
+        24.2771258354187,
+        24.395853996276855,
+        24.263468980789185,
+        23.548880100250244,
+        24.244018077850342,
+        24.381688117980957,
+        23.95527482032776,
+        24.082046031951904,
+        24.16043496131897,
+        24.270729780197144,
+        23.769508123397827,
+        24.522629976272583,
+        24.067516088485718,
+        24.180792093276978,
+        24.37556505203247,
+        24.089404106140137,
+        24.84599804878235,
+        24.300330877304077
+      ],
+      "queue_wait_median_seconds": 375.8838549852371,
+      "processing_median_seconds": 24.19873559474945,
+      "warnings": 0,
+      "missing_hls": 0
+    },
+    "worker_quotas": [
+      {
+        "id": "28a13990b0df53565666cf240f964e25bfe14dd98b37d6873fe7c9f39f80c28e",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      }
+    ],
+    "finished_utc": "2026-10-12T19:24:25.244870+00:00",
+    "makespan_clock": "host monotonic first acceptance to final terminal read",
+    "resource_summary": {
+      "2d1eac9dce72": {
+        "samples": 166,
+        "mean_cpu_percent": 4.116265060240964,
+        "max_cpu_percent": 13.68,
+        "peak_sampled_memory_bytes": 95263129.6
+      },
+      "5006ef794975": {
+        "samples": 166,
+        "mean_cpu_percent": 1.6257228915662651,
+        "max_cpu_percent": 12.7,
+        "peak_sampled_memory_bytes": 276090060.8
+      },
+      "5d022efc93c9": {
+        "samples": 166,
+        "mean_cpu_percent": 0.20506024096385542,
+        "max_cpu_percent": 1.16,
+        "peak_sampled_memory_bytes": 25260195.84
+      },
+      "855a0efa1bd5": {
+        "samples": 166,
+        "mean_cpu_percent": 0.03783132530120482,
+        "max_cpu_percent": 0.48,
+        "peak_sampled_memory_bytes": 69824675.84
+      },
+      "ab8b1f754a6c": {
+        "samples": 166,
+        "mean_cpu_percent": 0.801144578313253,
+        "max_cpu_percent": 1.64,
+        "peak_sampled_memory_bytes": 21495808.0
+      },
+      "ae3da9ab940b": {
+        "samples": 166,
+        "mean_cpu_percent": 0.993132530120482,
+        "max_cpu_percent": 2.82,
+        "peak_sampled_memory_bytes": 58216939.52
+      },
+      "bdc5ac277b53": {
+        "samples": 166,
+        "mean_cpu_percent": 0.11451807228915663,
+        "max_cpu_percent": 4.02,
+        "peak_sampled_memory_bytes": 76420218.88
+      },
+      "df8673aee78e": {
+        "samples": 166,
+        "mean_cpu_percent": 3.885301204819277,
+        "max_cpu_percent": 12.52,
+        "peak_sampled_memory_bytes": 90712309.76
+      },
+      "28a13990b0df": {
+        "samples": 166,
+        "mean_cpu_percent": 188.30801204819278,
+        "max_cpu_percent": 209.1,
+        "peak_sampled_memory_bytes": 537709772.8
+      }
+    }
+  },
+  {
+    "repeat": 1,
+    "workers": 2,
+    "metrics": {
+      "jobs": 30,
+      "successes": 30,
+      "errors": 0,
+      "makespan_seconds": 398.31853304100514,
+      "throughput_jobs_min": 4.51899635765805,
+      "queue_wait_seconds": [
+        25.794475078582764,
+        24.850355863571167,
+        48.7338171005249,
+        48.31354093551636,
+        71.58291411399841,
+        70.98689794540405,
+        94.45284700393677,
+        94.18434381484985,
+        117.49840497970581,
+        116.91902709007263,
+        140.895898103714,
+        140.81327319145203,
+        163.92144393920898,
+        163.41812705993652,
+        185.992604970932,
+        185.82323694229126,
+        208.79416608810425,
+        208.30986714363098,
+        232.2675838470459,
+        231.78637313842773,
+        255.650573015213,
+        254.98458290100098,
+        279.34822511672974,
+        278.7188529968262,
+        302.8366811275482,
+        302.14646792411804,
+        327.1135981082916,
+        326.42156505584717,
+        350.1461760997772,
+        349.5142230987549
+      ],
+      "processing_seconds": [
+        23.874871015548706,
+        24.193313121795654,
+        23.891721963882446,
+        23.814924955368042,
+        23.441564798355103,
+        23.463634967803955,
+        23.636144876480103,
+        23.691428184509277,
+        24.268999814987183,
+        24.554876804351807,
+        23.783287048339844,
+        23.750030994415283,
+        22.93639588356018,
+        23.04403781890869,
+        23.94665288925171,
+        23.816662073135376,
+        24.123297929763794,
+        24.013145923614502,
+        24.364577054977417,
+        24.147841930389404,
+        24.431715965270996,
+        24.52075505256653,
+        24.52179193496704,
+        24.440440893173218,
+        25.017066955566406,
+        25.08259606361389,
+        24.111155033111572,
+        24.03220796585083,
+        24.751163959503174,
+        24.620548963546753
+      ],
+      "queue_wait_median_seconds": 185.90792095661163,
+      "processing_median_seconds": 24.0716814994812,
+      "warnings": 0,
+      "missing_hls": 0
+    },
+    "worker_quotas": [
+      {
+        "id": "28a13990b0df53565666cf240f964e25bfe14dd98b37d6873fe7c9f39f80c28e",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      },
+      {
+        "id": "ef5b3004ccc2295782aaaf4695ca33153aeaf115af7a99b258ddab54b5c79fde",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      }
+    ],
+    "finished_utc": "2026-10-12T19:32:03.238464+00:00",
+    "makespan_clock": "host monotonic first acceptance to final terminal read",
+    "resource_summary": {
+      "2d1eac9dce72": {
+        "samples": 83,
+        "mean_cpu_percent": 4.416024096385542,
+        "max_cpu_percent": 14.87,
+        "peak_sampled_memory_bytes": 92169830.4
+      },
+      "5006ef794975": {
+        "samples": 83,
+        "mean_cpu_percent": 2.580120481927711,
+        "max_cpu_percent": 13.52,
+        "peak_sampled_memory_bytes": 496395878.4
+      },
+      "5d022efc93c9": {
+        "samples": 83,
+        "mean_cpu_percent": 0.2998795180722892,
+        "max_cpu_percent": 1.22,
+        "peak_sampled_memory_bytes": 28458352.64
+      },
+      "855a0efa1bd5": {
+        "samples": 83,
+        "mean_cpu_percent": 0.020120481927710845,
+        "max_cpu_percent": 0.4,
+        "peak_sampled_memory_bytes": 69593989.12
+      },
+      "ab8b1f754a6c": {
+        "samples": 83,
+        "mean_cpu_percent": 0.8337349397590361,
+        "max_cpu_percent": 2.73,
+        "peak_sampled_memory_bytes": 22093496.32
+      },
+      "ae3da9ab940b": {
+        "samples": 83,
+        "mean_cpu_percent": 1.2078313253012047,
+        "max_cpu_percent": 4.06,
+        "peak_sampled_memory_bytes": 59653488.64
+      },
+      "bdc5ac277b53": {
+        "samples": 83,
+        "mean_cpu_percent": 0.10650602409638554,
+        "max_cpu_percent": 3.03,
+        "peak_sampled_memory_bytes": 76357304.32
+      },
+      "df8673aee78e": {
+        "samples": 83,
+        "mean_cpu_percent": 4.080722891566265,
+        "max_cpu_percent": 13.64,
+        "peak_sampled_memory_bytes": 91142225.92
+      },
+      "28a13990b0df": {
+        "samples": 83,
+        "mean_cpu_percent": 175.64722891566265,
+        "max_cpu_percent": 211.39,
+        "peak_sampled_memory_bytes": 543791513.6
+      },
+      "ef5b3004ccc2": {
+        "samples": 83,
+        "mean_cpu_percent": 179.2689156626506,
+        "max_cpu_percent": 214.76,
+        "peak_sampled_memory_bytes": 542428364.8
+      }
+    }
+  },
+  {
+    "repeat": 1,
+    "workers": 3,
+    "metrics": {
+      "jobs": 30,
+      "successes": 30,
+      "errors": 0,
+      "makespan_seconds": 260.5431292919966,
+      "throughput_jobs_min": 6.908645048101419,
+      "queue_wait_seconds": [
+        24.132326126098633,
+        23.24024200439453,
+        22.64780306816101,
+        44.176833152770996,
+        45.836997985839844,
+        45.05101490020752,
+        66.01952815055847,
+        67.02099204063416,
+        66.93078708648682,
+        87.03016710281372,
+        88.09354710578918,
+        88.68431401252747,
+        108.06755018234253,
+        109.5636191368103,
+        109.77877306938171,
+        128.7257947921753,
+        130.33907413482666,
+        130.57971596717834,
+        149.19740390777588,
+        151.08006191253662,
+        151.6387619972229,
+        170.18894600868225,
+        172.16699504852295,
+        172.6234200000763,
+        191.27521300315857,
+        194.41480016708374,
+        194.20095491409302,
+        211.49171710014343,
+        215.33087515830994,
+        215.3651580810547
+      ],
+      "processing_seconds": [
+        21.60076403617859,
+        23.570055961608887,
+        23.678797006607056,
+        23.165565967559814,
+        22.968504905700684,
+        23.45848798751831,
+        22.519296884536743,
+        22.69388508796692,
+        23.38330101966858,
+        22.343346118927002,
+        22.8369300365448,
+        22.300668001174927,
+        22.38227081298828,
+        22.365803956985474,
+        22.578491926193237,
+        22.122940063476562,
+        22.417870044708252,
+        22.34863305091858,
+        22.110286951065063,
+        22.64810800552368,
+        22.28793692588806,
+        22.12957501411438,
+        23.030030012130737,
+        22.886597871780396,
+        22.01503586769104,
+        22.759557008743286,
+        22.58536195755005,
+        21.854468822479248,
+        23.016072034835815,
+        23.086488008499146
+      ],
+      "queue_wait_median_seconds": 119.2522839307785,
+      "processing_median_seconds": 22.581926941871643,
+      "warnings": 0,
+      "missing_hls": 0
+    },
+    "worker_quotas": [
+      {
+        "id": "28a13990b0df53565666cf240f964e25bfe14dd98b37d6873fe7c9f39f80c28e",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      },
+      {
+        "id": "ef5b3004ccc2295782aaaf4695ca33153aeaf115af7a99b258ddab54b5c79fde",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      },
+      {
+        "id": "2f799cb72b5f233f8978ab7b8aeb3491ad6774c59c3fe180dbba47bb3a533886",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      }
+    ],
+    "finished_utc": "2026-10-12T19:37:49.935801+00:00",
+    "makespan_clock": "host monotonic first acceptance to final terminal read",
+    "resource_summary": {
+      "2d1eac9dce72": {
+        "samples": 53,
+        "mean_cpu_percent": 4.380188679245283,
+        "max_cpu_percent": 15.93,
+        "peak_sampled_memory_bytes": 90911539.2
+      },
+      "5006ef794975": {
+        "samples": 53,
+        "mean_cpu_percent": 2.8228301886792453,
+        "max_cpu_percent": 13.89,
+        "peak_sampled_memory_bytes": 501324185.6
+      },
+      "5d022efc93c9": {
+        "samples": 53,
+        "mean_cpu_percent": 0.26962264150943394,
+        "max_cpu_percent": 1.64,
+        "peak_sampled_memory_bytes": 25155338.24
+      },
+      "855a0efa1bd5": {
+        "samples": 53,
+        "mean_cpu_percent": 0.023962264150943397,
+        "max_cpu_percent": 0.3,
+        "peak_sampled_memory_bytes": 69310873.6
+      },
+      "ab8b1f754a6c": {
+        "samples": 53,
+        "mean_cpu_percent": 0.79,
+        "max_cpu_percent": 1.56,
+        "peak_sampled_memory_bytes": 8236564.48
+      },
+      "ae3da9ab940b": {
+        "samples": 53,
+        "mean_cpu_percent": 1.3550943396226416,
+        "max_cpu_percent": 4.42,
+        "peak_sampled_memory_bytes": 53383004.16
+      },
+      "bdc5ac277b53": {
+        "samples": 53,
+        "mean_cpu_percent": 0.09773584905660378,
+        "max_cpu_percent": 2.71,
+        "peak_sampled_memory_bytes": 76399247.36
+      },
+      "df8673aee78e": {
+        "samples": 53,
+        "mean_cpu_percent": 4.336603773584906,
+        "max_cpu_percent": 15.6,
+        "peak_sampled_memory_bytes": 91614085.12
+      },
+      "28a13990b0df": {
+        "samples": 53,
+        "mean_cpu_percent": 185.16962264150942,
+        "max_cpu_percent": 211.76,
+        "peak_sampled_memory_bytes": 543267225.6
+      },
+      "ef5b3004ccc2": {
+        "samples": 53,
+        "mean_cpu_percent": 181.97056603773584,
+        "max_cpu_percent": 210.82,
+        "peak_sampled_memory_bytes": 543476940.8
+      },
+      "2f799cb72b5f": {
+        "samples": 53,
+        "mean_cpu_percent": 184.8275471698113,
+        "max_cpu_percent": 210.35,
+        "peak_sampled_memory_bytes": 542323507.2
+      }
+    }
+  },
+  {
+    "repeat": 2,
+    "workers": 2,
+    "metrics": {
+      "jobs": 30,
+      "successes": 30,
+      "errors": 0,
+      "makespan_seconds": 374.0407313339965,
+      "throughput_jobs_min": 4.812310128847185,
+      "queue_wait_seconds": [
+        24.90997314453125,
+        24.451637029647827,
+        44.887365102767944,
+        45.302135944366455,
+        65.27662897109985,
+        66.09702181816101,
+        86.26210689544678,
+        86.8504798412323,
+        108.05150699615479,
+        108.53167796134949,
+        130.42691683769226,
+        130.96017217636108,
+        152.72603511810303,
+        153.27089309692383,
+        174.76136016845703,
+        174.53825116157532,
+        195.9044098854065,
+        195.83013606071472,
+        217.55197191238403,
+        217.61548805236816,
+        240.082524061203,
+        239.91728115081787,
+        262.2699840068817,
+        262.410404920578,
+        283.6545059680939,
+        283.86543011665344,
+        305.10489678382874,
+        305.68504190444946,
+        327.37435603141785,
+        327.5184280872345
+      ],
+      "processing_seconds": [
+        20.853955030441284,
+        21.780544996261597,
+        21.04161286354065,
+        21.65548801422119,
+        22.105382204055786,
+        21.89638614654541,
+        22.534029006958008,
+        22.217562198638916,
+        22.930317878723145,
+        23.006067037582397,
+        22.70706009864807,
+        22.703080892562866,
+        22.904101848602295,
+        22.467658042907715,
+        22.41838788986206,
+        22.35713481903076,
+        22.813133001327515,
+        22.582555055618286,
+        23.164278030395508,
+        23.113120079040527,
+        22.947787046432495,
+        23.09907102584839,
+        22.218507051467896,
+        22.364418029785156,
+        22.3954439163208,
+        22.463995933532715,
+        22.70895504951477,
+        22.443536043167114,
+        22.429354906082153,
+        22.960252046585083
+      ],
+      "queue_wait_median_seconds": 174.64980566501617,
+      "processing_median_seconds": 22.465826988220215,
+      "warnings": 0,
+      "missing_hls": 0
+    },
+    "worker_quotas": [
+      {
+        "id": "28a13990b0df53565666cf240f964e25bfe14dd98b37d6873fe7c9f39f80c28e",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      },
+      {
+        "id": "ef5b3004ccc2295782aaaf4695ca33153aeaf115af7a99b258ddab54b5c79fde",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      }
+    ],
+    "finished_utc": "2026-10-12T19:45:02.309590+00:00",
+    "makespan_clock": "host monotonic first acceptance to final terminal read",
+    "resource_summary": {
+      "2d1eac9dce72": {
+        "samples": 78,
+        "mean_cpu_percent": 4.794615384615384,
+        "max_cpu_percent": 14.51,
+        "peak_sampled_memory_bytes": 94025809.92
+      },
+      "5006ef794975": {
+        "samples": 78,
+        "mean_cpu_percent": 2.2183333333333333,
+        "max_cpu_percent": 13.06,
+        "peak_sampled_memory_bytes": 489475276.8
+      },
+      "5d022efc93c9": {
+        "samples": 78,
+        "mean_cpu_percent": 0.24346153846153845,
+        "max_cpu_percent": 1.01,
+        "peak_sampled_memory_bytes": 26948403.2
+      },
+      "855a0efa1bd5": {
+        "samples": 78,
+        "mean_cpu_percent": 0.02205128205128205,
+        "max_cpu_percent": 0.35,
+        "peak_sampled_memory_bytes": 69583503.36
+      },
+      "ab8b1f754a6c": {
+        "samples": 78,
+        "mean_cpu_percent": 0.7257692307692307,
+        "max_cpu_percent": 1.46,
+        "peak_sampled_memory_bytes": 8265924.608
+      },
+      "ae3da9ab940b": {
+        "samples": 78,
+        "mean_cpu_percent": 1.236025641025641,
+        "max_cpu_percent": 3.17,
+        "peak_sampled_memory_bytes": 66605547.52
+      },
+      "bdc5ac277b53": {
+        "samples": 78,
+        "mean_cpu_percent": 0.1076923076923077,
+        "max_cpu_percent": 4.33,
+        "peak_sampled_memory_bytes": 76399247.36
+      },
+      "df8673aee78e": {
+        "samples": 78,
+        "mean_cpu_percent": 4.39974358974359,
+        "max_cpu_percent": 13.97,
+        "peak_sampled_memory_bytes": 92830433.28
+      },
+      "28a13990b0df": {
+        "samples": 78,
+        "mean_cpu_percent": 188.29692307692306,
+        "max_cpu_percent": 212.91,
+        "peak_sampled_memory_bytes": 539806924.8
+      },
+      "ef5b3004ccc2": {
+        "samples": 78,
+        "mean_cpu_percent": 185.22346153846155,
+        "max_cpu_percent": 208.32,
+        "peak_sampled_memory_bytes": 542952652.8
+      }
+    }
+  },
+  {
+    "repeat": 2,
+    "workers": 3,
+    "metrics": {
+      "jobs": 30,
+      "successes": 30,
+      "errors": 0,
+      "makespan_seconds": 273.49761058400327,
+      "throughput_jobs_min": 6.581410331726244,
+      "queue_wait_seconds": [
+        21.85089612007141,
+        21.391659021377563,
+        20.821917057037354,
+        48.19837689399719,
+        47.58157014846802,
+        46.60818910598755,
+        73.02905416488647,
+        72.4158251285553,
+        71.69008803367615,
+        94.40271806716919,
+        96.60057187080383,
+        95.99442195892334,
+        116.39352202415466,
+        120.08961510658264,
+        119.69860887527466,
+        137.93405389785767,
+        142.66729092597961,
+        142.01254892349243,
+        159.03942203521729,
+        164.2502419948578,
+        164.2553369998932,
+        180.31715893745422,
+        185.57081508636475,
+        185.64395403862,
+        201.73543500900269,
+        208.01856994628906,
+        208.65062403678894,
+        223.1761920452118,
+        230.3035740852356,
+        231.1942000389099
+      ],
+      "processing_seconds": [
+        27.235962867736816,
+        27.155045986175537,
+        27.352853775024414,
+        27.095284938812256,
+        26.828583002090454,
+        26.605448007583618,
+        22.94238305091858,
+        25.740145921707153,
+        25.56774401664734,
+        23.448458909988403,
+        24.76832604408264,
+        24.74859118461609,
+        22.316323041915894,
+        23.969526052474976,
+        23.56621217727661,
+        22.513108015060425,
+        23.072360038757324,
+        23.23283290863037,
+        22.405718088150024,
+        22.90264582633972,
+        22.892991065979004,
+        22.428407907485962,
+        23.073179006576538,
+        23.49076795578003,
+        22.0924289226532,
+        22.91747212409973,
+        23.17267680168152,
+        22.644476890563965,
+        22.5270779132843,
+        22.27380394935608
+      ],
+      "queue_wait_median_seconds": 129.01183450222015,
+      "processing_median_seconds": 23.202754855155945,
+      "warnings": 0,
+      "missing_hls": 0
+    },
+    "worker_quotas": [
+      {
+        "id": "28a13990b0df53565666cf240f964e25bfe14dd98b37d6873fe7c9f39f80c28e",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      },
+      {
+        "id": "ef5b3004ccc2295782aaaf4695ca33153aeaf115af7a99b258ddab54b5c79fde",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      },
+      {
+        "id": "1421e877f3df89c67db1c4dab0f954055be1ff9bd1e398a6a1a14845b9b9029b",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      }
+    ],
+    "finished_utc": "2026-10-12T19:51:02.642439+00:00",
+    "makespan_clock": "host monotonic first acceptance to final terminal read",
+    "resource_summary": {
+      "2d1eac9dce72": {
+        "samples": 56,
+        "mean_cpu_percent": 4.327857142857143,
+        "max_cpu_percent": 18.98,
+        "peak_sampled_memory_bytes": 93407150.08
+      },
+      "5006ef794975": {
+        "samples": 56,
+        "mean_cpu_percent": 2.890892857142857,
+        "max_cpu_percent": 13.7,
+        "peak_sampled_memory_bytes": 502163046.4
+      },
+      "5d022efc93c9": {
+        "samples": 56,
+        "mean_cpu_percent": 0.2975,
+        "max_cpu_percent": 1.39,
+        "peak_sampled_memory_bytes": 11534336.0
+      },
+      "855a0efa1bd5": {
+        "samples": 56,
+        "mean_cpu_percent": 0.03535714285714286,
+        "max_cpu_percent": 0.35,
+        "peak_sampled_memory_bytes": 69321359.36
+      },
+      "ab8b1f754a6c": {
+        "samples": 56,
+        "mean_cpu_percent": 0.8842857142857142,
+        "max_cpu_percent": 1.68,
+        "peak_sampled_memory_bytes": 21265121.28
+      },
+      "ae3da9ab940b": {
+        "samples": 56,
+        "mean_cpu_percent": 1.4807142857142856,
+        "max_cpu_percent": 3.64,
+        "peak_sampled_memory_bytes": 65504542.72
+      },
+      "bdc5ac277b53": {
+        "samples": 56,
+        "mean_cpu_percent": 0.17839285714285716,
+        "max_cpu_percent": 5.48,
+        "peak_sampled_memory_bytes": 76189532.16
+      },
+      "df8673aee78e": {
+        "samples": 56,
+        "mean_cpu_percent": 4.211964285714286,
+        "max_cpu_percent": 14.55,
+        "peak_sampled_memory_bytes": 92840919.04
+      },
+      "28a13990b0df": {
+        "samples": 56,
+        "mean_cpu_percent": 174.87732142857143,
+        "max_cpu_percent": 210.85,
+        "peak_sampled_memory_bytes": 548614963.2
+      },
+      "ef5b3004ccc2": {
+        "samples": 56,
+        "mean_cpu_percent": 178.13071428571428,
+        "max_cpu_percent": 209.04,
+        "peak_sampled_memory_bytes": 541484646.4
+      },
+      "1421e877f3df": {
+        "samples": 56,
+        "mean_cpu_percent": 167.81946428571428,
+        "max_cpu_percent": 208.75,
+        "peak_sampled_memory_bytes": 544106086.4
+      }
+    }
+  },
+  {
+    "repeat": 2,
+    "workers": 1,
+    "metrics": {
+      "jobs": 30,
+      "successes": 30,
+      "errors": 0,
+      "makespan_seconds": 778.2752084590029,
+      "throughput_jobs_min": 2.312806550222804,
+      "queue_wait_seconds": [
+        27.965694189071655,
+        51.92020392417908,
+        75.79555201530457,
+        100.17606377601624,
+        124.44162487983704,
+        148.5124831199646,
+        172.81157612800598,
+        196.41790294647217,
+        220.47928500175476,
+        244.5928270816803,
+        268.2377998828888,
+        292.6869480609894,
+        316.49949288368225,
+        340.38522005081177,
+        364.9364550113678,
+        388.5198359489441,
+        413.06332993507385,
+        436.9750680923462,
+        461.5680561065674,
+        486.0848138332367,
+        509.8840148448944,
+        534.7068378925323,
+        558.7197639942169,
+        582.6862578392029,
+        607.201761007309,
+        631.5572957992554,
+        655.2731840610504,
+        678.901918888092,
+        703.3215310573578,
+        727.5605280399323
+      ],
+      "processing_seconds": [
+        24.098798990249634,
+        24.353581190109253,
+        24.159178018569946,
+        24.456775188446045,
+        24.168792963027954,
+        24.442124843597412,
+        23.780529022216797,
+        24.071040153503418,
+        24.406883001327515,
+        23.868979930877686,
+        24.48868703842163,
+        24.263996839523315,
+        24.063863039016724,
+        24.43611192703247,
+        24.155423879623413,
+        24.64082098007202,
+        24.193618059158325,
+        24.566277980804443,
+        24.674535989761353,
+        24.28949499130249,
+        24.43428111076355,
+        24.076410055160522,
+        24.65878701210022,
+        24.47520613670349,
+        24.359982013702393,
+        24.178614139556885,
+        23.83119511604309,
+        24.266942977905273,
+        24.360646963119507,
+        24.42628002166748
+      ],
+      "queue_wait_median_seconds": 376.72814548015594,
+      "processing_median_seconds": 24.32153809070587,
+      "warnings": 0,
+      "missing_hls": 0
+    },
+    "worker_quotas": [
+      {
+        "id": "28a13990b0df53565666cf240f964e25bfe14dd98b37d6873fe7c9f39f80c28e",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      }
+    ],
+    "finished_utc": "2026-10-12T20:04:31.380240+00:00",
+    "makespan_clock": "host monotonic first acceptance to final terminal read",
+    "resource_summary": {
+      "2d1eac9dce72": {
+        "samples": 166,
+        "mean_cpu_percent": 4.184096385542169,
+        "max_cpu_percent": 12.97,
+        "peak_sampled_memory_bytes": 93679779.84
+      },
+      "5006ef794975": {
+        "samples": 166,
+        "mean_cpu_percent": 1.4103614457831326,
+        "max_cpu_percent": 12.78,
+        "peak_sampled_memory_bytes": 353265254.4
+      },
+      "5d022efc93c9": {
+        "samples": 166,
+        "mean_cpu_percent": 0.35566265060240965,
+        "max_cpu_percent": 0.99,
+        "peak_sampled_memory_bytes": 11712593.92
+      },
+      "855a0efa1bd5": {
+        "samples": 166,
+        "mean_cpu_percent": 0.03415662650602409,
+        "max_cpu_percent": 0.46,
+        "peak_sampled_memory_bytes": 69845647.36
+      },
+      "ab8b1f754a6c": {
+        "samples": 166,
+        "mean_cpu_percent": 0.8053012048192771,
+        "max_cpu_percent": 1.87,
+        "peak_sampled_memory_bytes": 24998051.84
+      },
+      "ae3da9ab940b": {
+        "samples": 166,
+        "mean_cpu_percent": 1.2470481927710844,
+        "max_cpu_percent": 3.94,
+        "peak_sampled_memory_bytes": 66395832.32
+      },
+      "bdc5ac277b53": {
+        "samples": 166,
+        "mean_cpu_percent": 0.28018072289156626,
+        "max_cpu_percent": 6.42,
+        "peak_sampled_memory_bytes": 76682362.88
+      },
+      "df8673aee78e": {
+        "samples": 166,
+        "mean_cpu_percent": 3.739096385542169,
+        "max_cpu_percent": 12.3,
+        "peak_sampled_memory_bytes": 98377400.32
+      },
+      "28a13990b0df": {
+        "samples": 166,
+        "mean_cpu_percent": 185.48042168674698,
+        "max_cpu_percent": 214.87,
+        "peak_sampled_memory_bytes": 538024345.6
+      }
+    }
+  },
+  {
+    "repeat": 3,
+    "workers": 3,
+    "metrics": {
+      "jobs": 30,
+      "successes": 30,
+      "errors": 0,
+      "makespan_seconds": 265.9540100410086,
+      "throughput_jobs_min": 6.7680874588897915,
+      "queue_wait_seconds": [
+        24.49895191192627,
+        23.88549304008484,
+        23.045785903930664,
+        47.06512808799744,
+        46.88503909111023,
+        46.387014865875244,
+        68.84242606163025,
+        70.10270404815674,
+        69.38463687896729,
+        91.21134400367737,
+        91.58647298812866,
+        91.50718688964844,
+        112.63104891777039,
+        113.88228917121887,
+        113.65883803367615,
+        135.23806190490723,
+        135.49315309524536,
+        135.5875129699707,
+        156.7794439792633,
+        156.47598004341125,
+        156.64342498779297,
+        178.738627910614,
+        178.56821012496948,
+        179.11638689041138,
+        200.3578770160675,
+        200.33413100242615,
+        200.4401638507843,
+        221.5369348526001,
+        221.08973908424377,
+        221.35471892356873
+      ],
+      "processing_seconds": [
+        24.903167963027954,
+        24.06174397468567,
+        24.6479971408844,
+        23.608943939208984,
+        24.597611904144287,
+        24.697060108184814,
+        23.733389854431152,
+        23.063390016555786,
+        23.370527982711792,
+        23.044080018997192,
+        23.531529903411865,
+        23.64543104171753,
+        24.013911962509155,
+        23.090065956115723,
+        23.123445987701416,
+        22.899755001068115,
+        22.60671091079712,
+        22.63873815536499,
+        23.42693305015564,
+        23.328256845474243,
+        23.565478086471558,
+        22.750606060028076,
+        22.93633484840393,
+        22.66065812110901,
+        22.737895011901855,
+        22.63295602798462,
+        22.954565048217773,
+        22.006792068481445,
+        22.709151029586792,
+        22.402294158935547
+      ],
+      "queue_wait_median_seconds": 124.56017553806305,
+      "processing_median_seconds": 23.10675597190857,
+      "warnings": 0,
+      "missing_hls": 0
+    },
+    "worker_quotas": [
+      {
+        "id": "28a13990b0df53565666cf240f964e25bfe14dd98b37d6873fe7c9f39f80c28e",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      },
+      {
+        "id": "afe8c0ea275532ffae281c5818f8d2160a4759bb40548ed0aab6ab452a186277",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      },
+      {
+        "id": "24eb07391325e9b279e7e7a8585ea2d79eae94a821826a0a06c7d4948e993ef7",
+        "service": "worker",
+        "project": "dc2-v3-scale-a4826540",
+        "image_digest": "sha256:524211cd93d3f7037b027a8415db7db7e4dd23786b8b2768e6e9137128caefda",
+        "running": true,
+        "cpu_limit": 2.0,
+        "memory_limit_bytes": 1610612736,
+        "cgroup_cpu_max": "200000 100000",
+        "cgroup_memory_max": 1610612736,
+        "cgroup_effective_cpus": "0-7"
+      }
+    ],
+    "finished_utc": "2026-10-12T20:10:25.384525+00:00",
+    "makespan_clock": "host monotonic first acceptance to final terminal read",
+    "resource_summary": {
+      "2d1eac9dce72": {
+        "samples": 54,
+        "mean_cpu_percent": 3.9811111111111113,
+        "max_cpu_percent": 16.17,
+        "peak_sampled_memory_bytes": 91309998.08
+      },
+      "5006ef794975": {
+        "samples": 54,
+        "mean_cpu_percent": 3.404259259259259,
+        "max_cpu_percent": 13.43,
+        "peak_sampled_memory_bytes": 478779801.6
+      },
+      "5d022efc93c9": {
+        "samples": 54,
+        "mean_cpu_percent": 0.2803703703703704,
+        "max_cpu_percent": 1.81,
+        "peak_sampled_memory_bytes": 11754536.96
+      },
+      "855a0efa1bd5": {
+        "samples": 54,
+        "mean_cpu_percent": 0.041296296296296296,
+        "max_cpu_percent": 0.72,
+        "peak_sampled_memory_bytes": 69331845.12
+      },
+      "ab8b1f754a6c": {
+        "samples": 54,
+        "mean_cpu_percent": 0.8164814814814815,
+        "max_cpu_percent": 1.69,
+        "peak_sampled_memory_bytes": 7868514.304
+      },
+      "ae3da9ab940b": {
+        "samples": 54,
+        "mean_cpu_percent": 1.4672222222222222,
+        "max_cpu_percent": 3.7,
+        "peak_sampled_memory_bytes": 70925680.64
+      },
+      "bdc5ac277b53": {
+        "samples": 54,
+        "mean_cpu_percent": 0.07777777777777778,
+        "max_cpu_percent": 2.56,
+        "peak_sampled_memory_bytes": 75560386.56
+      },
+      "df8673aee78e": {
+        "samples": 54,
+        "mean_cpu_percent": 4.565,
+        "max_cpu_percent": 16.04,
+        "peak_sampled_memory_bytes": 96584335.36
+      },
+      "28a13990b0df": {
+        "samples": 54,
+        "mean_cpu_percent": 179.64703703703702,
+        "max_cpu_percent": 208.82,
+        "peak_sampled_memory_bytes": 540960358.4
+      },
+      "afe8c0ea2755": {
+        "samples": 54,
+        "mean_cpu_percent": 178.72574074074075,
+        "max_cpu_percent": 210.17,
+        "peak_sampled_memory_bytes": 542428364.8
+      },
+      "24eb07391325": {
+        "samples": 54,
+        "mean_cpu_percent": 180.26685185185184,
+        "max_cpu_percent": 212.28,
+        "peak_sampled_memory_bytes": 542533222.4
+      }
+    }
+  }
+]

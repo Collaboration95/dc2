@@ -1,0 +1,326 @@
+{
+  "schema_version": "v3-runner-1",
+  "status": "completed",
+  "action": "scaling",
+  "id": "20261013T044836-3e6912ee",
+  "run_id": "v3-final",
+  "revision": "f46599f8048b30087a4e9a8b8a0e1108dcc6fe03",
+  "dirty_tree": false,
+  "started_utc": "2026-10-12T20:48:36.104114+00:00",
+  "configuration": {
+    "action": "scaling",
+    "run_id": "v3-final",
+    "repeats": 3,
+    "pilot": false,
+    "pilot_jobs": 3,
+    "pilot_clip_seconds": 2,
+    "pilot_status_users": 3,
+    "pilot_login_users": 2,
+    "pilot_seconds": 5,
+    "pilot_warmup_seconds": 2,
+    "job_deadline": 1800,
+    "deadline": 36000,
+    "login_hash_cost": null
+  },
+  "command": [
+    "python",
+    "-m",
+    "scripts.evidence.performance",
+    "scaling",
+    "--run-id",
+    "v3-final"
+  ],
+  "public_url": "https://localhost:53134",
+  "compose_project": "dc2-v3-final-28962794",
+  "ca_file": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/final-measurements/.local/runs/v3-final/tls/ca.crt",
+  "environment": {
+    "kind": "local",
+    "host_os": "Darwin",
+    "host_architecture": "arm64",
+    "host_cpus": 10,
+    "generator": "host Python/FFmpeg outside Docker/Lima on the SAME physical host"
+  },
+  "limitations": [
+    "Local evidence only; generator shares physical host with Docker VM.",
+    "Direct HTTP runner; browser and Publisher CLI evidence collected separately.",
+    "CPU/memory stats are sampled Docker cgroup usage, not exact process peak RSS.",
+    "Makespan includes submissions, queueing, publication and observation delay."
+  ],
+  "scaling_order": [
+    [
+      1,
+      1
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      1,
+      3
+    ],
+    [
+      2,
+      2
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      2,
+      1
+    ],
+    [
+      3,
+      3
+    ],
+    [
+      3,
+      1
+    ],
+    [
+      3,
+      2
+    ]
+  ],
+  "worker_limits": {
+    "cpus": 2,
+    "memory_bytes": 1610612736
+  },
+  "target_freeze": "design08 original targets; parent quota update 1536MiB",
+  "resources": {
+    "required_cpus": 8,
+    "required_memory_bytes": 7247757312,
+    "docker_cpus": 8,
+    "docker_memory_bytes": 8296857600,
+    "architecture": "aarch64",
+    "cgroup_version": "2",
+    "other_reservations": []
+  },
+  "fixed_services": [
+    {
+      "id": "0c9018c5bc2dae8316548ace3d0e223198775691eef7f3d1285c77f868a5d53c",
+      "service": "minio",
+      "project": "dc2-v3-final-28962794",
+      "image_digest": "sha256:f9b71c3eb86481b1f44778a6b6b9e1a507b42b1510270d09fb89e0989160ec01",
+      "running": true,
+      "cpu_limit": 0.125,
+      "memory_limit_bytes": 536870912
+    },
+    {
+      "id": "6420302ee57dd103e1f1c2b956f17b36b35d8ce9bf4143c2fe019d583205903c",
+      "service": "nginx",
+      "project": "dc2-v3-final-28962794",
+      "image_digest": "sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236",
+      "running": true,
+      "cpu_limit": 0.0625,
+      "memory_limit_bytes": 134217728
+    },
+    {
+      "id": "6c2281660ef413ab25f1a2c974d4782a8e0fbf78d3004f4d6fb0782fcce40558",
+      "service": "postgres",
+      "project": "dc2-v3-final-28962794",
+      "image_digest": "sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d",
+      "running": true,
+      "cpu_limit": 0.125,
+      "memory_limit_bytes": 536870912
+    },
+    {
+      "id": "7909c1e97da3fe6160aa7966e6ded500d8daa667b565a4d15f37d1c6f300d524",
+      "service": "media-recovery",
+      "project": "dc2-v3-final-28962794",
+      "image_digest": "sha256:7cff0354baad9180862972c8235458f73a4ab3fc5550f9c8c589c6f02e083562",
+      "running": true,
+      "cpu_limit": 0.0625,
+      "memory_limit_bytes": 201326592
+    },
+    {
+      "id": "83de5891dcf157be1f67628bfa722e34a1eb93a5f5cd7df4123ae32d51de4780",
+      "service": "processing",
+      "project": "dc2-v3-final-28962794",
+      "image_digest": "sha256:5252806dccfea141df6815b7c8d9905f00bfbd84d7b83a9571b54ade274b39b1",
+      "running": true,
+      "cpu_limit": 0.5,
+      "memory_limit_bytes": 268435456
+    },
+    {
+      "id": "9f0df83ca87450b79656ac0f38a4345e4086a9c7830706d0f3b27784982b5dba",
+      "service": "media",
+      "project": "dc2-v3-final-28962794",
+      "image_digest": "sha256:7cff0354baad9180862972c8235458f73a4ab3fc5550f9c8c589c6f02e083562",
+      "running": true,
+      "cpu_limit": 1.0,
+      "memory_limit_bytes": 402653184
+    },
+    {
+      "id": "d68815f719d3db6e202fa108e244e505563d31246cd0f6f11544a2f23ca9661d",
+      "service": "redis",
+      "project": "dc2-v3-final-28962794",
+      "image_digest": "sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499",
+      "running": true,
+      "cpu_limit": 0.0625,
+      "memory_limit_bytes": 134217728
+    },
+    {
+      "id": "e65a92a2c1c7a2e89d17e228ffcc0b07e1278363ddd41dd50cd255d8fa409ca4",
+      "service": "processing-recovery",
+      "project": "dc2-v3-final-28962794",
+      "image_digest": "sha256:5252806dccfea141df6815b7c8d9905f00bfbd84d7b83a9571b54ade274b39b1",
+      "running": true,
+      "cpu_limit": 0.0625,
+      "memory_limit_bytes": 201326592
+    }
+  ],
+  "fixture": {
+    "sha256": "8946588830f5351badd61f44f2952d76a00d87cd335a222f532384bbd81b83f2",
+    "size_bytes": 21050412,
+    "duration_seconds": 60.0,
+    "height": 720,
+    "width": 1280,
+    "video_codec": "h264",
+    "audio_codec": "aac",
+    "sample_rate": "48000",
+    "ffmpeg_version": "ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers",
+    "generation_preset": "veryfast",
+    "generation_threads": 2,
+    "generation_command": [
+      "ffmpeg",
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-nostdin",
+      "-n",
+      "-f",
+      "lavfi",
+      "-i",
+      "testsrc2=size=1280x720:rate=30",
+      "-f",
+      "lavfi",
+      "-i",
+      "sine=frequency=1000:sample_rate=48000",
+      "-t",
+      "60",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "veryfast",
+      "-crf",
+      "23",
+      "-threads",
+      "2",
+      "-pix_fmt",
+      "yuv420p",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "128k",
+      "-map_metadata",
+      "-1",
+      "-fflags",
+      "+bitexact",
+      "-flags:v",
+      "+bitexact",
+      "-flags:a",
+      "+bitexact",
+      "-movflags",
+      "+faststart",
+      "source.mp4"
+    ]
+  },
+  "worker_encoding": {
+    "ffmpeg_preset": "veryfast",
+    "ffmpeg_crf": 23,
+    "ffmpeg_version": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+    "thread_policy": "FFmpeg automatic threads; actual cgroup CPU quota is authoritative",
+    "output_policy": "MP4 primary plus best-effort 360/480/720p HLS (frozen design)"
+  },
+  "finished_utc": "2026-10-12T22:08:40.725961+00:00",
+  "result": {
+    "targets": [
+      {
+        "target": "2 workers >= 1.6x",
+        "actual": 2.032126438116071,
+        "pass": true
+      },
+      {
+        "target": "3 workers >= 2.1x",
+        "actual": 2.8854534109133168,
+        "pass": true
+      },
+      {
+        "target": "decreasing pooled median queue wait",
+        "actual": [
+          375.3808345794678,
+          175.97585654258728,
+          120.36012399196625
+        ],
+        "pass": true
+      },
+      {
+        "target": "zero failed jobs",
+        "actual": 0,
+        "pass": true
+      }
+    ],
+    "median_throughput_jobs_min": {
+      "1": 2.336858118690338,
+      "2": 4.748791165116819,
+      "3": 6.742895229395511
+    },
+    "throughput_ranges": {
+      "1": [
+        2.3094782686896407,
+        2.3469027674493246
+      ],
+      "2": [
+        4.5344511924645055,
+        4.754869588526098
+      ],
+      "3": [
+        6.6593094297426605,
+        6.83560710010755
+      ]
+    },
+    "criteria_pass": true,
+    "acceptance_eligible": true,
+    "label": "full local",
+    "acceptance_pass": true
+  },
+  "raw_artifacts": [
+    "cleanup.jsonl",
+    "intervals.jsonl",
+    "manifest.json",
+    "observations.jsonl",
+    "operations.jsonl",
+    "preflight.jsonl",
+    "queue.jsonl",
+    "quotas.jsonl",
+    "r1-w1-jobs.csv",
+    "r1-w1-jobs.json",
+    "r1-w2-jobs.csv",
+    "r1-w2-jobs.json",
+    "r1-w3-jobs.csv",
+    "r1-w3-jobs.json",
+    "r2-w1-jobs.csv",
+    "r2-w1-jobs.json",
+    "r2-w2-jobs.csv",
+    "r2-w2-jobs.json",
+    "r2-w3-jobs.csv",
+    "r2-w3-jobs.json",
+    "r3-w1-jobs.csv",
+    "r3-w1-jobs.json",
+    "r3-w2-jobs.csv",
+    "r3-w2-jobs.json",
+    "r3-w3-jobs.csv",
+    "r3-w3-jobs.json",
+    "resources.jsonl",
+    "runs.json",
+    "source.mp4",
+    "submissions.jsonl",
+    "targets.csv",
+    "targets.json",
+    "warmup-consumers.jsonl",
+    "warmups.jsonl"
+  ]
+}

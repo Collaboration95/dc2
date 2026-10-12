@@ -1,0 +1,51 @@
+{
+  "targets": [
+    {
+      "target": "2 workers >= 1.6x",
+      "actual": 2.032126438116071,
+      "pass": true
+    },
+    {
+      "target": "3 workers >= 2.1x",
+      "actual": 2.8854534109133168,
+      "pass": true
+    },
+    {
+      "target": "decreasing pooled median queue wait",
+      "actual": [
+        375.3808345794678,
+        175.97585654258728,
+        120.36012399196625
+      ],
+      "pass": true
+    },
+    {
+      "target": "zero failed jobs",
+      "actual": 0,
+      "pass": true
+    }
+  ],
+  "median_throughput_jobs_min": {
+    "1": 2.336858118690338,
+    "2": 4.748791165116819,
+    "3": 6.742895229395511
+  },
+  "throughput_ranges": {
+    "1": [
+      2.3094782686896407,
+      2.3469027674493246
+    ],
+    "2": [
+      4.5344511924645055,
+      4.754869588526098
+    ],
+    "3": [
+      6.6593094297426605,
+      6.83560710010755
+    ]
+  },
+  "criteria_pass": true,
+  "acceptance_eligible": true,
+  "label": "full local",
+  "acceptance_pass": true
+}
