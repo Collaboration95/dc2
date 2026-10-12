@@ -3,12 +3,20 @@ x-processing: &processing
   build:
     context: ${DC2_ROOT}
     dockerfile: deploy/processing.Dockerfile
+    labels:
+      org.opencontainers.image.revision: ${DC2_BUILD_REVISION:-dirty-unverified}
+      dc2.release.source-fingerprint: ${DC2_BUILD_SOURCE_FINGERPRINT:-dirty-unverified}
+      dc2.release.source-state: ${DC2_BUILD_SOURCE_STATE:-dirty}
 
 x-media: &media
   image: ${DC2_MEDIA_IMAGE:?Run runtime.py env first}
   build:
     context: ${DC2_ROOT}
     dockerfile: deploy/media.Dockerfile
+    labels:
+      org.opencontainers.image.revision: ${DC2_BUILD_REVISION:-dirty-unverified}
+      dc2.release.source-fingerprint: ${DC2_BUILD_SOURCE_FINGERPRINT:-dirty-unverified}
+      dc2.release.source-state: ${DC2_BUILD_SOURCE_STATE:-dirty}
 
 x-media-env: &media-env
   MEDIA_POSTGRES_DSN: ${MEDIA_POSTGRES_DSN:?}

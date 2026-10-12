@@ -2,6 +2,8 @@
 """Run-scoped local infrastructure; no global Docker context or trust changes."""
 
 import argparse
+import contextlib
+import fcntl
 import hashlib
 import json
 import os
@@ -223,11 +225,84 @@ def configure(run_id, root=ROOT):
     return env, state
 
 
+def build_labels(root=ROOT):
+    # Import lazily: release itself imports runtime, including when invoked directly.
+    try:
+        from scripts.dev.release import PRODUCT_PATHS
+    except ModuleNotFoundError:
+        from release import PRODUCT_PATHS
+
+    def git(*args):
+        return subprocess.run(
+            ["git", *args], cwd=root, capture_output=True, text=True, encoding="utf-8", check=True
+        ).stdout
+
+    revision = git("rev-parse", "HEAD").strip()
+    fingerprint = hashlib.sha256(git("ls-files", "-s", "--", *PRODUCT_PATHS).encode("utf-8"))
+    dirty = bool(git("status", "--porcelain", "--untracked-files=all", "--", *PRODUCT_PATHS))
+    prefix = "dirty:" if dirty else ""
+    return {
+        "DC2_BUILD_REVISION": prefix + revision,
+        "DC2_BUILD_SOURCE_FINGERPRINT": prefix + fingerprint.hexdigest(),
+        "DC2_BUILD_SOURCE_STATE": "dirty" if dirty else "clean",
+    }
+
+
+@contextlib.contextmanager
+def runtime_lock(state, *, refuse_pending=False):
+    """Only runtime entry points lock; release holds this lock around its Compose calls."""
+    directory = Path(state["env_file"]).parent / "releases"
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    fd = os.open(directory / "runner.lock", os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise ValueError("another release/runtime operation owns this run-id") from None
+        journal = directory / "journal.json"
+        if refuse_pending and journal.exists():
+            data = json.loads(journal.read_text())
+            if not isinstance(data, dict):
+                raise ValueError("invalid release journal; inspect recovery state before up/images")
+            if data.get("pending") is not None:
+                raise ValueError(
+                    "unfinished release recovery; run release.py rollback before up/images"
+                )
+        yield
+    finally:
+        os.close(fd)
+
+
 def compose(state, *arguments, **kwargs):
     # The generated file must win over any unrelated variables in the caller's shell.
     env = subprocess_env()
-    for key in read_env(Path(state["env_file"])):
+    project_env = read_env(Path(state["env_file"]))
+    for key in project_env:
         env.pop(key, None)
+    # These values are build-time source facts, never saved in runtime.env.
+    for key in ("DC2_BUILD_REVISION", "DC2_BUILD_SOURCE_FINGERPRINT", "DC2_BUILD_SOURCE_STATE"):
+        env.pop(key, None)
+    command_arguments = list(arguments)
+    while command_arguments[:1] in (["-f"], ["--file"]):
+        command_arguments = command_arguments[2:]
+    building = command_arguments[:1] == ["build"]
+    files = []
+    if building:
+        if command_arguments != list(arguments):
+            raise ValueError(
+                "runtime builds must use the base Compose file without image overrides"
+            )
+        for key in ("DC2_PROCESSING_IMAGE", "DC2_MEDIA_IMAGE", "DC2_MINIO_IMAGE"):
+            image = project_env.get(key, "")
+            if image.startswith("sha256:") or "@" in image:
+                raise ValueError(
+                    "runtime builds require mutable image tags, never immutable image IDs"
+                )
+        env.update(build_labels(Path(project_env["DC2_ROOT"])))
+    else:
+        persisted = Path(state["env_file"]).parent / "release.override.json"
+        if persisted.exists():
+            files = ["-f", str(persisted)]
     return subprocess.run(
         [
             "docker",
@@ -238,6 +313,7 @@ def compose(state, *arguments, **kwargs):
             state["compose_project"],
             "-f",
             str(COMPOSE),
+            *files,
             *arguments,
         ],
         cwd=ROOT,
@@ -273,6 +349,11 @@ def fetch_minio():
 
 
 def images(state):
+    with runtime_lock(state, refuse_pending=True):
+        _images(state)
+
+
+def _images(state):
     fetch_minio()
     if os.environ.get("DC2_USE_PREBUILT_MINIO") == "1":
         # CI loads a cached build of this exact pinned source before starting
@@ -343,36 +424,12 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         env, state = configure(args.run_id)
-        if args.action == "env":
-            print(json.dumps(state, indent=2))
-        elif args.action == "images":
-            images(state)
-        elif args.action == "up":
-            tls = ROOT / "scripts/dev/tls.py"
-            if not tls.exists():
-                raise ValueError(
-                    "Parent TLS helper scripts/dev/tls.py must be integrated before up"
-                )
-            run([sys.executable, str(tls), "--run-id", args.run_id])
-            for name in ("ca.crt", "server.crt", "server.key"):
-                if not (Path(env["DC2_RUN_DIR"]) / "tls" / name).is_file():
-                    raise ValueError(f"TLS helper did not create {name}")
-            info = run(["docker", "info", "--format", "{{json .}}"], capture_output=True, text=True)
-            capacity = json.loads(info.stdout)
-            print(f"Docker: {capacity['NCPU']} CPUs, {capacity['MemTotal'] / 2**30:.2f} GiB")
-            images(state)
-            compose(state, "up", "-d", "--wait", "--wait-timeout", "180")
-            smoke(state)
-            print(state["public_url"])
-        elif args.action == "down":
-            compose(state, "down")  # Intentionally no -v: retain all owned data.
-        elif args.action == "logs":
-            compose(state, "logs", "--tail", "100")
-        elif args.action == "status":
-            print(json.dumps(state, indent=2))
-            compose(state, "ps", "--all")
-        else:
-            smoke(state)
+        with (
+            runtime_lock(state, refuse_pending=args.action == "up")
+            if args.action in ("up", "down")
+            else contextlib.nullcontext()
+        ):
+            return dispatch(args, env, state)
     except (ValueError, OSError, subprocess.CalledProcessError) as exc:
         # Do not print command/env representations: they can contain credentials.
         message = (
@@ -382,6 +439,40 @@ def main(argv=None):
         )
         print(f"runtime: {message}", file=sys.stderr)
         return 1
+
+
+def dispatch(args, env, state):
+    if args.action == "env":
+        print(json.dumps(state, indent=2))
+    elif args.action == "images":
+        images(state)
+    elif args.action == "up":
+        tls = ROOT / "scripts/dev/tls.py"
+        if not tls.exists():
+            raise ValueError("Parent TLS helper scripts/dev/tls.py must be integrated before up")
+        run([sys.executable, str(tls), "--run-id", args.run_id])
+        for name in ("ca.crt", "server.crt", "server.key"):
+            if not (Path(env["DC2_RUN_DIR"]) / "tls" / name).is_file():
+                raise ValueError(f"TLS helper did not create {name}")
+        info = run(["docker", "info", "--format", "{{json .}}"], capture_output=True, text=True)
+        capacity = json.loads(info.stdout)
+        print(f"Docker: {capacity['NCPU']} CPUs, {capacity['MemTotal'] / 2**30:.2f} GiB")
+        _images(state)
+        startup = ["up", "-d"]
+        if (Path(state["env_file"]).parent / "release.override.json").exists():
+            startup += ["--no-build", "--pull", "never"]
+        compose(state, *startup, "--wait", "--wait-timeout", "180")
+        smoke(state)
+        print(state["public_url"])
+    elif args.action == "down":
+        compose(state, "down")  # Intentionally no -v: retain all owned data.
+    elif args.action == "logs":
+        compose(state, "logs", "--tail", "100")
+    elif args.action == "status":
+        print(json.dumps(state, indent=2))
+        compose(state, "ps", "--all")
+    else:
+        smoke(state)
     return 0
 
 
