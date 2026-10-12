@@ -226,6 +226,7 @@ jobs:
           cache-from: |
             type=gha,scope=browser-minio
             type=gha,scope=integration-minio
+            type=gha,scope=processing-minio
           cache-to: type=gha,scope=processing-minio,mode=max
       - name: Install real media fixture encoder
         run: |
