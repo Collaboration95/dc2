@@ -16,4 +16,7 @@ Local validation:14runtime tests pass (including accepted/rejected cache identit
 full fast suite passes460Python+124frontend tests, lint and actionlint pass.
 A normal local image build followed by DC2_USE_PREBUILT_MINIO=1 startup skips
 source compilation and passes all infrastructure/storage/database/TLS smoke.
-Persistent GitHub cache-hit evidence and independent re-review are pending.
+GitHub run 38282861155 passed all checks. Its browser MinIO Go build step was
+CACHED, and startup reused the verified image. Browser job duration fell from
+3m49s to 2m26s. Independent Sol xhigh re-review is PASS in
+foundation-cache-review.md. PR27 merged at 49b693e; F2/E1 are Done.

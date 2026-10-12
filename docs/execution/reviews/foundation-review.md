@@ -3,7 +3,7 @@ ISSUE: #9 (F1), #10 (F2), #11 (F3); parent #2
 PR: [#26](https://github.com/Collaboration95/dc2/pull/26), branch `wave/01-foundation`
 
 RECORD STATUS: Attribution/history correction only; cache fix and re-review pending.
-The verdict line retains the previously issued PASS. This correction issues no
+The verdict line records the initial PASS. This correction issues no
 new verdict and does not assess the patch currently in flight.
 
 Independent grouped foundation review, 13 October 2026 (Singapore).
@@ -15,13 +15,14 @@ saved evidence without rerunning setup, tests, builds or infrastructure.
 A subsequent review-report-only commit does not change this reviewed code.
 
 Foundation functionality, local verification evidence and all remote checks pass
-on the reviewed SHA. The subsequent PASS followed the coordinator's assessment
-that the measured MinIO rebuild cost did not need optimization under 80/20 scope.
-The reviewer incorrectly attributed that assessment to the user; it was not a
-new user instruction or waiver. The coordinator reports that the earlier REVISE
-arrived during merge, #10/#2 were transparently reopened, and the user was told
-the cache fix would land before product work. R1 remains open pending that fix
-and actual warm CI evidence.
+on the reviewed SHA. The review sequence was initial PASS, followed by the late
+R1 REVISE during PR #26's merge, then the coordinator reopening #10/#2 and choosing
+the cache correction. The assessment that no cache optimization was needed under
+80/20 scope came from the coordinator, not the user. The reviewer incorrectly
+recorded it as a user instruction or waiver; the user never gave that instruction.
+There is no cache waiver. R1 remains pending review of the new code and actual
+warm CI evidence. The coordinator reports that the correction is implemented
+locally and will supply the new SHA for bounded re-review.
 
 ACCEPTANCE:
 
@@ -50,12 +51,14 @@ FINDINGS:
   `scripts/dev/runtime.py:272–274,349` restore source but do not persist MinIO
   build layers for the browser job. The actual compilation took 130.5s; the
   complete cold browser job passed in 3m49s, with all trust/smoke checks intact.
-  The earlier REVISE requested persistent build-layer caching or verified cached
-  image reuse, with warm-run evidence. The later PASS incorrectly treated the
-  coordinator's timing assessment as a user waiver. No such user waiver is
-  established. The parent is implementing the cache correction and will request
-  a bounded re-review with actual warm CI evidence. This attribution correction
-  neither closes R1 nor issues another verdict while that patch is in flight.
+  After the initial PASS, the late R1 REVISE requested persistent build-layer
+  caching or verified cached image reuse, with warm-run evidence. It arrived
+  during PR #26's merge; the coordinator reopened #10/#2 and chose the correction.
+  The report's intervening user-waiver attribution was false: the timing/80/20
+  assessment was the coordinator's message, not a user instruction. The parent
+  reports the correction is implemented locally and will supply a new SHA and
+  actual warm CI evidence for bounded re-review. R1 remains pending; this history
+  correction neither closes it nor issues a new verdict.
 
 CHECKS:
 

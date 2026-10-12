@@ -80,6 +80,7 @@ def test_fast_tier_discards_ambient_live_configuration(monkeypatch):
 def test_explicit_integration_cannot_return_success_when_disabled(monkeypatch):
     monkeypatch.delenv("RUN_POSTGRES_TESTS", raising=False)
     monkeypatch.delenv("RUN_PROCESSING_TESTS", raising=False)
+    monkeypatch.delenv("RUN_MEDIA_TESTS", raising=False)
     with pytest.raises(SystemExit, match="Integration is opt-in"):
         checks.integration()
 
@@ -88,6 +89,7 @@ def test_explicit_integration_cannot_return_success_when_disabled(monkeypatch):
 def test_enabled_integration_requires_explicit_resource_configuration(name, monkeypatch):
     monkeypatch.delenv("RUN_POSTGRES_TESTS", raising=False)
     monkeypatch.delenv("RUN_PROCESSING_TESTS", raising=False)
+    monkeypatch.delenv("RUN_MEDIA_TESTS", raising=False)
     monkeypatch.setenv(
         "RUN_POSTGRES_TESTS" if name == "POSTGRES_DSN" else "RUN_PROCESSING_TESTS", "1"
     )
@@ -175,3 +177,22 @@ def test_clean_preserves_secrets_and_external_symlink(tmp_path, monkeypatch):
     assert (outside / "keep").read_text() == "keep"
     assert (tmp_path / ".env").read_text() == "secret"
     assert (tmp_path / ".venv").exists()
+
+
+def test_integration_selection_tracks_service_ownership(tmp_path, monkeypatch):
+    directory = tmp_path / "tests/integration"
+    directory.mkdir(parents=True)
+    for name in (
+        "test_processing_worker.py",
+        "test_processing_intake.py",
+        "test_media_assets.py",
+        "test_jobs.py",
+    ):
+        (directory / name).touch()
+    monkeypatch.setattr(checks, "ROOT", tmp_path)
+    assert checks.service_tests("processing") == [
+        "tests/integration/test_processing_intake.py",
+        "tests/integration/test_processing_worker.py",
+        "tests/integration/test_database_ownership.py",
+    ]
+    assert checks.service_tests("media") == ["tests/integration/test_media_assets.py"]

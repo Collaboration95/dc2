@@ -74,3 +74,22 @@ Processing intake currently stores queued work only. Worker dispatch, heartbeat,
 queue reconciliation, Media Management Asset integration, retry/cancel/output
 handling, Publisher CLI, AWS and scaling/recovery experiments remain to implement.
 No end-to-end extraction, video-processing or cloud result is claimed yet.
+
+13 October: reviewed execution plan and foundation complete
+Project 14 contains six epics and eighteen child issues with personas and dependencies.
+PR25 planning, PR26 foundation and PR27 cache correction are merged after review
+and green CI. See docs/execution/progress.json and reviews/ for evidence.
+Make setup/test/up now provides locked dependencies, fast offline checks, private
+storage, separate databases, scoped TLS trust and an 8 CPU local Lima VM.
+460 Python and 124 frontend fast tests pass; combined Python coverage gates pass.
+Processing/Media/clients product lanes follow; no full workflow is claimed yet.
+
+Processing implementation ready for review (13 October)
+P1/P2/P3 now implement durable retries/cancellation/leases, source renewal, real
+FFmpeg outputs, heartbeat supervision, Redis delivery repair and repeated cleanup.
+635 fast Python tests and41 real PG/Redis/MinIO/FFmpeg tests pass. Separate package
+coverage gates pass; see docs/execution/reviews/processing-validation.md.
+Independent review and PR checks remain required before the group is Done.
+Media and clients are implemented in isolated worktrees. Client review identified
+three uncertainty/UI-state bugs; fixes are underway. First real public two-service
+workflow passes, with full browser/CLI/fault/load/release evidence still pending.

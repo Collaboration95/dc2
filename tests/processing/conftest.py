@@ -1,3 +1,4 @@
+import os
 from uuid import uuid4
 
 import pytest
@@ -19,3 +20,16 @@ def submission():
         "source_url": "https://media.test/internal/source?signature=temporary",
         "source_url_expires_at": "2026-10-13T00:00:00Z",
     }
+
+
+@pytest.fixture(autouse=True)
+def isolate_processing_configuration(monkeypatch):
+    """Fast tests cannot inherit a developer's live queue/storage credentials."""
+    from processing.config import get_settings
+
+    for name in list(os.environ):
+        if name.startswith("PROCESSING_"):
+            monkeypatch.delenv(name)
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()

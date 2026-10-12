@@ -36,6 +36,7 @@ dev = [
   "pytest-cov>=6,<8",
   "ruff>=0.9,<1",
   "pytest-timeout>=2.3,<3",
+  "jsonschema>=4,<5",
 ]
 browser = ["playwright==1.63.0"]
 

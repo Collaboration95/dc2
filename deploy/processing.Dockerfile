@@ -3,6 +3,10 @@ FROM python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 # Processing installs without importing or packaging Media Management's app/.
 COPY pyproject.toml uv.lock ./
 RUN python -m pip install --no-cache-dir uv==0.8.17 \
@@ -11,6 +15,7 @@ RUN python -m pip install --no-cache-dir uv==0.8.17 \
     && python -m pip uninstall -y uv \
     && rm /tmp/requirements.txt
 COPY processing ./processing
+COPY media_engine ./media_engine
 RUN python -m pip install --no-cache-dir --no-deps . \
     && useradd --system --create-home --uid 10001 flickpond
 USER flickpond
