@@ -1,5 +1,5 @@
 {
-  "stage": "clients-delivery-and-integrated-evidence",
+  "stage": "final-local-acceptance-measurements",
   "baseline": "b32d489566144202fbf6fc3887ce25d5321444fd",
   "project": {
     "id": "PVT_kwHOBBatWM4Bmtkx",
@@ -123,7 +123,7 @@
     "C1": {
       "number": 18,
       "state": "Done",
-      "pr": null,
+      "pr": 30,
       "evidence": [
         "Foundation merged; frozen interfaces and localruntime/testgates available.",
         "ProductwaveheldforF2cachecorrection andfinalreview.",
@@ -135,7 +135,7 @@
     "C2": {
       "number": 19,
       "state": "Done",
-      "pr": null,
+      "pr": 30,
       "evidence": [
         "Foundation merged; frozen interfaces and localruntime/testgates available.",
         "ProductwaveheldforF2cachecorrection andfinalreview.",
@@ -147,7 +147,7 @@
     "V1": {
       "number": 20,
       "state": "In progress",
-      "pr": null,
+      "pr": 31,
       "evidence": [
         "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
       ]
@@ -155,7 +155,7 @@
     "V2": {
       "number": 21,
       "state": "In progress",
-      "pr": null,
+      "pr": 31,
       "evidence": [
         "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
       ]
@@ -163,7 +163,7 @@
     "V3": {
       "number": 22,
       "state": "In progress",
-      "pr": null,
+      "pr": 31,
       "evidence": [
         "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
       ]
@@ -171,7 +171,7 @@
     "V4": {
       "number": 23,
       "state": "In progress",
-      "pr": null,
+      "pr": 31,
       "evidence": [
         "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
       ]
@@ -179,7 +179,7 @@
     "V5": {
       "number": 24,
       "state": "In progress",
-      "pr": null,
+      "pr": 31,
       "evidence": [
         "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
       ]
@@ -247,36 +247,53 @@
       "state": "merged",
       "review": "PASS: reviews/media-rereview.md",
       "merge_commit": "b4a9f56"
+    },
+    {
+      "number": 30,
+      "url": "https://github.com/Collaboration95/dc2/pull/30",
+      "group": "clients",
+      "issues": [
+        "C1",
+        "C2"
+      ],
+      "state": "merged",
+      "review": "PASS: reviews/clients-rereview.md",
+      "merge_commit": "ea3950c61f4f9eaa5ad8dcbe1f726303f85e0764"
+    },
+    {
+      "number": 31,
+      "url": "https://github.com/Collaboration95/dc2/pull/31",
+      "group": "local-acceptance",
+      "issues": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "state": "draft",
+      "review": "Code corrections PASS; final live measurements and evidence review pending",
+      "head_checkpoint": "17512540e129e4d9be64aa8bb6a3450f5aa76a82"
     }
   ],
   "limitations": [
-    "Full scaling not measured yet; project-local8CPU8GiBVM and2CPUquota verified."
+    "Final macOS verify/recovery and live V4 remain pending while the measurement VM is isolated.",
+    "Full fair scaling is in progress on frozen621c03a; full status/login follows only after scaling passes. No final V3 claim yet.",
+    "Actual Linux full workflow passed in CI38300284726; retained evidence under docs/execution/evidence/linux-ci-38300284726."
   ],
   "aws_actions_performed": false,
   "active_worktrees": [
     {
-      "branch": "wave/02-clients",
+      "branch": "wave/03-local-acceptance",
       "path": ".",
       "owner": "coordinator",
-      "scope": "Client groupedPR/CI"
+      "scope": "Final accepted runner corrections, CI, evidence and handoff"
     },
     {
       "branch": "work/integration",
       "path": ".worktrees/integration",
       "owner": "coordinator",
-      "scope": "Frozen621c03a fullscaling atRUN_IDv3-scale; no concurrentVM workloads"
-    },
-    {
-      "branch": "work/integration-corrections",
-      "path": ".worktrees/integration-corrections",
-      "owner": "Halley Solxhigh",
-      "scope": "Offline V1/V2 correction rereview"
-    },
-    {
-      "branch": "work/release-integration",
-      "path": ".worktrees/release-integration",
-      "owner": "Feynman Solxhigh",
-      "scope": "Offline V4 correction rereview"
+      "scope": "Frozen621c03a; serialized full scaling then latency; no competing VM workloads"
     }
   ]
 }
