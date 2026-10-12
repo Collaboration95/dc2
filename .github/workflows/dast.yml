@@ -34,8 +34,29 @@ jobs:
       REDIS_PASSWORD: dast-only-redis-password
       POSTGRES_PASSWORD: dast-only-postgres-password
       DAST_BASE_URL: http://127.0.0.1:3000
+      GH_TOKEN: ${{ github.token }}
+      UV_CACHE_DIR: ${{ github.workspace }}/.cache/uv
+      UV_PYTHON_DOWNLOADS: never
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.17'
+          enable-cache: true
+          cache-local-path: .cache/uv
+          cache-dependency-glob: uv.lock
+      - run: uv sync --locked --extra dev
+      - uses: actions/cache@v4
+        with:
+          path: .cache/minio
+          key: minio-source-20960b6a2ddb9594ee418035b3c7c7fe92ae6a12
+      - name: Fetch pinned MinIO through gh before the source-context build
+        run: |
+          test -f scripts/dev/runtime.py || { echo 'Runtime helper pending foundation integration'; exit 2; }
+          .venv/bin/python -c 'from scripts.dev.runtime import fetch_minio; fetch_minio()'
 
       - name: Prepare report directory
         run: |

@@ -4,6 +4,7 @@ on:
   push:
     branches: [Main]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,62 +13,348 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  UV_CACHE_DIR: ${{ github.workspace }}/.cache/uv
+  UV_PROJECT_ENVIRONMENT: ${{ github.workspace }}/.venv
+  UV_PYTHON_DOWNLOADS: never
+  npm_config_cache: ${{ github.workspace }}/.cache/npm
+  PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.local/playwright
+  GH_TOKEN: ${{ github.token }}
+
 jobs:
   lint-and-unit:
     name: Lint and Python unit tests
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-          cache: pip
-      - name: Install development dependencies
-        run: python -m pip install -e '.[dev]'
-      - name: Ruff lint
-        run: python -m ruff check app processing tests migrations
-      - name: Python unit tests
-        run: python -m pytest -q --cov=app --cov-report=term --cov-report=xml:coverage.xml
-      - name: Upload Python coverage
-        uses: actions/upload-artifact@v4
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@v6
         with:
-          name: python-coverage
-          path: coverage.xml
+          version: '0.8.17'
+          enable-cache: true
+          cache-local-path: .cache/uv
+          cache-dependency-glob: uv.lock
+      - run: uv sync --locked --extra dev --extra browser
+      - run: make lint
+      - run: .venv/bin/python -m scripts.dev.checks coverage-fast
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fast-coverage-data
+          path: artifacts/coverage/.coverage.fast*
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
 
   frontend:
     name: Frontend tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.17'
+          enable-cache: true
+          cache-local-path: .cache/uv
+          cache-dependency-glob: uv.lock
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      # Coverage, not just the tests: the thresholds in package.json's
-      # test:coverage are what stop the player's error paths from quietly
-      # losing their tests.
-      - run: npm run test:coverage -- --coverage.reporter=text --coverage.reporter=lcov
+      - run: make setup
+      - run: .venv/bin/python -m scripts.dev.checks coverage-frontend
       - name: Normalize frontend coverage paths
-        run: node scripts/normalize-lcov.mjs coverage/lcov.info
-      - name: Upload frontend coverage
-        uses: actions/upload-artifact@v4
+        run: node frontend/scripts/normalize-lcov.mjs frontend/coverage/lcov.info
+      - uses: actions/upload-artifact@v4
         with:
           name: frontend-coverage
           path: frontend/coverage/lcov.info
           if-no-files-found: error
           retention-days: 7
 
+  fast:
+    name: Fast checks
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    needs: [lint-and-unit, frontend]
+    steps:
+      - name: Require successful fast jobs
+        env:
+          PYTHON_RESULT: ${{ needs.lint-and-unit.result }}
+          FRONTEND_RESULT: ${{ needs.frontend.result }}
+        run: test "$PYTHON_RESULT" = success && test "$FRONTEND_RESULT" = success
+
+  legacy-integration:
+    name: Legacy real integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: flickpond
+          POSTGRES_USER: flickpond
+          POSTGRES_PASSWORD: flickpond_ci_password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U flickpond -d flickpond"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      RUN_POSTGRES_TESTS: '1'
+      POSTGRES_DSN: postgresql://flickpond:flickpond_ci_password@127.0.0.1:5432/flickpond
+      MINIO_ENDPOINT: 127.0.0.1:9000
+      MINIO_PUBLIC_ENDPOINT: 127.0.0.1:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET: videos
+      MINIO_REGION: us-east-1
+      MINIO_USE_SSL: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.17'
+          enable-cache: true
+          cache-local-path: .cache/uv
+          cache-dependency-glob: uv.lock
+      - run: uv sync --locked --extra dev --extra browser
+      - uses: actions/cache@v4
+        with:
+          path: .cache/minio
+          key: minio-source-20960b6a2ddb9594ee418035b3c7c7fe92ae6a12
+      - name: Fetch pinned MinIO through authenticated gh (runtime lane helper)
+        run: |
+          test -f scripts/dev/runtime.py || { echo 'Runtime helper pending foundation integration'; exit 2; }
+          .venv/bin/python -c 'from scripts.dev.runtime import fetch_minio; fetch_minio()'
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/dast/minio.Dockerfile
+          build-contexts: minio_source=.cache/minio/20960b6a2ddb9594ee418035b3c7c7fe92ae6a12
+          load: true
+          tags: dc2-minio:ci
+          cache-from: type=gha,scope=integration-minio
+          cache-to: type=gha,scope=integration-minio,mode=max
+      - name: Start isolated MinIO and await readiness
+        run: |
+          docker run -d --name dc2-ci-minio -p 127.0.0.1:9000:9000 \
+            -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin123 \
+            dc2-minio:ci server /data
+          .venv/bin/python -m scripts.dev.wait_http http://127.0.0.1:9000/minio/health/live --timeout 60
+      - name: Install fixture encoder and migrate isolated legacy database
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          .venv/bin/python -m alembic upgrade head
+      - run: make integration-coverage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: legacy-coverage-data
+          path: artifacts/coverage/.coverage.legacy-integration*
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+      - name: Capture service failure
+        if: failure()
+        run: docker logs dc2-ci-minio
+      - name: Stop only runner-owned MinIO
+        if: always()
+        run: docker rm -f dc2-ci-minio
+
+  processing-intake:
+    name: Processing intake and database ownership
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      COMPOSE_PROJECT_NAME: dc2-processing-ci-${{ github.run_id }}
+      PROCESSING_SERVICE_TOKEN: ci-only-processing-service-token
+      PROCESSING_POSTGRES_DSN: postgresql+asyncpg://processing_runtime:dc2_local_processing@127.0.0.1:55432/processing_db
+      P2_POSTGRES_PORT: '55432'
+      RUN_PROCESSING_TESTS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.17'
+          enable-cache: true
+          cache-local-path: .cache/uv
+          cache-dependency-glob: uv.lock
+      - run: uv sync --locked --extra dev --extra browser
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/processing.Dockerfile
+          load: true
+          tags: dc2-processing:dev
+          cache-from: type=gha,scope=processing
+          cache-to: type=gha,scope=processing,mode=max
+      - name: Start isolated Processing with a bounded readiness wait
+        run: docker compose -f docker-compose.processing.yml up --no-build -d --wait --wait-timeout 180 processing
+      - run: make integration-coverage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: processing-coverage-data
+          path: artifacts/coverage/.coverage.processing-integration*
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+      - name: Capture stack logs
+        if: failure()
+        run: docker compose -f docker-compose.processing.yml logs --no-color
+      - name: Tear down only this runner-owned stack
+        if: always()
+        run: docker compose -f docker-compose.processing.yml down -v
+
+  browser-trust:
+    name: Local HTTPS and Firefox trust
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.17'
+          enable-cache: true
+          cache-local-path: .cache/uv
+          cache-dependency-glob: uv.lock
+      - run: uv sync --locked --extra dev --extra browser
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .cache/minio
+            .local/playwright
+          key: firefox-minio-${{ runner.os }}-${{ hashFiles('uv.lock') }}-20960b6a2ddb9594ee418035b3c7c7fe92ae6a12
+      # Browser install-deps affects this disposable runner only, never developer machines.
+      - name: Install browser and NSS prerequisites only on the disposable runner
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3-tools
+          .venv/bin/python -m playwright install-deps firefox
+      - run: make browser-install RUN_ID=ci-trust
+      - run: make up RUN_ID=ci-trust
+      - run: make smoke-infra RUN_ID=ci-trust
+      # Parent helper seeds a temporary Firefox NSS profile with the project CA.
+      # Certificates.Install was ignored under automation; verification remains enabled.
+      - run: make browser-trust-smoke RUN_ID=ci-trust
+      - run: make logs RUN_ID=ci-trust
+        if: failure()
+      - run: make down RUN_ID=ci-trust
+        if: always()
+
+  coverage-gate:
+    name: Combined backend package coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [lint-and-unit, legacy-integration, processing-intake]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.17'
+          enable-cache: true
+          cache-local-path: .cache/uv
+          cache-dependency-glob: uv.lock
+      - run: uv sync --locked --extra dev --extra browser
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-coverage-data'
+          path: artifacts/coverage
+          merge-multiple: true
+      - run: >-
+          make coverage-report
+          COVERAGE_INPUTS='artifacts/coverage/.coverage.fast artifacts/coverage/.coverage.legacy-integration artifacts/coverage/.coverage.processing-integration'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-coverage
+          path: |
+            artifacts/coverage/backend.xml
+            artifacts/coverage/backend.json
+            artifacts/coverage/gate.json
+          if-no-files-found: error
+          retention-days: 7
+
+  integration:
+    name: Integration checks
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    needs: [legacy-integration, processing-intake, browser-trust, coverage-gate]
+    steps:
+      - name: Require successful real integration, trust and package gates
+        env:
+          LEGACY_RESULT: ${{ needs.legacy-integration.result }}
+          PROCESSING_RESULT: ${{ needs.processing-intake.result }}
+          TRUST_RESULT: ${{ needs.browser-trust.result }}
+          COVERAGE_RESULT: ${{ needs.coverage-gate.result }}
+        run: |
+          test "$LEGACY_RESULT" = success
+          test "$PROCESSING_RESULT" = success
+          test "$TRUST_RESULT" = success
+          test "$COVERAGE_RESULT" = success
+
+  security:
+    name: Scan container image (${{ matrix.image.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - {name: app, file: Dockerfile, tag: flickpond-api:ci}
+          - {name: processing, file: deploy/processing.Dockerfile, tag: dc2-processing:ci}
+    steps:
+      - uses: actions/checkout@v4
+      # Phase 1 includes every current app/Processing digest. The backend lanes must
+      # extend this matrix for Media and every distinct worker digest before promotion.
+      - name: Require scan selection for new live images
+        run: |
+          test ! -d media || { echo 'Add Media image to scan matrix before integration'; exit 1; }
+          test ! -f deploy/worker.Dockerfile || { echo 'Add distinct worker image to scan matrix'; exit 1; }
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.image.file }}
+          load: true
+          tags: ${{ matrix.image.tag }}
+          cache-from: type=gha,scope=${{ matrix.image.name }}
+          cache-to: type=gha,scope=${{ matrix.image.name }},mode=max
+      # Scan the actual loaded candidate. Never weaken the inherited promotion policy.
+      - uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ matrix.image.tag }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
   sast:
     name: SonarCloud SAST
     runs-on: ubuntu-latest
-    needs: [lint-and-unit, frontend]
+    timeout-minutes: 8
+    needs: [coverage-gate, frontend]
     env:
       SONAR_HOST_URL: https://sonarcloud.io
       SONAR_TOKEN: ${{ secrets['SONAR_TOKEN'] }}
@@ -98,135 +385,4 @@ jobs:
             -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
             -Dsonar.qualitygate.wait=true
-
-  integration:
-    name: Integration tests
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: flickpond
-          POSTGRES_USER: flickpond
-          POSTGRES_PASSWORD: flickpond_ci_password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U flickpond -d flickpond"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
-    env:
-      RUN_POSTGRES_TESTS: '1'
-      POSTGRES_DSN: postgresql://flickpond:flickpond_ci_password@127.0.0.1:5432/flickpond
-      MINIO_ENDPOINT: 127.0.0.1:9000
-      MINIO_PUBLIC_ENDPOINT: 127.0.0.1:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin123
-      MINIO_BUCKET: videos
-      MINIO_REGION: us-east-1
-      MINIO_USE_SSL: 'false'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: pip
-      - name: Install development dependencies
-        run: python -m pip install -e '.[dev]'
-      - name: Build and start MinIO
-        run: |
-          docker build -t flickpond-minio:ci -f deploy/dast/minio.Dockerfile .
-          docker run -d --name minio -p 9000:9000 \
-            -e MINIO_ROOT_USER=minioadmin \
-            -e MINIO_ROOT_PASSWORD=minioadmin123 \
-            flickpond-minio:ci server /data
-          for i in $(seq 30); do
-            if curl -fsS http://127.0.0.1:9000/minio/health/live; then
-              exit 0
-            fi
-            sleep 2
-          done
-          docker logs minio
-          exit 1
-      - name: Apply migrations
-        run: python -m alembic upgrade head
-      - name: Run integration tests
-        run: python -m pytest tests/integration -q
-
-  build:
-    name: Build container image
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: false
-          tags: flickpond-api:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  processing-intake:
-    name: Processing intake and database ownership
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      PROCESSING_SERVICE_TOKEN: ci-only-processing-service-token
-      PROCESSING_POSTGRES_DSN: postgresql+asyncpg://processing_runtime:dc2_local_processing@127.0.0.1:55432/processing_db
-      RUN_PROCESSING_TESTS: '1'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: pip
-      - name: Install development dependencies
-        run: python -m pip install -e '.[dev]'
-      - name: Build and start isolated Processing stack
-        run: docker compose -f docker-compose.processing.yml up --build -d --wait processing
-      - name: Check container readiness
-        run: curl --fail --silent --show-error http://127.0.0.1:8010/health
-      - name: Test intake durability and database ownership
-        run: >-
-          python -m pytest -q tests/processing
-          tests/integration/test_processing_intake.py
-          tests/integration/test_database_ownership.py
-          --cov=processing --cov-report=term --cov-report=xml:processing-coverage.xml
-      - name: Upload Processing coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: processing-coverage
-          path: processing-coverage.xml
-          if-no-files-found: error
-      - name: Capture stack logs
-        if: failure()
-        run: docker compose -f docker-compose.processing.yml logs --no-color
-      - name: Tear down isolated stack
-        if: always()
-        run: docker compose -f docker-compose.processing.yml down -v
-
-  # Trivy blocks fixable HIGH/CRITICAL vulnerabilities, including ones
-  # introduced by the base image; update the image or dependencies rather
-  # than weakening this gate.
-  security:
-    name: Scan container image
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          load: true
-          tags: flickpond-api:ci
-          cache-from: type=gha
-      - uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: flickpond-api:ci
-          format: table
-          exit-code: '1'
-          ignore-unfixed: true
-          severity: CRITICAL,HIGH
+            -Dsonar.python.coverage.reportPaths=backend.xml
