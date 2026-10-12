@@ -122,22 +122,26 @@
     },
     "C1": {
       "number": 18,
-      "state": "Review",
+      "state": "Done",
       "pr": null,
       "evidence": [
         "Foundation merged; frozen interfaces and localruntime/testgates available.",
         "ProductwaveheldforF2cachecorrection andfinalreview.",
-        "Foundation complete; three isolated product lanes starting."
+        "Foundation complete; three isolated product lanes starting.",
+        "PR30; allthreeclientreviewfixesPASS,827Python152frontend1HTTPS tests andPublisher98.43coverage;remoteCIrunning.",
+        "PR30 merged at ea3950c; independent rereview PASS; all15 CI checks passed; 827 fast Python,152 frontend,1 real Publisher HTTPS."
       ]
     },
     "C2": {
       "number": 19,
-      "state": "Review",
+      "state": "Done",
       "pr": null,
       "evidence": [
         "Foundation merged; frozen interfaces and localruntime/testgates available.",
         "ProductwaveheldforF2cachecorrection andfinalreview.",
-        "Foundation complete; three isolated product lanes starting."
+        "Foundation complete; three isolated product lanes starting.",
+        "PR30; allthreeclientreviewfixesPASS,827Python152frontend1HTTPS tests andPublisher98.43coverage;remoteCIrunning.",
+        "PR30 merged at ea3950c; independent rereview PASS; all15 CI checks passed; 827 fast Python,152 frontend,1 real Publisher HTTPS."
       ]
     },
     "V1": {
