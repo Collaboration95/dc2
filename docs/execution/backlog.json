@@ -1,0 +1,637 @@
+{
+  "version": 1,
+  "baseline": "b32d489566144202fbf6fc3887ce25d5321444fd",
+  "repository": "Collaboration95/dc2",
+  "project_title": "dc2 \u2014 Pre-AWS local delivery",
+  "epics": [
+    {
+      "key": "E0",
+      "title": "Reviewed plan and auditable delivery",
+      "personas": "Jules, Sam",
+      "area": "planning"
+    },
+    {
+      "key": "E1",
+      "title": "Reproducible local workspace and fast checks",
+      "personas": "Jules, Sam",
+      "area": "foundation"
+    },
+    {
+      "key": "E2",
+      "title": "Independent processing and reliable attempts",
+      "personas": "Arun, Sam",
+      "area": "processing"
+    },
+    {
+      "key": "E3",
+      "title": "Media ownership and compatible public workflow",
+      "personas": "Arun, Jules",
+      "area": "media"
+    },
+    {
+      "key": "E4",
+      "title": "Web and independent Publisher CLI",
+      "personas": "Maya, Arun, Jules",
+      "area": "clients"
+    },
+    {
+      "key": "E5",
+      "title": "Integrated evidence and local release readiness",
+      "personas": "Sam, all personas",
+      "area": "verification"
+    }
+  ],
+  "issues": [
+    {
+      "key": "G1",
+      "epic": "E0",
+      "title": "Define epics, persona stories, issue contracts and waves",
+      "wave": 0,
+      "personas": [
+        "Jules",
+        "Sam"
+      ],
+      "dependencies": [],
+      "acceptance": [
+        "Versioned plan maps UC-1\u2013UC-7, proposal targets, dependencies and ownership to executable issues.",
+        "One GitHub Project contains native epic/sub-issue and blocking relationships with stable keys.",
+        "Multi-issue PR groups, review gates, resource isolation and stop conditions are explicit."
+      ],
+      "verification": [
+        "Validate backlog dependency DAG and unique stable keys.",
+        "Fresh gh reads verify project and issue hierarchy."
+      ],
+      "paths": [
+        "docs/execution/**"
+      ],
+      "risk": "Medium",
+      "priority": "P0",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "G2",
+      "epic": "E0",
+      "title": "Independently review and correct the delivery plan",
+      "wave": 0,
+      "personas": [
+        "Jules",
+        "Sam"
+      ],
+      "dependencies": [
+        "G1"
+      ],
+      "acceptance": [
+        "GPT-6.1 Sol xhigh reviews complete planning package and records findings.",
+        "Every substantive finding has a disposition and fix or explicit evidence-backed limitation.",
+        "No implementation wave starts before the corrected plan passes review."
+      ],
+      "verification": [
+        "Review verdict and finding-to-fix matrix under docs/execution/reviews/."
+      ],
+      "paths": [
+        "docs/execution/**"
+      ],
+      "risk": "Medium",
+      "priority": "P0",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "F1",
+      "epic": "E1",
+      "title": "Install a reproducible root workspace with Make and environment doctor",
+      "wave": 1,
+      "personas": [
+        "Jules",
+        "Sam"
+      ],
+      "dependencies": [
+        "G2"
+      ],
+      "acceptance": [
+        "make setup installs locked Python and frontend dependencies locally without overwriting existing secrets.",
+        "make help, doctor, lint, test and clean commands work from root; external prerequisites have precise diagnostics.",
+        "Worktree caches/artifacts/secrets are ignored; commands never require cd Media_player."
+      ],
+      "verification": [
+        "make setup && make doctor && make lint && make test",
+        "Run setup twice; preserve configured .env and test tracked-tree cleanliness."
+      ],
+      "paths": [
+        "Makefile",
+        "scripts/dev/**",
+        "uv.lock",
+        ".python-version",
+        "pyproject.toml",
+        ".gitignore",
+        "README.md"
+      ],
+      "risk": "Medium",
+      "priority": "P0",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "F2",
+      "epic": "E1",
+      "title": "Establish fast deterministic test tiers and required CI checks",
+      "wave": 1,
+      "personas": [
+        "Jules",
+        "Sam"
+      ],
+      "dependencies": [
+        "G2"
+      ],
+      "acceptance": [
+        "Fast suite needs no network/services and targets <=30s warm locally; CI fast job targets <=3min excluding runner queue.",
+        "Real integration/e2e suites have isolated resources, bounded polling, stable fixtures, no blind sleeps or retry-to-green masking.",
+        "Enforce combined statement/branch coverage >=80% separately for each live backend/helper/CLI package, including unexecuted production files; report raw branch rates separately. Keep legacy app regression gate and all four frontend >=90% thresholds. New package arrivals must extend lint/coverage/CI selections.",
+        "CI always reports required fast/integration status; expensive scans/builds are cached/separate; failures remain visible.",
+        "Retain existing Trivy zero-fixable-HIGH/CRITICAL release policy for every distinct live Media/Processing/worker image digest; legacy app scan alone is insufficient. Reuse scan tooling without broader security infrastructure."
+      ],
+      "verification": [
+        "make test repeated three times with recorded durations",
+        "make coverage and GitHub check results on exact PR SHA."
+      ],
+      "paths": [
+        ".github/workflows/**",
+        "tests/conftest.py",
+        "test configuration",
+        "Makefile test targets"
+      ],
+      "risk": "High",
+      "priority": "P0",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "F3",
+      "epic": "E1",
+      "title": "Provide isolated local services, storage and trusted HTTPS topology",
+      "wave": 1,
+      "personas": [
+        "Arun",
+        "Sam"
+      ],
+      "dependencies": [
+        "F1",
+        "F2"
+      ],
+      "acceptance": [
+        "make up starts fresh project-owned services with separate databases, Redis and local S3-compatible storage; make down preserves data.",
+        "Project-local TLS endpoint is reachable with explicit CA trust in host/container/test clients; Secure-cookie end-to-end login is verified in V1 after Media integration. No system trust-store changes or disabled certificate verification.",
+        "Public/internal source and playback hostnames resolve in their respective runtimes; no secrets are tracked.",
+        "Two worktree stacks can use distinct projects/ports/volumes; resource preflight reports Docker CPU/memory limits.",
+        "Pinned MinIO build or locally verified compatible image works from fresh cache; fetch GitHub sources through gh.",
+        "Bounded project-local capacity investigation determines whether >=8CPU/8GiB can support fair worker quotas without global Docker changes; record feasibility before evidence wave.",
+        "make browser-trust-smoke runs pinned Playwright Firefox from project-local installation/profile with local CA installed via Firefox Certificates.Install enterprise policy. Verification remains enabled; HTTPS infrastructure navigation succeeds and an untrusted control fails. Certificate SANs cover public API and media hostnames."
+      ],
+      "verification": [
+        "make up && make smoke-infra && make down",
+        "Fresh-volume boot and two isolated stacks; no shared volume destruction.",
+        "make browser-trust-smoke (real Firefox, trusted positive and untrusted negative; no insecure flags)."
+      ],
+      "paths": [
+        "compose/**",
+        "docker-compose*.yml",
+        "deploy/**",
+        "scripts/dev/**",
+        ".env.example",
+        "Makefile"
+      ],
+      "risk": "High",
+      "priority": "P0",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "P1",
+      "epic": "E2",
+      "title": "Implement attempt lifecycle, stored-source retry and cancellation",
+      "wave": 2,
+      "personas": [
+        "Arun",
+        "Sam"
+      ],
+      "dependencies": [
+        "F3"
+      ],
+      "acceptance": [
+        "Job/Attempt transitions use reserved attempt IDs and conditional fences; only current live attempt may publish.",
+        "Retry from failed records stable retry_request_id and returns prior attempt on replay; other states/owners rejected.",
+        "Cancel by AssetId serializes with submit, retains tombstone, and prevents delayed resurrection in both race orders.",
+        "Own migration history is additive and independent of media_db."
+      ],
+      "verification": [
+        "make test-processing",
+        "Real Postgres concurrent submit/retry/cancel and stale completion tests."
+      ],
+      "paths": [
+        "processing/models.py",
+        "processing/service.py",
+        "processing/main.py",
+        "processing/migrations/**",
+        "tests/processing/**",
+        "tests/integration/test_processing*"
+      ],
+      "risk": "High",
+      "priority": "P1",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "P2",
+      "epic": "E2",
+      "title": "Run attempt-aware FFmpeg workers with private source and output access",
+      "wave": 2,
+      "personas": [
+        "Arun",
+        "Maya"
+      ],
+      "dependencies": [
+        "P1"
+      ],
+      "acceptance": [
+        "Queue payload carries job_id and attempt_id; worker claims once and reuses existing FFmpeg behavior.",
+        "Worker downloads via renewable presigned source access with revision/digest validation; it has no MM database or source-storage credential.",
+        "Primary MP4 and best-effort HLS publish under attempt-specific keys; valid inherited MKV/MP3 edits remain compatible.",
+        "Real short fixture completes into playable output; stale attempts never replace winning output.",
+        "Lease supervisor spans download/encode/upload, terminates the process group on lease loss, and fences stale success AND failure. HLS fallback must not swallow cancellation; total attempt budget covers all stages."
+      ],
+      "verification": [
+        "make test-processing && make integration-processing",
+        "Real FFmpeg MP4/HLS/fallback and stale-output tests."
+      ],
+      "paths": [
+        "processing/worker/**",
+        "processing/queue.py",
+        "media-engine extraction if needed",
+        "worker Docker image"
+      ],
+      "risk": "High",
+      "priority": "P1",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "P3",
+      "epic": "E2",
+      "title": "Recover worker interruptions and lost queue deliveries",
+      "wave": 2,
+      "personas": [
+        "Sam",
+        "Arun"
+      ],
+      "dependencies": [
+        "P2"
+      ],
+      "acceptance": [
+        "Independent heartbeat supervises encoding; dead worker is failed within5min and healthy long encoding stays live.",
+        "Durable queued attempts recover missing RQ delivery within2min, including lingering RQ metadata.",
+        "Reconciler reuses reserved attempts; bounded retries/backoff and Processing-only output cleanup are observable.",
+        "Killing a worker, then retrying from stored source succeeds without duplicate published output.",
+        "Cleanup remains repeatable through late uploads after cancellation; never delete source objects or active/winning output prefixes."
+      ],
+      "verification": [
+        "make integration-processing",
+        "Fault injection with deadlines and sanitized job/attempt evidence."
+      ],
+      "paths": [
+        "processing/recovery.py",
+        "processing/worker/**",
+        "processing/queue.py",
+        "recovery tests"
+      ],
+      "risk": "High",
+      "priority": "P1",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "M1",
+      "epic": "E3",
+      "title": "Create Media-owned Assets and durable idempotent submission",
+      "wave": 2,
+      "personas": [
+        "Arun",
+        "Jules"
+      ],
+      "dependencies": [
+        "F3"
+      ],
+      "acceptance": [
+        "Media database owns users, immutable source descriptors, Assets, request keys and pending intent; no Processing tables/imports.",
+        "Upload/edit Idempotency-Key preserves one Asset; source size/type/owner validated before acceptance and source replay is immutable.",
+        "Submit uses authenticated HTTP and prepared contract; temporary P failure preserves durable pending intake.",
+        "Reverse source-access endpoint renews signed URLs only for matching owner/revision/live Asset."
+      ],
+      "verification": [
+        "make test-media",
+        "Real Postgres owner/request-key isolation and pending restart tests."
+      ],
+      "paths": [
+        "media/models/**",
+        "media/repositories/**",
+        "media/services/processing_client.py",
+        "media/api/uploads.py",
+        "media migrations"
+      ],
+      "risk": "High",
+      "priority": "P1",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "M2",
+      "epic": "E3",
+      "title": "Serve compatible status, retry and authorised MP4/HLS playback",
+      "wave": 2,
+      "personas": [
+        "Arun",
+        "Maya",
+        "Jules"
+      ],
+      "dependencies": [
+        "M1"
+      ],
+      "acceptance": [
+        "Existing web routes retain public Asset IDs; submitted status is composed from live owner-filtered P reads.",
+        "Pending maps queued/pending without outputs; dependency outage or missing linked P job returns503.",
+        "Stored-source retry delegates with stable request ID and does not upload again.",
+        "Owner-only MP4 URLs and HLS manifests/segments work across local HTTPS/storage topology, including inherited formats."
+      ],
+      "verification": [
+        "make test-media",
+        "API compatibility + HLS/primary playback tests against controlled Processing boundary."
+      ],
+      "paths": [
+        "media/api/jobs.py",
+        "media/api/hls.py",
+        "media/schemas/**",
+        "media/services/output_urls.py"
+      ],
+      "risk": "High",
+      "priority": "P1",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "M3",
+      "epic": "E3",
+      "title": "Reconcile pending submissions and preserve edit/delete/operator behavior",
+      "wave": 2,
+      "personas": [
+        "Arun",
+        "Sam"
+      ],
+      "dependencies": [
+        "M2"
+      ],
+      "acceptance": [
+        "Pending work survives MM restart and recovers after P outage without duplicate jobs.",
+        "Derived edits keep an independent source and immutable operations across replay and parent deletion.",
+        "Delete commits local tombstone then cancels P by AssetId even after lost submit response; repeatable cleanup deletes only owned objects.",
+        "Inherited owner/operator list/delete behaviors remain compatible; no new admin product features."
+      ],
+      "verification": [
+        "make integration-media",
+        "Lost-response, pending restart, cancel race and derived edit lifecycle tests."
+      ],
+      "paths": [
+        "media/recovery.py",
+        "media/services/**",
+        "media/api/jobs.py",
+        "media cleanup migrations"
+      ],
+      "risk": "High",
+      "priority": "P1",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "C1",
+      "epic": "E4",
+      "title": "Build the independent Publisher CLI against public APIs",
+      "wave": 2,
+      "personas": [
+        "Maya",
+        "Jules"
+      ],
+      "dependencies": [
+        "F3"
+      ],
+      "acceptance": [
+        "CLI register/login, folder publish, per-file outcome/status, playback access and stored-source retry use only public API/cookie session.",
+        "No service-code imports or DB credentials; bounded polls/timeouts and meaningful exit codes for partial batch failure.",
+        "JSON output is machine readable; passwords/tokens excluded from output; actual implementation effort and size recorded."
+      ],
+      "verification": [
+        "make test-cli against controlled public-contract responses",
+        "Inspect imports/dependencies; live mixed-success batch and stored-source retry are V1 acceptance after both backends integrate."
+      ],
+      "paths": [
+        "publisher/**",
+        "CLI packaging",
+        "tests/cli/**"
+      ],
+      "risk": "Medium",
+      "priority": "P1",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "C2",
+      "epic": "E4",
+      "title": "Complete browser stored-source retry and idempotent requests",
+      "wave": 2,
+      "personas": [
+        "Arun"
+      ],
+      "dependencies": [
+        "F3"
+      ],
+      "acceptance": [
+        "Browser retry invokes failed job retry endpoint and never resends remembered video.",
+        "Uploads/edits/retries use stable request IDs for transport replay; repeated user actions remain intentional new requests.",
+        "Pending/error503 states remain understandable; preserve existing design/editor behavior and roadmap visuals."
+      ],
+      "verification": [
+        "make test-frontend",
+        "Browser network assertions for retry with unchanged source and no upload request."
+      ],
+      "paths": [
+        "frontend/app.js",
+        "frontend/*.test.js"
+      ],
+      "risk": "Medium",
+      "priority": "P1",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "V1",
+      "epic": "E5",
+      "title": "Integrate full local workflow and contract regression evidence",
+      "wave": 3,
+      "personas": [
+        "Arun",
+        "Maya",
+        "Jules"
+      ],
+      "dependencies": [
+        "P3",
+        "M3",
+        "C1",
+        "C2"
+      ],
+      "acceptance": [
+        "Fresh make up supports browser registration/upload/process/status/playable MP4/HLS/stored-source retry/owner deletion; CLI proves register/login, mixed-success folder publish, per-file outcomes, status, authorised output access and stored-source retry. No CLI media player or delete feature is required.",
+        "All25 prepared contract cases have implemented tests or specific evidence-backed disposition; all required basic negative/ownership cases pass.",
+        "A real browser checks login, upload, playback and retry; accessible frontend unchanged except needed behavior.",
+        "No direct cross-service DB/storage ownership shortcuts or service imports in CLI."
+      ],
+      "verification": [
+        "make verify-local && make e2e",
+        "Review CT mapping with exact test names and raw outputs."
+      ],
+      "paths": [
+        "tests/e2e/**",
+        "scripts/smoke/**",
+        "compose integration",
+        "docs/execution/evidence/**"
+      ],
+      "risk": "High",
+      "priority": "P1",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "V2",
+      "epic": "E5",
+      "title": "Exercise recovery faults across both services",
+      "wave": 3,
+      "personas": [
+        "Sam",
+        "Arun"
+      ],
+      "dependencies": [
+        "V1"
+      ],
+      "acceptance": [
+        "Inject worker kill, lost queue item with surviving metadata, and P outage during upload.",
+        "Recovery timing meets <=5min worker visible failure and <=2min re-enqueue; retries succeed without duplicate published output.",
+        "Record actual states, job/attempt IDs, timings and reproducible commands; failures are not hidden."
+      ],
+      "verification": [
+        "make evidence-recovery"
+      ],
+      "paths": [
+        "scripts/evidence/**",
+        "tests/e2e/**",
+        "docs/execution/evidence/**"
+      ],
+      "risk": "High",
+      "priority": "P1",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "V3",
+      "epic": "E5",
+      "title": "Measure local performance and worker scaling without misleading claims",
+      "wave": 4,
+      "personas": [
+        "Sam"
+      ],
+      "dependencies": [
+        "V1"
+      ],
+      "acceptance": [
+        "Run status polling50users/3min p90<=700ms,<1%errors; separate20login p90<2s, retaining raw data.",
+        "Implement and run30identical60s720p clips at1/2/3 workers,2vCPU each when host has capacity; record throughput/queue/processing/errors/CPU/memory.",
+        "Targets2workers>=1.6x,3workers>=2.1x and falling median queuewait,zero failures remain visible with pass/fail and resource preflight.",
+        "If current sandbox cannot support fair quotas, complete runner and bounded local pilot, label exact limitation, and investigate project-local runtime without global setting changes. Never count oversubscribed results as acceptance."
+      ],
+      "verification": [
+        "make evidence-performance && make evidence-scaling",
+        "Resource manifest, hashes, raw timings and computed target table."
+      ],
+      "paths": [
+        "scripts/evidence/**",
+        "load/**",
+        "docs/execution/evidence/**"
+      ],
+      "risk": "High",
+      "priority": "P1",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "V4",
+      "epic": "E5",
+      "title": "Automate independent local Processing release, smoke and rollback",
+      "wave": 4,
+      "personas": [
+        "Sam"
+      ],
+      "dependencies": [
+        "V1"
+      ],
+      "acceptance": [
+        "Build/version per-service images; release candidate Processing independently and smoke-test within10min.",
+        "MM container identity/image and media_db migration revision remain unchanged; workers drain or fail visibly within bounded time.",
+        "Injected bad candidate fails promotion, rolls back to prior tested image and recovers smoke.",
+        "Scripts are local-only, repeatable and record exact images/migrations/timestamps; no AWS credentials or actions.",
+        "Exact candidate image digest has passing build/test and inherited zero-fixable-HIGH/CRITICAL scan evidence before promotion. A failed scan blocks promotion; shared API/worker digest needs one scan."
+      ],
+      "verification": [
+        "make evidence-release"
+      ],
+      "paths": [
+        "scripts/release/**",
+        "compose release overrides",
+        "docs/execution/evidence/**"
+      ],
+      "risk": "High",
+      "priority": "P1",
+      "size": "M",
+      "state": "Backlog"
+    },
+    {
+      "key": "V5",
+      "epic": "E5",
+      "title": "Review final delivery and publish evidence-based morning handoff",
+      "wave": 4,
+      "personas": [
+        "Maya",
+        "Arun",
+        "Jules",
+        "Sam"
+      ],
+      "dependencies": [
+        "V2",
+        "V4"
+      ],
+      "acceptance": [
+        "Prerequisites: V2/V4 complete and V3 assessed with full scaling evidence OR a reproducible runner/pilot plus documented capacity blocker. Independent Sol review checks code/issues/evidence; fix substantive in-scope findings.",
+        "Final Main checks pass; accepted grouped PRs merge and metadata matches evidence. V3 and E5 remain open if full UC-6 scaling acceptance lacks fair-capacity evidence; final handoff may complete while explicitly stating that limitation.",
+        "Handoff file gives exact start/stop/test commands, URLs, credentials location (no values), architecture decisions, PR/issue map, results and limitations.",
+        "Report/demo evidence source pack distinguishes inherited/new work and local/cloud evidence; list future AWS prerequisites only, do not provision."
+      ],
+      "verification": [
+        "make verify-local",
+        "Independent review and gh fresh-read reconciliation."
+      ],
+      "paths": [
+        "docs/execution/**",
+        "docs/project2-worklog.txt"
+      ],
+      "risk": "High",
+      "priority": "P1",
+      "size": "M",
+      "state": "Backlog"
+    }
+  ]
+}

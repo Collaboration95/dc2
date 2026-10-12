@@ -17,3 +17,7 @@ frontend/coverage
 coverage.xml
 processing-coverage.xml
 
+.worktrees
+.cache
+.local
+artifacts

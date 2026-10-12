@@ -1,0 +1,348 @@
+{
+  "epics": {
+    "E0": {
+      "number": 1,
+      "url": "https://github.com/Collaboration95/dc2/issues/1",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOcyw",
+      "initialized": true
+    },
+    "E1": {
+      "number": 2,
+      "url": "https://github.com/Collaboration95/dc2/issues/2",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOc64",
+      "initialized": true
+    },
+    "E2": {
+      "number": 3,
+      "url": "https://github.com/Collaboration95/dc2/issues/3",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdCQ",
+      "initialized": true
+    },
+    "E3": {
+      "number": 4,
+      "url": "https://github.com/Collaboration95/dc2/issues/4",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdIo",
+      "initialized": true
+    },
+    "E4": {
+      "number": 5,
+      "url": "https://github.com/Collaboration95/dc2/issues/5",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdO4",
+      "initialized": true
+    },
+    "E5": {
+      "number": 6,
+      "url": "https://github.com/Collaboration95/dc2/issues/6",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdTM",
+      "initialized": true
+    }
+  },
+  "issues": {
+    "G1": {
+      "number": 7,
+      "url": "https://github.com/Collaboration95/dc2/issues/7",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOc0g",
+      "initialized": true
+    },
+    "G2": {
+      "number": 8,
+      "url": "https://github.com/Collaboration95/dc2/issues/8",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOc0s",
+      "initialized": true
+    },
+    "F1": {
+      "number": 9,
+      "url": "https://github.com/Collaboration95/dc2/issues/9",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOc88",
+      "initialized": true
+    },
+    "F2": {
+      "number": 10,
+      "url": "https://github.com/Collaboration95/dc2/issues/10",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOc9M",
+      "initialized": true
+    },
+    "F3": {
+      "number": 11,
+      "url": "https://github.com/Collaboration95/dc2/issues/11",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOc9U",
+      "initialized": true
+    },
+    "P1": {
+      "number": 12,
+      "url": "https://github.com/Collaboration95/dc2/issues/12",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdDk",
+      "initialized": true
+    },
+    "P2": {
+      "number": 13,
+      "url": "https://github.com/Collaboration95/dc2/issues/13",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdDo",
+      "initialized": true
+    },
+    "P3": {
+      "number": 14,
+      "url": "https://github.com/Collaboration95/dc2/issues/14",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdDw",
+      "initialized": true
+    },
+    "M1": {
+      "number": 15,
+      "url": "https://github.com/Collaboration95/dc2/issues/15",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdJ0",
+      "initialized": true
+    },
+    "M2": {
+      "number": 16,
+      "url": "https://github.com/Collaboration95/dc2/issues/16",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdKI",
+      "initialized": true
+    },
+    "M3": {
+      "number": 17,
+      "url": "https://github.com/Collaboration95/dc2/issues/17",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdKU",
+      "initialized": true
+    },
+    "C1": {
+      "number": 18,
+      "url": "https://github.com/Collaboration95/dc2/issues/18",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdQQ",
+      "initialized": true
+    },
+    "C2": {
+      "number": 19,
+      "url": "https://github.com/Collaboration95/dc2/issues/19",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdQY",
+      "initialized": true
+    },
+    "V1": {
+      "number": 20,
+      "url": "https://github.com/Collaboration95/dc2/issues/20",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdVQ",
+      "initialized": true
+    },
+    "V2": {
+      "number": 21,
+      "url": "https://github.com/Collaboration95/dc2/issues/21",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdVY",
+      "initialized": true
+    },
+    "V3": {
+      "number": 22,
+      "url": "https://github.com/Collaboration95/dc2/issues/22",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdVk",
+      "initialized": true
+    },
+    "V4": {
+      "number": 23,
+      "url": "https://github.com/Collaboration95/dc2/issues/23",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdVo",
+      "initialized": true
+    },
+    "V5": {
+      "number": 24,
+      "url": "https://github.com/Collaboration95/dc2/issues/24",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdVs",
+      "initialized": true
+    }
+  },
+  "project": {
+    "id": "PVT_kwHOBBatWM4Bmtkx",
+    "number": 14,
+    "title": "dc2 \u2014 Pre-AWS local delivery",
+    "url": "https://github.com/users/Collaboration95/projects/14"
+  },
+  "fields": {
+    "Title": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeNo",
+      "name": "Title",
+      "type": "ProjectV2Field"
+    },
+    "Assignees": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeNs",
+      "name": "Assignees",
+      "type": "ProjectV2Field"
+    },
+    "Status": {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeNw",
+      "name": "Status",
+      "options": [
+        {
+          "id": "f75ad846",
+          "name": "Todo"
+        },
+        {
+          "id": "47fc9ee4",
+          "name": "In Progress"
+        },
+        {
+          "id": "98236657",
+          "name": "Done"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    "Labels": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeN0",
+      "name": "Labels",
+      "type": "ProjectV2Field"
+    },
+    "Linked pull requests": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeN4",
+      "name": "Linked pull requests",
+      "type": "ProjectV2Field"
+    },
+    "Milestone": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeN8",
+      "name": "Milestone",
+      "type": "ProjectV2Field"
+    },
+    "Repository": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOA",
+      "name": "Repository",
+      "type": "ProjectV2Field"
+    },
+    "Reviewers": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOI",
+      "name": "Reviewers",
+      "type": "ProjectV2Field"
+    },
+    "Parent issue": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOM",
+      "name": "Parent issue",
+      "type": "ProjectV2Field"
+    },
+    "Sub-issues progress": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOQ",
+      "name": "Sub-issues progress",
+      "type": "ProjectV2Field"
+    },
+    "Created": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOU",
+      "name": "Created",
+      "type": "ProjectV2Field"
+    },
+    "Updated": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOY",
+      "name": "Updated",
+      "type": "ProjectV2Field"
+    },
+    "Closed": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOc",
+      "name": "Closed",
+      "type": "ProjectV2Field"
+    },
+    "Workflow": {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeSE",
+      "name": "Workflow",
+      "options": [
+        {
+          "id": "c978a6e5",
+          "name": "Backlog"
+        },
+        {
+          "id": "e02f1ad4",
+          "name": "Ready"
+        },
+        {
+          "id": "ba99be3d",
+          "name": "In progress"
+        },
+        {
+          "id": "ea57a0a3",
+          "name": "Review"
+        },
+        {
+          "id": "70f40fab",
+          "name": "Blocked"
+        },
+        {
+          "id": "fa2d3a3f",
+          "name": "Done"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    "Wave": {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeSc",
+      "name": "Wave",
+      "options": [
+        {
+          "id": "a61eb394",
+          "name": "Wave 0"
+        },
+        {
+          "id": "1e7f233e",
+          "name": "Wave 1"
+        },
+        {
+          "id": "5f0cbf3d",
+          "name": "Wave 2"
+        },
+        {
+          "id": "f761184d",
+          "name": "Wave 3"
+        },
+        {
+          "id": "84255653",
+          "name": "Wave 4"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    "Priority": {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeSg",
+      "name": "Priority",
+      "options": [
+        {
+          "id": "1c24d7a6",
+          "name": "P0"
+        },
+        {
+          "id": "d0615693",
+          "name": "P1"
+        },
+        {
+          "id": "f8a22557",
+          "name": "P2"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    "Risk": {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeU4",
+      "name": "Risk",
+      "options": [
+        {
+          "id": "dd7206c2",
+          "name": "Low"
+        },
+        {
+          "id": "62885e72",
+          "name": "Medium"
+        },
+        {
+          "id": "89dcbf8b",
+          "name": "High"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    "Area": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeVQ",
+      "name": "Area",
+      "type": "ProjectV2Field"
+    },
+    "Persona": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeVY",
+      "name": "Persona",
+      "type": "ProjectV2Field"
+    },
+    "Sequence": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeXM",
+      "name": "Sequence",
+      "type": "ProjectV2Field"
+    }
+  }
+}

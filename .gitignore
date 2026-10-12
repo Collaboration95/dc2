@@ -40,3 +40,9 @@ multitasking.md
 # draft the frontend redesign. Reference material, not code the app ships --
 # the real implementation lives in frontend/.
 frontend-redesign/
+
+# Project-local agent workspaces and reproducible runtime/evidence scratch.
+.worktrees/
+.cache/
+.local/
+artifacts/
