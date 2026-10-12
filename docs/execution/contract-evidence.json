@@ -15,7 +15,8 @@
       "MAC_OBSERVER_REREVIEW"
     ],
     "finding_resolution_path": "finding_resolutions",
-    "scope": "Final CT reconciliation; independent bounded code reviews are supporting inputs, not reviewer test executions."
+    "scope": "Final CT reconciliation; independent bounded code reviews are supporting inputs, not reviewer test executions.",
+    "portable_evidence": "Current report paths are repository-relative; original observation paths and SHA-256 values are retained. Selected source pack and complete successful verification/recovery logs are tracked."
   },
   "acceptance": {
     "V1": {
@@ -505,7 +506,7 @@
   },
   "current_reports": {
     "MAC_INDEX": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/docs/execution/evidence/local-workflow-422609b/index.json",
+      "path": "docs/execution/evidence/local-workflow-422609b/index.json",
       "sha256": "dc0d3f38fd7b005f040cea426856c3428bd14ea4418cbe66464de33fa65a33ad",
       "observed_result": "Selected original reports; all six file hashes verified",
       "proof_type": "retained provenance index",
@@ -526,10 +527,11 @@
           "uv.lock"
         ],
         "result": "identical"
-      }
+      },
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/docs/execution/evidence/local-workflow-422609b/index.json"
     },
     "MAC_FAST": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/final-verify-2.log",
+      "path": "docs/execution/evidence/local-workflow-422609b/verify.log",
       "sha256": "7bee651169c8e99f35bfaa469cedc5b7dcb2a37974f25418a82018cd01cb2c6f",
       "observed_result": "1083 passed, 1 deselected, 1 warning in 15.97s; subprocess exit 0",
       "proof_type": "aggregate selected-suite proof",
@@ -548,10 +550,11 @@
           47,
           48
         ]
-      }
+      },
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/final-verify-2.log"
     },
     "MAC_FRONTEND": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/final-verify-2.log",
+      "path": "docs/execution/evidence/local-workflow-422609b/verify.log",
       "sha256": "7bee651169c8e99f35bfaa469cedc5b7dcb2a37974f25418a82018cd01cb2c6f",
       "observed_result": "152 passed; jsdom, not a real browser; all frontend coverage gates pass",
       "proof_type": "aggregate selected-suite proof",
@@ -566,10 +569,11 @@
           50,
           78
         ]
-      }
+      },
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/final-verify-2.log"
     },
     "MAC_PROCESSING": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/final-verify-2.log",
+      "path": "docs/execution/evidence/local-workflow-422609b/verify.log",
       "sha256": "7bee651169c8e99f35bfaa469cedc5b7dcb2a37974f25418a82018cd01cb2c6f",
       "observed_result": "47 passed in 10.98s; subprocess exit 0",
       "proof_type": "aggregate selected-suite proof",
@@ -591,10 +595,11 @@
         ],
         "skips": "--require-integration plugin fails if any selected test skips",
         "flags": "owned_checks.integration_environment enables RUN_PROCESSING_TESTS, RUN_PROCESSING_REDIS_TESTS, RUN_PROCESSING_STORAGE_TESTS"
-      }
+      },
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/final-verify-2.log"
     },
     "MAC_MEDIA": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/final-verify-2.log",
+      "path": "docs/execution/evidence/local-workflow-422609b/verify.log",
       "sha256": "7bee651169c8e99f35bfaa469cedc5b7dcb2a37974f25418a82018cd01cb2c6f",
       "observed_result": "39 passed in 19.12s; subprocess exit 0",
       "proof_type": "aggregate selected-suite proof",
@@ -610,10 +615,11 @@
         ],
         "skips": "--require-integration plugin fails if any selected test skips",
         "flags": "all_services=True enables RUN_MEDIA_TESTS; actual Media PG, controlled Processing peer and object store"
-      }
+      },
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/final-verify-2.log"
     },
     "MAC_LEGACY": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/final-verify-2.log",
+      "path": "docs/execution/evidence/local-workflow-422609b/verify.log",
       "sha256": "7bee651169c8e99f35bfaa469cedc5b7dcb2a37974f25418a82018cd01cb2c6f",
       "observed_result": "44 passed in 5.64s; subprocess exit 0",
       "proof_type": "aggregate selected-suite proof",
@@ -624,10 +630,11 @@
           274,
           277
         ]
-      }
+      },
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/final-verify-2.log"
     },
     "MAC_E2E": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/docs/execution/evidence/local-workflow-422609b/e2e.json",
+      "path": "docs/execution/evidence/local-workflow-422609b/e2e.json",
       "sha256": "77d3673822aa0497f1c9b0fbcda5e0b3d99895dacef90b7a80d2e3026402c442",
       "observed_result": "Full PASS; 122.74s",
       "proof_type": "named scenario cases and recorded events",
@@ -678,10 +685,11 @@
         "width": 640,
         "height": 360
       },
-      "command": "make verify-local RUN_ID=final-local (full mode invokes supervised E2E)"
+      "command": "make verify-local RUN_ID=final-local (full mode invokes supervised E2E)",
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/docs/execution/evidence/local-workflow-422609b/e2e.json"
     },
     "MAC_RECOVERY": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/docs/execution/evidence/local-workflow-422609b/recovery.json",
+      "path": "docs/execution/evidence/local-workflow-422609b/recovery.json",
       "sha256": "126a81d8a1b62eee9ba2097231daf0c5f68b2b6c251aa91d70e6e06e47853d00",
       "observed_result": "Full PASS; 190.602s",
       "proof_type": "named scenario cases and recorded events",
@@ -712,87 +720,99 @@
         "width": 1280,
         "height": 720
       },
-      "command": "make evidence-recovery RUN_ID=final-local"
+      "command": "make evidence-recovery RUN_ID=final-local",
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/docs/execution/evidence/local-workflow-422609b/recovery.json"
     },
     "MAC_RECOVERY_LOG": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/final-recovery.log",
+      "path": "docs/execution/evidence/local-workflow-422609b/recovery.log",
       "sha256": "e482ee792f0f1542109dc4f6090254d79eaf33132ea661050575e6550241b987",
       "observed_result": "Recovery invocation printed PASS for the original result path",
       "proof_type": "command/raw-output provenance",
-      "availability": "parent-local read-only input; not added by this two-file commit"
+      "availability": "parent-local read-only input; not added by this two-file commit",
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/final-recovery.log"
     },
     "MAC_SUPERVISOR": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/docs/execution/evidence/local-workflow-422609b/supervisor.json",
+      "path": "docs/execution/evidence/local-workflow-422609b/supervisor.json",
       "sha256": "0a7bb1bbb40cc3ce4cc572af3dbd399e13e90a24d1f28246853c279e52794084",
       "observed_result": "PASS; worker restored to original one running replica",
       "proof_type": "actual restoration events",
-      "availability": "parent-local read-only input; not added by this two-file commit"
+      "availability": "parent-local read-only input; not added by this two-file commit",
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/docs/execution/evidence/local-workflow-422609b/supervisor.json"
     },
     "MAC_TRUST": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/docs/execution/evidence/local-workflow-422609b/browser-trust.json",
+      "path": "docs/execution/evidence/local-workflow-422609b/browser-trust.json",
       "sha256": "a0b07b55e6772060645224b39727c7cbd7f8c3cc5053714ab027e958b1739ab7",
       "observed_result": "PASS trusted HTTPS and unrelated-certificate rejection; verification enabled",
       "proof_type": "actual Chrome for Testing TLS check",
-      "availability": "parent-local read-only input; not added by this two-file commit"
+      "availability": "parent-local read-only input; not added by this two-file commit",
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/docs/execution/evidence/local-workflow-422609b/browser-trust.json"
     },
     "MAC_GATE": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/docs/execution/evidence/local-workflow-422609b/gate.json",
+      "path": "docs/execution/evidence/local-workflow-422609b/gate.json",
       "sha256": "c5ef3464b5e6f4167facd594f116cb4531519da42c215be9a643cc48b11fcc38",
       "observed_result": "All five backend combined statement/branch gates >=80%; frontend gates in MAC_FRONTEND",
       "proof_type": "combined package coverage, not individual case proof",
-      "availability": "parent-local read-only input; not added by this two-file commit"
+      "availability": "parent-local read-only input; not added by this two-file commit",
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/docs/execution/evidence/local-workflow-422609b/gate.json"
     },
     "INTEGRATION_REREVIEW": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/contract-final/docs/execution/reviews/integration-rereview.md",
+      "path": "docs/execution/reviews/integration-rereview.md",
       "sha256": "07fd17a5cf4affd0c35956ccad0554e953d1962e7ecdd36a89236bf3e7b1184b",
       "observed_result": "PASS; original R1-R4 implementation corrections",
       "proof_type": "independent bounded code review; execution limits remain those in the report",
-      "availability": "tracked in this checkout"
+      "availability": "tracked in this checkout",
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/contract-final/docs/execution/reviews/integration-rereview.md"
     },
     "FINAL_CODE_REVIEW": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/contract-final/docs/execution/reviews/final-code-review.md",
+      "path": "docs/execution/reviews/final-code-review.md",
       "sha256": "c32f43772a849cd616f85647e64ad3793e24874a1caf3d5f4e8a4445ed5da610",
       "observed_result": "Historical REVISE; new Media readiness R1 only",
       "proof_type": "independent bounded code review; execution limits remain those in the report",
-      "availability": "tracked in this checkout"
+      "availability": "tracked in this checkout",
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/contract-final/docs/execution/reviews/final-code-review.md"
     },
     "FINAL_CODE_REREVIEW": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/contract-final/docs/execution/reviews/final-code-rereview.md",
+      "path": "docs/execution/reviews/final-code-rereview.md",
       "sha256": "bec9672ae6257c8d8214c55bf93364ba8dcb04c2ca7dcf1a65c1450fbafb8071",
       "observed_result": "PASS; Media readiness R1 resolved; other assessments retained",
       "proof_type": "independent bounded code review; execution limits remain those in the report",
-      "availability": "tracked in this checkout"
+      "availability": "tracked in this checkout",
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/contract-final/docs/execution/reviews/final-code-rereview.md"
     },
     "MAC_OBSERVER_REREVIEW": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/docs/execution/reviews/mac-hls-observer-rereview.md",
+      "path": "docs/execution/reviews/mac-hls-observer-rereview.md",
       "sha256": "9f910914b5e02f92fb3d325f807778aff82209029b8b562f1973b7263be26e81",
       "observed_result": "PASS; bounded native-HLS requestfinished observer fix",
       "proof_type": "independent bounded code review; execution limits remain those in the report",
-      "availability": "parent-local read-only input; not added by this two-file commit"
+      "availability": "parent-local read-only input; not added by this two-file commit",
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/docs/execution/reviews/mac-hls-observer-rereview.md"
     },
     "RELEASE_ACTIVE_REREVIEW": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/contract-final/docs/execution/reviews/release-active-rereview.md",
+      "path": "docs/execution/reviews/release-active-rereview.md",
       "sha256": "56ceb02a308f6df2320506f5a28d95035c0d7e29b21eaea6b7cdb61fab4a6344",
       "observed_result": "PASS; bounded V4 implementation only, no live V4 acceptance",
       "proof_type": "independent bounded code review; execution limits remain those in the report",
-      "availability": "tracked in this checkout"
+      "availability": "tracked in this checkout",
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/contract-final/docs/execution/reviews/release-active-rereview.md"
     },
     "SCALING_SESSION_REREVIEW": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/contract-final/docs/execution/reviews/scaling-session-rereview.md",
+      "path": "docs/execution/reviews/scaling-session-rereview.md",
       "sha256": "64ff58f5138c07bca16fdf9cffcf01bb2e48304dee6cee09495518ae6d9fe73d",
       "observed_result": "PASS; bounded session-renewal runner fix only, failed V3 invocation remains FAIL",
       "proof_type": "independent bounded code review; execution limits remain those in the report",
-      "availability": "tracked in this checkout"
+      "availability": "tracked in this checkout",
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/contract-final/docs/execution/reviews/scaling-session-rereview.md"
     },
     "LINUX_PRIOR_INDEX": {
-      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/contract-final/docs/execution/evidence/linux-ci-38300284726/index.json",
+      "path": "docs/execution/evidence/linux-ci-38300284726/index.json",
       "sha256": "2b3323a388568ab7afcc4885682069b178a25873c501aad0f41e48411f9c75fc",
       "observed_result": "Historical full Linux PASS at c0a7315; tested merge a9c14b9; all five selected file hashes match",
       "proof_type": "historical retained provenance index",
       "availability": "tracked in this checkout",
       "head_revision": "c0a7315c44ce89c03c8adb7b51ab39a1aca569d9",
       "tested_merge_revision": "a9c14b925213fc5b3ff61d141be0bc74363144fc",
-      "url": "https://github.com/Collaboration95/dc2/actions/runs/38300284726"
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38300284726",
+      "observed_original_path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/contract-final/docs/execution/evidence/linux-ci-38300284726/index.json"
     },
     "LINUX_CURRENT_CI": {
       "url": "https://github.com/Collaboration95/dc2/actions/runs/38303856295",

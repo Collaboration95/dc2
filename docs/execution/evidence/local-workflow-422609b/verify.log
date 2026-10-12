@@ -1,0 +1,339 @@
+.venv/bin/python -m scripts.dev.verify --run-id "final-local"
+[doctor] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m scripts.dev.doctor
+OK make: GNU Make 3.81
+OK uv: uv 0.8.17 (10960bc13 2025-09-10)
+OK node: v26.3.1
+OK npm: 11.16.0
+OK git: git version 2.54.0
+OK local Python: /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python
+OK Python pin: 3.12.11
+OK pytest: 9.1.1
+OK ruff: 0.17.0
+OK coverage: 7.16.2
+OK httpx: 0.28.1
+OK playwright: 1.63.0
+OK frontend lock install: present
+OK environment file: present (values withheld)
+[doctor] 0.206s, exit 0
+[lint] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m scripts.dev.checks lint
+[lint] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m ruff check app processing media media_engine publisher tests migrations scripts/dev scripts/evidence
+All checks passed!
+[lint] 0.039s, exit 0
+[lint] 0.075s, exit 0
+[fast-coverage] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m scripts.dev.checks coverage-fast
+[coverage-fast] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m pytest -q -p scripts.dev.pytest_plugin --offline-fast tests --ignore=tests/integration --ignore=tests/e2e -m not integration and not e2e --cov=app --cov=processing --cov=media --cov=media_engine --cov=publisher --cov-report= --cov-fail-under=0
+........................................................................ [  6%]
+........................................................................ [ 13%]
+........................................................................ [ 19%]
+........................................................................ [ 26%]
+........................................................................ [ 33%]
+........................................................................ [ 39%]
+........................................................................ [ 46%]
+........................................................................ [ 53%]
+........................................................................ [ 59%]
+........................................................................ [ 66%]
+........................................................................ [ 73%]
+........................................................................ [ 79%]
+........................................................................ [ 86%]
+........................................................................ [ 93%]
+........................................................................ [ 99%]
+...                                                                      [100%]
+=============================== warnings summary ===============================
+tests/test_auth.py::test_a_token_signed_with_another_secret_is_refused
+  /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/lib/python3.12/site-packages/jwt/api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 14 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+    return self._jws.encode(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1083 passed, 1 deselected, 1 warning in 15.97s
+[coverage-fast] 16.885s, exit 0
+[fast-coverage] 16.963s, exit 0
+[frontend-coverage] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m scripts.dev.checks coverage-frontend
+[coverage-frontend] npm run test:coverage -- --exclude **/*.live.test.js --coverage.reporter=text --coverage.reporter=lcov
+
+> flickpond-frontend@0.1.0 test:coverage
+> vitest run --coverage --coverage.include=app.js --coverage.thresholds.statements=90 --coverage.thresholds.branches=90 --coverage.thresholds.functions=90 --coverage.thresholds.lines=90 --exclude **/*.live.test.js --coverage.reporter=text --coverage.reporter=lcov
+
+
+ RUN  v2.1.9 /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/frontend
+      Coverage enabled with v8
+
+(node:91586) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ app.player.integration.test.js (13 tests) 290ms
+ ✓ app.test.js (139 tests) 1696ms
+
+ Test Files  2 passed (2)
+      Tests  152 passed (152)
+   Start at  04:21:42
+   Duration  2.20s (transform 52ms, setup 0ms, collect 70ms, tests 1.99s, environment 437ms, prepare 63ms)
+
+ % Coverage report from v8
+----------|---------|----------|---------|---------|-------------------
+File      | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+----------|---------|----------|---------|---------|-------------------
+All files |   99.75 |       96 |   98.55 |   99.75 |                   
+ app.js   |   99.75 |       96 |   98.55 |   99.75 | 348,1205-1207     
+----------|---------|----------|---------|---------|-------------------
+[coverage-frontend] 2.547s, exit 0
+[frontend-coverage] 2.578s, exit 0
+[test-tls] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m scripts.dev.tls --run-id final-local-checks
+{"ca_file": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.local/runs/final-local-checks/tls/ca.crt", "server_certificate": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.local/runs/final-local-checks/tls/server.crt"}
+[test-tls] 0.047s, exit 0
+Compose now can delegate build to bake for better performances
+Just set COMPOSE_BAKE=true
+#0 building with "default" instance using docker driver
+
+#1 [minio internal] load build definition from minio.Dockerfile
+#1 transferring dockerfile: 1.33kB done
+#1 DONE 0.0s
+
+#2 [minio context minio_source] load .dockerignore
+#2 transferring minio_source: 463B done
+#2 DONE 0.0s
+
+#3 [minio internal] load metadata for docker.io/library/golang:1.22.4-alpine3.20@sha256:ace6cc3fe58d0c7b12303c57afe6d6724851152df55e08057b43990b927ad5e8
+#3 DONE 0.0s
+
+#4 [minio internal] load metadata for docker.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+#4 DONE 0.0s
+
+#5 [minio internal] load .dockerignore
+#5 transferring context: 334B done
+#5 DONE 0.0s
+
+#6 [minio build 1/5] FROM docker.io/library/golang:1.22.4-alpine3.20@sha256:ace6cc3fe58d0c7b12303c57afe6d6724851152df55e08057b43990b927ad5e8
+#6 resolve docker.io/library/golang:1.22.4-alpine3.20@sha256:ace6cc3fe58d0c7b12303c57afe6d6724851152df55e08057b43990b927ad5e8 done
+#6 DONE 0.0s
+
+#7 [minio stage-1 1/3] FROM docker.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+#7 resolve docker.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc done
+#7 DONE 0.0s
+
+#8 [minio context minio_source] load from client
+#8 transferring minio_source: 128.25kB 0.1s done
+#8 DONE 0.1s
+
+#9 [minio stage-1 2/3] RUN apk add --no-cache ca-certificates
+#9 CACHED
+
+#10 [minio build 4/5] RUN test "$(cat .dc2-source-commit)" = "20960b6a2ddb9594ee418035b3c7c7fe92ae6a12"
+#10 CACHED
+
+#11 [minio build 5/5] RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build     go build -p 1 -tags kqueue -trimpath -ldflags '-s -w -X github.com/minio/minio/cmd.Version=2024-06-13T22:53:53Z -X github.com/minio/minio/cmd.ReleaseTag=RELEASE.2024-06-13T22-53-53Z -X github.com/minio/minio/cmd.CommitID=20960b6a2ddb9594ee418035b3c7c7fe92ae6a12 -X github.com/minio/minio/cmd.ShortCommitID=20960b6a2ddb -X github.com/minio/minio/cmd.CopyrightYear=2024' -o /out/minio .
+#11 CACHED
+
+#12 [minio build 3/5] COPY --from=minio_source . .
+#12 CACHED
+
+#13 [minio build 2/5] WORKDIR /src
+#13 CACHED
+
+#14 [minio stage-1 3/3] COPY --from=build /out/minio /usr/local/bin/minio
+#14 CACHED
+
+#15 [minio] exporting to image
+#15 exporting layers done
+#15 exporting manifest sha256:c8c36d8cdecd21c9bb512a06611209665f028aec41731596fb13e66c457bfd6c done
+#15 exporting config sha256:cd95c28d817b29398d46a8c61fa75e6114eafbd8f85932e9e2bec7c246575b8b done
+#15 exporting attestation manifest sha256:1bb94cdef251fe5ff34ccf53b1db40fd95cf9d4f2846489380a3f9a6b3017f95 done
+#15 exporting manifest list sha256:949828545065cace15d63ea6c80c4d4e13973d2880d430d70756dc387e6d7a3c done
+#15 naming to docker.io/library/dc2-minio:dc2-final-local-checks-e6eff6ee done
+#15 unpacking to docker.io/library/dc2-minio:dc2-final-local-checks-e6eff6ee done
+#15 DONE 0.0s
+
+#16 [minio] resolving provenance for metadata file
+#16 DONE 0.0s
+
+#17 [media internal] load build definition from media.Dockerfile
+#17 transferring dockerfile: 865B done
+#17 DONE 0.0s
+
+#18 [processing internal] load build definition from processing.Dockerfile
+#18 transferring dockerfile: 1.03kB done
+#18 DONE 0.0s
+
+#19 [processing internal] load metadata for docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+#19 DONE 0.0s
+
+#20 [media internal] load .dockerignore
+#20 transferring context: 334B done
+#20 DONE 0.0s
+
+#21 [processing internal] load .dockerignore
+#21 transferring context: 334B done
+#21 DONE 0.0s
+
+#22 [processing 1/6] FROM docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+#22 resolve docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 done
+#22 DONE 0.0s
+
+#23 [media internal] load build context
+#23 transferring context: 3.19kB done
+#23 DONE 0.0s
+
+#24 [processing internal] load build context
+#24 transferring context: 5.55kB done
+#24 DONE 0.0s
+
+#25 [processing 5/8] RUN python -m pip install --no-cache-dir uv==0.8.17     && uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt     && uv pip install --system --require-hashes -r /tmp/requirements.txt     && python -m pip uninstall -y uv     && rm /tmp/requirements.txt
+#25 CACHED
+
+#26 [processing 7/8] COPY media_engine ./media_engine
+#26 CACHED
+
+#27 [processing 6/8] COPY processing ./processing
+#27 CACHED
+
+#28 [processing 3/8] RUN apt-get update     && apt-get install -y --no-install-recommends ffmpeg     && rm -rf /var/lib/apt/lists/*
+#28 CACHED
+
+#29 [processing 4/8] COPY pyproject.toml uv.lock ./
+#29 CACHED
+
+#30 [processing 8/8] RUN python -m pip install --no-cache-dir --no-deps .     && useradd --system --create-home --uid 10001 flickpond
+#30 CACHED
+
+#31 [media 5/6] COPY media ./media
+#31 CACHED
+
+#32 [media 4/6] RUN python -m pip install --no-cache-dir uv==0.8.17     && uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt     && uv pip install --system --require-hashes -r /tmp/requirements.txt     && python -m pip uninstall -y uv     && rm /tmp/requirements.txt
+#32 CACHED
+
+#33 [processing 2/6] WORKDIR /app
+#33 CACHED
+
+#34 [media 3/6] COPY pyproject.toml uv.lock ./
+#34 CACHED
+
+#35 [media 6/6] RUN python -m pip install --no-cache-dir --no-deps .     && useradd --system --create-home --uid 10001 flickpond
+#35 CACHED
+
+#36 [media] exporting to image
+#36 exporting layers done
+#36 exporting manifest sha256:e2027d9efce4955df4f09e4f6e3584f8a23c5b08eb64c0bef33bb7e5cfaf34d6 done
+#36 exporting config sha256:028f122e098a3442591591c3198ea1e74800e3249bd8a45482f573a15ea0589c
+#36 exporting config sha256:028f122e098a3442591591c3198ea1e74800e3249bd8a45482f573a15ea0589c done
+#36 exporting attestation manifest sha256:694e9f5eeabf9a800e1f66142254dbf4b7220aa6f2f60baa67dea71113bb72ed done
+#36 exporting manifest list sha256:42a55adc8dfa4e75ae2eacb65ffe6a89d4b460c7faa3ebd5116cf48daa425a25 done
+#36 naming to docker.io/library/dc2-media:dc2-final-local-checks-e6eff6ee done
+#36 unpacking to docker.io/library/dc2-media:dc2-final-local-checks-e6eff6ee done
+#36 DONE 0.0s
+
+#37 [media] resolving provenance for metadata file
+#37 DONE 0.0s
+
+#38 [processing] resolving provenance for metadata file
+#38 DONE 0.0s
+
+#39 [processing] exporting to image
+#39 exporting layers done
+#39 exporting manifest sha256:5865af55e93c76b01a20b7f0a0826e9c22b44fb872ab568b6fd365f3538c2c99 done
+#39 exporting config sha256:f2dce300993e0ea04c9eeacda091c007285c61fa0eff68d8a572619ac8ebea70 done
+#39 exporting attestation manifest sha256:160d058e968990a6a6f9bcaa0117569b62dc1d04a15149671c1680ecabf43ac6 done
+#39 exporting manifest list sha256:944d737aac8a86a214b2188788dd8221d19ce3c0f809ff09d47ab2a658eaf728 done
+#39 naming to docker.io/library/dc2-processing:dc2-final-local-checks-e6eff6ee done
+#39 unpacking to docker.io/library/dc2-processing:dc2-final-local-checks-e6eff6ee done
+#39 DONE 0.0s
+ media  Built
+ minio  Built
+ processing  Built
+ Network dc2-final-local-checks-e6eff6ee_media-data  Creating
+ Network dc2-final-local-checks-e6eff6ee_media-data  Created
+ Network dc2-final-local-checks-e6eff6ee_object-data  Creating
+ Network dc2-final-local-checks-e6eff6ee_object-data  Created
+ Network dc2-final-local-checks-e6eff6ee_processing-data  Creating
+ Network dc2-final-local-checks-e6eff6ee_processing-data  Created
+ Network dc2-final-local-checks-e6eff6ee_host-access  Creating
+ Network dc2-final-local-checks-e6eff6ee_host-access  Created
+ Container dc2-final-local-checks-e6eff6ee-postgres-1  Creating
+ Container dc2-final-local-checks-e6eff6ee-minio-1  Creating
+ Container dc2-final-local-checks-e6eff6ee-redis-1  Creating
+ Container dc2-final-local-checks-e6eff6ee-minio-1  Created
+ Container dc2-final-local-checks-e6eff6ee-redis-1  Created
+ Container dc2-final-local-checks-e6eff6ee-postgres-1  Created
+ Container dc2-final-local-checks-e6eff6ee-postgres-1  Starting
+ Container dc2-final-local-checks-e6eff6ee-redis-1  Starting
+ Container dc2-final-local-checks-e6eff6ee-minio-1  Starting
+ Container dc2-final-local-checks-e6eff6ee-redis-1  Started
+ Container dc2-final-local-checks-e6eff6ee-minio-1  Started
+ Container dc2-final-local-checks-e6eff6ee-postgres-1  Started
+ Container dc2-final-local-checks-e6eff6ee-postgres-1  Waiting
+ Container dc2-final-local-checks-e6eff6ee-minio-1  Waiting
+ Container dc2-final-local-checks-e6eff6ee-redis-1  Waiting
+ Container dc2-final-local-checks-e6eff6ee-minio-1  Healthy
+ Container dc2-final-local-checks-e6eff6ee-redis-1  Healthy
+ Container dc2-final-local-checks-e6eff6ee-postgres-1  Healthy
+ Network dc2-final-local-checks-e6eff6ee_edge  Creating
+ Network dc2-final-local-checks-e6eff6ee_edge  Created
+Private source/output buckets and MM/worker/cleanup policies initialized.
+[legacy-test-migrations] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+[legacy-test-migrations] 0.253s, exit 0
+[owned-service-integration] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m scripts.dev.checks integration-coverage
+[coverage-legacy-integration] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m pytest -q -p scripts.dev.pytest_plugin --require-integration tests/integration --ignore=tests/integration/test_processing_faults.py --ignore=tests/integration/test_processing_intake.py --ignore=tests/integration/test_processing_lifecycle.py --ignore=tests/integration/test_processing_recovery.py --ignore=tests/integration/test_processing_storage.py --ignore=tests/integration/test_processing_worker.py --ignore=tests/integration/test_database_ownership.py --ignore=tests/integration/test_media_persistence.py --cov=app --cov=processing --cov=media --cov=media_engine --cov=publisher --cov-report= --cov-fail-under=0
+............................................                             [100%]
+44 passed in 5.64s
+[coverage-legacy-integration] 6.498s, exit 0
+[coverage-processing-integration] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m pytest -q -p scripts.dev.pytest_plugin --require-integration tests/integration/test_processing_faults.py tests/integration/test_processing_intake.py tests/integration/test_processing_lifecycle.py tests/integration/test_processing_recovery.py tests/integration/test_processing_storage.py tests/integration/test_processing_worker.py tests/integration/test_database_ownership.py --cov=app --cov=processing --cov=media --cov=media_engine --cov=publisher --cov-report= --cov-fail-under=0
+...............................................                          [100%]
+47 passed in 10.98s
+[coverage-processing-integration] 11.774s, exit 0
+[coverage-media-integration] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m pytest -q -p scripts.dev.pytest_plugin --require-integration tests/integration/test_media_persistence.py --cov=app --cov=processing --cov=media --cov=media_engine --cov=publisher --cov-report= --cov-fail-under=0
+.......................................                                  [100%]
+39 passed in 19.12s
+[coverage-media-integration] 19.913s, exit 0
+[owned-service-integration] 38.353s, exit 0
+ Container dc2-final-local-checks-e6eff6ee-minio-1  Stopping
+ Container dc2-final-local-checks-e6eff6ee-postgres-1  Stopping
+ Container dc2-final-local-checks-e6eff6ee-redis-1  Stopping
+ Container dc2-final-local-checks-e6eff6ee-minio-1  Stopped
+ Container dc2-final-local-checks-e6eff6ee-minio-1  Removing
+ Container dc2-final-local-checks-e6eff6ee-redis-1  Stopped
+ Container dc2-final-local-checks-e6eff6ee-redis-1  Removing
+ Container dc2-final-local-checks-e6eff6ee-minio-1  Removed
+ Container dc2-final-local-checks-e6eff6ee-redis-1  Removed
+ Container dc2-final-local-checks-e6eff6ee-postgres-1  Stopped
+ Container dc2-final-local-checks-e6eff6ee-postgres-1  Removing
+ Container dc2-final-local-checks-e6eff6ee-postgres-1  Removed
+ Network dc2-final-local-checks-e6eff6ee_host-access  Removing
+ Network dc2-final-local-checks-e6eff6ee_media-data  Removing
+ Network dc2-final-local-checks-e6eff6ee_edge  Removing
+ Network dc2-final-local-checks-e6eff6ee_object-data  Removing
+ Network dc2-final-local-checks-e6eff6ee_processing-data  Removing
+ Network dc2-final-local-checks-e6eff6ee_edge  Removed
+ Network dc2-final-local-checks-e6eff6ee_host-access  Removed
+ Network dc2-final-local-checks-e6eff6ee_processing-data  Removed
+ Network dc2-final-local-checks-e6eff6ee_object-data  Removed
+ Network dc2-final-local-checks-e6eff6ee_media-data  Removed
+[package-coverage-gates] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m scripts.dev.coverage --data /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/artifacts/coverage/.coverage.fast --data /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/artifacts/coverage/.coverage.legacy-integration --data /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/artifacts/coverage/.coverage.processing-integration --data /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/artifacts/coverage/.coverage.media-integration
+app: combined 93.16% (>=80), raw branches 87.04%
+processing: combined 98.69% (>=80), raw branches 94.83%
+media: combined 98.19% (>=80), raw branches 96.02%
+media_engine: combined 99.42% (>=80), raw branches 98.00%
+publisher: combined 98.43% (>=80), raw branches 96.55%
+[package-coverage-gates] 0.493s, exit 0
+[runtime-smoke] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m scripts.dev.runtime smoke-infra --run-id final-local
+PONG
+NOTICE:  table "infra_denied_1794" does not exist, skipping
+NOTICE:  table "infra_denied_1794" does not exist, skipping
+Both database owners/runtime grants and cross-database/DDL denials passed.
+ Container dc2-final-local-e6eff6ee-minio-1  Running
+Scoped storage denies and signed HTTPS source/output GETs passed.
+Infrastructure smoke passed (TLS, frontend, Processing DB, Redis, scoped storage).
+[runtime-smoke] 3.704s, exit 0
+[browser-trust] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.venv/bin/python -m scripts.dev.browser trust-smoke --run-id final-local
+{
+  "tested_at": "2026-10-12T20:22:39.482780+00:00",
+  "browser": "153.0.8010.12",
+  "trusted_https": "PASS",
+  "untrusted_certificate_rejected": "PASS",
+  "ignore_https_errors": false,
+  "trust_mechanism": "validated certificate + process-scoped leaf SPKI pin",
+  "engine": "Chrome for Testing",
+  "ca_file": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.local/runs/final-local/tls/ca.crt",
+  "live_infrastructure_url": null
+}
+[browser-trust] 2.054s, exit 0
+PASS: /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/artifacts/final-local/e2e-20261012T202240-dce53cb5/result.json
+E2E supervisor: /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/artifacts/final-local/e2e-supervisor-9c3487f9.json
