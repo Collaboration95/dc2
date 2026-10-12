@@ -1,11 +1,16 @@
-FROM python:3.12-slim
+FROM python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY pyproject.toml ./
+COPY pyproject.toml uv.lock ./
+RUN python -m pip install --no-cache-dir uv==0.8.17 \
+    && uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt \
+    && uv pip install --system --require-hashes -r /tmp/requirements.txt \
+    && python -m pip uninstall -y uv \
+    && rm /tmp/requirements.txt
 COPY app ./app
 COPY alembic.ini ./
 COPY migrations ./migrations
@@ -14,7 +19,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-RUN python -m pip install --no-cache-dir .
+RUN python -m pip install --no-cache-dir --no-deps .
 
 # Drop root for the runtime. The install above needs it to write into the
 # system site-packages; nothing after it does. /app deliberately stays owned by

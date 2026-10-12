@@ -97,7 +97,7 @@ def tls_probe(folder):
         thread.join(timeout=5)
 
 
-def trust_smoke(run_id):
+def trust_smoke(run_id, live_url=None):
     from playwright.sync_api import Error
 
     trusted = ensure_tls(run_id)
@@ -112,6 +112,10 @@ def trust_smoke(run_id):
             assert page.locator("h1").inner_text() == "dc2 TLS trust works"
             assert page.evaluate("window.isSecureContext") is True
             page.screenshot(path=str(artifacts / "browser-trust.png"))
+            if live_url:
+                live = page.goto(live_url, wait_until="domcontentloaded", timeout=15000)
+                assert live.status == 200, "Live infrastructure HTTPS endpoint failed"
+                assert page.evaluate("window.isSecureContext") is True
             try:
                 page.goto(negative, wait_until="domcontentloaded", timeout=15000)
             except Error as error:
@@ -130,6 +134,7 @@ def trust_smoke(run_id):
                 "ignore_https_errors": False,
                 "trust_mechanism": "project-profile NSS certutil CA import",
                 "ca_file": str(trusted / "ca.crt"),
+                "live_infrastructure_url": live_url,
             }
     (artifacts / "browser-trust.json").write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))
@@ -149,7 +154,7 @@ def main():
             [sys.executable, "-m", "playwright", "install", "firefox"], check=True, env=env
         )
     elif args.action == "trust-smoke":
-        trust_smoke(args.run_id)
+        trust_smoke(args.run_id, args.url)
     else:
         state = json.loads((run_directory(args.run_id) / "state.json").read_text())
         with trusted_browser(args.run_id, headless=False) as browser:

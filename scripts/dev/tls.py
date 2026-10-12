@@ -42,6 +42,8 @@ def ensure_tls(run_id, renew=False):
         "basicConstraints=critical,CA:FALSE\n"
         "keyUsage=critical,digitalSignature,keyEncipherment\n"
         "extendedKeyUsage=serverAuth\n"
+        "subjectKeyIdentifier=hash\n"
+        "authorityKeyIdentifier=keyid,issuer\n"
         "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:::1\n"
     )
     commands = [
