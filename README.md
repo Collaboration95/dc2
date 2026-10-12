@@ -123,6 +123,123 @@ Media_player/
 `-- .env.example                  # Safe local configuration template
 ```
 
+## Project 2 local setup
+
+Work from this repository root, including inside an isolated Git worktree. Supply
+`make`, `uv` (CI pins 0.8.17), an installed Python **3.12.11** matching
+`.python-version`, and Node **20+** with npm on PATH. A current supported Node is
+accepted locally; doctor records actual versions. CI uses Node 22. Setup reads
+installed Python interpreters and never installs or updates global tools.
+
+```bash
+make setup                 # uv sync --locked; npm ci; create .env only if absent
+make setup                 # repeat safely; preserve configured .env and permissions
+make doctor
+make lint
+make test                  # fast Python + 124 inherited frontend tests
+make help
+```
+
+Python runtime dependencies include `httpx`; `dev` and optional `browser` extras
+are pinned through `uv.lock`. Setup installs both extras into `.venv`, without
+downloading a browser. `make browser-install RUN_ID=local` delegates project-local
+Firefox installation to the parent browser helper. `make setup-browser` runs
+setup and that helper. `make browser RUN_ID=local` (or `browser-open`) opens its trusted profile.
+`make doctor-infra` additionally
+checks Docker/Compose, FFmpeg/ffprobe, OpenSSL, NSS `certutil`, and the runtime,
+TLS, browser and capacity helpers. Missing helpers fail clearly until foundation
+integration. On Linux `certutil` comes from `libnss3-tools`; developer commands
+do not install system packages.
+
+Caches stay in `.cache/uv`, `.cache/npm`, `.cache/ruff`, and
+`.local/playwright` for the parent browser helper. Environments, secrets and evidence live in ignored
+`.venv`, `.local`, `.env`, and `artifacts`. `make clean` removes generated test,
+lint and coverage output only. It preserves configured secrets, virtual
+environments, browser installations, runtime state and service data.
+
+The fast Python tier excludes `tests/integration`, `tests/e2e` and their markers,
+blocks real socket connections/DNS, and ignores ambient service configuration and
+the legacy `.env` settings file. Frontend fast checks exclude live stack tests;
+the real vendored player interaction tests still run. Python tests have a 30s
+individual timeout, with 120s/90s outer Python/frontend bounds. New tests needing
+real services belong in the integration tier. No test is retried to obtain green.
+
+Real integration requires explicit configuration for **isolated test resources**:
+
+```bash
+# Legacy migrated database + MinIO + FFmpeg:
+RUN_POSTGRES_TESTS=1 POSTGRES_DSN="$TEST_POSTGRES_DSN" make integration
+# Processing migrated database and runtime role, including ownership checks:
+RUN_PROCESSING_TESTS=1 PROCESSING_POSTGRES_DSN="$TEST_PROCESSING_DSN" \
+  PROCESSING_SERVICE_TOKEN="$TEST_PROCESSING_TOKEN" \
+  P2_POSTGRES_PORT="$TEST_POSTGRES_PORT" make integration
+```
+
+Supply legacy MinIO settings explicitly when using non-default isolated ports.
+Processing ownership tests use `MEDIA_RUNTIME_PASSWORD`,
+`MEDIA_MIGRATION_PASSWORD`, `PROCESSING_RUNTIME_PASSWORD` and
+`PROCESSING_MIGRATION_PASSWORD` (existing demo defaults otherwise). Host DSNs must
+use the host-accessible port, rather than the internal Compose hostname. An
+enabled tier fails for missing prerequisites, unavailable services or skipped
+tests; it cannot silently claim success. Each selected integration suite has a
+300s command bound.
+
+```bash
+# Current fast/frontend evidence plus whichever real integration flags are enabled:
+make coverage
+# Collect real integration separately, then combine explicit current fragments:
+RUN_PROCESSING_TESTS=1 PROCESSING_POSTGRES_DSN="$TEST_PROCESSING_DSN" \
+  PROCESSING_SERVICE_TOKEN="$TEST_PROCESSING_TOKEN" \
+  P2_POSTGRES_PORT="$TEST_POSTGRES_PORT" make integration-coverage
+make coverage-report COVERAGE_INPUTS='artifacts/coverage/.coverage.fast artifacts/coverage/.coverage.processing-integration'
+```
+
+Coverage gates **combined statements and branches >=80% per package**, and
+reports raw branch percentages separately. It includes every production Python
+file, even never imported, excluding migration scripts. The gate discovers
+`app`, `processing`, `media`, `media_engine` and `publisher` as they arrive;
+packaging and lint selection already include those names. Every evidence fragment
+must match the current product/tests/tooling/lock fingerprint. Processing database
+repository coverage needs real integration: a unit-only `make coverage` can fail
+and reports that limitation explicitly. Frontend coverage retains statements,
+branches, functions and lines **all >=90%**. Output is under
+`artifacts/coverage`; command durations are in `artifacts/tooling/timings.jsonl`.
+
+Runtime targets delegate to their owning helpers:
+
+```bash
+make env RUN_ID=local
+make local-tls RUN_ID=local
+make up RUN_ID=local
+make smoke-infra RUN_ID=local
+make browser-trust-smoke RUN_ID=local
+make status RUN_ID=local
+make logs RUN_ID=local
+make down RUN_ID=local      # preserve service data
+make capacity-status       # isolated capacity helper; no global Docker changes
+```
+
+`images`, `capacity-install/start/stop/env` are also available. Runtime state is
+`.local/runs/<RUN_ID>/state.json` with `public_url`, `postgres_port`,
+`processing_port`, `ca_file`, `compose_project`, `env_file`; secrets stay in its
+private environment file. Firefox trust uses a temporary NSS profile seeded with
+the project CA by the parent helper; system trust and certificate verification
+remain intact. Its smoke must prove trusted HTTPS success and untrusted HTTPS
+rejection. Full workflow/evidence/release targets fail clearly until their waves
+supply the corresponding helpers.
+
+CI always reports **Fast checks** and **Integration checks**, including when a
+dependency fails or is skipped. Fast coverage is collected before combining real
+legacy and Processing database evidence. Separate bounded jobs perform HTTPS
+browser trust, SAST, and Trivy scans of the actual current app and Processing
+images. The inherited zero fixable HIGH/CRITICAL policy remains enforced. Backend
+lanes must extend integration selection and the image scan matrix for Media and
+each distinct worker image before promotion (a shared API/worker digest needs
+one scan); new Media/worker image files currently trigger a clear CI guard.
+
+The following WSL/deployment instructions are inherited Project 1 documentation.
+Current Project 2 setup and ownership instructions above take precedence.
+
 ## Prerequisites
 
 - Windows 11 with WSL 2 and an Ubuntu distribution
