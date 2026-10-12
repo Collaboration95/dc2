@@ -122,14 +122,16 @@ aggregate fast/integration checks even when selective execution is used, so an
 unrelated path filter cannot leave a required check permanently pending.
 
 Local TLS uses a project-generated CA/certificate and explicit trust settings for
-CLI/tests. Real browser selection: pinned Playwright Firefox in a project-local
-installation with its CA imported through NSS certutil into a project-local
-temporary profile. The policy-based plan was replaced after an actual trust failure;
-positive and negative verification now pass without changing system trust. The coordinator owns its launcher and pinned
-tooling. `make browser-trust-smoke` must prove trusted HTTPS navigation and an
-untrusted-certificate rejection before foundation acceptance; no certificate-error
-bypass or insecure browser flags. SANs cover public API and media URL hostnames. Do not modify the system trust store or turn off
-TLS verification. Ports, project names, volumes and test identities are isolated.
+CLI/tests. Linux uses pinned Playwright Firefox with the CA imported into a
+temporary project-local NSS profile. On macOS, the installed Firefox decoder
+failed actual H264 playback; the tested helper uses pinned Chrome for Testing.
+The macOS helper first verifies the server certificate against the project CA and
+localhost, then pins that leaf public key for the browser process. This is scoped
+key trust, rather than a browser CA-store assertion. It is an accepted practical
+change from the original Firefox-only plan, recorded in browser-acceptance.md.
+Both paths keep `ignore_https_errors=False`, prove trusted navigation and reject
+an unrelated untrusted certificate. Neither changes system trust or uses a global
+certificate-error bypass. Ports, project names, volumes and identities are isolated.
 
 Wave 1's `make up` may expose infrastructure and the current Processing intake
 only. Its HTTPS checks establish routing/trust; actual Secure-cookie login and
@@ -196,7 +198,7 @@ Keep the proposal's initial targets visible:
 - Independent Processing release plus smoke≤10min; MM and media migrations unchanged.
 - CLI uses no service imports/DB credentials; record actual effort against2person-days.
 
-Current Docker Desktop allocation is2CPU/2GiB. The host has10CPUs/32GiB. This
+The inspected initial Docker Desktop allocation was2CPU/2GiB. The host has10CPUs/32GiB. This
 allocation cannot fairly run3×2vCPU encoders plus services. Investigate a separately
 scoped project-local runtime or host harness if necessary, without global setting
 changes. Record architecture/quotas and any difference from the proposal. A
@@ -204,6 +206,10 @@ thread-count-only limit is not proof of a hard2vCPU quota. F3 owns the bounded p
 before this evidence wave. If sufficient local capacity cannot be made available
 within scope, finish the reproducible runner
 and pilot, record the specific blocker and keep full-scaling acceptance open.
+F3 has now established an isolated 8-vCPU, 8-GiB Lima VM under `.local/lima`.
+The measured profile reserves 2 vCPU in total for persistent nonworker services
+and 2 vCPU/1536 MiB per worker. No other runtime stacks may run on that VM during
+full scaling or latency measurements; Docker Desktop is unchanged.
 Never silently reduce the workload/targets or classify oversubscription as success.
 Any revised target requires recorded baseline rationale before final runs; report
 both original and revised results rather than rewriting evidence after a failure.

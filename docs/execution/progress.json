@@ -146,33 +146,43 @@
     },
     "V1": {
       "number": 20,
-      "state": "Backlog",
+      "state": "In progress",
       "pr": null,
-      "evidence": []
+      "evidence": [
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
+      ]
     },
     "V2": {
       "number": 21,
-      "state": "Backlog",
+      "state": "In progress",
       "pr": null,
-      "evidence": []
+      "evidence": [
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
+      ]
     },
     "V3": {
       "number": 22,
-      "state": "Backlog",
+      "state": "In progress",
       "pr": null,
-      "evidence": []
+      "evidence": [
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
+      ]
     },
     "V4": {
       "number": 23,
-      "state": "Backlog",
+      "state": "In progress",
       "pr": null,
-      "evidence": []
+      "evidence": [
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
+      ]
     },
     "V5": {
       "number": 24,
-      "state": "Backlog",
+      "state": "In progress",
       "pr": null,
-      "evidence": []
+      "evidence": [
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
+      ]
     }
   },
   "pull_requests": [

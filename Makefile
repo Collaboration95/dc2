@@ -47,13 +47,13 @@ test-app: ## Focus inherited Python regression tests
 test-processing: ## Focus Processing fast tests
 	$(PYTHON) -m scripts.dev.checks test-python --domain processing
 
-test-media: ## Focus Media fast tests once implemented
+test-media: ## Focus Media fast tests
 	$(PYTHON) -m scripts.dev.checks test-python --domain media
 
-test-media-engine: ## Focus shared engine fast tests once implemented
+test-media-engine: ## Focus shared engine fast tests
 	$(PYTHON) -m scripts.dev.checks test-python --domain media_engine
 
-test-publisher: ## Focus Publisher fast tests once implemented
+test-publisher: ## Focus Publisher fast tests
 	$(PYTHON) -m scripts.dev.checks test-python --domain publisher
 
 test-cli: test-publisher ## Publisher fast checks (alias)
@@ -78,42 +78,33 @@ clean: ## Remove generated test/lint coverage only; preserve .env/data/venv/brow
 	$(PYTHON) -m scripts.dev.checks clean
 
 up down logs smoke-infra images env status: ## Delegate isolated runtime ACTION, RUN_ID=local
-	@test -f scripts/dev/runtime.py || { echo 'scripts/dev/runtime.py is pending foundation runtime integration' >&2; exit 2; }
 	$(PYTHON) scripts/dev/runtime.py $@ --run-id "$(RUN_ID)"
 
 local-tls: ## Generate project-local TLS through the parent helper
-	@test -f scripts/dev/tls.py || { echo 'scripts/dev/tls.py is pending parent integration' >&2; exit 2; }
 	$(PYTHON) scripts/dev/tls.py --run-id "$(RUN_ID)"
 
 browser-trust-smoke: ## Trusted positive/untrusted negative in the actual project browser
-	@test -f scripts/dev/browser.py || { echo 'scripts/dev/browser.py is pending parent integration' >&2; exit 2; }
 	$(PYTHON) scripts/dev/browser.py trust-smoke --run-id "$(RUN_ID)"
 
 browser-install: ## Install the pinned browser under this project
-	@test -f scripts/dev/browser.py || { echo 'scripts/dev/browser.py is pending parent integration' >&2; exit 2; }
 	$(PYTHON) scripts/dev/browser.py install --run-id "$(RUN_ID)"
 
 browser-open: ## Open the scoped project browser
-	@test -f scripts/dev/browser.py || { echo 'scripts/dev/browser.py is pending parent integration' >&2; exit 2; }
 	$(PYTHON) scripts/dev/browser.py open --run-id "$(RUN_ID)"
 
 browser: browser-open ## Open the scoped project browser (alias of browser-open)
 
 capacity-install capacity-start capacity-status capacity-stop capacity-env: ## Delegate isolated capacity ACTION
-	@test -f scripts/dev/capacity.py || { echo 'scripts/dev/capacity.py is pending parent integration' >&2; exit 2; }
 	$(PYTHON) scripts/dev/capacity.py $(patsubst capacity-%,%,$@)
 
-e2e: ## Full HTTPS browser/CLI workflow, supplied by integration wave
-	@test -f scripts/dev/e2e.py || { echo 'scripts/dev/e2e.py is pending integration wave' >&2; exit 2; }
+e2e: ## Full HTTPS browser/CLI workflow
 	$(PYTHON) -m scripts.dev.e2e --run-id "$(RUN_ID)"
 
 verify-local: ## Fast checks, isolated real integration/coverage, and full client workflows
 	$(PYTHON) -m scripts.dev.verify --run-id "$(RUN_ID)"
 
 evidence-status evidence-performance evidence-scaling evidence-recovery evidence-release: ## Measured local experiments; extra options in EVIDENCE_ARGS
-	@test -f scripts/dev/evidence.py || { echo 'scripts/dev/evidence.py is pending evidence wave' >&2; exit 2; }
 	$(PYTHON) -m scripts.dev.evidence $(patsubst evidence-%,%,$@) --run-id "$(RUN_ID)" $(EVIDENCE_ARGS)
 
-release rollback: ## Local release/rollback runners supplied by evidence wave
-	@test -f scripts/dev/release.py || { echo 'scripts/dev/release.py is pending release wave' >&2; exit 2; }
+release rollback: ## Promote or roll back Processing locally; RELEASE_ARGS supplies options
 	$(PYTHON) -m scripts.dev.release $@ --run-id "$(RUN_ID)" $(RELEASE_ARGS)

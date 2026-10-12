@@ -40,3 +40,19 @@
 - F3 capacity evidence: pinned Lima2.2.1 VZ VM boots8vCPU/8GiB under .local/lima;
   DockerDesktop remains unchanged. A container capped at2CPUs reports cgroup
   cpu.max=200000 100000. This proves resource/quota feasibility, not throughput.
+
+- 2026-10-13 V1 browser correction: macOS Firefox's H264 decoded-frame copy failed
+  in actual playback. Use pinned Chrome for Testing on macOS with prior CA/hostname
+  validation and a process-scoped leaf SPKI pin; retain NSS Firefox on Linux.
+  `ignore_https_errors=False` and unrelated-key negative verification remain.
+  This explicit key-trust tradeoff is documented in reviews/browser-acceptance.md.
+- V3 login budget: bcrypt rounds=10 and Media 1 vCPU meet the demo's basic login
+  scope. Existing higher-cost password hashes remain valid. The fixed service
+  total stays 2 vCPU, preserving fair 1/2/3-worker capacity. Diagnostic pilot
+  results motivated this profile before the full measurements; pilots are not
+  substituted for final acceptance.
+- V4 evidence must include an actually processing job before draining workers.
+  Empty-worker release smoke alone is not sufficient proof of active-work drain.
+- V1 assertion-only corrections and V3 measurements overlap on byte-identical
+  production code. Final acceptance still requires the corrected complete V1/V2
+  checks and records both the measured image/source and final verified source.

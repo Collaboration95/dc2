@@ -1,4 +1,54 @@
-# Flickpond
+# Flickpond — dc2 Project 2
+
+Project 2 runs from this repository root. The former `Media_player` submodule
+has been imported; no nested checkout is required. The current local stack has
+Media Management and Processing as separate services, with separate database
+ownership. The existing frontend and media engine are reused. An independent
+Publisher CLI uses the public HTTPS API.
+
+```sh
+make setup
+make doctor
+make up RUN_ID=local
+make browser-install RUN_ID=local  # first use
+make browser RUN_ID=local
+make test                         # fast, offline Python and frontend tests
+make verify-local RUN_ID=local    # real owned integration, coverage and workflows
+make down RUN_ID=local            # preserves configuration and data volumes
+```
+
+`make up` prints the run-specific HTTPS URL. Read `.local/runs/local/state.json`
+for the URL and CA path; private runtime credentials stay in the ignored
+`.local/runs/local/runtime.env`. Create your own account through the browser.
+Do not add that environment file or certificate keys to Git.
+
+On this Mac, the project-local Lima runtime and dependencies are installed.
+For another host, read [local setup](docs/execution/handoff.md) for prerequisites
+and optional `make capacity-install` / `make capacity-start`. Commands do not
+change the global Docker context or system certificate trust.
+
+| Current code | Role |
+| --- | --- |
+| `media/` | Login, owners, Assets, source storage, public API and playback |
+| `processing/` | Jobs, Attempts, queue/worker, heartbeats and recovery |
+| `media_engine/` | Reused probing, validation and FFmpeg operations |
+| `publisher/` | Independent public-API folder publishing CLI |
+| `frontend/` | Existing browser UI, with reliable retry/replay behavior |
+| `compose/local/`, `scripts/dev/` | Root Make setup, isolated runtime and release |
+| `scripts/evidence/` | Local recovery, latency and scaling measurements |
+| `app/`, root legacy Compose | Preserved Project 1 regression reference |
+
+Start with the [morning handoff](docs/execution/handoff.md),
+[execution plan](docs/execution/plan.md), [contract evidence](docs/execution/contract-evidence.json),
+and [working decisions](docs/project2-worklog.txt). `make publisher ARGS='--help'`
+shows CLI usage. Slow experiments are separate Make targets listed by `make help`.
+
+The material below records inherited Project 1 architecture and commands.
+Its deployment URL, original ownership notes and root legacy Compose instructions
+are historical; this work does not operate that deployment. Current Project 2
+commands and status are in the links above.
+
+## Inherited Project 1 reference
 
 Flickpond is a practice-module team project: an asynchronous video upload and processing platform. Sprint 1 proved the request path end to end with a copy job standing in for transcoding; **sprint 2 replaced it with real FFmpeg**, added authentication and per-user ownership, a reaper that recovers jobs abandoned by a crashed worker, CI as a required check on `main`, and TLS.
 
@@ -79,7 +129,7 @@ firewalled is not ([T-06](docs/known-traps.md#t-06)).
 ## Repository layout
 
 ```text
-Media_player/
+dc2/  (inherited Project 1 paths shown below)
 |-- app/
 |   |-- api/jobs.py               # GET /jobs and GET /jobs/{id}
 |   |-- api/uploads.py            # POST /upload
@@ -136,7 +186,7 @@ make setup                 # uv sync --locked; npm ci; create .env only if absen
 make setup                 # repeat safely; preserve configured .env and permissions
 make doctor
 make lint
-make test                  # fast Python + 124 inherited frontend tests
+make test                  # fast Python and frontend tests
 make help
 ```
 
@@ -147,8 +197,7 @@ installation to the browser helper (Chrome for Testing on macOS; Firefox on Linu
 setup and that helper. `make browser RUN_ID=local` (or `browser-open`) opens its trusted profile.
 `make doctor-infra` additionally
 checks Docker/Compose, FFmpeg/ffprobe, OpenSSL, NSS `certutil`, and the runtime,
-TLS, browser and capacity helpers. Missing helpers fail clearly until foundation
-integration. On Linux `certutil` comes from `libnss3-tools`; developer commands
+TLS, browser and capacity helpers. On Linux `certutil` comes from `libnss3-tools`; developer commands
 do not install system packages.
 
 Caches stay in `.cache/uv`, `.cache/npm`, `.cache/ruff`, and
