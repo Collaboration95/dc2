@@ -9,10 +9,14 @@ import sys
 from scripts.dev.common import PYTHON, ROOT, local_env
 
 
-def probe(command: list[str]) -> str | None:
+def probe(command: list[str], *, env=None) -> str | None:
     try:
         result = subprocess.run(
-            command, env=local_env(), capture_output=True, text=True, timeout=15
+            command,
+            env=local_env() if env is None else env,
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         if result.returncode == 0:
             return result.stdout.strip().splitlines()[0]
@@ -63,11 +67,20 @@ def main() -> None:
     if args.infra:
         for name in ("ffmpeg", "ffprobe", "openssl", "certutil"):
             check(name, shutil.which(name), f"Supply {name} on PATH for real integration/TLS")
-        check("Docker Compose", probe(["docker", "compose", "version"]), "Start your Docker engine")
+        from scripts.dev.runtime import subprocess_env
+
+        docker_env = subprocess_env()
+        check(
+            "Docker Compose",
+            probe(["docker", "compose", "version"], env=docker_env),
+            "Install Docker Compose for the selected local daemon",
+        )
         check(
             "Docker engine",
-            probe(["docker", "info", "--format", "{{.NCPU}} CPU, {{.MemTotal}} bytes"]),
-            "Choose a running Docker context; make capacity-status reports the isolated option",
+            probe(
+                ["docker", "info", "--format", "{{.NCPU}} CPU, {{.MemTotal}} bytes"], env=docker_env
+            ),
+            "Start the selected daemon or run make capacity-start for the project-local VM",
         )
         for helper in ("runtime", "tls", "browser", "capacity"):
             check(
