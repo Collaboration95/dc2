@@ -1,119 +1,259 @@
-PROJECT 2 WORKING DECISIONS
-12 October 2026, Singapore
+PROJECT 2 WORKLOG
+Updated: 13 October 2026, Singapore (UTC+8)
 
-User direction
-The accepted proposal contains a 31-person-day effort allocation. Implementation
-is compressed into three elapsed days of agentic coding, five days maximum.
-Use the 80/20 principle and make routine decisions without another review round.
-Security is not a grading priority according to the user: retain basic existing
-controls, but do not build OIDC, a credential broker or elaborate new security
-infrastructure. This supersedes heavier deployment suggestions in the design pack.
-Original proposal targets and recorded measurements must remain distinguishable.
+CURRENT CHECKPOINT
 
-Selected implementation defaults
-- Proceed with the prepared two-service DDD and API contracts; validate in code.
-- Keep PostgreSQL database/role ownership separate on one server.
-- Reuse FFmpeg, Redis/RQ, the existing browser and cookie authentication for CLI.
-- Use heartbeat-based interruption detection, visible failure and stored-source
+Planning PR25, foundation PR26, cache correction PR27, Processing PR28, Media
+PR29 and clients PR30 are merged. PR30 merged at
+ea3950c61f4f9eaa5ad8dcbe1f726303f85e0764.
+The product lanes are delivered; V1-V5 final evidence and acceptance remain
+pending. Earlier tests, pilots and bounded review PASS results below describe
+specific historical heads. They do not certify the final combined Main source.
+
+Full scaling is running on frozen .worktrees/integration at 621c03a, namespace
+v3-scale. Parent owns that run and exact final measurements. Do not change the
+checkout or run competing Docker, build, browser or runtime workloads while it
+is active. Documentation handoff preparation is offline in .worktrees/handoff.
+
+Morning report: docs/execution/handoff.md. It includes commands, personas,
+architecture, private credential locations (no values), PR/issue/milestone map,
+evidence sources, local/AWS boundary and explicitly pending final-result fields.
+The progress.json in this documentation checkout predates PR30 and still records
+clients in Review. Parent must reconcile the machine ledger and remote metadata;
+this documentation task does not mutate them or claim V5 completion.
+
+WORKING AGREEMENT — ACCEPTED 12 OCTOBER 2026
+
+The accepted proposal allocates 31 person-days. Implementation is compressed
+into three elapsed days of agentic coding, five days maximum. Apply the 80/20
+principle and make routine implementation decisions without another review round.
+The third day is for experiments/corrections. Any fourth/fifth day addresses a
+concrete required gap, not new product scope; no automatic extension beyond five.
+Actual course report and presentation work remain separate required work.
+
+Security is not a grading priority according to the user. Retain basic login,
+ownership, private stores and scoped secrets; do not build OIDC, a credential
+broker or elaborate security infrastructure. This supersedes heavier deployment
+suggestions in the design pack. Current authorisation covers implementation
+across inherited tracks; historical Project 1 ownership/PR-only rules are not gates.
+Keep original proposal targets distinguishable from recorded measurements.
+
+Selected defaults:
+- Use the prepared two-service DDD/API contracts and validate them in code.
+- Separate Media and Processing database/role ownership on one PostgreSQL server.
+- Reuse FFmpeg, Redis/RQ, the browser and cookie authentication for Publisher.
+- Detect interruption with heartbeats, expose failure and allow stored-source
   manual retry; repair durable pending submissions and missing queue entries.
-- Use one AWS EC2/Compose demonstration host and private S3 storage. Confirm the
-  project account, region, budget and domain before provisioning; do not assume
-  the user's other AWS projects are this project's account.
-- Use scoped demo credentials supplied outside Git, without an OIDC rollout.
-- Use manual release promotion with scripted deployment, smoke and rollback.
-- Preserve the proposal's 1/2/3 workers at 2 vCPU experiments and numeric targets.
-- Show web and small Publisher CLI workflows; record lengthy experiments and
-  keep a recording fallback for the presentation.
-- Spend the third day on experiments and corrections. Any fourth/fifth day must
-  address a concrete required gap, not new product scope. No automatic extension
-  beyond five days. Actual report/presentation work still needs to be completed.
+- Future AWS demo: one EC2/Compose host and private S3. Actual project account,
+  region, budget/domain and scoped credentials are prerequisites. Another AWS
+  project's configuration is not this project's account. No provisioning yet.
+- Use demo credentials outside Git, manual promotion, scripted smoke/rollback.
+- Preserve 1/2/3 workers at hard 2 vCPU and the proposal's numeric targets.
+- Demonstrate web and small Publisher workflows; retain lengthy experiment
+  evidence and a recording fallback for the presentation.
+- Preserve original course/proposal materials and roadmap design/illustrations.
+- Use authenticated gh exclusively for all GitHub access. Do not operate the
+  inherited Alibaba deployment. Local work can proceed before AWS prerequisites.
 
-Repository migration
-Imported Media_player commit 885453726d629c524bf511d665311863d9bc70a5 into dc2 root.
-All 129 tracked source files and four ignored macOS metadata files were copied;
-SHA-256 contents and permission bits matched the inventory before source removal.
-The root .git remains dc2's repository. Submodule registration and .gitmodules
-were removed; original source Git history is retained locally in a full external
-backup, an accompanying Git bundle, and .git/modules/Media_player.
-The pre-existing roadmap changes were preserved in a separate commit.
+12 OCTOBER 2026 — REPOSITORY MIGRATION
+
+Imported Media_player source commit
+885453726d629c524bf511d665311863d9bc70a5 into the dc2 root. All 129 tracked source
+files and four ignored macOS metadata files were copied. SHA-256 contents and
+permission bits matched the inventory before source removal. The root .git
+remains dc2's repository; submodule registration and .gitmodules were removed.
+Original source Git history remains locally in a full external backup, accompanying
+Git bundle and .git/modules/Media_player. Pre-existing roadmap changes were
+preserved in a separate commit.
+
 Migration adaptations: CI uses dc2's Main branch and scopes lint to application
-code, Docker excludes planning assets, and current root guidance supersedes the
-old team's operational rules. Application source behavior is unchanged by the move.
+code; Docker excludes planning assets; current root guidance supersedes old team
+operational rules. Application behavior was unchanged by the move. All original
+app/, frontend/ and migrations/ files stayed byte-identical to the imported
+source after the first implementation slice. The roadmap's only migration HTML
+changes repaired 160 source links, all resolving at their new paths, with text,
+styles and illustrations preserved.
 
-Implementation status
-The migration is pushed to Collaboration95/dc2 Main at b7f749f. Its CI run
-38254040593 passed. All original app/, frontend/ and migrations/ files remain
-byte-identical to the source after the first implementation slice below.
-The roadmap's only HTML modifications in the move repair 160 source links;
-all resolve at the new paths, with text/styles/illustrations preserved.
+Migration pushed to Collaboration95/dc2 Main at b7f749f. CI run 38254040593 passed.
 
-First coding slice: independent Processing intake
-- Separate processing/ API, configuration, database metadata and migration history.
-- Atomic Job/Attempt creation, stable AssetId replay and owner-filtered read/batch.
-- Separate media_db and processing_db runtime/migration roles; no cross-service
-  user/asset foreign keys and no Media Management package inside the P image.
-- Standalone local Docker stack and dedicated CI job. No AWS resources created.
-- Reproducible setup and remaining scope: docs/processing-intake.txt.
+12 OCTOBER 2026 — FIRST PROCESSING INTAKE SLICE
 
-Validation on 12 October 2026
-- Root Python suite: 431 passed, 65 integration tests skipped when not enabled;
-  inherited application coverage 86.77% (80% gate).
-- Focused Processing plus real PostgreSQL suite: 91 passed, including 21 database
-  tests; Processing coverage 86.69% (80% gate).
-- Frontend: 124 passed, three live tests skipped; existing coverage gates passed.
+Implemented separate processing/ API/configuration/database metadata/migration
+history, atomic Job/Attempt creation, stable AssetId replay and owner-filtered
+single/batch reads. Separate media_db/processing_db runtime and migration roles
+have no cross-service user/Asset foreign keys. The Processing image contains no
+Media Management package. A standalone local Docker stack and dedicated CI job
+were added. No AWS resources were created. Setup/scope at that checkpoint is
+recorded in docs/processing-intake.txt; it is an early-slice historical document.
+
+Recorded validation:
+- Root Python: 431 passed; 65 integration tests skipped when not enabled.
+  Inherited application coverage 86.77%, against an 80% gate.
+- Focused Processing plus real PostgreSQL: 91 passed, including 21 DB tests;
+  Processing coverage 86.69%, against an 80% gate.
+- Frontend: 124 passed; three live tests skipped; existing coverage gates passed.
 - Application/Processing/test/migration lint passed.
-- Fresh-volume Docker boot applies database bootstrap and migration successfully.
-- Live HTTP: create 201, replay with renewed source URL 200, same job/attempt IDs,
-  readback 200, other owner 404. API container restart retains the same IDs.
-- Database ownership: runtime data writes work, runtime DDL fails, opposite
-  database connections fail for both runtime and migration roles. Bootstrap rerun
-  preserves data. Eight concurrent identical submissions create only one attempt.
+- Fresh-volume Docker boot applied bootstrap/migrations successfully.
+- Live HTTP: create 201, renewed-source-URL replay 200 with the same Job/Attempt,
+  readback 200, other owner 404. API restart retained the same IDs.
+- Runtime writes worked; runtime DDL and opposite-DB connections failed for both
+  runtime and migration roles. Bootstrap rerun preserved data. Eight concurrent
+  identical submissions created one Attempt.
 
-Remaining implementation
-Processing intake currently stores queued work only. Worker dispatch, heartbeat,
-queue reconciliation, Media Management Asset integration, retry/cancel/output
-handling, Publisher CLI, AWS and scaling/recovery experiments remain to implement.
-No end-to-end extraction, video-processing or cloud result is claimed yet.
+At this checkpoint intake stored queued work only. Dispatch, heartbeat, queue
+reconciliation, Media integration, retry/cancel/output handling, Publisher, AWS
+and scaling/recovery experiments were still unimplemented. No end-to-end
+extraction, video processing or cloud result was claimed then. Later entries
+supersede that implementation status, not the historical measurements.
 
-13 October: reviewed execution plan and foundation complete
-Project 14 contains six epics and eighteen child issues with personas and dependencies.
-PR25 planning, PR26 foundation and PR27 cache correction are merged after review
-and green CI. See docs/execution/progress.json and reviews/ for evidence.
-Make setup/test/up now provides locked dependencies, fast offline checks, private
-storage, separate databases, scoped TLS trust and an 8 CPU local Lima VM.
-460 Python and 124 frontend fast tests pass; combined Python coverage gates pass.
-Processing/Media/clients product lanes follow; no full workflow is claimed yet.
+13 OCTOBER 2026 — REVIEWED PLAN AND FOUNDATION
 
-Processing implementation ready for review (13 October)
-P1/P2/P3 now implement durable retries/cancellation/leases, source renewal, real
-FFmpeg outputs, heartbeat supervision, Redis delivery repair and repeated cleanup.
-635 fast Python tests and41 real PG/Redis/MinIO/FFmpeg tests pass. Separate package
-coverage gates pass; see docs/execution/reviews/processing-validation.md.
-Independent review and PR checks remain required before the group is Done.
-Media and clients are implemented in isolated worktrees. Client review identified
-three uncertainty/UI-state bugs; fixes are underway. First real public two-service
-workflow passes, with full browser/CLI/fault/load/release evidence still pending.
+Project 14 was created with six epics and eighteen child issues, personas and
+dependencies. PR25 planning merged at 6ea8b9b; PR26 foundation at dbc9a4b;
+PR27 cache correction at 49b693e. Independent reviews and green CI accompanied
+the accepted groups. A late MinIO build-cache finding during PR26 was corrected
+in PR27, with actual warm cached CI run 38282861155 and bounded rereview PASS;
+there was no waiver. Evidence: docs/execution/reviews/planning-rereview.md,
+foundation-review.md and foundation-cache-review.md.
 
-Processing merged; Media reviewed (13 October)
-PR28 merged at4efc41c after644 fast tests,45 real owned checks, corrected recovery
-lock contention, independent rereview PASS and all13 remote checks. P1-P3/E2 Done.
-Media M1-M3 now include source/Asset durable intake, live Processing composition,
-source access, retry, MP4/HLS, derived copies, deletion and reconciliation. Its
-uncertain-write cleanup correction passed independent rereview and38 realPGtests.
-A login diagnostic improved to roughly1s p90 for20 users usingcost10bcrypt/1CPU
-Media while keeping the nonworker total2CPU. FullV3 remains pending.
-The combined worktree has passed realCLI30good/1bad publishing and storedretry,
-and real browser upload/worker-kill/retry/playback/deletion. FinalcombinedV1/V2
-and performance/release evidence still remain; see execution reviews and progress.
+Make setup/test/up supplied locked dependencies, fast offline checks, private
+storage, separate databases, scoped TLS trust and a project-local Lima VM with
+8 CPU / 8 GiB. Hard 2-CPU quota feasibility was verified; that is not throughput
+acceptance. Global Docker Desktop allocation/context were left unchanged.
+Final cache checkpoint: 460 Python / 124 frontend fast tests passed and combined
+Python coverage gates passed. Earlier foundation runs recorded 458/124; the tools
+lane recorded 446/124 before coordinator integration. Counts refer to those heads.
+Processing/Media/client lanes followed; full product workflow was not claimed at
+foundation acceptance. See foundation coordinator/tools/runtime result reports.
 
-Media merged; clients reviewed; measured evidence underway (13 October)
-PR29 merged atb4a9f56 after770 fastPython/127realintegration checks, MediaR1
-rereviewPASS andall15remotechecks. M1-M3/E3Done. C1/C2corrections also have
-independentPASS; integrated827Python/152frontend+realTLS pass andPublisher98.43%
-coverage. ClientPRisbeingpublished.
-MacFirefoxdecoded-framecopyfailure was reproduced; the project browser helper
-nowusespinnedChromeForTesting withscopedkeytrust/CAvalidation onMac, NSSFirefox
-onLinux. Actualtrusted/untrustedcontrolsandbrowserretry/playback/deletionpassed.
-Fullnine-run30x60s720p1/2/3worker experiment isrunning onfrozenintegration621c03a
-inseparatev3-scale namespace. Core-runtimeacceptance isnotdeclareduntilfinalV1/V2
-assertionfixesverifythesameproductioncode; measurementidentitiesremainrecorded.
+13 OCTOBER 2026 — PROCESSING REVIEW AND MERGE
+
+The ready-for-review checkpoint implemented P1/P2/P3 durable retries,
+cancellation/leases, source renewal, real FFmpeg outputs, heartbeat supervision,
+Redis delivery repair and repeated cleanup. It recorded 635 fast Python and
+41 real PostgreSQL/Redis/MinIO/FFmpeg checks with separate package coverage gates.
+Independent review and PR checks were still pending at that checkpoint.
+
+A recovery cleanup lock-contention finding was corrected and independently
+rereviewed PASS. PR28 merged at 4efc41c after 644 fast tests, 45 real owned checks
+and all 13 remote checks. P1-P3 / E2 delivered. See processing-validation.md and
+processing-rereview.md. The earlier 635/41 figures are retained as history.
+
+Media and clients were implemented in isolated worktrees during this period.
+Client review identified three uncertainty/UI-state bugs; fixes were then in
+progress. A first real public two-service workflow passed, but full browser/CLI,
+fault, load and release acceptance was still pending.
+
+13 OCTOBER 2026 — MEDIA REVIEW, DIAGNOSTICS AND MERGE
+
+M1-M3 implemented source/Asset durable intake, live HTTP Processing composition,
+renewable source access, retry, MP4/HLS, derived copies, deletion and reconciliation.
+An uncertain-write cleanup correction passed bounded independent rereview and
+38 real PostgreSQL checks. Uncertain staging authority remains durable for repeated
+late-PUT cleanup; source protection and independent migration ownership remain.
+
+Login diagnostics at bcrypt cost 12 / Media 0.5 CPU recorded p90 12.086s and
+11.591s for 20 concurrent valid logins (all HTTP 200). New/default and dummy hashes
+were changed to cost 10 and Media to 1 CPU, with the fixed nonworker total still
+2 CPU. Existing hashes retain their stored cost and verify normally.
+The actual local pilot on product 90d369a recorded two 20-user bursts with p90
+985.174ms and 1044.029ms, all 40 HTTP 200, valid sessions and successful final
+logouts. These are diagnostic bursts, not full-duration V3 acceptance.
+Exact raw values, configuration and artifact hash: reviews/login-performance.md.
+
+The integrated worktree also passed real CLI publishing of 30 good files plus
+one rejected file and stored-source retry, and an earlier real browser
+upload/worker-kill/retry/playback/deletion flow. Those runs were supporting
+checkpoints; final combined V1/V2 and performance/release evidence stayed pending.
+
+PR29 merged at b4a9f56 after 770 fast Python and 127 real integration checks
+(44 inherited, 45 Processing, 38 Media), independent R1 PASS and all 15 remote
+checks. M1-M3 / E3 delivered. Media combined coverage was 98.19% (raw branches
+96.02%); Processing 98.32% (93.68%), shared engine 99.42% (98.00%) and inherited
+app 93.16% (87.04%) at that validation head. See media-validation.md and
+media-rereview.md. No full V1-V4 acceptance followed from this merge alone.
+
+13 OCTOBER 2026 — CLIENT REVIEW, BROWSER TRUST AND MERGE
+
+C1/C2 corrections independently passed R1-R3 rereview: delayed replies cannot
+replace a newer active Asset; uncertain mutation identities survive same-owner
+login; local state-save failures retain confirmed IDs and every batch outcome.
+The integrated client checkpoint recorded 827 Python / 152 frontend fast tests,
+a separate enabled real HTTPS/cookie test, and Publisher combined coverage 98.43%
+(raw branches 96.55%). Frontend statements/lines 99.75%, branches 96.00%,
+functions 98.55%. Publisher's 57 offline tests excluded the separate real TLS case.
+See clients-validation.md and clients-rereview.md.
+
+The previous worklog's 'client PR is being published' is now superseded:
+PR30 is merged at ea3950c61f4f9eaa5ad8dcbe1f726303f85e0764. C1/C2 product delivery
+is merged; final integrated workflow acceptance remains pending.
+
+macOS Firefox decoded-frame copy failure was reproduced after media bytes arrived.
+The launcher now uses pinned Chrome for Testing on macOS, validating the leaf
+certificate/hostname/expiry against the project CA then applying process-scoped
+SPKI key trust. Linux uses pinned Firefox with a temporary NSS CA profile.
+System trust is unchanged; certificate-error bypass is not used. Real trusted
+positive/unrelated-certificate negative controls passed. The earlier browser
+flow took 78.802s, with worker failure visible in 66.521s, stored retry without
+another upload, playback progress and owner deletion/public 404. See
+browser-acceptance.md. These timings predate the tightened final UI-login and
+separate HLS/MP4 decoded-frame assertions; they do not close V1/V2.
+
+Client implementation/testing interval recorded in clients-implementation.md:
+857 seconds / 14.28 minutes, interleaving C1/C2 and excluding some preparation
+and final evidence work. It is not complete human effort or a supported CLI-only
+person-day comparison to the proposal's two-person-day allocation.
+
+13 OCTOBER 2026 — INTEGRATION/EVIDENCE PREPARATION, STILL PENDING
+
+Full nine-run 30 x 60s 720p scaling at 1/2/3 hard-2-vCPU workers is running on
+frozen integration 621c03a in v3-scale. No exact final result is available for this
+documentation checkpoint. Keep the measurement source/image/fixture identities.
+Performance runner R1-R5 bounded rereview is PASS with 63 offline tests; that
+certifies the corrected runner, not status latency, login or scaling targets.
+
+Integration fixes implement scoped restoration/timeout supervision, actual browser
+UI registration/logout/login, and separately proved decoded HLS/MP4 playback.
+Recorded offline harness validation: 33 passed. Contract review R3 adds CT-20
+source-invalid edit failure, CT-21 edit-key replay after derived deletion, and
+CT-23 validation of all prepared examples. CT-23 passed offline; CT-20/21 were
+collected but still require live PostgreSQL/FFmpeg verification by the parent.
+All 25 mappings alone are not proof that all required variants passed.
+See integration-fixes.md, contract-fixes.md and contract-evidence.json.
+
+Independent local Processing release/rollback runner and persisted-image runtime
+wiring are implemented. Historical wiring checks recorded 892 offline Python
+passes, 110 dev tests and 51 release tests. Subsequent R1-R3 corrections recorded
+81 release / 140 dev offline tests, plus an actual isolated scratch bad-image
+build proving daemon compatibility only. The scratch build was not promotion,
+scan, release/rollback or live drain acceptance. See release-runner.md,
+release-integration.md and release-fixes.md. These prior lanes' recorded workloads
+were not rerun by this documentation owner.
+
+Final gates requiring parent evidence:
+- V1: full verify/E2E on combined clean source, browser UI login and real HLS/MP4,
+  CLI mixed-success batch/retry and all 25 contract cases/dispositions.
+- V2: worker failure <=300s, queue repair <=120s with surviving metadata, Processing
+  outage/restart convergence, retry without duplicate output, restoration proof.
+- V3: status 50 users / 180s, p90 <=700ms, errors <1%; separate 20-user login
+  p90 <2s; full fair scaling with 2-worker >=1.6x and 3-worker >=2.1x throughput,
+  decreasing median queue wait, zero failures, processing/CPU/memory records.
+- V4: independent Processing promotion/smoke <=600s, unchanged Media identity,
+  image and migration, exact-image artifact/scan gates, nonempty worker drain,
+  actual injected startup failure and exact tested-image rollback/public smoke.
+- V5: independent final review, exact Main checks/accepted merges, metadata
+  reconciliation, completed handoff evidence source pack. This draft is preparation.
+
+Parent will fill exact final timings, target verdicts, SHAs/images, artifact paths
+and hashes in handoff.md. V1-V5 are pending; E5 is not complete. If fair full
+scaling acceptance is unavailable, retain the precise blocker and keep V3/E5 open.
+No AWS/cloud result is claimed. AWS prerequisites remain actual project account,
+region, budget/spending limit, domain, scoped credentials and adequate compute.
+
+Academic dates remain as recorded in the preserved roadmap/course materials:
+proposal integrated boundary/CLI start 14 October; first and only weekly report
+16 October (user D-06); proposed AWS/experiments 20 October; suggested rehearsal
+25 October; recorded Team 17 presentation 26 October 14:35-15:15 Singapore;
+suggested report review 13 November; recorded final report deadline 16 November.
+This offline task does not revalidate Canvas changes or submission cutoff/format.
+No original course/proposal or roadmap file was changed.
