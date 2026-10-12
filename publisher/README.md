@@ -41,6 +41,11 @@ this is not a directory synchronization tool. A new retry after confirmed
 acceptance is also a new intent; `retry --intent-key UUID` can explicitly replay
 an earlier retry. Retry sends no body or source file.
 
+A 401 during an unresolved mutation retains its pending key. Log in again using
+the same cookie jar, then rerun the publish/retry command as the same owner with
+the original file contents. Another owner's login uses separate intent identities
+and cannot consume that pending key. Changed file contents create a new intent.
+
 `--json` prints one document to stdout. Mutation outcomes include `ok`, `job_id`
 on acceptance, and `intent_key`. A batch returns `files`, each with a filename
 and outcome. Without `--wait`, success means durable acceptance. With `--wait`,
@@ -49,6 +54,12 @@ Read-status 503 is treated as unavailable within the same bounded budget rather
 than a fabricated processing state. The default is 60 requests, two seconds
 between them, with a 20-second timeout per HTTP request; no automatic endless
 transport retry exists. Use `status` again when a budget expires.
+
+If local journal cleanup or final cookie saving fails after acceptance, JSON keeps
+the confirmed `job_id`, `intent_key` and every batch file outcome, adds a safe
+`state_error`, and returns exit 1. Check the confirmed IDs before publishing again.
+A failed journal cleanup retains its original key for replay, including after
+later files save successfully; cookie-save failure preserves the completed results.
 
 Exit codes: 0 success; 1 failed, partial or incomplete result; 2 invalid arguments.
 `output` fetches fresh owner-authorised MP4/HLS links without downloading or

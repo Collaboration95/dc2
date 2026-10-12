@@ -134,6 +134,17 @@ const STATUS_LABEL = { queued: "Queued", processing: "Processing", done: "Done",
 
 let registering = false;
 let currentUser = null;
+let sessionGeneration = 0;
+// Uncertain mutations belong to an owner, even while the cookie needs renewal.
+// Retain original File/body objects in this page; never replay them for another owner.
+const intentsByOwner = new Map();
+
+function ownerIntents() {
+  if (!intentsByOwner.has(currentUser.id)) {
+    intentsByOwner.set(currentUser.id, { uploads: new Map(), retries: new Map(), edits: new Map() });
+  }
+  return intentsByOwner.get(currentUser.id);
+}
 
 function setAuthStatus(message) {
   el.authStatus.textContent = message;
@@ -154,6 +165,7 @@ function applyAuthMode() {
 }
 
 function showSignedIn(user) {
+  sessionGeneration += 1;
   currentUser = user;
   el.who.textContent = user.email;
   el.operatorTag.hidden = user.role !== "operator";
@@ -161,11 +173,34 @@ function showSignedIn(user) {
   el.auth.hidden = true;
   el.app.hidden = false;
   switchView("upload");
+  resetJobCard();
+  activeJobId = null;
+  const intents = ownerIntents();
+  pendingUpload = Array.from(intents.uploads.values()).at(-1) ?? null;
+  pendingRetry = Array.from(intents.retries.values()).at(-1) ?? null;
+  pendingEdit = null;
+  if (pendingUpload || pendingRetry) {
+    el.activeJob.hidden = false;
+    el.jobActions.hidden = false;
+    if (pendingUpload) {
+      el.jobFilename.textContent = pendingUpload.file.name;
+    } else {
+      activeJobId = pendingRetry.assetId;
+      activeJobDoc = pendingRetry.job;
+      el.jobFilename.textContent = activeJobDoc.filename;
+    }
+    setBadge("failed");
+    setStatus("Delivery is unresolved. Retry to replay the original request.");
+  }
 }
 
 function showSignedOut() {
+  sessionGeneration += 1;
   currentUser = null;
   pendingUpload = pendingRetry = pendingEdit = null;
+  retrying = editSubmitting = false;
+  setBusy(false);
+  el.jobRetry.disabled = false;
   el.auth.hidden = false;
   el.app.hidden = true;
   stopPolling();
@@ -292,12 +327,16 @@ let activeJobId = null;
 // The last job document the upload card was showing, so its Edit button has
 // something to hand the editor.
 let activeJobDoc = null;
+let cardGeneration = 0;
+let editorGeneration = 0;
 
 // A transport replay is one intent. Only a confirmed response clears its key.
 // Two attempts bound automatic replay; later button presses retain unresolved keys.
 async function intentRequest(url, init, key) {
+  const session = sessionGeneration;
   const request = { ...init, headers: { ...init.headers, "Idempotency-Key": key } };
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (sessionGeneration !== session) throw new Error("Session changed; sign in to resume.");
     try {
       const res = await fetch(url, request);
       if (res.status >= 500 && attempt === 0) continue;
@@ -356,6 +395,7 @@ function followJob(scope, jobId, handlers) {
     let job;
     try {
       const res = await fetch(`${API}/jobs/${jobId}`);
+      if (pollRuns[scope] !== run) return;
       if (res.status === 401) {
         showSignedOut();
         setAuthStatus("Your session expired. Sign in again.");
@@ -400,6 +440,10 @@ function setBusy(busy) {
 }
 
 function resetJobCard() {
+  cardGeneration += 1;
+  setBusy(false);
+  retrying = false;
+  el.jobRetry.disabled = false;
   el.activeJob.hidden = true;
   el.jobProgress.hidden = true;
   el.jobActions.hidden = true;
@@ -436,24 +480,37 @@ el.fileInput.addEventListener("change", () => {
 });
 
 el.jobRetry.addEventListener("click", () => {
-  if (pendingUpload) handleFile(pendingUpload.file, pendingUpload.key);
+  if (pendingUpload) handleFile(pendingUpload.file);
   else retryStoredSource();
 });
 
 async function retryStoredSource() {
-  if (retrying || !activeJobId || activeJobDoc?.status !== "failed") return;
+  if (!currentUser || retrying || !activeJobId || activeJobDoc?.status !== "failed") return;
+  const intents = ownerIntents();
+  const assetId = activeJobId;
+  const intent = intents.retries.get(assetId) ?? {
+    assetId, job: activeJobDoc, key: crypto.randomUUID(),
+  };
+  intents.retries.set(assetId, intent);
+  pendingRetry = intent;
+  const session = sessionGeneration;
+  const card = cardGeneration;
+  const ownsCard = () => session === sessionGeneration && card === cardGeneration && pendingRetry === intent;
   retrying = true;
   el.jobRetry.disabled = true;
-  pendingRetry ??= crypto.randomUUID();
   try {
-    const res = await intentRequest(`${API}/jobs/${activeJobId}/retry`, { method: "POST" }, pendingRetry);
+    const res = await intentRequest(`${API}/jobs/${assetId}/retry`, { method: "POST" }, intent.key);
     const data = await res.json().catch(() => ({}));
+    if (!ownsCard()) return;
     if (res.status === 401) {
       showSignedOut();
       setAuthStatus("Your session expired. Sign in again.");
       return;
     }
-    if (res.status < 500 && (!res.ok || data.job_id)) pendingRetry = null;
+    if (res.status < 500 && (!res.ok || data.job_id)) {
+      intents.retries.delete(assetId);
+      pendingRetry = null;
+    }
     if (!res.ok || !data.job_id) {
       setStatus(`Could not retry: ${apiErrorMessage(data, res.status)}`);
       return;
@@ -465,10 +522,13 @@ async function retryStoredSource() {
     setBadge("queued");
     pollUploadJob(data.job_id);
   } catch (err) {
+    if (!ownsCard()) return;
     setStatus(`Retry delivery is uncertain: ${err.message}. Retry again to replay this request.`);
   } finally {
-    retrying = false;
-    el.jobRetry.disabled = false;
+    if (session === sessionGeneration && card === cardGeneration) {
+      retrying = false;
+      el.jobRetry.disabled = false;
+    }
   }
 }
 el.jobChooseDifferent.addEventListener("click", () => el.fileInput.click());
@@ -507,8 +567,8 @@ async function deleteActiveJob() {
   }
 }
 
-async function handleFile(file, replayKey) {
-  if (uploading) return; // A rapid second drop cannot double-post the first.
+async function handleFile(file) {
+  if (!currentUser || uploading) return; // A rapid second drop cannot double-post the first.
 
   if (file.type && !ALLOWED_CONTENT_TYPES.has(file.type)) {
     setStatus(`"${file.type || "unknown type"}" is not a video format we handle.`);
@@ -523,8 +583,14 @@ async function handleFile(file, replayKey) {
   stopPolling();
   resetJobCard();
   activeJobId = null;
-  pendingUpload = { file, key: replayKey ?? crypto.randomUUID() };
+  const intents = ownerIntents();
+  const intent = intents.uploads.get(file) ?? { file, key: crypto.randomUUID() };
+  intents.uploads.set(file, intent);
+  pendingUpload = intent;
   pendingRetry = null;
+  const session = sessionGeneration;
+  const card = cardGeneration;
+  const ownsCard = () => session === sessionGeneration && card === cardGeneration && pendingUpload === intent;
   setBusy(true);
   setStatus("Uploading...");
 
@@ -532,8 +598,9 @@ async function handleFile(file, replayKey) {
     const body = new FormData();
     body.append("file", file);
 
-    const res = await intentRequest(`${API}/upload`, { method: "POST", body }, pendingUpload.key);
+    const res = await intentRequest(`${API}/upload`, { method: "POST", body }, intent.key);
     const data = await res.json().catch(() => ({}));
+    if (!ownsCard()) return;
 
     if (res.status === 401) {
       showSignedOut();
@@ -542,7 +609,10 @@ async function handleFile(file, replayKey) {
       return;
     }
 
-    if (res.status < 500 && (!res.ok || data.job_id)) pendingUpload = null;
+    if (res.status < 500 && (!res.ok || data.job_id)) {
+      intents.uploads.delete(file);
+      pendingUpload = null;
+    }
     if (!res.ok || !data.job_id) {
       setStatus(`Upload failed: ${apiErrorMessage(data, res.status)}`);
       el.activeJob.hidden = false;
@@ -560,6 +630,7 @@ async function handleFile(file, replayKey) {
     setBusy(false);
     pollUploadJob(data.job_id);
   } catch (err) {
+    if (!ownsCard()) return;
     setStatus(`Request failed: ${err.message}. Retry to replay this upload.`);
     el.activeJob.hidden = false;
     el.jobFilename.textContent = file.name;
@@ -989,6 +1060,9 @@ function mountEditComponents() {
 function openEditor(job) {
   if (!job || job.status !== "done") return;
 
+  editorGeneration += 1;
+  editSubmitting = false;
+  stopPolling("edit");
   editingJob = job;
   el.editSource.textContent = job.filename;
   el.editResult.hidden = true;
@@ -1011,6 +1085,8 @@ function openEditor(job) {
  *  followed is stopped -- the result is a library entry, not a draft to come
  *  back to. */
 function closeEditor() {
+  editorGeneration += 1;
+  editSubmitting = false;
   unmountEditComponents();
   stopPolling("edit");
   unmountPlayer(el.editPlayer);
@@ -1067,21 +1143,31 @@ for (const box of [el.editCrop, el.editClip, el.editDownscale, el.editUpscale, e
 el.editForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const operations = editOperations();
-  if (editSubmitting || !editingJob || operations.length === 0) return;
+  if (!currentUser || editSubmitting || !editingJob || operations.length === 0) return;
   editSubmitting = true;
 
   const signature = JSON.stringify([editingJob.id, operations]);
-  if (pendingEdit?.signature !== signature) pendingEdit = { signature, key: crypto.randomUUID() };
+  const intents = ownerIntents();
+  const intent = intents.edits.get(signature) ?? {
+    signature, assetId: editingJob.id, body: JSON.stringify({ operations }), key: crypto.randomUUID(),
+  };
+  intents.edits.set(signature, intent);
+  pendingEdit = intent;
+  const session = sessionGeneration;
+  const editor = editorGeneration;
+  const ownsEditor = () => session === sessionGeneration && editor === editorGeneration && pendingEdit === intent;
   el.editProcess.disabled = true;
   el.editResult.hidden = true;
   setEditStatus("Sending the edit...");
 
   try {
-    const res = await intentRequest(`${API}/jobs/${editingJob.id}/edit`, {
+    const res = await intentRequest(`${API}/jobs/${intent.assetId}/edit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ operations }),
-    }, pendingEdit.key);
+      body: intent.body,
+    }, intent.key);
+
+    if (!ownsEditor()) return;
 
     if (res.status === 401) {
       showSignedOut();
@@ -1090,7 +1176,11 @@ el.editForm.addEventListener("submit", async (event) => {
     }
 
     const data = await res.json().catch(() => ({}));
-    if (res.status < 500 && (!res.ok || data.job_id)) pendingEdit = null;
+    if (!ownsEditor()) return;
+    if (res.status < 500 && (!res.ok || data.job_id)) {
+      intents.edits.delete(signature);
+      pendingEdit = null;
+    }
     if (!res.ok || !data.job_id) {
       setEditStatus(`Could not start the edit: ${apiErrorMessage(data, res.status)}`);
       updateProcessButton();
@@ -1118,10 +1208,11 @@ el.editForm.addEventListener("submit", async (event) => {
       },
     });
   } catch (err) {
+    if (!ownsEditor()) return;
     setEditStatus(`Request failed: ${err.message}`);
     updateProcessButton();
   } finally {
-    editSubmitting = false;
+    if (session === sessionGeneration && editor === editorGeneration) editSubmitting = false;
   }
 });
 

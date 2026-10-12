@@ -11,6 +11,8 @@ from pathlib import Path
 from publisher.client import PublicClient, PublisherError, asset_id
 from publisher.state import Intents, file_identity
 
+STATE_ERROR = "Client state failed; verify configuration/session before replay."
+
 
 def positive(value):
     number = float(value)
@@ -59,11 +61,17 @@ def mutation(client, intents, identity, call, explicit=None):
     try:
         job_id = call(key)
     except PublisherError as exc:
-        if not exc.uncertain:
-            intents.complete(identity)
-        return {"ok": False, "error": str(exc), "intent_key": key}
-    intents.complete(identity)
-    return {"ok": True, "job_id": job_id, "intent_key": key}
+        outcome = {"ok": False, "error": str(exc), "intent_key": key}
+        # A 401 rejects this HTTP attempt, not an earlier lost acknowledgement.
+        if exc.uncertain or exc.status == 401:
+            return outcome
+    else:
+        outcome = {"ok": True, "job_id": job_id, "intent_key": key}
+    try:
+        intents.complete(identity)
+    except OSError:
+        outcome.update(ok=False, state_error=STATE_ERROR)
+    return outcome
 
 
 def finish(client, args, outcome):
@@ -126,7 +134,10 @@ def execute(client, args):
         except (OSError, PublisherError):
             outcome = {"ok": False, "error": "File or status request failed."}
         outcomes.append({"file": path.name, **outcome})
-    return {"ok": bool(outcomes) and all(item["ok"] for item in outcomes), "files": outcomes}
+    result = {"ok": bool(outcomes) and all(item["ok"] for item in outcomes), "files": outcomes}
+    if any("state_error" in item for item in outcomes):
+        result["state_error"] = STATE_ERROR
+    return result
 
 
 def main(argv=None):
@@ -134,6 +145,7 @@ def main(argv=None):
     # Serialise state operations across CLI processes sharing one session, including
     # pending-intent reservation before any request can leave the process.
     client = None
+    result = None
     try:
         args.cookie_jar.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         lock_fd = os.open(args.cookie_jar.with_suffix(".lock"), os.O_CREAT | os.O_RDWR, 0o600)
@@ -148,16 +160,17 @@ def main(argv=None):
     except PublisherError as exc:
         result = {"ok": False, "error": str(exc)}
     except (OSError, ValueError, KeyError):
-        result = {"ok": False, "error": "Client state failed; verify configuration/session."}
+        result = {**(result or {}), "ok": False, "state_error": STATE_ERROR}
     print(json.dumps(result) if args.json else human(result))
     return 0 if result["ok"] else 1
 
 
 def human(result):
     if "files" in result:
-        return "\n".join(
+        lines = "\n".join(
             f"{item['file']}: {'accepted' if item['ok'] else 'failed'} "
             f"{item.get('job_id', item.get('error', ''))}"
             for item in result["files"]
         )
+        return lines + (f"\n{result['state_error']}" if "state_error" in result else "")
     return json.dumps(result, indent=2)

@@ -19,13 +19,24 @@ class Intents:
 
     def reserve(self, identity, explicit=None):
         key = explicit or self.data.get(identity) or str(uuid4())
-        self.data[identity] = key
-        self.save()
+        self.change(identity, key)
         return key
 
     def complete(self, identity):
-        self.data.pop(identity, None)
-        self.save()
+        self.change(identity, None)
+
+    def change(self, identity, key):
+        previous = self.data.copy()
+        if key is None:
+            self.data.pop(identity, None)
+        else:
+            self.data[identity] = key
+        try:
+            self.save()
+        except OSError:
+            # Later batch writes must retain everything still persisted on disk.
+            self.data = previous
+            raise
 
     def save(self):
         private_write(self.path, lambda name: Path(name).write_text(json.dumps(self.data)))

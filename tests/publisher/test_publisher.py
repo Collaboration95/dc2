@@ -464,3 +464,202 @@ def test_wait_failure_preserves_accepted_asset(monkeypatch, tmp_path, capsys):
     assert cli.main(args(tmp_path, "retry", ASSET, "--wait")) == 1
     result = json.loads(capsys.readouterr().out)
     assert result["job_id"] == ASSET and not result["ok"]
+
+
+@pytest.mark.parametrize("operation", ["upload", "retry"])
+def test_cli_uncertain_auth_recovery_is_owner_scoped(
+    monkeypatch, tmp_path, capsys, operation
+):
+    directory = tmp_path / "videos"
+    directory.mkdir()
+    (directory / "clip.mp4").write_bytes(b"original content")
+    command = ("publish", str(directory)) if operation == "upload" else ("retry", ASSET)
+    owner = USER
+    stage = "lost"
+    posts = []
+
+    def peer(req):
+        if req.url.path.endswith("auth/me"):
+            if stage == "expired-identity":
+                return httpx.Response(401)
+            return httpx.Response(200, json={"id": owner})
+        if req.url.path.endswith("auth/login"):
+            return httpx.Response(200, json={"id": owner, "email": EMAIL, "role": "user"})
+        posts.append(req)
+        if operation == "upload":
+            assert b"original content" in req.content
+        else:
+            assert req.content == b""
+        if stage == "lost":
+            raise httpx.ReadTimeout("lost acknowledgement")
+        if stage == "expired":
+            return httpx.Response(401)
+        return httpx.Response(202, json={"job_id": ASSET})
+
+    def invoke(*commands):
+        code = cli.main(args(tmp_path, *commands))
+        result = json.loads(capsys.readouterr().out)
+        return code, result["files"][0] if operation == "upload" and "files" in result else result
+
+    install_peer(monkeypatch, peer)
+    monkeypatch.setattr(cli.getpass, "getpass", lambda prompt: "fixture-password")
+    code, lost = invoke(*command)
+    assert code == 1
+    journal = tmp_path / "cookies.intents.json"
+    assert list(json.loads(journal.read_text()).values()) == [lost["intent_key"]]
+    stage = "expired"
+    code, expired = invoke(*command)
+    assert code == 1 and expired["intent_key"] == lost["intent_key"]
+    assert list(json.loads(journal.read_text()).values()) == [lost["intent_key"]]
+    stage = "expired-identity"
+    code, expired_identity = invoke(*command)
+    assert code == 1 and "Session expired" in expired_identity["error"]
+    assert len(posts) == 2
+    assert list(json.loads(journal.read_text()).values()) == [lost["intent_key"]]
+
+    # Another owner's confirmed action cannot consume or replay this pending key.
+    stage = "accepted"
+    owner = KEY
+    assert invoke("login", EMAIL)[0] == 0
+    code, other = invoke(*command)
+    assert code == 0 and other["intent_key"] != lost["intent_key"]
+    assert list(json.loads(journal.read_text()).values()) == [lost["intent_key"]]
+    owner = USER
+    assert invoke("login", EMAIL)[0] == 0
+    code, resumed = invoke(*command)
+    assert code == 0 and resumed["job_id"] == ASSET
+    assert resumed["intent_key"] == lost["intent_key"]
+    assert json.loads(journal.read_text()) == {}
+    code, later = invoke(*command)
+    assert code == 0 and later["intent_key"] != lost["intent_key"]
+    assert [req.headers["idempotency-key"] for req in posts] == [
+        lost["intent_key"], lost["intent_key"], other["intent_key"],
+        lost["intent_key"], later["intent_key"],
+    ]
+
+
+def test_completion_save_failure_keeps_accepted_ids_and_key_through_later_batch_writes(
+    monkeypatch, tmp_path, capsys
+):
+    directory = tmp_path / "videos"
+    directory.mkdir()
+    for name in ("a.mp4", "b.txt", "c.mp4"):
+        (directory / name).write_bytes(name.encode())
+    requests = []
+
+    def peer(req):
+        if req.url.path.endswith("auth/me"):
+            return httpx.Response(200, json={"id": USER})
+        requests.append(req)
+        if b'filename="b.txt"' in req.content:
+            return httpx.Response(415)
+        accepted = ASSET if b'filename="a.mp4"' in req.content else KEY
+        return httpx.Response(202, json={"job_id": accepted})
+
+    save = Intents.save
+    failed = False
+
+    def fail_first_completion(self):
+        nonlocal failed
+        if not self.data and not failed:
+            failed = True
+            raise OSError("secret filesystem detail")
+        save(self)
+
+    install_peer(monkeypatch, peer)
+    monkeypatch.setattr(Intents, "save", fail_first_completion)
+    assert cli.main(args(tmp_path, "publish", str(directory))) == 1
+    raw = capsys.readouterr().out
+    result = json.loads(raw)
+    assert result["state_error"] and "secret" not in raw
+    outcomes = result["files"]
+    assert [item["file"] for item in outcomes] == ["a.mp4", "b.txt", "c.mp4"]
+    assert [item["ok"] for item in outcomes] == [False, False, True]
+    assert outcomes[0]["job_id"] == ASSET and outcomes[2]["job_id"] == KEY
+    assert all(UUID(item["intent_key"]) for item in outcomes)
+    journal = tmp_path / "cookies.intents.json"
+    assert list(json.loads(journal.read_text()).values()) == [outcomes[0]["intent_key"]]
+
+    assert cli.main(args(tmp_path, "publish", str(directory))) == 1  # unsupported b remains
+    replay = json.loads(capsys.readouterr().out)["files"]
+    assert len(replay) == 3 and replay[0]["ok"]
+    assert replay[0]["job_id"] == ASSET
+    assert replay[0]["intent_key"] == outcomes[0]["intent_key"]
+    assert replay[2]["intent_key"] != outcomes[2]["intent_key"]
+    assert requests[0].headers["idempotency-key"] == requests[3].headers["idempotency-key"]
+    assert json.loads(journal.read_text()) == {}
+
+
+@pytest.mark.parametrize("mixed", [False, True])
+def test_cookie_save_failure_preserves_all_completed_batch_outcomes(
+    monkeypatch, tmp_path, capsys, mixed
+):
+    directory = tmp_path / "videos"
+    directory.mkdir()
+    for name in ("a.mp4", "b.mp4", "c.mp4"):
+        (directory / name).write_bytes(name.encode())
+    keys = []
+
+    def peer(req):
+        if req.url.path.endswith("auth/me"):
+            return httpx.Response(200, json={"id": USER})
+        keys.append(req.headers["idempotency-key"])
+        if mixed and b'filename="b.mp4"' in req.content:
+            return httpx.Response(415)
+        accepted = ASSET if b'filename="a.mp4"' in req.content else KEY
+        return httpx.Response(202, json={"job_id": accepted})
+
+    def fail_cookie_save(*args, **kwargs):
+        raise OSError("secret cookie path")
+
+    install_peer(monkeypatch, peer)
+    monkeypatch.setattr("publisher.client.MozillaCookieJar.save", fail_cookie_save)
+    assert cli.main(args(tmp_path, "publish", str(directory))) == 1
+    raw = capsys.readouterr().out
+    result = json.loads(raw)
+    assert result["ok"] is False and result["state_error"]
+    assert "secret" not in raw
+    assert [item["file"] for item in result["files"]] == ["a.mp4", "b.mp4", "c.mp4"]
+    assert [item["ok"] for item in result["files"]] == [True, not mixed, True]
+    assert [item["intent_key"] for item in result["files"]] == keys
+    assert result["files"][0]["job_id"] == ASSET
+    assert result["files"][2]["job_id"] == KEY
+    assert json.loads((tmp_path / "cookies.intents.json").read_text()) == {}
+    assert "Client state failed" in cli.human(result)
+
+
+@pytest.mark.parametrize("status", [202, 409])
+def test_retry_completion_state_failure_retains_key_and_safe_outcome(
+    factory, tmp_path, monkeypatch, status
+):
+    client = factory(lambda req: httpx.Response(status, json={"job_id": ASSET}))
+    intents = Intents(tmp_path / "intents", [BASE, USER])
+    save = intents.save
+
+    def fail_completion():
+        if not intents.data:
+            raise OSError("private state detail")
+        save()
+
+    monkeypatch.setattr(intents, "save", fail_completion)
+    outcome = cli.mutation(client, intents, ASSET, lambda key: client.retry(ASSET, key))
+    assert not outcome["ok"] and outcome["state_error"]
+    assert intents.data[ASSET] == outcome["intent_key"]
+    assert Intents(intents.path, [BASE, USER]).data == intents.data
+    if status == 202:
+        assert outcome["job_id"] == ASSET
+    else:
+        assert "conflict" in outcome["error"]
+
+
+def test_failed_reservation_rolls_back_memory_before_later_save(tmp_path, monkeypatch):
+    intents = Intents(tmp_path / "intents", [BASE, USER])
+    retained = intents.reserve("retained")
+    save = intents.save
+    monkeypatch.setattr(intents, "save", lambda: (_ for _ in ()).throw(OSError("fixture")))
+    with pytest.raises(OSError):
+        intents.reserve("not-submitted")
+    assert intents.data == {"retained": retained}
+    monkeypatch.setattr(intents, "save", save)
+    intents.reserve("later")
+    assert set(Intents(intents.path, [BASE, USER]).data) == {"retained", "later"}

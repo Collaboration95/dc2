@@ -2080,3 +2080,279 @@ describe("public intent replay", () => {
     expect(fetchMock.mock.calls[4][1].headers["Idempotency-Key"]).not.toBe(original.headers["Idempotency-Key"]);
   });
 });
+
+describe("client review regressions", () => {
+  async function login(el, id = "u-1") {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id, email: `${id}@example.test`, role: "user" }));
+    el.authEmail.value = `${id}@example.test`;
+    el.authPassword.value = "fixture-password";
+    el.authForm.dispatchEvent(new Event("submit", { cancelable: true }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(el.auth.hidden).toBe(true);
+  }
+
+  async function libraryJob(el, status = "failed") {
+    fetchMock.mockResolvedValueOnce(jsonResponse([{ id: "A", filename: "A.mp4", status }]));
+    el.navLibrary.dispatchEvent(new Event("click"));
+    await vi.advanceTimersByTimeAsync(0);
+  }
+
+  function submitEdit(el) {
+    el.editForm.dispatchEvent(new Event("submit", { cancelable: true }));
+  }
+
+  async function openEdit(el) {
+    await libraryJob(el, "done");
+    el.libraryGrid.querySelector(".card-edit").click();
+    el.editConvert.checked = true;
+    el.editConvert.dispatchEvent(new Event("change"));
+  }
+
+  it.each([202, 401, 503, "lost"])("fences a deferred retry %s against a newer upload and its Delete target", async (status) => {
+    const el = await loadApp();
+    await libraryJob(el);
+    let resolveRetry;
+    let rejectRetry;
+    const delayed = new Promise((resolve, reject) => { resolveRetry = resolve; rejectRetry = reject; });
+    // For 503/lost both bounded attempts remain held until B owns the card.
+    fetchMock.mockReturnValueOnce(delayed).mockReturnValueOnce(delayed);
+    el.libraryGrid.querySelector(".card-retry").click();
+    // Remove the unused second mock: the next request is B's upload.
+    fetchMock.mockReset();
+    fetchMock.mockImplementation(async (url, init) => {
+      if (url === "/api/upload") return jsonResponse({ job_id: "B" });
+      if (url === "/api/jobs/A/retry") return delayed;
+      if (init?.method === "DELETE") return jsonResponse({});
+      return jsonResponse({ id: "B", filename: "B.mp4", status: "processing" });
+    });
+    await uploadFile(el, fileNamed("B.mp4"));
+    expect(el.jobFilename.textContent).toBe("B.mp4");
+    if (status === "lost") rejectRetry(new Error("late loss"));
+    else resolveRetry(jsonResponse({ job_id: "A" }, status === 202, status));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(el.auth.hidden).toBe(true);
+    expect(el.jobFilename.textContent).toBe("B.mp4");
+    expect(el.jobBadge.textContent).toBe("Processing");
+    expect(fetchMock.mock.calls.some(([url]) => url === "/api/jobs/A")).toBe(false);
+    const before = fetchMock.mock.calls.filter(([url]) => url === "/api/jobs/B").length;
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(fetchMock.mock.calls.filter(([url]) => url === "/api/jobs/B")).toHaveLength(before + 1);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    el.jobDelete.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(confirm).toHaveBeenCalledWith('Delete "B.mp4"? This cannot be undone.');
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE").map(([url]) => url)).toEqual(["/api/jobs/B"]);
+  });
+
+  it("does not clear a newer unresolved upload when an old retry reply arrives", async () => {
+    const el = await loadApp();
+    await libraryJob(el);
+    let release;
+    fetchMock.mockReturnValueOnce(new Promise((resolve) => { release = resolve; }));
+    el.libraryGrid.querySelector(".card-retry").click();
+    fetchMock.mockRejectedValue(new Error("B response lost"));
+    const file = fileNamed("B.mp4");
+    await uploadFile(el, file);
+    const original = fetchMock.mock.calls.filter(([url]) => url === "/api/upload")[0][1];
+    release(jsonResponse({ job_id: "A" }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(el.jobFilename.textContent).toBe("B.mp4");
+    expect(el.status.textContent).toContain("B response lost");
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "B" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "B", status: "done" }));
+    el.jobRetry.click();
+    await vi.advanceTimersByTimeAsync(0);
+    const replay = fetchMock.mock.calls.filter(([url]) => url === "/api/upload").at(-1)[1];
+    expect(replay.headers["Idempotency-Key"]).toBe(original.headers["Idempotency-Key"]);
+    expect(replay.body.get("file")).toBe(file);
+  });
+
+  it.each(["upload", "retry", "edit"])("resumes lost %s → 401 → same-owner login with original content/key and later fresh keys", async (operation) => {
+    const el = await loadApp();
+    const file = fileNamed("original.mp4");
+    if (operation === "retry") await libraryJob(el);
+    if (operation === "edit") await openEdit(el);
+    fetchMock.mockRejectedValueOnce(new Error("acknowledgement lost"))
+      .mockResolvedValueOnce(jsonResponse({}, false, 401));
+    if (operation === "upload") await uploadFile(el, file);
+    if (operation === "retry") el.libraryGrid.querySelector(".card-retry").click();
+    if (operation === "edit") submitEdit(el);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(el.auth.hidden).toBe(false);
+    const url = operation === "upload" ? "/api/upload" : `/api/jobs/A/${operation}`;
+    const requests = () => fetchMock.mock.calls.filter(([path]) => path === url);
+    const original = requests()[0][1];
+    expect(requests()).toHaveLength(2);
+    expect(requests()[1][1].headers["Idempotency-Key"]).toBe(original.headers["Idempotency-Key"]);
+    await login(el);
+    if (operation === "edit") await openEdit(el);
+    if (operation !== "edit") expect(el.jobActions.hidden).toBe(false);
+    const accept = () => fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "A" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "A", filename: "original.mp4", status: "failed" }));
+    accept();
+    if (operation === "edit") submitEdit(el);
+    else el.jobRetry.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(requests()).toHaveLength(3);
+    const resumed = requests()[2][1];
+    expect(resumed.headers["Idempotency-Key"]).toBe(original.headers["Idempotency-Key"]);
+    if (operation === "upload") expect(resumed.body.get("file")).toBe(file);
+    else expect(resumed.body).toBe(original.body); // exact immutable edit JSON / bodyless retry
+    accept();
+    if (operation === "upload") await uploadFile(el, file);
+    if (operation === "retry") el.jobRetry.click();
+    if (operation === "edit") submitEdit(el);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(requests()).toHaveLength(4);
+    expect(requests()[3][1].headers["Idempotency-Key"]).not.toBe(original.headers["Idempotency-Key"]);
+    if (operation !== "upload") expect(fetchMock.mock.calls.some(([path]) => path === "/api/upload")).toBe(false);
+  });
+
+  it.each(["upload", "retry", "edit"])("isolates unresolved %s across accounts and preserves it for the original owner", async (operation) => {
+    const el = await loadApp();
+    const file = fileNamed("private-original.mp4");
+    if (operation === "retry") await libraryJob(el);
+    if (operation === "edit") await openEdit(el);
+    fetchMock.mockRejectedValueOnce(new Error("ack lost"))
+      .mockResolvedValueOnce(jsonResponse({}, false, 401));
+    if (operation === "upload") await uploadFile(el, file);
+    if (operation === "retry") el.libraryGrid.querySelector(".card-retry").click();
+    if (operation === "edit") submitEdit(el);
+    await vi.advanceTimersByTimeAsync(0);
+    const url = operation === "upload" ? "/api/upload" : `/api/jobs/A/${operation}`;
+    const requests = () => fetchMock.mock.calls.filter(([path]) => path === url);
+    const original = requests()[0][1];
+    await login(el, "other-owner");
+    expect(el.activeJob.hidden).toBe(true);
+    el.jobRetry.click(); // no hidden original-owner replay
+    await vi.advanceTimersByTimeAsync(0);
+    expect(requests()).toHaveLength(2);
+    if (operation === "retry") await libraryJob(el);
+    if (operation === "edit") await openEdit(el);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "A" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "A", filename: "other.mp4", status: "failed" }));
+    if (operation === "upload") await uploadFile(el, file);
+    if (operation === "retry") el.libraryGrid.querySelector(".card-retry").click();
+    if (operation === "edit") submitEdit(el);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(requests()[2][1].headers["Idempotency-Key"]).not.toBe(original.headers["Idempotency-Key"]);
+    fetchMock.mockResolvedValueOnce(jsonResponse({}));
+    el.logout.click();
+    await vi.advanceTimersByTimeAsync(0);
+    await login(el);
+    if (operation === "edit") await openEdit(el);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "A" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "A", status: "queued" }));
+    if (operation === "edit") submitEdit(el);
+    else el.jobRetry.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(requests()).toHaveLength(4);
+    const resumed = requests()[3][1];
+    expect(resumed.headers["Idempotency-Key"]).toBe(original.headers["Idempotency-Key"]);
+    if (operation === "upload") expect(resumed.body.get("file")).toBe(file);
+    else expect(resumed.body).toBe(original.body);
+  });
+
+  it.each(["upload", "retry", "edit"])("fences an in-flight %s across logout/login and does not replay it under a new session", async (operation) => {
+    const el = await loadApp();
+    if (operation === "retry") await libraryJob(el);
+    if (operation === "edit") await openEdit(el);
+    let reject;
+    fetchMock.mockReturnValueOnce(new Promise((_, fail) => { reject = fail; }));
+    if (operation === "upload") await uploadFile(el);
+    if (operation === "retry") el.libraryGrid.querySelector(".card-retry").click();
+    if (operation === "edit") submitEdit(el);
+    fetchMock.mockResolvedValueOnce(jsonResponse({}));
+    el.logout.click();
+    await vi.advanceTimersByTimeAsync(0);
+    await login(el, "other-owner");
+    const count = fetchMock.mock.calls.length;
+    reject(new Error("old session lost response"));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenCalledTimes(count);
+    expect(el.activeJob.hidden).toBe(true);
+    expect(el.auth.hidden).toBe(true);
+    expect(el.fileInput.disabled).toBe(false);
+  });
+});
+
+describe("replaced mutation controls", () => {
+  it("releases an abandoned upload and ignores its deferred acceptance after a library retry", async () => {
+    const el = await loadApp();
+    let releaseUpload;
+    fetchMock.mockReturnValueOnce(new Promise((resolve) => { releaseUpload = resolve; }));
+    await uploadFile(el, fileNamed("old-upload.mp4"));
+    expect(el.fileInput.disabled).toBe(true);
+    fetchMock.mockResolvedValueOnce(jsonResponse([{ id: "A", filename: "A.mp4", status: "failed" }]));
+    el.navLibrary.click();
+    await vi.advanceTimersByTimeAsync(0);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "A" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "A", status: "processing" }));
+    el.libraryGrid.querySelector(".card-retry").click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(el.fileInput.disabled).toBe(false);
+    releaseUpload(jsonResponse({ job_id: "old-upload" }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(el.jobFilename.textContent).toBe("A.mp4");
+    expect(fetchMock.mock.calls.some(([url]) => url === "/api/jobs/old-upload")).toBe(false);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "new-upload" }))
+      .mockResolvedValueOnce(jsonResponse({ status: "done" }));
+    await uploadFile(el, fileNamed("new-upload.mp4"));
+    expect(el.jobFilename.textContent).toBe("new-upload.mp4");
+    expect(el.fileInput.disabled).toBe(false);
+  });
+
+  it("does not release a newer retry's controls when the replaced retry finishes", async () => {
+    const el = await loadApp();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "A" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "A", filename: "A.mp4", status: "failed" }));
+    await uploadFile(el, fileNamed("A.mp4"));
+    let releaseA;
+    fetchMock.mockReturnValueOnce(new Promise((resolve) => { releaseA = resolve; }));
+    el.jobRetry.click();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "B" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "B", filename: "B.mp4", status: "failed" }));
+    await uploadFile(el, fileNamed("B.mp4"));
+    let releaseB;
+    fetchMock.mockReturnValueOnce(new Promise((resolve) => { releaseB = resolve; }));
+    el.jobRetry.click();
+    expect(el.jobRetry.disabled).toBe(true);
+    releaseA(jsonResponse({ job_id: "A" }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(el.jobFilename.textContent).toBe("B.mp4");
+    expect(el.jobRetry.disabled).toBe(true);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "B", status: "processing" }));
+    releaseB(jsonResponse({ job_id: "B" }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(el.jobRetry.disabled).toBe(false);
+    expect(el.jobBadge.textContent).toBe("Processing");
+  });
+
+  it("keeps a newer editor usable and ignores the replaced edit's deferred acknowledgement", async () => {
+    const el = await loadApp();
+    const open = async (id) => {
+      fetchMock.mockResolvedValueOnce(jsonResponse([{ id, filename: `${id}.mp4`, status: "done" }]));
+      el.navLibrary.click();
+      await vi.advanceTimersByTimeAsync(0);
+      el.libraryGrid.querySelector(".card-edit").click();
+      el.editConvert.checked = true;
+      el.editConvert.dispatchEvent(new Event("change"));
+    };
+    await open("A");
+    let releaseA;
+    fetchMock.mockReturnValueOnce(new Promise((resolve) => { releaseA = resolve; }));
+    el.editForm.dispatchEvent(new Event("submit", { cancelable: true }));
+    await open("B");
+    fetchMock.mockResolvedValueOnce(jsonResponse({ job_id: "derived-B" }))
+      .mockResolvedValueOnce(jsonResponse({ status: "failed" }));
+    el.editForm.dispatchEvent(new Event("submit", { cancelable: true }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock.mock.calls.some(([url]) => url === "/api/jobs/B/edit")).toBe(true);
+    releaseA(jsonResponse({ job_id: "derived-A" }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(el.editSource.textContent).toBe("B.mp4");
+    expect(el.editStatus.textContent).toContain("The edit failed");
+    expect(fetchMock.mock.calls.some(([url]) => url === "/api/jobs/derived-A")).toBe(false);
+    expect(el.editProcess.disabled).toBe(false);
+  });
+});
