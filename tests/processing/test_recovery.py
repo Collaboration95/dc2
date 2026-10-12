@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
@@ -7,7 +8,7 @@ from _processing_doubles import NOW, Rows, Session, pair
 
 from processing import lifecycle, recovery
 from processing.config import Settings
-from processing.models import CleanupIntent
+from processing.models import Attempt, CleanupIntent
 
 
 def cfg():
@@ -63,7 +64,7 @@ async def test_cleanup_only_terminal_prefix_repeats_and_protects_winner(monkeypa
     session = Session()
     session.execute.return_value = Rows([(job.id, attempt.id)])
     session.scalar.return_value = job
-    session.get.side_effect = lambda cls, _: intent if cls is CleanupIntent else attempt
+    session.get.side_effect = lambda cls, _, **kw: intent if cls is CleanupIntent else attempt
     monkeypatch.setattr(recovery, "db_now", AsyncMock(return_value=NOW))
     store = SimpleNamespace(delete_prefix=AsyncMock())
     assert await recovery.cleanup_outputs(lambda: session, cfg(), store=store) == 1
@@ -78,8 +79,87 @@ async def test_cleanup_only_terminal_prefix_repeats_and_protects_winner(monkeypa
     store.delete_prefix.side_effect = OSError("sensitive")
     assert await recovery.cleanup_outputs(lambda: session, cfg(), store=store) == 0
     assert intent.last_error == "Output cleanup unavailable"
-    session.get.side_effect = lambda cls, _: None if cls is CleanupIntent else attempt
+    session.get.side_effect = lambda cls, _, **kw: None if cls is CleanupIntent else attempt
     assert await recovery.cleanup_outputs(lambda: session, cfg(), store=store) == 0
+
+
+@pytest.mark.parametrize("state", ["queued", "processing", "succeeded"])
+async def test_cleanup_protects_live_and_succeeded_attempts(monkeypatch, state):
+    job, attempt, _, _ = pair("processing")
+    # A noncurrent prefix still needs terminal-state validation. Even a corrupt
+    # tombstone cannot make a live attempt eligible for deletion.
+    job.current_attempt_id = None
+    job.deleted_at = None if state == "succeeded" else NOW
+    attempt.state = state
+    intent = CleanupIntent(job_id=job.id, attempt_id=attempt.id, next_try_at=NOW, tries=0)
+    session = Session()
+    session.execute.return_value = Rows([(job.id, attempt.id)])
+    session.scalar.return_value = job
+    session.get.side_effect = lambda cls, _, **kw: intent if cls is CleanupIntent else attempt
+    monkeypatch.setattr(recovery, "db_now", AsyncMock(return_value=NOW))
+    store = SimpleNamespace(delete_prefix=AsyncMock())
+    assert await recovery.cleanup_outputs(lambda: session, cfg(), store=store) == 0
+    store.delete_prefix.assert_not_awaited()
+    assert intent.tries == 0
+
+
+@pytest.mark.parametrize("missing", ["job", "attempt", "intent", "attempt_owner", "intent_owner"])
+async def test_cleanup_requires_matching_persisted_identity(monkeypatch, missing):
+    job, attempt, _, _ = pair("failed")
+    intent = CleanupIntent(job_id=job.id, attempt_id=attempt.id, next_try_at=NOW, tries=0)
+    session = Session()
+    session.execute.return_value = Rows([(job.id, attempt.id)])
+    session.scalar.return_value = None if missing == "job" else job
+    if missing == "attempt_owner":
+        attempt.job_id = None
+    if missing == "intent_owner":
+        intent.job_id = None
+    session.get.side_effect = lambda cls, _, **kw: (
+        None
+        if (cls is Attempt and missing == "attempt")
+        or (cls is CleanupIntent and missing == "intent")
+        else intent
+        if cls is CleanupIntent
+        else attempt
+    )
+    monkeypatch.setattr(recovery, "db_now", AsyncMock(return_value=NOW))
+    store = SimpleNamespace(delete_prefix=AsyncMock())
+    assert await recovery.cleanup_outputs(lambda: session, cfg(), store=store) == 0
+    store.delete_prefix.assert_not_awaited()
+    assert intent.tries == 0
+
+
+async def test_cleanup_io_has_no_session_and_cancellation_retains_scan(monkeypatch):
+    import asyncio
+
+    job, attempt, _, _ = pair("failed")
+    intent = CleanupIntent(job_id=job.id, attempt_id=attempt.id, next_try_at=NOW, tries=0)
+    session = Session()
+    session.execute.return_value = Rows([(job.id, attempt.id)])
+    session.scalar.return_value = job
+    session.get.side_effect = lambda cls, _, **kw: intent if cls is CleanupIntent else attempt
+    monkeypatch.setattr(recovery, "db_now", AsyncMock(return_value=NOW))
+    open_sessions = 0
+
+    @asynccontextmanager
+    async def factory():
+        nonlocal open_sessions
+        open_sessions += 1
+        try:
+            yield session
+        finally:
+            open_sessions -= 1
+
+    async def delete_prefix(prefix):
+        assert open_sessions == 0
+        assert intent.tries == 1 and intent.next_try_at > NOW
+        raise asyncio.CancelledError
+
+    with pytest.raises(asyncio.CancelledError):
+        await recovery.cleanup_outputs(
+            factory, cfg(), store=SimpleNamespace(delete_prefix=delete_prefix)
+        )
+    assert intent.next_try_at == NOW + timedelta(seconds=60)
 
 
 async def test_cleanup_store_list_delete_only(monkeypatch):

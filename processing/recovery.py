@@ -145,29 +145,58 @@ async def cleanup_outputs(factory, settings, *, store=None, limit=100):
     target = store or CleanupStore(settings)
     for job_id, attempt_id in ids:
         async with factory() as session, session.begin():
-            # Lock order matches worker/retry/cancel. Never delete active or
-            # winning outputs, even if an erroneous intent has been introduced.
+            # Lock order matches worker/retry/cancel. Terminal attempts are never
+            # reactivated: retries reserve a new UUID; deletion is irreversible.
             job = await session.scalar(select(Job).where(Job.id == job_id).with_for_update())
-            intent = await session.get(CleanupIntent, attempt_id)
             attempt = await session.get(Attempt, attempt_id)
+            intent = await session.get(CleanupIntent, attempt_id, with_for_update=True)
             now = await db_now(session)
-            if intent is None or intent.next_try_at > now:
+            if (
+                job is None
+                or attempt is None
+                or attempt.job_id != job_id
+                or intent is None
+                or intent.job_id != job_id
+                or intent.next_try_at > now
+            ):
                 continue
-            if job.deleted_at is None and (
-                attempt.state in {"queued", "processing"}
-                or (job.current_attempt_id == attempt_id and job.status == "done")
+            if attempt.state not in {"failed", "abandoned", "cancelled", "succeeded"} or (
+                job.deleted_at is None
+                and (
+                    attempt.state == "succeeded"
+                    or (job.current_attempt_id == attempt_id and job.status == "done")
+                )
             ):
                 intent.next_try_at = now + timedelta(seconds=60)
                 continue
             intent.tries += 1
-            try:
-                await target.delete_prefix(output_prefix(job_id, attempt_id))
-                intent.last_error = None
-                cleaned += 1
-            except Exception:
-                intent.last_error = "Output cleanup unavailable"
-            # Intents are never removed after an empty scan: late uploads may arrive.
+            # Reserve this scan durably before releasing every Job/Attempt lock.
+            # A crash/cancellation still leaves an intent due for another scan.
             intent.next_try_at = now + timedelta(seconds=60)
+            scan_try, scan_due = intent.tries, intent.next_try_at
+
+        # No SQL session or transaction spans object listing/deletion. A healthy
+        # current retry must be free to heartbeat and publish throughout this I/O.
+        error = None
+        try:
+            await target.delete_prefix(output_prefix(job_id, attempt_id))
+            cleaned += 1
+        except Exception:
+            error = "Output cleanup unavailable"
+
+        async with factory() as session, session.begin():
+            intent = await session.get(CleanupIntent, attempt_id, with_for_update=True)
+            if (
+                intent is not None
+                and intent.job_id == job_id
+                and intent.tries == scan_try
+                and intent.next_try_at == scan_due
+            ):
+                # Fence late scan results against a newer reservation/reschedule.
+                # Never change Job/Attempt state with the released authority.
+                intent.last_error = error
+                # Retain even empty/successful scans to catch later uploads.
+                intent.next_try_at = await db_now(session) + timedelta(seconds=60)
     return cleaned
 
 
