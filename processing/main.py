@@ -14,6 +14,7 @@ from processing import lifecycle, service
 from processing.auth import get_owner_id
 from processing.database import get_session
 from processing.errors import ProcessingError
+from processing.queue import publish
 from processing.schemas import ProcessingJob, RetryJob, SubmitJob
 
 Owner = Annotated[UUID, Depends(get_owner_id)]
@@ -43,11 +44,8 @@ async def lifespan(application: FastAPI):
 def create_app() -> FastAPI:
     application = FastAPI(
         title="FlickPond Processing private API",
-        version="1.0.0-intake",
-        description=(
-            "Intake only. Jobs and initial queued attempts are durable. "
-            "Worker dispatch and reconciliation are not yet connected."
-        ),
+        version="1.0.0",
+        description="Durable attempt-aware Processing with worker delivery and recovery.",
         lifespan=lifespan,
     )
 
@@ -65,7 +63,7 @@ def create_app() -> FastAPI:
     @application.get("/health")
     async def health(session: Session):
         await session.execute(text("SELECT 1"))
-        return {"status": "ok", "stage": "intake-only", "worker_dispatch_connected": False}
+        return {"status": "ok", "stage": "attempt-aware", "worker_dispatch_connected": True}
 
     @application.post(
         "/internal/v1/jobs",
@@ -76,6 +74,7 @@ def create_app() -> FastAPI:
     )
     async def submit(request: SubmitJob, response: Response, owner_id: Owner, session: Session):
         job, created = await service.submit_job(session, owner_id, request)
+        await publish(job)
         response.status_code = 201 if created else 200
         return job
 
@@ -126,7 +125,9 @@ def create_app() -> FastAPI:
         operation_id="retryJob",
     )
     async def retry(job_id: UUID, request: RetryJob, owner_id: Owner, session: Session):
-        return await lifecycle.retry_job(session, owner_id, job_id, request.retry_request_id)
+        job = await lifecycle.retry_job(session, owner_id, job_id, request.retry_request_id)
+        await publish(job)
+        return job
 
     @application.delete(
         "/internal/v1/assets/{asset_id}/job", status_code=204, operation_id="cancelAssetJob"

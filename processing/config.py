@@ -32,6 +32,29 @@ class Settings(BaseSettings):
     ffmpeg_preset: str = "veryfast"
     ffmpeg_crf: int = Field(default=23, ge=0, le=51)
 
+    def require_worker(self):
+        if not all(
+            (
+                self.redis_url.get_secret_value(),
+                self.source_service_token.get_secret_value(),
+                self.minio_access_key.get_secret_value(),
+                self.minio_secret_key.get_secret_value(),
+            )
+        ):
+            raise ValueError(
+                "Worker requires Redis, source access token and output writer credentials"
+            )
+
+    def require_recovery(self):
+        if not all(
+            (
+                self.redis_url.get_secret_value(),
+                self.minio_access_key.get_secret_value(),
+                self.minio_secret_key.get_secret_value(),
+            )
+        ):
+            raise ValueError("Recovery requires Redis and output cleanup credentials")
+
     @model_validator(mode="after")
     def heartbeat_within_lease(self):
         if self.heartbeat_seconds >= self.lease_seconds / 2:

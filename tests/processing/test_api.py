@@ -116,8 +116,8 @@ async def test_health_probes_db_and_does_not_expose_driver_errors(application, f
     assert str(session.execute.call_args.args[0]) == "SELECT 1"
     if failure is None:
         assert response.status_code == 200
-        assert response.json()["worker_dispatch_connected"] is False
-        assert response.json()["stage"] == "intake-only"
+        assert response.json()["worker_dispatch_connected"] is True
+        assert response.json()["stage"] == "attempt-aware"
     else:
         assert response.status_code == 503
         assert response.json() == {"error": "Processing database unavailable"}
