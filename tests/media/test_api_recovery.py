@@ -108,9 +108,13 @@ async def test_auth_routes_use_async_hash_and_current_cookie(
 ):
     session.scalar.return_value = user
     monkeypatch.setattr(auth, "hash_password", lambda password: "hashed")
-    monkeypatch.setattr(
-        auth, "verify_password", lambda password, hashed: password == "strong-password"
-    )
+    verified_hashes = []
+
+    def verify(password, hashed):
+        verified_hashes.append(hashed)
+        return password == "strong-password"
+
+    monkeypatch.setattr(auth, "verify_password", verify)
     from sqlalchemy.exc import IntegrityError
 
     async def flush():
@@ -134,6 +138,7 @@ async def test_auth_routes_use_async_hash_and_current_cookie(
         ).status_code == 401
         session.scalar.return_value = None
         assert (await client.post("/auth/login", json=body)).status_code == 401
+        assert verified_hashes == [user.password_hash, user.password_hash, auth.DUMMY_HASH]
         assert (await client.get("/auth/me")).json()["id"] == str(user.id)
         assert (await client.post("/auth/logout")).status_code == 204
 

@@ -29,7 +29,7 @@ x-media-env: &media-env
 
 services:
   postgres:
-    cpus: 0.25
+    cpus: 0.125
     mem_limit: 512m
     image: postgres:16
     environment:
@@ -61,7 +61,7 @@ services:
 
   media:
     <<: *media
-    cpus: 0.5
+    cpus: 1.0
     mem_limit: 384m
     environment: *media-env
     networks: [media-data, interservice, object-data, edge]
@@ -77,7 +77,7 @@ services:
   media-recovery:
     <<: *media
     command: [python, -m, media.recovery]
-    cpus: 0.125
+    cpus: 0.0625
     mem_limit: 192m
     environment: *media-env
     networks: [media-data, interservice, object-data]
@@ -140,7 +140,7 @@ services:
   processing-recovery:
     <<: *processing
     command: [python, -m, processing.recovery]
-    cpus: 0.125
+    cpus: 0.0625
     mem_limit: 192m
     environment:
       PROCESSING_POSTGRES_DSN: ${PROCESSING_POSTGRES_DSN:?}
@@ -158,7 +158,7 @@ services:
       storage-bootstrap: {condition: service_completed_successfully}
 
   redis:
-    cpus: 0.125
+    cpus: 0.0625
     mem_limit: 128m
     image: redis:7-alpine
     environment:
@@ -173,7 +173,7 @@ services:
       retries: 30
 
   minio:
-    cpus: 0.25
+    cpus: 0.125
     mem_limit: 512m
     image: ${DC2_MINIO_IMAGE:?}
     build:
@@ -220,7 +220,7 @@ services:
       minio: {condition: service_healthy}
 
   nginx:
-    cpus: 0.125
+    cpus: 0.0625
     mem_limit: 128m
     image: nginx:1.28-alpine
     environment:

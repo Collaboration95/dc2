@@ -4,6 +4,7 @@ from datetime import timedelta
 from pathlib import Path
 from uuid import uuid4
 
+import bcrypt
 import httpx
 import jwt
 import pytest
@@ -15,7 +16,14 @@ from media.schemas.edit import EditRequest
 from media.schemas.public import Credentials
 from media.services.media_type import sniff_video_type
 from media.services.processing_client import ProcessingClient
-from media.services.security import hash_password, issue_token, read_token, verify_password
+from media.services.security import (
+    BCRYPT_ROUNDS,
+    DUMMY_HASH,
+    hash_password,
+    issue_token,
+    read_token,
+    verify_password,
+)
 
 
 @pytest.mark.parametrize(
@@ -101,6 +109,21 @@ def test_cookie_token_tampering_expiry_and_password_byte_limit(settings):
     with pytest.raises(ValueError):
         hash_password("é" * 40)
     assert not verify_password("password", "invalid-hash")
+
+
+def test_new_password_hash_and_dummy_use_demo_cost():
+    hashed = hash_password("a-real-test-password")
+    assert BCRYPT_ROUNDS == 10
+    assert hashed.split("$")[2] == DUMMY_HASH.split("$")[2] == "10"
+    assert verify_password("a-real-test-password", hashed)
+    assert not verify_password("wrong-password", hashed)
+    assert not verify_password("a-real-test-password", DUMMY_HASH)
+
+
+def test_existing_cost_12_password_hash_remains_verifiable():
+    hashed = bcrypt.hashpw(b"existing-password", bcrypt.gensalt(rounds=12)).decode()
+    assert verify_password("existing-password", hashed)
+    assert not verify_password("wrong-password", hashed)
 
 
 async def test_password_hashing_can_run_without_blocking_event_loop():

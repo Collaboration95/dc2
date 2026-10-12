@@ -9,14 +9,17 @@ import jwt
 from media.config import Settings
 
 COOKIE_NAME = "access_token"
-# A valid cost-12 dummy hash prevents unknown-user login from skipping bcrypt work.
-DUMMY_HASH = "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxM.yzBAbZs7H/.N5/uFs2FkW8K"
+# Basic-demo default: cost 10 keeps concurrent logins within the fixed CPU budget.
+# Verification reads the stored hash's cost, so existing cost-12 hashes still work.
+BCRYPT_ROUNDS = 10
+# A valid cost-10 dummy hash prevents unknown-user login from skipping bcrypt work.
+DUMMY_HASH = "$2b$10$avRD5TtAvLSyS1P9KKnb9.dtMBdMTRPlycnU669NZRAyo6IBU/NH."
 
 
 def hash_password(password: str) -> str:
     if len(password.encode()) > 72:
         raise ValueError("password must be at most 72 bytes")
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=BCRYPT_ROUNDS)).decode()
 
 
 def verify_password(password: str, password_hash: str) -> bool:
