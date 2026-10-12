@@ -53,6 +53,8 @@ TRIVY_ARCHIVE_SHA256 = "4a77108cccf8e55c8d6823e1e759939a622277e66cd0daa3c1fc621e
 RELEASE_SECONDS = 600
 ROLLBACK_SECONDS = 300
 DRAIN_SECONDS = 300
+INJECTION = "uvicorn-startup-exit42"
+INJECTION_MARKER = "dc2.release.injection=" + INJECTION
 
 
 class ReleaseError(Exception):
@@ -131,7 +133,13 @@ def terminal_attempt(row):
     if row["state"] == "succeeded":
         return row["job_status"] == "done"
     if row["state"] in ("failed", "abandoned"):
-        return row["job_status"] == "failed" and row["has_error"]
+        if not row["attempt_error"] or not row["current_attempt_id"]:
+            return False
+        # A supported retry creates a new Attempt and clears the Job error.
+        # The old Attempt's durable failure remains valid after that retry.
+        return row["current_attempt_id"] != row["id"] or (
+            row["job_status"] == "failed" and row["has_error"]
+        )
     return row["state"] == "cancelled" and row["deleted"]
 
 
@@ -230,7 +238,7 @@ class Runner:
             )
             self.save()
 
-    def command(self, args, *, input=None, cap=None):
+    def command(self, args, *, input=None, cap=None, merge_stderr=False):
         """Capture child output in memory; no raw output/credentials in the journal."""
         timeout = self.remaining(cap)
         record = {"argv": args, "started_at": utcnow(), "status": "running"}
@@ -243,7 +251,7 @@ class Runner:
                 env=runtime.subprocess_env(),
                 stdin=subprocess.PIPE if input is not None else subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT if merge_stderr else subprocess.PIPE,
                 text=True,
                 start_new_session=True,
             )
@@ -257,6 +265,7 @@ class Runner:
                 process.communicate(timeout=2)
                 record["timed_out"] = True
                 raise ReleaseError(f"{Path(args[0]).name} exceeded its command deadline") from None
+            stderr = stderr or ""
             record.update(
                 exit_code=process.returncode,
                 stdout_sha256=hashlib.sha256(stdout.encode()).hexdigest(),
@@ -404,6 +413,7 @@ asyncio.run(main())
             "processing",
             """SELECT a.id::text AS id,
             a.state, a.finished_at IS NOT NULL AS finished, j.status AS job_status,
+            a.error AS attempt_error, j.current_attempt_id::text AS current_attempt_id,
             j.error IS NOT NULL AND j.error <> '' AS has_error,
             j.deleted_at IS NOT NULL AS deleted FROM attempts a JOIN jobs j ON j.id=a.job_id
             WHERE a.state='processing' ORDER BY a.id""",
@@ -414,6 +424,7 @@ asyncio.run(main())
             "processing",
             """SELECT a.id::text AS id,
             a.state, a.finished_at IS NOT NULL AS finished, j.status AS job_status,
+            a.error AS attempt_error, j.current_attempt_id::text AS current_attempt_id,
             j.error IS NOT NULL AND j.error <> '' AS has_error,
             j.deleted_at IS NOT NULL AS deleted FROM attempts a JOIN jobs j ON j.id=a.job_id
             WHERE a.id::text=ANY($1::text[]) ORDER BY a.id""",
@@ -549,13 +560,29 @@ asyncio.run(main())
         ]
         if bad_from:
             require_image(bad_from)
+            if self.image_info(bad_from)["image_id"] != bad_from:
+                raise ReleaseError("retained build parent ID changed")
+            # BuildKit resolves named local references, not FROM sha256:<ID>.
+            # This operation owns a unique tag; check its binding around build.
+            base_tag = tag + "-parent"
+            self.command(["docker", "image", "tag", bad_from, base_tag])
+            if self.image_info(base_tag)["image_id"] != bad_from:
+                raise ReleaseError("local build parent tag does not bind retained ID")
+            self.operation["build_parent"] = {
+                "tag": base_tag,
+                "image_id": bad_from,
+                "verified_before_at": utcnow(),
+            }
+            self.save()
             # Intentional synthetic startup failure; offline imports still work.
             # Actual image bytes differ, are resolved/scanned/tested independently.
             injection = (
-                "import sys\nif sys.argv[0].endswith('uvicorn'):\n    raise SystemExit(42)\n"
+                "import sys\nif sys.argv[0].endswith('uvicorn'):\n"
+                f"    print({INJECTION_MARKER!r}, file=sys.stderr, flush=True)\n"
+                "    raise SystemExit(42)\n"
             )
             dockerfile = (
-                f"FROM {bad_from}\nUSER root\nRUN "
+                f"FROM {base_tag}\nUSER root\nRUN "
                 + json.dumps(
                     [
                         "python",
@@ -566,8 +593,20 @@ asyncio.run(main())
                 )
                 + "\nUSER 10001\n"
             )
-            args += ["--label", "dc2.release.injection=uvicorn-startup-exit42", "-f", "-", "."]
+            args += [
+                "--pull=false",
+                "--network",
+                "none",
+                "--label",
+                INJECTION_MARKER,
+                "-f",
+                "-",
+                ".",
+            ]
             self.command(args, input=dockerfile)
+            if self.image_info(base_tag)["image_id"] != bad_from:
+                raise ReleaseError("local build parent tag changed during build")
+            self.operation["build_parent"]["verified_after_at"] = utcnow()
         else:
             args += ["-f", "deploy/processing.Dockerfile", "."]
             self.command(args)
@@ -638,32 +677,52 @@ asyncio.run(main())
 
     def apply(self, image, workers, *, migrate):
         if migrate:
+            self.step(
+                "candidate-migration",
+                lambda: self.compose(
+                    "run",
+                    "--rm",
+                    "--no-deps",
+                    "--pull",
+                    "never",
+                    "processing-migrate",
+                    image=image,
+                    cap=90,
+                ),
+            )
+
+        def startup():
             self.compose(
-                "run",
-                "--rm",
+                "up",
+                "-d",
                 "--no-deps",
+                "--no-build",
                 "--pull",
                 "never",
-                "processing-migrate",
+                "--wait",
+                "--wait-timeout",
+                "90",
+                "--scale",
+                f"worker={workers}",
+                *SERVICES,
                 image=image,
-                cap=90,
+                cap=100,
             )
-        self.compose(
-            "up",
-            "-d",
-            "--no-deps",
-            "--no-build",
-            "--pull",
-            "never",
-            "--wait",
-            "--wait-timeout",
-            "90",
-            "--scale",
-            f"worker={workers}",
-            *SERVICES,
-            image=image,
-            cap=100,
-        )
+
+        if migrate:
+            try:
+                self.step("candidate-startup", startup)
+            except Exception:
+                # Read the failed API before restoration can replace it. Missing
+                # evidence never prevents recovery, but cannot pass an experiment.
+                try:
+                    self.operation["candidate_failure"] = self.failed_candidate(image)
+                except Exception as exc:
+                    self.operation["candidate_failure_capture_error"] = type(exc).__name__
+                self.save()
+                raise
+        else:
+            startup()
         counts = {service: self.containers(service) for service in SERVICES}
         if len(counts["worker"]) != workers:
             raise ReleaseError("worker replica count was not restored")
@@ -671,6 +730,39 @@ asyncio.run(main())
             raise ReleaseError("API, worker and recovery are not running the exact image")
         self.operation["processing_containers"] = counts
         self.save()
+
+    def failed_candidate(self, image):
+        ids = self.compose("ps", "--all", "-q", "processing", cap=10).split()
+        records = []
+        if ids:
+            for container in json.loads(self.command(["docker", "inspect", *ids], cap=10)):
+                state = container["State"]
+                record = {
+                    "container_id": container["Id"],
+                    "image_id": require_image(container["Image"]),
+                    "injection": (container["Config"].get("Labels") or {}).get(
+                        "dc2.release.injection"
+                    ),
+                    "status": state["Status"],
+                    "exit_code": state["ExitCode"],
+                    "oom_killed": state.get("OOMKilled", False),
+                    "has_runtime_error": bool(state.get("Error")),
+                    "started_at": state["StartedAt"],
+                    "finished_at": state["FinishedAt"],
+                    "injection_marker_seen": False,
+                }
+                if record["image_id"] == image and record["status"] == "exited":
+                    # Docker logs uses stderr as well; merge it inside the child
+                    # without retaining arbitrary runtime output in the journal.
+                    logs = self.command(
+                        ["docker", "logs", "--tail", "40", container["Id"]],
+                        cap=10,
+                        merge_stderr=True,
+                    )
+                    record["injection_marker_seen"] = INJECTION_MARKER in logs.splitlines()
+                    record["logs_sha256"] = hashlib.sha256(logs.encode()).hexdigest()
+                records.append(record)
+        return {"captured_at": utcnow(), "image_id": image, "containers": records}
 
     def restore(self, pending, *, recovery_budget=True, drain_workers=True):
         # Reserve recovery time before inspecting the retained image: a timed
@@ -735,6 +827,8 @@ asyncio.run(main())
             if len(images) != 1:
                 raise ReleaseError("baseline API/worker/recovery must share one immutable image")
             prior = images.pop()
+            if bad_from and bad_from != prior:
+                raise ReleaseError("injected build must derive from the tested running image")
             workers = len(containers["worker"])
             self.operation.update(
                 media_before=media,
@@ -748,6 +842,7 @@ asyncio.run(main())
             require_image(image)
             self.operation["candidate_image"] = image
             proof = self.proof(image, source, allow_injected=bool(bad_from))
+            self.operation["candidate_proof"] = proof
             self.step("migration-policy", lambda: self.migration_check(previous, source, additive))
             if self.source() != source:
                 raise ReleaseError("source changed before deployment")
@@ -772,6 +867,7 @@ asyncio.run(main())
             self.finish("promoted")
             return 0
         except Exception as exc:
+            self.operation["promotion_deadline_exceeded"] = time.monotonic() >= self.deadline
             self.operation["failure"] = (
                 str(exc) if isinstance(exc, ReleaseError) else type(exc).__name__
             )
@@ -840,10 +936,20 @@ asyncio.run(main())
             result == 2
             and bad["status"] == "failed_rolled_back"
             and self.journal["current"] == good_image
+            and self.journal["pending"] is None
+            and bad.get("candidate_image") != good_image
+            and bad.get("candidate_proof", {}).get("injection") == INJECTION
+            and bad.get("build", {}).get("derived_from") == good_image
+            and not bad.get("promotion_deadline_exceeded", True)
             and any(
-                step["name"] == "candidate-apply" and step["status"] == "failed"
+                step["name"] == "candidate-migration" and step["status"] == "passed"
                 for step in bad["steps"]
             )
+            and any(
+                step["name"] == "candidate-startup" and step["status"] == "failed"
+                for step in bad["steps"]
+            )
+            and injected_failure(bad.get("candidate_failure", {}), bad.get("candidate_image"))
         )
         evidence = {
             "scope": "local",
@@ -854,9 +960,35 @@ asyncio.run(main())
             "bad_operation": bad["id"],
             "restored_image": self.journal["current"],
             "bad_release_exit": result,
+            "candidate_failure": bad.get("candidate_failure"),
         }
         atomic_json(self.directory / ("experiment-" + good["id"] + ".json"), evidence)
         return 0 if passed else 1
+
+
+def injected_failure(failure, image):
+    """Require an exact deployed API, its declared fault marker and startup exit."""
+    containers = failure.get("containers", [])
+    return (
+        bool(image)
+        and failure.get("image_id") == image
+        and len(containers) == 1
+        and all(
+            row.get("container_id")
+            and row.get("image_id") == image
+            and row.get("injection") == INJECTION
+            and row.get("status") == "exited"
+            and row.get("exit_code") == 42
+            and not row.get("oom_killed", True)
+            and not row.get("has_runtime_error", True)
+            and row.get("injection_marker_seen")
+            and row.get("started_at")
+            and not row["started_at"].startswith("0001-")
+            and row.get("finished_at")
+            and not row["finished_at"].startswith("0001-")
+            for row in containers
+        )
+    )
 
 
 def require_tested(proof, image):

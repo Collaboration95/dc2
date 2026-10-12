@@ -87,7 +87,13 @@ def arrange(runner, monkeypatch, *, failed_image=None, failed_smoke=False):
 
     monkeypatch.setattr(runner, "containers", containers)
     monkeypatch.setattr(
-        runner, "image_info", lambda image: {"image_id": image, **SOURCE, "injection": None}
+        runner,
+        "image_info",
+        lambda image: {
+            "image_id": image,
+            **SOURCE,
+            "injection": "uvicorn-startup-exit42" if image == BAD else None,
+        },
     )
 
     def tests(source):
@@ -319,7 +325,7 @@ def test_media_change_cannot_be_reported_as_successful_rollback(runner, monkeypa
 
 
 def test_evidence_distinguishes_expected_failure_from_release_success(runner, monkeypatch):
-    arrange(runner, monkeypatch, failed_image=BAD)
+    arrange_candidate_startup(runner, monkeypatch)
     assert runner.evidence() == 0
     evidence = json.loads(next(runner.directory.glob("experiment-*.json")).read_text())
     assert evidence["bad_release_exit"] == 2
@@ -391,16 +397,25 @@ def test_drain_observes_last_claim_and_visible_failure_with_grace60(runner, monk
         "finished": False,
         "job_status": "processing",
         "has_error": False,
+        "attempt_error": None,
+        "current_attempt_id": "one",
         "deleted": False,
     }
-    last = {**initial, "id": "two"}
+    last = {**initial, "id": "two", "current_attempt_id": "two"}
     active = iter([[initial], [last]])
     monkeypatch.setattr(runner, "active_attempts", lambda: next(active))
     seen = []
     calls = []
     monkeypatch.setattr(runner, "compose", lambda *a, **kw: calls.append((a, kw)))
     terminal = [
-        {**row, "state": "failed", "finished": True, "job_status": "failed", "has_error": True}
+        {
+            **row,
+            "state": "failed",
+            "finished": True,
+            "job_status": "failed",
+            "has_error": True,
+            "attempt_error": "worker interrupted",
+        }
         for row in (initial, last)
     ]
 
@@ -426,6 +441,8 @@ def test_drain_cannot_hide_interruption_as_requeued(runner, monkeypatch):
         "finished": True,
         "job_status": "queued",
         "has_error": True,
+        "attempt_error": "worker interrupted",
+        "current_attempt_id": "one",
         "deleted": False,
     }
     monkeypatch.setattr(runner, "active_attempts", lambda: [row])
@@ -551,16 +568,31 @@ def test_bad_artifact_uses_retained_id_and_preserves_python_future_imports(runne
     runner.begin("test", 600)
     calls = []
     monkeypatch.setattr(runner, "command", lambda *a, **kw: calls.append((a, kw)) or "")
-    monkeypatch.setattr(runner, "image_info", lambda image: {"image_id": BAD, **SOURCE})
+    monkeypatch.setattr(
+        runner,
+        "image_info",
+        lambda image: {
+            "image_id": GOOD if image == GOOD or image.endswith("-parent") else BAD,
+            **SOURCE,
+        },
+    )
     assert runner.build(SOURCE, bad_from=GOOD) == BAD
-    dockerfile = calls[0][1]["input"]
-    assert dockerfile.startswith("FROM " + GOOD + "\n")
+    build_call = next(call for call in calls if call[0][0][1] == "build")
+    dockerfile = build_call[1]["input"]
+    base_tag = runner.operation["build_parent"]["tag"]
+    assert calls[0][0][0] == ["docker", "image", "tag", GOOD, base_tag]
+    assert dockerfile.startswith("FROM " + base_tag + "\n")
+    assert GOOD not in dockerfile
+    assert runner.operation["build_parent"]["image_id"] == GOOD
+    assert runner.operation["build_parent"]["verified_after_at"]
+    assert runner.operation["build"]["derived_from"] == GOOD
+    assert "--pull=false" in build_call[0][0]
     instruction = next(line for line in dockerfile.splitlines() if line.startswith("RUN "))
     argv = json.loads(instruction[4:])
     assert argv[0:2] == ["python", "-c"]
     assert "p.read_text()+" in argv[2]
     assert "p.write_text('import" not in argv[2]
-    assert "dc2.release.build-id=" + runner.operation["id"] in calls[0][0][0]
+    assert "dc2.release.build-id=" + runner.operation["id"] in build_call[0][0]
 
 
 def test_cli_help_exposes_only_local_actions():
@@ -751,10 +783,21 @@ def test_generated_bad_image_code_imports_but_fails_uvicorn_startup(runner, monk
     runner.begin("test", 600)
     calls = []
     monkeypatch.setattr(runner, "command", lambda *a, **kw: calls.append((a, kw)) or "")
-    monkeypatch.setattr(runner, "image_info", lambda image: {"image_id": BAD, **SOURCE})
+    monkeypatch.setattr(
+        runner,
+        "image_info",
+        lambda image: {
+            "image_id": GOOD if image == GOOD or image.endswith("-parent") else BAD,
+            **SOURCE,
+        },
+    )
     runner.build(SOURCE, bad_from=GOOD)
     instruction = next(
-        line for line in calls[0][1]["input"].splitlines() if line.startswith("RUN ")
+        line
+        for line in next(
+            call[1]["input"] for call in calls if call[0][0][1] == "build"
+        ).splitlines()
+        if line.startswith("RUN ")
     )
     generated = json.loads(instruction[4:])[2]
     main = tmp_path / "main.py"
@@ -809,6 +852,8 @@ def test_late_terminal_db_reply_cannot_pass_five_minute_drain(runner, monkeypatc
         "finished": False,
         "job_status": "processing",
         "has_error": False,
+        "attempt_error": None,
+        "current_attempt_id": "one",
         "deleted": False,
     }
     monkeypatch.setattr(runner, "active_attempts", lambda: [row])
@@ -817,9 +862,269 @@ def test_late_terminal_db_reply_cannot_pass_five_minute_drain(runner, monkeypatc
     def states(ids):
         clock[0] = 1301
         return [
-            {**row, "state": "failed", "finished": True, "job_status": "failed", "has_error": True}
+            {
+                **row,
+                "state": "failed",
+                "finished": True,
+                "job_status": "failed",
+                "has_error": True,
+                "attempt_error": "worker interrupted",
+            }
         ]
 
     monkeypatch.setattr(runner, "attempt_states", states)
     with pytest.raises(release.ReleaseError, match="five minutes"):
         runner.drain()
+
+
+def arrange_candidate_startup(runner, monkeypatch, mode="injected"):
+    """Real apply/evidence; mock only Docker/source/test/scan/HTTP boundaries."""
+    state = arrange(runner, monkeypatch)
+    monkeypatch.setattr(runner, "apply", release.Runner.apply.__get__(runner))
+    candidate = {
+        "Id": "bad-api-cid",
+        "Image": BAD,
+        "Config": {"Labels": {"dc2.release.injection": "uvicorn-startup-exit42"}},
+        "State": {
+            "Status": "exited",
+            "ExitCode": 42,
+            "OOMKilled": False,
+            "Error": "",
+            "StartedAt": "2026-10-13T01:00:00Z",
+            "FinishedAt": "2026-10-13T01:00:01Z",
+        },
+    }
+    if mode in ("wrong-image", "pre-start"):
+        candidate["Image"] = GOOD
+    elif mode == "wrong-exit":
+        candidate["State"]["ExitCode"] = 1
+    elif mode == "unrelated-compose":
+        candidate["State"]["Status"] = "running"
+    elif mode == "oom":
+        candidate["State"]["OOMKilled"] = True
+    elif mode == "runtime-error":
+        candidate["State"]["Error"] = "private runtime error"
+    elif mode == "not-started":
+        candidate["State"]["StartedAt"] = "0001-01-01T00:00:00Z"
+    elif mode == "no-label":
+        candidate["Config"]["Labels"] = {}
+    state["candidate"] = candidate
+    state["capture_before_restore"] = False
+
+    def compose(*args, image=None, **kwargs):
+        runner.remaining()
+        if args[0] == "ps":
+            assert state["live"] == BAD
+            return "" if mode == "missing-image" else "bad-api-cid\n"
+        if args[0] == "run" and image == BAD and mode == "migration":
+            raise release.ReleaseError("compose run exited 1")
+        if args[0] == "up" and args[-3:] == release.SERVICES:
+            if image == GOOD and state["live"] == BAD:
+                failure = json.loads(runner.journal_path.read_text())["operations"][-1]
+                state["capture_before_restore"] = bool(failure.get("candidate_failure"))
+            state["live"] = image
+            state["applied"].append(
+                (image, "candidate-startup" in [step["name"] for step in runner.operation["steps"]])
+            )
+            if image == BAD:
+                if mode == "deadline":
+                    runner.deadline = time.monotonic() - 1
+                raise release.ReleaseError("compose up exited 1")
+        return ""
+
+    def command(args, **kwargs):
+        runner.remaining()
+        if mode == "capture-error":
+            raise release.ReleaseError("docker inspect exited 1")
+        if args[1] == "inspect":
+            return json.dumps([candidate])
+        assert args[1] == "logs"
+        assert kwargs["merge_stderr"]
+        return "private log content\n" + (
+            "" if mode == "no-marker" else "dc2.release.injection=uvicorn-startup-exit42\n"
+        )
+
+    monkeypatch.setattr(runner, "compose", compose)
+    monkeypatch.setattr(runner, "command", command)
+    return state
+
+
+def test_bad_api_failure_is_captured_before_restore_with_real_apply(runner, monkeypatch):
+    state = arrange_candidate_startup(runner, monkeypatch)
+    assert runner.evidence() == 0
+    assert state["capture_before_restore"]
+    failure = runner.operation["candidate_failure"]
+    api = failure["containers"][0]
+    assert api["container_id"] == "bad-api-cid" and api["image_id"] == BAD
+    assert api["exit_code"] == 42 and api["injection_marker_seen"]
+    assert api["started_at"] and api["finished_at"]
+    experiment = json.loads(next(runner.directory.glob("experiment-*.json")).read_text())
+    assert experiment["candidate_failure"] == failure
+    assert runner.journal["current"] == GOOD and runner.journal["pending"] is None
+    assert "private log content" not in runner.journal_path.read_text()
+
+
+@pytest.mark.parametrize(
+    "mode",
+    [
+        "migration",
+        "missing-image",
+        "pre-start",
+        "unrelated-compose",
+        "wrong-image",
+        "wrong-exit",
+        "no-marker",
+        "no-label",
+        "oom",
+        "runtime-error",
+        "not-started",
+        "deadline",
+        "capture-error",
+    ],
+)
+def test_bad_experiment_rejects_other_failures_even_after_real_restoration(
+    runner, monkeypatch, mode
+):
+    state = arrange_candidate_startup(runner, monkeypatch, mode)
+    assert runner.evidence() == 1
+    assert runner.operation["status"] == "failed_rolled_back"
+    assert runner.journal["current"] == GOOD and runner.journal["pending"] is None
+    assert runner.operation["rollback"]["smoke"]
+    experiment = json.loads(next(runner.directory.glob("experiment-*.json")).read_text())
+    assert experiment["status"] == "failed" and experiment["bad_release_exit"] == 2
+    if mode == "migration":
+        assert not any(image == BAD for image, _ in state["applied"])
+        assert not runner.operation.get("candidate_failure")
+
+
+@pytest.mark.parametrize("change_at", ["retained", "before", "after"])
+def test_bad_build_rejects_parent_binding_mismatch(runner, monkeypatch, change_at):
+    runner.begin("test", 600)
+    calls = []
+    inspections = []
+
+    def info(image):
+        inspections.append(image)
+        mismatch = (
+            (change_at == "retained" and image == GOOD)
+            or (change_at == "before" and image.endswith("-parent"))
+            or (change_at == "after" and len(inspections) == 3)
+        )
+        return {"image_id": OLD if mismatch else GOOD, **SOURCE}
+
+    monkeypatch.setattr(runner, "image_info", info)
+    monkeypatch.setattr(runner, "command", lambda args, **kw: calls.append(args) or "")
+    with pytest.raises(release.ReleaseError, match="parent"):
+        runner.build(SOURCE, bad_from=GOOD)
+    assert "build" not in runner.operation
+    assert sum(args[1] == "build" for args in calls) == (change_at == "after")
+
+
+def test_bad_build_parent_tag_is_unique_per_operation(runner, monkeypatch):
+    calls = []
+    monkeypatch.setattr(runner, "command", lambda args, **kw: calls.append((args, kw)) or "")
+    monkeypatch.setattr(
+        runner,
+        "image_info",
+        lambda image: {
+            "image_id": GOOD if image == GOOD or image.endswith("-parent") else BAD,
+            **SOURCE,
+        },
+    )
+    tags = []
+    for _ in range(2):
+        runner.begin("test", 600)
+        assert runner.build(SOURCE, bad_from=GOOD) == BAD
+        tags.append(runner.operation["build_parent"]["tag"])
+    assert tags[0] != tags[1]
+    assert all("FROM sha256:" not in kw.get("input", "") for _, kw in calls)
+
+
+def interrupted_attempt(id="one"):
+    return {
+        "id": id,
+        "state": "processing",
+        "finished": False,
+        "job_status": "processing",
+        "has_error": False,
+        "attempt_error": None,
+        "current_attempt_id": id,
+        "deleted": False,
+    }
+
+
+@pytest.mark.parametrize("state", ["failed", "abandoned"])
+@pytest.mark.parametrize("job_status", ["queued", "processing", "done", "failed"])
+def test_finished_old_failure_survives_authorized_retry(state, job_status):
+    row = {
+        **interrupted_attempt(),
+        "state": state,
+        "finished": True,
+        "attempt_error": "worker interrupted",
+        "current_attempt_id": "retry-two",
+        "job_status": job_status,
+        "has_error": False,
+    }
+    assert release.terminal_attempt(row)
+    assert not release.terminal_attempt({**row, "finished": False})
+    assert not release.terminal_attempt({**row, "attempt_error": None})
+    assert not release.terminal_attempt({**row, "state": "processing"})
+    assert not release.terminal_attempt({**row, "current_attempt_id": "one"})
+
+
+@pytest.mark.parametrize("rollback", [False, True])
+def test_retry_during_stop_and_final_claim_finish_drain_in_release_and_rollback(
+    runner, monkeypatch, rollback
+):
+    state = arrange(runner, monkeypatch, failed_image=GOOD if rollback else None)
+    monkeypatch.setattr(runner, "drain", release.Runner.drain.__get__(runner))
+    first, last = interrupted_attempt(), interrupted_attempt("final-claim")
+    active = iter([[first], [last]] * (2 if rollback else 1))
+    monkeypatch.setattr(runner, "active_attempts", lambda: next(active))
+    terminal = [
+        {
+            **row,
+            "state": "abandoned",
+            "finished": True,
+            "attempt_error": "lease expired",
+            "current_attempt_id": row["id"] + "-retry",
+            "job_status": "queued",
+        }
+        for row in (first, last)
+    ]
+
+    def states(ids):
+        assert ids == ["final-claim", "one"]
+        return terminal
+
+    monkeypatch.setattr(runner, "attempt_states", states)
+    monkeypatch.setattr(release.time, "sleep", lambda _: pytest.fail("terminal old attempt waited"))
+    assert runner.release() == (2 if rollback else 0)
+    assert state["live"] == (OLD if rollback else GOOD)
+    assert runner.journal["pending"] is None
+    assert len(runner.operation["drain_history"]) == (2 if rollback else 1)
+    assert all(drain["attempts_after"] == terminal for drain in runner.operation["drain_history"])
+
+
+def test_attempt_diagnostics_include_own_error_and_current_identity(runner, monkeypatch):
+    queries = []
+    monkeypatch.setattr(runner, "diagnostic", lambda service, query, *args: queries.append(query))
+    runner.active_attempts()
+    runner.attempt_states(["one"])
+    assert all("a.error AS attempt_error" in query for query in queries)
+    assert all("j.current_attempt_id::text AS current_attempt_id" in query for query in queries)
+
+
+def test_command_can_hash_merged_stderr_without_storing_fault_logs(runner, monkeypatch):
+    runner.begin("test", 30)
+    monkeypatch.setattr(release.runtime, "subprocess_env", lambda: os.environ.copy())
+    output = runner.command(
+        [sys.executable, "-c", "import sys; print('private stderr',file=sys.stderr)"],
+        merge_stderr=True,
+    )
+    assert output == "private stderr\n"
+    assert "private stderr" not in str(runner.operation["command_evidence"][0].get("stdout", ""))
+    assert (
+        runner.operation["command_evidence"][0]["stdout_sha256"]
+        == hashlib.sha256(output.encode()).hexdigest()
+    )
