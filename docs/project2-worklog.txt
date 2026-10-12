@@ -93,3 +93,15 @@ Independent review and PR checks remain required before the group is Done.
 Media and clients are implemented in isolated worktrees. Client review identified
 three uncertainty/UI-state bugs; fixes are underway. First real public two-service
 workflow passes, with full browser/CLI/fault/load/release evidence still pending.
+
+Processing merged; Media reviewed (13 October)
+PR28 merged at4efc41c after644 fast tests,45 real owned checks, corrected recovery
+lock contention, independent rereview PASS and all13 remote checks. P1-P3/E2 Done.
+Media M1-M3 now include source/Asset durable intake, live Processing composition,
+source access, retry, MP4/HLS, derived copies, deletion and reconciliation. Its
+uncertain-write cleanup correction passed independent rereview and38 realPGtests.
+A login diagnostic improved to roughly1s p90 for20 users usingcost10bcrypt/1CPU
+Media while keeping the nonworker total2CPU. FullV3 remains pending.
+The combined worktree has passed realCLI30good/1bad publishing and storedretry,
+and real browser upload/worker-kill/retry/playback/deletion. FinalcombinedV1/V2
+and performance/release evidence still remain; see execution reviews and progress.

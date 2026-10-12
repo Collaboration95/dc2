@@ -157,7 +157,7 @@ def test_prebuilt_storage_requires_pinned_revision(tmp_path, monkeypatch, revisi
     monkeypatch.setattr(runtime, "compose", lambda state, *parts: builds.append(parts))
     if accepted:
         runtime.images(state)
-        assert builds == [("build", "processing")]
+        assert builds == [("build", "processing", "media")]
     else:
         with pytest.raises(ValueError, match="pinned source"):
             runtime.images(state)

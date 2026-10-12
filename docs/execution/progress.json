@@ -60,33 +60,39 @@
     },
     "P1": {
       "number": 12,
-      "state": "In progress",
-      "pr": null,
+      "state": "Done",
+      "pr": 28,
       "evidence": [
         "Foundation merged; frozen interfaces and localruntime/testgates available.",
         "ProductwaveheldforF2cachecorrection andfinalreview.",
-        "Foundation complete; three isolated product lanes starting."
+        "Foundation complete; three isolated product lanes starting.",
+        "PR28 draft; 635fast+41realowned checks and package gates pass; independent review and remoteCI running.",
+        "PR28 merged4efc41c afterindependentR1PASS;644fast45realowned;all13checks greenon013e219."
       ]
     },
     "P2": {
       "number": 13,
-      "state": "In progress",
-      "pr": null,
+      "state": "Done",
+      "pr": 28,
       "evidence": [
-        "P1 and P2 commits integrated for runtime checks; P3 implementation and owned-service verification in progress."
+        "P1 and P2 commits integrated for runtime checks; P3 implementation and owned-service verification in progress.",
+        "PR28 draft; 635fast+41realowned checks and package gates pass; independent review and remoteCI running.",
+        "PR28 merged4efc41c afterindependentR1PASS;644fast45realowned;all13checks greenon013e219."
       ]
     },
     "P3": {
       "number": 14,
-      "state": "In progress",
-      "pr": null,
+      "state": "Done",
+      "pr": 28,
       "evidence": [
-        "P1 and P2 commits integrated for runtime checks; P3 implementation and owned-service verification in progress."
+        "P1 and P2 commits integrated for runtime checks; P3 implementation and owned-service verification in progress.",
+        "PR28 draft; 635fast+41realowned checks and package gates pass; independent review and remoteCI running.",
+        "PR28 merged4efc41c afterindependentR1PASS;644fast45realowned;all13checks greenon013e219."
       ]
     },
     "M1": {
       "number": 15,
-      "state": "In progress",
+      "state": "Review",
       "pr": null,
       "evidence": [
         "Foundation merged; frozen interfaces and localruntime/testgates available.",
@@ -96,13 +102,13 @@
     },
     "M2": {
       "number": 16,
-      "state": "Backlog",
+      "state": "Review",
       "pr": null,
       "evidence": []
     },
     "M3": {
       "number": 17,
-      "state": "Backlog",
+      "state": "Review",
       "pr": null,
       "evidence": []
     },
@@ -193,6 +199,19 @@
       "state": "merged",
       "review": "PASS: docs/execution/reviews/foundation-cache-review.md",
       "merge_commit": "49b693ef8392d33d756f217d30e3a9e4d2205002"
+    },
+    {
+      "number": 28,
+      "url": "https://github.com/Collaboration95/dc2/pull/28",
+      "group": "processing",
+      "issues": [
+        "P1",
+        "P2",
+        "P3"
+      ],
+      "state": "merged",
+      "review": "PASS: reviews/processing-rereview.md",
+      "merge_commit": "4efc41c4592d49019dc362bcaf048fb2cc2a2611"
     }
   ],
   "limitations": [
@@ -201,46 +220,22 @@
   "aws_actions_performed": false,
   "active_worktrees": [
     {
-      "branch": "wave/02-processing",
+      "branch": "wave/02-media",
       "path": ".",
-      "owner": "coordinator + Meitner Sol xhigh reviewer",
-      "scope": "Processing grouped PR, shared runtime and CI"
-    },
-    {
-      "branch": "work/processing",
-      "path": ".worktrees/processing",
-      "owner": "Carson Sol high",
-      "scope": "P1-P3 final evidence"
-    },
-    {
-      "branch": "work/media",
-      "path": ".worktrees/media",
-      "owner": "Herschel Sol xhigh reviewer",
-      "scope": "M1-M3 independent review"
-    },
-    {
-      "branch": "work/clients-fixes",
-      "path": ".worktrees/clients-fixes",
-      "owner": "Bohr Sol high",
-      "scope": "Client review R1-R3 corrections"
-    },
-    {
-      "branch": "work/evidence",
-      "path": ".worktrees/evidence",
-      "owner": "James Sol xhigh reviewer",
-      "scope": "V3 runner review; live measurements pending"
-    },
-    {
-      "branch": "work/release",
-      "path": ".worktrees/release",
-      "owner": "implementation complete",
-      "scope": "V4 runner awaiting integration/live evidence"
+      "owner": "coordinator",
+      "scope": "Media groupedPR andCI"
     },
     {
       "branch": "work/integration",
       "path": ".worktrees/integration",
-      "owner": "coordinator",
-      "scope": "Real two-service web/CLI/fault acceptance and shared Media runtime"
+      "owner": "coordinator + Kepler Solxhigh reviewer",
+      "scope": "Liveacceptance/CTmapping"
+    },
+    {
+      "branch": "work/release-integration",
+      "path": ".worktrees/release-integration",
+      "owner": "Peirce Solxhigh reviewer",
+      "scope": "Localreleasecode/wiringreview"
     }
   ]
 }

@@ -246,6 +246,47 @@ jobs:
       - run: make down RUN_ID=ci-processing
         if: always()
 
+  media-integration:
+    name: Media owned persistence and boundary contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      COMPOSE_PROJECT_NAME: dc2-media-ci-${{ github.run_id }}
+      RUN_MEDIA_TESTS: '1'
+      MEDIA_POSTGRES_DSN: postgresql+asyncpg://media_runtime:dc2_local_media@127.0.0.1:55432/media_db
+      MEDIA_MIGRATION_DSN: postgresql+asyncpg://media_migrator:dc2_local_media_migrate@127.0.0.1:55432/media_db
+      PROCESSING_SERVICE_TOKEN: ci-only-unused-processing-token
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.17'
+          enable-cache: true
+          cache-local-path: .cache/uv
+          cache-dependency-glob: uv.lock
+      - run: uv sync --locked --extra dev --extra browser
+      - name: Start isolated databases and apply only Media migrations
+        run: |
+          docker compose -f docker-compose.processing.yml up -d --wait --wait-timeout 120 postgres
+          .venv/bin/python -m alembic -c media/alembic.ini upgrade head
+      - run: make integration-coverage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: media-coverage-data
+          path: artifacts/coverage/.coverage.media-integration*
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+      - name: Capture owned service logs
+        if: failure()
+        run: docker compose -f docker-compose.processing.yml logs --no-color
+      - name: Remove only runner-owned test data
+        if: always()
+        run: docker compose -f docker-compose.processing.yml down -v
+
   browser-trust:
     name: Local HTTPS and Firefox trust
     runs-on: ubuntu-latest
@@ -315,7 +356,7 @@ jobs:
     name: Combined backend package coverage
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [lint-and-unit, legacy-integration, processing-intake]
+    needs: [lint-and-unit, legacy-integration, processing-intake, media-integration]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -335,7 +376,7 @@ jobs:
           merge-multiple: true
       - run: >-
           make coverage-report
-          COVERAGE_INPUTS='artifacts/coverage/.coverage.fast artifacts/coverage/.coverage.legacy-integration artifacts/coverage/.coverage.processing-integration'
+          COVERAGE_INPUTS='artifacts/coverage/.coverage.fast artifacts/coverage/.coverage.legacy-integration artifacts/coverage/.coverage.processing-integration artifacts/coverage/.coverage.media-integration'
       - uses: actions/upload-artifact@v4
         with:
           name: python-coverage
@@ -351,17 +392,19 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    needs: [legacy-integration, processing-intake, browser-trust, coverage-gate]
+    needs: [legacy-integration, processing-intake, media-integration, browser-trust, coverage-gate]
     steps:
       - name: Require successful real integration, trust and package gates
         env:
           LEGACY_RESULT: ${{ needs.legacy-integration.result }}
           PROCESSING_RESULT: ${{ needs.processing-intake.result }}
+          MEDIA_RESULT: ${{ needs.media-integration.result }}
           TRUST_RESULT: ${{ needs.browser-trust.result }}
           COVERAGE_RESULT: ${{ needs.coverage-gate.result }}
         run: |
           test "$LEGACY_RESULT" = success
           test "$PROCESSING_RESULT" = success
+          test "$MEDIA_RESULT" = success
           test "$TRUST_RESULT" = success
           test "$COVERAGE_RESULT" = success
 
@@ -375,13 +418,14 @@ jobs:
         image:
           - {name: app, file: Dockerfile, tag: flickpond-api:ci}
           - {name: processing, file: deploy/processing.Dockerfile, tag: dc2-processing:ci}
+          - {name: media, file: deploy/media.Dockerfile, tag: dc2-media:ci}
     steps:
       - uses: actions/checkout@v4
-      # Phase 1 includes every current app/Processing digest. The backend lanes must
-      # extend this matrix for Media and every distinct worker digest before promotion.
+      # All current distinct image digests are scanned. Processing API/worker/recovery
+      # share one image; legacy remains a regression reference, Media is the live facade.
       - name: Require scan selection for new live images
         run: |
-          test ! -d media || { echo 'Add Media image to scan matrix before integration'; exit 1; }
+          test -f deploy/media.Dockerfile
           test ! -f deploy/worker.Dockerfile || { echo 'Add distinct worker image to scan matrix'; exit 1; }
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
