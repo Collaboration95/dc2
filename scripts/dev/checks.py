@@ -8,10 +8,17 @@ from pathlib import Path
 from scripts.dev.common import PYTHON, ROOT, fingerprint, local_env, packages, run
 
 COVERAGE_DIR = ROOT / "artifacts/coverage"
-PROCESSING_TESTS = (
-    "tests/integration/test_processing_intake.py",
-    "tests/integration/test_database_ownership.py",
-)
+
+
+def service_tests(domain: str) -> list[str]:
+    """Explicit filename ownership prevents a new service leaking into the legacy tier."""
+    paths = sorted(
+        str(path.relative_to(ROOT))
+        for path in (ROOT / "tests/integration").glob(f"test_{domain}_*.py")
+    )
+    if domain == "processing":
+        paths.append("tests/integration/test_database_ownership.py")
+    return paths
 
 
 def fast_env() -> dict[str, str]:
@@ -124,19 +131,31 @@ def integration(*, coverage: bool = False) -> list[Path]:
         selected.append(
             (
                 "legacy-integration",
-                ["tests/integration"] + [f"--ignore={path}" for path in PROCESSING_TESTS],
+                ["tests/integration"]
+                + [
+                    f"--ignore={path}"
+                    for path in service_tests("processing") + service_tests("media")
+                ],
             )
         )
     if env.get("RUN_PROCESSING_TESTS") == "1":
         for name in ("PROCESSING_POSTGRES_DSN", "PROCESSING_SERVICE_TOKEN", "P2_POSTGRES_PORT"):
             if not env.get(name):
                 raise SystemExit(f"RUN_PROCESSING_TESTS=1 requires explicit {name}")
-        selected.append(("processing-integration", list(PROCESSING_TESTS)))
+        selected.append(("processing-integration", service_tests("processing")))
+    if env.get("RUN_MEDIA_TESTS") == "1":
+        if not env.get("MEDIA_POSTGRES_DSN"):
+            raise SystemExit("RUN_MEDIA_TESTS=1 requires explicit MEDIA_POSTGRES_DSN")
+        paths = service_tests("media")
+        if not paths:
+            raise SystemExit("Media integration has no selected tests")
+        selected.append(("media-integration", paths))
     if not selected:
         raise SystemExit(
             "Integration is opt-in: set RUN_POSTGRES_TESTS=1 with POSTGRES_DSN, or "
             "RUN_PROCESSING_TESTS=1 with PROCESSING_POSTGRES_DSN, "
-            "PROCESSING_SERVICE_TOKEN and P2_POSTGRES_PORT. See README local setup."
+            "PROCESSING_SERVICE_TOKEN and P2_POSTGRES_PORT, or RUN_MEDIA_TESTS=1 "
+            "with MEDIA_POSTGRES_DSN. See README local setup."
         )
     fragments = []
     for tier, paths in selected:
@@ -203,7 +222,8 @@ def main() -> None:
         data = [fast(coverage=True)]
         frontend(coverage=True)
         if any(
-            local_env().get(name) == "1" for name in ("RUN_POSTGRES_TESTS", "RUN_PROCESSING_TESTS")
+            local_env().get(name) == "1"
+            for name in ("RUN_POSTGRES_TESTS", "RUN_PROCESSING_TESTS", "RUN_MEDIA_TESTS")
         ):
             data.extend(integration(coverage=True))
         command = [str(PYTHON), "-m", "scripts.dev.coverage"]

@@ -195,5 +195,33 @@
     "Full scaling not measured yet; project-local8CPU8GiBVM and2CPUquota verified."
   ],
   "aws_actions_performed": false,
-  "active_worktrees": []
+  "active_worktrees": [
+    {
+      "branch": "wave/02-processing",
+      "path": ".",
+      "owner": "coordinator",
+      "scope": "Shared runtime, CI and integration"
+    },
+    {
+      "branch": "work/processing",
+      "path": ".worktrees/processing",
+      "owner": "Carson gpt-6.1-sol high",
+      "agent_id": "01a13126-8f4b-7681-834d-79676acf8149",
+      "scope": "P1/P2/P3"
+    },
+    {
+      "branch": "work/media",
+      "path": ".worktrees/media",
+      "owner": "Parfit gpt-6.1-sol high",
+      "agent_id": "01a13126-8fa3-78e0-97a1-24e2b134e6d1",
+      "scope": "M1/M2/M3"
+    },
+    {
+      "branch": "work/clients",
+      "path": ".worktrees/clients",
+      "owner": "Noether gpt-6.1-sol high",
+      "agent_id": "01a13126-8ecb-7151-abcc-149be84c0260",
+      "scope": "C1/C2"
+    }
+  ]
 }
