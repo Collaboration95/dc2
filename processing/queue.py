@@ -45,7 +45,6 @@ def enqueue_attempt(job_id: UUID, attempt_id: UUID, *, queue=None):
             TASK,
             args=(str(job_id), str(attempt_id)),
             job_id=identifier,
-            timeout=target.default_timeout,
             result_ttl=3600,
             failure_ttl=3600,
         )
