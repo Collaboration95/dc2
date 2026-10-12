@@ -1,0 +1,28 @@
+{
+  "run_id": "final-local",
+  "started_at": "2026-10-12T20:22:40.467735+00:00",
+  "events": [
+    {
+      "event": "service-restore-armed",
+      "at": "2026-10-12T20:22:40.549566+00:00",
+      "replicas": {
+        "worker": 1
+      }
+    },
+    {
+      "event": "service-restore",
+      "at": "2026-10-12T20:24:43.648875+00:00",
+      "outcomes": [
+        {
+          "service": "worker",
+          "expected_replicas": 1,
+          "running_replicas": 1,
+          "status": "PASS"
+        }
+      ],
+      "original_failure_type": null
+    }
+  ],
+  "status": "PASS",
+  "finished_at": "2026-10-12T20:24:43.649094+00:00"
+}

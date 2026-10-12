@@ -146,18 +146,20 @@
     },
     "V1": {
       "number": 20,
-      "state": "In progress",
+      "state": "Review",
       "pr": 31,
       "evidence": [
-        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
+        "Final local verify at422609b PASS:1083fastPython,152frontend,130realintegration; fullMacE2E122.740s. V2PASS190.602s; kill69.195s, queue repair23.507s, durable pending restart/convergence. Core runtime built2cb8da8 byte-identical to422609b; source pack retained."
       ]
     },
     "V2": {
       "number": 21,
-      "state": "In progress",
+      "state": "Review",
       "pr": 31,
       "evidence": [
-        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
+        "Final local verify at422609b PASS:1083fastPython,152frontend,130realintegration; fullMacE2E122.740s. V2PASS190.602s; kill69.195s, queue repair23.507s, durable pending restart/convergence. Core runtime built2cb8da8 byte-identical to422609b; source pack retained."
       ]
     },
     "V3": {

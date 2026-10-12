@@ -1,0 +1,58 @@
+{
+  "harness_revision": "422609b434102fd132b41c5bd9ab113d03984ed0",
+  "runtime_build_revision": "2cb8da833cb7f20b6f4fb41ff4b318f01530266b",
+  "runtime_source_match": {
+    "verified_with": "git diff --exit-code 2cb8da8 422609b -- <paths>",
+    "paths": [
+      "media",
+      "processing",
+      "media_engine",
+      "publisher",
+      "frontend",
+      "deploy",
+      "compose",
+      "pyproject.toml",
+      "uv.lock"
+    ],
+    "result": "identical"
+  },
+  "python_fast": 1083,
+  "frontend_fast": 152,
+  "real_integration": {
+    "legacy": 44,
+    "processing": 47,
+    "media": 39
+  },
+  "files": [
+    {
+      "file": "e2e.json",
+      "sha256": "77d3673822aa0497f1c9b0fbcda5e0b3d99895dacef90b7a80d2e3026402c442",
+      "source": "artifacts/final-local/e2e-20261012T202240-dce53cb5/result.json"
+    },
+    {
+      "file": "recovery.json",
+      "sha256": "126a81d8a1b62eee9ba2097231daf0c5f68b2b6c251aa91d70e6e06e47853d00",
+      "source": "artifacts/final-local/recovery-20261012T202500-d651a40d/result.json"
+    },
+    {
+      "file": "supervisor.json",
+      "sha256": "0a7bb1bbb40cc3ce4cc572af3dbd399e13e90a24d1f28246853c279e52794084",
+      "source": "artifacts/final-local/e2e-supervisor-9c3487f9.json"
+    },
+    {
+      "file": "browser-playing.png",
+      "sha256": "796069730a2c47185caed708dda0db1fe4d09f65ba1de69beeb4a5f277f089d6",
+      "source": "artifacts/final-local/e2e-20261012T202240-dce53cb5/browser-playing.png"
+    },
+    {
+      "file": "browser-trust.json",
+      "sha256": "a0b07b55e6772060645224b39727c7cbd7f8c3cc5053714ab027e958b1739ab7",
+      "source": "artifacts/final-local/browser-trust.json"
+    },
+    {
+      "file": "gate.json",
+      "sha256": "c5ef3464b5e6f4167facd594f116cb4531519da42c215be9a643cc48b11fcc38",
+      "source": "artifacts/coverage/gate.json"
+    }
+  ]
+}

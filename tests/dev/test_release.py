@@ -1446,3 +1446,33 @@ def test_public_terminal_poll_cannot_extend_promotion_deadline(runner, monkeypat
     with pytest.raises(release.ReleaseError, match="overall operation deadline"):
         release.public_drain_outcome(runner, request)
     assert "deleted_at" not in runner.operation["active_work"]
+
+
+@pytest.mark.parametrize("budget", [300, 10])
+def test_cold_recovery_diagnostic_has_allowance_but_cannot_extend_rollback(
+    runner, monkeypatch, budget
+):
+    clock = [0.0]
+    monkeypatch.setattr(release.time, "monotonic", lambda: clock[0])
+    runner.begin("rollback", budget)
+    calls = []
+
+    def compose(state, *args, **kwargs):
+        calls.append(kwargs["timeout"])
+        assert args[-4:] == ("-T", "processing-recovery", "python", "-")
+        if kwargs["timeout"] < 20:
+            clock[0] += kwargs["timeout"]
+            raise subprocess.TimeoutExpired("controlled-cold-diagnostic", kwargs["timeout"])
+        clock[0] += 20
+        return SimpleNamespace(stdout="[]")
+
+    monkeypatch.setattr(release.runtime, "compose", compose)
+    if budget == 300:
+        assert runner.diagnostic("processing", "SELECT 1") == []
+        assert clock[0] == 20
+    else:
+        with pytest.raises(subprocess.TimeoutExpired):
+            runner.diagnostic("processing", "SELECT 1")
+        assert clock[0] == budget
+    assert calls == [min(45, budget)]  # One request, no retry loop or deadline reset.
+    assert runner.deadline == budget

@@ -1,0 +1,11 @@
+{
+  "tested_at": "2026-10-12T20:22:39.482780+00:00",
+  "browser": "153.0.8010.12",
+  "trusted_https": "PASS",
+  "untrusted_certificate_rejected": "PASS",
+  "ignore_https_errors": false,
+  "trust_mechanism": "validated certificate + process-scoped leaf SPKI pin",
+  "engine": "Chrome for Testing",
+  "ca_file": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.local/runs/final-local/tls/ca.crt",
+  "live_infrastructure_url": null
+}

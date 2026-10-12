@@ -385,7 +385,10 @@ async def main():
         await connection.close()
 asyncio.run(main())
 """
-        return json.loads(self.compose("exec", "-T", target, "python", "-", input=code, cap=15))
+        # A freshly restored recovery container has only 1/16 CPU; its startup
+        # and this diagnostic interpreter share that quota. Keep a bounded cold
+        # start allowance, always clipped by the unchanged operation deadline.
+        return json.loads(self.compose("exec", "-T", target, "python", "-", input=code, cap=45))
 
     def revisions(self, service):
         rows = self.diagnostic(
