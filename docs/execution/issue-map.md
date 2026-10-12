@@ -19,4 +19,4 @@
 | V2 | [#21](https://github.com/Collaboration95/dc2/issues/21) | E5 | 3 | V1 | Integration |
 | V3 | [#22](https://github.com/Collaboration95/dc2/issues/22) | E5 | 4 | V1 | Evidence and handoff |
 | V4 | [#23](https://github.com/Collaboration95/dc2/issues/23) | E5 | 4 | V1 | Evidence and handoff |
-| V5 | [#24](https://github.com/Collaboration95/dc2/issues/24) | E5 | 4 | V2, V3, V4 | Evidence and handoff |
+| V5 | [#24](https://github.com/Collaboration95/dc2/issues/24) | E5 | 4 | V2, V4 | Evidence and handoff |

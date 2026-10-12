@@ -1,5 +1,5 @@
 {
-  "stage": "planning-review-pending",
+  "stage": "planning-passed-awaiting-merge",
   "baseline": "b32d489566144202fbf6fc3887ce25d5321444fd",
   "project": {
     "id": "PVT_kwHOBBatWM4Bmtkx",
@@ -11,17 +11,18 @@
     "G1": {
       "number": 7,
       "state": "Review",
-      "pr": null,
+      "pr": 25,
       "evidence": [
         "docs/execution/plan.md, backlog.json and Project14 native hierarchy verified."
       ]
     },
     "G2": {
       "number": 8,
-      "state": "In progress",
-      "pr": null,
+      "state": "Review",
+      "pr": 25,
       "evidence": [
-        "Plan and24GitHubitems created; independentSolxhighreview running."
+        "Plan and24GitHubitems created; independentSolxhighreview running.",
+        "Independent Sol xhigh PASS in planning-rereview.md; all five fixes applied."
       ]
     },
     "F1": {
@@ -121,7 +122,19 @@
       "evidence": []
     }
   },
-  "pull_requests": [],
+  "pull_requests": [
+    {
+      "number": 25,
+      "url": "https://github.com/Collaboration95/dc2/pull/25",
+      "group": "planning",
+      "issues": [
+        "G1",
+        "G2"
+      ],
+      "state": "review",
+      "review": "PASS: docs/execution/reviews/planning-rereview.md"
+    }
+  ],
   "limitations": [
     "Docker2CPU/2GiB cannot prove fair3worker scaling; investigate project-local runtime."
   ],

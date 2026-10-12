@@ -1,0 +1,156 @@
+{
+  "observed_at": "2026-10-12T16:18:00.052749+00:00",
+  "project": "https://github.com/users/Collaboration95/projects/14",
+  "epics": 6,
+  "issues": 18,
+  "native_relationships": "PASS",
+  "relationships": [
+    {
+      "key": "G1",
+      "number": 7,
+      "parent": 1,
+      "blocked_by": []
+    },
+    {
+      "key": "G2",
+      "number": 8,
+      "parent": 1,
+      "blocked_by": [
+        7
+      ]
+    },
+    {
+      "key": "F1",
+      "number": 9,
+      "parent": 2,
+      "blocked_by": [
+        8
+      ]
+    },
+    {
+      "key": "F2",
+      "number": 10,
+      "parent": 2,
+      "blocked_by": [
+        8
+      ]
+    },
+    {
+      "key": "F3",
+      "number": 11,
+      "parent": 2,
+      "blocked_by": [
+        9,
+        10
+      ]
+    },
+    {
+      "key": "P1",
+      "number": 12,
+      "parent": 3,
+      "blocked_by": [
+        11
+      ]
+    },
+    {
+      "key": "P2",
+      "number": 13,
+      "parent": 3,
+      "blocked_by": [
+        12
+      ]
+    },
+    {
+      "key": "P3",
+      "number": 14,
+      "parent": 3,
+      "blocked_by": [
+        13
+      ]
+    },
+    {
+      "key": "M1",
+      "number": 15,
+      "parent": 4,
+      "blocked_by": [
+        11
+      ]
+    },
+    {
+      "key": "M2",
+      "number": 16,
+      "parent": 4,
+      "blocked_by": [
+        15
+      ]
+    },
+    {
+      "key": "M3",
+      "number": 17,
+      "parent": 4,
+      "blocked_by": [
+        16
+      ]
+    },
+    {
+      "key": "C1",
+      "number": 18,
+      "parent": 5,
+      "blocked_by": [
+        11
+      ]
+    },
+    {
+      "key": "C2",
+      "number": 19,
+      "parent": 5,
+      "blocked_by": [
+        11
+      ]
+    },
+    {
+      "key": "V1",
+      "number": 20,
+      "parent": 6,
+      "blocked_by": [
+        14,
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "key": "V2",
+      "number": 21,
+      "parent": 6,
+      "blocked_by": [
+        20
+      ]
+    },
+    {
+      "key": "V3",
+      "number": 22,
+      "parent": 6,
+      "blocked_by": [
+        20
+      ]
+    },
+    {
+      "key": "V4",
+      "number": 23,
+      "parent": 6,
+      "blocked_by": [
+        20
+      ]
+    },
+    {
+      "key": "V5",
+      "number": 24,
+      "parent": 6,
+      "blocked_by": [
+        21,
+        23
+      ]
+    }
+  ]
+}

@@ -147,8 +147,9 @@
       "acceptance": [
         "Fast suite needs no network/services and targets <=30s warm locally; CI fast job targets <=3min excluding runner queue.",
         "Real integration/e2e suites have isolated resources, bounded polling, stable fixtures, no blind sleeps or retry-to-green masking.",
-        "Keep >=80% measured backend branch coverage and current frontend >=90% thresholds; run fast suite three times without flaky failures.",
-        "CI always reports required fast/integration status; expensive scans/builds are cached/separate; failures remain visible."
+        "Enforce combined statement/branch coverage >=80% separately for each live backend/helper/CLI package, including unexecuted production files; report raw branch rates separately. Keep legacy app regression gate and all four frontend >=90% thresholds. New package arrivals must extend lint/coverage/CI selections.",
+        "CI always reports required fast/integration status; expensive scans/builds are cached/separate; failures remain visible.",
+        "Retain existing Trivy zero-fixable-HIGH/CRITICAL release policy for every distinct live Media/Processing/worker image digest; legacy app scan alone is insufficient. Reuse scan tooling without broader security infrastructure."
       ],
       "verification": [
         "make test repeated three times with recorded durations",
@@ -183,11 +184,14 @@
         "Project-local TLS endpoint is reachable with explicit CA trust in host/container/test clients; Secure-cookie end-to-end login is verified in V1 after Media integration. No system trust-store changes or disabled certificate verification.",
         "Public/internal source and playback hostnames resolve in their respective runtimes; no secrets are tracked.",
         "Two worktree stacks can use distinct projects/ports/volumes; resource preflight reports Docker CPU/memory limits.",
-        "Pinned MinIO build or locally verified compatible image works from fresh cache; fetch GitHub sources through gh."
+        "Pinned MinIO build or locally verified compatible image works from fresh cache; fetch GitHub sources through gh.",
+        "Bounded project-local capacity investigation determines whether >=8CPU/8GiB can support fair worker quotas without global Docker changes; record feasibility before evidence wave.",
+        "make browser-trust-smoke runs pinned Playwright Firefox from project-local installation/profile with local CA installed via Firefox Certificates.Install enterprise policy. Verification remains enabled; HTTPS infrastructure navigation succeeds and an untrusted control fails. Certificate SANs cover public API and media hostnames."
       ],
       "verification": [
         "make up && make smoke-infra && make down",
-        "Fresh-volume boot and two isolated stacks; no shared volume destruction."
+        "Fresh-volume boot and two isolated stacks; no shared volume destruction.",
+        "make browser-trust-smoke (real Firefox, trusted positive and untrusted negative; no insecure flags)."
       ],
       "paths": [
         "compose/**",
@@ -253,7 +257,8 @@
         "Queue payload carries job_id and attempt_id; worker claims once and reuses existing FFmpeg behavior.",
         "Worker downloads via renewable presigned source access with revision/digest validation; it has no MM database or source-storage credential.",
         "Primary MP4 and best-effort HLS publish under attempt-specific keys; valid inherited MKV/MP3 edits remain compatible.",
-        "Real short fixture completes into playable output; stale attempts never replace winning output."
+        "Real short fixture completes into playable output; stale attempts never replace winning output.",
+        "Lease supervisor spans download/encode/upload, terminates the process group on lease loss, and fences stale success AND failure. HLS fallback must not swallow cancellation; total attempt budget covers all stages."
       ],
       "verification": [
         "make test-processing && make integration-processing",
@@ -286,7 +291,8 @@
         "Independent heartbeat supervises encoding; dead worker is failed within5min and healthy long encoding stays live.",
         "Durable queued attempts recover missing RQ delivery within2min, including lingering RQ metadata.",
         "Reconciler reuses reserved attempts; bounded retries/backoff and Processing-only output cleanup are observable.",
-        "Killing a worker, then retrying from stored source succeeds without duplicate published output."
+        "Killing a worker, then retrying from stored source succeeds without duplicate published output.",
+        "Cleanup remains repeatable through late uploads after cancellation; never delete source objects or active/winning output prefixes."
       ],
       "verification": [
         "make integration-processing",
@@ -422,8 +428,8 @@
         "JSON output is machine readable; passwords/tokens excluded from output; actual implementation effort and size recorded."
       ],
       "verification": [
-        "make test-cli",
-        "Inspect imports/dependencies and run mixed-success batch against local HTTPS platform."
+        "make test-cli against controlled public-contract responses",
+        "Inspect imports/dependencies; live mixed-success batch and stored-source retry are V1 acceptance after both backends integrate."
       ],
       "paths": [
         "publisher/**",
@@ -481,7 +487,7 @@
         "C2"
       ],
       "acceptance": [
-        "One fresh make up supports registration/upload/process/status/MP4/HLS/retry/delete through web and CLI.",
+        "Fresh make up supports browser registration/upload/process/status/playable MP4/HLS/stored-source retry/owner deletion; CLI proves register/login, mixed-success folder publish, per-file outcomes, status, authorised output access and stored-source retry. No CLI media player or delete feature is required.",
         "All25 prepared contract cases have implemented tests or specific evidence-backed disposition; all required basic negative/ownership cases pass.",
         "A real browser checks login, upload, playback and retry; accessible frontend unchanged except needed behavior.",
         "No direct cross-service DB/storage ownership shortcuts or service imports in CLI."
@@ -577,7 +583,8 @@
         "Build/version per-service images; release candidate Processing independently and smoke-test within10min.",
         "MM container identity/image and media_db migration revision remain unchanged; workers drain or fail visibly within bounded time.",
         "Injected bad candidate fails promotion, rolls back to prior tested image and recovers smoke.",
-        "Scripts are local-only, repeatable and record exact images/migrations/timestamps; no AWS credentials or actions."
+        "Scripts are local-only, repeatable and record exact images/migrations/timestamps; no AWS credentials or actions.",
+        "Exact candidate image digest has passing build/test and inherited zero-fixable-HIGH/CRITICAL scan evidence before promotion. A failed scan blocks promotion; shared API/worker digest needs one scan."
       ],
       "verification": [
         "make evidence-release"
@@ -605,12 +612,11 @@
       ],
       "dependencies": [
         "V2",
-        "V3",
         "V4"
       ],
       "acceptance": [
-        "Independent Sol review compares integrated code to issues, proposal targets and evidence; all substantive fixable findings resolved.",
-        "Final Main checks pass; grouped PRs merged, issues/epics/project states match evidence; no incomplete work markedDone.",
+        "Prerequisites: V2/V4 complete and V3 assessed with full scaling evidence OR a reproducible runner/pilot plus documented capacity blocker. Independent Sol review checks code/issues/evidence; fix substantive in-scope findings.",
+        "Final Main checks pass; accepted grouped PRs merge and metadata matches evidence. V3 and E5 remain open if full UC-6 scaling acceptance lacks fair-capacity evidence; final handoff may complete while explicitly stating that limitation.",
         "Handoff file gives exact start/stop/test commands, URLs, credentials location (no values), architecture decisions, PR/issue map, results and limitations.",
         "Report/demo evidence source pack distinguishes inherited/new work and local/cloud evidence; list future AWS prerequisites only, do not provision."
       ],

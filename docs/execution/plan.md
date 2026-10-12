@@ -110,7 +110,11 @@ Tests have three tiers:
    independent releases and measured workloads. Slow experiments do not run on
    every unit-test invocation. Every release still needs their relevant evidence.
 
-Retain ≥80% backend branch coverage and existing frontend ≥90% thresholds.
+Retain combined statement/branch coverage ≥80% separately for each live backend,
+shared helper and CLI package, plus the inherited app regression gate and all four
+frontend ≥90% thresholds. Report raw branch rates separately; the80% number is
+not an independent branch-rate claim. Include unexecuted production files.
+Product PRs must extend lint/coverage/CI package selection as new packages arrive.
 Measure new service/client packages, not just the inherited application. Do not
 inflate coverage with implementation-mirroring tests. Exact race, failure and
 lifecycle behavior matters more than maximizing a percentage. CI posts stable
@@ -118,7 +122,12 @@ aggregate fast/integration checks even when selective execution is used, so an
 unrelated path filter cannot leave a required check permanently pending.
 
 Local TLS uses a project-generated CA/certificate and explicit trust settings for
-CLI/tests and browser context. Do not modify the system trust store or turn off
+CLI/tests. Real browser selection: pinned Playwright Firefox in a project-local
+installation/profile, with Firefox enterprise Certificates.Install policy importing
+only the local CA into that browser. The coordinator owns its launcher and pinned
+tooling. `make browser-trust-smoke` must prove trusted HTTPS navigation and an
+untrusted-certificate rejection before foundation acceptance; no certificate-error
+bypass or insecure browser flags. SANs cover public API and media URL hostnames. Do not modify the system trust store or turn off
 TLS verification. Ports, project names, volumes and test identities are isolated.
 
 Wave 1's `make up` may expose infrastructure and the current Processing intake
@@ -156,11 +165,15 @@ Planning review occurs after the complete local/GitHub plan exists. The reviewer
 checks scope, DAG, acceptance, interfaces, tests, resource realism and PR grouping.
 Record verdict/findings, fix them, and obtain PASS before Wave 1 implementation.
 
-Every implementation PR lists all covered issue numbers with closing keywords,
+Every implementation PR lists covered issue numbers and uses closing keywords
+only for issues whose full acceptance is satisfied,
 concrete behavior changes, commands and results, and remaining limitations.
 Register every PR with the thread's `link_pull_request` tool immediately.
 Independent review returns PASS/REVISE with issue-by-issue evidence. The author
-fixes substantive findings; reviewer rechecks the changed paths. Tests must run
+fixes substantive findings; reviewer rechecks the changed paths. Existing Trivy gates must cover every distinct
+live Media/Processing/worker image digest, not merely the legacy image. Promotion
+requires passing build/tests and zero fixable HIGH/CRITICAL findings for the exact
+candidate; identical API/worker digests need only one scan. Tests must run
 against the exact reviewed head. Merge only after required checks and review PASS;
 user authorization already permits this local/GitHub release process.
 
@@ -186,8 +199,9 @@ Current Docker Desktop allocation is2CPU/2GiB. The host has10CPUs/32GiB. This
 allocation cannot fairly run3×2vCPU encoders plus services. Investigate a separately
 scoped project-local runtime or host harness if necessary, without global setting
 changes. Record architecture/quotas and any difference from the proposal. A
-thread-count-only limit is not proof of a hard2vCPU quota. If sufficient local
-capacity cannot be made available within scope, finish the reproducible runner
+thread-count-only limit is not proof of a hard2vCPU quota. F3 owns the bounded project-local capacity investigation and records feasibility
+before this evidence wave. If sufficient local capacity cannot be made available
+within scope, finish the reproducible runner
 and pilot, record the specific blocker and keep full-scaling acceptance open.
 Never silently reduce the workload/targets or classify oversubscription as success.
 Any revised target requires recorded baseline rationale before final runs; report
@@ -233,3 +247,19 @@ small Docker allocation. The old jsdom live test is not credible browser evidenc
 its cookie handling and copy-job assumptions must be replaced by a real-browser
 flow. Existing baseline tests still run; synthetic intake stays a separately
 controlled tier after worker dispatch is connected.
+
+## Conditional scaling and handoff gate
+
+V5 depends natively on V2 and V4. V3 has an additional assessed-result prerequisite,
+not an unconditional Done edge: either full fair-capacity scaling evidence exists,
+or the reproducible runner/pilot and exact capacity blocker are documented.
+If capacity is still unavailable, V3 and parent E5 remain open/Blocked; accepted
+scripts and handoff may merge, using closing keywords only for satisfied issues.
+V5 explicitly distinguishes completed local implementation from outstanding UC-6
+scaling acceptance. It must not call the entire proposal complete in that case.
+
+The browser proves actual MP4/HLS playback and owner deletion. The CLI proves
+registration/login, mixed-success folder publishing, each file's outcome, status,
+authorised output access and stored-source retry. C1 merges against controlled
+public-contract responses plus import/credential checks. V1 owns the live CLI
+batch proof after backend integration; no CLI player or delete command is added.

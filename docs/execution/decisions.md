@@ -17,3 +17,17 @@
 - Sidecar inspections retained the prepared attempt fencing, renewal, queue-loss
   and cancellation requirements, and identified image-tag/queue/bucket isolation
   and the obsolete jsdom live test as explicit acceptance work.
+
+- Planning review R1: V5 may deliver an honest handoff after an assessed V3 blocker;
+  full-scaling issue V3 and epic E5 stay open if fair capacity is unavailable.
+- R2: retain the existing image scan policy on actual distinct live images and
+  promoted digests; no new security infrastructure or features.
+- R3: choose pinned Playwright Firefox, installed under the project, and scoped
+  Certificates.Install CA policy. F3 must prove trusted navigation and an untrusted
+  negative before this choice is accepted for end-to-end tests. The coordinator
+  owns tooling/launcher and will revise within scope if this mechanism fails.
+- R4: CLI returns authorised output access; the browser proves playback/deletion.
+  Live batch acceptance is V1; C1 can merge against controlled public contracts.
+- R5: coverage80% means combined statement/branch coverage, separately gated for
+  live packages with unexecuted production files included. Branch rates are also
+  reported. Legacy app and frontend gates stay intact.
