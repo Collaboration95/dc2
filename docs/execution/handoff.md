@@ -25,8 +25,8 @@ reported as a tested Main release. Local Git history confirms PR30's merge at
    final V1/V2 and V4 checks in separately owned namespaces. Fill the pending
    table below, including failures and any remaining blockers.
 4. Reconcile Main, PRs, issues and Project 14 through authenticated `gh` only.
-   The checked-in [progress ledger](progress.json) still shows clients in Review
-   with no PR30 entry; that is an earlier checkpoint. Parent owns its update.
+   The [progress ledger](progress.json) records the merged client wave and ongoing
+   acceptance work in [PR31](https://github.com/Collaboration95/dc2/pull/31).
 5. Obtain final independent review and exact-Main checks before marking V5 Done.
    Keep V3/E5 open if full scaling acceptance is unsatisfied. Complete the course
    report/demo pack separately; implementation is not those submissions.
@@ -97,7 +97,7 @@ Detailed dependencies are in [issue-map.md](issue-map.md),
 | 2A / E2 [#3](https://github.com/Collaboration95/dc2/issues/3): Processing | P1 [#12](https://github.com/Collaboration95/dc2/issues/12), P2 [#13](https://github.com/Collaboration95/dc2/issues/13), P3 [#14](https://github.com/Collaboration95/dc2/issues/14) | [#28](https://github.com/Collaboration95/dc2/pull/28), `4efc41c` | Merged; bounded recovery-lock rereview PASS |
 | 2B / E3 [#4](https://github.com/Collaboration95/dc2/issues/4): Media | M1 [#15](https://github.com/Collaboration95/dc2/issues/15), M2 [#16](https://github.com/Collaboration95/dc2/issues/16), M3 [#17](https://github.com/Collaboration95/dc2/issues/17) | [#29](https://github.com/Collaboration95/dc2/pull/29), `b4a9f56` | Merged; uncertain-write cleanup rereview PASS |
 | 2C / E4 [#5](https://github.com/Collaboration95/dc2/issues/5): clients | C1 [#18](https://github.com/Collaboration95/dc2/issues/18), C2 [#19](https://github.com/Collaboration95/dc2/issues/19) | [#30](https://github.com/Collaboration95/dc2/pull/30), `ea3950c` | Merged; client R1–R3 rereview PASS |
-| 3 / E5 [#6](https://github.com/Collaboration95/dc2/issues/6): integration/faults | V1 [#20](https://github.com/Collaboration95/dc2/issues/20), V2 [#21](https://github.com/Collaboration95/dc2/issues/21) | Final integration PR: **PENDING** | Final combined-head acceptance **PENDING** |
+| 3 / E5 [#6](https://github.com/Collaboration95/dc2/issues/6): integration/faults | V1 [#20](https://github.com/Collaboration95/dc2/issues/20), V2 [#21](https://github.com/Collaboration95/dc2/issues/21) | [PR31](https://github.com/Collaboration95/dc2/pull/31), draft | Final combined-head acceptance **PENDING** |
 | 4 / E5: measurements/release/handoff | V3 [#22](https://github.com/Collaboration95/dc2/issues/22), V4 [#23](https://github.com/Collaboration95/dc2/issues/23), V5 [#24](https://github.com/Collaboration95/dc2/issues/24) | Final evidence/handoff PR(s): **PENDING** | Full scaling running at frozen checkpoint; release/final review **PENDING** |
 
 V1 depends on P3/M3/C1/C2; V2/V3/V4 depend on V1. V5 has native dependencies
