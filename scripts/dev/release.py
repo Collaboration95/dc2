@@ -1184,10 +1184,24 @@ def public_smoke(runner, *, prepare_drain=False):
                 "-f",
                 "lavfi",
                 "-i",
-                "testsrc2=size=1280x720:rate=24:duration=30"
+                "testsrc2=size=1280x720:rate=30:duration=60"
                 if prepare_drain
                 else "color=c=blue:s=160x90:r=10:d=1",
-                "-an",
+                *(
+                    [
+                        "-f",
+                        "lavfi",
+                        "-i",
+                        "sine=frequency=997:sample_rate=48000:duration=60",
+                        "-c:a",
+                        "aac",
+                        "-b:a",
+                        "128k",
+                        "-shortest",
+                    ]
+                    if prepare_drain
+                    else ["-an"]
+                ),
                 "-c:v",
                 "libx264",
                 *(["-preset", "ultrafast"] if prepare_drain else []),
@@ -1228,7 +1242,7 @@ def public_smoke(runner, *, prepare_drain=False):
                 "asset_id": asset,
                 "uploaded_at": utcnow(),
                 "fixture_sha256": hashlib.sha256(video).hexdigest(),
-                "fixture_seconds": 30,
+                "fixture_seconds": 60,
                 "fixture_width": 1280,
                 "fixture_height": 720,
             }

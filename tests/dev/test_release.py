@@ -1186,9 +1186,11 @@ def test_evidence_upload_uses_public_http_and_persists_owned_ids(runner, monkeyp
     assert callable(request) and runner.deadline == deadline
     work = json.loads(runner.journal_path.read_text())["operations"][-1]["active_work"]
     assert (work["asset_id"], work["job_id"], work["attempt_id"]) == (ASSET, JOB, ATTEMPT)
-    assert work["fixture_seconds"] == 30 and work["public_processing_at"]
-    assert commands[0][0][commands[0][0].index("-i") + 1].endswith(":duration=30")
+    assert work["fixture_seconds"] == 60 and work["public_processing_at"]
+    assert commands[0][0][commands[0][0].index("-i") + 1].endswith(":duration=60")
     assert commands[0][1]["cap"] == 30
+    assert "sine=frequency=997:sample_rate=48000:duration=60" in commands[0][0]
+    assert "aac" in commands[0][0] and "-an" not in commands[0][0]
     assert not any(call[0] == "DELETE" or call[1] == "/output.mp4" for call in calls)
     assert "private-cookie" not in runner.journal_path.read_text()
     assert "private-url" not in runner.journal_path.read_text()
