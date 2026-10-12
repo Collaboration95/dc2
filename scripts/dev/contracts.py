@@ -43,6 +43,36 @@ def validate_request(name: str, route: str, method: str, body) -> None:
     validate_schema(name, schema, body)
 
 
+def check_examples(examples: dict | None = None) -> None:
+    """Validate every prepared payload at its owning request/response boundary."""
+    if examples is None:
+        examples = json.loads(
+            (ROOT / "project-roadmap/design/05-contracts/examples.json").read_text()
+        )
+    # The prepared documents share component names. Select the owning operation,
+    # so an example cannot silently validate against another service's schema.
+    boundaries = {
+        "submitJob": ("processing", "/jobs", "post", None),
+        "acceptedUpload": ("public", "/upload", "post", 202),
+        "pendingPublicAsset": ("public", "/jobs/{job_id}", "get", 200),
+        "processingJob": ("processing", "/jobs/{job_id}", "get", 200),
+        "retryRequest": ("processing", "/jobs/{job_id}/retry", "post", None),
+        "sourceAccessRequest": ("media-internal", "/assets/{asset_id}/source-access", "post", None),
+        "ownerMismatch": ("processing", "/jobs/{job_id}", "get", 404),
+        "payloadConflict": ("processing", "/jobs", "post", 409),
+    }
+    # Only note is metadata. Add a deliberate mapping when a new example appears.
+    if set(examples) != set(boundaries) | {"note"}:
+        raise ValueError("Prepared example names differ from the contract mappings")
+    if not isinstance(examples["note"], str):
+        raise ValueError("Prepared example note must be text")
+    for key, (name, route, method, status) in boundaries.items():
+        if status is None:
+            validate_request(name, route, method, examples[key])
+        else:
+            validate_response(name, route, method, status, examples[key])
+
+
 def check_document(name: str) -> None:
     data = document(name)
     if data["openapi"] != "3.1.0":

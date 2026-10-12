@@ -1,0 +1,1793 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-12T18:57:18.128561+00:00",
+  "reviewed_head": "0b24c9da4007bd44db9671f07924571d98e68e5b",
+  "branch": "work/integration",
+  "harness_diff_base": "f1ff8d3",
+  "product_baseline": "49b693ef8392d33d756f217d30e3a9e4d2205002",
+  "issues": {
+    "V1": 20,
+    "V2": 21
+  },
+  "code_harness_verdict": "REVISE",
+  "acceptance": {
+    "V1": "pending final combined-head evidence and required test corrections",
+    "V2": "pending complete actual integrated recovery run; R1 correction required"
+  },
+  "scope": "Read-only V1/V2 review; runtime V4/performance independently reviewed and excluded.",
+  "method": {
+    "reviewer_test_execution": "none",
+    "real_browser_calls": 0,
+    "container_calls": 0,
+    "github_access": 0,
+    "child_agents": 0,
+    "authorized_outputs": [
+      "docs/execution/contract-evidence.json",
+      "docs/execution/reviews/integration-review.md"
+    ],
+    "node_validation": "Every listed Python function checked by AST against reviewed checkout; function names exact. Parameterized base names identify the existing function, not a fabricated parameter-specific node.",
+    "report_validation": "Paths and SHA-256 of every parent reference checked locally. Quiet suite logs are aggregate proof for explicit module selections, not verbatim named-node proof.",
+    "revision_limit": "Historical Git SHA fields identify report creation HEAD, not dirty source or running image identity. No report is promoted to final 0b24c9d acceptance."
+  },
+  "layer_legend": {
+    "controlled-peer": "Offline/schema/unit doubles or controlled HTTP/object boundary; pure validators are labeled here as offline controlled layer.",
+    "real-PostgreSQL": "Actual migrated PostgreSQL, independent sessions/grants; may coexist with controlled peer/storage.",
+    "real-MinIO": "Actual storage/privileges/PUT/GET/List/Delete, not a fake Objects store.",
+    "real-browser": "Actual Playwright browser, not jsdom.",
+    "real-Redis": "Actual RQ/Redis hash/list operations.",
+    "real-FFmpeg": "Actual encoding/probing/decoding, with explicit assertions described per test.",
+    "real-HTTPS": "Actual TLS-verified public service/client workflow."
+  },
+  "parent_reports": {
+    "PFAST": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/processing-r1-fast.log",
+      "sha256": "4ab277c55e0bbda68e8de5853f6c1ec5e025647205da5aca68181ba76d327e0b",
+      "scope": "parent offline Python selection",
+      "observed_result": "644 passed in 4.36s",
+      "limitation": "Historical aggregate; no exact reviewed-head claim and no per-node verbose output.",
+      "recorded_revision": null
+    },
+    "PREAL": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/processing-r1-owned.log",
+      "sha256": "3d9519ebb1e3f062ee550afcc43bd23735618c8aecefe497e155e091cf26cd4f",
+      "scope": "parent Processing integration selection including six DB ownership cases",
+      "observed_result": "45 passed in 8.01s; integration subprocess exit 0",
+      "limitation": "Real PG/Redis/MinIO/FFmpeg where explicitly used; controlled source peer and cleanup store in other cases. Quiet aggregate, not named node output.",
+      "recorded_revision": null
+    },
+    "PGATE": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/processing-r1-gate.log",
+      "sha256": "d06bef9009bb0dafb738d27e695ac04e0988e57f93dce1ce440bcff4d7e8635c",
+      "scope": "parent Processing package gates",
+      "observed_result": "Processing 98.32% combined / 93.68% raw branches; media_engine 99.42% / 98.00%",
+      "limitation": "Historical package evidence, not a final combined-head gate.",
+      "recorded_revision": null
+    },
+    "MFAST": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/media-current-fast.log",
+      "sha256": "60f13337da194cc31ee99ffcfb8aa573bf42c18fb82ebf1e5d6355cc1f0468f0",
+      "scope": "parent offline Python selection",
+      "observed_result": "770 passed in 5.19s",
+      "limitation": "Historical aggregate; does not establish browser or CLI execution.",
+      "recorded_revision": null
+    },
+    "MREAL": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/media-current-owned.log",
+      "sha256": "00d24c5965ab07b02a78be6ae775fdc49112500061d02667059dbba5c3aed063",
+      "scope": "parent full owned selection",
+      "observed_result": "127 passed: 44 legacy + 45 Processing + 38 Media; owned subprocess exit 0",
+      "limitation": "Media persistence uses real PG with controlled HTTP Processing and in-memory object storage. 127 is not 127 Media tests.",
+      "recorded_revision": null
+    },
+    "MGATE": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/execution/media-current-gate.log",
+      "sha256": "9ae828a1066af8653143ee5c96de0172f5089bf9dcc1d793f0e553d888e6bc44",
+      "scope": "parent backend package gates",
+      "observed_result": "app 93.16%, processing 98.32%, media 98.19%, media_engine 99.42% combined; all >=80",
+      "limitation": "Historical package evidence; raw branches separately present in source report.",
+      "recorded_revision": null
+    },
+    "PUBLIC": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/integration/artifacts/integ/e2e/result.json",
+      "sha256": "f4672a60e38b98ef220c790f29ccc84f95da848801537e1eb1317d529edea6d2",
+      "scope": "retained successful public-only HTTP workflow",
+      "observed_result": "PASS; 3.091s",
+      "limitation": "Earlier revision; subset only; no browser/CLI/recovery completion.",
+      "recorded_revision": "af1cfc8c806f8f0c48bbf99cab8541ee4c2a0ad9"
+    },
+    "CLI": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/integration/artifacts/integ/e2e-20261012T175659-6e21e950/result.json",
+      "sha256": "2d2092027c42ce962dbfaeafe1715e51364728ddefea4eea87e572d26a472f13",
+      "scope": "CLI subsection of retained failed combined invocation",
+      "observed_result": "cases.CT-18-cli PASS; publisher-batch 30 accepted + 1 rejected; stored retry Attempt 2 after local input removed",
+      "limitation": "Overall report FAIL (UnboundedBrowserPlayPromise). This is subsection evidence only, never full V1 PASS.",
+      "recorded_revision": "48e4098b56e62f2d7805b78a123fc2b9bd6455e6"
+    },
+    "BROWSER": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/integration/artifacts/integ/browser-chromium-20261012T183755-d6938518/result.json",
+      "sha256": "ae32ba7dccc00a285d3843e8d583a36e4b6ccf360541286be1444f7e1e6842ee",
+      "scope": "parent focused Chrome browser workflow",
+      "observed_result": "PASS; 78.802s; visible failure 66.521s; retry body 0 bytes; uploads 1",
+      "limitation": "Earlier revision field; registration, not UI login. Moving video asserted, selected HLS transport not asserted by committed workflow.",
+      "recorded_revision": "78cedcca19a6a1dfb1662c63b1317d0beefc6dd5"
+    },
+    "TRUST": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/integration/artifacts/integ/browser-trust.json",
+      "sha256": "b2763bc419d66a28625c7fea2688905cb24744a335ba582dd38fa3cfff459c1b",
+      "scope": "parent real Chrome positive/unrelated-certificate negative and live HTTPS health",
+      "observed_result": "PASS; Chrome for Testing 153.0.8010.12; ignore_https_errors false",
+      "limitation": "No Git revision field; scoped local certificate/SPKI test, not system trust or Linux evidence.",
+      "recorded_revision": null
+    },
+    "PLAYBACK": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/integration/artifacts/integ/playback-probe-20261012T183344-9ca2f4f3/result.json",
+      "sha256": "0cfadd3efedde14d6d0a3907215f8e28725e4be82d027238991f061e4132009a",
+      "scope": "parent diagnostic browser MP4/HLS probe",
+      "observed_result": "PASS; 9.189s; hls-played ready 4/time 0.210214; mp4-played ready 4/time 0.275637",
+      "limitation": "Diagnostic report has no existing committed test/function to map; corroboration only, not a reproducible final harness gate.",
+      "recorded_revision": "78cedcca19a6a1dfb1662c63b1317d0beefc6dd5"
+    },
+    "CLIENTS": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/integration/docs/execution/reviews/clients-rereview.md",
+      "sha256": "07bbd5638ab9e1f4f25f91b13d91b61adf2481072fa0f7c0e124565b1480c4e1",
+      "scope": "independent client correction review",
+      "observed_result": "PASS; 57 offline Publisher + 1 real loopback TLS; 152 frontend tests; package/frontend gates pass",
+      "limitation": "Narrative independent review, older client head; loopback TLS peer is controlled and frontend tests use jsdom.",
+      "recorded_revision": "5de8e270690ea4682abb3d272a45dfb15fdd1aa4"
+    },
+    "IFAST": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/integration/.cache/execution/integrated-fast.log",
+      "sha256": "e931f865967dd2e1390c3a545991a358fadbaaaf1d1a3298c2c00f1aa95a0e91",
+      "scope": "parent integration-worktree fast gate",
+      "observed_result": "804 passed, 1 deselected in 6.94s; subprocess exit 0",
+      "limitation": "Log lacks exact revision; does not establish final V1/V2 or exact current-head execution.",
+      "recorded_revision": null
+    },
+    "ILINT": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/integration/.cache/execution/integrated-lint.log",
+      "sha256": "cfa650a2653f6871fc72d3c19b6216ad0ec312e775b49ad66c83977b5c3c29a8",
+      "scope": "parent integration-worktree lint",
+      "observed_result": "All checks passed",
+      "limitation": "Historical command omitted scripts/evidence; current checks.lint includes it. Do not claim final evidence lint from this log.",
+      "recorded_revision": null
+    },
+    "FFAIL": {
+      "path": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/integration/artifacts/integ/browser-focused-20261012T180212-2658ee4f/result.json",
+      "sha256": "495113356ea9314b4c701519a38228994d98344410e0eaca7f97ee2f8d8245ac",
+      "scope": "retained failed Firefox workflow",
+      "observed_result": "FAIL; readyState 1; bounded play error",
+      "limitation": "Diagnostic failure retained, not retried into a full-workflow PASS.",
+      "recorded_revision": "3d44d6a4f0f6ecdb5b1c14f3e4f61c3c59a0cb5b"
+    }
+  },
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "P2",
+      "locations": [
+        "scripts/dev/e2e_clients.py:53",
+        "scripts/evidence/recovery.py:40",
+        "scripts/evidence/recovery.py:62",
+        "scripts/evidence/recovery.py:121",
+        "scripts/dev/verify.py:40",
+        "scripts/dev/common.py:36"
+      ],
+      "problem": "Fault injection starts before its restoration try/finally. A stop/kill that mutates one service then raises/ times out bypasses restoration. verify also runs e2e as a 900s subprocess whose forced timeout termination bypasses child finally blocks.",
+      "consequence": "A failed evidence command can leave the local worker/recovery/API stopped, contaminating later acceptance runs.",
+      "required_change": "Enter restoration guard before every stop/kill; preserve original failure and report restoration outcome. Ensure the verify timeout can restore the run-owned affected services (or gracefully cancel and then restore from its supervisor). Add bounded controlled regressions for injection failure after mutation and outer timeout restoration.",
+      "fix_status": "not yet verified; owned by other agent"
+    },
+    {
+      "id": "R2",
+      "severity": "P2",
+      "locations": [
+        "scripts/dev/e2e_clients.py:35"
+      ],
+      "problem": "browser_workflow toggles to register and never exercises login in the real browser. auth/login is called only by a separate httpx polling client. Existing frontend login test uses mocked fetch/jsdom.",
+      "consequence": "The explicit V1 real-browser login criterion has no implemented real-browser test; registration success can hide a broken login UI.",
+      "required_change": "After registration, log out/clear the browser session, submit existing credentials through the login UI, await the actual successful login response and app state, then continue the same workflow.",
+      "fix_status": "not yet verified; owned by other agent"
+    },
+    {
+      "id": "R3",
+      "severity": "P2",
+      "locations": [
+        "tests/integration/test_processing_worker.py:102",
+        "tests/integration/test_media_persistence.py:373",
+        "tests/contracts/test_prepared_contracts.py:11",
+        "scripts/dev/contracts.py:46"
+      ],
+      "problem": "CT-20 lacks accepted source-invalid geometry -> visible failed Attempt evidence; CT-21 lacks retained edit-key replay after derived Asset deletion; CT-23 does not validate prepared examples.json. Nearby pure validators/upload replay/schema-reference tests cover different assertions.",
+      "consequence": "All 25 cases have mappings, but required variants in CT-20/21/23 can regress while every current mapped test passes.",
+      "required_change": "Add three small focused checks: a schema-valid out-of-source crop or over-duration clip through current Processing execution/public failed projection with no output; deleting a derived Asset then replaying its retained edit key must 410 without recreation; validate every prepared example against the correct schema and make a malformed example fail. These need no new product/security feature.",
+      "fix_status": "code implemented; offline schema/lint/collection passed; live verification pending"
+    },
+    {
+      "id": "R4",
+      "severity": "P2",
+      "locations": [
+        "scripts/dev/e2e_clients.py:89",
+        "scripts/dev/e2e_clients.py:121",
+        "scripts/dev/e2e_clients.py:143",
+        "scripts/dev/e2e.py:52"
+      ],
+      "problem": "browser_workflow accepts any advancing video but labels it played HLS. It does not require hls_url, observe successful HLS playlist/segment use or assert selected HLS playback rather than MP4 fallback. Public HLS traversal only checks nonempty segment bytes. Diagnostic parent probe played both formats but has no existing committed function.",
+      "consequence": "Broken HLS decoding can pass the final harness through MP4 fallback while report claims HLS playback.",
+      "required_change": "Make the browser gate prove the selected HLS playback path and advancing decoded video, and exercise/retain an explicit MP4 path too (a small existing-browser probe is sufficient). Alternatively narrow the workflow label and add the format-specific checks to the callable final acceptance harness. Keep the valid scoped browser choice.",
+      "fix_status": "not yet verified; owned by other agent"
+    }
+  ],
+  "run_only_checklist": [
+    {
+      "action": "Fresh build/start current final combined head; make verify-local RUN_ID=<isolated-id> && make e2e RUN_ID=<isolated-id>",
+      "status": "pending; not an independent code finding"
+    },
+    {
+      "action": "make evidence-recovery RUN_ID=<isolated-id>: kill <=300s, lost hash/list repair <=120s, P outage/restart, same IDs, retry success, one published primary",
+      "status": "pending; no complete retained V2 result located"
+    },
+    {
+      "action": "Linux pinned Firefox/NSS trust and full browser workflow; current CI job runs trust only",
+      "status": "pending; existing callable browser workflow can run on Linux; no invented Linux PASS"
+    },
+    {
+      "action": "Retain exact final SHA/config/fixture/IDs/timings and raw results; do not overwrite failed invocation with success",
+      "status": "pending"
+    }
+  ],
+  "cases": [
+    {
+      "id": "CT-01",
+      "case": "Upload replay",
+      "input": "Same owner/key/file twice",
+      "expected": "Same asset ID, one accepted Asset and one eventual Processing job.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_media_persistence.py::test_concurrent_replay_one_asset_cleanup_only_losers",
+          "kind": "pytest",
+          "line": 354,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Eight concurrent uploads return one Asset; SQL counts one Asset; controlled peer counts one job; only adopted source survives.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_processing_intake.py::test_concurrent_identical_submissions_reserve_one_job_and_one_attempt",
+          "kind": "pytest",
+          "line": 184,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Eight real independent SQL requests create one Job/Attempt; seven 200 and one 201.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "scripts/dev/e2e.py::public_workflow",
+          "kind": "harness-function",
+          "line": 67,
+          "layers": [
+            "real-HTTPS",
+            "real-PostgreSQL",
+            "real-MinIO",
+            "real-Redis",
+            "real-FFmpeg"
+          ],
+          "assertions": "Same owner/key/bytes retain public Asset; live private owner-filtered query finds one job.",
+          "parent_report_refs": [
+            "PUBLIC"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Composed real persistence plus public HTTPS evidence; controlled peer in Media suite is explicitly distinguished.",
+      "gaps": [],
+      "report_selectors": {
+        "PUBLIC": "cases.CT-01"
+      }
+    },
+    {
+      "id": "CT-02",
+      "case": "Upload conflict",
+      "input": "Same owner/key, different file digest",
+      "expected": "409; preserve original Asset.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_media_persistence.py::test_replay_conflict_owner_operation_and_deleted_key",
+          "kind": "pytest",
+          "line": 373,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Changed bytes return 409; another owner may use same key independently; original remains owned.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "scripts/dev/e2e.py::public_workflow",
+          "kind": "harness-function",
+          "line": 67,
+          "layers": [
+            "real-HTTPS",
+            "real-PostgreSQL",
+            "real-MinIO",
+            "real-Redis",
+            "real-FFmpeg"
+          ],
+          "assertions": "Changed file/key returns 409 and original proceeds to done/playback before deletion.",
+          "parent_report_refs": [
+            "PUBLIC"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Conflict and preservation exercised; final refresh pending.",
+      "gaps": [],
+      "report_selectors": {
+        "PUBLIC": "cases.CT-02"
+      }
+    },
+    {
+      "id": "CT-03",
+      "case": "Submit replay",
+      "input": "Same asset/owner/source/options, refreshed signed URL",
+      "expected": "200 existing job. No duplicate attempt.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_processing_intake.py::test_renewed_source_url_and_json_key_order_replay_existing_attempt",
+          "kind": "pytest",
+          "line": 203,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Refreshed URL/expiry and JSON key order return 200 and identical committed Job/Attempt.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Real PG directly proves immutable replay; no requirement for a full-browser replay.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-04",
+      "case": "Submit owner attack",
+      "input": "Valid service token, wrong owner for existing asset",
+      "expected": "404. No mutation or information leak.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_processing_intake.py::test_existing_asset_cannot_be_replayed_by_another_owner",
+          "kind": "pytest",
+          "line": 258,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Valid service token with changed body/header owner returns 404, hides Job ID, leaves original SQL rows unchanged.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_processing_intake.py::test_header_and_body_owner_must_match_before_inserting",
+          "kind": "pytest",
+          "line": 269,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Header/body owner mismatch returns 404 with no rows; correct later submit succeeds.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Ownership attack asserted against real PG handlers.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-05",
+      "case": "Submit payload conflict",
+      "input": "Same asset/owner, changed source revision or operations",
+      "expected": "409. Existing job remains unchanged.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_processing_intake.py::test_changed_immutable_source_fields_conflict_without_mutating_job",
+          "kind": "pytest",
+          "line": 219,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "revision/digest/size/media-type changes return 409; original replay and committed rows unchanged.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_processing_intake.py::test_changed_operation_parameters_or_order_conflict",
+          "kind": "pytest",
+          "line": 241,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Changed clip bounds/order return 409; original operations retained.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Real PG covers both immutable source and ordered edit payload.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-06",
+      "case": "Retry replay",
+      "input": "Repeat retry_request_id after first attempt starts or finishes",
+      "expected": "202 current job; no second new attempt.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_processing_lifecycle.py::test_retry_replay_concurrent_and_stale_failure",
+          "kind": "pytest",
+          "line": 182,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Eight concurrent retries create only Attempt 2; replay after success remains Attempt 2; two SQL Attempt rows total.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_media_persistence.py::test_retry_lost_ack_stable_request_no_source_upload",
+          "kind": "pytest",
+          "line": 511,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Lost retry ACK is replayed with one durable retry UUID, unchanged stored sources and no source upload.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "scripts/evidence/recovery.py::retry",
+          "kind": "harness-function",
+          "line": 15,
+          "layers": [
+            "real-HTTPS",
+            "real-PostgreSQL",
+            "real-MinIO",
+            "real-Redis",
+            "real-FFmpeg"
+          ],
+          "assertions": "Two bodyless public POSTs with same key must return same Asset, success, Attempt 2 and exactly one published primary.",
+          "parent_report_refs": [],
+          "execution": "implemented; no retained execution report for this function located"
+        }
+      ],
+      "disposition": "Real PG covers replay during live attempt and after finish. Full real V2 helper exists but is unrun here; do not substitute browser single retry for retry replay.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-07",
+      "case": "Retry state",
+      "input": "New retry ID while job is queued, processing or done",
+      "expected": "409. Wrong owner remains 404.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_processing_lifecycle.py::test_retry_cancel_http_auth_and_contract",
+          "kind": "pytest",
+          "line": 250,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Queued retry returns 409; other owner 404.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_processing_lifecycle.py::test_retry_replay_concurrent_and_stale_failure",
+          "kind": "pytest",
+          "line": 182,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Fresh retry ID on done state rejected.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/processing/test_lifecycle.py::test_retry_owner_deleted_state_errors",
+          "kind": "pytest",
+          "line": 105,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Live processing state rejects new retry; wrong owner 404 and deleted 410.",
+          "parent_report_refs": [
+            "PFAST",
+            "MFAST",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "scripts/dev/e2e.py::public_workflow",
+          "kind": "harness-function",
+          "line": 67,
+          "layers": [
+            "real-HTTPS",
+            "real-PostgreSQL",
+            "real-MinIO",
+            "real-Redis",
+            "real-FFmpeg"
+          ],
+          "assertions": "Fresh retry on done Asset returns 409; other owner retry returns 404.",
+          "parent_report_refs": [
+            "PUBLIC"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Queued/done real PG and processing-state offline branch combine to cover required states.",
+      "gaps": [],
+      "report_selectors": {
+        "PUBLIC": "cases.CT-07"
+      }
+    },
+    {
+      "id": "CT-08",
+      "case": "Source expiry",
+      "input": "Queued source URL expired before claim",
+      "expected": "Refresh grant for matching owner/revision; valid source still readable without source credentials.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_processing_worker.py::test_real_worker_short_encode_outputs",
+          "kind": "pytest",
+          "line": 107,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer",
+            "real-FFmpeg"
+          ],
+          "assertions": "Expired original grant and first renewed GET 403 cause two authenticated reverse grants; real FFmpeg output and HLS decode successfully.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_processing_storage.py::test_real_write_only_worker_encode_cleanup_and_privileges",
+          "kind": "pytest",
+          "line": 58,
+          "layers": [
+            "real-PostgreSQL",
+            "real-MinIO",
+            "controlled-peer",
+            "real-FFmpeg"
+          ],
+          "assertions": "Worker obtains controlled reverse grant, fetches actual MinIO presigned source without source credentials and encodes via real storage.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Expiry/renewal tested with controlled reverse HTTP peer; real object access/encode separately proven. No false claim of an expired source grant in the public workflow.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-09",
+      "case": "Source access denial",
+      "input": "Wrong owner/revision, deleted asset or wrong-direction token",
+      "expected": "404 owner/deleted; 409 revision; 401 invalid token. No signed URL.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_media_persistence.py::test_reverse_grant_owner_revision_direction_and_tombstone",
+          "kind": "pytest",
+          "line": 474,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Correct reverse grant descriptor; wrong owner/deleted 404, wrong revision 409, forward token on reverse route 401.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/media/test_api_recovery.py::test_source_internal_auth_and_grant_contract",
+          "kind": "pytest",
+          "line": 170,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Missing/wrong-shaped auth fails; valid grant descriptor; revision mismatch and storage error are rejected.",
+          "parent_report_refs": [
+            "MFAST",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Real MM handlers with real PG, controlled storage; source URL authority is not expanded.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-10",
+      "case": "Output ownership",
+      "input": "Owner A requests B\u2019s MP4/HLS or attempts path traversal",
+      "expected": "404; no key/URL leak.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_media_persistence.py::test_primary_hls_owner_checked_playlist_bodies_segment_signing",
+          "kind": "pytest",
+          "line": 680,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Owner-only public signing; facade-relative master/rendition bodies; segment redirect; stranger, traversal and missing path 404.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_media_persistence.py::test_playback_grant_serializes_before_tombstone_and_later_reads_are_denied",
+          "kind": "pytest",
+          "line": 930,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Real PG playback lock serializes deletion; no later signing after tombstone.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "scripts/dev/e2e.py::public_workflow",
+          "kind": "harness-function",
+          "line": 67,
+          "layers": [
+            "real-HTTPS",
+            "real-PostgreSQL",
+            "real-MinIO",
+            "real-Redis",
+            "real-FFmpeg"
+          ],
+          "assertions": "Stranger status/retry/delete/HLS return 404; owner MP4/HLS paths access real bytes.",
+          "parent_report_refs": [
+            "PUBLIC"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Owner authorization is at Media grant/facade boundary; signed MP4 URL is an expiring capability, not a second user-auth endpoint.",
+      "gaps": [],
+      "report_selectors": {
+        "PUBLIC": "cases.CT-10"
+      }
+    },
+    {
+      "id": "CT-11",
+      "case": "Delayed completion",
+      "input": "Attempt A finishes after retry attempt B becomes current",
+      "expected": "No state/output overwrite. Only current attempt can publish.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_processing_lifecycle.py::test_retry_replay_concurrent_and_stale_failure",
+          "kind": "pytest",
+          "line": 182,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Delayed old success/failure cannot overwrite newer retry winner.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_processing_lifecycle.py::test_lease_expiry_fences_success_failure_and_heartbeat",
+          "kind": "pytest",
+          "line": 272,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Expired lease rejects finish/failure/heartbeat.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_processing_recovery.py::test_old_cleanup_does_not_revoke_healthy_retry",
+          "kind": "pytest",
+          "line": 132,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Old blocked cleanup holds no Job lock; three committed real heartbeats advance; healthy retry wins and only old prefix cleaned.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Real PG current-attempt fences and prior R1 cleanup-lock regression directly asserted.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-12",
+      "case": "Queue outage",
+      "input": "Job commits but enqueue fails, or RQ hash survives lost queue entry",
+      "expected": "Durable queued work remains discoverable. Step 06 proves repair within target.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_processing_recovery.py::test_lost_queue_list_entry_with_surviving_rq_hash",
+          "kind": "pytest",
+          "line": 48,
+          "layers": [
+            "real-PostgreSQL",
+            "real-Redis"
+          ],
+          "assertions": "Real Redis list loss preserves RQ hash; same reserved payload repaired under 2s; repeat repair no duplicate.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_processing_recovery.py::test_queue_failure_has_durable_bounded_backoff",
+          "kind": "pytest",
+          "line": 74,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Controlled queue failure preserves durable dispatch counters/backoff in real SQL.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "scripts/evidence/recovery.py::queue_loss",
+          "kind": "harness-function",
+          "line": 60,
+          "layers": [
+            "real-HTTPS",
+            "real-PostgreSQL",
+            "real-MinIO",
+            "real-Redis",
+            "real-FFmpeg"
+          ],
+          "assertions": "Remove exactly one actual Redis list item while its hash survives; repair <=120s; same Attempt ID; eventual done.",
+          "parent_report_refs": [],
+          "execution": "implemented; no retained execution report for this function located"
+        }
+      ],
+      "disposition": "Service-level real repair PASS; full runtime target timing not yet measured by retained V2 report. R1 restoration finding applies.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-13",
+      "case": "Processing outage",
+      "input": "Upload while Processing is unreachable",
+      "expected": "202 after durable intake; queued/pending visible; retry SubmitJob later with same asset ID.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_media_persistence.py::test_pending_restart_and_normal_payload_omits_operations",
+          "kind": "pytest",
+          "line": 319,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Controlled P outage yields committed pending Asset; replacement app/fresh SQL sessions observe it; reconcile submits same immutable normal payload.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "scripts/evidence/recovery.py::processing_outage",
+          "kind": "harness-function",
+          "line": 117,
+          "layers": [
+            "real-HTTPS",
+            "real-PostgreSQL",
+            "real-MinIO",
+            "real-Redis",
+            "real-FFmpeg"
+          ],
+          "assertions": "Actual P stop: 202/pending survive Media restart; replay retains Asset; restored services eventually complete.",
+          "parent_report_refs": [],
+          "execution": "implemented; no retained execution report for this function located"
+        }
+      ],
+      "disposition": "Real persistence demonstrated with controlled P peer; actual integrated outage experiment implemented but unrun. R1 restoration finding applies.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-14",
+      "case": "Status outage",
+      "input": "Read a submitted Asset while Processing is unreachable",
+      "expected": "503, not a synthetic fresh state.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_media_persistence.py::test_live_status_outage_is_503_single_and_batch",
+          "kind": "pytest",
+          "line": 447,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Submitted Asset/collection with controlled P down or missing job return 503 and no output URL.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "scripts/evidence/recovery.py::processing_outage",
+          "kind": "harness-function",
+          "line": 117,
+          "layers": [
+            "real-HTTPS",
+            "real-PostgreSQL",
+            "real-MinIO",
+            "real-Redis",
+            "real-FFmpeg"
+          ],
+          "assertions": "Previously done Asset returns public 503 while actual P API is stopped.",
+          "parent_report_refs": [],
+          "execution": "implemented; no retained execution report for this function located"
+        }
+      ],
+      "disposition": "No synthetic successful status; real runtime outage evidence remains pending.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-15",
+      "case": "DB isolation",
+      "input": "Connect/query opposite database using each runtime role",
+      "expected": "Denied. Correct database DML succeeds; DDL requires own migration role.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_database_ownership.py::test_migration_owns_schema_while_runtime_can_only_use_its_data",
+          "kind": "pytest",
+          "line": 28,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Both own migrators create schema; runtimes INSERT/UPDATE/SELECT/DELETE but cannot CREATE/ALTER.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_database_ownership.py::test_service_credentials_cannot_connect_to_the_other_database",
+          "kind": "pytest",
+          "line": 51,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Both runtime and migrator roles connect to own DB, then fail opposite DB.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_media_persistence.py::test_media_runtime_ddl_and_opposite_database_denied",
+          "kind": "pytest",
+          "line": 739,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Media runtime DDL and opposite DB connection denied.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Actual PostgreSQL grants; six shared ownership tests included in 45 Processing selection.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-16",
+      "case": "Delete while encoding",
+      "input": "Delete Asset before a worker finishes",
+      "expected": "Public 404; new source grants denied; stale output never published; cleanup repeats safely.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_processing_recovery.py::test_repeat_cleanup_removes_late_outputs_preserves_source_and_active",
+          "kind": "pytest",
+          "line": 226,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Cancel a claimed processing Attempt; repeat cleanup removes later objects; late finish cannot publish.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_processing_storage.py::test_real_write_only_worker_encode_cleanup_and_privileges",
+          "kind": "pytest",
+          "line": 58,
+          "layers": [
+            "real-PostgreSQL",
+            "real-MinIO",
+            "controlled-peer",
+            "real-FFmpeg"
+          ],
+          "assertions": "Cancel completed object set; actual MinIO cleanup repeats on late PUT; source stays readable and cleanup cannot delete it.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_media_persistence.py::test_reverse_grant_owner_revision_direction_and_tombstone",
+          "kind": "pytest",
+          "line": 474,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Tombstoned Asset denies new source grant.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_media_persistence.py::test_delete_uncertain_submit_cancel_lost_ack_source_waits",
+          "kind": "pytest",
+          "line": 632,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Public tombstone is durable and 404; source removal waits for cancel ACK; cleanup repeat safe.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Layered real PG cancellation/fencing plus real MinIO late-write cleanup, with controlled object/peer boundaries identified. No full-browser delete-during-encode run claimed.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-17",
+      "case": "Edit independence",
+      "input": "Create derived Asset, then delete original",
+      "expected": "Derived immutable source remains available. No new editor UI required.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_media_persistence.py::test_edit_pending_operations_independent_source_and_parent_delete",
+          "kind": "pytest",
+          "line": 555,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Derived independent source/ordered operations persist; deleting parent leaves child source; same edit key replays child.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "scripts/dev/e2e.py::public_workflow",
+          "kind": "harness-function",
+          "line": 67,
+          "layers": [
+            "real-HTTPS",
+            "real-PostgreSQL",
+            "real-MinIO",
+            "real-Redis",
+            "real-FFmpeg"
+          ],
+          "assertions": "Actual edit accepted/replayed, parent deleted, derived child reaches done and its MP4 is downloaded/probed.",
+          "parent_report_refs": [
+            "PUBLIC"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Real public two-service proof corroborates controlled-peer persistence.",
+      "gaps": [],
+      "report_selectors": {
+        "PUBLIC": "cases.CT-17"
+      }
+    },
+    {
+      "id": "CT-18",
+      "case": "Web/CLI compatibility",
+      "input": "Same workflow via both clients",
+      "expected": "Response shapes stable; retry sends no file; HLS playlists remain facade-relative.",
+      "coverage": "partial",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "scripts/dev/e2e_clients.py::cli_workflow",
+          "kind": "harness-function",
+          "line": 154,
+          "layers": [
+            "real-HTTPS",
+            "real-PostgreSQL",
+            "real-MinIO",
+            "real-Redis",
+            "real-FFmpeg"
+          ],
+          "assertions": "Actual Publisher subprocesses register/login; mixed batch 30 good+1 bad; status/output bytes; local damaged input removed; stored retry creates different Attempt 2 with unchanged invalid source failing again.",
+          "parent_report_refs": [
+            "CLI"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "scripts/dev/e2e_clients.py::browser_workflow",
+          "kind": "harness-function",
+          "line": 11,
+          "layers": [
+            "real-HTTPS",
+            "real-PostgreSQL",
+            "real-MinIO",
+            "real-Redis",
+            "real-FFmpeg",
+            "real-browser"
+          ],
+          "assertions": "UI registers/uploads; real SIGKILL; visible failure <=300s; retry 202/zero body/key/no extra upload; video advances; UI DELETE 204 then public 404.",
+          "parent_report_refs": [
+            "BROWSER"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/publisher/test_publisher.py::test_retry_bodyless_replay_and_new_user_intent",
+          "kind": "pytest",
+          "line": 142,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Controlled public peer asserts retry request content exactly empty and replay/new intent keys.",
+          "parent_report_refs": [
+            "CLIENTS",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/publisher/test_publisher.py::test_public_schema_conformance_and_explicit_ca",
+          "kind": "pytest",
+          "line": 382,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Controlled request/response schema validation and SSL context verification with explicit CA.",
+          "parent_report_refs": [
+            "CLIENTS",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_media_persistence.py::test_primary_hls_owner_checked_playlist_bodies_segment_signing",
+          "kind": "pytest",
+          "line": 680,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "HLS playlist bodies stay facade-relative.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Most workflow assertions and parent results are real. Browser UI login is absent; browser playback can use MP4 fallback while evidence label says HLS. Diagnostic MP4/HLS PASS corroborates support but has no committed callable test.",
+      "gaps": [
+        "R2: required real-browser UI login not exercised",
+        "R4: browser workflow does not establish HLS was the decoding transport"
+      ],
+      "report_selectors": {
+        "CLI": "cases.CT-18-cli; events publisher-batch and publisher-stored-retry",
+        "BROWSER": "cases.CT-18-browser; events browser-before-play and browser-playback-retry",
+        "PLAYBACK": "events hls-played and mp4-played (diagnostic only)"
+      }
+    },
+    {
+      "id": "CT-19",
+      "case": "Operator boundary",
+      "input": "Normal user attempts admin; operator manages another owner\u2019s item",
+      "expected": "403 for normal user. Operator checked in MM; Processing still receives a specific owner.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_media_persistence.py::test_batch_filters_owner_and_operator_groups_actual_owners",
+          "kind": "pytest",
+          "line": 456,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "User admin list 403; current DB operator sees other-owner asset; peer batch/cancel retain specific real owner.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/media/test_api_recovery.py::test_delete_tombstone_durable_response_and_operator_routes",
+          "kind": "pytest",
+          "line": 86,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Normal user admin list/delete 403; operator routes authorized.",
+          "parent_report_refs": [
+            "MFAST",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Basic role boundary proved; no OIDC or additional credential infrastructure needed.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-20",
+      "case": "Input invariants",
+      "input": "Over-limit, wrong MIME/container, duplicate operations or invalid geometry",
+      "expected": "Admission errors return 413/415/422 before acceptance. Source-dependent geometry/probe failures produce a visible failed attempt after 202; they are not promised synchronous rejections.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_media_persistence.py::test_full_100mib_file_allowed_but_file_over_limit_rejected",
+          "kind": "pytest",
+          "line": 881,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Exact 100MiB accepted; +1 byte returns 413; only one source accepted.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/media/test_intake_repository.py::test_actual_file_size_and_container_type",
+          "kind": "pytest",
+          "line": 24,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Wrong MIME, unrecognized bytes and too-large file raise 415/413.",
+          "parent_report_refs": [
+            "MFAST",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/media/test_contract_security.py::test_invalid_edits_fail_before_acceptance",
+          "kind": "pytest",
+          "line": 46,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Invalid/duplicate operations and static geometry rejected by request schema.",
+          "parent_report_refs": [
+            "MFAST",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/media_engine/test_validation.py::test_crop_rejects_nonpositive_or_out_of_frame_rectangles",
+          "kind": "pytest",
+          "line": 45,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Source geometry validator rejects out-of-frame crop.",
+          "parent_report_refs": [
+            "PFAST",
+            "MFAST",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/media_engine/test_validation.py::test_clip_rejects_invalid_ranges",
+          "kind": "pytest",
+          "line": 91,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Source duration validator rejects clip beyond duration.",
+          "parent_report_refs": [
+            "PFAST",
+            "MFAST",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "scripts/dev/e2e_clients.py::cli_workflow",
+          "kind": "harness-function",
+          "line": 154,
+          "layers": [
+            "real-HTTPS",
+            "real-PostgreSQL",
+            "real-MinIO",
+            "real-Redis",
+            "real-FFmpeg"
+          ],
+          "assertions": "Truncated but recognizable MP4 is accepted, becomes visibly failed and unchanged retry fails again.",
+          "parent_report_refs": [
+            "CLI"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_processing_worker.py::test_real_worker_source_invalid_edit_has_failed_attempt_and_public_projection",
+          "kind": "pytest",
+          "layers": [
+            "real-PostgreSQL",
+            "real-FFmpeg",
+            "controlled-peer"
+          ],
+          "assertions": "Public/P schemas accept out-of-source crop and over-duration clip. Real Processing.execute downloads the valid digest-matched FFmpeg fixture and runs ffprobe; a delegating observer confirms the real source validator raises its geometry/duration error. Persisted current Job/Attempt and owner read are failed with error/start/finish and no outputs or PUTs. Actual MM public projection is failed with error and no playback URLs; MM Asset is in memory, not real MM persistence/HTTP.",
+          "parent_report_refs": [],
+          "execution": "code implemented; collected offline; live PostgreSQL/FFmpeg verification pending parent run after fair scaling",
+          "line": 185
+        }
+      ],
+      "disposition": "R3 source-dependent geometry variants now implemented through real Processing execution/current persisted Attempt and actual MM public projection. Existing admission evidence retained. New live PG/FFmpeg verification remains pending; projection uses an in-memory MM Asset and controlled HTTP/output peers, not full live MM/HTTPS.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-21",
+      "case": "Deleted key replay",
+      "input": "Reuse a retained upload/edit key for a deleted Asset",
+      "expected": "410. Never recreate the deleted Asset implicitly.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_media_persistence.py::test_replay_conflict_owner_operation_and_deleted_key",
+          "kind": "pytest",
+          "line": 373,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Replayed deleted upload key returns 410.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/media/test_intake_repository.py::test_replay_never_resurrects_tombstones_or_changes_sources",
+          "kind": "pytest",
+          "line": 56,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Generic repository replay tested with operation upload; tombstone 410.",
+          "parent_report_refs": [
+            "MFAST",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "scripts/dev/e2e.py::public_workflow",
+          "kind": "harness-function",
+          "line": 67,
+          "layers": [
+            "real-HTTPS",
+            "real-PostgreSQL",
+            "real-MinIO",
+            "real-Redis",
+            "real-FFmpeg"
+          ],
+          "assertions": "Actual deleted upload/key returns 410.",
+          "parent_report_refs": [
+            "PUBLIC"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_media_persistence.py::test_deleted_derived_asset_edit_key_replay_is_410_without_recreation",
+          "kind": "pytest",
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Actual MM edit/delete/replay handlers with real PG retain the edit key and child tombstone while original stays readable. Two same-key edit replays return 410; exactly parent/child rows remain, key/hash unchanged, no staged rows, source/output dictionaries unchanged, no extra deletion/cancellation/submission/Processing job. Processing HTTP and object storage are controlled peers.",
+          "parent_report_refs": [],
+          "execution": "code implemented; collected offline; live PostgreSQL verification pending parent run after fair scaling",
+          "line": 395
+        }
+      ],
+      "disposition": "R3 deleted derived-Asset retained edit-key variant now implemented through real PG MM handlers, with original retained and explicit no-recreation/object/dispatch assertions. Live PG verification remains pending; storage/P peer are controlled.",
+      "gaps": [],
+      "report_selectors": {
+        "PUBLIC": "cases.CT-21 (upload only)"
+      }
+    },
+    {
+      "id": "CT-22",
+      "case": "Output commit",
+      "input": "Mark done without a verified primary output or from deleted job",
+      "expected": "Transition rejected; no playable success claim.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_processing_lifecycle.py::test_claim_once_current_live_fences_and_db_clock",
+          "kind": "pytest",
+          "line": 157,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Empty/foreign output sets rejected before state write; current verified primary can finish; late failure cannot overwrite done.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_processing_recovery.py::test_repeat_cleanup_removes_late_outputs_preserves_source_and_active",
+          "kind": "pytest",
+          "line": 226,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Finish from cancelled/deleted claimed Attempt returns false.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/processing/test_worker.py::test_output_put_acknowledgment_without_head",
+          "kind": "pytest",
+          "line": 167,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Successful PUT ACK supplies size/digest; missing ETag rejected without read privileges.",
+          "parent_report_refs": [
+            "PFAST",
+            "MFAST",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Output verification/fencing directly asserted; no output byte count alone is treated as playable success.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-23",
+      "case": "Schema conformance",
+      "input": "Validate requests/responses and examples against contracts",
+      "expected": "No unresolved references; real handlers must implement the documented cases later.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/contracts/test_prepared_contracts.py::test_prepared_contract_references_and_json_schemas_resolve",
+          "kind": "pytest",
+          "line": 19,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "All three docs resolve local references and validate component JSON schemas.",
+          "parent_report_refs": [
+            "MFAST",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/contracts/test_prepared_contracts.py::test_public_validation_accepts_actual_shape_and_rejects_internal_id_shape",
+          "kind": "pytest",
+          "line": 54,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Public Asset ID/UUID shape enforced; wrong identifier shape rejected.",
+          "parent_report_refs": [
+            "MFAST",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/contracts/test_prepared_contracts.py::test_status_and_empty_response_validation_cannot_hide_contract_drift",
+          "kind": "pytest",
+          "line": 62,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Undocumented status and body on 204 fail.",
+          "parent_report_refs": [
+            "MFAST",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/contracts/test_prepared_contracts.py::test_reverse_source_request_rejects_extra_storage_authority",
+          "kind": "pytest",
+          "line": 70,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Reverse request revision schema rejects extra bucket authority.",
+          "parent_report_refs": [
+            "MFAST",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/publisher/test_publisher.py::test_public_schema_conformance_and_explicit_ca",
+          "kind": "pytest",
+          "line": 382,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Controlled public peer validates emitted requests and returned responses.",
+          "parent_report_refs": [
+            "CLIENTS",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "scripts/dev/e2e.py::public_workflow",
+          "kind": "harness-function",
+          "line": 67,
+          "layers": [
+            "real-HTTPS",
+            "real-PostgreSQL",
+            "real-MinIO",
+            "real-Redis",
+            "real-FFmpeg"
+          ],
+          "assertions": "Scenario.request validates real public JSON responses; Scenario.processing_job validates actual private owner-filtered response.",
+          "parent_report_refs": [
+            "PUBLIC"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/contracts/test_prepared_contracts.py::test_every_prepared_example_matches_its_owning_contract",
+          "kind": "pytest",
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Reads prepared examples.json and validates all eight payloads at explicit public/P/MM owning request or response operations; note is metadata.",
+          "parent_report_refs": [],
+          "execution": "offline schema verification passed; final combined-head verification pending",
+          "line": 23
+        },
+        {
+          "node": "tests/contracts/test_prepared_contracts.py::test_broken_prepared_example_fails_schema_validation",
+          "kind": "pytest",
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Each of the eight prepared payloads is separately malformed and must raise jsonschema.ValidationError, including UUID, state, Attempt, revision and error shapes.",
+          "parent_report_refs": [],
+          "execution": "offline schema verification passed (eight parameters); final combined-head verification pending",
+          "line": 40
+        },
+        {
+          "node": "tests/contracts/test_prepared_contracts.py::test_unmapped_prepared_example_cannot_be_skipped",
+          "kind": "pytest",
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "An added unmapped example raises ValueError instead of being silently skipped.",
+          "parent_report_refs": [],
+          "execution": "offline schema verification passed; final combined-head verification pending",
+          "line": 47
+        }
+      ],
+      "disposition": "R3 prepared example conformance now implemented and verified offline, with all eight entries mapped to owning public/P/MM operation schemas and negative broken/unmapped examples. Final combined-head/live handler verification remains pending.",
+      "gaps": [],
+      "report_selectors": {
+        "PUBLIC": "cases.CT-23 (observed response shapes only)"
+      }
+    },
+    {
+      "id": "CT-24",
+      "case": "Cancel after uncertain Submit",
+      "input": "Submit commits but its response is lost; owner deletes the Asset",
+      "expected": "MM cancels by asset_id. P locks the submission guard, cancels any job and rejects delayed submissions with 410. Test cancel-first and submit-first ordering.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_processing_lifecycle.py::test_cancel_guard_in_both_race_orders",
+          "kind": "pytest",
+          "line": 215,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Real SQL guard tested cancel-first, submit-first and concurrent; later submit always 410, no claim after deletion.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_media_persistence.py::test_delete_uncertain_submit_cancel_lost_ack_source_waits",
+          "kind": "pytest",
+          "line": 632,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Lost Submit ACK still cancels by Asset ID; source cleanup waits for cancel ACK.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_media_persistence.py::test_cancel_first_pending_then_late_dispatch_does_not_resurrect",
+          "kind": "pytest",
+          "line": 652,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Pending Asset deleted before dispatch never creates controlled P job.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_media_persistence.py::test_cancel_waits_for_inflight_submit_then_tombstone_wins",
+          "kind": "pytest",
+          "line": 897,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Concurrent submit/delete serialize on actual PG asset lock; public 404 and owned-source removal.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Both real guard orderings plus durable MM uncertain-submit cancellation are tested; no cross-service DB shortcut.",
+      "gaps": [],
+      "report_selectors": {}
+    },
+    {
+      "id": "CT-25",
+      "case": "Pending edit replay",
+      "input": "Restart MM or interrupt Processing before the derived edit is submitted",
+      "expected": "Pending Asset stores source descriptor and immutable operations in one transaction. Replayed Submit preserves the original edit fingerprint.",
+      "coverage": "implemented",
+      "final_head_execution": "pending",
+      "tests": [
+        {
+          "node": "tests/integration/test_media_persistence.py::test_edit_pending_operations_independent_source_and_parent_delete",
+          "kind": "pytest",
+          "line": 555,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Lost edit Submit ACK leaves committed pending Asset with independent source/ordered operations; fresh-session reconcile replays them unchanged.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_media_persistence.py::test_edit_changed_order_conflicts_and_copy_failure_no_acceptance",
+          "kind": "pytest",
+          "line": 601,
+          "layers": [
+            "real-PostgreSQL",
+            "controlled-peer"
+          ],
+          "assertions": "Changed edit order conflicts; source-copy failure accepts no child.",
+          "parent_report_refs": [
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/integration/test_processing_intake.py::test_changed_operation_parameters_or_order_conflict",
+          "kind": "pytest",
+          "line": 241,
+          "layers": [
+            "real-PostgreSQL"
+          ],
+          "assertions": "Immutable ordered Processing edit fingerprint retained.",
+          "parent_report_refs": [
+            "PREAL",
+            "MREAL"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        },
+        {
+          "node": "tests/media/test_media_lifecycle.py::test_dispatch_edit_preserves_operation_order",
+          "kind": "pytest",
+          "line": 47,
+          "layers": [
+            "controlled-peer"
+          ],
+          "assertions": "Dispatch emits saved immutable operations with original source descriptor.",
+          "parent_report_refs": [
+            "MFAST",
+            "IFAST"
+          ],
+          "execution": "not run by this reviewer; historical evidence only"
+        }
+      ],
+      "disposition": "Interrupted/lost-ACK pending edit path is directly covered by persisted MM state and P immutable replay tests. Full-process pending-edit restart is not claimed; prepared case allows interruption alternative.",
+      "gaps": [],
+      "report_selectors": {}
+    }
+  ],
+  "r3_correction": {
+    "branch": "work/contract-tests",
+    "base_head": "0b24c9da4007bd44db9671f07924571d98e68e5b",
+    "scope": [
+      "CT-20",
+      "CT-21",
+      "CT-23"
+    ],
+    "status": "code implemented; live verification pending",
+    "offline_checks": {
+      "schema": "16 passed; root .venv Python, pytest -p scripts.dev.pytest_plugin --offline-fast tests/contracts/test_prepared_contracts.py",
+      "collection": "61 cases collected across prepared schemas and the two owned integration modules; RUN_PROCESSING_TESTS=0 RUN_MEDIA_TESTS=0 RUN_INTEGRATION_TESTS=0; no fixtures executed",
+      "lint": "ruff check on the four changed Python files: all checks passed",
+      "mapping": "All mapped Python function names and current line numbers verified by AST in this checkout"
+    },
+    "execution_limits": "No containers, PostgreSQL/FFmpeg integration, browser, GitHub, AWS/Alibaba or child agents invoked. Parent fair-scaling measurement owns shared Lima; parent will run live cases after measurement.",
+    "new_live_nodes": [
+      "tests/integration/test_processing_worker.py::test_real_worker_source_invalid_edit_has_failed_attempt_and_public_projection",
+      "tests/integration/test_media_persistence.py::test_deleted_derived_asset_edit_key_replay_is_410_without_recreation"
+    ],
+    "offline_nodes": [
+      "tests/contracts/test_prepared_contracts.py::test_every_prepared_example_matches_its_owning_contract",
+      "tests/contracts/test_prepared_contracts.py::test_broken_prepared_example_fails_schema_validation",
+      "tests/contracts/test_prepared_contracts.py::test_unmapped_prepared_example_cannot_be_skipped"
+    ],
+    "validator_function": "scripts/dev/contracts.py::check_examples",
+    "other_findings": {
+      "R1": "not yet verified; other agent",
+      "R2": "not yet verified; other agent",
+      "R4": "not yet verified; other agent"
+    },
+    "review_limit": "Original review, historical report provenance and overall REVISE verdict remain; this correction is not final V1/V2 acceptance."
+  }
+}
