@@ -36,14 +36,12 @@ def worker_kill(scenario, source):
     asset = scenario.upload(client, source)["job_id"]
     scenario.wait(client, asset, states=("processing",), timeout=45)
     before = scenario.processing_job(user["id"], asset)
-    started = time.monotonic()
-    command(scenario, "kill", "-s", "SIGKILL", "worker", timeout=15)
-    try:
+    with scenario.restore_services("worker"):
+        started = time.monotonic()
+        command(scenario, "kill", "-s", "SIGKILL", "worker", timeout=15)
         scenario.wait(client, asset, states=("failed",), timeout=300)
         elapsed = time.monotonic() - started
         assert elapsed <= 300
-    finally:
-        command(scenario, "up", "-d", "--no-deps", "worker")
     after = retry(scenario, client, user, asset, before["current_attempt"]["attempt_id"])
     scenario.record(
         "worker-kill",
@@ -59,8 +57,8 @@ def worker_kill(scenario, source):
 
 def queue_loss(scenario, source):
     client, user, _ = scenario.account("queue-loss")
-    command(scenario, "stop", "worker", "processing-recovery")
-    try:
+    with scenario.restore_services("worker", "processing-recovery") as guard:
+        command(scenario, "stop", "worker", "processing-recovery")
         asset = scenario.upload(client, source)["job_id"]
         before = scenario.processing_job(user["id"], asset)
         attempt = before["current_attempt"]["attempt_id"]
@@ -77,7 +75,7 @@ def queue_loss(scenario, source):
         injected = command(scenario, "exec", "-T", "processing", "python", "-c", code)
         assert json.loads(injected.stdout)["hash_survives"] is True
         started = time.monotonic()
-        command(scenario, "up", "-d", "--no-deps", "processing-recovery")
+        guard.start("processing-recovery")
         deadline = started + 120
         probe = (
             "from processing.queue import get_queue; q=get_queue(); "
@@ -105,8 +103,6 @@ def queue_loss(scenario, source):
             reenqueue_seconds=round(elapsed, 3),
             bound_seconds=120,
         )
-    finally:
-        command(scenario, "up", "-d", "--no-deps", "worker", "processing-recovery")
     scenario.wait(client, asset)
     scenario.passed(
         "CT-12", "Real Redis list entry lost with surviving hash, repaired with same Attempt"
@@ -118,9 +114,9 @@ def processing_outage(scenario, source):
     client, _, _ = scenario.account("pending")
     completed = scenario.upload(client, source)["job_id"]
     scenario.wait(client, completed)
-    command(scenario, "stop", "processing", "media-recovery")
     key = str(uuid4())
-    try:
+    with scenario.restore_services("processing", "media-recovery", "media"):
+        command(scenario, "stop", "processing", "media-recovery")
         accepted = scenario.upload(client, source, key)
         asset = accepted["job_id"]
         pending = scenario.request(client, "GET", f"jobs/{asset}", 200, route="/jobs/{job_id}")
@@ -140,8 +136,6 @@ def processing_outage(scenario, source):
         assert restored["submission_status"] == "pending"
         assert scenario.upload(client, source, key)["job_id"] == asset
         scenario.record("pending-survives-restart", asset_id=asset)
-    finally:
-        command(scenario, "up", "-d", "--no-deps", "processing", "media-recovery")
     scenario.wait(client, asset)
     scenario.passed(
         "CT-13",

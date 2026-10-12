@@ -1,11 +1,170 @@
 """Real browser and independent Publisher acceptance; no service imports."""
 
 import time
+from urllib.parse import urljoin, urlparse
 from uuid import uuid4
 
 from scripts.dev.browser import trusted_browser
 from scripts.dev.runtime import compose
 from scripts.dev.scenario import fixture
+
+
+def browser_login(page, scenario, email, password):
+    """Register, log out, then exercise existing credentials through the real UI."""
+    page.locator("#auth-toggle").click()
+    page.locator("#auth-email").fill(email)
+    page.locator("#auth-password").fill(password)
+    with page.expect_response(
+        lambda r: r.request.method == "POST" and urlparse(r.url).path == "/api/auth/register"
+    ) as registered:
+        page.locator("#auth-submit").click()
+    assert registered.value.status == 201
+    owner = registered.value.json()["id"]
+    page.locator("#app").wait_for(state="visible")
+    with page.expect_response(
+        lambda r: r.request.method == "POST" and urlparse(r.url).path == "/api/auth/logout"
+    ) as logout:
+        page.locator("#logout").click()
+    assert logout.value.status == 204
+    page.locator("#app").wait_for(state="hidden")
+    page.locator("#auth").wait_for(state="visible")
+    # Registration mode survives logout in the current frontend.
+    page.locator("#auth-toggle").click()
+    page.locator("#auth-email").fill(email)
+    page.locator("#auth-password").fill(password)
+    with page.expect_response(
+        lambda r: r.request.method == "POST" and urlparse(r.url).path == "/api/auth/login"
+    ) as login:
+        page.locator("#auth-submit").click()
+    assert login.value.status == 200
+    assert login.value.json()["id"] == owner
+    page.locator("#app").wait_for(state="visible")
+    scenario.record("browser-ui-login", register_status=201, logout_status=204, login_status=200)
+
+
+class BrowserMediaRequests:
+    """In-memory HLS response graph. Only aggregate counts enter evidence."""
+
+    def __init__(self):
+        self.playlists = {}
+        self.segments = set()
+        self.failures = []
+
+    def seen(self, response):
+        path = urlparse(response.url).path
+        if response.status not in (200, 206) or not path.endswith((".m3u8", ".ts")):
+            return
+        try:
+            if path.endswith(".m3u8"):
+                text = response.text()
+                assert text.startswith("#EXTM3U")
+                self.playlists[response.url] = [
+                    urljoin(response.url, line.strip())
+                    for line in text.splitlines()
+                    if line.strip() and not line.startswith("#")
+                ]
+            else:
+                assert response.body(), "Browser HLS segment response was empty"
+                # A facade segment can redirect to signed storage. Match the
+                # playlist link through its redirect chain without persisting it.
+                request = response.request
+                while request is not None:
+                    self.segments.add(request.url)
+                    request = request.redirected_from
+        except Exception as error:
+            self.failures.append(type(error).__name__)
+
+    def counts(self, manifest):
+        assert not self.failures, "Browser HLS response observation failed"
+        assert manifest in self.playlists, "Browser did not fetch the expected HLS manifest"
+        pending, playlists, segments = [manifest], set(), set()
+        while pending:
+            url = pending.pop()
+            if url in playlists:
+                continue
+            assert len(playlists) < 10, "Browser HLS ladder exceeded the bounded traversal"
+            playlists.add(url)
+            for target in self.playlists[url]:
+                if target in self.playlists:
+                    pending.append(target)
+                elif target in self.segments:
+                    segments.add(target)
+        assert segments, "Browser did not fetch a nonempty segment from the expected HLS ladder"
+        return {"playlists": len(playlists), "segments": len(segments)}
+
+
+MEDIA_SAMPLE = """(v, expected) => {
+    const hls = new URL(expected.hls, location.href).href;
+    const mp4 = new URL(expected.mp4, location.href).href;
+    const blob = v.currentSrc.startsWith('blob:') && !!window.Hls?.isSupported();
+    const native = !!v.canPlayType('application/vnd.apple.mpegurl') && v.currentSrc === hls;
+    return {ready:v.readyState, error:v.error?.code || null, current_time:v.currentTime,
+        decoded_frames:v.getVideoPlaybackQuality?.().totalVideoFrames
+            ?? v.webkitDecodedFrameCount ?? 0,
+        selected_hls:blob || native, selected_mp4:v.currentSrc === mp4,
+        source_kind:blob ? 'blob' : native ? 'native-hls' : v.currentSrc === mp4 ? 'mp4' : 'other'};
+}"""
+
+
+def assert_video_progress(before, after, transport):
+    assert after[f"selected_{transport}"], f"Browser selected a different source from {transport}"
+    assert after["ready"] >= 2 and not after["error"], "Browser video is not decodable"
+    assert after["current_time"] > before["current_time"] + 0.2, "Video clock did not advance"
+    assert after["decoded_frames"] > before["decoded_frames"], "Decoded video did not advance"
+
+
+def decoded_playback(page, video, expected, transport):
+    before = video.evaluate(MEDIA_SAMPLE, expected)
+    video.evaluate(
+        "async v => { v.muted=true; await Promise.race([v.play(), "
+        "new Promise((_,reject)=>setTimeout(()=>reject("
+        "new Error('Playback did not start within 15s')),15000))]); }"
+    )
+    page.wait_for_function(
+        "([selector,before,expected,transport]) => {"
+        "const v=document.querySelector(selector); if(!v) return false;"
+        f"const after=({MEDIA_SAMPLE})(v,expected);"
+        "return after['selected_'+transport] && after.ready>=2 && !after.error && "
+        "after.current_time>before.current_time+0.2 && "
+        "after.decoded_frames>before.decoded_frames; }",
+        arg=[
+            "#player video" if transport == "hls" else "#acceptance-mp4",
+            before,
+            expected,
+            transport,
+        ],
+        timeout=30000,
+    )
+    after = video.evaluate(MEDIA_SAMPLE, expected)
+    assert_video_progress(before, after, transport)
+    return {"before": before, "after": after}
+
+
+def browser_playback(page, scenario, result, media):
+    assert result.get("hls_url"), "Browser acceptance requires an HLS ladder"
+    expected = {"hls": result["hls_url"], "mp4": result["output_url"]}
+    video = page.locator("#player video")
+    video.wait_for(state="visible", timeout=15000)
+    hls = decoded_playback(page, video, expected, "hls")
+    counts = media.counts(urljoin(scenario.state["public_url"], result["hls_url"]))
+    scenario.record("browser-hls-decoded", **counts, **hls)
+    page.screenshot(path=str(scenario.artifacts / "browser-playing.png"))
+    video.evaluate("v => v.pause()")
+    # Small explicit MP4 probe in the same trusted browser/session. The app's
+    # own HLS selection above remains the acceptance gate for its player.
+    page.evaluate(
+        "src => { const v=document.createElement('video'); v.id='acceptance-mp4'; "
+        "v.controls=true; v.muted=true; v.src=src; document.body.append(v); }",
+        result["output_url"],
+    )
+    try:
+        mp4 = decoded_playback(page, page.locator("#acceptance-mp4"), expected, "mp4")
+        scenario.record("browser-mp4-decoded", **mp4)
+    finally:
+        page.evaluate(
+            "() => { const v=document.querySelector('#acceptance-mp4'); if(v) {"
+            "v.pause(); v.removeAttribute('src'); v.load(); v.remove(); } }"
+        )
 
 
 def browser_workflow(scenario):
@@ -17,10 +176,10 @@ def browser_workflow(scenario):
     with trusted_browser(scenario.run_id) as browser:
         page = browser.new_page()
         page.set_default_timeout(15000)
+        media = BrowserMediaRequests()
+        page.on("response", media.seen)
 
         def request_seen(request):
-            from urllib.parse import urlparse
-
             path = urlparse(request.url).path
             if request.method == "POST" and (path == "/api/upload" or path.endswith("/retry")):
                 observations.append(
@@ -33,14 +192,10 @@ def browser_workflow(scenario):
 
         page.on("request", request_seen)
         page.goto(scenario.state["public_url"], wait_until="domcontentloaded")
-        page.locator("#auth-toggle").click()
-        page.locator("#auth-email").fill(email)
-        page.locator("#auth-password").fill(password)
-        page.locator("#auth-submit").click()
-        page.locator("#app").wait_for(state="visible")
+        browser_login(page, scenario, email, password)
         assert page.evaluate("window.isSecureContext")
         # Log in with a separate cookie jar for bounded state polling. Browser
-        # remains the actor for registration, upload, retry, playback and deletion.
+        # remains the actor for registration/login, upload, retry, playback and deletion.
         client = scenario.client()
         scenario.request(
             client,
@@ -50,8 +205,8 @@ def browser_workflow(scenario):
             route="/auth/login",
             json={"email": email, "password": password},
         )
-        compose(scenario.state, "stop", "worker", timeout=75, capture_output=True)
-        try:
+        with scenario.restore_services("worker") as guard:
+            compose(scenario.state, "stop", "worker", timeout=75, capture_output=True)
             with page.expect_response(
                 lambda response: (
                     response.request.method == "POST" and response.url.endswith("/api/upload")
@@ -61,9 +216,7 @@ def browser_workflow(scenario):
             response = accepted.value
             assert response.status == 202
             asset = response.json()["job_id"]
-            compose(
-                scenario.state, "up", "-d", "--no-deps", "worker", timeout=60, capture_output=True
-            )
+            guard.start("worker")
             scenario.wait(client, asset, states=("processing",), timeout=30)
             killed = time.monotonic()
             compose(
@@ -75,9 +228,7 @@ def browser_workflow(scenario):
             page.locator("#job-retry").wait_for(state="visible", timeout=15000)
             page.screenshot(path=str(scenario.artifacts / "browser-failed-attempt.png"))
             before_uploads = sum(item["path"] == "/api/upload" for item in observations)
-            compose(
-                scenario.state, "up", "-d", "--no-deps", "worker", timeout=60, capture_output=True
-            )
+            guard.start("worker")
             with page.expect_response(
                 lambda response: (
                     response.request.method == "POST" and response.url.endswith("/retry")
@@ -91,39 +242,12 @@ def browser_workflow(scenario):
             assert before_uploads == sum(item["path"] == "/api/upload" for item in observations)
             retries = [item for item in observations if item["path"].endswith("/retry")]
             assert len(retries) == 1 and retries[0]["bytes"] == 0 and retries[0]["key"]
-            video = page.locator("#player video")
-            video.wait_for(state="visible", timeout=15000)
-            scenario.record(
-                "browser-before-play",
-                media_state=video.evaluate(
-                    "v => ({ready:v.readyState,network:v.networkState,"
-                    "error:v.error?.code||null,"
-                    "duration:Number.isFinite(v.duration)?v.duration:null})"
-                ),
-            )
             try:
-                video.evaluate(
-                    "async v => { v.muted=true; await Promise.race([v.play(), "
-                    "new Promise((_,reject)=>setTimeout(()=>reject("
-                    "new Error('Playback did not start within 15s')),15000))]); }"
-                )
+                browser_playback(page, scenario, result, media)
             except Exception:
-                scenario.record(
-                    "browser-play-failure",
-                    media_state=video.evaluate(
-                        "v => ({ready:v.readyState,network:v.networkState,"
-                        "error:v.error?.code||null,"
-                        "duration:Number.isFinite(v.duration)?v.duration:null})"
-                    ),
-                )
+                scenario.record("browser-play-failure")
                 page.screenshot(path=str(scenario.artifacts / "browser-playback-failed.png"))
                 raise
-            page.wait_for_function(
-                "() => { const v=document.querySelector('#player video'); "
-                "return v && v.readyState>=2 && v.currentTime>0.2 && !v.error; }",
-                timeout=30000,
-            )
-            page.screenshot(path=str(scenario.artifacts / "browser-playing.png"))
             scenario.record(
                 "browser-playback-retry",
                 asset_id=asset,
@@ -142,12 +266,9 @@ def browser_workflow(scenario):
             scenario.request(client, "GET", f"jobs/{asset}", 404, route="/jobs/{job_id}")
             scenario.passed(
                 "CT-18-browser",
-                "Real browser registered, uploaded, observed worker "
-                "failure, retried without file bytes, played HLS and deleted",
-            )
-        finally:
-            compose(
-                scenario.state, "up", "-d", "--no-deps", "worker", timeout=60, capture_output=True
+                "Real browser registered/logged out/logged in, uploaded, observed worker "
+                "failure, retried without file bytes, decoded selected HLS and explicit MP4, "
+                "deleted",
             )
 
 

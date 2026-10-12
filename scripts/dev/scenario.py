@@ -21,6 +21,113 @@ def utcnow():
     return datetime.now(UTC).isoformat()
 
 
+class ServiceRestoreError(RuntimeError):
+    """One or more scoped services could not be restored within the cleanup bound."""
+
+
+class ServiceGuard:
+    """Snapshot active replicas before any mutation; restore each service independently.
+
+    Acceptance faults require an entirely running baseline. Refuse an ambiguous
+    mixed/stopped baseline before changing anything. Compose scopes every command
+    to this run's project; no dependency startup, builds, pulls or global actions.
+    """
+
+    def __init__(self, state, services, record, *, cleanup_timeout=30):
+        self.state = state
+        self.services = tuple(services)
+        self.record = record
+        self.cleanup_timeout = cleanup_timeout
+        self.counts = {}
+
+    def replicas(self, service):
+        from scripts.dev.runtime import compose
+
+        reply = compose(
+            self.state,
+            "ps",
+            "--all",
+            "--format",
+            "json",
+            service,
+            timeout=10,
+            capture_output=True,
+            text=True,
+        )
+        # Compose versions emit either one JSON array or newline-delimited rows.
+        raw = reply.stdout.strip()
+        rows = (
+            json.loads(raw)
+            if raw.startswith("[")
+            else [json.loads(line) for line in raw.splitlines() if line]
+        )
+        if any(row["Service"] != service for row in rows):
+            raise ServiceRestoreError("Scoped service inventory returned an unexpected service")
+        return len(rows), sum(row["State"] == "running" for row in rows)
+
+    def __enter__(self):
+        for service in self.services:
+            total, active = self.replicas(service)
+            if not active or active != total:
+                raise ServiceRestoreError(f"{service} needs an entirely running baseline")
+            self.counts[service] = active
+        self.record("service-restore-armed", replicas=self.counts.copy())
+        return self
+
+    def start(self, *services):
+        """Resume a faulted service without changing its original replica count."""
+        from scripts.dev.runtime import compose
+
+        for service in services:
+            compose(
+                self.state,
+                "up",
+                "-d",
+                "--no-deps",
+                "--no-build",
+                "--pull",
+                "never",
+                "--scale",
+                f"{service}={self.counts[service]}",
+                service,
+                timeout=self.cleanup_timeout,
+                capture_output=True,
+                text=True,
+            )
+
+    def __exit__(self, exc_type, error, traceback):
+        outcomes = []
+        failures = []
+        for service in self.services:
+            outcome = {"service": service, "expected_replicas": self.counts[service]}
+            try:
+                self.start(service)
+                total, active = self.replicas(service)
+                outcome["running_replicas"] = active
+                if total != active or active != self.counts[service]:
+                    raise ServiceRestoreError("Restoration did not recover original replicas")
+                outcome["status"] = "PASS"
+            except BaseException as restore_error:
+                # Never store exception text: it may contain credentials/URLs.
+                outcome.update(status="FAIL", failure_type=type(restore_error).__name__)
+                failures.append(restore_error)
+            outcomes.append(outcome)
+        try:
+            self.record(
+                "service-restore",
+                outcomes=outcomes,
+                original_failure_type=type(error).__name__ if error is not None else None,
+            )
+        except BaseException as record_error:
+            failures.append(record_error)
+        if failures:
+            if error is not None:
+                error.add_note("Scoped service restoration failed; inspect restoration evidence")
+            else:
+                raise ServiceRestoreError("Scoped service restoration failed") from failures[0]
+        return False
+
+
 def fixture(path: Path, seconds=3, width=640, height=360):
     path.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(
@@ -106,6 +213,9 @@ class Scenario:
         )
         self.clients.append(client)
         return client
+
+    def restore_services(self, *services):
+        return ServiceGuard(self.state, services, self.record)
 
     def record(self, event, **values):
         # Callers supply safe metrics/identifiers; never persist HTTP bodies,
