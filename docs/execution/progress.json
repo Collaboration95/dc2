@@ -1,0 +1,129 @@
+{
+  "stage": "planning-review-pending",
+  "baseline": "b32d489566144202fbf6fc3887ce25d5321444fd",
+  "project": {
+    "id": "PVT_kwHOBBatWM4Bmtkx",
+    "number": 14,
+    "title": "dc2 \u2014 Pre-AWS local delivery",
+    "url": "https://github.com/users/Collaboration95/projects/14"
+  },
+  "issues": {
+    "G1": {
+      "number": 7,
+      "state": "Review",
+      "pr": null,
+      "evidence": [
+        "docs/execution/plan.md, backlog.json and Project14 native hierarchy verified."
+      ]
+    },
+    "G2": {
+      "number": 8,
+      "state": "In progress",
+      "pr": null,
+      "evidence": [
+        "Plan and24GitHubitems created; independentSolxhighreview running."
+      ]
+    },
+    "F1": {
+      "number": 9,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "F2": {
+      "number": 10,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "F3": {
+      "number": 11,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "P1": {
+      "number": 12,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "P2": {
+      "number": 13,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "P3": {
+      "number": 14,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "M1": {
+      "number": 15,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "M2": {
+      "number": 16,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "M3": {
+      "number": 17,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "C1": {
+      "number": 18,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "C2": {
+      "number": 19,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "V1": {
+      "number": 20,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "V2": {
+      "number": 21,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "V3": {
+      "number": 22,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "V4": {
+      "number": 23,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    },
+    "V5": {
+      "number": 24,
+      "state": "Backlog",
+      "pr": null,
+      "evidence": []
+    }
+  },
+  "pull_requests": [],
+  "limitations": [
+    "Docker2CPU/2GiB cannot prove fair3worker scaling; investigate project-local runtime."
+  ],
+  "aws_actions_performed": false
+}

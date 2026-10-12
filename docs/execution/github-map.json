@@ -1,0 +1,1715 @@
+{
+  "epics": {
+    "E0": {
+      "number": 1,
+      "url": "https://github.com/Collaboration95/dc2/issues/1",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOcyw",
+      "initialized": true
+    },
+    "E1": {
+      "number": 2,
+      "url": "https://github.com/Collaboration95/dc2/issues/2",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOc64",
+      "initialized": true
+    },
+    "E2": {
+      "number": 3,
+      "url": "https://github.com/Collaboration95/dc2/issues/3",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdCQ",
+      "initialized": true
+    },
+    "E3": {
+      "number": 4,
+      "url": "https://github.com/Collaboration95/dc2/issues/4",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdIo",
+      "initialized": true
+    },
+    "E4": {
+      "number": 5,
+      "url": "https://github.com/Collaboration95/dc2/issues/5",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdO4",
+      "initialized": true
+    },
+    "E5": {
+      "number": 6,
+      "url": "https://github.com/Collaboration95/dc2/issues/6",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdTM",
+      "initialized": true
+    }
+  },
+  "issues": {
+    "G1": {
+      "number": 7,
+      "url": "https://github.com/Collaboration95/dc2/issues/7",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOc0g",
+      "initialized": true
+    },
+    "G2": {
+      "number": 8,
+      "url": "https://github.com/Collaboration95/dc2/issues/8",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOc0s",
+      "initialized": true
+    },
+    "F1": {
+      "number": 9,
+      "url": "https://github.com/Collaboration95/dc2/issues/9",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOc88",
+      "initialized": true
+    },
+    "F2": {
+      "number": 10,
+      "url": "https://github.com/Collaboration95/dc2/issues/10",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOc9M",
+      "initialized": true
+    },
+    "F3": {
+      "number": 11,
+      "url": "https://github.com/Collaboration95/dc2/issues/11",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOc9U",
+      "initialized": true
+    },
+    "P1": {
+      "number": 12,
+      "url": "https://github.com/Collaboration95/dc2/issues/12",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdDk",
+      "initialized": true
+    },
+    "P2": {
+      "number": 13,
+      "url": "https://github.com/Collaboration95/dc2/issues/13",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdDo",
+      "initialized": true
+    },
+    "P3": {
+      "number": 14,
+      "url": "https://github.com/Collaboration95/dc2/issues/14",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdDw",
+      "initialized": true
+    },
+    "M1": {
+      "number": 15,
+      "url": "https://github.com/Collaboration95/dc2/issues/15",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdJ0",
+      "initialized": true
+    },
+    "M2": {
+      "number": 16,
+      "url": "https://github.com/Collaboration95/dc2/issues/16",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdKI",
+      "initialized": true
+    },
+    "M3": {
+      "number": 17,
+      "url": "https://github.com/Collaboration95/dc2/issues/17",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdKU",
+      "initialized": true
+    },
+    "C1": {
+      "number": 18,
+      "url": "https://github.com/Collaboration95/dc2/issues/18",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdQQ",
+      "initialized": true
+    },
+    "C2": {
+      "number": 19,
+      "url": "https://github.com/Collaboration95/dc2/issues/19",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdQY",
+      "initialized": true
+    },
+    "V1": {
+      "number": 20,
+      "url": "https://github.com/Collaboration95/dc2/issues/20",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdVQ",
+      "initialized": true
+    },
+    "V2": {
+      "number": 21,
+      "url": "https://github.com/Collaboration95/dc2/issues/21",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdVY",
+      "initialized": true
+    },
+    "V3": {
+      "number": 22,
+      "url": "https://github.com/Collaboration95/dc2/issues/22",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdVk",
+      "initialized": true
+    },
+    "V4": {
+      "number": 23,
+      "url": "https://github.com/Collaboration95/dc2/issues/23",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdVo",
+      "initialized": true
+    },
+    "V5": {
+      "number": 24,
+      "url": "https://github.com/Collaboration95/dc2/issues/24",
+      "item_id": "PVTI_lAHOBBatWM4BmtkxzhAOdVs",
+      "initialized": true
+    }
+  },
+  "project": {
+    "id": "PVT_kwHOBBatWM4Bmtkx",
+    "number": 14,
+    "title": "dc2 \u2014 Pre-AWS local delivery",
+    "url": "https://github.com/users/Collaboration95/projects/14"
+  },
+  "fields": {
+    "Title": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeNo",
+      "name": "Title",
+      "type": "ProjectV2Field"
+    },
+    "Assignees": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeNs",
+      "name": "Assignees",
+      "type": "ProjectV2Field"
+    },
+    "Status": {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeNw",
+      "name": "Status",
+      "options": [
+        {
+          "id": "f75ad846",
+          "name": "Todo"
+        },
+        {
+          "id": "47fc9ee4",
+          "name": "In Progress"
+        },
+        {
+          "id": "98236657",
+          "name": "Done"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    "Labels": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeN0",
+      "name": "Labels",
+      "type": "ProjectV2Field"
+    },
+    "Linked pull requests": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeN4",
+      "name": "Linked pull requests",
+      "type": "ProjectV2Field"
+    },
+    "Milestone": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeN8",
+      "name": "Milestone",
+      "type": "ProjectV2Field"
+    },
+    "Repository": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOA",
+      "name": "Repository",
+      "type": "ProjectV2Field"
+    },
+    "Reviewers": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOI",
+      "name": "Reviewers",
+      "type": "ProjectV2Field"
+    },
+    "Parent issue": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOM",
+      "name": "Parent issue",
+      "type": "ProjectV2Field"
+    },
+    "Sub-issues progress": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOQ",
+      "name": "Sub-issues progress",
+      "type": "ProjectV2Field"
+    },
+    "Created": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOU",
+      "name": "Created",
+      "type": "ProjectV2Field"
+    },
+    "Updated": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOY",
+      "name": "Updated",
+      "type": "ProjectV2Field"
+    },
+    "Closed": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOc",
+      "name": "Closed",
+      "type": "ProjectV2Field"
+    },
+    "Workflow": {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeSE",
+      "name": "Workflow",
+      "options": [
+        {
+          "id": "c978a6e5",
+          "name": "Backlog"
+        },
+        {
+          "id": "e02f1ad4",
+          "name": "Ready"
+        },
+        {
+          "id": "ba99be3d",
+          "name": "In progress"
+        },
+        {
+          "id": "ea57a0a3",
+          "name": "Review"
+        },
+        {
+          "id": "70f40fab",
+          "name": "Blocked"
+        },
+        {
+          "id": "fa2d3a3f",
+          "name": "Done"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    "Wave": {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeSc",
+      "name": "Wave",
+      "options": [
+        {
+          "id": "a61eb394",
+          "name": "Wave 0"
+        },
+        {
+          "id": "1e7f233e",
+          "name": "Wave 1"
+        },
+        {
+          "id": "5f0cbf3d",
+          "name": "Wave 2"
+        },
+        {
+          "id": "f761184d",
+          "name": "Wave 3"
+        },
+        {
+          "id": "84255653",
+          "name": "Wave 4"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    "Priority": {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeSg",
+      "name": "Priority",
+      "options": [
+        {
+          "id": "1c24d7a6",
+          "name": "P0"
+        },
+        {
+          "id": "d0615693",
+          "name": "P1"
+        },
+        {
+          "id": "f8a22557",
+          "name": "P2"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    "Risk": {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeU4",
+      "name": "Risk",
+      "options": [
+        {
+          "id": "dd7206c2",
+          "name": "Low"
+        },
+        {
+          "id": "62885e72",
+          "name": "Medium"
+        },
+        {
+          "id": "89dcbf8b",
+          "name": "High"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    "Area": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeVQ",
+      "name": "Area",
+      "type": "ProjectV2Field"
+    },
+    "Persona": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeVY",
+      "name": "Persona",
+      "type": "ProjectV2Field"
+    },
+    "Sequence": {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeXM",
+      "name": "Sequence",
+      "type": "ProjectV2Field"
+    }
+  },
+  "remote_issues": [
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrT0uw",
+            "number": 21,
+            "state": "OPEN",
+            "title": "[V2] Exercise recovery faults across both services",
+            "url": "https://github.com/Collaboration95/dc2/issues/21"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrT8PQ",
+            "number": 23,
+            "state": "OPEN",
+            "title": "[V4] Automate independent local Processing release, smoke and rollback",
+            "url": "https://github.com/Collaboration95/dc2/issues/23"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrT4jw",
+            "number": 22,
+            "state": "OPEN",
+            "title": "[V3] Measure local performance and worker scaling without misleading claims",
+            "url": "https://github.com/Collaboration95/dc2/issues/22"
+          }
+        ],
+        "totalCount": 3
+      },
+      "number": 24,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS9EQ",
+        "number": 6,
+        "state": "OPEN",
+        "title": "[E5] Integrated evidence and local release readiness",
+        "url": "https://github.com/Collaboration95/dc2/issues/6"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[V5] Review final delivery and publish evidence-based morning handoff",
+      "url": "https://github.com/Collaboration95/dc2/issues/24"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTv3A",
+            "number": 20,
+            "state": "OPEN",
+            "title": "[V1] Integrate full local workflow and contract regression evidence",
+            "url": "https://github.com/Collaboration95/dc2/issues/20"
+          }
+        ],
+        "totalCount": 1
+      },
+      "number": 23,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS9EQ",
+        "number": 6,
+        "state": "OPEN",
+        "title": "[E5] Integrated evidence and local release readiness",
+        "url": "https://github.com/Collaboration95/dc2/issues/6"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[V4] Automate independent local Processing release, smoke and rollback",
+      "url": "https://github.com/Collaboration95/dc2/issues/23"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTv3A",
+            "number": 20,
+            "state": "OPEN",
+            "title": "[V1] Integrate full local workflow and contract regression evidence",
+            "url": "https://github.com/Collaboration95/dc2/issues/20"
+          }
+        ],
+        "totalCount": 1
+      },
+      "number": 22,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS9EQ",
+        "number": 6,
+        "state": "OPEN",
+        "title": "[E5] Integrated evidence and local release readiness",
+        "url": "https://github.com/Collaboration95/dc2/issues/6"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[V3] Measure local performance and worker scaling without misleading claims",
+      "url": "https://github.com/Collaboration95/dc2/issues/22"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTv3A",
+            "number": 20,
+            "state": "OPEN",
+            "title": "[V1] Integrate full local workflow and contract regression evidence",
+            "url": "https://github.com/Collaboration95/dc2/issues/20"
+          }
+        ],
+        "totalCount": 1
+      },
+      "number": 21,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS9EQ",
+        "number": 6,
+        "state": "OPEN",
+        "title": "[E5] Integrated evidence and local release readiness",
+        "url": "https://github.com/Collaboration95/dc2/issues/6"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[V2] Exercise recovery faults across both services",
+      "url": "https://github.com/Collaboration95/dc2/issues/21"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTo4w",
+            "number": 18,
+            "state": "OPEN",
+            "title": "[C1] Build the independent Publisher CLI against public APIs",
+            "url": "https://github.com/Collaboration95/dc2/issues/18"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTZCw",
+            "number": 14,
+            "state": "OPEN",
+            "title": "[P3] Recover worker interruptions and lost queue deliveries",
+            "url": "https://github.com/Collaboration95/dc2/issues/14"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTkjw",
+            "number": 17,
+            "state": "OPEN",
+            "title": "[M3] Reconcile pending submissions and preserve edit/delete/operator behavior",
+            "url": "https://github.com/Collaboration95/dc2/issues/17"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTsDQ",
+            "number": 19,
+            "state": "OPEN",
+            "title": "[C2] Complete browser stored-source retry and idempotent requests",
+            "url": "https://github.com/Collaboration95/dc2/issues/19"
+          }
+        ],
+        "totalCount": 4
+      },
+      "number": 20,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS9EQ",
+        "number": 6,
+        "state": "OPEN",
+        "title": "[E5] Integrated evidence and local release readiness",
+        "url": "https://github.com/Collaboration95/dc2/issues/6"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[V1] Integrate full local workflow and contract regression evidence",
+      "url": "https://github.com/Collaboration95/dc2/issues/20"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTNWQ",
+            "number": 11,
+            "state": "OPEN",
+            "title": "[F3] Provide isolated local services, storage and trusted HTTPS topology",
+            "url": "https://github.com/Collaboration95/dc2/issues/11"
+          }
+        ],
+        "totalCount": 1
+      },
+      "number": 19,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS7Bw",
+        "number": 5,
+        "state": "OPEN",
+        "title": "[E4] Web and independent Publisher CLI",
+        "url": "https://github.com/Collaboration95/dc2/issues/5"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[C2] Complete browser stored-source retry and idempotent requests",
+      "url": "https://github.com/Collaboration95/dc2/issues/19"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTNWQ",
+            "number": 11,
+            "state": "OPEN",
+            "title": "[F3] Provide isolated local services, storage and trusted HTTPS topology",
+            "url": "https://github.com/Collaboration95/dc2/issues/11"
+          }
+        ],
+        "totalCount": 1
+      },
+      "number": 18,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS7Bw",
+        "number": 5,
+        "state": "OPEN",
+        "title": "[E4] Web and independent Publisher CLI",
+        "url": "https://github.com/Collaboration95/dc2/issues/5"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[C1] Build the independent Publisher CLI against public APIs",
+      "url": "https://github.com/Collaboration95/dc2/issues/18"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrThZw",
+            "number": 16,
+            "state": "OPEN",
+            "title": "[M2] Serve compatible status, retry and authorised MP4/HLS playback",
+            "url": "https://github.com/Collaboration95/dc2/issues/16"
+          }
+        ],
+        "totalCount": 1
+      },
+      "number": 17,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS5Fw",
+        "number": 4,
+        "state": "OPEN",
+        "title": "[E3] Media ownership and compatible public workflow",
+        "url": "https://github.com/Collaboration95/dc2/issues/4"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[M3] Reconcile pending submissions and preserve edit/delete/operator behavior",
+      "url": "https://github.com/Collaboration95/dc2/issues/17"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTdMQ",
+            "number": 15,
+            "state": "OPEN",
+            "title": "[M1] Create Media-owned Assets and durable idempotent submission",
+            "url": "https://github.com/Collaboration95/dc2/issues/15"
+          }
+        ],
+        "totalCount": 1
+      },
+      "number": 16,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS5Fw",
+        "number": 4,
+        "state": "OPEN",
+        "title": "[E3] Media ownership and compatible public workflow",
+        "url": "https://github.com/Collaboration95/dc2/issues/4"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[M2] Serve compatible status, retry and authorised MP4/HLS playback",
+      "url": "https://github.com/Collaboration95/dc2/issues/16"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTNWQ",
+            "number": 11,
+            "state": "OPEN",
+            "title": "[F3] Provide isolated local services, storage and trusted HTTPS topology",
+            "url": "https://github.com/Collaboration95/dc2/issues/11"
+          }
+        ],
+        "totalCount": 1
+      },
+      "number": 15,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS5Fw",
+        "number": 4,
+        "state": "OPEN",
+        "title": "[E3] Media ownership and compatible public workflow",
+        "url": "https://github.com/Collaboration95/dc2/issues/4"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[M1] Create Media-owned Assets and durable idempotent submission",
+      "url": "https://github.com/Collaboration95/dc2/issues/15"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTVQA",
+            "number": 13,
+            "state": "OPEN",
+            "title": "[P2] Run attempt-aware FFmpeg workers with private source and output access",
+            "url": "https://github.com/Collaboration95/dc2/issues/13"
+          }
+        ],
+        "totalCount": 1
+      },
+      "number": 14,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS2fg",
+        "number": 3,
+        "state": "OPEN",
+        "title": "[E2] Independent processing and reliable attempts",
+        "url": "https://github.com/Collaboration95/dc2/issues/3"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[P3] Recover worker interruptions and lost queue deliveries",
+      "url": "https://github.com/Collaboration95/dc2/issues/14"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTRNg",
+            "number": 12,
+            "state": "OPEN",
+            "title": "[P1] Implement attempt lifecycle, stored-source retry and cancellation",
+            "url": "https://github.com/Collaboration95/dc2/issues/12"
+          }
+        ],
+        "totalCount": 1
+      },
+      "number": 13,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS2fg",
+        "number": 3,
+        "state": "OPEN",
+        "title": "[E2] Independent processing and reliable attempts",
+        "url": "https://github.com/Collaboration95/dc2/issues/3"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[P2] Run attempt-aware FFmpeg workers with private source and output access",
+      "url": "https://github.com/Collaboration95/dc2/issues/13"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTNWQ",
+            "number": 11,
+            "state": "OPEN",
+            "title": "[F3] Provide isolated local services, storage and trusted HTTPS topology",
+            "url": "https://github.com/Collaboration95/dc2/issues/11"
+          }
+        ],
+        "totalCount": 1
+      },
+      "number": 12,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS2fg",
+        "number": 3,
+        "state": "OPEN",
+        "title": "[E2] Independent processing and reliable attempts",
+        "url": "https://github.com/Collaboration95/dc2/issues/3"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[P1] Implement attempt lifecycle, stored-source retry and cancellation",
+      "url": "https://github.com/Collaboration95/dc2/issues/12"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTGUA",
+            "number": 9,
+            "state": "OPEN",
+            "title": "[F1] Install a reproducible root workspace with Make and environment doctor",
+            "url": "https://github.com/Collaboration95/dc2/issues/9"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTJgA",
+            "number": 10,
+            "state": "OPEN",
+            "title": "[F2] Establish fast deterministic test tiers and required CI checks",
+            "url": "https://github.com/Collaboration95/dc2/issues/10"
+          }
+        ],
+        "totalCount": 2
+      },
+      "number": 11,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS06Q",
+        "number": 2,
+        "state": "OPEN",
+        "title": "[E1] Reproducible local workspace and fast checks",
+        "url": "https://github.com/Collaboration95/dc2/issues/2"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[F3] Provide isolated local services, storage and trusted HTTPS topology",
+      "url": "https://github.com/Collaboration95/dc2/issues/11"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTC2A",
+            "number": 8,
+            "state": "OPEN",
+            "title": "[G2] Independently review and correct the delivery plan",
+            "url": "https://github.com/Collaboration95/dc2/issues/8"
+          }
+        ],
+        "totalCount": 1
+      },
+      "number": 10,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS06Q",
+        "number": 2,
+        "state": "OPEN",
+        "title": "[E1] Reproducible local workspace and fast checks",
+        "url": "https://github.com/Collaboration95/dc2/issues/2"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[F2] Establish fast deterministic test tiers and required CI checks",
+      "url": "https://github.com/Collaboration95/dc2/issues/10"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTC2A",
+            "number": 8,
+            "state": "OPEN",
+            "title": "[G2] Independently review and correct the delivery plan",
+            "url": "https://github.com/Collaboration95/dc2/issues/8"
+          }
+        ],
+        "totalCount": 1
+      },
+      "number": 9,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrS06Q",
+        "number": 2,
+        "state": "OPEN",
+        "title": "[E1] Reproducible local workspace and fast checks",
+        "url": "https://github.com/Collaboration95/dc2/issues/2"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[F1] Install a reproducible root workspace with Make and environment doctor",
+      "url": "https://github.com/Collaboration95/dc2/issues/9"
+    },
+    {
+      "blockedBy": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrS_mQ",
+            "number": 7,
+            "state": "OPEN",
+            "title": "[G1] Define epics, persona stories, issue contracts and waves",
+            "url": "https://github.com/Collaboration95/dc2/issues/7"
+          }
+        ],
+        "totalCount": 1
+      },
+      "number": 8,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrSy_g",
+        "number": 1,
+        "state": "OPEN",
+        "title": "[E0] Reviewed plan and auditable delivery",
+        "url": "https://github.com/Collaboration95/dc2/issues/1"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[G2] Independently review and correct the delivery plan",
+      "url": "https://github.com/Collaboration95/dc2/issues/8"
+    },
+    {
+      "blockedBy": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "number": 7,
+      "parent": {
+        "id": "I_kwDOUvNZ7c8AAAABWrSy_g",
+        "number": 1,
+        "state": "OPEN",
+        "title": "[E0] Reviewed plan and auditable delivery",
+        "url": "https://github.com/Collaboration95/dc2/issues/1"
+      },
+      "subIssues": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "title": "[G1] Define epics, persona stories, issue contracts and waves",
+      "url": "https://github.com/Collaboration95/dc2/issues/7"
+    },
+    {
+      "blockedBy": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "number": 6,
+      "parent": null,
+      "subIssues": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTv3A",
+            "number": 20,
+            "state": "OPEN",
+            "title": "[V1] Integrate full local workflow and contract regression evidence",
+            "url": "https://github.com/Collaboration95/dc2/issues/20"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrT0uw",
+            "number": 21,
+            "state": "OPEN",
+            "title": "[V2] Exercise recovery faults across both services",
+            "url": "https://github.com/Collaboration95/dc2/issues/21"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrT4jw",
+            "number": 22,
+            "state": "OPEN",
+            "title": "[V3] Measure local performance and worker scaling without misleading claims",
+            "url": "https://github.com/Collaboration95/dc2/issues/22"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrT8PQ",
+            "number": 23,
+            "state": "OPEN",
+            "title": "[V4] Automate independent local Processing release, smoke and rollback",
+            "url": "https://github.com/Collaboration95/dc2/issues/23"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrT__Q",
+            "number": 24,
+            "state": "OPEN",
+            "title": "[V5] Review final delivery and publish evidence-based morning handoff",
+            "url": "https://github.com/Collaboration95/dc2/issues/24"
+          }
+        ],
+        "totalCount": 5
+      },
+      "title": "[E5] Integrated evidence and local release readiness",
+      "url": "https://github.com/Collaboration95/dc2/issues/6"
+    },
+    {
+      "blockedBy": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "number": 5,
+      "parent": null,
+      "subIssues": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTo4w",
+            "number": 18,
+            "state": "OPEN",
+            "title": "[C1] Build the independent Publisher CLI against public APIs",
+            "url": "https://github.com/Collaboration95/dc2/issues/18"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTsDQ",
+            "number": 19,
+            "state": "OPEN",
+            "title": "[C2] Complete browser stored-source retry and idempotent requests",
+            "url": "https://github.com/Collaboration95/dc2/issues/19"
+          }
+        ],
+        "totalCount": 2
+      },
+      "title": "[E4] Web and independent Publisher CLI",
+      "url": "https://github.com/Collaboration95/dc2/issues/5"
+    },
+    {
+      "blockedBy": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "number": 4,
+      "parent": null,
+      "subIssues": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTdMQ",
+            "number": 15,
+            "state": "OPEN",
+            "title": "[M1] Create Media-owned Assets and durable idempotent submission",
+            "url": "https://github.com/Collaboration95/dc2/issues/15"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrThZw",
+            "number": 16,
+            "state": "OPEN",
+            "title": "[M2] Serve compatible status, retry and authorised MP4/HLS playback",
+            "url": "https://github.com/Collaboration95/dc2/issues/16"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTkjw",
+            "number": 17,
+            "state": "OPEN",
+            "title": "[M3] Reconcile pending submissions and preserve edit/delete/operator behavior",
+            "url": "https://github.com/Collaboration95/dc2/issues/17"
+          }
+        ],
+        "totalCount": 3
+      },
+      "title": "[E3] Media ownership and compatible public workflow",
+      "url": "https://github.com/Collaboration95/dc2/issues/4"
+    },
+    {
+      "blockedBy": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "number": 3,
+      "parent": null,
+      "subIssues": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTRNg",
+            "number": 12,
+            "state": "OPEN",
+            "title": "[P1] Implement attempt lifecycle, stored-source retry and cancellation",
+            "url": "https://github.com/Collaboration95/dc2/issues/12"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTVQA",
+            "number": 13,
+            "state": "OPEN",
+            "title": "[P2] Run attempt-aware FFmpeg workers with private source and output access",
+            "url": "https://github.com/Collaboration95/dc2/issues/13"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTZCw",
+            "number": 14,
+            "state": "OPEN",
+            "title": "[P3] Recover worker interruptions and lost queue deliveries",
+            "url": "https://github.com/Collaboration95/dc2/issues/14"
+          }
+        ],
+        "totalCount": 3
+      },
+      "title": "[E2] Independent processing and reliable attempts",
+      "url": "https://github.com/Collaboration95/dc2/issues/3"
+    },
+    {
+      "blockedBy": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "number": 2,
+      "parent": null,
+      "subIssues": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTGUA",
+            "number": 9,
+            "state": "OPEN",
+            "title": "[F1] Install a reproducible root workspace with Make and environment doctor",
+            "url": "https://github.com/Collaboration95/dc2/issues/9"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTJgA",
+            "number": 10,
+            "state": "OPEN",
+            "title": "[F2] Establish fast deterministic test tiers and required CI checks",
+            "url": "https://github.com/Collaboration95/dc2/issues/10"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTNWQ",
+            "number": 11,
+            "state": "OPEN",
+            "title": "[F3] Provide isolated local services, storage and trusted HTTPS topology",
+            "url": "https://github.com/Collaboration95/dc2/issues/11"
+          }
+        ],
+        "totalCount": 3
+      },
+      "title": "[E1] Reproducible local workspace and fast checks",
+      "url": "https://github.com/Collaboration95/dc2/issues/2"
+    },
+    {
+      "blockedBy": {
+        "nodes": [],
+        "totalCount": 0
+      },
+      "number": 1,
+      "parent": null,
+      "subIssues": {
+        "nodes": [
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrS_mQ",
+            "number": 7,
+            "state": "OPEN",
+            "title": "[G1] Define epics, persona stories, issue contracts and waves",
+            "url": "https://github.com/Collaboration95/dc2/issues/7"
+          },
+          {
+            "id": "I_kwDOUvNZ7c8AAAABWrTC2A",
+            "number": 8,
+            "state": "OPEN",
+            "title": "[G2] Independently review and correct the delivery plan",
+            "url": "https://github.com/Collaboration95/dc2/issues/8"
+          }
+        ],
+        "totalCount": 2
+      },
+      "title": "[E0] Reviewed plan and auditable delivery",
+      "url": "https://github.com/Collaboration95/dc2/issues/1"
+    }
+  ],
+  "verified_items": {
+    "items": [
+      {
+        "area": "planning",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-E0 -->\n\nOutcome: Reviewed plan and auditable delivery.\n\nPersonas: Jules, Sam.\n\nChildren: G1, G2.\n\nCompletion requires all children merged with acceptance evidence and independent review. No AWS actions. Source: `docs/execution/plan.md`.\n",
+          "number": 1,
+          "repository": "Collaboration95/dc2",
+          "title": "[E0] Reviewed plan and auditable delivery",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/1"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOcyw",
+        "labels": [
+          "epic",
+          "pre-aws",
+          "planning"
+        ],
+        "persona": "Jules, Sam",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "Medium",
+        "sequence": 0,
+        "status": "Todo",
+        "title": "[E0] Reviewed plan and auditable delivery",
+        "wave": "Wave 0",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "planning",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-G1 -->\n\nAs Jules, Sam, we need **define epics, persona stories, issue contracts and waves** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 0; epic E0. Paths/interfaces: `docs/execution/**`.\n\n## Acceptance\n\n- [ ] Versioned plan maps UC-1\u2013UC-7, proposal targets, dependencies and ownership to executable issues.\n- [ ] One GitHub Project contains native epic/sub-issue and blocking relationships with stable keys.\n- [ ] Multi-issue PR groups, review gates, resource isolation and stop conditions are explicit.\n\n## Verification\n\n- Validate backlog dependency DAG and unique stable keys.\n- Fresh gh reads verify project and issue hierarchy.\n\n## Dependencies and risk\n\nDependencies: none. Risk: Medium.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #1. Dependencies: none.\n",
+          "number": 7,
+          "repository": "Collaboration95/dc2",
+          "title": "[G1] Define epics, persona stories, issue contracts and waves",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/7"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOc0g",
+        "labels": [
+          "pre-aws",
+          "planning"
+        ],
+        "persona": "Jules, Sam",
+        "priority": "P0",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "Medium",
+        "sequence": 6,
+        "status": "Todo",
+        "title": "[G1] Define epics, persona stories, issue contracts and waves",
+        "wave": "Wave 0",
+        "workflow": "Ready"
+      },
+      {
+        "area": "planning",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-G2 -->\n\nAs Jules, Sam, we need **independently review and correct the delivery plan** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 0; epic E0. Paths/interfaces: `docs/execution/**`.\n\n## Acceptance\n\n- [ ] GPT-6.1 Sol xhigh reviews complete planning package and records findings.\n- [ ] Every substantive finding has a disposition and fix or explicit evidence-backed limitation.\n- [ ] No implementation wave starts before the corrected plan passes review.\n\n## Verification\n\n- Review verdict and finding-to-fix matrix under docs/execution/reviews/.\n\n## Dependencies and risk\n\nDependencies: G1. Risk: Medium.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #1. Dependencies: #7.\n",
+          "number": 8,
+          "repository": "Collaboration95/dc2",
+          "title": "[G2] Independently review and correct the delivery plan",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/8"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOc0s",
+        "labels": [
+          "pre-aws",
+          "planning"
+        ],
+        "persona": "Jules, Sam",
+        "priority": "P0",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "Medium",
+        "sequence": 7,
+        "status": "Todo",
+        "title": "[G2] Independently review and correct the delivery plan",
+        "wave": "Wave 0",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "foundation",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-E1 -->\n\nOutcome: Reproducible local workspace and fast checks.\n\nPersonas: Jules, Sam.\n\nChildren: F1, F2, F3.\n\nCompletion requires all children merged with acceptance evidence and independent review. No AWS actions. Source: `docs/execution/plan.md`.\n",
+          "number": 2,
+          "repository": "Collaboration95/dc2",
+          "title": "[E1] Reproducible local workspace and fast checks",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/2"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOc64",
+        "labels": [
+          "epic",
+          "pre-aws",
+          "foundation"
+        ],
+        "persona": "Jules, Sam",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "Medium",
+        "sequence": 1,
+        "status": "Todo",
+        "title": "[E1] Reproducible local workspace and fast checks",
+        "wave": "Wave 0",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "foundation",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-F1 -->\n\nAs Jules, Sam, we need **install a reproducible root workspace with make and environment doctor** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 1; epic E1. Paths/interfaces: `Makefile`, `scripts/dev/**`, `uv.lock`, `.python-version`, `pyproject.toml`, `.gitignore`, `README.md`.\n\n## Acceptance\n\n- [ ] make setup installs locked Python and frontend dependencies locally without overwriting existing secrets.\n- [ ] make help, doctor, lint, test and clean commands work from root; external prerequisites have precise diagnostics.\n- [ ] Worktree caches/artifacts/secrets are ignored; commands never require cd Media_player.\n\n## Verification\n\n- make setup && make doctor && make lint && make test\n- Run setup twice; preserve configured .env and test tracked-tree cleanliness.\n\n## Dependencies and risk\n\nDependencies: G2. Risk: Medium.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #2. Dependencies: #8.\n",
+          "number": 9,
+          "repository": "Collaboration95/dc2",
+          "title": "[F1] Install a reproducible root workspace with Make and environment doctor",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/9"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOc88",
+        "labels": [
+          "pre-aws",
+          "foundation"
+        ],
+        "persona": "Jules, Sam",
+        "priority": "P0",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "Medium",
+        "sequence": 8,
+        "status": "Todo",
+        "title": "[F1] Install a reproducible root workspace with Make and environment doctor",
+        "wave": "Wave 1",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "foundation",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-F2 -->\n\nAs Jules, Sam, we need **establish fast deterministic test tiers and required ci checks** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 1; epic E1. Paths/interfaces: `.github/workflows/**`, `tests/conftest.py`, `test configuration`, `Makefile test targets`.\n\n## Acceptance\n\n- [ ] Fast suite needs no network/services and targets <=30s warm locally; CI fast job targets <=3min excluding runner queue.\n- [ ] Real integration/e2e suites have isolated resources, bounded polling, stable fixtures, no blind sleeps or retry-to-green masking.\n- [ ] Keep >=80% measured backend branch coverage and current frontend >=90% thresholds; run fast suite three times without flaky failures.\n- [ ] CI always reports required fast/integration status; expensive scans/builds are cached/separate; failures remain visible.\n\n## Verification\n\n- make test repeated three times with recorded durations\n- make coverage and GitHub check results on exact PR SHA.\n\n## Dependencies and risk\n\nDependencies: G2. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #2. Dependencies: #8.\n",
+          "number": 10,
+          "repository": "Collaboration95/dc2",
+          "title": "[F2] Establish fast deterministic test tiers and required CI checks",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/10"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOc9M",
+        "labels": [
+          "pre-aws",
+          "foundation"
+        ],
+        "persona": "Jules, Sam",
+        "priority": "P0",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "High",
+        "sequence": 9,
+        "status": "Todo",
+        "title": "[F2] Establish fast deterministic test tiers and required CI checks",
+        "wave": "Wave 1",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "foundation",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-F3 -->\n\nAs Arun, Sam, we need **provide isolated local services, storage and trusted https topology** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 1; epic E1. Paths/interfaces: `compose/**`, `docker-compose*.yml`, `deploy/**`, `scripts/dev/**`, `.env.example`, `Makefile`.\n\n## Acceptance\n\n- [ ] make up starts fresh project-owned services with separate databases, Redis and local S3-compatible storage; make down preserves data.\n- [ ] Project-local TLS endpoint is reachable with explicit CA trust in host/container/test clients. Secure-cookie end-to-end login is verified in V1 after Media integration; no system trust-store changes or disabled certificate verification.\n- [ ] Public/internal source and playback hostnames resolve in their respective runtimes; no secrets are tracked.\n- [ ] Two worktree stacks can use distinct projects/ports/volumes; resource preflight reports Docker CPU/memory limits.\n- [ ] Pinned MinIO build or locally verified compatible image works from fresh cache; fetch GitHub sources through gh.\n\n## Verification\n\n- make up && make smoke-infra && make down\n- Fresh-volume boot and two isolated stacks; no shared volume destruction.\n\n## Dependencies and risk\n\nDependencies: F1, F2. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #2. Dependencies: #9, #10.\n",
+          "number": 11,
+          "repository": "Collaboration95/dc2",
+          "title": "[F3] Provide isolated local services, storage and trusted HTTPS topology",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/11"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOc9U",
+        "labels": [
+          "pre-aws",
+          "foundation"
+        ],
+        "persona": "Arun, Sam",
+        "priority": "P0",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "High",
+        "sequence": 10,
+        "status": "Todo",
+        "title": "[F3] Provide isolated local services, storage and trusted HTTPS topology",
+        "wave": "Wave 1",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "processing",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-E2 -->\n\nOutcome: Independent processing and reliable attempts.\n\nPersonas: Arun, Sam.\n\nChildren: P1, P2, P3.\n\nCompletion requires all children merged with acceptance evidence and independent review. No AWS actions. Source: `docs/execution/plan.md`.\n",
+          "number": 3,
+          "repository": "Collaboration95/dc2",
+          "title": "[E2] Independent processing and reliable attempts",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/3"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdCQ",
+        "labels": [
+          "epic",
+          "pre-aws",
+          "processing"
+        ],
+        "persona": "Arun, Sam",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "Medium",
+        "sequence": 2,
+        "status": "Todo",
+        "title": "[E2] Independent processing and reliable attempts",
+        "wave": "Wave 0",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "processing",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-P1 -->\n\nAs Arun, Sam, we need **implement attempt lifecycle, stored-source retry and cancellation** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 2; epic E2. Paths/interfaces: `processing/models.py`, `processing/service.py`, `processing/main.py`, `processing/migrations/**`, `tests/processing/**`, `tests/integration/test_processing*`.\n\n## Acceptance\n\n- [ ] Job/Attempt transitions use reserved attempt IDs and conditional fences; only current live attempt may publish.\n- [ ] Retry from failed records stable retry_request_id and returns prior attempt on replay; other states/owners rejected.\n- [ ] Cancel by AssetId serializes with submit, retains tombstone, and prevents delayed resurrection in both race orders.\n- [ ] Own migration history is additive and independent of media_db.\n\n## Verification\n\n- make test-processing\n- Real Postgres concurrent submit/retry/cancel and stale completion tests.\n\n## Dependencies and risk\n\nDependencies: F3. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #3. Dependencies: #11.\n",
+          "number": 12,
+          "repository": "Collaboration95/dc2",
+          "title": "[P1] Implement attempt lifecycle, stored-source retry and cancellation",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/12"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdDk",
+        "labels": [
+          "pre-aws",
+          "processing"
+        ],
+        "persona": "Arun, Sam",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "High",
+        "sequence": 11,
+        "status": "Todo",
+        "title": "[P1] Implement attempt lifecycle, stored-source retry and cancellation",
+        "wave": "Wave 2",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "processing",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-P2 -->\n\nAs Arun, Maya, we need **run attempt-aware ffmpeg workers with private source and output access** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 2; epic E2. Paths/interfaces: `processing/worker/**`, `processing/queue.py`, `media-engine extraction if needed`, `worker Docker image`.\n\n## Acceptance\n\n- [ ] Queue payload carries job_id and attempt_id; worker claims once and reuses existing FFmpeg behavior.\n- [ ] Worker downloads via renewable presigned source access with revision/digest validation; it has no MM database or source-storage credential.\n- [ ] Primary MP4 and best-effort HLS publish under attempt-specific keys; valid inherited MKV/MP3 edits remain compatible.\n- [ ] Real short fixture completes into playable output; stale attempts never replace winning output.\n\n## Verification\n\n- make test-processing && make integration-processing\n- Real FFmpeg MP4/HLS/fallback and stale-output tests.\n\n## Dependencies and risk\n\nDependencies: P1. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #3. Dependencies: #12.\n",
+          "number": 13,
+          "repository": "Collaboration95/dc2",
+          "title": "[P2] Run attempt-aware FFmpeg workers with private source and output access",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/13"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdDo",
+        "labels": [
+          "pre-aws",
+          "processing"
+        ],
+        "persona": "Arun, Maya",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "High",
+        "sequence": 12,
+        "status": "Todo",
+        "title": "[P2] Run attempt-aware FFmpeg workers with private source and output access",
+        "wave": "Wave 2",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "processing",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-P3 -->\n\nAs Sam, Arun, we need **recover worker interruptions and lost queue deliveries** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 2; epic E2. Paths/interfaces: `processing/recovery.py`, `processing/worker/**`, `processing/queue.py`, `recovery tests`.\n\n## Acceptance\n\n- [ ] Independent heartbeat supervises encoding; dead worker is failed within5min and healthy long encoding stays live.\n- [ ] Durable queued attempts recover missing RQ delivery within2min, including lingering RQ metadata.\n- [ ] Reconciler reuses reserved attempts; bounded retries/backoff and Processing-only output cleanup are observable.\n- [ ] Killing a worker, then retrying from stored source succeeds without duplicate published output.\n\n## Verification\n\n- make integration-processing\n- Fault injection with deadlines and sanitized job/attempt evidence.\n\n## Dependencies and risk\n\nDependencies: P2. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #3. Dependencies: #13.\n",
+          "number": 14,
+          "repository": "Collaboration95/dc2",
+          "title": "[P3] Recover worker interruptions and lost queue deliveries",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/14"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdDw",
+        "labels": [
+          "pre-aws",
+          "processing"
+        ],
+        "persona": "Sam, Arun",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "High",
+        "sequence": 13,
+        "status": "Todo",
+        "title": "[P3] Recover worker interruptions and lost queue deliveries",
+        "wave": "Wave 2",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "media",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-E3 -->\n\nOutcome: Media ownership and compatible public workflow.\n\nPersonas: Arun, Jules.\n\nChildren: M1, M2, M3.\n\nCompletion requires all children merged with acceptance evidence and independent review. No AWS actions. Source: `docs/execution/plan.md`.\n",
+          "number": 4,
+          "repository": "Collaboration95/dc2",
+          "title": "[E3] Media ownership and compatible public workflow",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/4"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdIo",
+        "labels": [
+          "epic",
+          "pre-aws",
+          "media"
+        ],
+        "persona": "Arun, Jules",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "Medium",
+        "sequence": 3,
+        "status": "Todo",
+        "title": "[E3] Media ownership and compatible public workflow",
+        "wave": "Wave 0",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "media",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-M1 -->\n\nAs Arun, Jules, we need **create media-owned assets and durable idempotent submission** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 2; epic E3. Paths/interfaces: `media/models/**`, `media/repositories/**`, `media/services/processing_client.py`, `media/api/uploads.py`, `media migrations`.\n\n## Acceptance\n\n- [ ] Media database owns users, immutable source descriptors, Assets, request keys and pending intent; no Processing tables/imports.\n- [ ] Upload/edit Idempotency-Key preserves one Asset; source size/type/owner validated before acceptance and source replay is immutable.\n- [ ] Submit uses authenticated HTTP and prepared contract; temporary P failure preserves durable pending intake.\n- [ ] Reverse source-access endpoint renews signed URLs only for matching owner/revision/live Asset.\n\n## Verification\n\n- make test-media\n- Real Postgres owner/request-key isolation and pending restart tests.\n\n## Dependencies and risk\n\nDependencies: F3. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #4. Dependencies: #11.\n",
+          "number": 15,
+          "repository": "Collaboration95/dc2",
+          "title": "[M1] Create Media-owned Assets and durable idempotent submission",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/15"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdJ0",
+        "labels": [
+          "pre-aws",
+          "media"
+        ],
+        "persona": "Arun, Jules",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "High",
+        "sequence": 14,
+        "status": "Todo",
+        "title": "[M1] Create Media-owned Assets and durable idempotent submission",
+        "wave": "Wave 2",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "media",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-M2 -->\n\nAs Arun, Maya, Jules, we need **serve compatible status, retry and authorised mp4/hls playback** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 2; epic E3. Paths/interfaces: `media/api/jobs.py`, `media/api/hls.py`, `media/schemas/**`, `media/services/output_urls.py`.\n\n## Acceptance\n\n- [ ] Existing web routes retain public Asset IDs; submitted status is composed from live owner-filtered P reads.\n- [ ] Pending maps queued/pending without outputs; dependency outage or missing linked P job returns503.\n- [ ] Stored-source retry delegates with stable request ID and does not upload again.\n- [ ] Owner-only MP4 URLs and HLS manifests/segments work across local HTTPS/storage topology, including inherited formats.\n\n## Verification\n\n- make test-media\n- API compatibility + HLS/primary playback tests against controlled Processing boundary.\n\n## Dependencies and risk\n\nDependencies: M1. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #4. Dependencies: #15.\n",
+          "number": 16,
+          "repository": "Collaboration95/dc2",
+          "title": "[M2] Serve compatible status, retry and authorised MP4/HLS playback",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/16"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdKI",
+        "labels": [
+          "pre-aws",
+          "media"
+        ],
+        "persona": "Arun, Maya, Jules",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "High",
+        "sequence": 15,
+        "status": "Todo",
+        "title": "[M2] Serve compatible status, retry and authorised MP4/HLS playback",
+        "wave": "Wave 2",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "media",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-M3 -->\n\nAs Arun, Sam, we need **reconcile pending submissions and preserve edit/delete/operator behavior** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 2; epic E3. Paths/interfaces: `media/recovery.py`, `media/services/**`, `media/api/jobs.py`, `media cleanup migrations`.\n\n## Acceptance\n\n- [ ] Pending work survives MM restart and recovers after P outage without duplicate jobs.\n- [ ] Derived edits keep an independent source and immutable operations across replay and parent deletion.\n- [ ] Delete commits local tombstone then cancels P by AssetId even after lost submit response; repeatable cleanup deletes only owned objects.\n- [ ] Inherited owner/operator list/delete behaviors remain compatible; no new admin product features.\n\n## Verification\n\n- make integration-media\n- Lost-response, pending restart, cancel race and derived edit lifecycle tests.\n\n## Dependencies and risk\n\nDependencies: M2. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #4. Dependencies: #16.\n",
+          "number": 17,
+          "repository": "Collaboration95/dc2",
+          "title": "[M3] Reconcile pending submissions and preserve edit/delete/operator behavior",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/17"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdKU",
+        "labels": [
+          "pre-aws",
+          "media"
+        ],
+        "persona": "Arun, Sam",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "High",
+        "sequence": 16,
+        "status": "Todo",
+        "title": "[M3] Reconcile pending submissions and preserve edit/delete/operator behavior",
+        "wave": "Wave 2",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "clients",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-E4 -->\n\nOutcome: Web and independent Publisher CLI.\n\nPersonas: Maya, Arun, Jules.\n\nChildren: C1, C2.\n\nCompletion requires all children merged with acceptance evidence and independent review. No AWS actions. Source: `docs/execution/plan.md`.\n",
+          "number": 5,
+          "repository": "Collaboration95/dc2",
+          "title": "[E4] Web and independent Publisher CLI",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/5"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdO4",
+        "labels": [
+          "epic",
+          "pre-aws",
+          "clients"
+        ],
+        "persona": "Maya, Arun, Jules",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "Medium",
+        "sequence": 4,
+        "status": "Todo",
+        "title": "[E4] Web and independent Publisher CLI",
+        "wave": "Wave 0",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "clients",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-C1 -->\n\nAs Maya, Jules, we need **build the independent publisher cli against public apis** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 2; epic E4. Paths/interfaces: `publisher/**`, `CLI packaging`, `tests/cli/**`.\n\n## Acceptance\n\n- [ ] CLI register/login, folder publish, per-file outcome/status, playback access and stored-source retry use only public API/cookie session.\n- [ ] No service-code imports or DB credentials; bounded polls/timeouts and meaningful exit codes for partial batch failure.\n- [ ] JSON output is machine readable; passwords/tokens excluded from output; actual implementation effort and size recorded.\n\n## Verification\n\n- make test-cli\n- Inspect imports/dependencies and run mixed-success batch against local HTTPS platform.\n\n## Dependencies and risk\n\nDependencies: F3. Risk: Medium.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #5. Dependencies: #11.\n",
+          "number": 18,
+          "repository": "Collaboration95/dc2",
+          "title": "[C1] Build the independent Publisher CLI against public APIs",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/18"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdQQ",
+        "labels": [
+          "pre-aws",
+          "clients"
+        ],
+        "persona": "Maya, Jules",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "Medium",
+        "sequence": 17,
+        "status": "Todo",
+        "title": "[C1] Build the independent Publisher CLI against public APIs",
+        "wave": "Wave 2",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "clients",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-C2 -->\n\nAs Arun, we need **complete browser stored-source retry and idempotent requests** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 2; epic E4. Paths/interfaces: `frontend/app.js`, `frontend/*.test.js`.\n\n## Acceptance\n\n- [ ] Browser retry invokes failed job retry endpoint and never resends remembered video.\n- [ ] Uploads/edits/retries use stable request IDs for transport replay; repeated user actions remain intentional new requests.\n- [ ] Pending/error503 states remain understandable; preserve existing design/editor behavior and roadmap visuals.\n\n## Verification\n\n- make test-frontend\n- Browser network assertions for retry with unchanged source and no upload request.\n\n## Dependencies and risk\n\nDependencies: F3. Risk: Medium.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #5. Dependencies: #11.\n",
+          "number": 19,
+          "repository": "Collaboration95/dc2",
+          "title": "[C2] Complete browser stored-source retry and idempotent requests",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/19"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdQY",
+        "labels": [
+          "pre-aws",
+          "clients"
+        ],
+        "persona": "Arun",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "Medium",
+        "sequence": 18,
+        "status": "Todo",
+        "title": "[C2] Complete browser stored-source retry and idempotent requests",
+        "wave": "Wave 2",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "verification",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-E5 -->\n\nOutcome: Integrated evidence and local release readiness.\n\nPersonas: Sam, all personas.\n\nChildren: V1, V2, V3, V4, V5.\n\nCompletion requires all children merged with acceptance evidence and independent review. No AWS actions. Source: `docs/execution/plan.md`.\n",
+          "number": 6,
+          "repository": "Collaboration95/dc2",
+          "title": "[E5] Integrated evidence and local release readiness",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/6"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdTM",
+        "labels": [
+          "epic",
+          "pre-aws",
+          "verification"
+        ],
+        "persona": "Sam, all personas",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "Medium",
+        "sequence": 5,
+        "status": "Todo",
+        "title": "[E5] Integrated evidence and local release readiness",
+        "wave": "Wave 0",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "verification",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-V1 -->\n\nAs Arun, Maya, Jules, we need **integrate full local workflow and contract regression evidence** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 3; epic E5. Paths/interfaces: `tests/e2e/**`, `scripts/smoke/**`, `compose integration`, `docs/execution/evidence/**`.\n\n## Acceptance\n\n- [ ] One fresh make up supports registration/upload/process/status/MP4/HLS/retry/delete through web and CLI.\n- [ ] All25 prepared contract cases have implemented tests or specific evidence-backed disposition; all required basic negative/ownership cases pass.\n- [ ] A real browser checks login, upload, playback and retry; accessible frontend unchanged except needed behavior.\n- [ ] No direct cross-service DB/storage ownership shortcuts or service imports in CLI.\n\n## Verification\n\n- make verify-local && make e2e\n- Review CT mapping with exact test names and raw outputs.\n\n## Dependencies and risk\n\nDependencies: P3, M3, C1, C2. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #6. Dependencies: #14, #17, #18, #19.\n",
+          "number": 20,
+          "repository": "Collaboration95/dc2",
+          "title": "[V1] Integrate full local workflow and contract regression evidence",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/20"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdVQ",
+        "labels": [
+          "pre-aws",
+          "verification"
+        ],
+        "persona": "Arun, Maya, Jules",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "High",
+        "sequence": 19,
+        "status": "Todo",
+        "title": "[V1] Integrate full local workflow and contract regression evidence",
+        "wave": "Wave 3",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "verification",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-V2 -->\n\nAs Sam, Arun, we need **exercise recovery faults across both services** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 3; epic E5. Paths/interfaces: `scripts/evidence/**`, `tests/e2e/**`, `docs/execution/evidence/**`.\n\n## Acceptance\n\n- [ ] Inject worker kill, lost queue item with surviving metadata, and P outage during upload.\n- [ ] Recovery timing meets <=5min worker visible failure and <=2min re-enqueue; retries succeed without duplicate published output.\n- [ ] Record actual states, job/attempt IDs, timings and reproducible commands; failures are not hidden.\n\n## Verification\n\n- make evidence-recovery\n\n## Dependencies and risk\n\nDependencies: V1. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #6. Dependencies: #20.\n",
+          "number": 21,
+          "repository": "Collaboration95/dc2",
+          "title": "[V2] Exercise recovery faults across both services",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/21"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdVY",
+        "labels": [
+          "pre-aws",
+          "verification"
+        ],
+        "persona": "Sam, Arun",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "High",
+        "sequence": 20,
+        "status": "Todo",
+        "title": "[V2] Exercise recovery faults across both services",
+        "wave": "Wave 3",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "verification",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-V3 -->\n\nAs Sam, we need **measure local performance and worker scaling without misleading claims** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 4; epic E5. Paths/interfaces: `scripts/evidence/**`, `load/**`, `docs/execution/evidence/**`.\n\n## Acceptance\n\n- [ ] Run status polling50users/3min p90<=700ms,<1%errors; separate20login p90<2s, retaining raw data.\n- [ ] Implement and run30identical60s720p clips at1/2/3 workers,2vCPU each when host has capacity; record throughput/queue/processing/errors/CPU/memory.\n- [ ] Targets2workers>=1.6x,3workers>=2.1x and falling median queuewait,zero failures remain visible with pass/fail and resource preflight.\n- [ ] If current sandbox cannot support fair quotas, complete runner and bounded local pilot, label exact limitation, and investigate project-local runtime without global setting changes. Never count oversubscribed results as acceptance.\n\n## Verification\n\n- make evidence-performance && make evidence-scaling\n- Resource manifest, hashes, raw timings and computed target table.\n\n## Dependencies and risk\n\nDependencies: V1. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #6. Dependencies: #20.\n",
+          "number": 22,
+          "repository": "Collaboration95/dc2",
+          "title": "[V3] Measure local performance and worker scaling without misleading claims",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/22"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdVk",
+        "labels": [
+          "pre-aws",
+          "verification"
+        ],
+        "persona": "Sam",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "High",
+        "sequence": 21,
+        "status": "Todo",
+        "title": "[V3] Measure local performance and worker scaling without misleading claims",
+        "wave": "Wave 4",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "verification",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-V4 -->\n\nAs Sam, we need **automate independent local processing release, smoke and rollback** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 4; epic E5. Paths/interfaces: `scripts/release/**`, `compose release overrides`, `docs/execution/evidence/**`.\n\n## Acceptance\n\n- [ ] Build/version per-service images; release candidate Processing independently and smoke-test within10min.\n- [ ] MM container identity/image and media_db migration revision remain unchanged; workers drain or fail visibly within bounded time.\n- [ ] Injected bad candidate fails promotion, rolls back to prior tested image and recovers smoke.\n- [ ] Scripts are local-only, repeatable and record exact images/migrations/timestamps; no AWS credentials or actions.\n\n## Verification\n\n- make evidence-release\n\n## Dependencies and risk\n\nDependencies: V1. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #6. Dependencies: #20.\n",
+          "number": 23,
+          "repository": "Collaboration95/dc2",
+          "title": "[V4] Automate independent local Processing release, smoke and rollback",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/23"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdVo",
+        "labels": [
+          "pre-aws",
+          "verification"
+        ],
+        "persona": "Sam",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "High",
+        "sequence": 22,
+        "status": "Todo",
+        "title": "[V4] Automate independent local Processing release, smoke and rollback",
+        "wave": "Wave 4",
+        "workflow": "Backlog"
+      },
+      {
+        "area": "verification",
+        "content": {
+          "body": "<!-- agent-orchestration:issue-key=dc2-V5 -->\n\nAs Maya, Arun, Jules, Sam, we need **review final delivery and publish evidence-based morning handoff** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 4; epic E5. Paths/interfaces: `docs/execution/**`, `docs/project2-worklog.txt`.\n\n## Acceptance\n\n- [ ] Independent Sol review compares integrated code to issues, proposal targets and evidence; all substantive fixable findings resolved.\n- [ ] Final Main checks pass; grouped PRs merged, issues/epics/project states match evidence; no incomplete work markedDone.\n- [ ] Handoff file gives exact start/stop/test commands, URLs, credentials location (no values), architecture decisions, PR/issue map, results and limitations.\n- [ ] Report/demo evidence source pack distinguishes inherited/new work and local/cloud evidence; list future AWS prerequisites only, do not provision.\n\n## Verification\n\n- make verify-local\n- Independent review and gh fresh-read reconciliation.\n\n## Dependencies and risk\n\nDependencies: V2, V3, V4. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #6. Dependencies: #21, #22, #23.\n",
+          "number": 24,
+          "repository": "Collaboration95/dc2",
+          "title": "[V5] Review final delivery and publish evidence-based morning handoff",
+          "type": "Issue",
+          "url": "https://github.com/Collaboration95/dc2/issues/24"
+        },
+        "id": "PVTI_lAHOBBatWM4BmtkxzhAOdVs",
+        "labels": [
+          "pre-aws",
+          "verification"
+        ],
+        "persona": "Maya, Arun, Jules, Sam",
+        "priority": "P1",
+        "repository": "https://github.com/Collaboration95/dc2",
+        "risk": "High",
+        "sequence": 23,
+        "status": "Todo",
+        "title": "[V5] Review final delivery and publish evidence-based morning handoff",
+        "wave": "Wave 4",
+        "workflow": "Backlog"
+      }
+    ],
+    "totalCount": 24
+  }
+}
