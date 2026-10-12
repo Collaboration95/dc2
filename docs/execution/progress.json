@@ -1,5 +1,5 @@
 {
-  "stage": "product-review-and-integration",
+  "stage": "clients-delivery-and-integrated-evidence",
   "baseline": "b32d489566144202fbf6fc3887ce25d5321444fd",
   "project": {
     "id": "PVT_kwHOBBatWM4Bmtkx",
@@ -92,29 +92,37 @@
     },
     "M1": {
       "number": 15,
-      "state": "Review",
-      "pr": null,
+      "state": "Done",
+      "pr": 29,
       "evidence": [
         "Foundation merged; frozen interfaces and localruntime/testgates available.",
         "ProductwaveheldforF2cachecorrection andfinalreview.",
-        "Foundation complete; three isolated product lanes starting."
+        "Foundation complete; three isolated product lanes starting.",
+        "PR29; independentcleanupR1PASS,770fast127realchecks andMedia98.19coverage; runtime+loginpilotverified;remoteCIpending.",
+        "PR29 mergedb4a9f56 afterindependentR1PASS,770fast127realchecks,all15remotechecks; fullV1-V4acceptanceremains."
       ]
     },
     "M2": {
       "number": 16,
-      "state": "Review",
-      "pr": null,
-      "evidence": []
+      "state": "Done",
+      "pr": 29,
+      "evidence": [
+        "PR29; independentcleanupR1PASS,770fast127realchecks andMedia98.19coverage; runtime+loginpilotverified;remoteCIpending.",
+        "PR29 mergedb4a9f56 afterindependentR1PASS,770fast127realchecks,all15remotechecks; fullV1-V4acceptanceremains."
+      ]
     },
     "M3": {
       "number": 17,
-      "state": "Review",
-      "pr": null,
-      "evidence": []
+      "state": "Done",
+      "pr": 29,
+      "evidence": [
+        "PR29; independentcleanupR1PASS,770fast127realchecks andMedia98.19coverage; runtime+loginpilotverified;remoteCIpending.",
+        "PR29 mergedb4a9f56 afterindependentR1PASS,770fast127realchecks,all15remotechecks; fullV1-V4acceptanceremains."
+      ]
     },
     "C1": {
       "number": 18,
-      "state": "In progress",
+      "state": "Review",
       "pr": null,
       "evidence": [
         "Foundation merged; frozen interfaces and localruntime/testgates available.",
@@ -124,7 +132,7 @@
     },
     "C2": {
       "number": 19,
-      "state": "In progress",
+      "state": "Review",
       "pr": null,
       "evidence": [
         "Foundation merged; frozen interfaces and localruntime/testgates available.",
@@ -212,6 +220,19 @@
       "state": "merged",
       "review": "PASS: reviews/processing-rereview.md",
       "merge_commit": "4efc41c4592d49019dc362bcaf048fb2cc2a2611"
+    },
+    {
+      "number": 29,
+      "url": "https://github.com/Collaboration95/dc2/pull/29",
+      "group": "media",
+      "issues": [
+        "M1",
+        "M2",
+        "M3"
+      ],
+      "state": "merged",
+      "review": "PASS: reviews/media-rereview.md",
+      "merge_commit": "b4a9f56"
     }
   ],
   "limitations": [
@@ -220,22 +241,28 @@
   "aws_actions_performed": false,
   "active_worktrees": [
     {
-      "branch": "wave/02-media",
+      "branch": "wave/02-clients",
       "path": ".",
       "owner": "coordinator",
-      "scope": "Media groupedPR andCI"
+      "scope": "Client groupedPR/CI"
     },
     {
       "branch": "work/integration",
       "path": ".worktrees/integration",
-      "owner": "coordinator + Kepler Solxhigh reviewer",
-      "scope": "Liveacceptance/CTmapping"
+      "owner": "coordinator",
+      "scope": "Frozen621c03a fullscaling atRUN_IDv3-scale; no concurrentVM workloads"
+    },
+    {
+      "branch": "work/integration-corrections",
+      "path": ".worktrees/integration-corrections",
+      "owner": "Halley Solxhigh",
+      "scope": "Offline V1/V2 correction rereview"
     },
     {
       "branch": "work/release-integration",
       "path": ".worktrees/release-integration",
-      "owner": "Peirce Solxhigh reviewer",
-      "scope": "Localreleasecode/wiringreview"
+      "owner": "Feynman Solxhigh",
+      "scope": "Offline V4 correction rereview"
     }
   ]
 }

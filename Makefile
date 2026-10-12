@@ -11,7 +11,7 @@ export PLAYWRIGHT_BROWSERS_PATH := $(CURDIR)/.local/playwright
 
 .PHONY: help setup setup-browser doctor doctor-infra lint test test-python test-frontend coverage \
         coverage-report integration integration-coverage clean test-app test-processing test-media \
-        test-media-engine test-publisher up down logs smoke-infra images env status local-tls \
+        test-media-engine test-publisher test-cli publisher up down logs smoke-infra images env status local-tls \
         browser browser-install browser-open browser-trust-smoke capacity-install capacity-start capacity-status capacity-stop capacity-env \
         e2e verify-local evidence-status evidence-scaling evidence-recovery release rollback
 
@@ -55,6 +55,11 @@ test-media-engine: ## Focus shared engine fast tests once implemented
 
 test-publisher: ## Focus Publisher fast tests once implemented
 	$(PYTHON) -m scripts.dev.checks test-python --domain publisher
+
+test-cli: test-publisher ## Publisher fast checks (alias)
+
+publisher: ## Run the independent public API CLI: ARGS='--help'
+	$(PYTHON) -m publisher $(if $(strip $(ARGS)),$(ARGS),--help)
 
 coverage: ## Collect fast/frontend coverage, enabled real integration, then gate each package
 	$(PYTHON) -m scripts.dev.checks coverage
