@@ -6,6 +6,8 @@ x-processing: &processing
 
 services:
   postgres:
+    cpus: 0.25
+    mem_limit: 512m
     image: postgres:16
     environment:
       POSTGRES_USER: postgres
@@ -35,19 +37,14 @@ services:
       postgres: {condition: service_healthy}
 
   processing:
+    cpus: 0.5
+    mem_limit: 256m
     <<: *processing
     environment:
       PROCESSING_POSTGRES_DSN: ${PROCESSING_POSTGRES_DSN:?}
       PROCESSING_SERVICE_TOKEN: ${PROCESSING_SERVICE_TOKEN:?}
-      PROCESSING_SOURCE_SERVICE_TOKEN: ${PROCESSING_SOURCE_SERVICE_TOKEN:?}
       PROCESSING_REDIS_URL: ${PROCESSING_REDIS_URL:?}
       PROCESSING_QUEUE_NAME: ${PROCESSING_QUEUE_NAME:?}
-      PROCESSING_MINIO_ENDPOINT: ${PROCESSING_MINIO_ENDPOINT:?}
-      PROCESSING_MINIO_USE_SSL: ${PROCESSING_MINIO_USE_SSL:?}
-      PROCESSING_MINIO_REGION: ${PROCESSING_MINIO_REGION:?}
-      PROCESSING_MINIO_ACCESS_KEY: ${PROCESSING_MINIO_ACCESS_KEY:?}
-      PROCESSING_MINIO_SECRET_KEY: ${PROCESSING_MINIO_SECRET_KEY:?}
-      PROCESSING_MINIO_OUTPUT_BUCKET: ${PROCESSING_MINIO_OUTPUT_BUCKET:?}
     ports: ["127.0.0.1:${DC2_PROCESSING_PORT}:8000"]
     networks: [processing-data, interservice, object-data, host-access]
     depends_on:
@@ -60,7 +57,52 @@ services:
       timeout: 3s
       retries: 30
 
+  worker:
+    <<: *processing
+    command: [python, -m, processing.worker]
+    cpus: 2.0
+    mem_limit: 1536m
+    stop_grace_period: 60s
+    environment:
+      PROCESSING_POSTGRES_DSN: ${PROCESSING_POSTGRES_DSN:?}
+      PROCESSING_REDIS_URL: ${PROCESSING_REDIS_URL:?}
+      PROCESSING_QUEUE_NAME: ${PROCESSING_QUEUE_NAME:?}
+      PROCESSING_MEDIA_URL: ${PROCESSING_MEDIA_URL:?}
+      PROCESSING_SOURCE_SERVICE_TOKEN: ${PROCESSING_SOURCE_SERVICE_TOKEN:?}
+      PROCESSING_MINIO_ENDPOINT: ${PROCESSING_MINIO_ENDPOINT:?}
+      PROCESSING_MINIO_USE_SSL: ${PROCESSING_MINIO_USE_SSL:?}
+      PROCESSING_MINIO_REGION: ${PROCESSING_MINIO_REGION:?}
+      PROCESSING_MINIO_ACCESS_KEY: ${PROCESSING_MINIO_ACCESS_KEY:?}
+      PROCESSING_MINIO_SECRET_KEY: ${PROCESSING_MINIO_SECRET_KEY:?}
+      PROCESSING_MINIO_OUTPUT_BUCKET: ${PROCESSING_MINIO_OUTPUT_BUCKET:?}
+    networks: [processing-data, interservice, object-data]
+    depends_on:
+      processing: {condition: service_healthy}
+      storage-bootstrap: {condition: service_completed_successfully}
+
+  processing-recovery:
+    <<: *processing
+    command: [python, -m, processing.recovery]
+    cpus: 0.125
+    mem_limit: 192m
+    environment:
+      PROCESSING_POSTGRES_DSN: ${PROCESSING_POSTGRES_DSN:?}
+      PROCESSING_REDIS_URL: ${PROCESSING_REDIS_URL:?}
+      PROCESSING_QUEUE_NAME: ${PROCESSING_QUEUE_NAME:?}
+      PROCESSING_MINIO_ENDPOINT: ${PROCESSING_MINIO_ENDPOINT:?}
+      PROCESSING_MINIO_USE_SSL: ${PROCESSING_MINIO_USE_SSL:?}
+      PROCESSING_MINIO_REGION: ${PROCESSING_MINIO_REGION:?}
+      PROCESSING_MINIO_ACCESS_KEY: ${CLEANUP_MINIO_ACCESS_KEY:?}
+      PROCESSING_MINIO_SECRET_KEY: ${CLEANUP_MINIO_SECRET_KEY:?}
+      PROCESSING_MINIO_OUTPUT_BUCKET: ${PROCESSING_MINIO_OUTPUT_BUCKET:?}
+    networks: [processing-data, object-data]
+    depends_on:
+      processing: {condition: service_healthy}
+      storage-bootstrap: {condition: service_completed_successfully}
+
   redis:
+    cpus: 0.125
+    mem_limit: 128m
     image: redis:7-alpine
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?}
@@ -74,6 +116,8 @@ services:
       retries: 30
 
   minio:
+    cpus: 0.25
+    mem_limit: 512m
     image: ${DC2_MINIO_IMAGE:?}
     build:
       context: ${DC2_ROOT}
@@ -119,6 +163,8 @@ services:
       minio: {condition: service_healthy}
 
   nginx:
+    cpus: 0.125
+    mem_limit: 128m
     image: nginx:1.28-alpine
     environment:
       NGINX_ENVSUBST_FILTER: ^DC2_
@@ -144,8 +190,8 @@ volumes:
   redis-data:
   object-data:
 
-# Future Media joins media-data/interservice/object-data/edge. Future workers join
-# processing-data/interservice/object-data only; source reads use signed HTTP URLs.
+# Media joins media-data/interservice/object-data/edge. Workers use signed HTTP
+# source reads; their output principal can only write, and recovery can list/delete.
 networks:
   media-data: {internal: true}
   processing-data: {internal: true}

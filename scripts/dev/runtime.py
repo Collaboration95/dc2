@@ -141,6 +141,7 @@ def configure(run_id, root=ROOT):
         "COMPOSE_PROJECT_NAME": project,
         "DC2_MINIO_SOURCE": str(root / ".cache/minio" / MINIO_COMMIT),
         "DC2_PROCESSING_IMAGE": f"dc2-processing:{project}",
+        "DC2_MEDIA_IMAGE": f"dc2-media:{project}",
         "DC2_MINIO_IMAGE": f"dc2-minio:{project}",
         "MINIO_ROOT_USER": "root-" + hashlib.sha256(project.encode()).hexdigest()[:14],
         "MINIO_REGION": "us-east-1",
@@ -174,6 +175,8 @@ def configure(run_id, root=ROOT):
     public = f"https://localhost:{env['DC2_HTTPS_PORT']}"
     mappings = {
         "MEDIA_PUBLIC_URL": public,
+        "MEDIA_PROCESSING_URL": "http://processing:8000",
+        "PROCESSING_MEDIA_URL": "http://media:8000",
         "MEDIA_SOURCE_SERVICE_TOKEN": env["SOURCE_SERVICE_TOKEN"],
         "PROCESSING_SOURCE_SERVICE_TOKEN": env["SOURCE_SERVICE_TOKEN"],
         "MEDIA_PROCESSING_SERVICE_TOKEN": env["PROCESSING_SERVICE_TOKEN"],

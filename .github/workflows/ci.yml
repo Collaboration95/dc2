@@ -174,7 +174,7 @@ jobs:
         run: docker rm -f dc2-ci-minio
 
   processing-intake:
-    name: Processing intake and database ownership
+    name: Processing worker, recovery and database ownership
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
@@ -182,6 +182,9 @@ jobs:
       PROCESSING_SERVICE_TOKEN: ci-only-processing-service-token
       PROCESSING_POSTGRES_DSN: postgresql+asyncpg://processing_runtime:dc2_local_processing@127.0.0.1:55432/processing_db
       P2_POSTGRES_PORT: '55432'
+      P2_REDIS_PORT: '56379'
+      PROCESSING_REDIS_URL: redis://127.0.0.1:56379/0
+      PROCESSING_QUEUE_NAME: processing-ci
       RUN_PROCESSING_TESTS: '1'
     steps:
       - uses: actions/checkout@v4
@@ -204,6 +207,10 @@ jobs:
           tags: dc2-processing:dev
           cache-from: type=gha,scope=processing
           cache-to: type=gha,scope=processing,mode=max
+      - name: Install real media fixture encoder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
       - name: Start isolated Processing with a bounded readiness wait
         run: docker compose -f docker-compose.processing.yml up --no-build -d --wait --wait-timeout 180 processing
       - run: make integration-coverage
