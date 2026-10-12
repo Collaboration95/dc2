@@ -6,21 +6,27 @@ CURRENT CHECKPOINT
 Planning PR25, foundation PR26, cache correction PR27, Processing PR28, Media
 PR29 and clients PR30 are merged. PR30 merged at
 ea3950c61f4f9eaa5ad8dcbe1f726303f85e0764.
-The product lanes are delivered; V1-V5 final evidence and acceptance remain
-pending. Earlier tests, pilots and bounded review PASS results below describe
-specific historical heads. They do not certify the final combined Main source.
+V1/V2 full workflow and recovery evidence PASS at 422609b; actual full V4
+release/rollback evidence PASS at 331354d. These issues remain in Review under
+draft PR31, which covers V1-V5. V3 measurements and V5 final review/merge remain
+pending. No final Main SHA, exact Main checks or E5 completion is claimed.
 
-Full scaling is running on frozen .worktrees/integration at 621c03a, namespace
-v3-scale. Parent owns that run and exact final measurements. Do not change the
-checkout or run competing Docker, build, browser or runtime workloads while it
-is active. Documentation handoff preparation is offline in .worktrees/handoff.
+The first full scaling invocation at 621c03a FAILED after session expiry.
+Its seven completed batches/210 successes are diagnostic only and remain retained.
+A fresh full nine-batch run owns the VM exclusively from frozen f46599f in
+.worktrees/final-measurements, RUN_ID=v3-final. Separate full latency follows only
+if scaling passes. The parent owns measurements and source applicability.
+Do not change that checkout or run competing VM, Docker, build, browser, FFmpeg
+or other live workloads until the parent releases it.
 
-Morning report: docs/execution/handoff.md. It includes commands, personas,
-architecture, private credential locations (no values), PR/issue/milestone map,
-evidence sources, local/AWS boundary and explicitly pending final-result fields.
-The progress.json in this documentation checkout predates PR30 and still records
-clients in Review. Parent must reconcile the machine ledger and remote metadata;
-this documentation task does not mutate them or claim V5 completion.
+Morning report: docs/execution/handoff.md. Use root RUN_ID=local after runtime
+release; its existing https://localhost:54440 allocation is currently down and
+requires the parent's final confirmation. The report gives commands, architecture,
+personas, PR/issue map, results, limits and pending final fields. Selected evidence
+source packs are tracked under docs/execution/evidence. The progress.json ledger
+now records V1/V2/V4 in Review, V3/V5 in progress and PR31 draft; the parent still
+must reconcile final remote metadata through authenticated gh. This two-file
+readability update does not close V5 or run any live workload.
 
 WORKING AGREEMENT — ACCEPTED 12 OCTOBER 2026
 
@@ -204,11 +210,12 @@ Client implementation/testing interval recorded in clients-implementation.md:
 and final evidence work. It is not complete human effort or a supported CLI-only
 person-day comparison to the proposal's two-person-day allocation.
 
-13 OCTOBER 2026 — INTEGRATION/EVIDENCE PREPARATION, STILL PENDING
+13 OCTOBER 2026 — EARLIER INTEGRATION/EVIDENCE PREPARATION
 
-Full nine-run 30 x 60s 720p scaling at 1/2/3 hard-2-vCPU workers is running on
-frozen integration 621c03a in v3-scale. No exact final result is available for this
-documentation checkpoint. Keep the measurement source/image/fixture identities.
+At this earlier checkpoint, full nine-run 30 x 60s 720p scaling at 1/2/3
+hard-2-vCPU workers was running on frozen integration 621c03a in v3-scale.
+No exact final result was then available. This invocation later FAILED as recorded
+below; its source/image/fixture identities and partial evidence remain retained.
 Performance runner R1-R5 bounded rereview is PASS with 63 offline tests; that
 certifies the corrected runner, not status latency, login or scaling targets.
 
@@ -230,7 +237,7 @@ scan, release/rollback or live drain acceptance. See release-runner.md,
 release-integration.md and release-fixes.md. These prior lanes' recorded workloads
 were not rerun by this documentation owner.
 
-Final gates requiring parent evidence:
+Acceptance targets retained from that preparation checkpoint:
 - V1: full verify/E2E on combined clean source, browser UI login and real HLS/MP4,
   CLI mixed-success batch/retry and all 25 contract cases/dispositions.
 - V2: worker failure <=300s, queue repair <=120s with surviving metadata, Processing
@@ -244,9 +251,10 @@ Final gates requiring parent evidence:
 - V5: independent final review, exact Main checks/accepted merges, metadata
   reconciliation, completed handoff evidence source pack. This draft is preparation.
 
-Parent will fill exact final timings, target verdicts, SHAs/images, artifact paths
-and hashes in handoff.md. V1-V5 are pending; E5 is not complete. If fair full
-scaling acceptance is unavailable, retain the precise blocker and keep V3/E5 open.
+At that preparation checkpoint V1-V5 were pending. Later dated entries below
+supersede V1/V2/V4 status, retaining these original targets. The parent will fill
+remaining metrics, verdicts, source/image identities, paths/hashes and final Main
+checks in handoff.md. E5 is not complete; keep V3/E5 open if scaling is unmet.
 No AWS/cloud result is claimed. AWS prerequisites remain actual project account,
 region, budget/spending limit, domain, scoped credentials and adequate compute.
 
@@ -257,3 +265,103 @@ proposal integrated boundary/CLI start 14 October; first and only weekly report
 suggested report review 13 November; recorded final report deadline 16 November.
 This offline task does not revalidate Canvas changes or submission cutoff/format.
 No original course/proposal or roadmap file was changed.
+
+13 OCTOBER 2026 — FULL MAC WORKFLOW, RECOVERY AND LINUX CI
+
+Full local verification at harness 422609b434102fd132b41c5bd9ab113d03984ed0 PASS:
+1,083 fast Python, 152 frontend and 130 enabled real integration tests
+(44 legacy, 47 Processing, 39 Media). All five backend coverage gates and the
+four frontend gates passed. Runtime build 2cb8da8 has byte-identical indexed
+Media, Processing, engine, Publisher, frontend, deployment, Compose and lock
+inputs; this is source equivalence, not an image rebuilt/relabelled at 422609b.
+
+Full Mac E2E PASS in 122.740s: browser UI registration/logout/login, one upload,
+visible worker failure, bodyless stored-source retry, separately decoded HLS/MP4
+and owner deletion. Publisher registered/logged in, completed 30 good files plus
+one rejection, polled status and retrieved authorised output. Its intentionally
+invalid stored source still failed on retry; valid-source recovery was proved
+separately by browser/V2. All 25 contract dispositions were reconciled with their
+actual evidence layers, preserving earlier failures and controlled-peer limits.
+
+Full V2 PASS in 190.602s: failure visible in 69.195s <=300s; queue list loss with
+surviving metadata repaired in 23.507s <=120s. Same-key retry produced one new
+Attempt and one primary output. Processing outage accepted durable pending work;
+Media restart/replay preserved its Asset, and restored services converged.
+Previously submitted status returned 503 during outage. Scoped restoration passed.
+
+Full Linux CI run 38303856295 passed all 15 checks for branch head 422609b;
+tested synthetic merge e1062bd8e5826848fa67c4aa95b6e40ecf92f4ac. Full browser/CLI,
+TLS positive/negative and decoded HLS/MP4 gates passed. No current Linux duration
+is invented; successful SonarCloud job skipped analysis, so completed Sonar
+analysis is not claimed. Current hosted raw artifacts still need parent retention.
+The older tracked Linux pack from run 38300284726 stays attributed to its own head.
+
+Tracked Mac source pack: docs/execution/evidence/local-workflow-422609b/index.json.
+Detailed reconciliation: docs/execution/reviews/contract-final.md. Its earlier
+packaging/pending notes describe its own checkpoint; selected packs are now tracked.
+These passes do not close issues, merge PR31 or certify final Main.
+
+13 OCTOBER 2026 — RELEASE FAILURES, CORRECTIONS AND FULL V4 PASS
+
+The first live active-work preparation was rejected before promotion: its silent
+30-second fixture finished in 3.522205s before the exact active Attempt capture.
+A reviewed correction used representative 60-second 720p video with AAC audio,
+retaining quotas, immediate-before-drain checks and command/operation bounds.
+
+A later good promotion passed in 96.887s with 31.873s active drain. Its bad API
+actually exited 42, but automatic rollback hit the 15-second cold diagnostic cap
+under the recovery service's 1/16-CPU quota. The experiment remains FAIL.
+Manual rollback then restored the exact good image, passed public smoke, preserved
+Media and cleared pending intent; manual recovery did not change that FAIL.
+The reviewed 45-second cold diagnostic cap remains clipped to the original absolute
+deadline, with no retry/reset and unchanged 600s promotion/300s recovery bounds.
+
+A fresh complete good/bad experiment at 331354d PASS in 226.828s: good promotion
+and public smoke 101.197s, real active drain 34.077s, bad promotion plus automatic
+restoration 125.621s. Both exact candidate artifact/test/Trivy gates passed with
+zero fixable HIGH/CRITICAL findings. Actual bad API exit 42/marker was captured;
+automatic rollback restored the exact tested good image, original workers and
+public workflow. Media API/recovery identities/images and media_db revision were
+unchanged; pending intent cleared. The bad candidate remains a failed release;
+the complete expected-failure experiment passes. No prior result was spliced.
+Tracked source pack: docs/execution/evidence/release-331354d/index.json.
+Details and bounded reviews: release-validation.md, release-fixture-rereview.md
+and release-diagnostic-rereview.md under docs/execution/reviews/.
+
+13 OCTOBER 2026 — FAILED FULL SCALING AND FRESH FROZEN RUN
+
+First full run at 621c03a failed at 13 October 04:11 Singapore after about one
+hour. Seven complete batches had 210 successful outcomes and no missing HLS.
+During batch 8 preparation (r3-w1), upload sequence 8 received HTTP 401 after
+seven acknowledged Assets: the owner's one-hour cookie had expired.
+The serial latency launcher refused to start. All old data and failure records
+remain retained; seven batches are diagnostic, never full acceptance.
+
+Session renewal before each batch, outside warmup/timing, now reuses and validates
+the same owner/cookie. It does not retry failed uploads, change authentication
+lifetime, fixtures, quotas, encoder or repeat order. Bounded independent rereview
+PASS and 68 offline evidence tests support the fix, not live V3 acceptance.
+Details: docs/execution/reviews/scaling-session-fix.md and scaling-session-rereview.md.
+
+Project-local Lima disk expanded from 40 to 64 GiB to retain failed data and fit
+the fresh run. Observed filesystem: 61G total, 28G used, 34G free at resize.
+8 CPU / 8 GiB and service quotas are unchanged; old data was preserved.
+Tracked capacity record: docs/execution/evidence/runtime-capacity.json.
+
+The fresh complete nine-batch run is active on frozen f46599f in
+.worktrees/final-measurements, RUN_ID=v3-final, with exclusive VM ownership.
+All batches are fresh; no earlier results are spliced. Full separate latency
+(three repeats each of status/login, 21 minutes plus preparation) follows ONLY
+if scaling passes. V3 remains pending until original targets and raw results
+are assessed. V5 remains pending final independent review, accepted merge,
+exact Main checks, source-pack completion and gh metadata reconciliation.
+
+13 OCTOBER 2026 — MORNING HANDOFF READABILITY
+
+Condensed docs/execution/handoff.md for morning use: main status and next actions,
+default RUN_ID=local start/stop/web/CLI commands, architecture/personas, PR map,
+measured V1/V2/V4 results, parent V3/V5 fill-in fields and detailed report links.
+The existing root local URL is down; parent confirmation remains required.
+Only handoff.md and this worklog were edited. Source/link/hash and whitespace
+checks are offline; no VM, Docker, build, browser, FFmpeg or live test was run.
+No AWS/Alibaba, roadmap design or original academic document changes were made.
