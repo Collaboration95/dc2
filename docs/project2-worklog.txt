@@ -1,0 +1,45 @@
+PROJECT 2 WORKING DECISIONS
+12 October 2026, Singapore
+
+User direction
+The accepted proposal contains a 31-person-day effort allocation. Implementation
+is compressed into three elapsed days of agentic coding, five days maximum.
+Use the 80/20 principle and make routine decisions without another review round.
+Security is not a grading priority according to the user: retain basic existing
+controls, but do not build OIDC, a credential broker or elaborate new security
+infrastructure. This supersedes heavier deployment suggestions in the design pack.
+Original proposal targets and recorded measurements must remain distinguishable.
+
+Selected implementation defaults
+- Proceed with the prepared two-service DDD and API contracts; validate in code.
+- Keep PostgreSQL database/role ownership separate on one server.
+- Reuse FFmpeg, Redis/RQ, the existing browser and cookie authentication for CLI.
+- Use heartbeat-based interruption detection, visible failure and stored-source
+  manual retry; repair durable pending submissions and missing queue entries.
+- Use one AWS EC2/Compose demonstration host and private S3 storage. Confirm the
+  project account, region, budget and domain before provisioning; do not assume
+  the user's other AWS projects are this project's account.
+- Use scoped demo credentials supplied outside Git, without an OIDC rollout.
+- Use manual release promotion with scripted deployment, smoke and rollback.
+- Preserve the proposal's 1/2/3 workers at 2 vCPU experiments and numeric targets.
+- Show web and small Publisher CLI workflows; record lengthy experiments and
+  keep a recording fallback for the presentation.
+- Spend the third day on experiments and corrections. Any fourth/fifth day must
+  address a concrete required gap, not new product scope. No automatic extension
+  beyond five days. Actual report/presentation work still needs to be completed.
+
+Repository migration
+Imported Media_player commit 885453726d629c524bf511d665311863d9bc70a5 into dc2 root.
+All 129 tracked source files and four ignored macOS metadata files were copied;
+SHA-256 contents and permission bits matched the inventory before source removal.
+The root .git remains dc2's repository. Submodule registration and .gitmodules
+were removed; original source Git history is retained locally in a full external
+backup, an accompanying Git bundle, and .git/modules/Media_player.
+The pre-existing roadmap changes were preserved in a separate commit.
+Migration adaptations: CI uses dc2's Main branch and scopes lint to application
+code, Docker excludes planning assets, and current root guidance supersedes the
+old team's operational rules. Application source behavior is unchanged by the move.
+
+Implementation status
+Repository migration complete locally; remote publication and baseline checks
+are in progress. Service extraction has not yet been validated.
