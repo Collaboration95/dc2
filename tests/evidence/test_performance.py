@@ -563,6 +563,16 @@ def scaling_model(monkeypatch, tmp_path, job):
             return []
 
     def respond(request):
+        if request.url.path == "/api/auth/login":
+            model.events.append(("login", model.uploads))
+            return httpx.Response(
+                200,
+                json={"id": job["owner_id"]},
+                headers={"set-cookie": "access_token=fresh; Path=/"},
+            )
+        if request.url.path == "/api/auth/me":
+            return httpx.Response(200, json={"id": job["owner_id"]})
+        assert request.headers.get("cookie") == "access_token=fresh"
         model.uploads += 1
         if model.fail_upload and not model.active and len(model.prepared) == 1:
             raise httpx.ReadTimeout("private URL and body must never be retained")
@@ -594,7 +604,11 @@ def scaling_model(monkeypatch, tmp_path, job):
         return client
 
     async def owner(state, artifact, index):
-        return {"id": job["owner_id"], "client": session()}
+        return {
+            "id": job["owner_id"],
+            "client": session(),
+            "credentials": {"email": "offline@example.com", "password": "not-real"},
+        }
 
     async def wait_jobs(client, person, assets, **kwargs):
         if kwargs.get("queued"):
@@ -638,6 +652,19 @@ def scaling_model(monkeypatch, tmp_path, job):
 async def test_full_selection_prequeues_and_warms_every_replica(scaling_model):
     model = scaling_model
     result = await model.run()
+    # Nine batches need nine distinct preparations, even when total duration
+    # exceeds the ordinary login lifetime. Authentication is not an upload.
+    assert [event[1] for event in model.events if event[0] == "login"] == [
+        0,
+        31,
+        63,
+        96,
+        128,
+        161,
+        192,
+        225,
+        256,
+    ]
     assert result["acceptance_eligible"]  # Scheduling simulation is not experiment evidence.
     assert len(model.phase_counts) == 9
     assert len([e for e in model.events if e[0] == "warmup"]) == 18
@@ -1122,3 +1149,50 @@ def test_cli_reports_protocol_invalidity_separately_from_numeric_targets(
     result = json.loads(manifest_path.read_text())["result"]
     assert result["criteria_pass"] and result["operational_errors"] == 2
     assert result["acceptance_pass"] is protocol_valid
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", [None, "missing-cookie", "wrong-owner", "refused"])
+async def test_scaling_renewal_replaces_expired_cookie_and_refuses_invalid_session(
+    tmp_path, failure
+):
+    owner_id = str(uuid4())
+    seen = []
+
+    def respond(request):
+        seen.append(request.url.path)
+        if request.url.path.endswith("/login"):
+            assert "cookie" not in request.headers
+            if failure == "refused":
+                return httpx.Response(401)
+            headers = (
+                {}
+                if failure == "missing-cookie"
+                else {"set-cookie": "access_token=renewed; Path=/"}
+            )
+            return httpx.Response(200, json={"id": owner_id}, headers=headers)
+        return httpx.Response(
+            200, json={"id": str(uuid4()) if failure == "wrong-owner" else owner_id}
+        )
+
+    client = Client("http://localhost", transport=httpx.MockTransport(respond))
+    client.http.cookies.set("access_token", "expired-session")
+    person = {
+        "id": owner_id,
+        "client": client,
+        "credentials": {"email": "bounded@example.com", "password": "private-password"},
+    }
+    artifacts = Artifacts(tmp_path / "renew", ["private-password"])
+    try:
+        if failure:
+            with pytest.raises(EvidenceError):
+                await runner.renew_session(person, artifacts, "r3-w1")
+        else:
+            await runner.renew_session(person, artifacts, "r3-w1")
+            assert client.http.cookies.get("access_token") == "renewed"
+        assert seen == ["/api/auth/login"] + ([] if failure == "refused" else ["/api/auth/me"])
+        records = (artifacts.directory / "operations.jsonl").read_text()
+        assert "private-password" not in records and "expired-session" not in records
+        assert "renewed" not in records
+    finally:
+        await client.close()

@@ -695,6 +695,33 @@ async def owner(state, artifacts, index):
         raise
 
 
+async def renew_session(person, artifacts, phase):
+    """Renew between batches, outside measurement; never retry an upload on 401."""
+    client = person["client"]
+    client.http.cookies.clear()
+    login = await client.checked(
+        "POST",
+        "/api/auth/login",
+        json=person["credentials"],
+        artifacts=artifacts,
+        record={"phase": phase + "-session", "operation": "login"},
+    )
+    me = await client.checked(
+        "GET",
+        "/api/auth/me",
+        artifacts=artifacts,
+        record={"phase": phase + "-session", "operation": "session"},
+    )
+    if (
+        not isinstance(login, dict)
+        or not isinstance(me, dict)
+        or login.get("id") != person["id"]
+        or me.get("id") != person["id"]
+        or not client.http.cookies.get("access_token")
+    ):
+        raise EvidenceError("Scaling session renewal did not establish the same owner")
+
+
 async def upload(person, path, *, artifacts=None, phase=None, sequence=None, acknowledgement=None):
     with path.open("rb") as stream:
         data, sample = await person["client"].request(
@@ -862,6 +889,9 @@ async def scaling(args, env, state, artifacts, manifest):
     try:
         for repeat, count in run_order(args.repeats):
             phase = f"r{repeat}-w{count}"
+            # The complete nine-run experiment can exceed the normal one-hour
+            # login lifetime. Each individual batch fits within that lifetime.
+            await renew_session(person, artifacts, phase)
             # Recheck other namespaces at every launch, never change their containers.
             _, current_fixed = await blocking(docker.preflight)
             if current_fixed != fixed:
