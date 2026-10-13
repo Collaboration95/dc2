@@ -1,30 +1,30 @@
 # Project 2 morning handoff
 
-**13 October 2026, Singapore (UTC+8): V5/E5 reopened for PostgreSQL startup readiness.**
-PR31 and its accepted product merge `66014d0` remain historical PASS evidence.
-Subsequent [CI38329462068](https://github.com/Collaboration95/dc2/actions/runs/38329462068)
-on `293b9a8` failed fresh startup: socket readiness admitted migrations before the
-final PostgreSQL TCP listener. The three active healthchecks now use TCP;
-[isolated proof and correction](reviews/postgres-readiness-fix.md) pass.
-[Independent peer review](reviews/postgres-readiness-review.md) **PASS**.
-Corrective PR32, exact PR/Main CI and metadata reconciliation remain pending. Earlier V1–V4 measurements and [verified Main pack](evidence/main-66014d0/index.json)
-retain their original provenance; they do not certify this correction.
+**13 October 2026, Singapore (UTC+8): local pre-AWS delivery complete, including PostgreSQL readiness correction.**
+PR32 merged at [`f10bf04899e6cc80f992c65193a92fbe0b0ce8b2`](https://github.com/Collaboration95/dc2/commit/f10bf04899e6cc80f992c65193a92fbe0b0ce8b2);
+[PR CI38330508848](https://github.com/Collaboration95/dc2/actions/runs/38330508848) passed all 15 checks and
+[Main CI38331089024](https://github.com/Collaboration95/dc2/actions/runs/38331089024) succeeded with all 14 Actions jobs.
+[Independent correction review](reviews/postgres-readiness-review.md) PASS.
+All 24 issues, including six epics, are closed; all 24 Project items have
+Status and Workflow Done.
+[Current completion pack](evidence/main-f10bf04/index.json) retains CI, merge,
+metadata and successful postmerge local startup evidence.
+These results certify product merge f10bf04. CI for subsequent documentation revisions is recorded in GitHub Actions.
 The working target is **three elapsed agentic days, five maximum**, applying 80/20:
 reuse the media engine/frontend and prove service boundaries, separate ownership,
 web/CLI workflows, independent deployment and measured recovery/scaling.
 The proposal's **31 person-days** is its effort allocation, not this coding schedule.
 
-## Correction and demo use
+## Completion and demo use
 
 Preserve `.worktrees/final-measurements` frozen at `f46599f`, all raw records
 and failed historical runs. Measurements are complete and the VM is released.
-Root `RUN_ID=local` is healthy at **https://localhost:54440**, coordinator-confirmed;
-infrastructure and browser-trust smoke exited 0 with [portable logs](evidence/local-demo-20261013/index.json).
-The prior completion checkpoint recorded PR31 merge, exact PR/Main CI and all
-issue/Project fields Done. V5/E5 are now reopened locally for corrective PR32;
-[Peer review](reviews/postgres-readiness-review.md) PASS; parent owns corrective
-PR32, CI and remote reconciliation. Course report/demo
-preparation remains separate work; AWS prerequisites are listed below.
+Root `RUN_ID=local` is healthy at **https://localhost:54440**, coordinator-confirmed
+after successful postmerge startup and infrastructure smoke; [startup log](evidence/main-f10bf04/local-up.log).
+Earlier browser-trust smoke remains in its [original pack](evidence/local-demo-20261013/index.json).
+CI38329462068 remains a failed startup record; the TCP correction and accepted
+PR32/Main runs resolve that failure. Course report/demo preparation remains
+separate work; AWS prerequisites are listed below.
 
 ## Start, use and stop the local demo
 
@@ -53,8 +53,8 @@ make down RUN_ID=local
 `up` builds/starts the topology, applies migrations and runs infrastructure smoke.
 Root `local` has an existing allocation at **https://localhost:54440**; it is
 **healthy, coordinator-confirmed** after `make up` exited 0 and
-`make status` showed all services healthy. Current `make smoke-infra` and
-`make browser-trust-smoke` both exited 0; retained logs are linked above.
+`make status` showed all services healthy. Postmerge `make up` included passing infrastructure smoke. Earlier
+`make browser-trust-smoke` passed at its recorded source; retained logs are linked above.
 Read `public_url` and `ca_file` from `.local/runs/local/state.json` after startup;
 that state is authoritative. API base is `<public_url>/api`, health `/api/health`.
 `down` preserves data and credentials; do not prune volumes or stop a shared VM.
@@ -112,14 +112,15 @@ durable attempts/reconciliation, Publisher and verification/release tooling.
 | Processing E2 | P1–P3 #12–14 | [#28](https://github.com/Collaboration95/dc2/pull/28) merged `4efc41c` |
 | Media E3 | M1–M3 #15–17 | [#29](https://github.com/Collaboration95/dc2/pull/29) merged `b4a9f56` |
 | Clients E4 | C1/C2 #18–19 | [#30](https://github.com/Collaboration95/dc2/pull/30) merged `ea3950c` |
-| Local acceptance E5 | V1–V5 #20–24 | [#31](https://github.com/Collaboration95/dc2/pull/31) merged `66014d0`; V5/E5 reopened, corrective PR32 pending |
+| Local acceptance E5 | V1–V5 #20–24 | [#31](https://github.com/Collaboration95/dc2/pull/31) merged `66014d0`; [#32](https://github.com/Collaboration95/dc2/pull/32) readiness correction merged `f10bf04`; V1–V5/E5 Done |
 
 Details: [progress](progress.json), [issues](issue-map.md), [plan](plan.md), [interfaces](interfaces.md), [decisions](decisions.md).
 
 ## Accepted local results
 
-The measured results below were accepted at their recorded sources. V5/E5
-completion is reopened after the subsequent fresh-start CI failure.
+The measured results below retain their accepted source identities. V5/E5
+completion includes the independently reviewed readiness correction and exact
+PR32/Main CI passes after the subsequent fresh-start failure.
 Their original source identities remain explicit.
 Retain exact source/image/config/fixture identities, raw paths/hashes and review
 scope. New measurements must come from complete runs; pilots cannot replace them.
@@ -127,16 +128,16 @@ scope. New measurements must come from complete runs; pilots cannot replace them
 | Gate / target | Recorded result or final field |
 | --- | --- |
 | V1: full HTTPS web/CLI and 25 contract dispositions | **PASS at `422609b`**: 1,083 fast Python / 152 frontend / 130 real integration; full Mac E2E **122.740s**. UI login, decoded HLS/MP4, 30-good/1-rejected Publisher batch, stored retry and deletion. [Contract/evidence review](reviews/contract-final.md) |
-| Final PR / Main CI | **PASS:** exact PR `732a60f`, [38327975790](https://github.com/Collaboration95/dc2/actions/runs/38327975790), all 15 checks; exact Main `66014d0`, [38328502069](https://github.com/Collaboration95/dc2/actions/runs/38328502069), all 14 Actions jobs. Sonar analysis skipped; no new duration invented. |
+| Final PR / Main CI | **PASS:** exact PR `ccd15f8`, [38330508848](https://github.com/Collaboration95/dc2/actions/runs/38330508848), all 15 checks; exact Main `f10bf04`, [38331089024](https://github.com/Collaboration95/dc2/actions/runs/38331089024), all 14 Actions jobs. Sonar analysis skipped. |
 | V2: failure ≤300s; queue repair ≤120s; restart convergence | **PASS, 190.602s**: kill visibility **69.195s**, queue repair **23.507s**; surviving queue metadata, same-key retry/no duplicate primary, durable pending work through Media restart and restored Processing convergence. |
 | V3 scaling: nine batches, 30 identical 60s 720p clips each, 1/2/3 workers | **PASS at `f46599f`:** 270 successes, zero failures or missing HLS; median throughput 2.337 / 4.749 / 6.743 jobs/min. [Report and raw evidence](reviews/scaling-validation.md). |
 | V3 targets: 2 workers ≥1.6×; 3 ≥2.1×; falling median queue wait; zero failures | **All PASS:** speedups 2.032× / 2.885×; pooled median queue wait 375.381 / 175.976 / 120.360 seconds. |
 | V3 status: 50 users, 180s, p90 ≤700ms, errors <1% | **PASS:** p90 605.046 / 580.175 / 544.022ms; 8,999 / 8,999 / 9,000 requests; zero errors, all clients/intervals eligible. [Raw/hash review](reviews/performance-validation.md). |
 | V3 login: separate 20 users, p90 <2s | **PASS:** p90 1872.986 / 1888.086 / 1898.516ms; 2,468 / 2,387 / 2,374 requests; zero login/warmup/session/logout errors. Bcrypt cost-10 configuration/source; direct image/DB cost inspection absent from pack. [Provenance](reviews/performance-validation.md). |
 | V4: Processing promotion/smoke ≤600s; active drain; bad startup/rollback | **PASS at `331354d`, 226.828s total**: good **101.197s**, real active drain **34.077s**, bad + restoration **125.621s**. Exact candidate scans: zero fixable HIGH/CRITICAL; actual API exit **42**, automatic exact-good-image rollback/public smoke, Media identities/images and `media_db` revision unchanged. [Release report](reviews/release-validation.md) |
-| V5: final review, merge, exact Main CI and metadata | **Reopened:** prior [review PASS](reviews/delivery-review.md) and `66014d0` CI retained; `293b9a8` fresh startup failed. TCP fix/probe and [peer review](reviews/postgres-readiness-review.md) PASS; corrective PR32, exact PR/Main CI and metadata pending. |
+| V5: final review, merge, exact Main CI and metadata | **Done:** original [delivery review](reviews/delivery-review.md) and corrective [peer review](reviews/postgres-readiness-review.md) PASS; PR32 merged `f10bf04`, exact PR/Main CI passed, issues #24/#6 closed and their Project fields Done. Failed `293b9a8` startup retained. |
 
-Source packs: [readiness correction/failure](evidence/postgres-readiness-fix/index.json), [verified Main completion](evidence/main-66014d0/index.json), [V3 latency index](evidence/performance-f46599f/index.json), [current demo index](evidence/local-demo-20261013/index.json).
+Source packs: [final corrected Main](evidence/main-f10bf04/index.json), [readiness correction/failure](evidence/postgres-readiness-fix/index.json), [historical Main 66014d0](evidence/main-66014d0/index.json), [V3 latency index](evidence/performance-f46599f/index.json), [current demo index](evidence/local-demo-20261013/index.json).
 Tracked source packs: [Mac V1/V2 index](evidence/local-workflow-422609b/index.json),
 [V4 index](evidence/release-331354d/index.json), [capacity](evidence/runtime-capacity.json).
 Mac harness `422609b` used runtime build `2cb8da8`; indexed runtime inputs match.

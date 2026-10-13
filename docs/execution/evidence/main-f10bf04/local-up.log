@@ -1,0 +1,312 @@
+.venv/bin/python scripts/dev/runtime.py up --run-id "local"
+{"ca_file": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.local/runs/local/tls/ca.crt", "server_certificate": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.local/runs/local/tls/server.crt"}
+Compose now can delegate build to bake for better performances
+Just set COMPOSE_BAKE=true
+#0 building with "default" instance using docker driver
+
+#1 [minio internal] load build definition from minio.Dockerfile
+#1 transferring dockerfile: 1.33kB done
+#1 DONE 0.0s
+
+#2 [minio context minio_source] load .dockerignore
+#2 transferring minio_source: 463B done
+#2 DONE 0.0s
+
+#3 [minio internal] load metadata for docker.io/library/golang:1.22.4-alpine3.20@sha256:ace6cc3fe58d0c7b12303c57afe6d6724851152df55e08057b43990b927ad5e8
+#3 ...
+
+#4 [minio auth] library/alpine:pull token for registry-1.docker.io
+#4 DONE 0.0s
+
+#5 [minio auth] library/golang:pull token for registry-1.docker.io
+#5 DONE 0.0s
+
+#6 [minio internal] load metadata for docker.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+#6 ...
+
+#3 [minio internal] load metadata for docker.io/library/golang:1.22.4-alpine3.20@sha256:ace6cc3fe58d0c7b12303c57afe6d6724851152df55e08057b43990b927ad5e8
+#3 DONE 1.5s
+
+#6 [minio internal] load metadata for docker.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+#6 DONE 1.5s
+
+#7 [minio internal] load .dockerignore
+#7 transferring context: 334B done
+#7 DONE 0.0s
+
+#8 [minio stage-1 1/3] FROM docker.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+#8 resolve docker.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc done
+#8 DONE 0.0s
+
+#9 [minio build 1/5] FROM docker.io/library/golang:1.22.4-alpine3.20@sha256:ace6cc3fe58d0c7b12303c57afe6d6724851152df55e08057b43990b927ad5e8
+#9 resolve docker.io/library/golang:1.22.4-alpine3.20@sha256:ace6cc3fe58d0c7b12303c57afe6d6724851152df55e08057b43990b927ad5e8 done
+#9 DONE 0.0s
+
+#10 [minio context minio_source] load from client
+#10 transferring minio_source: 128.25kB 0.1s done
+#10 DONE 0.1s
+
+#11 [minio] resolving provenance for metadata file
+#11 DONE 0.0s
+
+#12 [minio build 2/5] WORKDIR /src
+#12 CACHED
+
+#13 [minio build 3/5] COPY --from=minio_source . .
+#13 CACHED
+
+#14 [minio build 4/5] RUN test "$(cat .dc2-source-commit)" = "20960b6a2ddb9594ee418035b3c7c7fe92ae6a12"
+#14 CACHED
+
+#15 [minio build 5/5] RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build     go build -p 1 -tags kqueue -trimpath -ldflags '-s -w -X github.com/minio/minio/cmd.Version=2024-06-13T22:53:53Z -X github.com/minio/minio/cmd.ReleaseTag=RELEASE.2024-06-13T22-53-53Z -X github.com/minio/minio/cmd.CommitID=20960b6a2ddb9594ee418035b3c7c7fe92ae6a12 -X github.com/minio/minio/cmd.ShortCommitID=20960b6a2ddb -X github.com/minio/minio/cmd.CopyrightYear=2024' -o /out/minio .
+#15 CACHED
+
+#16 [minio stage-1 2/3] RUN apk add --no-cache ca-certificates
+#16 CACHED
+
+#17 [minio stage-1 3/3] COPY --from=build /out/minio /usr/local/bin/minio
+#17 CACHED
+
+#18 [minio] exporting to image
+#18 exporting layers done
+#18 exporting manifest sha256:62c734bc0b35aca9b811c2e349a331644de8a38d8dc61138ace3bc9bab34e56e done
+#18 exporting config sha256:bf362559a87e892cb69d57c1b6bbc72c22e3b84a22a5b5b1abb7fda72dcbd079 done
+#18 exporting attestation manifest sha256:0a26c0dbd3f0c719f776669297d106f9b7d1a3b40c498d6438f33f79af9900e9 done
+#18 exporting manifest list sha256:56f173c87792dc4edb9ffa51000fe306fbc8f32502d08fec82530dcf6cd88176 done
+#18 naming to docker.io/library/dc2-minio:dc2-local-e6eff6ee done
+#18 unpacking to docker.io/library/dc2-minio:dc2-local-e6eff6ee done
+#18 DONE 0.0s
+
+#19 [media internal] load build definition from media.Dockerfile
+#19 transferring dockerfile: 865B done
+#19 DONE 0.0s
+
+#20 [processing internal] load build definition from processing.Dockerfile
+#20 transferring dockerfile: 1.03kB done
+#20 DONE 0.0s
+
+#21 [processing internal] load metadata for docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+#21 ...
+
+#22 [media auth] library/python:pull token for registry-1.docker.io
+#22 DONE 0.0s
+
+#21 [processing internal] load metadata for docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+#21 DONE 1.5s
+
+#23 [media] resolving provenance for metadata file
+#23 DONE 0.0s
+
+#24 [processing] resolving provenance for metadata file
+#24 DONE 0.0s
+
+#25 [processing internal] load .dockerignore
+#25 transferring context: 334B done
+#25 DONE 0.0s
+
+#26 [media internal] load .dockerignore
+#26 transferring context: 334B done
+#26 DONE 0.0s
+
+#27 [media 1/6] FROM docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+#27 resolve docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 done
+#27 DONE 0.0s
+
+#28 [media internal] load build context
+#28 transferring context: 3.19kB done
+#28 DONE 0.0s
+
+#29 [media 3/6] COPY pyproject.toml uv.lock ./
+#29 CACHED
+
+#30 [media 5/6] COPY media ./media
+#30 CACHED
+
+#31 [media 4/6] RUN python -m pip install --no-cache-dir uv==0.8.17     && uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt     && uv pip install --system --require-hashes -r /tmp/requirements.txt     && python -m pip uninstall -y uv     && rm /tmp/requirements.txt
+#31 CACHED
+
+#32 [media 6/6] RUN python -m pip install --no-cache-dir --no-deps .     && useradd --system --create-home --uid 10001 flickpond
+#32 CACHED
+
+#33 [processing internal] load build context
+#33 transferring context: 5.55kB done
+#33 DONE 0.0s
+
+#34 [processing 3/8] RUN apt-get update     && apt-get install -y --no-install-recommends ffmpeg     && rm -rf /var/lib/apt/lists/*
+#34 CACHED
+
+#35 [processing 2/6] WORKDIR /app
+#35 CACHED
+
+#36 [processing 4/8] COPY pyproject.toml uv.lock ./
+#36 CACHED
+
+#37 [processing 5/8] RUN python -m pip install --no-cache-dir uv==0.8.17     && uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt     && uv pip install --system --require-hashes -r /tmp/requirements.txt     && python -m pip uninstall -y uv     && rm /tmp/requirements.txt
+#37 CACHED
+
+#38 [processing 6/8] COPY processing ./processing
+#38 CACHED
+
+#39 [processing 7/8] COPY media_engine ./media_engine
+#39 CACHED
+
+#40 [processing 8/8] RUN python -m pip install --no-cache-dir --no-deps .     && useradd --system --create-home --uid 10001 flickpond
+#40 CACHED
+
+#41 [media] exporting to image
+#41 exporting layers done
+#41 exporting manifest sha256:5a9aae4bc500bf0ce68fb84459cef9f49edbb3000536f829d86e48ac71565eef done
+#41 exporting config sha256:19f567e7f81b55f70464e1bfa4b340fe095f388e7c19c1631267eda50f7251c6 done
+#41 exporting attestation manifest sha256:4f3bc5dbbcf34764d86d1232dfdcb79a40f836033bc5dcd77caeb311b27413cc done
+#41 exporting manifest list sha256:6dc3a46054100500cc0a58dfbbf00356512d7ba2ab397ee27fcb1161c02e2b86 done
+#41 naming to docker.io/library/dc2-media:dc2-local-e6eff6ee done
+#41 unpacking to docker.io/library/dc2-media:dc2-local-e6eff6ee done
+#41 DONE 0.0s
+
+#42 [processing] exporting to image
+#42 exporting layers done
+#42 exporting manifest sha256:f46a0a8b383a7d0461c219bdfa74717977bfd85e32ddc430741f55959344039a done
+#42 exporting config sha256:cb4b7f1d1f1782e51dd4cbfccf4ec1215527bf5f70b8d522b135d4c0df0e0086 done
+#42 exporting attestation manifest sha256:c147af8d518421886d8b074f1e15dd7472a7000bdece1a08f43574056fa937da done
+#42 exporting manifest list sha256:8e1c7c6e9f796185fe8cd4ac27a737b4ae27bef0c325c00fbe828366b23a1217 done
+#42 naming to docker.io/library/dc2-processing:dc2-local-e6eff6ee done
+#42 unpacking to docker.io/library/dc2-processing:dc2-local-e6eff6ee done
+#42 DONE 0.0s
+ media  Built
+ minio  Built
+ processing  Built
+ Container dc2-local-e6eff6ee-redis-1  Running
+ Container dc2-local-e6eff6ee-nginx-1  Stopping
+ Container dc2-local-e6eff6ee-media-migrate-1  Stopping
+ Container dc2-local-e6eff6ee-processing-migrate-1  Stopping
+ Container dc2-local-e6eff6ee-media-migrate-1  Stopped
+ Container dc2-local-e6eff6ee-processing-migrate-1  Stopped
+ Container dc2-local-e6eff6ee-postgres-1  Recreate
+ Container dc2-local-e6eff6ee-nginx-1  Stopped
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Stopping
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Stopped
+ Container dc2-local-e6eff6ee-minio-1  Recreate
+ Container dc2-local-e6eff6ee-postgres-1  Recreated
+ Container dc2-local-e6eff6ee-processing-1  Stopping
+ Container dc2-local-e6eff6ee-media-1  Stopping
+ Container dc2-local-e6eff6ee-minio-1  Recreated
+ Container dc2-local-e6eff6ee-worker-1  Stopping
+ Container dc2-local-e6eff6ee-processing-recovery-1  Stopping
+ Container dc2-local-e6eff6ee-media-1  Stopping
+ Container dc2-local-e6eff6ee-worker-1  Stopped
+ Container dc2-local-e6eff6ee-media-1  Stopped
+ Container dc2-local-e6eff6ee-media-migrate-1  Recreate
+ Container dc2-local-e6eff6ee-media-1  Stopped
+ Container dc2-local-e6eff6ee-processing-1  Stopped
+ Container dc2-local-e6eff6ee-processing-migrate-1  Recreate
+ Container dc2-local-e6eff6ee-media-migrate-1  Recreated
+ Container dc2-local-e6eff6ee-processing-migrate-1  Recreated
+ Container dc2-local-e6eff6ee-processing-recovery-1  Stopped
+ Container dc2-local-e6eff6ee-processing-1  Stopping
+ Container dc2-local-e6eff6ee-processing-1  Stopped
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Recreate
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Recreated
+ Container dc2-local-e6eff6ee-nginx-1  Stopping
+ Container dc2-local-e6eff6ee-media-recovery-1  Stopping
+ Container dc2-local-e6eff6ee-worker-1  Stopping
+ Container dc2-local-e6eff6ee-processing-recovery-1  Stopping
+ Container dc2-local-e6eff6ee-nginx-1  Stopped
+ Container dc2-local-e6eff6ee-processing-recovery-1  Stopped
+ Container dc2-local-e6eff6ee-worker-1  Stopped
+ Container dc2-local-e6eff6ee-processing-1  Recreate
+ Container dc2-local-e6eff6ee-processing-1  Recreated
+ Container dc2-local-e6eff6ee-processing-recovery-1  Recreate
+ Container dc2-local-e6eff6ee-worker-1  Recreate
+ Container dc2-local-e6eff6ee-processing-recovery-1  Recreated
+ Container dc2-local-e6eff6ee-worker-1  Recreated
+ Container dc2-local-e6eff6ee-media-recovery-1  Stopped
+ Container dc2-local-e6eff6ee-media-1  Recreate
+ Container dc2-local-e6eff6ee-media-1  Recreated
+ Container dc2-local-e6eff6ee-nginx-1  Created
+ Container dc2-local-e6eff6ee-media-recovery-1  Recreate
+ Container dc2-local-e6eff6ee-media-recovery-1  Recreated
+ Container dc2-local-e6eff6ee-minio-1  Starting
+ Container dc2-local-e6eff6ee-postgres-1  Starting
+ Container dc2-local-e6eff6ee-minio-1  Started
+ Container dc2-local-e6eff6ee-minio-1  Waiting
+ Container dc2-local-e6eff6ee-postgres-1  Started
+ Container dc2-local-e6eff6ee-postgres-1  Waiting
+ Container dc2-local-e6eff6ee-postgres-1  Waiting
+ Container dc2-local-e6eff6ee-minio-1  Healthy
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Starting
+ Container dc2-local-e6eff6ee-postgres-1  Healthy
+ Container dc2-local-e6eff6ee-media-migrate-1  Starting
+ Container dc2-local-e6eff6ee-postgres-1  Healthy
+ Container dc2-local-e6eff6ee-processing-migrate-1  Starting
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Started
+ Container dc2-local-e6eff6ee-processing-migrate-1  Started
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Waiting
+ Container dc2-local-e6eff6ee-processing-migrate-1  Waiting
+ Container dc2-local-e6eff6ee-redis-1  Waiting
+ Container dc2-local-e6eff6ee-media-migrate-1  Started
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Waiting
+ Container dc2-local-e6eff6ee-media-migrate-1  Waiting
+ Container dc2-local-e6eff6ee-redis-1  Healthy
+ Container dc2-local-e6eff6ee-media-migrate-1  Exited
+ Container dc2-local-e6eff6ee-processing-migrate-1  Exited
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Exited
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Exited
+ Container dc2-local-e6eff6ee-media-1  Starting
+ Container dc2-local-e6eff6ee-processing-1  Starting
+ Container dc2-local-e6eff6ee-processing-1  Started
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Waiting
+ Container dc2-local-e6eff6ee-processing-1  Waiting
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Waiting
+ Container dc2-local-e6eff6ee-processing-1  Waiting
+ Container dc2-local-e6eff6ee-media-1  Started
+ Container dc2-local-e6eff6ee-media-1  Waiting
+ Container dc2-local-e6eff6ee-media-1  Waiting
+ Container dc2-local-e6eff6ee-minio-1  Waiting
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Exited
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Exited
+ Container dc2-local-e6eff6ee-minio-1  Healthy
+ Container dc2-local-e6eff6ee-processing-1  Healthy
+ Container dc2-local-e6eff6ee-processing-1  Healthy
+ Container dc2-local-e6eff6ee-worker-1  Starting
+ Container dc2-local-e6eff6ee-processing-recovery-1  Starting
+ Container dc2-local-e6eff6ee-media-1  Healthy
+ Container dc2-local-e6eff6ee-media-1  Healthy
+ Container dc2-local-e6eff6ee-nginx-1  Starting
+ Container dc2-local-e6eff6ee-media-recovery-1  Starting
+ Container dc2-local-e6eff6ee-processing-recovery-1  Started
+ Container dc2-local-e6eff6ee-nginx-1  Started
+ Container dc2-local-e6eff6ee-worker-1  Started
+ Container dc2-local-e6eff6ee-media-recovery-1  Started
+ Container dc2-local-e6eff6ee-media-1  Waiting
+ Container dc2-local-e6eff6ee-postgres-1  Waiting
+ Container dc2-local-e6eff6ee-redis-1  Waiting
+ Container dc2-local-e6eff6ee-minio-1  Waiting
+ Container dc2-local-e6eff6ee-media-recovery-1  Waiting
+ Container dc2-local-e6eff6ee-processing-1  Waiting
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Waiting
+ Container dc2-local-e6eff6ee-media-migrate-1  Waiting
+ Container dc2-local-e6eff6ee-worker-1  Waiting
+ Container dc2-local-e6eff6ee-processing-recovery-1  Waiting
+ Container dc2-local-e6eff6ee-processing-migrate-1  Waiting
+ Container dc2-local-e6eff6ee-nginx-1  Waiting
+ Container dc2-local-e6eff6ee-processing-recovery-1  Healthy
+ Container dc2-local-e6eff6ee-media-1  Healthy
+ Container dc2-local-e6eff6ee-media-migrate-1  Exited
+ Container dc2-local-e6eff6ee-storage-bootstrap-1  Exited
+ Container dc2-local-e6eff6ee-media-recovery-1  Healthy
+ Container dc2-local-e6eff6ee-redis-1  Healthy
+ Container dc2-local-e6eff6ee-processing-migrate-1  Exited
+ Container dc2-local-e6eff6ee-minio-1  Healthy
+ Container dc2-local-e6eff6ee-postgres-1  Healthy
+ Container dc2-local-e6eff6ee-worker-1  Healthy
+ Container dc2-local-e6eff6ee-processing-1  Healthy
+ Container dc2-local-e6eff6ee-nginx-1  Healthy
+PONG
+NOTICE:  table "infra_denied_82" does not exist, skipping
+NOTICE:  table "infra_denied_82" does not exist, skipping
+Both database owners/runtime grants and cross-database/DDL denials passed.
+ Container dc2-local-e6eff6ee-minio-1  Running
+Scoped storage denies and signed HTTPS source/output GETs passed.
+Docker: 8 CPUs, 7.73 GiB
+Infrastructure smoke passed (TLS, frontend, Processing DB, Redis, scoped storage).
+https://localhost:54440

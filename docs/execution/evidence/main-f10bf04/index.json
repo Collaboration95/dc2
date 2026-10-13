@@ -1,0 +1,39 @@
+{
+  "verified_product_main": "f10bf04899e6cc80f992c65193a92fbe0b0ce8b2",
+  "main_ci_run": 38331089024,
+  "main_ci_url": "https://github.com/Collaboration95/dc2/actions/runs/38331089024",
+  "pr32_head": "ccd15f8c556130f4f2f7c126ee0e616a25429fd5",
+  "pr_ci_run": 38330508848,
+  "pr_ci_url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848",
+  "local_up_original": ".cache/execution/postgres-fixed-local-up.log",
+  "local_log_secret_check": "No matches for known local runtime secrets or credential patterns; retained byte-identically",
+  "documentation_commit_ci": "These results certify product merge f10bf04. CI for subsequent documentation revisions is recorded in GitHub Actions.",
+  "records": [
+    {
+      "file": "completion.md",
+      "bytes": 2075,
+      "sha256": "fc483bb02581a42e87eddfa6c602438cfbc15909fb41fa8df4eafd0ad12f9b08"
+    },
+    {
+      "file": "delivery.json",
+      "bytes": 9871,
+      "sha256": "6e031756219ccc012511ff49583621b3946877e5e4ac815a4c1fa9a080ef0a96"
+    },
+    {
+      "file": "local-up.log",
+      "bytes": 15038,
+      "sha256": "f629603aef5446d7cf27f37a5523123f22c0c067897657b4df1d7db055f62f43"
+    },
+    {
+      "file": "main-ci.json",
+      "bytes": 4546,
+      "sha256": "ee07f30e4f93513c08edb3758c1f8cdf4dd4ff36e5a61654329c60c4022f9cf5"
+    },
+    {
+      "file": "pr-ci.json",
+      "bytes": 4546,
+      "sha256": "73ab2af6f6dbf7d49582946c22dd2e61dbb975b6daea671b7f3e50d4f931045e"
+    }
+  ],
+  "project_completion": "All24 items Status Done and Workflow Done; item20 Status drift corrected and fresh snapshot confirmed."
+}

@@ -1,0 +1,357 @@
+{
+  "pull_request": {
+    "headRefOid": "ccd15f8c556130f4f2f7c126ee0e616a25429fd5",
+    "mergeCommit": {
+      "oid": "f10bf04899e6cc80f992c65193a92fbe0b0ce8b2"
+    },
+    "mergedAt": "2026-10-13T01:13:20Z",
+    "number": 32,
+    "state": "MERGED",
+    "url": "https://github.com/Collaboration95/dc2/pull/32"
+  },
+  "checks": [
+    {
+      "link": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115080530139",
+      "name": "Integration checks",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115079670276",
+      "name": "SonarCloud SAST",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115079576449",
+      "name": "Combined backend package coverage",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115079149200",
+      "name": "Fast checks",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939178",
+      "name": "Local HTTPS and browser trust",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939145",
+      "name": "Scan container image (app)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939160",
+      "name": "Scan container image (media)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939278",
+      "name": "Media owned persistence and boundary contracts",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939231",
+      "name": "Processing worker, recovery and database ownership",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939134",
+      "name": "Frontend tests",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939068",
+      "name": "Independent Publisher HTTPS and cookie persistence",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939154",
+      "name": "Lint and Python unit tests",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939157",
+      "name": "Scan container image (processing)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078938920",
+      "name": "Legacy real integration",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://dashboard.gitguardian.com",
+      "name": "GitGuardian Security Checks",
+      "state": "SUCCESS"
+    }
+  ],
+  "issues": [
+    {
+      "number": 1,
+      "state": "CLOSED",
+      "title": "[E0] Reviewed plan and auditable delivery",
+      "url": "https://github.com/Collaboration95/dc2/issues/1"
+    },
+    {
+      "number": 2,
+      "state": "CLOSED",
+      "title": "[E1] Reproducible local workspace and fast checks",
+      "url": "https://github.com/Collaboration95/dc2/issues/2"
+    },
+    {
+      "number": 3,
+      "state": "CLOSED",
+      "title": "[E2] Independent processing and reliable attempts",
+      "url": "https://github.com/Collaboration95/dc2/issues/3"
+    },
+    {
+      "number": 4,
+      "state": "CLOSED",
+      "title": "[E3] Media ownership and compatible public workflow",
+      "url": "https://github.com/Collaboration95/dc2/issues/4"
+    },
+    {
+      "number": 5,
+      "state": "CLOSED",
+      "title": "[E4] Web and independent Publisher CLI",
+      "url": "https://github.com/Collaboration95/dc2/issues/5"
+    },
+    {
+      "number": 6,
+      "state": "CLOSED",
+      "title": "[E5] Integrated evidence and local release readiness",
+      "url": "https://github.com/Collaboration95/dc2/issues/6"
+    },
+    {
+      "number": 7,
+      "state": "CLOSED",
+      "title": "[G1] Define epics, persona stories, issue contracts and waves",
+      "url": "https://github.com/Collaboration95/dc2/issues/7"
+    },
+    {
+      "number": 8,
+      "state": "CLOSED",
+      "title": "[G2] Independently review and correct the delivery plan",
+      "url": "https://github.com/Collaboration95/dc2/issues/8"
+    },
+    {
+      "number": 9,
+      "state": "CLOSED",
+      "title": "[F1] Install a reproducible root workspace with Make and environment doctor",
+      "url": "https://github.com/Collaboration95/dc2/issues/9"
+    },
+    {
+      "number": 10,
+      "state": "CLOSED",
+      "title": "[F2] Establish fast deterministic test tiers and required CI checks",
+      "url": "https://github.com/Collaboration95/dc2/issues/10"
+    },
+    {
+      "number": 11,
+      "state": "CLOSED",
+      "title": "[F3] Provide isolated local services, storage and trusted HTTPS topology",
+      "url": "https://github.com/Collaboration95/dc2/issues/11"
+    },
+    {
+      "number": 12,
+      "state": "CLOSED",
+      "title": "[P1] Implement attempt lifecycle, stored-source retry and cancellation",
+      "url": "https://github.com/Collaboration95/dc2/issues/12"
+    },
+    {
+      "number": 13,
+      "state": "CLOSED",
+      "title": "[P2] Run attempt-aware FFmpeg workers with private source and output access",
+      "url": "https://github.com/Collaboration95/dc2/issues/13"
+    },
+    {
+      "number": 14,
+      "state": "CLOSED",
+      "title": "[P3] Recover worker interruptions and lost queue deliveries",
+      "url": "https://github.com/Collaboration95/dc2/issues/14"
+    },
+    {
+      "number": 15,
+      "state": "CLOSED",
+      "title": "[M1] Create Media-owned Assets and durable idempotent submission",
+      "url": "https://github.com/Collaboration95/dc2/issues/15"
+    },
+    {
+      "number": 16,
+      "state": "CLOSED",
+      "title": "[M2] Serve compatible status, retry and authorised MP4/HLS playback",
+      "url": "https://github.com/Collaboration95/dc2/issues/16"
+    },
+    {
+      "number": 17,
+      "state": "CLOSED",
+      "title": "[M3] Reconcile pending submissions and preserve edit/delete/operator behavior",
+      "url": "https://github.com/Collaboration95/dc2/issues/17"
+    },
+    {
+      "number": 18,
+      "state": "CLOSED",
+      "title": "[C1] Build the independent Publisher CLI against public APIs",
+      "url": "https://github.com/Collaboration95/dc2/issues/18"
+    },
+    {
+      "number": 19,
+      "state": "CLOSED",
+      "title": "[C2] Complete browser stored-source retry and idempotent requests",
+      "url": "https://github.com/Collaboration95/dc2/issues/19"
+    },
+    {
+      "number": 20,
+      "state": "CLOSED",
+      "title": "[V1] Integrate full local workflow and contract regression evidence",
+      "url": "https://github.com/Collaboration95/dc2/issues/20"
+    },
+    {
+      "number": 21,
+      "state": "CLOSED",
+      "title": "[V2] Exercise recovery faults across both services",
+      "url": "https://github.com/Collaboration95/dc2/issues/21"
+    },
+    {
+      "number": 22,
+      "state": "CLOSED",
+      "title": "[V3] Measure local performance and worker scaling without misleading claims",
+      "url": "https://github.com/Collaboration95/dc2/issues/22"
+    },
+    {
+      "number": 23,
+      "state": "CLOSED",
+      "title": "[V4] Automate independent local Processing release, smoke and rollback",
+      "url": "https://github.com/Collaboration95/dc2/issues/23"
+    },
+    {
+      "number": 24,
+      "state": "CLOSED",
+      "title": "[V5] Review final delivery and publish evidence-based morning handoff",
+      "url": "https://github.com/Collaboration95/dc2/issues/24"
+    }
+  ],
+  "project_items": [
+    {
+      "number": 1,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 7,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 8,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 2,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 9,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 10,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 11,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 3,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 12,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 13,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 14,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 4,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 15,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 16,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 17,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 5,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 18,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 19,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 6,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 20,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 21,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 22,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 23,
+      "status": "Done",
+      "workflow": "Done"
+    },
+    {
+      "number": 24,
+      "status": "Done",
+      "workflow": "Done"
+    }
+  ]
+}

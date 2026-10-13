@@ -1,0 +1,141 @@
+{
+  "conclusion": "success",
+  "databaseId": 38330508848,
+  "headSha": "ccd15f8c556130f4f2f7c126ee0e616a25429fd5",
+  "jobs": [
+    {
+      "conclusion": "success",
+      "databaseId": 115078938920,
+      "name": "Legacy real integration",
+      "status": "completed",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078938920"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 115078939068,
+      "name": "Independent Publisher HTTPS and cookie persistence",
+      "status": "completed",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939068"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 115078939134,
+      "name": "Frontend tests",
+      "status": "completed",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939134"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 115078939145,
+      "name": "Scan container image (app)",
+      "status": "completed",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939145"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 115078939154,
+      "name": "Lint and Python unit tests",
+      "status": "completed",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939154"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 115078939157,
+      "name": "Scan container image (processing)",
+      "status": "completed",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939157"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 115078939160,
+      "name": "Scan container image (media)",
+      "status": "completed",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939160"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 115078939178,
+      "name": "Local HTTPS and browser trust",
+      "status": "completed",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939178"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 115078939231,
+      "name": "Processing worker, recovery and database ownership",
+      "status": "completed",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939231"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 115078939278,
+      "name": "Media owned persistence and boundary contracts",
+      "status": "completed",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115078939278"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 115079149200,
+      "name": "Fast checks",
+      "status": "completed",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115079149200"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 115079576449,
+      "name": "Combined backend package coverage",
+      "status": "completed",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115079576449"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 115079670276,
+      "name": "SonarCloud SAST",
+      "status": "completed",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115079670276",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Download Python coverage",
+          "conclusion": "success"
+        },
+        {
+          "name": "Download frontend coverage",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check SonarCloud configuration",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run SonarCloud analysis",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 115080530139,
+      "name": "Integration checks",
+      "status": "completed",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848/job/115080530139"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/Collaboration95/dc2/actions/runs/38330508848"
+}
