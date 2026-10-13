@@ -1,29 +1,27 @@
 # Project 2 morning handoff
 
-**13 October 2026, Singapore (UTC+8): product PRs #25–#30 are merged.
-V1/V2 workflow and recovery evidence and V4 release evidence PASS.
-V3 full scaling/status/login evidence and final premerge review PASS.
-Exact-head CI, merge, Main checks and metadata remain PENDING; PR31 is draft.**
-These results belong to the tested sources below. No final Main SHA is certified.
+**13 October 2026, Singapore (UTC+8): local pre-AWS delivery complete.**
+PRs #25–#31 merged; V1–V5/E5 accepted. All 24 issues (six epics and 18 children)
+are closed, and all Project14 items have Status and Workflow **Done**.
+Verified product Main: [`66014d0ea9fdfa426f5b66754c2552bd303eeea5`](https://github.com/Collaboration95/dc2/commit/66014d0ea9fdfa426f5b66754c2552bd303eeea5);
+[Main CI 38328502069](https://github.com/Collaboration95/dc2/actions/runs/38328502069) SUCCESS, all 14 Actions jobs.
+[Final delivery review](reviews/delivery-review.md) PASS;
+[completion metadata/hashes](evidence/main-66014d0/index.json).
+These results certify product merge 66014d0. CI for subsequent documentation revisions is recorded in GitHub Actions.
 The working target is **three elapsed agentic days, five maximum**, applying 80/20:
 reuse the media engine/frontend and prove service boundaries, separate ownership,
 web/CLI workflows, independent deployment and measured recovery/scaling.
 The proposal's **31 person-days** is its effort allocation, not this coding schedule.
 
-## Morning actions
+## Completion and demo use
 
-1. Preserve `.worktrees/final-measurements` **frozen at `f46599f`** and all raw
-   records. Full scaling and separate latency completed; **VM released**.
-2. V3 is **Review**: all six latency repeats independently verified offline;
-   [full V3 report](reviews/performance-validation.md). Keep failed historical runs.
-3. Root `RUN_ID=local` is healthy at **https://localhost:54440**, coordinator-confirmed after successful startup/status. Parent current infrastructure
-   and browser-trust smoke both exited 0; [portable logs](evidence/local-demo-20261013/index.json).
-4. [Final premerge delivery review](reviews/delivery-review.md) is **PASS**,
-   with the prior CHECKPOINT preserved and no substantive findings.
-   Parent pushes/runs exact-head CI/merges accepted PR31, checks exact Main and
-   reconciles issues/[Project 14](https://github.com/users/Collaboration95/projects/14)
-   through authenticated `gh`. **V5 remains In progress** until these gates pass.
-   Course report/demo preparation remains separate work.
+Preserve `.worktrees/final-measurements` frozen at `f46599f`, all raw records
+and failed historical runs. Measurements are complete and the VM is released.
+Root `RUN_ID=local` is healthy at **https://localhost:54440**, coordinator-confirmed;
+infrastructure and browser-trust smoke exited 0 with [portable logs](evidence/local-demo-20261013/index.json).
+Read-only authenticated `gh` confirmed accepted PR31 merge, exact PR/Main CI
+and all issue/Project completion states. Course report/demo preparation remains
+separate work; AWS prerequisites are listed below.
 
 ## Start, use and stop the local demo
 
@@ -111,34 +109,35 @@ durable attempts/reconciliation, Publisher and verification/release tooling.
 | Processing E2 | P1–P3 #12–14 | [#28](https://github.com/Collaboration95/dc2/pull/28) merged `4efc41c` |
 | Media E3 | M1–M3 #15–17 | [#29](https://github.com/Collaboration95/dc2/pull/29) merged `b4a9f56` |
 | Clients E4 | C1/C2 #18–19 | [#30](https://github.com/Collaboration95/dc2/pull/30) merged `ea3950c` |
-| Local acceptance E5 | V1–V5 #20–24 | [#31](https://github.com/Collaboration95/dc2/pull/31) draft; V1–V4 in Review, V5 In progress |
+| Local acceptance E5 | V1–V5 #20–24 | [#31](https://github.com/Collaboration95/dc2/pull/31) merged `66014d0`; V1–V5/E5 Done |
 
 Details: [progress](progress.json), [issues](issue-map.md), [plan](plan.md), [interfaces](interfaces.md), [decisions](decisions.md).
 
-## Results and parent final fill-in
+## Accepted local results
 
-PASS below records execution evidence, not issue closure or final Main acceptance.
+The measured results below were accepted with final review, merge and exact Main CI.
+Their original source identities remain explicit.
 Retain exact source/image/config/fixture identities, raw paths/hashes and review
 scope. New measurements must come from complete runs; pilots cannot replace them.
 
 | Gate / target | Recorded result or final field |
 | --- | --- |
 | V1: full HTTPS web/CLI and 25 contract dispositions | **PASS at `422609b`**: 1,083 fast Python / 152 frontend / 130 real integration; full Mac E2E **122.740s**. UI login, decoded HLS/MP4, 30-good/1-rejected Publisher batch, stored retry and deletion. [Contract/evidence review](reviews/contract-final.md) |
-| Linux full workflow/CI | **All 15 checks PASS**, [run 38303856295](https://github.com/Collaboration95/dc2/actions/runs/38303856295), branch head `422609b`; tested merge `e1062bd8`. No current Linux E2E duration or completed Sonar analysis claimed. |
+| Final PR / Main CI | **PASS:** exact PR `732a60f`, [38327975790](https://github.com/Collaboration95/dc2/actions/runs/38327975790), all 15 checks; exact Main `66014d0`, [38328502069](https://github.com/Collaboration95/dc2/actions/runs/38328502069), all 14 Actions jobs. Sonar analysis skipped; no new duration invented. |
 | V2: failure ≤300s; queue repair ≤120s; restart convergence | **PASS, 190.602s**: kill visibility **69.195s**, queue repair **23.507s**; surviving queue metadata, same-key retry/no duplicate primary, durable pending work through Media restart and restored Processing convergence. |
 | V3 scaling: nine batches, 30 identical 60s 720p clips each, 1/2/3 workers | **PASS at `f46599f`:** 270 successes, zero failures or missing HLS; median throughput 2.337 / 4.749 / 6.743 jobs/min. [Report and raw evidence](reviews/scaling-validation.md). |
 | V3 targets: 2 workers ≥1.6×; 3 ≥2.1×; falling median queue wait; zero failures | **All PASS:** speedups 2.032× / 2.885×; pooled median queue wait 375.381 / 175.976 / 120.360 seconds. |
 | V3 status: 50 users, 180s, p90 ≤700ms, errors <1% | **PASS:** p90 605.046 / 580.175 / 544.022ms; 8,999 / 8,999 / 9,000 requests; zero errors, all clients/intervals eligible. [Raw/hash review](reviews/performance-validation.md). |
 | V3 login: separate 20 users, p90 <2s | **PASS:** p90 1872.986 / 1888.086 / 1898.516ms; 2,468 / 2,387 / 2,374 requests; zero login/warmup/session/logout errors. Bcrypt cost-10 configuration/source; direct image/DB cost inspection absent from pack. [Provenance](reviews/performance-validation.md). |
 | V4: Processing promotion/smoke ≤600s; active drain; bad startup/rollback | **PASS at `331354d`, 226.828s total**: good **101.197s**, real active drain **34.077s**, bad + restoration **125.621s**. Exact candidate scans: zero fixable HIGH/CRITICAL; actual API exit **42**, automatic exact-good-image rollback/public smoke, Media identities/images and `media_db` revision unchanged. [Release report](reviews/release-validation.md) |
-| V5: final review, merge, exact Main CI and metadata | **Final premerge review PASS:** [verdict](reviews/delivery-review.md). **PENDING:** exact-head CI, accepted merge, final Main SHA/checks and issue/project dispositions. Local URL and current smoke are coordinator-confirmed. |
+| V5: final review, merge, exact Main CI and metadata | **Done:** [review PASS](reviews/delivery-review.md), PR31 merged at verified Main `66014d0`, exact PR/Main CI passed; all 24 issues closed and both Project fields Done. Local URL/smoke coordinator-confirmed. |
 
-Source packs: [V3 latency index](evidence/performance-f46599f/index.json), [current demo index](evidence/local-demo-20261013/index.json).
+Source packs: [verified Main completion](evidence/main-66014d0/index.json), [V3 latency index](evidence/performance-f46599f/index.json), [current demo index](evidence/local-demo-20261013/index.json).
 Tracked source packs: [Mac V1/V2 index](evidence/local-workflow-422609b/index.json),
 [V4 index](evidence/release-331354d/index.json), [capacity](evidence/runtime-capacity.json).
 Mac harness `422609b` used runtime build `2cb8da8`; indexed runtime inputs match.
 The [older Linux pack](evidence/linux-ci-38300284726/index.json) retains its older head;
-latest CI 38306733800 also passed all 15 checks with 1,085 fast Python tests; its [full Linux proof](evidence/linux-ci-38306733800/index.json) is retained.
+Earlier retained CI 38306733800 also passed all 15 checks with 1,085 fast Python tests; its [full Linux proof](evidence/linux-ci-38306733800/index.json) is retained.
 
 ## Reproduce in a separate serialized namespace
 
@@ -188,6 +187,8 @@ records; reviewed corrections preceded the separate accepted full experiment.
 Project-local disk expanded 40→64 GiB (actual filesystem 61G, 34G free at resize);
 8 CPU/8 GiB and quotas are unchanged, old data retained. Generator and VM share
 one physical Mac. Docker memory samples are not exact process peak RSS.
+Final Main SonarCloud analysis was skipped; successful job status does not imply
+completed analysis.
 [Performance protocol](reviews/performance-runner.md) / [corrections](reviews/performance-runner-rereview.md), [scaling fix](reviews/scaling-session-fix.md),
 [release history](reviews/release-validation.md) and [dated worklog](../project2-worklog.txt)
 retain detail. Older review statements about pending work apply to their own dates.

@@ -1,5 +1,5 @@
 {
-  "stage": "final-evidence-review-and-main-acceptance",
+  "stage": "local-pre-aws-complete",
   "baseline": "b32d489566144202fbf6fc3887ce25d5321444fd",
   "project": {
     "id": "PVT_kwHOBBatWM4Bmtkx",
@@ -146,49 +146,54 @@
     },
     "V1": {
       "number": 20,
-      "state": "Review",
+      "state": "Done",
       "pr": 31,
       "evidence": [
         "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
-        "Final local verify at422609b PASS:1083fastPython,152frontend,130realintegration; fullMacE2E122.740s. V2PASS190.602s; kill69.195s, queue repair23.507s, durable pending restart/convergence. Core runtime built2cb8da8 byte-identical to422609b; source pack retained."
+        "Final local verify at422609b PASS:1083fastPython,152frontend,130realintegration; fullMacE2E122.740s. V2PASS190.602s; kill69.195s, queue repair23.507s, durable pending restart/convergence. Core runtime built2cb8da8 byte-identical to422609b; source pack retained.",
+        "Accepted PR31 merged at verified Main 66014d0ea9fdfa426f5b66754c2552bd303eeea5; exact PR CI38327975790 all15 checks PASS and Main CI38328502069 all14 Actions jobs SUCCESS. Final delivery-review.md PASS; issue closed and Project Status/Workflow Done confirmed by read-only gh. Completion pack: evidence/main-66014d0/index.json."
       ]
     },
     "V2": {
       "number": 21,
-      "state": "Review",
+      "state": "Done",
       "pr": 31,
       "evidence": [
         "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
-        "Final local verify at422609b PASS:1083fastPython,152frontend,130realintegration; fullMacE2E122.740s. V2PASS190.602s; kill69.195s, queue repair23.507s, durable pending restart/convergence. Core runtime built2cb8da8 byte-identical to422609b; source pack retained."
+        "Final local verify at422609b PASS:1083fastPython,152frontend,130realintegration; fullMacE2E122.740s. V2PASS190.602s; kill69.195s, queue repair23.507s, durable pending restart/convergence. Core runtime built2cb8da8 byte-identical to422609b; source pack retained.",
+        "Accepted PR31 merged at verified Main 66014d0ea9fdfa426f5b66754c2552bd303eeea5; exact PR CI38327975790 all15 checks PASS and Main CI38328502069 all14 Actions jobs SUCCESS. Final delivery-review.md PASS; issue closed and Project Status/Workflow Done confirmed by read-only gh. Completion pack: evidence/main-66014d0/index.json."
       ]
     },
     "V3": {
       "number": 22,
-      "state": "Review",
+      "state": "Done",
       "pr": 31,
       "evidence": [
         "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
         "Full fair scaling PASSf46599f:9batches270success0failed0missingHLS; speedups2.032x/2.885x; pooledqueue375.381/175.976/120.360s. Fullstatus/login latency stillrunning; V3notDone yet.",
-        "Full local V3 PASS at clean f46599f: all six latency repeats independently checked against original bytes, 17 stored/decompressed hash records and all CSV fields. Status p90 605.046/580.175/544.022ms, login 1872.986/1888.086/1898.516ms; zero timed/warmup/protocol/logout errors. Cost-10 configuration/source supported; direct measured-image/DB cost inspection absent. See reviews/performance-validation.md; prior scaling and failures retained."
+        "Full local V3 PASS at clean f46599f: all six latency repeats independently checked against original bytes, 17 stored/decompressed hash records and all CSV fields. Status p90 605.046/580.175/544.022ms, login 1872.986/1888.086/1898.516ms; zero timed/warmup/protocol/logout errors. Cost-10 configuration/source supported; direct measured-image/DB cost inspection absent. See reviews/performance-validation.md; prior scaling and failures retained.",
+        "Accepted PR31 merged at verified Main 66014d0ea9fdfa426f5b66754c2552bd303eeea5; exact PR CI38327975790 all15 checks PASS and Main CI38328502069 all14 Actions jobs SUCCESS. Final delivery-review.md PASS; issue closed and Project Status/Workflow Done confirmed by read-only gh. Completion pack: evidence/main-66014d0/index.json."
       ]
     },
     "V4": {
       "number": 23,
-      "state": "Review",
+      "state": "Done",
       "pr": 31,
       "evidence": [
         "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
-        "Actual full good/bad release experiment PASS at331354d in226.828s: goodpromotion101.197s, realactive drain34.077s, exactbadAPIexit42 thenautomaticrollback+publicsmoke, unchangedMediaandmigration. Exactcandidate scanszero fixableHIGH/CRITICAL. Priorfailuresretained; reviewsPASS."
+        "Actual full good/bad release experiment PASS at331354d in226.828s: goodpromotion101.197s, realactive drain34.077s, exactbadAPIexit42 thenautomaticrollback+publicsmoke, unchangedMediaandmigration. Exactcandidate scanszero fixableHIGH/CRITICAL. Priorfailuresretained; reviewsPASS.",
+        "Accepted PR31 merged at verified Main 66014d0ea9fdfa426f5b66754c2552bd303eeea5; exact PR CI38327975790 all15 checks PASS and Main CI38328502069 all14 Actions jobs SUCCESS. Final delivery-review.md PASS; issue closed and Project Status/Workflow Done confirmed by read-only gh. Completion pack: evidence/main-66014d0/index.json."
       ]
     },
     "V5": {
       "number": 24,
-      "state": "In progress",
+      "state": "Done",
       "pr": 31,
       "evidence": [
         "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
         "Measurements complete; VM released. Coordinator-confirmed local https://localhost:54440 healthy after startup/status; current infrastructure and browser-trust smoke exit 0, portable logs in evidence/local-demo-20261013. Prior delivery review CHECKPOINT retained; independent final delta review, PR31 exact-head checks/merge, exact Main verification and gh metadata reconciliation remain pending.",
-        "Independent final premerge review PASS in docs/execution/reviews/delivery-review.md: applicable V1-V4 and final handoff/evidence delta accepted, no substantive findings; historical CHECKPOINT preserved. Exact-head CI, accepted PR31 merge, exact Main checks and issue/Project reconciliation remain pending; V5/E5 not complete."
+        "Independent final premerge review PASS in docs/execution/reviews/delivery-review.md: applicable V1-V4 and final handoff/evidence delta accepted, no substantive findings; historical CHECKPOINT preserved. Exact-head CI, accepted PR31 merge, exact Main checks and issue/Project reconciliation remain pending; V5/E5 not complete.",
+        "Accepted PR31 merged at verified Main 66014d0ea9fdfa426f5b66754c2552bd303eeea5; exact PR CI38327975790 all15 checks PASS and Main CI38328502069 all14 Actions jobs SUCCESS. Final delivery-review.md PASS; issue closed and Project Status/Workflow Done confirmed by read-only gh. Completion pack: evidence/main-66014d0/index.json."
       ]
     }
   },
@@ -278,24 +283,28 @@
         "V4",
         "V5"
       ],
-      "state": "draft",
-      "review": "PASS: docs/execution/reviews/delivery-review.md (final premerge); exact-head CI, accepted merge, exact Main checks and metadata pending",
-      "head_checkpoint": "17512540e129e4d9be64aa8bb6a3450f5aa76a82"
+      "state": "merged",
+      "review": "PASS: docs/execution/reviews/delivery-review.md; accepted merge and exact PR/Main CI complete",
+      "head_checkpoint": "17512540e129e4d9be64aa8bb6a3450f5aa76a82",
+      "merge_commit": "66014d0ea9fdfa426f5b66754c2552bd303eeea5",
+      "accepted_head": "732a60f994932b125dff3bab2f90ad00e70f7f3b",
+      "merged_at": "2026-10-13T00:41:36Z"
     }
   ],
   "limitations": [
-    "Full local V3 and independent final premerge review PASS; exact-head CI, accepted PR31 merge, exact Main verification and metadata completion remain pending.",
+    "Local pre-AWS acceptance complete. These results certify product merge 66014d0. CI for subsequent documentation revisions is recorded in GitHub Actions.",
     "First full scaling FAIL retained separately; no result splicing. All 270 corrected jobs and all six latency repeats complete on clean f46599f with original targets.",
     "Measurement VM released. Root local healthy at https://localhost:54440, coordinator-confirmed; current infrastructure/browser-trust smoke exit 0.",
-    "Bcrypt cost 10 recorded and supported by matching fresh-account source; performance pack has no direct measured-image or measured-database cost inspection. Generator shares physical host with VM; no AWS/cloud result."
+    "Bcrypt cost 10 recorded and supported by matching fresh-account source; performance pack has no direct measured-image or measured-database cost inspection. Generator shares physical host with VM; no AWS/cloud result.",
+    "Main SonarCloud job succeeded but Run SonarCloud analysis was skipped; no completed analysis claimed."
   ],
   "aws_actions_performed": false,
   "active_worktrees": [
     {
-      "branch": "wave/03-local-acceptance",
+      "branch": "Main",
       "path": ".",
       "owner": "coordinator",
-      "scope": "Final docs/evidence review, local smoke, exact-head CI/merge/Main acceptance and metadata reconciliation"
+      "scope": "Docs-only completion record for verified product merge 66014d0; subsequent documentation CI is recorded in GitHub Actions"
     },
     {
       "branch": "work/final-measurements",
@@ -303,5 +312,67 @@
       "owner": "coordinator",
       "scope": "FROZEN f46599f completed full scaling and latency; retain evidence, VM released"
     }
-  ]
+  ],
+  "completion": {
+    "verified_product_main": "66014d0ea9fdfa426f5b66754c2552bd303eeea5",
+    "pr31_head": "732a60f994932b125dff3bab2f90ad00e70f7f3b",
+    "pr31_ci": {
+      "run": 38327975790,
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38327975790",
+      "checks_passed": 15
+    },
+    "main_ci": {
+      "run": 38328502069,
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/38328502069",
+      "actions_jobs_passed": 14
+    },
+    "final_review": "PASS: docs/execution/reviews/delivery-review.md",
+    "metadata": "gh confirms all 24 issues closed, six epics included; all 24 Project14 items Status Done and Workflow Done",
+    "evidence": "docs/execution/evidence/main-66014d0/index.json",
+    "documentation_commit_ci": "These results certify product merge 66014d0. CI for subsequent documentation revisions is recorded in GitHub Actions."
+  },
+  "epics": {
+    "E0": {
+      "number": 1,
+      "state": "Done",
+      "github_state": "CLOSED",
+      "project_status": "Done",
+      "project_workflow": "Done"
+    },
+    "E1": {
+      "number": 2,
+      "state": "Done",
+      "github_state": "CLOSED",
+      "project_status": "Done",
+      "project_workflow": "Done"
+    },
+    "E2": {
+      "number": 3,
+      "state": "Done",
+      "github_state": "CLOSED",
+      "project_status": "Done",
+      "project_workflow": "Done"
+    },
+    "E3": {
+      "number": 4,
+      "state": "Done",
+      "github_state": "CLOSED",
+      "project_status": "Done",
+      "project_workflow": "Done"
+    },
+    "E4": {
+      "number": 5,
+      "state": "Done",
+      "github_state": "CLOSED",
+      "project_status": "Done",
+      "project_workflow": "Done"
+    },
+    "E5": {
+      "number": 6,
+      "state": "Done",
+      "github_state": "CLOSED",
+      "project_status": "Done",
+      "project_workflow": "Done"
+    }
+  }
 }

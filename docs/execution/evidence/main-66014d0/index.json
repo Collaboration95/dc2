@@ -1,0 +1,34 @@
+{
+  "verified_product_main": "66014d0ea9fdfa426f5b66754c2552bd303eeea5",
+  "main_ci_run": 38328502069,
+  "main_ci_url": "https://github.com/Collaboration95/dc2/actions/runs/38328502069",
+  "pr_head": "732a60f994932b125dff3bab2f90ad00e70f7f3b",
+  "pr_ci_run": 38327975790,
+  "pr_ci_url": "https://github.com/Collaboration95/dc2/actions/runs/38327975790",
+  "issue_count": 24,
+  "epic_count": 6,
+  "project_status": "All 24 items Status Done and Workflow Done",
+  "records": [
+    {
+      "file": "main-ci.json",
+      "bytes": 52728,
+      "sha256": "c27ad6651c4770f4f4c3908320efe6c5214696753fa33898d70ca07fd9af3d27"
+    },
+    {
+      "file": "pr-ci.json",
+      "bytes": 52728,
+      "sha256": "fc2f7f94f68e9c2bc90e106c1a44b30913b3cc72b5715dc5631a2faf2bb43e92"
+    },
+    {
+      "file": "delivery.json",
+      "bytes": 13728,
+      "sha256": "15d17adb40a870a6cdfda56b1af52da0ab4f02fbd9a4324178298030aada0cdd"
+    },
+    {
+      "file": "completion.md",
+      "bytes": 1790,
+      "sha256": "5a50f8acc0c6b40e27467355aef97ea2bf2a5b80e0cc2e15f0a068100a123598"
+    }
+  ],
+  "documentation_commit_ci": "These results certify product merge 66014d0. CI for subsequent documentation revisions is recorded in GitHub Actions."
+}
