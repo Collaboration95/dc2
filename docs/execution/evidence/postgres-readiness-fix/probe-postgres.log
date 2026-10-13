@@ -1,0 +1,84 @@
+2026-10-13T01:00:14.709709953Z The files belonging to this database system will be owned by user "postgres".
+2026-10-13T01:00:14.709725601Z This user must also own the server process.
+2026-10-13T01:00:14.709728370Z 
+2026-10-13T01:00:14.709771623Z The database cluster will be initialized with locale "en_US.utf8".
+2026-10-13T01:00:14.709773931Z The default database encoding has accordingly been set to "UTF8".
+2026-10-13T01:00:14.709774854Z The default text search configuration will be set to "english".
+2026-10-13T01:00:14.709775693Z 
+2026-10-13T01:00:14.709776406Z Data page checksums are disabled.
+2026-10-13T01:00:14.709777077Z 
+2026-10-13T01:00:14.709779636Z fixing permissions on existing directory /var/lib/postgresql/data ... ok
+2026-10-13T01:00:14.709870170Z creating subdirectories ... ok
+2026-10-13T01:00:14.709881204Z selecting dynamic shared memory implementation ... posix
+2026-10-13T01:00:14.804456670Z selecting default max_connections ... 100
+2026-10-13T01:00:14.903027090Z selecting default shared_buffers ... 128MB
+2026-10-13T01:00:15.006785769Z selecting default time zone ... Etc/UTC
+2026-10-13T01:00:15.007147864Z creating configuration files ... ok
+2026-10-13T01:00:15.503352706Z running bootstrap script ... ok
+2026-10-13T01:00:18.506009884Z performing post-bootstrap initialization ... ok
+2026-10-13T01:00:18.508830873Z syncing data to disk ... ok
+2026-10-13T01:00:18.508839096Z 
+2026-10-13T01:00:18.508840103Z 
+2026-10-13T01:00:18.508840900Z Success. You can now start the database server using:
+2026-10-13T01:00:18.508841865Z 
+2026-10-13T01:00:18.508842578Z     pg_ctl -D /var/lib/postgresql/data -l logfile start
+2026-10-13T01:00:18.508843333Z 
+2026-10-13T01:00:18.699913354Z waiting for server to start....2026-10-13 01:00:18.699 UTC [93] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-13T01:00:18.703742007Z 2026-10-13 01:00:18.703 UTC [93] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-13T01:00:18.704646341Z 2026-10-13 01:00:18.704 UTC [96] LOG:  database system was shut down at 2026-10-13 01:00:18 UTC
+2026-10-13T01:00:18.706119471Z 2026-10-13 01:00:18.706 UTC [93] LOG:  database system is ready to accept connections
+2026-10-13T01:00:18.808029417Z  done
+2026-10-13T01:00:18.808042548Z server started
+2026-10-13T01:00:19.002447522Z 
+2026-10-13T01:00:19.005570110Z /usr/local/bin/docker-entrypoint.sh: running /docker-entrypoint-initdb.d/10-project2.sh
+2026-10-13T01:00:19.200553360Z CREATE ROLE
+2026-10-13T01:00:19.200823368Z CREATE ROLE
+2026-10-13T01:00:19.204222718Z ALTER ROLE
+2026-10-13T01:00:19.207265051Z ALTER ROLE
+2026-10-13T01:00:19.408276623Z CREATE DATABASE
+2026-10-13T01:00:19.408533416Z REVOKE
+2026-10-13T01:00:19.408712428Z GRANT
+2026-10-13T01:00:20.004371929Z REVOKE
+2026-10-13T01:00:20.004503870Z GRANT
+2026-10-13T01:00:20.004650621Z GRANT
+2026-10-13T01:00:20.004730332Z GRANT
+2026-10-13T01:00:20.004848093Z GRANT
+2026-10-13T01:00:20.005064569Z ALTER DEFAULT PRIVILEGES
+2026-10-13T01:00:20.005152419Z ALTER DEFAULT PRIVILEGES
+2026-10-13T01:00:20.309430606Z CREATE ROLE
+2026-10-13T01:00:20.309670156Z CREATE ROLE
+2026-10-13T01:00:20.404933061Z ALTER ROLE
+2026-10-13T01:00:20.409454187Z ALTER ROLE
+2026-10-13T01:00:20.702221033Z CREATE DATABASE
+2026-10-13T01:00:20.702402395Z REVOKE
+2026-10-13T01:00:20.702651552Z GRANT
+2026-10-13T01:00:20.900474755Z REVOKE
+2026-10-13T01:00:20.900641978Z GRANT
+2026-10-13T01:00:20.900781262Z GRANT
+2026-10-13T01:00:20.900951422Z GRANT
+2026-10-13T01:00:20.901021357Z GRANT
+2026-10-13T01:00:20.901380180Z ALTER DEFAULT PRIVILEGES
+2026-10-13T01:00:20.901556549Z ALTER DEFAULT PRIVILEGES
+2026-10-13T01:00:20.902376474Z 
+2026-10-13T01:00:20.902536440Z /usr/local/bin/docker-entrypoint.sh: running /docker-entrypoint-initdb.d/99-probe-gate.sh
+2026-10-13T01:00:22.910026379Z 
+2026-10-13T01:00:22.910706350Z waiting for server to shut down....2026-10-13 01:00:22.910 UTC [93] LOG:  received fast shutdown request
+2026-10-13T01:00:22.910717593Z 2026-10-13 01:00:22.910 UTC [93] LOG:  aborting any active transactions
+2026-10-13T01:00:23.002130281Z 2026-10-13 01:00:23.002 UTC [93] LOG:  background worker "logical replication launcher" (PID 99) exited with exit code 1
+2026-10-13T01:00:23.002262180Z 2026-10-13 01:00:23.002 UTC [94] LOG:  shutting down
+2026-10-13T01:00:23.002272962Z 2026-10-13 01:00:23.002 UTC [94] LOG:  checkpoint starting: shutdown immediate
+2026-10-13T01:00:23.013125603Z 2026-10-13 01:00:23.012 UTC [94] LOG:  checkpoint complete: wrote 1861 buffers (11.4%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.010 s, sync=0.001 s, total=0.011 s; sync files=604, longest=0.001 s, average=0.000 s; distance=8559 kB, estimate=8559 kB; lsn=0/1D4EA30, redo lsn=0/1D4EA30
+2026-10-13T01:00:23.101210301Z 2026-10-13 01:00:23.101 UTC [93] LOG:  database system is shut down
+2026-10-13T01:00:23.112704610Z  done
+2026-10-13T01:00:23.112713839Z server stopped
+2026-10-13T01:00:23.113304199Z 
+2026-10-13T01:00:23.113314393Z PostgreSQL init process complete; ready for start up.
+2026-10-13T01:00:23.113315568Z 
+2026-10-13T01:00:18.508851095Z initdb: warning: enabling "trust" authentication for local connections
+2026-10-13T01:00:18.508863638Z initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+2026-10-13T01:00:23.198333644Z 2026-10-13 01:00:23.198 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-13T01:00:23.198465544Z 2026-10-13 01:00:23.198 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-13T01:00:23.198473515Z 2026-10-13 01:00:23.198 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-13T01:00:23.201780443Z 2026-10-13 01:00:23.201 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-13T01:00:23.202704957Z 2026-10-13 01:00:23.202 UTC [195] LOG:  database system was shut down at 2026-10-13 01:00:23 UTC
+2026-10-13T01:00:23.207006711Z 2026-10-13 01:00:23.206 UTC [1] LOG:  database system is ready to accept connections

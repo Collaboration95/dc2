@@ -1,0 +1,9 @@
+Local HTTPS and browser trust	Run make up RUN_ID=ci-trust	2026-10-13T00:55:55.7906875Z  Container dc2-ci-trust-da09ecb3-postgres-1  Healthy
+Local HTTPS and browser trust	Run make up RUN_ID=ci-trust	2026-10-13T00:55:55.7908803Z  Container dc2-ci-trust-da09ecb3-postgres-1  Healthy
+Local HTTPS and browser trust	Run make up RUN_ID=ci-trust	2026-10-13T00:55:58.9458715Z make: *** [Makefile:81: up] Error 1
+Local HTTPS and browser trust	Run make logs RUN_ID=ci-trust	2026-10-13T00:56:00.4279171Z processing-migrate-1  | ConnectionRefusedError: [Errno 111] Connect call failed ('172.19.0.3', 5432)
+Local HTTPS and browser trust	Run make logs RUN_ID=ci-trust	2026-10-13T00:56:00.4315052Z postgres-1            | 2026-10-13 00:55:55.366 UTC [62] LOG:  database system is ready to accept connections
+Local HTTPS and browser trust	Run make logs RUN_ID=ci-trust	2026-10-13T00:56:00.4317285Z postgres-1            | /usr/local/bin/docker-entrypoint.sh: running /docker-entrypoint-initdb.d/10-project2.sh
+Local HTTPS and browser trust	Run make logs RUN_ID=ci-trust	2026-10-13T00:56:00.4334889Z postgres-1            | 2026-10-13 00:55:59.565 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+Local HTTPS and browser trust	Run make logs RUN_ID=ci-trust	2026-10-13T00:56:00.4337492Z postgres-1            | 2026-10-13 00:55:59.664 UTC [1] LOG:  database system is ready to accept connections
+Local HTTPS and browser trust	Run make logs RUN_ID=ci-trust	2026-10-13T00:56:00.4343983Z media-migrate-1       | ConnectionRefusedError: [Errno 111] Connect call failed ('172.20.0.2', 5432)

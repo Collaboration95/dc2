@@ -1,27 +1,30 @@
 # Project 2 morning handoff
 
-**13 October 2026, Singapore (UTC+8): local pre-AWS delivery complete.**
-PRs #25–#31 merged; V1–V5/E5 accepted. All 24 issues (six epics and 18 children)
-are closed, and all Project14 items have Status and Workflow **Done**.
-Verified product Main: [`66014d0ea9fdfa426f5b66754c2552bd303eeea5`](https://github.com/Collaboration95/dc2/commit/66014d0ea9fdfa426f5b66754c2552bd303eeea5);
-[Main CI 38328502069](https://github.com/Collaboration95/dc2/actions/runs/38328502069) SUCCESS, all 14 Actions jobs.
-[Final delivery review](reviews/delivery-review.md) PASS;
-[completion metadata/hashes](evidence/main-66014d0/index.json).
-These results certify product merge 66014d0. CI for subsequent documentation revisions is recorded in GitHub Actions.
+**13 October 2026, Singapore (UTC+8): V5/E5 reopened for PostgreSQL startup readiness.**
+PR31 and its accepted product merge `66014d0` remain historical PASS evidence.
+Subsequent [CI38329462068](https://github.com/Collaboration95/dc2/actions/runs/38329462068)
+on `293b9a8` failed fresh startup: socket readiness admitted migrations before the
+final PostgreSQL TCP listener. The three active healthchecks now use TCP;
+[isolated proof and correction](reviews/postgres-readiness-fix.md) pass.
+[Independent peer review](reviews/postgres-readiness-review.md) **PASS**.
+Corrective PR32, exact PR/Main CI and metadata reconciliation remain pending. Earlier V1–V4 measurements and [verified Main pack](evidence/main-66014d0/index.json)
+retain their original provenance; they do not certify this correction.
 The working target is **three elapsed agentic days, five maximum**, applying 80/20:
 reuse the media engine/frontend and prove service boundaries, separate ownership,
 web/CLI workflows, independent deployment and measured recovery/scaling.
 The proposal's **31 person-days** is its effort allocation, not this coding schedule.
 
-## Completion and demo use
+## Correction and demo use
 
 Preserve `.worktrees/final-measurements` frozen at `f46599f`, all raw records
 and failed historical runs. Measurements are complete and the VM is released.
 Root `RUN_ID=local` is healthy at **https://localhost:54440**, coordinator-confirmed;
 infrastructure and browser-trust smoke exited 0 with [portable logs](evidence/local-demo-20261013/index.json).
-Read-only authenticated `gh` confirmed accepted PR31 merge, exact PR/Main CI
-and all issue/Project completion states. Course report/demo preparation remains
-separate work; AWS prerequisites are listed below.
+The prior completion checkpoint recorded PR31 merge, exact PR/Main CI and all
+issue/Project fields Done. V5/E5 are now reopened locally for corrective PR32;
+[Peer review](reviews/postgres-readiness-review.md) PASS; parent owns corrective
+PR32, CI and remote reconciliation. Course report/demo
+preparation remains separate work; AWS prerequisites are listed below.
 
 ## Start, use and stop the local demo
 
@@ -109,13 +112,14 @@ durable attempts/reconciliation, Publisher and verification/release tooling.
 | Processing E2 | P1–P3 #12–14 | [#28](https://github.com/Collaboration95/dc2/pull/28) merged `4efc41c` |
 | Media E3 | M1–M3 #15–17 | [#29](https://github.com/Collaboration95/dc2/pull/29) merged `b4a9f56` |
 | Clients E4 | C1/C2 #18–19 | [#30](https://github.com/Collaboration95/dc2/pull/30) merged `ea3950c` |
-| Local acceptance E5 | V1–V5 #20–24 | [#31](https://github.com/Collaboration95/dc2/pull/31) merged `66014d0`; V1–V5/E5 Done |
+| Local acceptance E5 | V1–V5 #20–24 | [#31](https://github.com/Collaboration95/dc2/pull/31) merged `66014d0`; V5/E5 reopened, corrective PR32 pending |
 
 Details: [progress](progress.json), [issues](issue-map.md), [plan](plan.md), [interfaces](interfaces.md), [decisions](decisions.md).
 
 ## Accepted local results
 
-The measured results below were accepted with final review, merge and exact Main CI.
+The measured results below were accepted at their recorded sources. V5/E5
+completion is reopened after the subsequent fresh-start CI failure.
 Their original source identities remain explicit.
 Retain exact source/image/config/fixture identities, raw paths/hashes and review
 scope. New measurements must come from complete runs; pilots cannot replace them.
@@ -130,9 +134,9 @@ scope. New measurements must come from complete runs; pilots cannot replace them
 | V3 status: 50 users, 180s, p90 ≤700ms, errors <1% | **PASS:** p90 605.046 / 580.175 / 544.022ms; 8,999 / 8,999 / 9,000 requests; zero errors, all clients/intervals eligible. [Raw/hash review](reviews/performance-validation.md). |
 | V3 login: separate 20 users, p90 <2s | **PASS:** p90 1872.986 / 1888.086 / 1898.516ms; 2,468 / 2,387 / 2,374 requests; zero login/warmup/session/logout errors. Bcrypt cost-10 configuration/source; direct image/DB cost inspection absent from pack. [Provenance](reviews/performance-validation.md). |
 | V4: Processing promotion/smoke ≤600s; active drain; bad startup/rollback | **PASS at `331354d`, 226.828s total**: good **101.197s**, real active drain **34.077s**, bad + restoration **125.621s**. Exact candidate scans: zero fixable HIGH/CRITICAL; actual API exit **42**, automatic exact-good-image rollback/public smoke, Media identities/images and `media_db` revision unchanged. [Release report](reviews/release-validation.md) |
-| V5: final review, merge, exact Main CI and metadata | **Done:** [review PASS](reviews/delivery-review.md), PR31 merged at verified Main `66014d0`, exact PR/Main CI passed; all 24 issues closed and both Project fields Done. Local URL/smoke coordinator-confirmed. |
+| V5: final review, merge, exact Main CI and metadata | **Reopened:** prior [review PASS](reviews/delivery-review.md) and `66014d0` CI retained; `293b9a8` fresh startup failed. TCP fix/probe and [peer review](reviews/postgres-readiness-review.md) PASS; corrective PR32, exact PR/Main CI and metadata pending. |
 
-Source packs: [verified Main completion](evidence/main-66014d0/index.json), [V3 latency index](evidence/performance-f46599f/index.json), [current demo index](evidence/local-demo-20261013/index.json).
+Source packs: [readiness correction/failure](evidence/postgres-readiness-fix/index.json), [verified Main completion](evidence/main-66014d0/index.json), [V3 latency index](evidence/performance-f46599f/index.json), [current demo index](evidence/local-demo-20261013/index.json).
 Tracked source packs: [Mac V1/V2 index](evidence/local-workflow-422609b/index.json),
 [V4 index](evidence/release-331354d/index.json), [capacity](evidence/runtime-capacity.json).
 Mac harness `422609b` used runtime build `2cb8da8`; indexed runtime inputs match.

@@ -1,0 +1,68 @@
+{
+  "started_utc": "2026-10-13T01:00:14.467926+00:00",
+  "container": "dc2-pg-readiness-probe-00f1c7be",
+  "docker_host": "unix:///Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.local/lima/d/sock/docker.sock",
+  "cpu_limit": 0.125,
+  "memory_bytes": 536870912,
+  "source_revision": "293b9a868029f239fc3cf4539e67f489e8a09472",
+  "status": "PASS",
+  "postgres_image": "sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d",
+  "held_init": {
+    "socket": {
+      "exit_code": 0,
+      "output": "/var/run/postgresql:5432 - accepting connections"
+    },
+    "tcp": {
+      "exit_code": 2,
+      "output": "127.0.0.1:5432 - no response"
+    },
+    "docker_health": "starting",
+    "migrations": {
+      "media": {
+        "exit_code": 1,
+        "connection_failure": true,
+        "last_line": "ConnectionError: unexpected connection_lost() call"
+      },
+      "processing": {
+        "exit_code": 1,
+        "connection_failure": true,
+        "last_line": "ConnectionError: unexpected connection_lost() call"
+      }
+    }
+  },
+  "final": {
+    "socket": {
+      "exit_code": 0,
+      "output": "/var/run/postgresql:5432 - accepting connections"
+    },
+    "tcp": {
+      "exit_code": 0,
+      "output": "127.0.0.1:5432 - accepting connections"
+    },
+    "docker_health": "healthy",
+    "migrations": {
+      "media": {
+        "exit_code": 0,
+        "connection_failure": false,
+        "last_line": ""
+      },
+      "processing": {
+        "exit_code": 0,
+        "connection_failure": false,
+        "last_line": ""
+      }
+    }
+  },
+  "versions": {
+    "media": "0002_uncertain_writes",
+    "processing": "processing_0002"
+  },
+  "cleanup": {
+    "probe_absent": true,
+    "existing_containers_unchanged": true,
+    "existing_container_count": 15,
+    "before_sha256": "1b54a3ec5af05cb1ad88d146211b83e986867b845502d4080acfca5b5f88d4ba",
+    "after_sha256": "1b54a3ec5af05cb1ad88d146211b83e986867b845502d4080acfca5b5f88d4ba"
+  },
+  "finished_utc": "2026-10-13T01:00:25.578217+00:00"
+}

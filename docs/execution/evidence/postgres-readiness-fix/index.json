@@ -1,0 +1,47 @@
+{
+  "scope": "Isolated PostgreSQL startup readiness regression; not full E2E or final CI acceptance",
+  "failed_ci_run": 38329462068,
+  "probe_result": "PASS",
+  "records": [
+    {
+      "file": "checks.json",
+      "bytes": 839,
+      "sha256": "9657d35425333d6c97244922b493987ff1805dba7b7445cda518ac9230ccd496"
+    },
+    {
+      "file": "ci-failure-excerpt.log",
+      "bytes": 1579,
+      "sha256": "5f2d50c745a8d86f3ca223c6f13c3ab5d8cb0b24f52674baa7a1fd491113b777"
+    },
+    {
+      "file": "failure-provenance.json",
+      "bytes": 671,
+      "sha256": "c76acfa2f9fc74cc4da21a504397ace62f401271f26113a8010377ae4a59831e"
+    },
+    {
+      "file": "initial-probe-postgres.log",
+      "bytes": 4128,
+      "sha256": "9bc70cd3a5c6197e0b64bb5a6e6f145c0a1f362630311f70142884214cfc6121"
+    },
+    {
+      "file": "initial-probe.json",
+      "bytes": 1419,
+      "sha256": "08c86d6855d684a9325bbbab8b184b87078d06c3cdf11956784a4c590ad1a7de"
+    },
+    {
+      "file": "probe-postgres.log",
+      "bytes": 6204,
+      "sha256": "63cbd0310d7f227922d3e03e48bf5832458cf45f042272173927acd3dfe36621"
+    },
+    {
+      "file": "probe-script.txt",
+      "bytes": 7447,
+      "sha256": "2abd96704b586a8015deed6b3014e35af786063271d4639b3fa16678c3ef0328"
+    },
+    {
+      "file": "probe.json",
+      "bytes": 2022,
+      "sha256": "d4b70902d67e561f22753fc096519d1c6c766f5f715a6e280651a06eac0643c4"
+    }
+  ]
+}
