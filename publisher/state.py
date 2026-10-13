@@ -43,8 +43,7 @@ class Intents:
 
 
 def file_identity(path):
-    digest = hashlib.sha256()
     with path.open("rb") as stream:
-        while chunk := stream.read(1024 * 1024):
-            digest.update(chunk)
+        # Reuse the standard library's bounded buffer while hashing every byte.
+        digest = hashlib.file_digest(stream, "sha256")
     return [path.name, path.stat().st_size, digest.hexdigest()]
