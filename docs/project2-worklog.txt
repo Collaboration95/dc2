@@ -429,3 +429,29 @@ Only handoff.md, progress.json, this appended worklog, small completion pack
 and authorized .cache/execution/resumed-pr31-final-body.md were written.
 No code/live workload/Git-state/commit/remote mutation or rereview/rebenchmark.
 Local/cost-10 provenance and cloud limitations remain; no AWS/Alibaba action.
+
+13 OCTOBER 2026 — FRESH-START CI FAILURE; V5/E5 REOPENED
+
+Final docs revision293b9a868029f239fc3cf4539e67f489e8a09472 failed CI38329462068
+in Local HTTPS/browser trust make up. At00:55:55.790UTC socket pg_isready marked
+PostgreSQL healthy during init; both owner migrations refused TCP before the
+final listener at00:55:59.565. Prior accepted66014d0 results remain historical.
+
+Minimal fix on fix/postgres-startup-readiness adds -h127.0.0.1 to integrated
+Compose, active standalone Processing Compose and legacy CI-service healthchecks.
+No intervals/retries/migrations changed; inherited root Compose/deployment untouched.
+Fresh isolated PostgreSQL probe PASS01:00:14–01:00:25UTC: held init socket0/TCP2,
+Docker not healthy, both migrations fail connection; after explicit release TCP0,
+Docker healthy, Media0002_uncertain_writes and Processingprocessing_0002 reached.
+Both probe attempts cleaned only their own containers; all15 existing container
+identities/images/statuses/start times unchanged. Initial diagnostic assertion
+expected Linux refusal wording but Lima returned connection_lost; retained apart.
+
+Related offline tests66PASS with required offline plugin; scoped Ruff/YAML and
+whitespace PASS. Initial missing-plugin test invocation had one guard failure;
+retained in checks.json. No new mirrored test, fullE2E or benchmark rerun.
+Compact raw probe/log/failure provenance hashes: evidence/postgres-readiness-fix.
+Report: reviews/postgres-readiness-fix.md. V5/E5 locally In progress pending
+peer review, correctivePR32, exactPR/MainCI and parent remote metadata reconciliation.
+No commits/GitHub mutations/new agents; live work restricted to explicit temporary
+project-Docker probes, preserving local/frozen namespaces. No cloud action.

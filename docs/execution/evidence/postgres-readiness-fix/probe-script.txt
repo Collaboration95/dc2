@@ -1,0 +1,133 @@
+"""Bounded isolated regression probe; uses only the project Docker socket."""
+import hashlib
+import json
+import os
+import secrets
+import subprocess
+import tempfile
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+root = Path.cwd()
+output = root / 'docs/execution/evidence/postgres-readiness-fix'
+output.mkdir(parents=True, exist_ok=True)
+env = os.environ.copy()
+for key in ('DOCKER_CONTEXT', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH'):
+    env.pop(key, None)
+env['DOCKER_HOST'] = 'unix://' + str(root / '.local/lima/d/sock/docker.sock')
+env['DOCKER_CONFIG'] = str(root / '.local/docker')
+name = 'dc2-pg-readiness-probe-' + secrets.token_hex(4)
+passwords = {key: secrets.token_hex(18) for key in (
+    'POSTGRES_PASSWORD', 'MEDIA_MIGRATION_PASSWORD', 'MEDIA_RUNTIME_PASSWORD',
+    'PROCESSING_MIGRATION_PASSWORD', 'PROCESSING_RUNTIME_PASSWORD')}
+env.update(passwords, POSTGRES_USER='postgres')
+report = {'started_utc': datetime.now(timezone.utc).isoformat(), 'container': name,
+          'docker_host': env['DOCKER_HOST'], 'cpu_limit': 0.125, 'memory_bytes': 536870912,
+          'source_revision': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+          'status': 'running'}
+
+def docker(*args, check=True, timeout=20):
+    result = subprocess.run(['docker', *args], env=env, capture_output=True, text=True, timeout=timeout)
+    if check and result.returncode:
+        raise RuntimeError('Docker operation failed: ' + args[0])
+    return result
+
+def snapshot():
+    ids = docker('ps', '-aq').stdout.split()
+    if not ids:
+        return []
+    items = json.loads(docker('inspect', *ids).stdout)
+    return sorted([{'id':x['Id'], 'name':x['Name'], 'image':x['Image'],
+                    'status':x['State']['Status'], 'started':x['State']['StartedAt']}
+                   for x in items], key=lambda x:x['id'])
+
+def readiness(tcp):
+    args = ['exec', name, 'pg_isready']
+    if tcp:
+        args += ['-h', '127.0.0.1']
+    result = docker(*args, '-U', 'postgres', '-d', 'postgres', check=False)
+    return {'exit_code':result.returncode, 'output':result.stdout.strip()}
+
+def migration(service, port):
+    setting = service.upper()
+    migration_env = {k:v for k,v in os.environ.items()
+                     if not k.startswith(('MEDIA_', 'PROCESSING_'))}
+    migration_env['PYTHONDONTWRITEBYTECODE'] = '1'
+    migration_env[f'{setting}_POSTGRES_DSN'] = (
+        f'postgresql+asyncpg://{service}_migrator:{passwords[setting+"_MIGRATION_PASSWORD"]}'
+        f'@127.0.0.1:{port}/{service}_db')
+    result = subprocess.run([str(root/'.venv/bin/python'), '-m', 'alembic', '-c',
+                             f'{service}/alembic.ini', 'upgrade', 'head'], cwd=root,
+                            env=migration_env, capture_output=True, text=True, timeout=30)
+    detail = result.stdout + result.stderr
+    for value in passwords.values():
+        detail = detail.replace(value, '[REDACTED]')
+    return {'exit_code':result.returncode,
+            'connection_failure': any(error in detail for error in ('ConnectionRefusedError', 'Connection refused', 'ConnectionError: unexpected connection_lost() call')),
+            'last_line':detail.strip().splitlines()[-1] if detail.strip() else ''}
+
+before = snapshot()
+created = False
+try:
+    report['postgres_image'] = docker('image', 'inspect', 'postgres:16', '--format', '{{.Id}}').stdout.strip()
+    with tempfile.TemporaryDirectory(prefix='pg-readiness-', dir=root/'.cache/execution') as temporary:
+        gate = Path(temporary)/'99-probe-gate.sh'
+        gate.write_text('#!/bin/sh\nset -eu\ntouch /tmp/probe-init-held\nn=0\nwhile [ ! -f /tmp/probe-release ]; do\n  n=$((n+1))\n  [ "$n" -lt 120 ] || exit 1\n  sleep 1\ndone\n')
+        gate.chmod(0o755)
+        args = ['run', '-d', '--pull', 'never', '--name', name, '--cpus', '0.125',
+                '--memory', '512m', '--tmpfs', '/var/lib/postgresql/data:rw,size=256m',
+                '-p', '127.0.0.1::5432', '--health-cmd', 'pg_isready -h 127.0.0.1 -U postgres -d postgres',
+                '--health-interval', '1s', '--health-timeout', '3s', '--health-retries', '120']
+        for key in ['POSTGRES_USER', *passwords]:
+            args += ['-e', key]
+        args += ['-v', str(root/'deploy/postgres/bootstrap.sh')+':/docker-entrypoint-initdb.d/10-project2.sh:ro',
+                 '-v', str(gate)+':/docker-entrypoint-initdb.d/99-probe-gate.sh:ro', 'postgres:16']
+        docker(*args)
+        created = True
+        deadline = time.monotonic() + 90
+        while docker('exec',name,'test','-f','/tmp/probe-init-held',check=False).returncode:
+            if time.monotonic() > deadline:
+                raise RuntimeError('Init gate not reached in 90 seconds')
+            time.sleep(0.5)
+        port = int(docker('port',name,'5432/tcp').stdout.strip().rsplit(':',1)[1])
+        report['held_init'] = {'socket':readiness(False),'tcp':readiness(True),
+            'docker_health':json.loads(docker('inspect',name).stdout)[0]['State']['Health']['Status'],
+            'migrations':{s:migration(s,port) for s in ('media','processing')}}
+        assert report['held_init']['socket']['exit_code'] == 0
+        assert report['held_init']['tcp']['exit_code'] != 0
+        assert report['held_init']['docker_health'] != 'healthy'
+        assert all(x['exit_code'] != 0 and x['connection_failure'] for x in report['held_init']['migrations'].values())
+        docker('exec',name,'touch','/tmp/probe-release')
+        deadline = time.monotonic() + 45
+        while readiness(True)['exit_code']:
+            if time.monotonic() > deadline:
+                raise RuntimeError('Final TCP startup timeout')
+            time.sleep(0.5)
+        while json.loads(docker('inspect',name).stdout)[0]['State']['Health']['Status'] != 'healthy':
+            if time.monotonic() > deadline:
+                raise RuntimeError('Final Docker health timeout')
+            time.sleep(0.5)
+        report['final'] = {'socket':readiness(False),'tcp':readiness(True),'docker_health':'healthy',
+            'migrations':{s:migration(s,port) for s in ('media','processing')}}
+        assert all(x['exit_code']==0 for x in report['final']['migrations'].values())
+        report['versions']={s:docker('exec',name,'psql','-U','postgres','-d',s+'_db','-Atc',
+            'SELECT version_num FROM alembic_version').stdout.strip() for s in ('media','processing')}
+        report['status']='PASS'
+finally:
+    if created:
+        logs=docker('logs','--timestamps',name,check=False)
+        text=logs.stdout+logs.stderr
+        for value in passwords.values():
+            text=text.replace(value,'[REDACTED]')
+        (output/'probe-postgres.log').write_text(text)
+        docker('rm','-f',name)
+    after=snapshot()
+    report['cleanup']={'probe_absent': name not in docker('ps','-a','--format','{{.Names}}').stdout.splitlines(),
+                       'existing_containers_unchanged':before==after,'existing_container_count':len(before),
+                       'before_sha256':hashlib.sha256(json.dumps(before,sort_keys=True).encode()).hexdigest(),
+                       'after_sha256':hashlib.sha256(json.dumps(after,sort_keys=True).encode()).hexdigest()}
+    report['finished_utc']=datetime.now(timezone.utc).isoformat()
+    (output/'probe.json').write_text(json.dumps(report,indent=2)+'\n')
+    assert report['cleanup']['probe_absent'] and report['cleanup']['existing_containers_unchanged']
+print(json.dumps(report,indent=2))

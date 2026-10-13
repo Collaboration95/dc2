@@ -1,0 +1,8 @@
+{
+  "offline_command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -p no:cacheprovider -p scripts.dev.pytest_plugin --offline-fast --confcutdir=tests/dev tests/dev/test_runtime.py tests/dev/test_ci_workflow.py tests/dev/test_foundation_tools.py -q",
+  "result": "66 passed in 0.54s",
+  "lint": "Scoped Ruff: scripts/dev/runtime.py and the three selected test modules; all checks passed",
+  "initial_invocation": "65 passed, one foundation network-guard test failed because the first invocation omitted the required offline plugin/flag. Correct invocation above passed; no test/product code altered.",
+  "yaml": "All three modified YAML files parsed successfully",
+  "new_unit_test": "None: a healthcheck string assertion would mirror the implementation; isolated real PostgreSQL negative/positive probe covers the regression."
+}

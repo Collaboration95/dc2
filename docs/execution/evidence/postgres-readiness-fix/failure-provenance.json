@@ -1,0 +1,12 @@
+{
+  "run": 38329462068,
+  "url": "https://github.com/Collaboration95/dc2/actions/runs/38329462068",
+  "source_revision": "293b9a868029f239fc3cf4539e67f489e8a09472",
+  "status": "FAILED",
+  "job": "Local HTTPS and browser trust",
+  "original_log": ".cache/execution/resumed-final-docs-ci-full.log",
+  "original_bytes": 2877470,
+  "original_sha256": "1b00806d9c876434acc73179017bc033dc8a43892f75573cc54a1eb47f1ad68f",
+  "excerpt": "ci-failure-excerpt.log",
+  "initial_probe": "initial-probe.json retains aborted diagnostic: health contrast succeeded; host forwarding returned connection_lost rather than the overly specific expected refusal. No accepted result spliced."
+}
