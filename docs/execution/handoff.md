@@ -2,7 +2,8 @@
 
 **13 October 2026, Singapore (UTC+8): product PRs #25–#30 are merged.
 V1/V2 workflow and recovery evidence and V4 release evidence PASS.
-V3 scaling PASS; full latency and V5 final review/merge remain PENDING; PR31 is draft.**
+V3 full scaling/status/login evidence and final premerge review PASS.
+Exact-head CI, merge, Main checks and metadata remain PENDING; PR31 is draft.**
 These results belong to the tested sources below. No final Main SHA is certified.
 The working target is **three elapsed agentic days, five maximum**, applying 80/20:
 reuse the media engine/frontend and prove service boundaries, separate ownership,
@@ -11,23 +12,24 @@ The proposal's **31 person-days** is its effort allocation, not this coding sche
 
 ## Morning actions
 
-1. Leave `.worktrees/final-measurements` **frozen at `f46599f`**, `RUN_ID=v3-final`.
-   Full nine-batch scaling passed; the separate latency run now owns the VM exclusively.
-   Do not start Docker, builds, browsers, FFmpeg or other live workloads until released.
-2. Let the separate full latency experiment finish
-   (21 minutes of warmup/measurement, plus preparation). Record all original targets,
-   raw evidence and misses in the table below. Keep V3/E5 open if unmet.
-3. After measurement releases the VM, restore/check root `RUN_ID=local` and fill
-   the URL confirmation below. Obtain final independent review, assess source
-   applicability, merge accepted PR31 work, then check the exact Main source.
-4. Reconcile issues and [Project 14](https://github.com/users/Collaboration95/projects/14)
-   using authenticated `gh` only. Finish V5 only after its evidence and checks pass.
+1. Preserve `.worktrees/final-measurements` **frozen at `f46599f`** and all raw
+   records. Full scaling and separate latency completed; **VM released**.
+2. V3 is **Review**: all six latency repeats independently verified offline;
+   [full V3 report](reviews/performance-validation.md). Keep failed historical runs.
+3. Root `RUN_ID=local` is healthy at **https://localhost:54440**, coordinator-confirmed after successful startup/status. Parent current infrastructure
+   and browser-trust smoke both exited 0; [portable logs](evidence/local-demo-20261013/index.json).
+4. [Final premerge delivery review](reviews/delivery-review.md) is **PASS**,
+   with the prior CHECKPOINT preserved and no substantive findings.
+   Parent pushes/runs exact-head CI/merges accepted PR31, checks exact Main and
+   reconciles issues/[Project 14](https://github.com/users/Collaboration95/projects/14)
+   through authenticated `gh`. **V5 remains In progress** until these gates pass.
    Course report/demo preparation remains separate work.
 
 ## Start, use and stop the local demo
 
-Run from the repository root **after the parent releases the VM**. Commands here
-were checked against source only; this documentation task ran no live commands.
+Run from the repository root; measurements have finished and the VM is released.
+Commands here were checked against source; current smoke was run by the parent.
+This documentation task ran no live commands.
 Prerequisites: Python 3.12+, Node/npm, Docker/Compose, FFmpeg/ffprobe, OpenSSL and the pinned browser; `doctor` diagnoses gaps.
 
 ```sh
@@ -49,7 +51,9 @@ make down RUN_ID=local
 
 `up` builds/starts the topology, applies migrations and runs infrastructure smoke.
 Root `local` has an existing allocation at **https://localhost:54440**; it is
-**currently down at this checkpoint**. Parent final confirmation: **PENDING**.
+**healthy, coordinator-confirmed** after `make up` exited 0 and
+`make status` showed all services healthy. Current `make smoke-infra` and
+`make browser-trust-smoke` both exited 0; retained logs are linked above.
 Read `public_url` and `ca_file` from `.local/runs/local/state.json` after startup;
 that state is authoritative. API base is `<public_url>/api`, health `/api/health`.
 `down` preserves data and credentials; do not prune volumes or stop a shared VM.
@@ -107,7 +111,7 @@ durable attempts/reconciliation, Publisher and verification/release tooling.
 | Processing E2 | P1–P3 #12–14 | [#28](https://github.com/Collaboration95/dc2/pull/28) merged `4efc41c` |
 | Media E3 | M1–M3 #15–17 | [#29](https://github.com/Collaboration95/dc2/pull/29) merged `b4a9f56` |
 | Clients E4 | C1/C2 #18–19 | [#30](https://github.com/Collaboration95/dc2/pull/30) merged `ea3950c` |
-| Local acceptance E5 | V1–V5 #20–24 | [#31](https://github.com/Collaboration95/dc2/pull/31) draft; V1/V2/V4 in Review, V3/V5 pending |
+| Local acceptance E5 | V1–V5 #20–24 | [#31](https://github.com/Collaboration95/dc2/pull/31) draft; V1–V4 in Review, V5 In progress |
 
 Details: [progress](progress.json), [issues](issue-map.md), [plan](plan.md), [interfaces](interfaces.md), [decisions](decisions.md).
 
@@ -124,18 +128,19 @@ scope. New measurements must come from complete runs; pilots cannot replace them
 | V2: failure ≤300s; queue repair ≤120s; restart convergence | **PASS, 190.602s**: kill visibility **69.195s**, queue repair **23.507s**; surviving queue metadata, same-key retry/no duplicate primary, durable pending work through Media restart and restored Processing convergence. |
 | V3 scaling: nine batches, 30 identical 60s 720p clips each, 1/2/3 workers | **PASS at `f46599f`:** 270 successes, zero failures or missing HLS; median throughput 2.337 / 4.749 / 6.743 jobs/min. [Report and raw evidence](reviews/scaling-validation.md). |
 | V3 targets: 2 workers ≥1.6×; 3 ≥2.1×; falling median queue wait; zero failures | **All PASS:** speedups 2.032× / 2.885×; pooled median queue wait 375.381 / 175.976 / 120.360 seconds. |
-| V3 status: 50 users, 180s, p90 ≤700ms, errors <1% | **PENDING — parent fill:** all three repeats' p90/errors and raw path/hash. |
-| V3 login: separate 20 users, p90 <2s | **PENDING — parent fill:** all three repeats' p90/errors/session outcomes and actual hash cost. |
+| V3 status: 50 users, 180s, p90 ≤700ms, errors <1% | **PASS:** p90 605.046 / 580.175 / 544.022ms; 8,999 / 8,999 / 9,000 requests; zero errors, all clients/intervals eligible. [Raw/hash review](reviews/performance-validation.md). |
+| V3 login: separate 20 users, p90 <2s | **PASS:** p90 1872.986 / 1888.086 / 1898.516ms; 2,468 / 2,387 / 2,374 requests; zero login/warmup/session/logout errors. Bcrypt cost-10 configuration/source; direct image/DB cost inspection absent from pack. [Provenance](reviews/performance-validation.md). |
 | V4: Processing promotion/smoke ≤600s; active drain; bad startup/rollback | **PASS at `331354d`, 226.828s total**: good **101.197s**, real active drain **34.077s**, bad + restoration **125.621s**. Exact candidate scans: zero fixable HIGH/CRITICAL; actual API exit **42**, automatic exact-good-image rollback/public smoke, Media identities/images and `media_db` revision unchanged. [Release report](reviews/release-validation.md) |
-| V5: final review, merge, exact Main CI and metadata | **PENDING — parent fill:** review verdict/link, merged PR, final Main SHA/CI, issue/project dispositions and confirmed local URL. |
+| V5: final review, merge, exact Main CI and metadata | **Final premerge review PASS:** [verdict](reviews/delivery-review.md). **PENDING:** exact-head CI, accepted merge, final Main SHA/checks and issue/project dispositions. Local URL and current smoke are coordinator-confirmed. |
 
+Source packs: [V3 latency index](evidence/performance-f46599f/index.json), [current demo index](evidence/local-demo-20261013/index.json).
 Tracked source packs: [Mac V1/V2 index](evidence/local-workflow-422609b/index.json),
 [V4 index](evidence/release-331354d/index.json), [capacity](evidence/runtime-capacity.json).
 Mac harness `422609b` used runtime build `2cb8da8`; indexed runtime inputs match.
 The [older Linux pack](evidence/linux-ci-38300284726/index.json) retains its older head;
 latest CI 38306733800 also passed all 15 checks with 1,085 fast Python tests; its [full Linux proof](evidence/linux-ci-38306733800/index.json) is retained.
 
-## Reproduce after exclusive measurements finish
+## Reproduce in a separate serialized namespace
 
 ```sh
 set -e                              # Stop on failure; preserve its evidence.

@@ -1,0 +1,128 @@
+[
+  {
+    "topic": "status",
+    "repeat": 1,
+    "metrics": {
+      "requests": 8999,
+      "errors": 0,
+      "error_fraction": 0.0,
+      "p90_ms": 605.0455410004361,
+      "latency_pass": true,
+      "errors_pass": true,
+      "warmup_errors": 0,
+      "logout_requests": 0,
+      "logout_errors": 0,
+      "protocol_errors": 0,
+      "protocol_eligible": true,
+      "clients": 50,
+      "planned_duration_seconds": 180,
+      "warmup_seconds": 30,
+      "all_clients_observed": true
+    }
+  },
+  {
+    "topic": "status",
+    "repeat": 2,
+    "metrics": {
+      "requests": 8999,
+      "errors": 0,
+      "error_fraction": 0.0,
+      "p90_ms": 580.1747090008575,
+      "latency_pass": true,
+      "errors_pass": true,
+      "warmup_errors": 0,
+      "logout_requests": 0,
+      "logout_errors": 0,
+      "protocol_errors": 0,
+      "protocol_eligible": true,
+      "clients": 50,
+      "planned_duration_seconds": 180,
+      "warmup_seconds": 30,
+      "all_clients_observed": true
+    }
+  },
+  {
+    "topic": "status",
+    "repeat": 3,
+    "metrics": {
+      "requests": 9000,
+      "errors": 0,
+      "error_fraction": 0.0,
+      "p90_ms": 544.0224170015426,
+      "latency_pass": true,
+      "errors_pass": true,
+      "warmup_errors": 0,
+      "logout_requests": 0,
+      "logout_errors": 0,
+      "protocol_errors": 0,
+      "protocol_eligible": true,
+      "clients": 50,
+      "planned_duration_seconds": 180,
+      "warmup_seconds": 30,
+      "all_clients_observed": true
+    }
+  },
+  {
+    "topic": "login",
+    "repeat": 1,
+    "metrics": {
+      "requests": 2468,
+      "errors": 0,
+      "error_fraction": 0.0,
+      "p90_ms": 1872.9860420135083,
+      "latency_pass": true,
+      "errors_pass": null,
+      "warmup_errors": 0,
+      "logout_requests": 2877,
+      "logout_errors": 0,
+      "protocol_errors": 0,
+      "protocol_eligible": true,
+      "clients": 20,
+      "planned_duration_seconds": 180,
+      "warmup_seconds": 30,
+      "all_clients_observed": true
+    }
+  },
+  {
+    "topic": "login",
+    "repeat": 2,
+    "metrics": {
+      "requests": 2387,
+      "errors": 0,
+      "error_fraction": 0.0,
+      "p90_ms": 1888.0860839999514,
+      "latency_pass": true,
+      "errors_pass": null,
+      "warmup_errors": 0,
+      "logout_requests": 2798,
+      "logout_errors": 0,
+      "protocol_errors": 0,
+      "protocol_eligible": true,
+      "clients": 20,
+      "planned_duration_seconds": 180,
+      "warmup_seconds": 30,
+      "all_clients_observed": true
+    }
+  },
+  {
+    "topic": "login",
+    "repeat": 3,
+    "metrics": {
+      "requests": 2374,
+      "errors": 0,
+      "error_fraction": 0.0,
+      "p90_ms": 1898.5162919998402,
+      "latency_pass": true,
+      "errors_pass": null,
+      "warmup_errors": 0,
+      "logout_requests": 2781,
+      "logout_errors": 0,
+      "protocol_errors": 0,
+      "protocol_eligible": true,
+      "clients": 20,
+      "planned_duration_seconds": 180,
+      "warmup_seconds": 30,
+      "all_clients_observed": true
+    }
+  }
+]

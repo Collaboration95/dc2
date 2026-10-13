@@ -1,5 +1,5 @@
 {
-  "stage": "final-latency-and-evidence-review",
+  "stage": "final-evidence-review-and-main-acceptance",
   "baseline": "b32d489566144202fbf6fc3887ce25d5321444fd",
   "project": {
     "id": "PVT_kwHOBBatWM4Bmtkx",
@@ -164,11 +164,12 @@
     },
     "V3": {
       "number": 22,
-      "state": "In progress",
+      "state": "Review",
       "pr": 31,
       "evidence": [
         "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
-        "Full fair scaling PASSf46599f:9batches270success0failed0missingHLS; speedups2.032x/2.885x; pooledqueue375.381/175.976/120.360s. Fullstatus/login latency stillrunning; V3notDone yet."
+        "Full fair scaling PASSf46599f:9batches270success0failed0missingHLS; speedups2.032x/2.885x; pooledqueue375.381/175.976/120.360s. Fullstatus/login latency stillrunning; V3notDone yet.",
+        "Full local V3 PASS at clean f46599f: all six latency repeats independently checked against original bytes, 17 stored/decompressed hash records and all CSV fields. Status p90 605.046/580.175/544.022ms, login 1872.986/1888.086/1898.516ms; zero timed/warmup/protocol/logout errors. Cost-10 configuration/source supported; direct measured-image/DB cost inspection absent. See reviews/performance-validation.md; prior scaling and failures retained."
       ]
     },
     "V4": {
@@ -185,7 +186,9 @@
       "state": "In progress",
       "pr": 31,
       "evidence": [
-        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending."
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
+        "Measurements complete; VM released. Coordinator-confirmed local https://localhost:54440 healthy after startup/status; current infrastructure and browser-trust smoke exit 0, portable logs in evidence/local-demo-20261013. Prior delivery review CHECKPOINT retained; independent final delta review, PR31 exact-head checks/merge, exact Main verification and gh metadata reconciliation remain pending.",
+        "Independent final premerge review PASS in docs/execution/reviews/delivery-review.md: applicable V1-V4 and final handoff/evidence delta accepted, no substantive findings; historical CHECKPOINT preserved. Exact-head CI, accepted PR31 merge, exact Main checks and issue/Project reconciliation remain pending; V5/E5 not complete."
       ]
     }
   },
@@ -276,14 +279,15 @@
         "V5"
       ],
       "state": "draft",
-      "review": "Code corrections PASS; final live measurements and evidence review pending",
+      "review": "PASS: docs/execution/reviews/delivery-review.md (final premerge); exact-head CI, accepted merge, exact Main checks and metadata pending",
       "head_checkpoint": "17512540e129e4d9be64aa8bb6a3450f5aa76a82"
     }
   ],
   "limitations": [
-    "FullscalingPASS; fullstatus/login latency and finalindependentreview/Mainverification stillpending.",
-    "FirstfullscalingFAIL retainedseparately; no resultsplicing. New270jobscompleteonclean f46599f with unchangedoriginaltargets.",
-    "MeasurementVM remains exclusive to frozenfinal-measurements until latencycompletes; rootdemo local isdown."
+    "Full local V3 and independent final premerge review PASS; exact-head CI, accepted PR31 merge, exact Main verification and metadata completion remain pending.",
+    "First full scaling FAIL retained separately; no result splicing. All 270 corrected jobs and all six latency repeats complete on clean f46599f with original targets.",
+    "Measurement VM released. Root local healthy at https://localhost:54440, coordinator-confirmed; current infrastructure/browser-trust smoke exit 0.",
+    "Bcrypt cost 10 recorded and supported by matching fresh-account source; performance pack has no direct measured-image or measured-database cost inspection. Generator shares physical host with VM; no AWS/cloud result."
   ],
   "aws_actions_performed": false,
   "active_worktrees": [
@@ -291,13 +295,13 @@
       "branch": "wave/03-local-acceptance",
       "path": ".",
       "owner": "coordinator",
-      "scope": "Finaldocs/CI/evidencereconciliation; noVMworkloads duringmeasurement"
+      "scope": "Final docs/evidence review, local smoke, exact-head CI/merge/Main acceptance and metadata reconciliation"
     },
     {
       "branch": "work/final-measurements",
       "path": ".worktrees/final-measurements",
       "owner": "coordinator",
-      "scope": "FROZENf46599f fullscalingandthenlatency; ownsVMexclusively untilcomplete"
+      "scope": "FROZEN f46599f completed full scaling and latency; retain evidence, VM released"
     }
   ]
 }

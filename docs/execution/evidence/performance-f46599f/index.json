@@ -1,0 +1,162 @@
+{
+  "original_directory": ".worktrees/final-measurements/artifacts/evidence/v3-final/performance-20261013T060841-88579745",
+  "experiment_status": "completed",
+  "source_revision": "f46599f8048b30087a4e9a8b8a0e1108dcc6fe03",
+  "acceptance_pass": true,
+  "fixture": "Generated video omitted; exact hash, FFmpeg/probe metadata and generation command remain in manifest. All original JSON/CSV/JSONL records retained.",
+  "records": [
+    {
+      "file": "intervals.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "intervals.jsonl",
+      "original_bytes": 2454,
+      "original_sha256": "09308841d725e701df0a8ccb7bce034df811ac3b65e67a2e134637816ef84294",
+      "stored_bytes": 432,
+      "stored_sha256": "b28f63edc44c301db7e63ed1c474772fbccfccf99e94af5b8ebd4c380998606c"
+    },
+    {
+      "file": "login-r1.csv",
+      "encoding": "original",
+      "original_name": "login-r1.csv",
+      "original_bytes": 260808,
+      "original_sha256": "add81ee1c9bd9ad95c3d6992a3ba945a70b24a57c7a4de3d7b67add41e34803d",
+      "stored_bytes": 260808,
+      "stored_sha256": "add81ee1c9bd9ad95c3d6992a3ba945a70b24a57c7a4de3d7b67add41e34803d"
+    },
+    {
+      "file": "login-r2.csv",
+      "encoding": "original",
+      "original_name": "login-r2.csv",
+      "original_bytes": 252300,
+      "original_sha256": "405caaebe91aefc15a39d678e2e09e2bb54f520006ef0e8ed03b10163f0aa6e8",
+      "stored_bytes": 252300,
+      "stored_sha256": "405caaebe91aefc15a39d678e2e09e2bb54f520006ef0e8ed03b10163f0aa6e8"
+    },
+    {
+      "file": "login-r3.csv",
+      "encoding": "original",
+      "original_name": "login-r3.csv",
+      "original_bytes": 250971,
+      "original_sha256": "8e6af29a08948f50e8f8a224e27a93f1e9a523e130dd65d255bd742051677a1a",
+      "stored_bytes": 250971,
+      "stored_sha256": "8e6af29a08948f50e8f8a224e27a93f1e9a523e130dd65d255bd742051677a1a"
+    },
+    {
+      "file": "manifest.json",
+      "encoding": "original",
+      "original_name": "manifest.json",
+      "original_bytes": 14469,
+      "original_sha256": "853aa7e7bc23466b9f931a081a3b9a6b44fd69c751845b031196f86efc940fac",
+      "stored_bytes": 14469,
+      "stored_sha256": "853aa7e7bc23466b9f931a081a3b9a6b44fd69c751845b031196f86efc940fac"
+    },
+    {
+      "file": "observations.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "observations.jsonl",
+      "original_bytes": 80350,
+      "original_sha256": "9e57481f49ba91722654d6f4c8a5be5d38b5c573f413d298d819137de78dd48b",
+      "stored_bytes": 7135,
+      "stored_sha256": "9f8b22447c2b2679c390dabc8eb1b972879d025739bbbddae608eb6117d778a6"
+    },
+    {
+      "file": "operations.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "operations.jsonl",
+      "original_bytes": 2321188,
+      "original_sha256": "4c0dd330da3b47e327e338dad55bd1dea23b89719c1900522e24079b0cb79751",
+      "stored_bytes": 187038,
+      "stored_sha256": "6959cfaea41865f34d6d0c3eb5f70d6e40e4e63752bc1a09d8634bd9ad768689"
+    },
+    {
+      "file": "preflight.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "preflight.jsonl",
+      "original_bytes": 2804,
+      "original_sha256": "fed8179b377d01635ccee81467f833343e1f5d93584b55923bab4efee8877e76",
+      "stored_bytes": 968,
+      "stored_sha256": "655bac53672097915ad7002000aebbc78f571a3ef32a568e2f4d0a4f145941f6"
+    },
+    {
+      "file": "requests.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "requests.jsonl",
+      "original_bytes": 9543727,
+      "original_sha256": "3786e300845c11b5610b1f0e9dc2bf5a74b31ee61a40c7d436c07c94e9d77464",
+      "stored_bytes": 1012188,
+      "stored_sha256": "2e78b421e9dee2c4740f32318a74326b1f8bfe39b2578d9433a9a4eaa7ff3838"
+    },
+    {
+      "file": "resources.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "resources.jsonl",
+      "original_bytes": 765869,
+      "original_sha256": "fe5bc75ca80cb48d88bf816227f051ed4864decfa3e1f25e920000a6b8308769",
+      "stored_bytes": 33060,
+      "stored_sha256": "964600350a286459978e64320fb94e3fb6b3b510fe071ec5d7db17bf34287de5"
+    },
+    {
+      "file": "runs.json",
+      "encoding": "original",
+      "original_name": "runs.json",
+      "original_bytes": 3000,
+      "original_sha256": "14e763d3d6aa038781b83e08706c1932ef6cbbce6135170570d5198dee2c0331",
+      "stored_bytes": 3000,
+      "stored_sha256": "14e763d3d6aa038781b83e08706c1932ef6cbbce6135170570d5198dee2c0331"
+    },
+    {
+      "file": "status-r1.csv",
+      "encoding": "original",
+      "original_name": "status-r1.csv",
+      "original_bytes": 1053109,
+      "original_sha256": "54ed5f22a5764c48d242d6cb47ad0008f5c2652406ed4c1b1a8bb7f9173cc9aa",
+      "stored_bytes": 1053109,
+      "stored_sha256": "54ed5f22a5764c48d242d6cb47ad0008f5c2652406ed4c1b1a8bb7f9173cc9aa"
+    },
+    {
+      "file": "status-r2.csv",
+      "encoding": "original",
+      "original_name": "status-r2.csv",
+      "original_bytes": 1053402,
+      "original_sha256": "65802e8c41b78a77684b493dbf481a907715bdb224d6096805c77a9e8c53dcc2",
+      "stored_bytes": 1053402,
+      "stored_sha256": "65802e8c41b78a77684b493dbf481a907715bdb224d6096805c77a9e8c53dcc2"
+    },
+    {
+      "file": "status-r3.csv",
+      "encoding": "original",
+      "original_name": "status-r3.csv",
+      "original_bytes": 1053765,
+      "original_sha256": "1aeb788436264c198611627cf2dcba0dd2e8b33ebf844ca8555bdb33bee77d7e",
+      "stored_bytes": 1053765,
+      "stored_sha256": "1aeb788436264c198611627cf2dcba0dd2e8b33ebf844ca8555bdb33bee77d7e"
+    },
+    {
+      "file": "submissions.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "submissions.jsonl",
+      "original_bytes": 12615,
+      "original_sha256": "9837a258f69116e4a97038a06aec75c9a4310bc00a5d635e23c3547e8effcf5c",
+      "stored_bytes": 2876,
+      "stored_sha256": "d6969cc09027b84f60ea628efa6d7adfb504e67e53341a870b88f2c60b8e5907"
+    },
+    {
+      "file": "targets.json",
+      "encoding": "original",
+      "original_name": "targets.json",
+      "original_bytes": 3435,
+      "original_sha256": "1afa956575ffc9c4db5e060c0316547a5018c2032429256922063ed915b6c135",
+      "stored_bytes": 3435,
+      "stored_sha256": "1afa956575ffc9c4db5e060c0316547a5018c2032429256922063ed915b6c135"
+    },
+    {
+      "file": "warmup-requests.jsonl.gz",
+      "encoding": "gzip",
+      "original_name": "warmup-requests.jsonl",
+      "original_bytes": 1593524,
+      "original_sha256": "5d0d2e70facee2cd6efef1d4bd86c6cb02d7343db37db714490def5a456c5b26",
+      "stored_bytes": 171664,
+      "stored_sha256": "8a3ad48ac927fc119e27e13806da657d772fbea7c4c6ce962df1514d055a8bd9"
+    }
+  ]
+}

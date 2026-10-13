@@ -375,3 +375,32 @@ Raw JSON/CSV and compressed JSONL, checked by decompressed SHA-256, are retained
 in docs/execution/evidence/scaling-f46599f. The earlier failed invocation remains
 separate under failed-scaling-621c03a. Full status/login latency follows serially.
 V3, final review and Main acceptance remain pending at this checkpoint.
+
+13 OCTOBER 2026 — COMPLETE V3 AND RESUMED LOCAL HANDOFF
+
+Full separate latency completed at clean frozen f46599f, 06:08:41–06:31:41
+Singapore, after accepted full scaling. Independent offline validation matched
+all 17 stored/decompressed lengths and SHA-256 values to original raw bytes,
+all six CSVs to JSONL, every p90, all twelve intervals and 50/20-client coverage.
+Status p90: 605.045541 / 580.174709 / 544.022417ms (8999/8999/9000 requests).
+Login p90: 1872.986042 / 1888.086084 / 1898.516292ms (2468/2387/2374 requests).
+34227 timed, 5727 warmup and 8456 untimed logout attempts: zero errors/protocol
+failures. All original status/login targets PASS, alongside nine-batch scaling.
+Bcrypt rounds=10 label and fresh-account source path are supported; the pack
+contains no direct measured-image code or measured-account DB cost inspection.
+Existing cost-12 accounts are not covered. See reviews/performance-validation.md
+and evidence/performance-f46599f/index.json. Failed historical runs remain intact.
+
+Measurements complete; VM released. Coordinator-confirmed startup/status: make up RUN_ID=local exited 0,
+and all services are healthy at https://localhost:54440. Parent current
+make smoke-infra and make browser-trust-smoke both exited 0; original small logs
+are copied with SHA-256 index to evidence/local-demo-20261013, no rerun here.
+V3 is Review; V5 remains In progress. Final docs/execution/reviews/delivery-review.md will preserve the prior
+CHECKPOINT; parent owns final independent delta review, exact-head
+CI/push/merge PR31, exact Main checks and authenticated-gh metadata reconciliation.
+No final delivery/Main PASS, issue closure or cloud result is claimed.
+
+This worker edited only performance-validation.md, handoff.md, progress.json,
+this appended worklog, the authorized portable smoke-log pack and draft PR31
+body .cache/execution/resumed-pr31-body.md. Lightweight offline verification only;
+no application/frozen-worktree/index/commit/GitHub/live-VM change or new agent.

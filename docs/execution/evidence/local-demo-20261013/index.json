@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-13",
+  "run_id": "local",
+  "public_url": "https://localhost:54440",
+  "provenance": "Parent ran smoke-infra and browser-trust-smoke, both exit 0; coordinator-confirmed startup/status healthy. This documentation worker copied logs without rerunning.",
+  "records": [
+    {
+      "file": "resumed-local-smoke.log",
+      "original_path": ".cache/execution/resumed-local-smoke.log",
+      "bytes": 467,
+      "sha256": "f2641a1138d2f929c68856664dfd318336499026dc5519fdfc14bc5f8164790c"
+    },
+    {
+      "file": "resumed-browser-trust.log",
+      "original_path": ".cache/execution/resumed-browser-trust.log",
+      "bytes": 505,
+      "sha256": "a7a700a9df85a038725a3a6f19b8722f548939d72939bbe184a121b40be0a572"
+    }
+  ]
+}
