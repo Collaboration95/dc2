@@ -149,6 +149,38 @@ async def test_sdk_rejects_truncated_output_before_acknowledgement(tmp_path):
     client._put_object.assert_not_called()
 
 
+@pytest.mark.parametrize("failure", ["part", "completion"])
+async def test_failed_multipart_aborts_and_fresh_retry_has_accurate_digest(tmp_path, failure):
+    path = tmp_path / "output"
+    content = b"x" * (5 * 1024 * 1024 + 17)
+    path.write_bytes(content)
+    client = Minio("unused.test", region="us-east-1")
+    client._create_multipart_upload = Mock(return_value="upload-id")
+    client._abort_multipart_upload = Mock()
+    client._upload_part = Mock(
+        side_effect=["part-1", OSError("part failed")] if failure == "part" else None,
+        return_value="ack",
+    )
+    completed = SimpleNamespace(
+        bucket_name="outputs", object_name="key", version_id=None, etag="ack",
+        http_headers={}, location=None,
+    )
+    client._complete_multipart_upload = Mock(
+        side_effect=OSError("completion failed") if failure == "completion" else None,
+        return_value=completed,
+    )
+    store = output_store(client)
+    with pytest.raises(OSError):
+        await store.put("failed/key", path, "video/mp4", "primary")
+    client._abort_multipart_upload.assert_called_once_with("outputs", "failed/key", "upload-id")
+    client._upload_part.side_effect = None
+    client._complete_multipart_upload.side_effect = None
+    output = await store.put("retry/key", path, "video/mp4", "primary")
+    assert output["object_key"] == "retry/key"
+    assert output["size_bytes"] == len(content)
+    assert output["sha256"] == hashlib.sha256(content).hexdigest()
+
+
 async def test_cancelled_upload_returns_no_metadata_while_thread_finishes(tmp_path):
     path = tmp_path / "output"
     path.write_bytes(b"output")
