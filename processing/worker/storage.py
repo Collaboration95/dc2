@@ -2,15 +2,23 @@
 
 import asyncio
 import hashlib
-from pathlib import Path
+import os
 
 import urllib3
 from minio import Minio
 
 
-def digest(path: Path) -> str:
-    with path.open("rb") as handle:
-        return hashlib.file_digest(handle, "sha256").hexdigest()
+class _HashingReader:
+    def __init__(self, handle):
+        self.handle = handle
+        self.checksum = hashlib.sha256()
+        self.size = 0
+
+    def read(self, size=-1):
+        chunk = self.handle.read(size)
+        self.checksum.update(chunk)
+        self.size += len(chunk)
+        return chunk
 
 
 class OutputStore:
@@ -33,18 +41,27 @@ class OutputStore:
     async def put(self, key, path, media_type, kind):
         # Cancellation may leave a PUT thread finishing later. The retained cleanup
         # intent re-scans the attempt prefix; no stale thread can publish in SQL.
-        size = path.stat().st_size
-        checksum = await asyncio.to_thread(digest, path)
-        result = await asyncio.to_thread(
-            self.client.fput_object,
-            self.bucket,
-            key,
-            str(path),
-            content_type=media_type,
-            num_parallel_uploads=1,
-        )
-        if not result.etag or size <= 0:
-            raise ValueError("output upload was not acknowledged")
+        return await asyncio.to_thread(self._put, key, path, media_type, kind)
+
+    def _put(self, key, path, media_type, kind):
+        with path.open("rb") as handle:
+            size = os.fstat(handle.fileno()).st_size
+            if size <= 0:
+                raise ValueError("output upload was not acknowledged")
+            # Hash the exact SDK input while it reads each part, avoiding a separate
+            # full-file pass. MinIO retains its existing bounded multipart buffering.
+            reader = _HashingReader(handle)
+            result = self.client.put_object(
+                self.bucket,
+                key,
+                reader,
+                size,
+                content_type=media_type,
+                num_parallel_uploads=1,
+            )
+            if not result.etag or reader.size != size or handle.read(1):
+                raise ValueError("output upload was not acknowledged")
+            checksum = reader.checksum.hexdigest()
         return {
             "kind": kind,
             "object_key": key,

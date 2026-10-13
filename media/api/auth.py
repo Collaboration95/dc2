@@ -46,7 +46,10 @@ async def register(body: Credentials, session: Session, response: Response, sett
 
 @router.post("/login", response_model=UserResponse)
 async def login(body: Credentials, session: Session, response: Response, settings: Config):
-    user = await session.scalar(select(User).where(User.email == str(body.email).lower()))
+    # Release the read connection before bcrypt waits for CPU/thread-pool capacity.
+    # Session expiry is disabled, so the selected identity/hash remain readable.
+    async with session.begin():
+        user = await session.scalar(select(User).where(User.email == str(body.email).lower()))
     valid = await run_in_threadpool(
         verify_password, body.password, user.password_hash if user else DUMMY_HASH
     )

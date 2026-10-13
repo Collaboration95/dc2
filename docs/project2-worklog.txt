@@ -477,3 +477,18 @@ These results certify product merge f10bf04. CI for subsequent documentation rev
 Only handoff/progress/worklog, small evidence pack and final PR32 draft updated.
 No code change, live workload, new test, Git-state or remote mutation in this task.
 Local hash-cost/cloud limitations remain; no AWS/Alibaba action.
+
+13 OCTOBER 2026 — TIMEBOXED PERFORMANCE WAVE
+
+User authorized parallel Sol performance work, independent fresh-context review,
+epic/issue tracking and linked research gists; hard wrap11:55Singapore. Baseline
+87389d1, epic33 and children34(Media),35(Processing),36(Publisher). ThreeSolxhigh
+workers produced disjoint changes: release login read connection before bcrypt;
+hash output during existing upload read; use bounded Publisher full-file digest.
+No hash-cost/ownership/quality/API weakening or infrastructure changes. See
+execution/performance-20261013/README.md for exact evidence and all research links.
+Resource/operation-count gains are measured; end-to-end gains are not claimed.
+Clean-context review and exact remote CI/merge status are tracked on linked
+issues/PR after this record. Separate independent architecture triage proposes
+quota and worker-window experiments on current hardware, pending review and
+future measurement. Cloud ceiling is$200total/about3weeks; no cloud spending.
