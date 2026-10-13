@@ -166,7 +166,13 @@ async def test_reverse_grant_full_descriptor_verified(changed):
 
 async def test_output_put_acknowledgment_without_head(monkeypatch, tmp_path):
     client = Mock()
-    client.fput_object.return_value = SimpleNamespace(etag="ack")
+
+    def upload(_bucket, _key, stream, length, **_kwargs):
+        assert stream.read(length) == b"output"
+        return SimpleNamespace(etag=etag)
+
+    etag = "ack"
+    client.put_object.side_effect = upload
     monkeypatch.setattr("processing.worker.storage.Minio", Mock(return_value=client))
     store = OutputStore(cfg(minio_access_key="writer", minio_secret_key="secret"))
     path = tmp_path / "out"
@@ -174,7 +180,7 @@ async def test_output_put_acknowledgment_without_head(monkeypatch, tmp_path):
     output = await store.put("key", path, "video/mp4", "primary")
     assert output["size_bytes"] == 6 and len(output["sha256"]) == 64
     assert not client.stat_object.called and not client.get_object.called
-    client.fput_object.return_value.etag = ""
+    etag = ""
     with pytest.raises(ValueError):
         await store.put("key", path, "video/mp4", "primary")
 
