@@ -1,0 +1,6 @@
+{
+  "host_cpus": 4,
+  "docker_cpus": 4,
+  "docker_memory_bytes": 16766414848,
+  "workers": 1
+}

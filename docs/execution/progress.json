@@ -1,5 +1,5 @@
 {
-  "stage": "clients-delivery-and-integrated-evidence",
+  "stage": "final-evidence-review-and-main-acceptance",
   "baseline": "b32d489566144202fbf6fc3887ce25d5321444fd",
   "project": {
     "id": "PVT_kwHOBBatWM4Bmtkx",
@@ -122,53 +122,74 @@
     },
     "C1": {
       "number": 18,
-      "state": "Review",
-      "pr": null,
+      "state": "Done",
+      "pr": 30,
       "evidence": [
         "Foundation merged; frozen interfaces and localruntime/testgates available.",
         "ProductwaveheldforF2cachecorrection andfinalreview.",
-        "Foundation complete; three isolated product lanes starting."
+        "Foundation complete; three isolated product lanes starting.",
+        "PR30; allthreeclientreviewfixesPASS,827Python152frontend1HTTPS tests andPublisher98.43coverage;remoteCIrunning.",
+        "PR30 merged at ea3950c; independent rereview PASS; all15 CI checks passed; 827 fast Python,152 frontend,1 real Publisher HTTPS."
       ]
     },
     "C2": {
       "number": 19,
-      "state": "Review",
-      "pr": null,
+      "state": "Done",
+      "pr": 30,
       "evidence": [
         "Foundation merged; frozen interfaces and localruntime/testgates available.",
         "ProductwaveheldforF2cachecorrection andfinalreview.",
-        "Foundation complete; three isolated product lanes starting."
+        "Foundation complete; three isolated product lanes starting.",
+        "PR30; allthreeclientreviewfixesPASS,827Python152frontend1HTTPS tests andPublisher98.43coverage;remoteCIrunning.",
+        "PR30 merged at ea3950c; independent rereview PASS; all15 CI checks passed; 827 fast Python,152 frontend,1 real Publisher HTTPS."
       ]
     },
     "V1": {
       "number": 20,
-      "state": "Backlog",
-      "pr": null,
-      "evidence": []
+      "state": "Review",
+      "pr": 31,
+      "evidence": [
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
+        "Final local verify at422609b PASS:1083fastPython,152frontend,130realintegration; fullMacE2E122.740s. V2PASS190.602s; kill69.195s, queue repair23.507s, durable pending restart/convergence. Core runtime built2cb8da8 byte-identical to422609b; source pack retained."
+      ]
     },
     "V2": {
       "number": 21,
-      "state": "Backlog",
-      "pr": null,
-      "evidence": []
+      "state": "Review",
+      "pr": 31,
+      "evidence": [
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
+        "Final local verify at422609b PASS:1083fastPython,152frontend,130realintegration; fullMacE2E122.740s. V2PASS190.602s; kill69.195s, queue repair23.507s, durable pending restart/convergence. Core runtime built2cb8da8 byte-identical to422609b; source pack retained."
+      ]
     },
     "V3": {
       "number": 22,
-      "state": "Backlog",
-      "pr": null,
-      "evidence": []
+      "state": "Review",
+      "pr": 31,
+      "evidence": [
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
+        "Full fair scaling PASSf46599f:9batches270success0failed0missingHLS; speedups2.032x/2.885x; pooledqueue375.381/175.976/120.360s. Fullstatus/login latency stillrunning; V3notDone yet.",
+        "Full local V3 PASS at clean f46599f: all six latency repeats independently checked against original bytes, 17 stored/decompressed hash records and all CSV fields. Status p90 605.046/580.175/544.022ms, login 1872.986/1888.086/1898.516ms; zero timed/warmup/protocol/logout errors. Cost-10 configuration/source supported; direct measured-image/DB cost inspection absent. See reviews/performance-validation.md; prior scaling and failures retained."
+      ]
     },
     "V4": {
       "number": 23,
-      "state": "Backlog",
-      "pr": null,
-      "evidence": []
+      "state": "Review",
+      "pr": 31,
+      "evidence": [
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
+        "Actual full good/bad release experiment PASS at331354d in226.828s: goodpromotion101.197s, realactive drain34.077s, exactbadAPIexit42 thenautomaticrollback+publicsmoke, unchangedMediaandmigration. Exactcandidate scanszero fixableHIGH/CRITICAL. Priorfailuresretained; reviewsPASS."
+      ]
     },
     "V5": {
       "number": 24,
-      "state": "Backlog",
-      "pr": null,
-      "evidence": []
+      "state": "In progress",
+      "pr": 31,
+      "evidence": [
+        "PR31 tracks final local acceptance. Runner rereviews PASS; 1044 fast Python and152 frontend pass. Full fair scaling underway; final workflow/recovery/release measurements pending.",
+        "Measurements complete; VM released. Coordinator-confirmed local https://localhost:54440 healthy after startup/status; current infrastructure and browser-trust smoke exit 0, portable logs in evidence/local-demo-20261013. Prior delivery review CHECKPOINT retained; independent final delta review, PR31 exact-head checks/merge, exact Main verification and gh metadata reconciliation remain pending.",
+        "Independent final premerge review PASS in docs/execution/reviews/delivery-review.md: applicable V1-V4 and final handoff/evidence delta accepted, no substantive findings; historical CHECKPOINT preserved. Exact-head CI, accepted PR31 merge, exact Main checks and issue/Project reconciliation remain pending; V5/E5 not complete."
+      ]
     }
   },
   "pull_requests": [
@@ -233,36 +254,54 @@
       "state": "merged",
       "review": "PASS: reviews/media-rereview.md",
       "merge_commit": "b4a9f56"
+    },
+    {
+      "number": 30,
+      "url": "https://github.com/Collaboration95/dc2/pull/30",
+      "group": "clients",
+      "issues": [
+        "C1",
+        "C2"
+      ],
+      "state": "merged",
+      "review": "PASS: reviews/clients-rereview.md",
+      "merge_commit": "ea3950c61f4f9eaa5ad8dcbe1f726303f85e0764"
+    },
+    {
+      "number": 31,
+      "url": "https://github.com/Collaboration95/dc2/pull/31",
+      "group": "local-acceptance",
+      "issues": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "state": "draft",
+      "review": "PASS: docs/execution/reviews/delivery-review.md (final premerge); exact-head CI, accepted merge, exact Main checks and metadata pending",
+      "head_checkpoint": "17512540e129e4d9be64aa8bb6a3450f5aa76a82"
     }
   ],
   "limitations": [
-    "Full scaling not measured yet; project-local8CPU8GiBVM and2CPUquota verified."
+    "Full local V3 and independent final premerge review PASS; exact-head CI, accepted PR31 merge, exact Main verification and metadata completion remain pending.",
+    "First full scaling FAIL retained separately; no result splicing. All 270 corrected jobs and all six latency repeats complete on clean f46599f with original targets.",
+    "Measurement VM released. Root local healthy at https://localhost:54440, coordinator-confirmed; current infrastructure/browser-trust smoke exit 0.",
+    "Bcrypt cost 10 recorded and supported by matching fresh-account source; performance pack has no direct measured-image or measured-database cost inspection. Generator shares physical host with VM; no AWS/cloud result."
   ],
   "aws_actions_performed": false,
   "active_worktrees": [
     {
-      "branch": "wave/02-clients",
+      "branch": "wave/03-local-acceptance",
       "path": ".",
       "owner": "coordinator",
-      "scope": "Client groupedPR/CI"
+      "scope": "Final docs/evidence review, local smoke, exact-head CI/merge/Main acceptance and metadata reconciliation"
     },
     {
-      "branch": "work/integration",
-      "path": ".worktrees/integration",
+      "branch": "work/final-measurements",
+      "path": ".worktrees/final-measurements",
       "owner": "coordinator",
-      "scope": "Frozen621c03a fullscaling atRUN_IDv3-scale; no concurrentVM workloads"
-    },
-    {
-      "branch": "work/integration-corrections",
-      "path": ".worktrees/integration-corrections",
-      "owner": "Halley Solxhigh",
-      "scope": "Offline V1/V2 correction rereview"
-    },
-    {
-      "branch": "work/release-integration",
-      "path": ".worktrees/release-integration",
-      "owner": "Feynman Solxhigh",
-      "scope": "Offline V4 correction rereview"
+      "scope": "FROZEN f46599f completed full scaling and latency; retain evidence, VM released"
     }
   ]
 }

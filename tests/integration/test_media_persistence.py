@@ -392,6 +392,57 @@ async def test_replay_conflict_owner_operation_and_deleted_key(lane):
     assert replay.status_code == 410
 
 
+async def test_deleted_derived_asset_edit_key_replay_is_410_without_recreation(lane):
+    parent_id = await upload(lane)
+    await done(lane, parent_id)
+    key = uuid4()
+    path = f"/jobs/{parent_id}/edit"
+    body = {"operations": [{"operation": "clip", "params": {"start": 0, "end": 3}}]}
+    headers = {"Idempotency-Key": str(key)}
+    accepted = await lane.clients[0].post(path, json=body, headers=headers)
+    assert accepted.status_code == 202, accepted.text
+    child_id = accepted.json()["job_id"]
+    child = await row(lane, child_id)
+    parent = await row(lane, parent_id)
+    assert child.source_asset_id == parent.id and child.source_key != parent.source_key
+    assert (await lane.clients[0].delete(f"/jobs/{child_id}")).status_code == 204
+    assert (await lane.clients[0].get(f"/jobs/{child_id}")).status_code == 404
+    assert (await lane.clients[0].get(f"/jobs/{parent_id}")).status_code == 200
+    assert child.source_key not in lane.objects.sources
+    assert set(lane.objects.sources) == {parent.source_key}
+    async with lane.factory() as session:
+        retained = await session.get(RequestKey, (lane.users[0].id, "edit", key))
+        assert retained.asset_id == UUID(child_id)
+        digest = retained.request_hash
+        assert (await session.get(Asset, UUID(child_id))).deleted_at is not None
+
+    sources, outputs = deepcopy(lane.objects.sources), deepcopy(lane.objects.outputs)
+    deleted = list(lane.objects.deleted)
+    submissions, jobs = deepcopy(lane.boundary.submissions), deepcopy(lane.boundary.jobs)
+    cancellations = list(lane.boundary.cancellations)
+    for _ in range(2):
+        replay = await lane.clients[0].post(path, json=body, headers=headers)
+        assert replay.status_code == 410, replay.text
+    assert lane.objects.sources == sources and lane.objects.outputs == outputs
+    assert lane.objects.deleted == deleted
+    assert lane.boundary.submissions == submissions and lane.boundary.jobs == jobs
+    assert lane.boundary.cancellations == cancellations
+    async with lane.factory() as session:
+        assets = list(await session.scalars(select(Asset).where(Asset.owner_id == parent.owner_id)))
+        assert {a.id for a in assets} == {parent.id, child.id}
+        assert next(a for a in assets if a.id == child.id).deleted_at is not None
+        assert next(a for a in assets if a.id == parent.id).deleted_at is None
+        retained = await session.get(RequestKey, (lane.users[0].id, "edit", key))
+        assert retained.asset_id == child.id and retained.request_hash == digest
+        assert not list(
+            await session.scalars(
+                select(StagedObject).where(
+                    StagedObject.key.startswith(f"sources/{parent.owner_id}/")
+                )
+            )
+        )
+
+
 @pytest.mark.parametrize("mode", ["down", "missing"])
 async def test_live_status_outage_is_503_single_and_batch(lane, mode):
     asset_id = await upload(lane)

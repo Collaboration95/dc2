@@ -40,3 +40,32 @@
 - F3 capacity evidence: pinned Lima2.2.1 VZ VM boots8vCPU/8GiB under .local/lima;
   DockerDesktop remains unchanged. A container capped at2CPUs reports cgroup
   cpu.max=200000 100000. This proves resource/quota feasibility, not throughput.
+
+- 2026-10-13 V1 browser correction: macOS Firefox's H264 decoded-frame copy failed
+  in actual playback. Use pinned Chrome for Testing on macOS with prior CA/hostname
+  validation and a process-scoped leaf SPKI pin; retain NSS Firefox on Linux.
+  `ignore_https_errors=False` and unrelated-key negative verification remain.
+  This explicit key-trust tradeoff is documented in reviews/browser-acceptance.md.
+- V3 login budget: bcrypt rounds=10 and Media 1 vCPU meet the demo's basic login
+  scope. Existing higher-cost password hashes remain valid. The fixed service
+  total stays 2 vCPU, preserving fair 1/2/3-worker capacity. Diagnostic pilot
+  results motivated this profile before the full measurements; pilots are not
+  substituted for final acceptance.
+- V4 evidence must include an actually processing job before draining workers.
+  Empty-worker release smoke alone is not sufficient proof of active-work drain.
+- V1 assertion-only corrections and V3 measurements overlap on byte-identical
+  production code. Final acceptance still requires the corrected complete V1/V2
+  checks and records both the measured image/source and final verified source.
+- Full scaling invocation1 was retained as FAIL after its one-hour owner session
+  expired during batch8 preparation. Renew the same owner's session before each
+  batch, outside timing, and repeat the entire nine-batch experiment. Do not splice
+  the seven completed batches into a passing result or extend product login lifetime.
+- Grow the project-only Lima sparse disk from40to64GiB after stopping all workloads.
+  The failed run's data used much of the original disk; preserve it and provide
+  capacity for a fresh full run. CPU8/memory8GiB and per-service quotas are unchanged.
+- Native macOS HLS bodies are observed at request completion, after a same-playback
+  diagnostic proved response-header callbacks could not yet read Chromium media
+  bodies. Full corrected Mac and Linux workflows pass with playback gates intact.
+- V4 uses a60-second720p/AAC active-work fixture and a45-second cold diagnostic
+  subprocess cap inside the unchanged overall deadlines. Actual good/bad experiment
+  PASS226.828s; earlier rejected/failed runs and manual recovery are retained.

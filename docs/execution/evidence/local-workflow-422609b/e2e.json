@@ -1,0 +1,2176 @@
+{
+  "name": "e2e",
+  "started_at": "2026-10-12T20:22:40.647999+00:00",
+  "run_id": "final-local",
+  "revision": "422609b434102fd132b41c5bd9ab113d03984ed0",
+  "events": [
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:40.804301+00:00",
+      "elapsed_seconds": 0.156,
+      "method": "POST",
+      "route": "/auth/register",
+      "status": 201,
+      "seconds": 0.0484
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:40.850120+00:00",
+      "elapsed_seconds": 0.202,
+      "method": "POST",
+      "route": "/auth/register",
+      "status": 201,
+      "seconds": 0.0451
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:40.874972+00:00",
+      "elapsed_seconds": 0.227,
+      "method": "POST",
+      "route": "/upload",
+      "status": 202,
+      "seconds": 0.0246
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:40.962245+00:00",
+      "elapsed_seconds": 0.314,
+      "method": "POST",
+      "route": "/upload",
+      "status": 202,
+      "seconds": 0.0869
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:40.967028+00:00",
+      "elapsed_seconds": 0.319,
+      "method": "POST",
+      "route": "/upload",
+      "status": 409,
+      "seconds": 0.0043
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:40.970219+00:00",
+      "elapsed_seconds": 0.322,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 404,
+      "seconds": 0.0027
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:40.973052+00:00",
+      "elapsed_seconds": 0.325,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 404,
+      "seconds": 0.0025
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:40.975846+00:00",
+      "elapsed_seconds": 0.328,
+      "method": "POST",
+      "route": "/jobs/{job_id}/retry",
+      "status": 404,
+      "seconds": 0.0026
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:40.981396+00:00",
+      "elapsed_seconds": 0.333,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0053
+    },
+    {
+      "event": "asset-state",
+      "at": "2026-10-12T20:22:40.981698+00:00",
+      "elapsed_seconds": 0.334,
+      "asset_id": "4defe964-2d60-4342-b83a-ac8cc5c241ac",
+      "state": "queued"
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:41.503681+00:00",
+      "elapsed_seconds": 0.856,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0118
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:42.012118+00:00",
+      "elapsed_seconds": 1.364,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0069
+    },
+    {
+      "event": "asset-state",
+      "at": "2026-10-12T20:22:42.012618+00:00",
+      "elapsed_seconds": 1.365,
+      "asset_id": "4defe964-2d60-4342-b83a-ac8cc5c241ac",
+      "state": "done"
+    },
+    {
+      "event": "primary-playable",
+      "at": "2026-10-12T20:22:42.053426+00:00",
+      "elapsed_seconds": 1.405,
+      "asset_id": "4defe964-2d60-4342-b83a-ac8cc5c241ac",
+      "bytes": 274434,
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video"
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio"
+        }
+      ]
+    },
+    {
+      "event": "hls-readable",
+      "at": "2026-10-12T20:22:42.073181+00:00",
+      "elapsed_seconds": 1.425,
+      "asset_id": "4defe964-2d60-4342-b83a-ac8cc5c241ac",
+      "playlists": 2,
+      "segments": 1
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:42.094656+00:00",
+      "elapsed_seconds": 1.447,
+      "method": "POST",
+      "route": "/jobs/{job_id}/edit",
+      "status": 202,
+      "seconds": 0.0181
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:42.149742+00:00",
+      "elapsed_seconds": 1.502,
+      "method": "POST",
+      "route": "/jobs/{job_id}/edit",
+      "status": 202,
+      "seconds": 0.0546
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:42.159744+00:00",
+      "elapsed_seconds": 1.512,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0096
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:42.163437+00:00",
+      "elapsed_seconds": 1.515,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 404,
+      "seconds": 0.0033
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:42.168478+00:00",
+      "elapsed_seconds": 1.52,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0046
+    },
+    {
+      "event": "asset-state",
+      "at": "2026-10-12T20:22:42.168842+00:00",
+      "elapsed_seconds": 1.521,
+      "asset_id": "76459a5d-9ef9-46b4-8940-6b45ec049d8d",
+      "state": "queued"
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:42.682414+00:00",
+      "elapsed_seconds": 2.034,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0068
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:43.198003+00:00",
+      "elapsed_seconds": 2.55,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0057
+    },
+    {
+      "event": "asset-state",
+      "at": "2026-10-12T20:22:43.198482+00:00",
+      "elapsed_seconds": 2.55,
+      "asset_id": "76459a5d-9ef9-46b4-8940-6b45ec049d8d",
+      "state": "done"
+    },
+    {
+      "event": "primary-playable",
+      "at": "2026-10-12T20:22:43.219013+00:00",
+      "elapsed_seconds": 2.571,
+      "asset_id": "76459a5d-9ef9-46b4-8940-6b45ec049d8d",
+      "bytes": 83610,
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video"
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio"
+        }
+      ]
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:43.225214+00:00",
+      "elapsed_seconds": 2.577,
+      "method": "POST",
+      "route": "/upload",
+      "status": 410,
+      "seconds": 0.0056
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:43.275005+00:00",
+      "elapsed_seconds": 2.627,
+      "method": "POST",
+      "route": "/jobs/{job_id}/retry",
+      "status": 409,
+      "seconds": 0.0492
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:43.286389+00:00",
+      "elapsed_seconds": 2.638,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0105
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:22:43.291735+00:00",
+      "elapsed_seconds": 2.644,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0049
+    },
+    {
+      "event": "publisher-command",
+      "at": "2026-10-12T20:22:43.449228+00:00",
+      "elapsed_seconds": 2.801,
+      "command": "register",
+      "exit_code": 0
+    },
+    {
+      "event": "publisher-command",
+      "at": "2026-10-12T20:22:43.551882+00:00",
+      "elapsed_seconds": 2.904,
+      "command": "login",
+      "exit_code": 0
+    },
+    {
+      "event": "publisher-command",
+      "at": "2026-10-12T20:23:17.706729+00:00",
+      "elapsed_seconds": 37.058,
+      "command": "publish",
+      "exit_code": 1
+    },
+    {
+      "event": "publisher-command",
+      "at": "2026-10-12T20:23:17.771390+00:00",
+      "elapsed_seconds": 37.123,
+      "command": "status",
+      "exit_code": 0
+    },
+    {
+      "event": "publisher-command",
+      "at": "2026-10-12T20:23:17.835205+00:00",
+      "elapsed_seconds": 37.187,
+      "command": "output",
+      "exit_code": 0
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:17.882687+00:00",
+      "elapsed_seconds": 37.234,
+      "method": "POST",
+      "route": "/auth/login",
+      "status": 200,
+      "seconds": 0.0468
+    },
+    {
+      "event": "publisher-batch",
+      "at": "2026-10-12T20:23:17.885197+00:00",
+      "elapsed_seconds": 37.237,
+      "accepted": 30,
+      "rejected": 1,
+      "files": 31,
+      "first_asset_id": "2ff09b08-d44f-4d88-93a3-2fe56ef5523f",
+      "output_bytes": 274434
+    },
+    {
+      "event": "publisher-command",
+      "at": "2026-10-12T20:23:18.807243+00:00",
+      "elapsed_seconds": 38.159,
+      "command": "publish",
+      "exit_code": 1
+    },
+    {
+      "event": "publisher-command",
+      "at": "2026-10-12T20:23:19.961990+00:00",
+      "elapsed_seconds": 39.314,
+      "command": "retry",
+      "exit_code": 1
+    },
+    {
+      "event": "publisher-stored-retry",
+      "at": "2026-10-12T20:23:19.979322+00:00",
+      "elapsed_seconds": 39.331,
+      "asset_id": "2e39d00a-bcd7-4938-93b0-204657a2a815",
+      "attempt_number": 2,
+      "local_input_exists": false,
+      "expected_source_failure": true
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:19.993347+00:00",
+      "elapsed_seconds": 39.345,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0135
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.003298+00:00",
+      "elapsed_seconds": 39.355,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0094
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.014833+00:00",
+      "elapsed_seconds": 39.367,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0111
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.024945+00:00",
+      "elapsed_seconds": 39.377,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0097
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.035644+00:00",
+      "elapsed_seconds": 39.387,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0098
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.045442+00:00",
+      "elapsed_seconds": 39.397,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0094
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.063493+00:00",
+      "elapsed_seconds": 39.415,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0176
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.072910+00:00",
+      "elapsed_seconds": 39.425,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.009
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.102747+00:00",
+      "elapsed_seconds": 39.454,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0294
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.113149+00:00",
+      "elapsed_seconds": 39.465,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0099
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.121926+00:00",
+      "elapsed_seconds": 39.474,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0083
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.130460+00:00",
+      "elapsed_seconds": 39.482,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0081
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.138722+00:00",
+      "elapsed_seconds": 39.49,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0079
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.146646+00:00",
+      "elapsed_seconds": 39.498,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0076
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.154579+00:00",
+      "elapsed_seconds": 39.506,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0076
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.162613+00:00",
+      "elapsed_seconds": 39.514,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0077
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.170704+00:00",
+      "elapsed_seconds": 39.522,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0077
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.178719+00:00",
+      "elapsed_seconds": 39.53,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0077
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.186706+00:00",
+      "elapsed_seconds": 39.538,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0076
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.195067+00:00",
+      "elapsed_seconds": 39.547,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.008
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.203260+00:00",
+      "elapsed_seconds": 39.555,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0078
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.211432+00:00",
+      "elapsed_seconds": 39.563,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0078
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.219461+00:00",
+      "elapsed_seconds": 39.571,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0077
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.227343+00:00",
+      "elapsed_seconds": 39.579,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0075
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.235266+00:00",
+      "elapsed_seconds": 39.587,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0075
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.243194+00:00",
+      "elapsed_seconds": 39.595,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0076
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.250914+00:00",
+      "elapsed_seconds": 39.603,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0073
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.258972+00:00",
+      "elapsed_seconds": 39.611,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0077
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.266883+00:00",
+      "elapsed_seconds": 39.619,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0075
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.274976+00:00",
+      "elapsed_seconds": 39.627,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0077
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:20.282984+00:00",
+      "elapsed_seconds": 39.635,
+      "method": "DELETE",
+      "route": "/jobs/{job_id}",
+      "status": 204,
+      "seconds": 0.0076
+    },
+    {
+      "event": "browser-ui-login",
+      "at": "2026-10-12T20:23:21.657712+00:00",
+      "elapsed_seconds": 41.009,
+      "register_status": 201,
+      "logout_status": 204,
+      "login_status": 200
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:21.708228+00:00",
+      "elapsed_seconds": 41.06,
+      "method": "POST",
+      "route": "/auth/login",
+      "status": 200,
+      "seconds": 0.0492
+    },
+    {
+      "event": "service-restore-armed",
+      "at": "2026-10-12T20:23:21.909342+00:00",
+      "elapsed_seconds": 41.261,
+      "replicas": {
+        "worker": 1
+      }
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:22.525065+00:00",
+      "elapsed_seconds": 41.877,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0072
+    },
+    {
+      "event": "asset-state",
+      "at": "2026-10-12T20:23:22.525859+00:00",
+      "elapsed_seconds": 41.878,
+      "asset_id": "9592e8ee-a132-4c13-99cd-10675b4df272",
+      "state": "queued"
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:23.038069+00:00",
+      "elapsed_seconds": 42.39,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0071
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:23.548913+00:00",
+      "elapsed_seconds": 42.901,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0057
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:24.059762+00:00",
+      "elapsed_seconds": 43.411,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0062
+    },
+    {
+      "event": "asset-state",
+      "at": "2026-10-12T20:23:24.060428+00:00",
+      "elapsed_seconds": 43.412,
+      "asset_id": "9592e8ee-a132-4c13-99cd-10675b4df272",
+      "state": "processing"
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:24.320122+00:00",
+      "elapsed_seconds": 43.672,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0064
+    },
+    {
+      "event": "asset-state",
+      "at": "2026-10-12T20:23:24.320877+00:00",
+      "elapsed_seconds": 43.673,
+      "asset_id": "9592e8ee-a132-4c13-99cd-10675b4df272",
+      "state": "processing"
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:24.839697+00:00",
+      "elapsed_seconds": 44.191,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0109
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:25.369583+00:00",
+      "elapsed_seconds": 44.721,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0187
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:25.894134+00:00",
+      "elapsed_seconds": 45.246,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.013
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:26.412869+00:00",
+      "elapsed_seconds": 45.764,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0075
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:26.938633+00:00",
+      "elapsed_seconds": 46.29,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0149
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:27.466753+00:00",
+      "elapsed_seconds": 46.818,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0164
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:27.978274+00:00",
+      "elapsed_seconds": 47.33,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0086
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:28.493442+00:00",
+      "elapsed_seconds": 47.845,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0139
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:29.009417+00:00",
+      "elapsed_seconds": 48.361,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0132
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:29.526679+00:00",
+      "elapsed_seconds": 48.878,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0078
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:30.051151+00:00",
+      "elapsed_seconds": 49.403,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0136
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:30.565653+00:00",
+      "elapsed_seconds": 49.917,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0111
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:31.084616+00:00",
+      "elapsed_seconds": 50.436,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0078
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:31.612162+00:00",
+      "elapsed_seconds": 50.964,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0166
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:32.132609+00:00",
+      "elapsed_seconds": 51.484,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0172
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:32.652272+00:00",
+      "elapsed_seconds": 52.004,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0078
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:33.179437+00:00",
+      "elapsed_seconds": 52.531,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0162
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:33.698889+00:00",
+      "elapsed_seconds": 53.05,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0178
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:34.216735+00:00",
+      "elapsed_seconds": 53.568,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0063
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:34.732670+00:00",
+      "elapsed_seconds": 54.084,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0058
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:35.261634+00:00",
+      "elapsed_seconds": 54.613,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0181
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:35.773344+00:00",
+      "elapsed_seconds": 55.125,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0076
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:36.301883+00:00",
+      "elapsed_seconds": 55.653,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0175
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:36.896571+00:00",
+      "elapsed_seconds": 56.248,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0863
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:37.414931+00:00",
+      "elapsed_seconds": 56.766,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0073
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:37.941686+00:00",
+      "elapsed_seconds": 57.293,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0157
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:38.466174+00:00",
+      "elapsed_seconds": 57.818,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0176
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:38.987670+00:00",
+      "elapsed_seconds": 58.339,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0095
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:39.515132+00:00",
+      "elapsed_seconds": 58.867,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0164
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:40.037710+00:00",
+      "elapsed_seconds": 59.389,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0169
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:40.554659+00:00",
+      "elapsed_seconds": 59.906,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0055
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:41.083274+00:00",
+      "elapsed_seconds": 60.435,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0178
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:41.611684+00:00",
+      "elapsed_seconds": 60.963,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0165
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:42.129648+00:00",
+      "elapsed_seconds": 61.481,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0155
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:42.650640+00:00",
+      "elapsed_seconds": 62.002,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0092
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:43.177787+00:00",
+      "elapsed_seconds": 62.529,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.016
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:43.690052+00:00",
+      "elapsed_seconds": 63.042,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0062
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:44.216666+00:00",
+      "elapsed_seconds": 63.568,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0157
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:44.728785+00:00",
+      "elapsed_seconds": 64.08,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0101
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:45.256287+00:00",
+      "elapsed_seconds": 64.608,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0161
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:45.848709+00:00",
+      "elapsed_seconds": 65.2,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0893
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:46.376938+00:00",
+      "elapsed_seconds": 65.728,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0164
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:46.885035+00:00",
+      "elapsed_seconds": 66.236,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0056
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:47.412394+00:00",
+      "elapsed_seconds": 66.764,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0165
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:47.930293+00:00",
+      "elapsed_seconds": 67.282,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0149
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:48.459435+00:00",
+      "elapsed_seconds": 67.811,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0177
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:48.991579+00:00",
+      "elapsed_seconds": 68.343,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0203
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:49.519379+00:00",
+      "elapsed_seconds": 68.871,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0154
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:50.108804+00:00",
+      "elapsed_seconds": 69.46,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.085
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:50.625895+00:00",
+      "elapsed_seconds": 69.977,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0139
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:51.134932+00:00",
+      "elapsed_seconds": 70.486,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0071
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:51.662593+00:00",
+      "elapsed_seconds": 71.014,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0167
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:52.295521+00:00",
+      "elapsed_seconds": 71.647,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.1284
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:52.823160+00:00",
+      "elapsed_seconds": 72.175,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0167
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:53.335612+00:00",
+      "elapsed_seconds": 72.687,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0077
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:53.863419+00:00",
+      "elapsed_seconds": 73.215,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0167
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:54.374644+00:00",
+      "elapsed_seconds": 73.726,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0059
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:54.902751+00:00",
+      "elapsed_seconds": 74.254,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0173
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:55.424935+00:00",
+      "elapsed_seconds": 74.776,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0182
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:55.951325+00:00",
+      "elapsed_seconds": 75.303,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0147
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:56.465322+00:00",
+      "elapsed_seconds": 75.817,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0057
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:56.993028+00:00",
+      "elapsed_seconds": 76.344,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0168
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:57.510418+00:00",
+      "elapsed_seconds": 76.862,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0057
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:58.033164+00:00",
+      "elapsed_seconds": 77.385,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0119
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:58.562029+00:00",
+      "elapsed_seconds": 77.913,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0175
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:59.096520+00:00",
+      "elapsed_seconds": 78.448,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0222
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:23:59.614164+00:00",
+      "elapsed_seconds": 78.966,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.006
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:00.137766+00:00",
+      "elapsed_seconds": 79.489,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0128
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:00.649270+00:00",
+      "elapsed_seconds": 80.001,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0068
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:01.176244+00:00",
+      "elapsed_seconds": 80.528,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.016
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:01.701976+00:00",
+      "elapsed_seconds": 81.053,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0137
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:02.230020+00:00",
+      "elapsed_seconds": 81.581,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.018
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:02.749758+00:00",
+      "elapsed_seconds": 82.101,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0077
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:03.279349+00:00",
+      "elapsed_seconds": 82.631,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0185
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:03.794728+00:00",
+      "elapsed_seconds": 83.146,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0077
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:04.322161+00:00",
+      "elapsed_seconds": 83.673,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0163
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:04.848693+00:00",
+      "elapsed_seconds": 84.2,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0148
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:05.371899+00:00",
+      "elapsed_seconds": 84.723,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0158
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:05.899126+00:00",
+      "elapsed_seconds": 85.25,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0197
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:06.428648+00:00",
+      "elapsed_seconds": 85.78,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0178
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:06.946580+00:00",
+      "elapsed_seconds": 86.298,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0088
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:07.503554+00:00",
+      "elapsed_seconds": 86.855,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0457
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:08.027540+00:00",
+      "elapsed_seconds": 87.379,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0136
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:08.555280+00:00",
+      "elapsed_seconds": 87.907,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0158
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:09.079445+00:00",
+      "elapsed_seconds": 88.431,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0158
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:09.596501+00:00",
+      "elapsed_seconds": 88.948,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.009
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:10.118338+00:00",
+      "elapsed_seconds": 89.47,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0108
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:10.637535+00:00",
+      "elapsed_seconds": 89.989,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0152
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:11.152147+00:00",
+      "elapsed_seconds": 90.503,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0097
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:11.680346+00:00",
+      "elapsed_seconds": 91.032,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0173
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:12.207775+00:00",
+      "elapsed_seconds": 91.559,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.015
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:12.734132+00:00",
+      "elapsed_seconds": 92.085,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0143
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:13.255138+00:00",
+      "elapsed_seconds": 92.606,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0107
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:13.783731+00:00",
+      "elapsed_seconds": 93.135,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.017
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:14.306390+00:00",
+      "elapsed_seconds": 93.658,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0129
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:14.832144+00:00",
+      "elapsed_seconds": 94.183,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0139
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:15.363352+00:00",
+      "elapsed_seconds": 94.715,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0197
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:15.889446+00:00",
+      "elapsed_seconds": 95.241,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.014
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:16.402666+00:00",
+      "elapsed_seconds": 95.754,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0082
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:16.920690+00:00",
+      "elapsed_seconds": 96.272,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0107
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:17.447904+00:00",
+      "elapsed_seconds": 96.799,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0162
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:17.975112+00:00",
+      "elapsed_seconds": 97.326,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0159
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:18.529575+00:00",
+      "elapsed_seconds": 97.881,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0442
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:19.044104+00:00",
+      "elapsed_seconds": 98.395,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0109
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:19.570955+00:00",
+      "elapsed_seconds": 98.922,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0155
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:20.087939+00:00",
+      "elapsed_seconds": 99.439,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0141
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:20.611950+00:00",
+      "elapsed_seconds": 99.963,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0174
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:21.120845+00:00",
+      "elapsed_seconds": 100.472,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.006
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:21.649150+00:00",
+      "elapsed_seconds": 101.0,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0173
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:22.167183+00:00",
+      "elapsed_seconds": 101.518,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0082
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:22.696200+00:00",
+      "elapsed_seconds": 102.047,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0177
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:23.209958+00:00",
+      "elapsed_seconds": 102.561,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.01
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:23.737787+00:00",
+      "elapsed_seconds": 103.089,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0163
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:24.253853+00:00",
+      "elapsed_seconds": 103.605,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.013
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:24.779747+00:00",
+      "elapsed_seconds": 104.131,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0139
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:25.290221+00:00",
+      "elapsed_seconds": 104.641,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0081
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:25.806805+00:00",
+      "elapsed_seconds": 105.158,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0116
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:26.322462+00:00",
+      "elapsed_seconds": 105.674,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0105
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:26.850555+00:00",
+      "elapsed_seconds": 106.202,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0169
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:27.367162+00:00",
+      "elapsed_seconds": 106.718,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0132
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:27.887959+00:00",
+      "elapsed_seconds": 107.239,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0131
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:28.401291+00:00",
+      "elapsed_seconds": 107.752,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0072
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:28.919516+00:00",
+      "elapsed_seconds": 108.271,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0166
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:29.445951+00:00",
+      "elapsed_seconds": 108.797,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0163
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:29.966240+00:00",
+      "elapsed_seconds": 109.317,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0175
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:30.491939+00:00",
+      "elapsed_seconds": 109.843,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0167
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:31.012817+00:00",
+      "elapsed_seconds": 110.364,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.01
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:31.524878+00:00",
+      "elapsed_seconds": 110.876,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0058
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:32.053092+00:00",
+      "elapsed_seconds": 111.404,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0172
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:32.581665+00:00",
+      "elapsed_seconds": 111.933,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0161
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:33.103647+00:00",
+      "elapsed_seconds": 112.455,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0097
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:33.629900+00:00",
+      "elapsed_seconds": 112.981,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0147
+    },
+    {
+      "event": "asset-state",
+      "at": "2026-10-12T20:24:33.632367+00:00",
+      "elapsed_seconds": 112.983,
+      "asset_id": "9592e8ee-a132-4c13-99cd-10675b4df272",
+      "state": "failed"
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:35.893591+00:00",
+      "elapsed_seconds": 115.245,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0076
+    },
+    {
+      "event": "asset-state",
+      "at": "2026-10-12T20:24:35.894687+00:00",
+      "elapsed_seconds": 115.246,
+      "asset_id": "9592e8ee-a132-4c13-99cd-10675b4df272",
+      "state": "queued"
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:36.401964+00:00",
+      "elapsed_seconds": 115.753,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0058
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:36.909923+00:00",
+      "elapsed_seconds": 116.261,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0057
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:37.427358+00:00",
+      "elapsed_seconds": 116.778,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0064
+    },
+    {
+      "event": "asset-state",
+      "at": "2026-10-12T20:24:37.428519+00:00",
+      "elapsed_seconds": 116.78,
+      "asset_id": "9592e8ee-a132-4c13-99cd-10675b4df272",
+      "state": "processing"
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:37.935292+00:00",
+      "elapsed_seconds": 117.286,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0057
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:38.446696+00:00",
+      "elapsed_seconds": 117.798,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0066
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:38.968168+00:00",
+      "elapsed_seconds": 118.319,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0142
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:39.483030+00:00",
+      "elapsed_seconds": 118.834,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0117
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:39.999990+00:00",
+      "elapsed_seconds": 119.351,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0059
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:40.518110+00:00",
+      "elapsed_seconds": 119.869,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.007
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:41.037096+00:00",
+      "elapsed_seconds": 120.388,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0077
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:41.568048+00:00",
+      "elapsed_seconds": 120.919,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0198
+    },
+    {
+      "event": "asset-state",
+      "at": "2026-10-12T20:24:41.570578+00:00",
+      "elapsed_seconds": 120.922,
+      "asset_id": "9592e8ee-a132-4c13-99cd-10675b4df272",
+      "state": "done"
+    },
+    {
+      "event": "browser-hls-decoded",
+      "at": "2026-10-12T20:24:42.638651+00:00",
+      "elapsed_seconds": 121.99,
+      "playlists": 3,
+      "segments": 2,
+      "before": {
+        "ready": 4,
+        "error": null,
+        "current_time": 0,
+        "decoded_frames": 4,
+        "selected_hls": true,
+        "selected_mp4": false,
+        "source_kind": "native-hls"
+      },
+      "after": {
+        "ready": 4,
+        "error": null,
+        "current_time": 0.219818,
+        "decoded_frames": 9,
+        "selected_hls": true,
+        "selected_mp4": false,
+        "source_kind": "native-hls"
+      }
+    },
+    {
+      "event": "browser-mp4-decoded",
+      "at": "2026-10-12T20:24:42.976181+00:00",
+      "elapsed_seconds": 122.327,
+      "before": {
+        "ready": 4,
+        "error": null,
+        "current_time": 0,
+        "decoded_frames": 0,
+        "selected_hls": false,
+        "selected_mp4": true,
+        "source_kind": "mp4"
+      },
+      "after": {
+        "ready": 4,
+        "error": null,
+        "current_time": 0.221848,
+        "decoded_frames": 9,
+        "selected_hls": false,
+        "selected_mp4": true,
+        "source_kind": "mp4"
+      }
+    },
+    {
+      "event": "browser-playback-retry",
+      "at": "2026-10-12T20:24:42.980583+00:00",
+      "elapsed_seconds": 122.332,
+      "asset_id": "9592e8ee-a132-4c13-99cd-10675b4df272",
+      "failure_seconds": 69.573,
+      "retry_body_bytes": 0,
+      "uploads": 1
+    },
+    {
+      "event": "http",
+      "at": "2026-10-12T20:24:43.078292+00:00",
+      "elapsed_seconds": 122.429,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 404,
+      "seconds": 0.0047
+    },
+    {
+      "event": "service-restore",
+      "at": "2026-10-12T20:24:43.310884+00:00",
+      "elapsed_seconds": 122.662,
+      "outcomes": [
+        {
+          "service": "worker",
+          "expected_replicas": 1,
+          "running_replicas": 1,
+          "status": "PASS"
+        }
+      ],
+      "original_failure_type": null
+    }
+  ],
+  "cases": {
+    "CT-01": {
+      "status": "PASS",
+      "evidence": "Same owner/key/bytes returned the same public Asset ID"
+    },
+    "CT-02": {
+      "status": "PASS",
+      "evidence": "Changed bytes with retained key returned 409"
+    },
+    "CT-10": {
+      "status": "PASS",
+      "evidence": "Other owner cannot read status, retry, delete or HLS facade"
+    },
+    "CT-17": {
+      "status": "PASS",
+      "evidence": "Derived source finishes and plays after parent deletion"
+    },
+    "CT-21": {
+      "status": "PASS",
+      "evidence": "Deleted accepted upload key returns 410 without recreation"
+    },
+    "CT-07": {
+      "status": "PASS",
+      "evidence": "Fresh retry request against done Asset is 409; wrong owner is 404"
+    },
+    "CT-23": {
+      "status": "PASS",
+      "evidence": "Observed public and private responses pass prepared JSON schemas"
+    },
+    "CT-18-cli": {
+      "status": "PASS",
+      "evidence": "Independent CLI registers/logs in, reports 30 successes+1 rejection, polls and accesses output; retry creates Attempt2 without local source"
+    },
+    "CT-18-browser": {
+      "status": "PASS",
+      "evidence": "Real browser registered/logged out/logged in, uploaded, observed worker failure, retried without file bytes, decoded selected HLS and explicit MP4, deleted"
+    }
+  },
+  "status": "PASS",
+  "fixture": {
+    "sha256": "d4d0f2a51fcf063eef50cf0eb0dc33ca9a91afdbbcc448e4e7bb3ec057acc054",
+    "bytes": 663568,
+    "seconds": 3,
+    "width": 640,
+    "height": 360
+  },
+  "scope": "full",
+  "finished_at": "2026-10-12T20:24:43.389275+00:00",
+  "duration_seconds": 122.74
+}

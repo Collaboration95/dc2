@@ -311,9 +311,10 @@ jobs:
           PUBLISHER_HTTPS_TEST: '1'
 
   browser-trust:
-    name: Local HTTPS and Firefox trust
+    name: Local HTTPS and browser trust
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Cold setup/build plus bounded full client acceptance and evidence/cleanup.
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -333,11 +334,34 @@ jobs:
             .local/playwright
           key: firefox-minio-${{ runner.os }}-${{ hashFiles('uv.lock') }}-20960b6a2ddb9594ee418035b3c7c7fe92ae6a12
       # Browser install-deps affects this disposable runner only, never developer machines.
-      - name: Install browser and NSS prerequisites only on the disposable runner
+      - name: Install browser, NSS and media prerequisites only on the disposable runner
         run: |
           sudo apt-get update
-          sudo apt-get install -y libnss3-tools
+          sudo apt-get install -y libnss3-tools ffmpeg
           .venv/bin/python -m playwright install-deps firefox
+      - name: Record runner capacity without requiring the local scaling VM
+        run: |
+          .venv/bin/python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+          reply = subprocess.run(
+              ['docker', 'info', '--format', '{{json .}}'],
+              check=True, capture_output=True, text=True, timeout=10,
+          )
+          info = json.loads(reply.stdout)
+          capacity = {
+              'host_cpus': os.cpu_count(),
+              'docker_cpus': info['NCPU'],
+              'docker_memory_bytes': info['MemTotal'],
+              'workers': 1,
+          }
+          folder = Path('artifacts/ci-trust')
+          folder.mkdir(parents=True, exist_ok=True)
+          (folder / 'runner-capacity.json').write_text(json.dumps(capacity, indent=2) + '\n')
+          print(json.dumps(capacity))
+          PY
       - run: make browser-install RUN_ID=ci-trust
       - name: Prepare pinned storage build
         id: storage
@@ -364,16 +388,53 @@ jobs:
             type=gha,scope=integration-minio
           cache-to: type=gha,scope=browser-minio,mode=max
       - run: make up RUN_ID=ci-trust
+        timeout-minutes: 10
         env:
           DC2_USE_PREBUILT_MINIO: '1'
       - run: make smoke-infra RUN_ID=ci-trust
       # Parent helper seeds a temporary Firefox NSS profile with the project CA.
       # Certificates.Install was ignored under automation; verification remains enabled.
       - run: make browser-trust-smoke RUN_ID=ci-trust
+      - name: Complete public API, Publisher CLI and browser acceptance
+        timeout-minutes: 16
+        run: |
+          timeout --signal=TERM --kill-after=30s 15m \
+            .venv/bin/python -m scripts.dev.e2e --run-id ci-trust
+          .venv/bin/python - <<'PY'
+          import json
+          from pathlib import Path
+          latest = json.loads(Path('artifacts/ci-trust/e2e-latest.json').read_text())
+          report = json.loads(Path(latest['result']).read_text())
+          assert latest['status'] == report['status'] == 'PASS'
+          assert report['scope'] == 'full'
+          for case in ('CT-18-cli', 'CT-18-browser'):
+              assert report['cases'][case]['status'] == 'PASS', case
+          events = {event['event'] for event in report['events']}
+          assert {'browser-hls-decoded', 'browser-mp4-decoded'} <= events
+          PY
+      # Explicit safe evidence only: no runtime.env, private keys, cookie jars,
+      # raw HTTP/CLI output, browser profiles, traces or whole-run directories.
+      - name: Retain browser trust and full acceptance evidence
+        if: always()
+        timeout-minutes: 2
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-e2e-evidence
+          path: |
+            artifacts/ci-trust/runner-capacity.json
+            artifacts/ci-trust/browser-trust.json
+            artifacts/ci-trust/browser-trust.png
+            artifacts/ci-trust/e2e-latest.json
+            artifacts/ci-trust/e2e-*/result.json
+            artifacts/ci-trust/e2e-*/browser-*.png
+          if-no-files-found: warn
+          retention-days: 7
       - run: make logs RUN_ID=ci-trust
         if: failure()
+        timeout-minutes: 1
       - run: make down RUN_ID=ci-trust
         if: always()
+        timeout-minutes: 2
 
   coverage-gate:
     name: Combined backend package coverage

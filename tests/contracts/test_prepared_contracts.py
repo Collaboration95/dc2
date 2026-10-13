@@ -1,16 +1,54 @@
 """CT-23: prepared schema integrity and validators used by live acceptance."""
 
+import json
 from uuid import uuid4
 
 import pytest
 from jsonschema import ValidationError
 
-from scripts.dev.contracts import check_document, validate_request, validate_response
+from scripts.dev.common import ROOT
+from scripts.dev.contracts import (
+    check_document,
+    check_examples,
+    validate_request,
+    validate_response,
+)
 
 
 @pytest.mark.parametrize("name", ["public", "processing", "media-internal"])
 def test_prepared_contract_references_and_json_schemas_resolve(name):
     check_document(name)
+
+
+def test_every_prepared_example_matches_its_owning_contract():
+    check_examples()
+
+
+@pytest.mark.parametrize(
+    ("name", "field", "broken"),
+    [
+        ("submitJob", "asset_id", "not-a-uuid"),
+        ("acceptedUpload", "job_id", "not-a-uuid"),
+        ("pendingPublicAsset", "status", "succeeded"),
+        ("processingJob", "current_attempt", {}),
+        ("retryRequest", "retry_request_id", "not-a-uuid"),
+        ("sourceAccessRequest", "revision", 0),
+        ("ownerMismatch", "error", 404),
+        ("payloadConflict", "error", 409),
+    ],
+)
+def test_broken_prepared_example_fails_schema_validation(name, field, broken):
+    examples = json.loads((ROOT / "project-roadmap/design/05-contracts/examples.json").read_text())
+    examples[name][field] = broken
+    with pytest.raises(ValidationError):
+        check_examples(examples)
+
+
+def test_unmapped_prepared_example_cannot_be_skipped():
+    examples = json.loads((ROOT / "project-roadmap/design/05-contracts/examples.json").read_text())
+    examples["unmappedRequest"] = {"invalid": True}
+    with pytest.raises(ValueError, match="contract mappings"):
+        check_examples(examples)
 
 
 def test_public_validation_accepts_actual_shape_and_rejects_internal_id_shape():

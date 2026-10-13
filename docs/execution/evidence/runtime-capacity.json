@@ -1,0 +1,12 @@
+{
+  "verified_at": "2026-10-12T20:46:47.433464+00:00",
+  "scope": "project-local Lima d; Docker Desktop unchanged",
+  "cpus": 8,
+  "memory_bytes": 8296857600,
+  "cgroup_version": "2",
+  "configured_disk_gib": 64,
+  "previous_disk_gib": 40,
+  "observed_root_filesystem": "61G total, 28G used, 34G available",
+  "reason": "retain failed full scaling data and fit a fresh full nine-batch run",
+  "resize": "stopped all containers, stopped VM, limactl edit --disk=64, restarted VM; data preserved"
+}

@@ -1,0 +1,8 @@
+.venv/bin/python scripts/dev/runtime.py smoke-infra --run-id "local"
+PONG
+NOTICE:  table "infra_denied_25295" does not exist, skipping
+NOTICE:  table "infra_denied_25295" does not exist, skipping
+Both database owners/runtime grants and cross-database/DDL denials passed.
+ Container dc2-local-e6eff6ee-minio-1  Running
+Scoped storage denies and signed HTTPS source/output GETs passed.
+Infrastructure smoke passed (TLS, frontend, Processing DB, Redis, scoped storage).

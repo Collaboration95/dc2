@@ -1,0 +1,30 @@
+{
+  "ci_run": 38306733800,
+  "head_revision": "51c72f80cf99391d23a5d10b3d13c752787899e0",
+  "tested_merge_revision": "bccfb168363093c371b96ea1124a09f8216d2ed6",
+  "verified_identical_git_tree": "8dca0290924deadb856f5f442e55712427e6e4f1",
+  "scope": "All15checksPASS;1085fastPython152frontend130realintegration1PublisherHTTPS; fullLinuxE2E201.769s",
+  "source": "https://github.com/Collaboration95/dc2/actions/runs/38306733800",
+  "files": [
+    {
+      "file": "browser-trust.json",
+      "sha256": "9bbc40af2b4ca2921ea8fca8b244e78f9490d5851f43fda4f734e429d3265e26",
+      "bytes": 374
+    },
+    {
+      "file": "runner-capacity.json",
+      "sha256": "ac0635d00b0897fb3d36a3aaa5f0bfed1f1a087838d89ede064a25f49794516e",
+      "bytes": 95
+    },
+    {
+      "file": "result.json",
+      "sha256": "40e87f54b8968fb900e6d5a450ddb4a0d2a77eb8281604aa5340e9e4e7a156fc",
+      "bytes": 58610
+    },
+    {
+      "file": "browser-playing.png",
+      "sha256": "66725a2ba974a7111938b90189103d3f22e2a0b7ed9a69e083a47718ac3a06f9",
+      "bytes": 92638
+    }
+  ]
+}

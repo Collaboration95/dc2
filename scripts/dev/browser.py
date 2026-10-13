@@ -1,12 +1,15 @@
-"""Run the project-local Firefox browser with explicit local CA trust."""
+"""Run a pinned project browser with scoped trust and no system trust changes."""
 
 import argparse
+import base64
 import contextlib
+import hashlib
 import json
 import os
 import shutil
 import ssl
 import subprocess
+import sys
 import tempfile
 import threading
 from datetime import UTC, datetime
@@ -28,36 +31,67 @@ def trusted_browser(run_id, headless=True):
     tls = ensure_tls(run_id)
     browsers = ROOT / ".local/playwright"
     certutil = shutil.which("certutil")
-    if certutil is None:
+    if sys.platform != "darwin" and certutil is None:
         raise RuntimeError("Firefox trust tests need NSS certutil (libnss3-tools on Linux).")
     with sync_playwright() as playwright:
-        executable = Path(playwright.firefox.executable_path)
+        engine = playwright.chromium if sys.platform == "darwin" else playwright.firefox
+        executable = Path(engine.executable_path)
         if not executable.is_file() or not executable.is_relative_to(browsers):
-            raise RuntimeError("Install project Firefox with make browser-install first")
-        with tempfile.TemporaryDirectory(prefix="firefox-", dir=run_directory(run_id)) as profile:
-            subprocess.run(
-                [certutil, "-N", "-d", "sql:" + profile, "--empty-password"],
-                check=True,
-                capture_output=True,
-            )
-            subprocess.run(
-                [
-                    certutil,
-                    "-A",
-                    "-d",
-                    "sql:" + profile,
-                    "-n",
-                    "dc2-local-ca",
-                    "-t",
-                    "C,,",
-                    "-i",
-                    str(tls / "ca.crt"),
-                ],
-                check=True,
-                capture_output=True,
-            )
-            context = playwright.firefox.launch_persistent_context(
+            raise RuntimeError("Install the project browser with make browser-install first")
+        with tempfile.TemporaryDirectory(
+            prefix="dc2-browser-", dir=run_directory(run_id)
+        ) as profile:
+            if sys.platform != "darwin":
+                subprocess.run(
+                    [certutil, "-N", "-d", "sql:" + profile, "--empty-password"],
+                    check=True,
+                    capture_output=True,
+                )
+                subprocess.run(
+                    [
+                        certutil,
+                        "-A",
+                        "-d",
+                        "sql:" + profile,
+                        "-n",
+                        "dc2-local-ca",
+                        "-t",
+                        "C,,",
+                        "-i",
+                        str(tls / "ca.crt"),
+                    ],
+                    check=True,
+                    capture_output=True,
+                )
+            options = {}
+            if sys.platform == "darwin":
+                subprocess.run(
+                    [
+                        "openssl",
+                        "verify",
+                        "-CAfile",
+                        str(tls / "ca.crt"),
+                        "-verify_hostname",
+                        "localhost",
+                        str(tls / "server.crt"),
+                    ],
+                    check=True,
+                    capture_output=True,
+                )
+                public = subprocess.check_output(
+                    ["openssl", "x509", "-in", str(tls / "server.crt"), "-pubkey", "-noout"]
+                )
+                der = subprocess.check_output(
+                    ["openssl", "pkey", "-pubin", "-outform", "DER"], input=public
+                )
+                pin = base64.b64encode(hashlib.sha256(der).digest()).decode()
+                options = {
+                    "channel": "chromium",
+                    "args": ["--ignore-certificate-errors-spki-list=" + pin],
+                }
+            context = engine.launch_persistent_context(
                 profile,
+                **options,
                 headless=headless,
                 ignore_https_errors=False,
                 viewport={"width": 1280, "height": 800},
@@ -120,7 +154,7 @@ def trust_smoke(run_id, live_url=None):
                 page.goto(negative, wait_until="domcontentloaded", timeout=15000)
             except Error as error:
                 message = str(error)
-                if not any(s in message for s in ("SEC_ERROR_", "MOZILLA_PKIX_ERROR")):
+                if not any(s in message for s in ("SEC_ERROR_", "MOZILLA_PKIX_ERROR", "ERR_CERT_")):
                     raise AssertionError(
                         "Untrusted control failed for a non-certificate reason"
                     ) from error
@@ -132,7 +166,12 @@ def trust_smoke(run_id, live_url=None):
                 "trusted_https": "PASS",
                 "untrusted_certificate_rejected": "PASS",
                 "ignore_https_errors": False,
-                "trust_mechanism": "project-profile NSS certutil CA import",
+                "trust_mechanism": (
+                    "validated certificate + process-scoped leaf SPKI pin"
+                    if sys.platform == "darwin"
+                    else "project-profile NSS certutil CA import"
+                ),
+                "engine": "Chrome for Testing" if sys.platform == "darwin" else "Firefox",
                 "ca_file": str(trusted / "ca.crt"),
                 "live_infrastructure_url": live_url,
             }
@@ -147,11 +186,10 @@ def main():
     parser.add_argument("--url")
     args = parser.parse_args()
     if args.action == "install":
-        import sys
-
         env = {**os.environ, "PLAYWRIGHT_BROWSERS_PATH": str(ROOT / ".local/playwright")}
+        selection = ["chromium", "--no-shell"] if sys.platform == "darwin" else ["firefox"]
         subprocess.run(
-            [sys.executable, "-m", "playwright", "install", "firefox"], check=True, env=env
+            [sys.executable, "-m", "playwright", "install", *selection], check=True, env=env
         )
     elif args.action == "trust-smoke":
         trust_smoke(args.run_id, args.url)

@@ -126,7 +126,7 @@ def install():
                 "image_sha256": IMAGE_SHA,
                 "cpus": 8,
                 "memory_gib": 8,
-                "disk_gib": 40,
+                "disk_gib": 64,
             },
             indent=2,
         )
@@ -160,7 +160,7 @@ def main():
                         "--arch=aarch64",
                         "--cpus=8",
                         "--memory=8",
-                        "--disk=40",
+                        "--disk=64",
                         "--mount-type=virtiofs",
                         f"--mount-only={ROOT}:w",
                         "--set",

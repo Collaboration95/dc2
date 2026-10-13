@@ -1,0 +1,1104 @@
+{
+  "action": "injected-release",
+  "build": {
+    "derived_from": "sha256:761ba6a43729dd1da34f56417d4527b1a8f51402e3dba0461b117f196ff79304",
+    "image_id": "sha256:b8ea1217840817f28e8cb066525baf2ebb1438017b443b630f16e944eb5f90b4",
+    "injection": "uvicorn-startup-exit42",
+    "passed_at": "2026-10-12T20:42:12.221088+00:00",
+    "revision": "331354da512224d49e7bdd1206a4fc89d1dcc0a9",
+    "source_fingerprint": "394517c2229a23850d238e1c60e7a42d7442e074af3c72efe61becacac172293",
+    "tag": "dc2-release:dc2-final-local-e6eff6ee-ee75c606b4434e61bca4ee1f0ad500dd"
+  },
+  "build_parent": {
+    "image_id": "sha256:761ba6a43729dd1da34f56417d4527b1a8f51402e3dba0461b117f196ff79304",
+    "tag": "dc2-release:dc2-final-local-e6eff6ee-ee75c606b4434e61bca4ee1f0ad500dd-parent",
+    "verified_after_at": "2026-10-12T20:42:12.165539+00:00",
+    "verified_before_at": "2026-10-12T20:42:11.785681+00:00"
+  },
+  "candidate_failure": {
+    "captured_at": "2026-10-12T20:42:42.522369+00:00",
+    "containers": [
+      {
+        "container_id": "eac038a21b2a930ea974290f7319871beef73a1fa520c879035cd0961c9dea82",
+        "exit_code": 42,
+        "finished_at": "2026-10-12T20:42:42.209977359Z",
+        "has_runtime_error": false,
+        "image_id": "sha256:b8ea1217840817f28e8cb066525baf2ebb1438017b443b630f16e944eb5f90b4",
+        "injection": "uvicorn-startup-exit42",
+        "injection_marker_seen": true,
+        "logs_sha256": "6bb97d6f2498a4ec28a50386ceb35ae674cc462cd3ac4330bbd05e1ee4949001",
+        "oom_killed": false,
+        "started_at": "2026-10-12T20:42:40.123400109Z",
+        "status": "exited"
+      }
+    ],
+    "image_id": "sha256:b8ea1217840817f28e8cb066525baf2ebb1438017b443b630f16e944eb5f90b4"
+  },
+  "candidate_image": "sha256:b8ea1217840817f28e8cb066525baf2ebb1438017b443b630f16e944eb5f90b4",
+  "candidate_proof": {
+    "artifact_test": {
+      "image_id": "sha256:b8ea1217840817f28e8cb066525baf2ebb1438017b443b630f16e944eb5f90b4",
+      "kind": "offline artifact imports and encoder presence",
+      "passed_at": "2026-10-12T20:42:13.414900+00:00"
+    },
+    "build": {
+      "derived_from": "sha256:761ba6a43729dd1da34f56417d4527b1a8f51402e3dba0461b117f196ff79304",
+      "image_id": "sha256:b8ea1217840817f28e8cb066525baf2ebb1438017b443b630f16e944eb5f90b4",
+      "injection": "uvicorn-startup-exit42",
+      "passed_at": "2026-10-12T20:42:12.221088+00:00",
+      "revision": "331354da512224d49e7bdd1206a4fc89d1dcc0a9",
+      "source_fingerprint": "394517c2229a23850d238e1c60e7a42d7442e074af3c72efe61becacac172293",
+      "tag": "dc2-release:dc2-final-local-e6eff6ee-ee75c606b4434e61bca4ee1f0ad500dd"
+    },
+    "fast_tests": {
+      "command": [
+        "make",
+        "lint",
+        "test"
+      ],
+      "passed_at": "2026-10-12T20:42:09.854343+00:00",
+      "revision": "331354da512224d49e7bdd1206a4fc89d1dcc0a9",
+      "source_fingerprint": "394517c2229a23850d238e1c60e7a42d7442e074af3c72efe61becacac172293"
+    },
+    "image_id": "sha256:b8ea1217840817f28e8cb066525baf2ebb1438017b443b630f16e944eb5f90b4",
+    "injection": "uvicorn-startup-exit42",
+    "revision": "331354da512224d49e7bdd1206a4fc89d1dcc0a9",
+    "scan": {
+      "archive_sha256": "4a77108cccf8e55c8d6823e1e759939a622277e66cd0daa3c1fc621ed69e4568",
+      "fixable_high_critical": 0,
+      "image_id": "sha256:b8ea1217840817f28e8cb066525baf2ebb1438017b443b630f16e944eb5f90b4",
+      "report_sha256": "c96c4c77cbb4614793bfade22ec84a40ca69c7e37702410b5d696ccc2065e34d",
+      "version": "0.75.0"
+    },
+    "source_fingerprint": "394517c2229a23850d238e1c60e7a42d7442e074af3c72efe61becacac172293"
+  },
+  "command_evidence": [
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:41:41.767442+00:00",
+      "started_at": "2026-10-12T20:41:41.716502+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "25e7347cd2adc5a170d570368b8c4bf7f21954682722b2323cd666d1e4baec97"
+    },
+    {
+      "argv": [
+        "git",
+        "status",
+        "--porcelain",
+        "--untracked-files=all",
+        "--",
+        "app",
+        "media",
+        "processing",
+        "media_engine",
+        "publisher",
+        "frontend",
+        "tests",
+        "scripts/dev",
+        "deploy",
+        "compose",
+        "pyproject.toml",
+        "uv.lock",
+        "Makefile",
+        ".dockerignore"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:41:41.806753+00:00",
+      "started_at": "2026-10-12T20:41:41.769690+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "git",
+        "ls-files",
+        "-s",
+        "--",
+        "app",
+        "media",
+        "processing",
+        "media_engine",
+        "publisher",
+        "frontend",
+        "tests",
+        "scripts/dev",
+        "deploy",
+        "compose",
+        "pyproject.toml",
+        "uv.lock",
+        "Makefile",
+        ".dockerignore"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:41:41.843595+00:00",
+      "started_at": "2026-10-12T20:41:41.808801+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "394517c2229a23850d238e1c60e7a42d7442e074af3c72efe61becacac172293"
+    },
+    {
+      "argv": [
+        "docker",
+        "info",
+        "--format",
+        "{{json .}}"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:41:41.945609+00:00",
+      "started_at": "2026-10-12T20:41:41.888905+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "2079515d52f7270eefd98bd44f76dd5f43308438eaa401a42a2cfd549b90c5bc"
+    },
+    {
+      "argv": [
+        "docker",
+        "inspect",
+        "358e017402163f0572cfa331d060094457c3c34d1b901dfbda0c9bb18d3aecbd"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:41:42.076603+00:00",
+      "started_at": "2026-10-12T20:41:42.035623+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "5931a6c464690d73f9b954ed0f4c74261492e59a8ee831b8acfa6606eefe336d"
+    },
+    {
+      "argv": [
+        "docker",
+        "inspect",
+        "c275c2b9a2484abad184d4df4d2b412c4e23f6e33d02313572cfa0a54b83c04c"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:41:42.203201+00:00",
+      "started_at": "2026-10-12T20:41:42.161108+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "d191f4ee71fc73160a95ec1f5b1e42168d32a6efe2bcf05844e5ea6c046779e9"
+    },
+    {
+      "argv": [
+        "docker",
+        "inspect",
+        "0521bc5e6d7851107937c3a64bf14762dabf5ac036c96c7182717a0e356db4b0"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:41:42.599713+00:00",
+      "started_at": "2026-10-12T20:41:42.559175+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "eb1c579fbbfd31f6c2ed2f995fd455a3ddb1048e809adf22d739eea10c088f11"
+    },
+    {
+      "argv": [
+        "docker",
+        "inspect",
+        "72fdfa4fb34a0a3feaa940595a79be6b41138caf4788e85f966bd60aeabd7777"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:41:42.723045+00:00",
+      "started_at": "2026-10-12T20:41:42.682147+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "9b60caef87556b16cb6a2e38e4ebfbf841f967b912b6662b1d907e2effe3909e"
+    },
+    {
+      "argv": [
+        "docker",
+        "inspect",
+        "212070d0939b3db3527a5489dc5ec3be72d4b939285ec9d47c1a15424ddc4090"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:41:42.847975+00:00",
+      "started_at": "2026-10-12T20:41:42.804597+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "64649d0509ca01f5e0b090efb0d65adf100e62f291b6d0cf8e3e005f6372e98d"
+    },
+    {
+      "argv": [
+        "make",
+        "lint",
+        "test"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:09.654658+00:00",
+      "started_at": "2026-10-12T20:41:58.498550+00:00",
+      "status": "passed",
+      "stderr_sha256": "8b6ccc4e4139646faa539508bafc2d9449365004714a1eef4920c234e773a4dd",
+      "stdin_sha256": null,
+      "stdout_sha256": "ee05a3a7041909a0456fc47ca0b2dc8d703c1855196903ba70951e337d82ee30"
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:09.771140+00:00",
+      "started_at": "2026-10-12T20:42:09.657638+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "25e7347cd2adc5a170d570368b8c4bf7f21954682722b2323cd666d1e4baec97"
+    },
+    {
+      "argv": [
+        "git",
+        "status",
+        "--porcelain",
+        "--untracked-files=all",
+        "--",
+        "app",
+        "media",
+        "processing",
+        "media_engine",
+        "publisher",
+        "frontend",
+        "tests",
+        "scripts/dev",
+        "deploy",
+        "compose",
+        "pyproject.toml",
+        "uv.lock",
+        "Makefile",
+        ".dockerignore"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:09.814146+00:00",
+      "started_at": "2026-10-12T20:42:09.773343+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "git",
+        "ls-files",
+        "-s",
+        "--",
+        "app",
+        "media",
+        "processing",
+        "media_engine",
+        "publisher",
+        "frontend",
+        "tests",
+        "scripts/dev",
+        "deploy",
+        "compose",
+        "pyproject.toml",
+        "uv.lock",
+        "Makefile",
+        ".dockerignore"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:09.852106+00:00",
+      "started_at": "2026-10-12T20:42:09.816343+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "394517c2229a23850d238e1c60e7a42d7442e074af3c72efe61becacac172293"
+    },
+    {
+      "argv": [
+        "docker",
+        "image",
+        "inspect",
+        "sha256:761ba6a43729dd1da34f56417d4527b1a8f51402e3dba0461b117f196ff79304"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:09.911123+00:00",
+      "started_at": "2026-10-12T20:42:09.859944+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "d6ca069991d755565f1a615b857ac059b45e7729a971897cb1b3f88b52a95e4f"
+    },
+    {
+      "argv": [
+        "ffmpeg",
+        "-nostdin",
+        "-v",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=blue:s=160x90:r=10:d=1",
+        "-an",
+        "-c:v",
+        "libx264",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-map_metadata",
+        "-1",
+        "-fflags",
+        "+bitexact",
+        "-flags:v",
+        "+bitexact",
+        "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.local/runs/final-local/releases/tmph1h4lgpa/release.mp4"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:10.089440+00:00",
+      "started_at": "2026-10-12T20:42:10.013091+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_entries",
+        "stream=codec_type",
+        "-of",
+        "json",
+        "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.local/runs/final-local/releases/tmph1h4lgpa/output.mp4"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:11.600731+00:00",
+      "started_at": "2026-10-12T20:42:11.537887+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "a01ef609e0e6260962085060d9123cacd533de46018fa8bc7f6fdf3863821ff4"
+    },
+    {
+      "argv": [
+        "docker",
+        "image",
+        "inspect",
+        "sha256:761ba6a43729dd1da34f56417d4527b1a8f51402e3dba0461b117f196ff79304"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:11.674082+00:00",
+      "started_at": "2026-10-12T20:42:11.622127+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "d6ca069991d755565f1a615b857ac059b45e7729a971897cb1b3f88b52a95e4f"
+    },
+    {
+      "argv": [
+        "docker",
+        "image",
+        "tag",
+        "sha256:761ba6a43729dd1da34f56417d4527b1a8f51402e3dba0461b117f196ff79304",
+        "dc2-release:dc2-final-local-e6eff6ee-ee75c606b4434e61bca4ee1f0ad500dd-parent"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:11.728677+00:00",
+      "started_at": "2026-10-12T20:42:11.676765+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "docker",
+        "image",
+        "inspect",
+        "dc2-release:dc2-final-local-e6eff6ee-ee75c606b4434e61bca4ee1f0ad500dd-parent"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:11.783054+00:00",
+      "started_at": "2026-10-12T20:42:11.731516+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "788e2cebcf38580c0aa02452ccbb6aa3c8316088e2ea0f38fa9664b4ee985994"
+    },
+    {
+      "argv": [
+        "docker",
+        "build",
+        "--label",
+        "org.opencontainers.image.revision=331354da512224d49e7bdd1206a4fc89d1dcc0a9",
+        "--label",
+        "dc2.release.source-fingerprint=394517c2229a23850d238e1c60e7a42d7442e074af3c72efe61becacac172293",
+        "--label",
+        "dc2.release.build-id=ee75c606b4434e61bca4ee1f0ad500dd",
+        "-t",
+        "dc2-release:dc2-final-local-e6eff6ee-ee75c606b4434e61bca4ee1f0ad500dd",
+        "--pull=false",
+        "--network",
+        "none",
+        "--label",
+        "dc2.release.injection=uvicorn-startup-exit42",
+        "-f",
+        "-",
+        "."
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:12.107055+00:00",
+      "started_at": "2026-10-12T20:42:11.787666+00:00",
+      "status": "passed",
+      "stderr_sha256": "f6ebc833b9bcd7b3e191c5296240fa2f1d57d23ad64aad0e8ea5b8524c889e91",
+      "stdin_sha256": "ff4885fc028b31bb85e755bbc0e1989f1bbab9f79f61e7950f9351ecd5e8c63d",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "docker",
+        "image",
+        "inspect",
+        "dc2-release:dc2-final-local-e6eff6ee-ee75c606b4434e61bca4ee1f0ad500dd-parent"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:12.162910+00:00",
+      "started_at": "2026-10-12T20:42:12.109627+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "788e2cebcf38580c0aa02452ccbb6aa3c8316088e2ea0f38fa9664b4ee985994"
+    },
+    {
+      "argv": [
+        "docker",
+        "image",
+        "inspect",
+        "dc2-release:dc2-final-local-e6eff6ee-ee75c606b4434e61bca4ee1f0ad500dd"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:12.218559+00:00",
+      "started_at": "2026-10-12T20:42:12.165546+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "41aae35607b4c6ef0f7d7ed77696fc1a810c960f541692a216e1a3b1f5e9adf4"
+    },
+    {
+      "argv": [
+        "docker",
+        "image",
+        "inspect",
+        "sha256:b8ea1217840817f28e8cb066525baf2ebb1438017b443b630f16e944eb5f90b4"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:12.273981+00:00",
+      "started_at": "2026-10-12T20:42:12.225033+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "41aae35607b4c6ef0f7d7ed77696fc1a810c960f541692a216e1a3b1f5e9adf4"
+    },
+    {
+      "argv": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--entrypoint",
+        "python",
+        "sha256:b8ea1217840817f28e8cb066525baf2ebb1438017b443b630f16e944eb5f90b4",
+        "-c",
+        "import importlib,shutil; [importlib.import_module(x) for x in ('processing.main','processing.worker','processing.recovery')]; assert shutil.which('ffmpeg') and shutil.which('ffprobe')"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:13.412392+00:00",
+      "started_at": "2026-10-12T20:42:12.279024+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.local/trivy/trivy",
+        "--version",
+        "--format",
+        "json"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:13.670512+00:00",
+      "started_at": "2026-10-12T20:42:13.423529+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "a18c9b64b903a39fc566293edc349241295d2ef19455957428c54f9747b60d94"
+    },
+    {
+      "argv": [
+        "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.local/trivy/trivy",
+        "image",
+        "--image-src",
+        "docker",
+        "--scanners",
+        "vuln",
+        "--skip-db-update",
+        "--skip-java-db-update",
+        "--offline-scan",
+        "--cache-dir",
+        "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.cache/trivy",
+        "--timeout",
+        "3m",
+        "--format",
+        "json",
+        "--quiet",
+        "--docker-host",
+        "[redacted-url]",
+        "sha256:b8ea1217840817f28e8cb066525baf2ebb1438017b443b630f16e944eb5f90b4"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:15.509456+00:00",
+      "started_at": "2026-10-12T20:42:13.672970+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "22da5df0f2b8b480491306a29b9b3d008295ecfd69d825211f0c7107965e394f"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--name-status",
+        "331354da512224d49e7bdd1206a4fc89d1dcc0a9",
+        "331354da512224d49e7bdd1206a4fc89d1dcc0a9",
+        "--",
+        "processing/migrations/versions"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:15.566283+00:00",
+      "started_at": "2026-10-12T20:42:15.528137+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:15.615003+00:00",
+      "started_at": "2026-10-12T20:42:15.573136+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "25e7347cd2adc5a170d570368b8c4bf7f21954682722b2323cd666d1e4baec97"
+    },
+    {
+      "argv": [
+        "git",
+        "status",
+        "--porcelain",
+        "--untracked-files=all",
+        "--",
+        "app",
+        "media",
+        "processing",
+        "media_engine",
+        "publisher",
+        "frontend",
+        "tests",
+        "scripts/dev",
+        "deploy",
+        "compose",
+        "pyproject.toml",
+        "uv.lock",
+        "Makefile",
+        ".dockerignore"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:15.657761+00:00",
+      "started_at": "2026-10-12T20:42:15.617697+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "git",
+        "ls-files",
+        "-s",
+        "--",
+        "app",
+        "media",
+        "processing",
+        "media_engine",
+        "publisher",
+        "frontend",
+        "tests",
+        "scripts/dev",
+        "deploy",
+        "compose",
+        "pyproject.toml",
+        "uv.lock",
+        "Makefile",
+        ".dockerignore"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:15.700714+00:00",
+      "started_at": "2026-10-12T20:42:15.660275+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "394517c2229a23850d238e1c60e7a42d7442e074af3c72efe61becacac172293"
+    },
+    {
+      "argv": [
+        "docker",
+        "inspect",
+        "eac038a21b2a930ea974290f7319871beef73a1fa520c879035cd0961c9dea82"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:42.471766+00:00",
+      "started_at": "2026-10-12T20:42:42.429266+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "5e66ff4dbc01c64ef8084c81f28f1765d89876b3e6f882a38f2b46722ccc117a"
+    },
+    {
+      "argv": [
+        "docker",
+        "logs",
+        "--tail",
+        "40",
+        "eac038a21b2a930ea974290f7319871beef73a1fa520c879035cd0961c9dea82"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:42.519367+00:00",
+      "started_at": "2026-10-12T20:42:42.474672+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "6bb97d6f2498a4ec28a50386ceb35ae674cc462cd3ac4330bbd05e1ee4949001"
+    },
+    {
+      "argv": [
+        "docker",
+        "image",
+        "inspect",
+        "sha256:761ba6a43729dd1da34f56417d4527b1a8f51402e3dba0461b117f196ff79304"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:42:42.578342+00:00",
+      "started_at": "2026-10-12T20:42:42.526963+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "788e2cebcf38580c0aa02452ccbb6aa3c8316088e2ea0f38fa9664b4ee985994"
+    },
+    {
+      "argv": [
+        "docker",
+        "inspect",
+        "25199818df1a78d98460905d81dd7b8c01e42314dcf8c610a4b0b91e5af1b756"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:43:32.088848+00:00",
+      "started_at": "2026-10-12T20:43:32.047520+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "6bfc8fabc7326721f205b824b2989e40f2423d3b186db3cba940d2f76d7c0831"
+    },
+    {
+      "argv": [
+        "docker",
+        "inspect",
+        "ec47f2f10e97c5d682dcfcc101d384c17dc4d3523e5f48331a5efdb4360a28f3"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:43:32.214801+00:00",
+      "started_at": "2026-10-12T20:43:32.171997+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "43decd5495da86d4e080f003451ad70b63875d0513a003b99b67d7b5f828bce7"
+    },
+    {
+      "argv": [
+        "docker",
+        "inspect",
+        "ac69cf09a7386c158a2cfbaeac226524e6f3e8d20e46d72ddf831b2617463145"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:43:32.338673+00:00",
+      "started_at": "2026-10-12T20:43:32.296479+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "101b5099987f0cc0281b12ce06368e983f4806cbfe26d606a38b4e45e7c48933"
+    },
+    {
+      "argv": [
+        "ffmpeg",
+        "-nostdin",
+        "-v",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=blue:s=160x90:r=10:d=1",
+        "-an",
+        "-c:v",
+        "libx264",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-map_metadata",
+        "-1",
+        "-fflags",
+        "+bitexact",
+        "-flags:v",
+        "+bitexact",
+        "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.local/runs/final-local/releases/tmpr0sk394a/release.mp4"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:43:32.534584+00:00",
+      "started_at": "2026-10-12T20:43:32.449453+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_entries",
+        "stream=codec_type",
+        "-of",
+        "json",
+        "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.local/runs/final-local/releases/tmpr0sk394a/output.mp4"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:43:34.368274+00:00",
+      "started_at": "2026-10-12T20:43:34.311102+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "a01ef609e0e6260962085060d9123cacd533de46018fa8bc7f6fdf3863821ff4"
+    },
+    {
+      "argv": [
+        "docker",
+        "inspect",
+        "358e017402163f0572cfa331d060094457c3c34d1b901dfbda0c9bb18d3aecbd"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:43:34.517311+00:00",
+      "started_at": "2026-10-12T20:43:34.473072+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "c639a07b4f7cdc9818c0baaf4dc45ff6ad5e00536c73e1d1913e3307519b09b6"
+    },
+    {
+      "argv": [
+        "docker",
+        "inspect",
+        "c275c2b9a2484abad184d4df4d2b412c4e23f6e33d02313572cfa0a54b83c04c"
+      ],
+      "exit_code": 0,
+      "finished_at": "2026-10-12T20:43:34.650638+00:00",
+      "started_at": "2026-10-12T20:43:34.609442+00:00",
+      "status": "passed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdin_sha256": null,
+      "stdout_sha256": "d191f4ee71fc73160a95ec1f5b1e42168d32a6efe2bcf05844e5ea6c046779e9"
+    }
+  ],
+  "docker_capacity": {
+    "architecture": "aarch64",
+    "cpus": 8,
+    "docker_host": "[redacted-url]",
+    "memory_bytes": 8296787968
+  },
+  "drain": {
+    "attempts_after": [],
+    "attempts_before": [],
+    "elapsed_seconds": 33.928,
+    "finished_at": "2026-10-12T20:43:17.258128+00:00",
+    "grace_seconds": 60,
+    "limit_seconds": 300,
+    "started_at": "2026-10-12T20:43:01.657559+00:00"
+  },
+  "drain_history": [
+    {
+      "attempts_after": [],
+      "attempts_before": [],
+      "elapsed_seconds": 12.394,
+      "finished_at": "2026-10-12T20:42:28.102146+00:00",
+      "grace_seconds": 60,
+      "limit_seconds": 300,
+      "started_at": "2026-10-12T20:42:21.541627+00:00"
+    },
+    {
+      "attempts_after": [],
+      "attempts_before": [],
+      "elapsed_seconds": 33.928,
+      "finished_at": "2026-10-12T20:43:17.258128+00:00",
+      "grace_seconds": 60,
+      "limit_seconds": 300,
+      "started_at": "2026-10-12T20:43:01.657559+00:00"
+    }
+  ],
+  "elapsed_seconds": 125.621,
+  "failure": "compose up exited 1",
+  "fast_tests": {
+    "command": [
+      "make",
+      "lint",
+      "test"
+    ],
+    "passed_at": "2026-10-12T20:42:09.854343+00:00",
+    "revision": "331354da512224d49e7bdd1206a4fc89d1dcc0a9",
+    "source_fingerprint": "394517c2229a23850d238e1c60e7a42d7442e074af3c72efe61becacac172293"
+  },
+  "finished_at": "2026-10-12T20:43:47.331221+00:00",
+  "id": "ee75c606b4434e61bca4ee1f0ad500dd",
+  "limit_seconds": 600,
+  "media_before": {
+    "media": [
+      {
+        "container_id": "358e017402163f0572cfa331d060094457c3c34d1b901dfbda0c9bb18d3aecbd",
+        "cpu_nano_limit": 1000000000,
+        "image_id": "sha256:b3ff3073643ce440a19f790af71451961cabfea7517936642ad3d2f9b4876373",
+        "memory_limit_bytes": 402653184,
+        "revision": "422609b434102fd132b41c5bd9ab113d03984ed0"
+      }
+    ],
+    "media-recovery": [
+      {
+        "container_id": "c275c2b9a2484abad184d4df4d2b412c4e23f6e33d02313572cfa0a54b83c04c",
+        "cpu_nano_limit": 62500000,
+        "image_id": "sha256:b3ff3073643ce440a19f790af71451961cabfea7517936642ad3d2f9b4876373",
+        "memory_limit_bytes": 201326592,
+        "revision": "422609b434102fd132b41c5bd9ab113d03984ed0"
+      }
+    ],
+    "migration_revisions": [
+      "0002_uncertain_writes"
+    ]
+  },
+  "migration_policy": {
+    "additive_only_declared": false,
+    "changed_revisions": [],
+    "rollback": "image only; never downgrade Processing or migrate Media"
+  },
+  "prior_image": "sha256:761ba6a43729dd1da34f56417d4527b1a8f51402e3dba0461b117f196ff79304",
+  "processing_containers": {
+    "processing": [
+      {
+        "container_id": "25199818df1a78d98460905d81dd7b8c01e42314dcf8c610a4b0b91e5af1b756",
+        "cpu_nano_limit": 500000000,
+        "image_id": "sha256:761ba6a43729dd1da34f56417d4527b1a8f51402e3dba0461b117f196ff79304",
+        "memory_limit_bytes": 268435456,
+        "revision": "331354da512224d49e7bdd1206a4fc89d1dcc0a9"
+      }
+    ],
+    "processing-recovery": [
+      {
+        "container_id": "ac69cf09a7386c158a2cfbaeac226524e6f3e8d20e46d72ddf831b2617463145",
+        "cpu_nano_limit": 62500000,
+        "image_id": "sha256:761ba6a43729dd1da34f56417d4527b1a8f51402e3dba0461b117f196ff79304",
+        "memory_limit_bytes": 201326592,
+        "revision": "331354da512224d49e7bdd1206a4fc89d1dcc0a9"
+      }
+    ],
+    "worker": [
+      {
+        "container_id": "ec47f2f10e97c5d682dcfcc101d384c17dc4d3523e5f48331a5efdb4360a28f3",
+        "cpu_nano_limit": 2000000000,
+        "image_id": "sha256:761ba6a43729dd1da34f56417d4527b1a8f51402e3dba0461b117f196ff79304",
+        "memory_limit_bytes": 1610612736,
+        "revision": "331354da512224d49e7bdd1206a4fc89d1dcc0a9"
+      }
+    ]
+  },
+  "processing_revisions_after_rollback": [
+    "processing_0002"
+  ],
+  "processing_revisions_before": [
+    "processing_0002"
+  ],
+  "promotion_deadline_exceeded": false,
+  "revision": "331354da512224d49e7bdd1206a4fc89d1dcc0a9",
+  "rollback": {
+    "finished_at": "2026-10-12T20:43:47.324158+00:00",
+    "image_id": "sha256:761ba6a43729dd1da34f56417d4527b1a8f51402e3dba0461b117f196ff79304",
+    "smoke": {
+      "asset_id": "8f1c34aa-734a-4c25-b69c-27eef49c3c34",
+      "fixture_sha256": "6df0af29c5b8607786bbf3138dc1582ea746203c0d9fa0ae4b6f527771c45f15",
+      "output_bytes": 1871,
+      "output_sha256": "4a7f1c6f6c897c49294546031912c663714f308ec7d86134907bc5c0b0bdac5a",
+      "passed_at": "2026-10-12T20:43:34.384240+00:00",
+      "workflow": "health/register/login/upload/process/playback/delete"
+    },
+    "status": "restored"
+  },
+  "scope": "local",
+  "source_fingerprint": "394517c2229a23850d238e1c60e7a42d7442e074af3c72efe61becacac172293",
+  "started_at": "2026-10-12T20:41:41.708462+00:00",
+  "status": "failed_rolled_back",
+  "steps": [
+    {
+      "elapsed_seconds": 0.134,
+      "finished_at": "2026-10-12T20:41:41.850299+00:00",
+      "name": "clean-source",
+      "started_at": "2026-10-12T20:41:41.712746+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 0.087,
+      "finished_at": "2026-10-12T20:41:41.947852+00:00",
+      "name": "local-daemon",
+      "started_at": "2026-10-12T20:41:41.858970+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 0.526,
+      "finished_at": "2026-10-12T20:41:42.477425+00:00",
+      "name": "media-baseline",
+      "started_at": "2026-10-12T20:41:41.949554+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 11.358,
+      "finished_at": "2026-10-12T20:42:09.856187+00:00",
+      "name": "fast-tests",
+      "started_at": "2026-10-12T20:41:58.493425+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 1.759,
+      "finished_at": "2026-10-12T20:42:11.618392+00:00",
+      "name": "tested-rollback-image",
+      "started_at": "2026-10-12T20:42:09.857998+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 1.699,
+      "finished_at": "2026-10-12T20:42:11.614528+00:00",
+      "name": "baseline-public-smoke",
+      "started_at": "2026-10-12T20:42:09.913571+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 0.601,
+      "finished_at": "2026-10-12T20:42:12.223069+00:00",
+      "name": "build",
+      "started_at": "2026-10-12T20:42:11.620237+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 1.136,
+      "finished_at": "2026-10-12T20:42:13.414906+00:00",
+      "name": "artifact-test",
+      "started_at": "2026-10-12T20:42:12.276960+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 2.105,
+      "finished_at": "2026-10-12T20:42:15.523949+00:00",
+      "name": "trivy",
+      "started_at": "2026-10-12T20:42:13.416883+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 0.043,
+      "finished_at": "2026-10-12T20:42:15.571080+00:00",
+      "name": "migration-policy",
+      "started_at": "2026-10-12T20:42:15.526133+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 12.401,
+      "finished_at": "2026-10-12T20:42:28.109440+00:00",
+      "name": "worker-drain",
+      "started_at": "2026-10-12T20:42:15.705856+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 14.405,
+      "error": "compose up exited 1",
+      "finished_at": "2026-10-12T20:42:42.524801+00:00",
+      "name": "candidate-apply",
+      "started_at": "2026-10-12T20:42:28.114865+00:00",
+      "status": "failed"
+    },
+    {
+      "elapsed_seconds": 1.238,
+      "finished_at": "2026-10-12T20:42:29.361869+00:00",
+      "name": "candidate-migration",
+      "started_at": "2026-10-12T20:42:28.119919+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 12.961,
+      "error": "compose up exited 1",
+      "finished_at": "2026-10-12T20:42:42.328178+00:00",
+      "name": "candidate-startup",
+      "started_at": "2026-10-12T20:42:29.364739+00:00",
+      "status": "failed"
+    },
+    {
+      "elapsed_seconds": 0.732,
+      "finished_at": "2026-10-12T20:42:43.315238+00:00",
+      "name": "rollback-recovery-start",
+      "started_at": "2026-10-12T20:42:42.581105+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 33.931,
+      "finished_at": "2026-10-12T20:43:17.261010+00:00",
+      "name": "rollback-worker-drain",
+      "started_at": "2026-10-12T20:42:43.322695+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 15.078,
+      "finished_at": "2026-10-12T20:43:32.343673+00:00",
+      "name": "rollback-apply",
+      "started_at": "2026-10-12T20:43:17.263239+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 2.036,
+      "finished_at": "2026-10-12T20:43:34.384253+00:00",
+      "name": "rollback-public-smoke",
+      "started_at": "2026-10-12T20:43:32.345852+00:00",
+      "status": "passed"
+    },
+    {
+      "elapsed_seconds": 0.534,
+      "finished_at": "2026-10-12T20:43:34.922861+00:00",
+      "name": "rollback-media-unchanged",
+      "started_at": "2026-10-12T20:43:34.386516+00:00",
+      "status": "passed"
+    }
+  ],
+  "worker_replicas": 1
+}
