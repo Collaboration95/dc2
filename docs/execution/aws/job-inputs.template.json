@@ -1,0 +1,20 @@
+{
+  "project_account_id": null,
+  "approved_local_profile_or_role": null,
+  "billing_owner": null,
+  "region": null,
+  "budget_total": 200,
+  "budget_currency": null,
+  "billing_currency_and_tax": null,
+  "domain_or_subdomain": null,
+  "dns_operator": null,
+  "operator_cidr": null,
+  "start_utc": null,
+  "teardown_utc": null,
+  "required_demo_windows": [],
+  "scoped_service_access_keys_allowed": null,
+  "approved_resource_plan": null,
+  "data_export_and_deletion_owner": null,
+  "deployment_source_sha": null,
+  "experimental_configuration_decision": "Both candidates REJECTED; retain baseline quotas and fixed 1/2/3 workers"
+}
