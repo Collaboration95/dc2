@@ -7,6 +7,8 @@ import os
 import urllib3
 from minio import Minio
 
+from processing.storage_credentials import credential_provider
+
 
 class _HashingReader:
     def __init__(self, handle):
@@ -28,8 +30,7 @@ class OutputStore:
             settings.minio_endpoint,
             secure=settings.minio_use_ssl,
             region=settings.minio_region,
-            access_key=settings.minio_access_key.get_secret_value(),
-            secret_key=settings.minio_secret_key.get_secret_value(),
+            credentials=credential_provider(settings),
             http_client=urllib3.PoolManager(
                 timeout=urllib3.Timeout(
                     connect=settings.http_timeout_seconds, read=settings.http_timeout_seconds

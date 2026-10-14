@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,6 +16,7 @@ class Settings(BaseSettings):
     queue_name: str = "processing"
     media_url: str = "http://media:8000"
     source_service_token: SecretStr = SecretStr("")
+    storage_credential_mode: Literal["static", "ecs"] = "static"
     minio_endpoint: str = "minio:9000"
     minio_use_ssl: bool = False
     minio_region: str = "us-east-1"
@@ -32,28 +34,27 @@ class Settings(BaseSettings):
     ffmpeg_preset: str = "veryfast"
     ffmpeg_crf: int = Field(default=23, ge=0, le=51)
 
-    def require_worker(self):
-        if not all(
-            (
-                self.redis_url.get_secret_value(),
-                self.source_service_token.get_secret_value(),
-                self.minio_access_key.get_secret_value(),
-                self.minio_secret_key.get_secret_value(),
-            )
+    def require_storage(self):
+        from processing.storage_credentials import credential_provider
+
+        if self.storage_credential_mode == "static" and not (
+            self.minio_access_key.get_secret_value() and self.minio_secret_key.get_secret_value()
         ):
-            raise ValueError(
-                "Worker requires Redis, source access token and output writer credentials"
-            )
+            raise ValueError("Output storage requires a complete credential pair")
+        credential_provider(self)  # Validate only; no credential endpoint fetch at startup.
+
+    def require_worker(self):
+        if (
+            not self.redis_url.get_secret_value()
+            or not self.source_service_token.get_secret_value()
+        ):
+            raise ValueError("Worker requires Redis and source access token")
+        self.require_storage()
 
     def require_recovery(self):
-        if not all(
-            (
-                self.redis_url.get_secret_value(),
-                self.minio_access_key.get_secret_value(),
-                self.minio_secret_key.get_secret_value(),
-            )
-        ):
-            raise ValueError("Recovery requires Redis and output cleanup credentials")
+        if not self.redis_url.get_secret_value():
+            raise ValueError("Recovery requires Redis")
+        self.require_storage()
 
     @model_validator(mode="after")
     def heartbeat_within_lease(self):
