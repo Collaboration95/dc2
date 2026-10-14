@@ -285,7 +285,7 @@ def drain(
             continue
         if not record:
             raise OperationError("Uncorrelated worker cannot be safely drained")
-        observed = observe(arn, record["rq_name"])
+        observed = observe(arn, record["rq_name"], deadline=deadline)
         if not observed.get("fresh"):
             raise OperationError("Stale worker registration blocks drain")
         claims = set(record.get("claims", [])) | set(observed["claims"])
@@ -294,10 +294,10 @@ def drain(
             record["warm_sent"] = True
             record["warm_ack"] = False
             journal.save(state)  # Lost ack must never result in a cold second signal.
-            record["warm_ack"] = warm_shutdown(arn, record["rq_name"]) is True
+            record["warm_ack"] = warm_shutdown(arn, record["rq_name"], deadline=deadline) is True
             journal.save(state)
         while clock() < end:
-            observed = observe(arn, record["rq_name"])
+            observed = observe(arn, record["rq_name"], deadline=deadline)
             claims.update(observed.get("claims", []))
             record["claims"] = sorted(claims)
             journal.save(state)

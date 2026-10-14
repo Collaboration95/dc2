@@ -52,7 +52,7 @@ jobs:
       - name: Execute the exact artifact without network or production secrets
         run: |
           if [ "$OWNER" = processing ]; then
-            code="import importlib,shutil; [importlib.import_module(x) for x in ('processing.main','processing.worker','processing.recovery')]; assert shutil.which('ffmpeg') and shutil.which('ffprobe')"
+            code="import importlib,shutil; [importlib.import_module(x) for x in ('processing.main','processing.worker','processing.recovery')]; assert shutil.which('ffmpeg') and shutil.which('ffprobe'); import subprocess,tempfile,pathlib; d=tempfile.TemporaryDirectory(); p=str(pathlib.Path(d.name)/'test.mp4'); subprocess.run(['ffmpeg','-v','error','-f','lavfi','-i','testsrc2=size=160x90:rate=10:duration=1','-c:v','libx264','-threads','1',p],check=True,timeout=15); subprocess.run(['ffprobe','-v','error','-show_entries','stream=codec_name',p],check=True,timeout=5); d.cleanup()"
           else
             code="import importlib; [importlib.import_module(x) for x in ('media.main','media.recovery')]"
           fi
@@ -73,6 +73,8 @@ jobs:
           from pathlib import Path
           from xml.etree import ElementTree as ET
           from scripts.aws.artifacts import prepublication_proof
+          from scripts.aws.reports import retained_reports
+          import hashlib
           image, source = os.environ['CONFIG_ID'], os.environ['SOURCE_SHA']
           info = json.loads(subprocess.check_output(['docker','image','inspect',image]))
           counts = ET.parse('gates/source-tests.xml').getroot()
@@ -80,9 +82,13 @@ jobs:
           passed = sum(int(s.attrib.get('tests',0))-int(s.attrib.get('failures',0))
                        -int(s.attrib.get('errors',0))-int(s.attrib.get('skipped',0)) for s in suites)
           receipt = {'status':'PASS','config_id':image,'source_sha':source}
+          scan, tests = retained_reports(Path('gates/trivy-private.json').read_bytes(),
+              Path('gates/source-tests.xml').read_bytes(), source=source, config_id=image)
+          Path('gates/trivy-selected.json').write_bytes(scan)
+          Path('gates/source-tests-selected.json').write_bytes(tests)
           proof = prepublication_proof(owner=os.environ['OWNER'],source=source,inspect=info,
-              tests={**receipt,'passed':passed},artifact_test={**receipt,'kind':'offline image imports/encoder'},
-              trivy_bytes=Path('gates/trivy-private.json').read_bytes())
+              tests={**receipt,'passed':passed,'report_sha256':'sha256:'+hashlib.sha256(tests).hexdigest()},artifact_test={**receipt,'kind':'offline image imports/encoder'},
+              trivy_bytes=scan)
           Path('gates/owner-artifact.json').write_text(json.dumps(proof,indent=2))
           Path('gates/trivy-private.json').unlink()
           Path('gates/source-tests.xml').unlink()
@@ -99,6 +105,8 @@ jobs:
           path: |
             gates/owner-artifact.json
             gates/publish-deploy-plan.json
+            gates/trivy-selected.json
+            gates/source-tests-selected.json
             gates/selected-image.tar
           if-no-files-found: error
           retention-days: 14

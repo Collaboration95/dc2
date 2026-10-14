@@ -1409,6 +1409,18 @@
           "Ref": "StateAmiId"
         },
         "InstanceType": "t3a.small",
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Role",
+            "Value": "state"
+          }
+        ],
         "CreditSpecification": {
           "CPUCredits": "standard"
         },
@@ -3221,22 +3233,22 @@
                   ],
                   "Resource": [
                     {
-                      "Ref": "MediaTask"
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-media:*"
                     },
                     {
-                      "Ref": "ApiTask"
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-api:*"
                     },
                     {
-                      "Ref": "RecoveryTask"
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-recovery:*"
                     },
                     {
-                      "Ref": "WorkerTask"
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-worker:*"
                     },
                     {
-                      "Ref": "MediaMigrationTask"
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-mediamigration:*"
                     },
                     {
-                      "Ref": "ProcessingMigrationTask"
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-processingmigration:*"
                     }
                   ],
                   "Condition": {
@@ -3307,6 +3319,32 @@
                       }
                     }
                   }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecs:DescribeTaskDefinition"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-media:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-api:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-recovery:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-worker:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-mediamigration:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-processingmigration:*"
+                    }
+                  ]
                 },
                 {
                   "Effect": "Allow",
@@ -3426,6 +3464,29 @@
                   "Resource": [
                     "*"
                   ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:TerminateInstances",
+                    "ec2:DeleteVolume"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:volume/*"
+                    }
+                  ],
+                  "Condition": {
+                    "StringEquals": {
+                      "ec2:ResourceTag/Environment": {
+                        "Ref": "EnvironmentId"
+                      },
+                      "ec2:ResourceTag/Role": "generator"
+                    }
+                  }
                 },
                 {
                   "Effect": "Allow",

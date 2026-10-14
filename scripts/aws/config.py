@@ -120,8 +120,11 @@ class CloudConfig:
     services: dict = field(default_factory=dict)
     task_definitions: dict = field(default_factory=dict)
     network: dict = field(default_factory=dict)
+    task_networks: dict = field(default_factory=dict)
     state_instance_id: str = ""
     cloudfront_distribution_id: str = ""
+    cloudfront_origin_id: str = "state"
+    edge_activation: dict = field(default_factory=dict)
     image_digests: dict = field(default_factory=dict)
     parameter_arns: dict = field(default_factory=dict)
     session_end_utc: str = ""
@@ -186,12 +189,16 @@ class CloudConfig:
             "services",
             "task_definitions",
             "network",
+            "task_networks",
             "image_digests",
             "parameter_arns",
             "approval",
+            "edge_activation",
         ):
             if not isinstance(getattr(self, name), dict):
                 raise ValueError("Resource mappings must be objects")
+        if self.cloudfront_origin_id != "state":
+            raise ValueError("Origin identity must match the prepared state origin")
         for arn in self.parameter_arns.values():
             if not isinstance(arn, str) or not re.fullmatch(
                 r"arn:aws:ssm:[a-z]{2}-[a-z]+-\d:\d{12}:parameter/[A-Za-z0-9_/.-]+", arn

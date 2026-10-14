@@ -74,6 +74,11 @@ FIELDS = {
     "minimum_seconds",
     "core_hours",
     "overlap_hours",
+    "window_started_at",
+    "window_ended_at",
+    "warmup_started_at",
+    "warmup_ended_at",
+    "booked_deadline",
 }
 LIMIT_FIELDS = {
     "max_worker_tasks",
@@ -115,6 +120,11 @@ NUMERIC_FIELDS = {
     "overlap_hours",
     "user",
     "batch",
+    "window_started_at",
+    "window_ended_at",
+    "warmup_started_at",
+    "warmup_ended_at",
+    "booked_deadline",
 }
 BOOLEAN_FIELDS = {"eligible"}
 LIST_FIELDS = {"task_ids", "fixture_ids", "retained_ids", "commands"}

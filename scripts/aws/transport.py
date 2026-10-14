@@ -7,6 +7,7 @@ monotonic seconds, not subprocess-relative timeouts renewed on each request.
 import json
 import math
 import re
+import shutil
 import subprocess
 import time
 from urllib.parse import urlsplit
@@ -156,6 +157,11 @@ class CLITransport:
             "AWS_DEFAULT_REGION": config_value(self.config, "region"),
         }
         try:
+            if self.runner is subprocess.run:
+                executable = shutil.which(argv[0])
+                if executable is None:
+                    raise OperationError("AWS CLI is unavailable for explicit local emulation")
+                argv[0] = executable
             result = self.runner(
                 argv + ["--endpoint-url", endpoint],
                 env=env,

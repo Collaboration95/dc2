@@ -400,6 +400,10 @@ def environment_template():
         {
             "ImageId": ref("StateAmiId"),
             "InstanceType": "t3a.small",
+            "Tags": [
+                {"Key": "Environment", "Value": ref("EnvironmentId")},
+                {"Key": "Role", "Value": "state"},
+            ],
             "CreditSpecification": {"CPUCredits": "standard"},
             "IamInstanceProfile": ref("StateProfile"),
             "MetadataOptions": {"HttpTokens": "required", "HttpEndpoint": "enabled"},
@@ -726,7 +730,14 @@ def environment_template():
             ),
             allow(
                 ["ecs:RunTask"],
-                [ref(n + "Task") for n in sizes],
+                [
+                    sub(
+                        "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-"
+                        + n.lower()
+                        + ":*"
+                    )
+                    for n in sizes
+                ],
                 Condition={"ArnEquals": {"ecs:cluster": attr("Cluster", "Arn")}},
             ),
             allow(
@@ -747,6 +758,17 @@ def environment_template():
                 Condition={"ArnEquals": {"ecs:cluster": attr("Cluster", "Arn")}},
             ),
             allow(
+                ["ecs:DescribeTaskDefinition"],
+                [
+                    sub(
+                        "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-"
+                        + n.lower()
+                        + ":*"
+                    )
+                    for n in sizes
+                ],
+            ),
+            allow(
                 ["iam:PassRole"],
                 [attr(n, "Arn") for n in task_role_names],
                 Condition={"StringEquals": {"iam:PassedToService": "ecs-tasks.amazonaws.com"}},
@@ -761,6 +783,19 @@ def environment_template():
                 ],
             ),
             allow(["ec2:DescribeInstances", "ec2:DescribeVolumes", "ec2:DescribeAddresses"], ["*"]),
+            allow(
+                ["ec2:TerminateInstances", "ec2:DeleteVolume"],
+                [
+                    sub("arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"),
+                    sub("arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:volume/*"),
+                ],
+                Condition={
+                    "StringEquals": {
+                        "ec2:ResourceTag/Environment": ref("EnvironmentId"),
+                        "ec2:ResourceTag/Role": "generator",
+                    }
+                },
+            ),
             allow(
                 [
                     "cloudfront:GetDistribution",
@@ -817,6 +852,7 @@ def generator_template():
         "AWSTemplateFormatVersion": "2010-09-09",
         "Description": "Gated short-lived c6a.large generator; terminate after timed check",
         "Parameters": {
+            "EnvironmentId": {"Type": "String", "AllowedPattern": "[a-z][a-z0-9-]{1,31}"},
             "AmiId": {"Type": "AWS::EC2::Image::Id"},
             "SubnetId": {"Type": "AWS::EC2::Subnet::Id"},
             "VpcId": {"Type": "AWS::EC2::VPC::Id"},
@@ -838,6 +874,7 @@ def generator_template():
                 "Type": "AWS::EC2::Instance",
                 "Properties": {
                     "InstanceType": "c6a.large",
+                    "PropagateTagsToVolumeOnCreation": True,
                     "ImageId": ref("AmiId"),
                     "InstanceInitiatedShutdownBehavior": "terminate",
                     "UserData": {
@@ -866,7 +903,11 @@ def generator_template():
                             },
                         }
                     ],
-                    "Tags": [{"Key": "dc2-session-end", "Value": ref("SessionEndUtc")}],
+                    "Tags": [
+                        {"Key": "dc2-session-end", "Value": ref("SessionEndUtc")},
+                        {"Key": "Environment", "Value": ref("EnvironmentId")},
+                        {"Key": "Role", "Value": "generator"},
+                    ],
                 },
             },
         },

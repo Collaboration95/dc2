@@ -2,6 +2,10 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "Gated short-lived c6a.large generator; terminate after timed check",
   "Parameters": {
+    "EnvironmentId": {
+      "Type": "String",
+      "AllowedPattern": "[a-z][a-z0-9-]{1,31}"
+    },
     "AmiId": {
       "Type": "AWS::EC2::Image::Id"
     },
@@ -43,6 +47,7 @@
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "InstanceType": "c6a.large",
+        "PropagateTagsToVolumeOnCreation": true,
         "ImageId": {
           "Ref": "AmiId"
         },
@@ -86,6 +91,16 @@
             "Value": {
               "Ref": "SessionEndUtc"
             }
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Role",
+            "Value": "generator"
           }
         ]
       }

@@ -5,35 +5,53 @@ import pytest
 from scripts.aws.latency import Cycle, hash_cost, percentile90, summarize
 
 HASH = "$2b$12$" + "a" * 53
+WINDOW = {
+    "started_at": 0,
+    "ended_at": 180,
+    "warmup_started_at": 0,
+    "warmup_ended_at": 0,
+    "booked_deadline": 210,
+}
 
 
-def sample(user, ms=100, **kw):
-    return {"user": user, "elapsed_ms": ms, "status_code": 200, "phase": "timed", **kw}
+def sample(user, ms=100, *, at=0, **kw):
+    return {
+        "user": user,
+        "elapsed_ms": ms,
+        "status_code": 200,
+        "phase": "timed",
+        "started_at": at,
+        "ended_at": at + ms / 1000,
+        **kw,
+    }
 
 
 def test_p90_and_failures_not_dropped():
     assert percentile90(list(range(1, 11))) == 9
-    samples = [sample(u % 50) for u in range(100)]
-    samples[-1].update(status_code=500, elapsed_ms=3000, error="request_failed")
-    result = summarize(samples, users=50, duration_seconds=180, measurement="status")
+    samples = [sample(u, at=t) for t in range(180) for u in range(50)]
+    for row in samples[-90:]:
+        row.update(status_code=500, error="request_failed")
+    result = summarize(samples, users=50, duration_seconds=180, measurement="status", window=WINDOW)
     assert result["eligible"] and result["error_rate"] == 0.01 and result["status"] == "FAIL"
-    assert result["sample_count"] == 100
+    assert result["sample_count"] == 9000
 
 
 @pytest.mark.parametrize("change", ["warmup", "missing_user", "wrong_duration", "slow"])
 def test_status_ineligible_or_missed_target(change):
-    samples = [sample(u) for u in range(50)]
+    samples = [sample(u, at=t) for t in range(180) for u in range(50)]
     duration = 180
     if change == "warmup":
         samples[0]["phase"] = "warmup"
     elif change == "missing_user":
-        samples.pop()
+        samples = [s for s in samples if s["user"] != 49]
     elif change == "wrong_duration":
         duration = 179
     else:
-        samples = [sample(u, 701) for u in range(50)]
+        samples = [sample(u, 701, at=t) for t in range(180) for u in range(50)]
     assert (
-        summarize(samples, users=50, duration_seconds=duration, measurement="status")["status"]
+        summarize(
+            samples, users=50, duration_seconds=duration, measurement="status", window=WINDOW
+        )["status"]
         == "FAIL"
     )
 
@@ -70,12 +88,14 @@ async def test_one_bounded_serial_cycle_on_fake_clock_and_no_repeat(tmp_path):
     cycle = Cycle(
         tmp_path, generator_id="generator", state_id="state", clock=lambda: now[0], sleep=sleep
     )
-    samples, result = await cycle.run(request, encoded_hash=HASH, configured_hash_cost=12)
-    assert now[0] == 180 and len(samples["status"]) == 9000 and len(samples["login"]) == 20
-    assert order == ["status"] * 9000 + ["login"] * 20
+    samples, result = await cycle.run(
+        request, encoded_hash=HASH, configured_hash_cost=12, deadline=215
+    )
+    assert now[0] == 185 and len(samples["status"]) == 9000 and len(samples["login"]) == 20
+    assert order == ["status"] * 9050 + ["login"] * 20
     assert result["status"]["status"] == result["login"]["status"] == "PASS"
     with pytest.raises(FileExistsError):
-        await cycle.run(request, encoded_hash=HASH, configured_hash_cost=12)
+        await cycle.run(request, encoded_hash=HASH, configured_hash_cost=12, deadline=215)
     with pytest.raises(ValueError, match="independent"):
         Cycle(tmp_path, generator_id="state", state_id="state")
 

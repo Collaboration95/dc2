@@ -302,3 +302,26 @@ def test_uncertain_drain_blocks_capacity_and_retains_safe_failure(tmp_path):
     assert ledger.long_jobs == 1
     assert ledger.records[-1]["failure_code"] == "capacity_drain_failed"
     assert "private" not in (evidence.directory / "ledger.jsonl").read_text()
+
+
+def test_protocol_calendar_uses_shared_singapore_boundaries():
+    from datetime import timedelta
+
+    from scripts.aws.config import WINDOW_END, WINDOW_START
+
+    configuration = {
+        "account_id": "dummy",
+        "origin_transport_accepted": True,
+        "approval": {
+            "authorization_id": "dummy",
+            "account_id": "dummy",
+            "currency": "USD",
+            "spending_limit": 15,
+            "operator_station": "dummy",
+        },
+    }
+    configuration["session_end_utc"] = (WINDOW_START + timedelta(hours=1)).isoformat()
+    assert preconditions(configuration, now=WINDOW_START + timedelta(minutes=1))
+    configuration["session_end_utc"] = (WINDOW_END + timedelta(hours=1)).isoformat()
+    with pytest.raises(ValueError):
+        preconditions(configuration, now=WINDOW_END - timedelta(minutes=1))

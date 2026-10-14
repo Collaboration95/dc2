@@ -116,7 +116,7 @@ def test_drain_collects_current_last_racing_claims(config, fake, journal, clock)
     sent = []
     observations = 0
 
-    def observe(task, name):
+    def observe(task, name, **kwargs):
         nonlocal observations
         observations += 1
         if observations >= 3:
@@ -128,7 +128,7 @@ def test_drain_collects_current_last_racing_claims(config, fake, journal, clock)
             "outcomes": {"current": "succeeded", "last": "failed", "racing": "abandoned"},
         }
 
-    def warm(task, name):
+    def warm(task, name, **kwargs):
         sent.append((task, name))
         return True
 
@@ -155,11 +155,11 @@ def test_lost_warm_ack_never_second_signal(config, fake, journal, clock):
     arn = launch(config, fake, journal, clock)[0]
     sent = []
 
-    def warm(task, name):
+    def warm(task, name, **kwargs):
         sent.append(task)
         return False
 
-    def observed(task, name):
+    def observed(task, name, **kwargs):
         fake.tasks[arn]["lastStatus"] = "STOPPED"
         return {
             "fresh": True,
@@ -188,7 +188,7 @@ def test_lost_warm_ack_never_second_signal(config, fake, journal, clock):
 def test_timeout_is_forced_interruption_not_success(config, fake, journal, clock):
     launch(config, fake, journal, clock)
 
-    def observed(*a):
+    def observed(*a, **kw):
         return {"fresh": True, "claims_stopped": False, "claims": ["claim"], "outcomes": {}}
 
     with journal.locked() as state:
@@ -199,7 +199,7 @@ def test_timeout_is_forced_interruption_not_success(config, fake, journal, clock
                 journal,
                 state,
                 observe=observed,
-                warm_shutdown=lambda *a: True,
+                warm_shutdown=lambda *a, **kw: True,
                 deadline=1000,
                 clock=clock,
                 sleep=clock.sleep,
@@ -218,8 +218,8 @@ def test_unknown_or_stale_worker_registration(config, fake, journal, clock):
                 fake,
                 journal,
                 state,
-                observe=lambda *a: {},
-                warm_shutdown=lambda *a: True,
+                observe=lambda *a, **kw: {},
+                warm_shutdown=lambda *a, **kw: True,
                 deadline=1000,
                 clock=clock,
                 sleep=clock.sleep,
@@ -233,8 +233,8 @@ def test_unknown_or_stale_worker_registration(config, fake, journal, clock):
                 fake,
                 journal,
                 state,
-                observe=lambda *a: {"fresh": False},
-                warm_shutdown=lambda *a: True,
+                observe=lambda *a, **kw: {"fresh": False},
+                warm_shutdown=lambda *a, **kw: True,
                 deadline=1000,
                 clock=clock,
                 sleep=clock.sleep,

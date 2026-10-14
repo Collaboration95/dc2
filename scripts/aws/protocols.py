@@ -6,11 +6,12 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from scripts.aws.config import WINDOW_END, WINDOW_START
 from scripts.aws.evidence import select
 from scripts.dev.e2e_clients import assert_video_progress
 
-ANCHOR = datetime(2026, 10, 15, tzinfo=UTC)
-END = datetime(2026, 10, 29, tzinfo=UTC)
+ANCHOR = WINDOW_START
+END = WINDOW_END
 
 
 @dataclass(frozen=True)

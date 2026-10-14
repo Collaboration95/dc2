@@ -1,5 +1,6 @@
 """Cloud-only process watchdog; includes startup and Redis's unlimited retry loop."""
 
+import json
 import math
 import os
 import signal
@@ -99,6 +100,17 @@ def finite_worker_class(warm_fd):
     class FiniteWorker(Worker):
         _warm_requested = False
 
+        def execute_job(self, job, queue):
+            # SQL attempt IDs equal RQ job IDs. Retain every claim for this finite
+            # worker before execution, including the last/racing claim at shutdown.
+            claims = json.loads(self.connection.hget(self.key, "dc2_claims") or b"[]")
+            if job.id not in claims:
+                if len(claims) >= 64:
+                    raise RuntimeError("Finite worker claim observation bound exceeded")
+                claims.append(job.id)
+                self.connection.hset(self.key, "dc2_claims", json.dumps(claims))
+            return super().execute_job(job, queue)
+
         def request_force_stop(self, signum, frame):
             # RQ may install this handler during its first signal callback.
             return self.request_stop(signum, frame)
@@ -114,6 +126,11 @@ def finite_worker_class(warm_fd):
             try:
                 super().request_stop(signum, frame)
             finally:
+                try:
+                    seconds, micros = self.connection.time()
+                    self.connection.hset(self.key, "dc2_warm_ack", str(seconds + micros / 1e6))
+                except Exception:
+                    pass  # No positive Redis receipt means drain must fail closed.
                 # RQ installs a cold second-signal handler. Cloud shutdown must
                 # remain warm exactly once; only the parent deadline forces exit.
                 signal.signal(signal.SIGINT, self.request_stop)

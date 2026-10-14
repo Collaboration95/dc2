@@ -2,7 +2,7 @@
 
 import time
 from dataclasses import dataclass
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 import httpx
 
@@ -29,6 +29,7 @@ class Context:
     timeout_seconds: float = 10
     max_response_bytes: int = 2 * 1024 * 1024
     capability_limit_bytes: int = 100 * 1024 * 1024
+    fixture_object_origin: str = ""
 
     def __post_init__(self):
         p = _parts(self.public_url)
@@ -51,6 +52,19 @@ class Context:
                 raise ContextError("Production context requires generated CloudFront HTTPS")
         elif p.hostname not in {"localhost", "127.0.0.1", "::1"} or p.scheme != "https":
             raise ContextError("Local fixtures require explicit loopback HTTPS")
+        if self.fixture_object_origin:
+            fixture = _parts(self.fixture_object_origin)
+            if (
+                self.mode != "local-fixture"
+                or fixture.scheme != "https"
+                or fixture.hostname not in {"localhost", "127.0.0.1", "::1"}
+                or fixture.username
+                or fixture.password
+                or fixture.query
+                or fixture.fragment
+                or fixture.path not in {"", "/"}
+            ):
+                raise ContextError("Object fixtures require an explicit loopback HTTPS origin")
         import re
 
         if (
@@ -68,6 +82,20 @@ class Context:
 
     def capability_allowed(self, url):
         p = _parts(url)
+        if self.fixture_object_origin:
+            fixture = _parts(self.fixture_object_origin)
+            path = unquote(p.path).split("/")
+            return (
+                p.scheme == "https"
+                and p.hostname == fixture.hostname
+                and (p.port or 443) == (fixture.port or 443)
+                and not p.username
+                and not p.password
+                and not p.fragment
+                and len(path) > 2
+                and path[1] in self.buckets
+                and not any(part in {".", ".."} or "\\" in part for part in path)
+            )
         return (
             p.scheme == "https"
             and not p.username
@@ -96,7 +124,7 @@ class Client:
         )
         # A separate jar and no API auth/default headers, even when redirects return S3 URLs.
         self.objects = httpx.Client(
-            verify=True,
+            verify=verify if context.fixture_object_origin else True,
             follow_redirects=False,
             trust_env=False,
             timeout=context.timeout_seconds,

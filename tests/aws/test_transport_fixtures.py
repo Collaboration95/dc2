@@ -1,4 +1,5 @@
 import copy
+import hashlib
 
 import pytest
 
@@ -45,15 +46,16 @@ class Fake:
         self.volumes = {}
         self.addresses = []
         self.distribution = {
+            "Enabled": True,
             "Origins": {
                 "Items": [
                     {
-                        "Id": "state-origin",
+                        "Id": "state",
                         "DomainName": "old.example",
                         "CustomOriginConfig": {"OriginProtocolPolicy": "http-only"},
                         "CustomHeaders": {
                             "Quantity": 1,
-                            "Items": [{"HeaderName": "X-Origin", "HeaderValue": "PRIVATE-DUMMY"}],
+                            "Items": [{"HeaderName": "X-DC2-Origin-Gate", "HeaderValue": "a" * 64}],
                         },
                     }
                 ]
@@ -240,6 +242,14 @@ def config():
         "cloudfront_distribution_id": "distribution",
         "public_url": "https://demo.cloudfront.net",
         "origin_transport_accepted": True,
+        "edge_activation": {
+            "status": "VERIFIED",
+            "environment_id": "demo",
+            "distribution_id": "distribution",
+            "origin_id": "state",
+            "nginx_gate_observed": True,
+            "gate_sha256": hashlib.sha256(b"a" * 64).hexdigest(),
+        },
     }
 
 

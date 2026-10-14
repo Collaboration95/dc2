@@ -79,7 +79,7 @@ def snapshot(config, transport, owner, schema_revision, *, deadline, worker_defi
                         ),
                     }
                 )
-    revision = schema_revision(peer)
+    revision = schema_revision(peer, deadline=deadline)
     if not isinstance(revision, str) or not revision:
         raise OperationError("Peer schema revision must be observed")
     return {
@@ -211,6 +211,8 @@ def _migration(
     clock,
     sleep,
 ):
+    task_networks = config_value(config, "task_networks", {})
+    network = task_networks.get(owner + "_migration", config_value(config, "network"))
     pending = state["pending_release"]
     token = uuid.uuid4().hex
     payload = {
@@ -222,9 +224,9 @@ def _migration(
         "startedBy": "migration-" + token[:26],
         "networkConfiguration": {
             "awsvpcConfiguration": {
-                "subnets": config_value(config, "network")["subnets"],
-                "securityGroups": config_value(config, "network")["security_groups"],
-                "assignPublicIp": config_value(config, "network")["assign_public_ip"],
+                "subnets": network["subnets"],
+                "securityGroups": network["security_groups"],
+                "assignPublicIp": network["assign_public_ip"],
             }
         },
     }
@@ -243,7 +245,7 @@ def _migration(
             if (
                 not task.get("containers")
                 or any(c.get("exitCode") != 0 for c in task["containers"])
-                or schema_revision(owner) != expected_revision
+                or schema_revision(owner, deadline=deadline) != expected_revision
             ):
                 raise OperationError("Owning migration exit/revision gate failed")
             pending["migration_complete"] = True

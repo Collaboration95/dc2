@@ -1,12 +1,34 @@
+from datetime import UTC, datetime
+
 import pytest
 from test_transport_fixtures import clock as clock
 from test_transport_fixtures import config as config
 from test_transport_fixtures import fake as fake
 from test_transport_fixtures import journal as journal
 
+from scripts.aws.exports import WRITERS
 from scripts.aws.lifecycle import close, open_session
 from scripts.aws.transport import OperationError
 from scripts.aws.workers import start
+
+NOW = datetime(2026, 10, 15, 3, tzinfo=UTC).timestamp()
+
+
+def observed_proof(config):
+    return {
+        "environment_id": config["environment_id"],
+        "operator_station": config["operator_station"],
+        "boundary_id": "fixture-boundary-0001",
+        "issued_at": datetime.fromtimestamp(NOW, UTC).isoformat(),
+        "expires_at": datetime.fromtimestamp(NOW + 300, UTC).isoformat(),
+        "intake_closed": True,
+        "launches_closed": True,
+        "workers_drained": True,
+        "active_claims": 0,
+        "nonterminal_tasks": 0,
+        "unresolved_launches": 0,
+        "writers_quiesced": dict.fromkeys(WRITERS, True),
+    }
 
 
 def close_args(config, fake, journal, clock):
@@ -17,7 +39,8 @@ def close_args(config, fake, journal, clock):
         "pause_intake": lambda *a: True,
         "observe": lambda *a: {"fresh": True, "claims_stopped": True, "claims": [], "outcomes": {}},
         "warm_shutdown": lambda *a: True,
-        "quiesce_writers": lambda *a: True,
+        "quiesce_writers": lambda *a: observed_proof(config),
+        "wall_clock": lambda: NOW,
         "export_hook": lambda *a: {"status": "PASS"},
         "deadline": 1000,
         "clock": clock,
@@ -54,10 +77,11 @@ def test_orphan_migration_generator_and_repeat_close(config, fake, journal, cloc
     options = close_args(config, fake, journal, clock)
 
     def export(proof, deadline):
-        assert proof["quiescent"] is True
+        assert proof["writers_quiesced"] == dict.fromkeys(WRITERS, True)
+        assert deadline == NOW + 300
         assert fake.instances["state"]["State"]["Name"] == "running"
         assert fake.tasks[orphan]["lastStatus"] == "STOPPED"
-        assert fake.services["recovery-service"]["desiredCount"] == 1
+        assert fake.services["recovery-service"]["desiredCount"] == 0
         return {"status": "PASS", "private_export": "not persisted"}
 
     options["export_hook"] = export

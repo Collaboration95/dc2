@@ -2,8 +2,11 @@
 
 import copy
 import time
-from datetime import UTC, datetime
+from datetime import datetime
 
+from scripts.aws.config import CloudConfig
+from scripts.aws.edge import ORIGIN_ID, validate_activation
+from scripts.aws.exports import ExportBlocked, validate_quiescence
 from scripts.aws.release import services
 from scripts.aws.transport import OperationError, config_value, remaining
 from scripts.aws.workers import drain, inventory, worker_inventory
@@ -62,6 +65,7 @@ def close(
     deadline,
     clock=time.monotonic,
     sleep=time.sleep,
+    wall_clock=time.time,
 ):
     journal.check_context(config)
     with journal.locked() as state:
@@ -173,22 +177,36 @@ def close(
             clock,
             sleep,
         )
-        if quiesce_writers(deadline) is not True:
-            raise OperationError("Owner writers not quiescent; state kept online")
-        proof = {
-            "environment_id": config_value(config, "environment_id"),
-            "quiescent": True,
-            "intake_paused": True,
-            "launches_paused": True,
-            "writers_stopped": True,
-            "worker_tasks_stopped": True,
-            "observed_at_utc": datetime.now(UTC).isoformat(),
-        }
+        # Worker outcomes have settled with recovery alive. Stop all application
+        # writers before a common DB snapshot; PostgreSQL/Redis remain on EC2.
+        for name in config_value(config, "services").values():
+            transport.call(
+                "ecs",
+                "update-service",
+                {"cluster": config_value(config, "cluster"), "service": name, "desiredCount": 0},
+                deadline=deadline,
+            )
+        _wait(lambda: _zero_tasks(config, transport, known, deadline), deadline, clock, sleep)
+        proof = quiesce_writers(deadline)
+        try:
+            proof_expiry = datetime.fromisoformat(
+                proof["expires_at"].replace("Z", "+00:00")
+            ).timestamp()
+            export_deadline = min(proof_expiry, wall_clock() + min(300, remaining(deadline, clock)))
+            identity = CloudConfig(
+                environment_id=config_value(config, "environment_id"),
+                operator_station=config_value(config, "operator_station"),
+            )
+            validate_quiescence(identity, proof, now=wall_clock(), deadline=export_deadline)
+        except (ExportBlocked, ValueError, TypeError, KeyError):
+            raise OperationError(
+                "Observed owner quiescence proof required; state kept online"
+            ) from None
         # Hook owns private DB/roles manifest. Retain selected confirmation only.
-        exported = export_hook(proof, deadline)
+        exported = export_hook(proof, export_deadline)
         if not isinstance(exported, dict) or exported.get("status") != "PASS":
             raise OperationError("Export failed; no state stop or backup claim")
-        state["export"] = {"status": "PASS", "quiescent_at_utc": proof["observed_at_utc"]}
+        state["export"] = {"status": "PASS", "quiescent_at_utc": proof["issued_at"]}
         journal.save(state)
         for name in config_value(config, "services").values():
             transport.call(
@@ -325,6 +343,11 @@ def open_session(
         journal.save(state)
         if config_value(config, "origin_transport_accepted", False) is not True:
             raise OperationError("Origin transport interpretation remains gated")
+        distribution = config_value(config, "cloudfront_distribution_id")
+        current = transport.call(
+            "cloudfront", "get-distribution-config", {"Id": distribution}, deadline=deadline
+        )
+        validate_activation(config, current)
         state.pop("close_receipt", None)
         state.update(paused=True, session="opening")
         journal.save(state)
@@ -366,7 +389,7 @@ def open_session(
             "cloudfront", "get-distribution-config", {"Id": distribution}, deadline=deadline
         )
         settings = copy.deepcopy(current["DistributionConfig"])
-        origin_id = config_value(config, "cloudfront_origin_id", "state-origin")
+        origin_id = config_value(config, "cloudfront_origin_id", ORIGIN_ID)
         origins = [o for o in settings["Origins"]["Items"] if o["Id"] == origin_id]
         if len(origins) != 1 or not current.get("ETag"):
             raise OperationError("Known origin and config ETag required")

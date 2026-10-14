@@ -142,7 +142,8 @@ def export_command_plan():
 
 def _private_directory(directory):
     directory = Path(directory)
-    if directory.is_symlink() or directory.resolve().is_relative_to(ROOT):
+    resolved = directory.resolve()
+    if directory.is_symlink() or any((p / ".git").exists() for p in (resolved, *resolved.parents)):
         raise ExportBlocked("Export directory must be outside Git and not a symlink")
     directory.mkdir(mode=0o700, parents=True, exist_ok=True)
     if directory.stat().st_mode & 0o077:
@@ -175,10 +176,18 @@ def export_state(
     the manifest. Retention runs only after its confirmed manifest. EBS is untouched.
     """
     config = _config(config)
-    if config.mode != "plan" or any(
-        getattr(b, "evidence_kind", None) != "offline" for b in [commands, storage]
-    ):
-        raise ExportBlocked("Only explicit offline fake boundaries may execute in preparation")
+    kinds = {getattr(b, "evidence_kind", None) for b in (commands, storage)}
+    evidence_kind = "offline"
+    if kinds == {"local-services"}:
+        from scripts.aws.local_adapters import LocalDump, PrivateFiles
+
+        if type(commands) is not LocalDump or type(storage) is not PrivateFiles:
+            raise ExportBlocked("Only concrete bounded local export adapters are allowed")
+        evidence_kind = "local-services"
+    elif kinds != {"offline"}:
+        raise ExportBlocked("Preparation exports require matching explicit local boundaries")
+    if config.mode != "plan":
+        raise ExportBlocked("Actual AWS export execution is disabled")
     if type(max_bytes) is not int or not 0 < max_bytes <= MAX_EXPORT_BYTES:
         raise ExportBlocked("Export byte bound must not exceed 64MiB")
     boundary = validate_quiescence(config, proof, now=clock(), deadline=deadline)
@@ -222,7 +231,7 @@ def export_state(
             "files": entries,
             "total_bytes": total,
             "private_prefix": prefix + boundary + "/",
-            "evidence_kind": "offline",
+            "evidence_kind": evidence_kind,
             "restore_status": "NOT_RUN",
             "ebs_deleted": False,
         }
@@ -268,7 +277,7 @@ def export_state(
         check()
         return {
             "status": "PASS",
-            "evidence_kind": "offline",
+            "evidence_kind": evidence_kind,
             "boundary_id": boundary,
             "manifest_sha256": hashlib.sha256(encoded).hexdigest(),
             "bytes": total,

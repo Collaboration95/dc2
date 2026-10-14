@@ -27,9 +27,9 @@ def args(config, fake, journal, clock, owner="processing"):
             "prior_config_id": artifact(owner, OLD)["config_id"],
             "expected_revision": "head-owned",
         },
-        "schema_revision": lambda owner: "head-owned",
-        "readiness": lambda *a: True,
-        "public_smoke": lambda *a: {"status": "PASS"},
+        "schema_revision": lambda owner, **kw: "head-owned",
+        "readiness": lambda *a, **kw: True,
+        "public_smoke": lambda *a, **kw: {"status": "PASS"},
         "deadline": 2000,
         "clock": clock,
         "sleep": clock.sleep,
@@ -100,7 +100,7 @@ def test_waiter_cannot_pass_old_digest(config, fake, journal, clock):
 def test_migration_and_compatibility_gates(config, fake, journal, clock, failure):
     options = args(config, fake, journal, clock)
     if failure == "wrong-revision":
-        options["schema_revision"] = lambda owner: "wrong"
+        options["schema_revision"] = lambda owner, **kw: "wrong"
     elif failure == "not-additive":
         options["compatibility"]["additive_reviewed"] = False
     elif failure == "bad-definition":
@@ -131,7 +131,7 @@ def test_migration_and_compatibility_gates(config, fake, journal, clock, failure
 
 def test_failed_restore_retains_intent_and_explicit_resume(config, fake, journal, clock):
     options = args(config, fake, journal, clock)
-    options["public_smoke"] = lambda *a: {"status": "FAIL"}
+    options["public_smoke"] = lambda *a, **kw: {"status": "FAIL"}
     with pytest.raises(OperationError, match="intent retained"):
         promote(**options)
     with journal.locked() as state:
@@ -140,9 +140,9 @@ def test_failed_restore_retains_intent_and_explicit_resume(config, fake, journal
         config,
         fake,
         journal,
-        schema_revision=lambda *a: "head-owned",
-        readiness=lambda *a: True,
-        public_smoke=lambda *a: {"status": "PASS"},
+        schema_revision=lambda *a, **kw: "head-owned",
+        readiness=lambda *a, **kw: True,
+        public_smoke=lambda *a, **kw: {"status": "PASS"},
         deadline=1000,
         clock=clock,
         sleep=clock.sleep,
@@ -183,9 +183,9 @@ def test_migration_restart_replay_uses_original_token(config, fake, journal, clo
         config,
         fake,
         journal,
-        schema_revision=lambda *a: "head-owned",
-        readiness=lambda *a: True,
-        public_smoke=lambda *a: {"status": "PASS"},
+        schema_revision=lambda *a, **kw: "head-owned",
+        readiness=lambda *a, **kw: True,
+        public_smoke=lambda *a, **kw: {"status": "PASS"},
         deadline=1000,
         clock=clock,
         sleep=clock.sleep,
@@ -197,7 +197,7 @@ def test_migration_restart_replay_uses_original_token(config, fake, journal, clo
 
 def test_restore_deadline_not_reset_after_restart(config, fake, journal, clock):
     options = args(config, fake, journal, clock)
-    options["public_smoke"] = lambda *a: {"status": "FAIL"}
+    options["public_smoke"] = lambda *a, **kw: {"status": "FAIL"}
     with pytest.raises(OperationError):
         promote(**options)
     clock.now = 401
@@ -207,9 +207,9 @@ def test_restore_deadline_not_reset_after_restart(config, fake, journal, clock):
             config,
             fake,
             journal,
-            schema_revision=lambda *a: "head-owned",
-            readiness=lambda *a: True,
-            public_smoke=lambda *a: {"status": "PASS"},
+            schema_revision=lambda *a, **kw: "head-owned",
+            readiness=lambda *a, **kw: True,
+            public_smoke=lambda *a, **kw: {"status": "PASS"},
             deadline=1000,
             clock=clock,
             sleep=clock.sleep,
@@ -252,7 +252,7 @@ def test_release_smoke_launches_candidate_and_prior_via_held_station_lock(
         # This represents genuine public candidate failure, not a successful waiter.
         return {"status": "FAIL" if len(names) == 1 else "PASS"}
 
-    def observe(arn, name):
+    def observe(arn, name, **kwargs):
         record = next(
             r
             for r in __import__("json").loads(journal.path.read_text())["launches"].values()
@@ -268,7 +268,7 @@ def test_release_smoke_launches_candidate_and_prior_via_held_station_lock(
             "outcomes": {"claim-" + arn: "succeeded"} if stopped else {},
         }
 
-    options.update(smoke_workflow=workflow, observe=observe, warm_shutdown=lambda *a: True)
+    options.update(smoke_workflow=workflow, observe=observe, warm_shutdown=lambda *a, **kw: True)
     result = promote(**options)
     assert result["status"] == "failed-restored"
     requests = [
@@ -295,3 +295,18 @@ def test_media_smoke_cannot_launch_processing_workers(config, fake, journal, clo
     options["smoke_workflow"] = workflow
     assert promote(**options)["status"] == "promoted"
     assert not any(c[1] == "run-task" and "worker" in c[2]["taskDefinition"] for c in fake.calls)
+
+
+def test_owning_migration_uses_its_explicit_task_network(config, fake, journal, clock):
+    config["task_networks"] = {
+        "processing_migration": {
+            "subnets": ["state-subnet"],
+            "security_groups": ["migration-sg"],
+            "assign_public_ip": "ENABLED",
+        }
+    }
+    promote(**args(config, fake, journal, clock))
+    request = next(c[2] for c in fake.calls if c[1] == "run-task")
+    assert request["networkConfiguration"]["awsvpcConfiguration"]["securityGroups"] == [
+        "migration-sg"
+    ]

@@ -56,7 +56,14 @@ def run(command, *, label: str, timeout: int, env=None, cwd: Path = ROOT) -> Non
 def fingerprint(root: Path = ROOT) -> str:
     """Reject evidence from different product, test, lock or tooling contents."""
     files = [root / "pyproject.toml", root / "uv.lock", root / "frontend/package-lock.json"]
-    for directory in (*packages(root), "tests", "scripts/dev", "migrations", "frontend"):
+    for directory in (
+        *packages(root),
+        "tests",
+        "scripts/dev",
+        "scripts/aws",
+        "migrations",
+        "frontend",
+    ):
         files.extend(
             p
             for p in (root / directory).rglob("*")
