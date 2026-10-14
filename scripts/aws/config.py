@@ -144,9 +144,9 @@ class CloudConfig:
             raise ValueError("Maximum workers must be an integer from zero through three")
         if (
             type(self.worker_lifetime_seconds) is not int
-            or not 60 <= self.worker_lifetime_seconds <= 14400
+            or not 60 <= self.worker_lifetime_seconds <= 3600
         ):
-            raise ValueError("Worker lifetime must be finite, from 60 to 14400 seconds")
+            raise ValueError("Worker lifetime must be finite, from 60 to 3600 seconds")
         if type(self.origin_transport_accepted) is not bool:
             raise ValueError("Origin transport disposition must be explicit boolean")
         for name in (self.source_bucket, self.output_bucket):
@@ -163,10 +163,21 @@ class CloudConfig:
             if (
                 public.scheme != "https"
                 or not public.hostname
-                or public.port not in (None, 443)
+                or self.mode == "plan"
+                and public.port not in (None, 443)
                 or public.path not in ("", "/")
             ):
                 raise ValueError("Public URL must be an HTTPS origin")
+            if self.mode == "emulator":
+                try:
+                    public_loopback = (
+                        public.hostname == "localhost"
+                        or ipaddress.ip_address(public.hostname).is_loopback
+                    )
+                except ValueError:
+                    public_loopback = False
+                if not public_loopback:
+                    raise ValueError("Emulator public URL must use an explicit loopback host")
             if self.mode == "plan" and not re.fullmatch(
                 r"[a-z0-9]+\.cloudfront\.net", public.hostname
             ):

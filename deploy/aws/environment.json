@@ -56,15 +56,11 @@
       "Type": "String",
       "AllowedPattern": "arn:aws:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+"
     },
-    "WorkerCommand": {
-      "Type": "CommaDelimitedList",
-      "Description": "Finite cloud wrapper included in selected Processing digest; no raw resident worker command"
-    },
     "WorkerLifetimeSeconds": {
       "Type": "Number",
       "Default": 1800,
       "MinValue": 60,
-      "MaxValue": 14400
+      "MaxValue": 3600
     },
     "WorkerContainerMemory": {
       "Type": "Number",
@@ -2615,9 +2611,16 @@
             "Memory": {
               "Ref": "WorkerContainerMemory"
             },
-            "Command": {
-              "Ref": "WorkerCommand"
-            },
+            "Command": [
+              "python",
+              "-m",
+              "processing.worker",
+              "--cloud-deadline",
+              "0",
+              "--name",
+              "operator-override-required",
+              "--burst"
+            ],
             "StopTimeout": 120,
             "Environment": [
               {

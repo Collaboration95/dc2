@@ -52,18 +52,11 @@ def environment_template():
             "Type": "String",
             "AllowedPattern": "arn:aws:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+",
         },
-        "WorkerCommand": {
-            "Type": "CommaDelimitedList",
-            "Description": (
-                "Finite cloud wrapper included in selected Processing digest; "
-                "no raw resident worker command"
-            ),
-        },
         "WorkerLifetimeSeconds": {
             "Type": "Number",
             "Default": 1800,
             "MinValue": 60,
-            "MaxValue": 14400,
+            "MaxValue": 3600,
         },
         "WorkerContainerMemory": {"Type": "Number", "Default": 1536, "AllowedValues": [1536, 4096]},
     }
@@ -578,7 +571,16 @@ def environment_template():
         "Media": ["uvicorn", "media.main:app", "--host", "0.0.0.0", "--port", "8000"],
         "Api": ["uvicorn", "processing.main:app", "--host", "0.0.0.0", "--port", "8000"],
         "Recovery": ["python", "-m", "processing.recovery"],
-        "Worker": ref("WorkerCommand"),
+        "Worker": [
+            "python",
+            "-m",
+            "processing.worker",
+            "--cloud-deadline",
+            "0",
+            "--name",
+            "operator-override-required",
+            "--burst",
+        ],
         "MediaMigration": ["python", "-m", "alembic", "-c", "media/alembic.ini", "upgrade", "head"],
         "ProcessingMigration": [
             "python",

@@ -151,7 +151,18 @@ def test_three_services_exact_sizes_zero_idle_and_owner_migrations():
     assert media[1]["Command"] == ["python", "-m", "media.recovery"]
     assert "HealthCheck" not in media[1]
     worker = resources["WorkerTask"]["Properties"]["ContainerDefinitions"][0]
-    assert worker["Command"] == {"Ref": "WorkerCommand"}
+    assert worker["Command"] == [
+        "python",
+        "-m",
+        "processing.worker",
+        "--cloud-deadline",
+        "0",
+        "--name",
+        "operator-override-required",
+        "--burst",
+    ]
+    assert "WorkerCommand" not in environment_template()["Parameters"]
+    assert environment_template()["Parameters"]["WorkerLifetimeSeconds"]["MaxValue"] == 3600
     assert worker["Memory"] == {"Ref": "WorkerContainerMemory"}
     assert "DC2_WORKER_LIFETIME_SECONDS" in json.dumps(worker["Environment"])
     for owner in ["Media", "Processing"]:

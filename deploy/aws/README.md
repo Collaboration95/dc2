@@ -100,10 +100,17 @@ Media1024/2048 contains essential API960CPU/1536MiB and reconciler64CPU/512MiB.
 API512/1024 and recovery256/512 are separate services; recovery runs every15s and
 has no RunTask/PassRole. Workers2048/4096 are standalone and normally absent.
 `WorkerContainerMemory`1536(default) or4096 is distinct from billed task memory.
-`WorkerCommand` is required: select the delivery bundle's finite wrapper contained
-in the exact Processing digest; do not use raw resident `processing.worker`.
-The definition supplies `DC2_WORKER_LIFETIME_SECONDS`; the coordinator must align
-this with the wrapper and selected cloud image staging before runtime acceptance.
+Worker base command is fixed to `python -m processing.worker --cloud-deadline 0
+--name operator-override-required --burst`. Deadline0 fails closed: directRunTask
+without bounded command overrides cannot start an infinite resident worker.
+No arbitrary `WorkerCommand` parameter exists, and `cloud.py` is not a moduleCLI.
+The operator starts exactly1task per journal-correlated request, overriding the
+command with a unique name and future absolute epoch deadline; `--burst` is
+optional for explicit fixed-capacity prewarming. Shared config and template
+`WorkerLifetimeSeconds` enforce60–3600s. `DC2_WORKER_LIFETIME_SECONDS` records that
+budget in the task environment; it does not replace the required absolute
+`--cloud-deadline` argument or authorize a launch. Selected Processing image must
+contain the delivery bundle's implemented worker entrypoint.
 
 Services are socket-live independently of peer state. `readiness_plan(owner)`
 requires owned TCP/schema/DML/denial/revision/DNS/authenticated-peer receipts and

@@ -43,12 +43,14 @@ def test_roundtrip_missing_approval_is_a_plan(tmp_path):
         {"max_worker_tasks": True},
         {"worker_lifetime_seconds": 0},
         {"worker_lifetime_seconds": 14401},
+        {"worker_lifetime_seconds": 3601},
         {"origin_transport_accepted": "yes"},
         {"source_bucket": "bad/bucket"},
         {"source_bucket": "demo-output"},
         {"public_url": "http://d123.cloudfront.net"},
         {"public_url": "https://unapproved.example"},
         {"public_url": "https://d123.cloudfront.net/api"},
+        {"public_url": "https://d123.cloudfront.net:54440"},
         {"endpoint_url": "http://169.254.169.254:80"},
         {"endpoint_url": "http://example.test:5000"},
         {"endpoint_url": "http://127.0.0.1"},
@@ -117,3 +119,28 @@ def test_references_are_nonsecret_and_anchored_deadline_is_preserved():
         CloudConfig.from_dict({"mode": "plan"})
     with pytest.raises(ValueError):
         CloudConfig.from_dict(config_dict(unexpected="ignored inputs are dangerous"))
+
+
+@pytest.mark.parametrize(
+    "public", ["https://localhost:54441", "https://127.0.0.1:54442", "https://[::1]:54443"]
+)
+def test_explicit_emulator_loopback_https_ports(public):
+    config = CloudConfig.from_dict(
+        config_dict(
+            mode="emulator",
+            account_id="000000000000",
+            endpoint_url="http://127.0.0.1:5000",
+            public_url=public,
+            worker_lifetime_seconds=3600,
+        )
+    )
+    assert config.public_url == public
+    with pytest.raises(ValueError):
+        CloudConfig.from_dict(
+            config_dict(
+                mode="emulator",
+                account_id="000000000000",
+                endpoint_url="http://127.0.0.1:5000",
+                public_url="https://external.example:54442",
+            )
+        )
