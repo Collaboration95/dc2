@@ -1,0 +1,74 @@
+[
+  {
+    "pluginid": "100001",
+    "riskcode": "1",
+    "confidence": "3",
+    "count": "11"
+  },
+  {
+    "pluginid": "100000",
+    "riskcode": "0",
+    "confidence": "3",
+    "count": "11"
+  },
+  {
+    "pluginid": "90004",
+    "riskcode": "1",
+    "confidence": "2",
+    "count": "4"
+  },
+  {
+    "pluginid": "10036",
+    "riskcode": "1",
+    "confidence": "3",
+    "count": "5"
+  },
+  {
+    "pluginid": "10035",
+    "riskcode": "1",
+    "confidence": "3",
+    "count": "5"
+  },
+  {
+    "pluginid": "100001",
+    "riskcode": "1",
+    "confidence": "3",
+    "count": "22"
+  },
+  {
+    "pluginid": "10021",
+    "riskcode": "1",
+    "confidence": "2",
+    "count": "3"
+  },
+  {
+    "pluginid": "100000",
+    "riskcode": "0",
+    "confidence": "3",
+    "count": "41"
+  },
+  {
+    "pluginid": "10111",
+    "riskcode": "0",
+    "confidence": "3",
+    "count": "1"
+  },
+  {
+    "pluginid": "10049",
+    "riskcode": "0",
+    "confidence": "2",
+    "count": "5"
+  },
+  {
+    "pluginid": "10015",
+    "riskcode": "0",
+    "confidence": "1",
+    "count": "3"
+  },
+  {
+    "pluginid": "10049",
+    "riskcode": "0",
+    "confidence": "2",
+    "count": "4"
+  }
+]

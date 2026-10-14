@@ -1,0 +1,11 @@
+{
+  "engine": "zap",
+  "disposition": "executed",
+  "target": "isolated-integrated-media-public",
+  "scope": "public authenticated owner; internal token+owner contracts offline only",
+  "report_retained": true,
+  "policy": "report-only-findings",
+  "exit_code": "2",
+  "private_contracts": "success",
+  "cloud_scan": "NOT_RUN"
+}

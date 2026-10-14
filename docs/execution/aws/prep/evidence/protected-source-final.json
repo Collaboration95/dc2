@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "proposal_sha256": "fd620ae83d5a951268b0cc93e074891077577e7ac3d13d1119ea44c20efc7285",
+  "protected_source_trees": "unchanged against integration base0ffe052",
+  "paths": [
+    "project-documentation",
+    "project-roadmap",
+    "frontend",
+    "media_engine",
+    "publisher",
+    "docs/execution/experiments-20261014"
+  ]
+}
