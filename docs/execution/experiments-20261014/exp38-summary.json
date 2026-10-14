@@ -1,0 +1,290 @@
+{
+  "decision": "REJECT",
+  "adopted": false,
+  "source": "08ec06c22a8950007cc6db2a934cf957a4621a3c",
+  "baseline_product_source": "b913579be16ca7f1fb9f685e287d905bfbcfbd6a",
+  "complete_comparisons": 3,
+  "fresh_long_jobs": 180,
+  "rows": [
+    {
+      "pair": 1,
+      "profile": "baseline",
+      "isolated_status_p90_ms": 701.6225830011535,
+      "isolated_login_p90_ms": 2213.342292001471,
+      "mixed_status_p90_ms": 2779.315833991859,
+      "mixed_login_p90_ms": 1781.6305409942288,
+      "throughput_jobs_min": 6.42052736959529,
+      "processing_median_seconds": 24.81685447692871,
+      "maximum_queue_wait_seconds": 42.4684898853302,
+      "pg_throttled_delta_us": 431006798,
+      "pg_sampled_span_seconds": 169.68128904199693,
+      "media_pool_connect_mean_ms": 87.59129322837865,
+      "media_sql_mean_ms": 13.1480906994295
+    },
+    {
+      "pair": 1,
+      "profile": "pg-quarter",
+      "isolated_status_p90_ms": 263.66416600649245,
+      "isolated_login_p90_ms": 2271.6210829967167,
+      "mixed_status_p90_ms": 2674.0322079858743,
+      "mixed_login_p90_ms": 1731.5603750175796,
+      "throughput_jobs_min": 6.1473515653551924,
+      "processing_median_seconds": 23.153518557548523,
+      "maximum_queue_wait_seconds": 52.35655689239502,
+      "pg_throttled_delta_us": 51404123,
+      "pg_sampled_span_seconds": 175.57627324998612,
+      "media_pool_connect_mean_ms": 34.50556689239933,
+      "media_sql_mean_ms": 4.275120062787924
+    },
+    {
+      "pair": 2,
+      "profile": "pg-quarter",
+      "isolated_status_p90_ms": 252.4654580047354,
+      "isolated_login_p90_ms": 2318.785082985414,
+      "mixed_status_p90_ms": 2836.53112500906,
+      "mixed_login_p90_ms": 1813.5164589912165,
+      "throughput_jobs_min": 6.024800434949959,
+      "processing_median_seconds": 23.998539924621582,
+      "maximum_queue_wait_seconds": 58.571467876434326,
+      "pg_throttled_delta_us": 44122398,
+      "pg_sampled_span_seconds": 174.5971798329847,
+      "media_pool_connect_mean_ms": 33.893507350994504,
+      "media_sql_mean_ms": 4.172323300396922
+    },
+    {
+      "pair": 2,
+      "profile": "baseline",
+      "isolated_status_p90_ms": 729.2830419901293,
+      "isolated_login_p90_ms": 2266.7785419907887,
+      "mixed_status_p90_ms": 2654.2654170189053,
+      "mixed_login_p90_ms": 1753.9009169850033,
+      "throughput_jobs_min": 6.490857681496569,
+      "processing_median_seconds": 24.1391019821167,
+      "maximum_queue_wait_seconds": 40.44255495071411,
+      "pg_throttled_delta_us": 382564796,
+      "pg_sampled_span_seconds": 170.15132504099165,
+      "media_pool_connect_mean_ms": 87.970529554226,
+      "media_sql_mean_ms": 11.570783176736263
+    },
+    {
+      "pair": 3,
+      "profile": "baseline",
+      "isolated_status_p90_ms": 740.132042003097,
+      "isolated_login_p90_ms": 2284.2367499833927,
+      "mixed_status_p90_ms": 2681.8969159794506,
+      "mixed_login_p90_ms": 1748.839332984062,
+      "throughput_jobs_min": 6.614180122023577,
+      "processing_median_seconds": 24.286306977272034,
+      "maximum_queue_wait_seconds": 35.07559299468994,
+      "pg_throttled_delta_us": 413928359,
+      "pg_sampled_span_seconds": 177.84893333399668,
+      "media_pool_connect_mean_ms": 86.85448847918708,
+      "media_sql_mean_ms": 12.698060946140693
+    },
+    {
+      "pair": 3,
+      "profile": "pg-quarter",
+      "isolated_status_p90_ms": 258.6289159953594,
+      "isolated_login_p90_ms": 2191.8789999908768,
+      "mixed_status_p90_ms": 2597.863624978345,
+      "mixed_login_p90_ms": 1724.5245830272324,
+      "throughput_jobs_min": 6.2074059532043995,
+      "processing_median_seconds": 22.978865146636963,
+      "maximum_queue_wait_seconds": 50.45130205154419,
+      "pg_throttled_delta_us": 51033997,
+      "pg_sampled_span_seconds": 175.1643952500017,
+      "media_pool_connect_mean_ms": 34.320271739877505,
+      "media_sql_mean_ms": 4.189149987249549
+    }
+  ],
+  "eligible_intervals": [
+    "r1-baseline-isolated-status",
+    "r1-baseline-isolated-login",
+    "r1-baseline-mixed-status",
+    "r1-baseline-mixed-login",
+    "r1-pg-quarter-isolated-status",
+    "r1-pg-quarter-isolated-login",
+    "r1-pg-quarter-mixed-login",
+    "r1-pg-quarter-mixed-status",
+    "r2-pg-quarter-isolated-status",
+    "r2-pg-quarter-isolated-login",
+    "r2-pg-quarter-mixed-status",
+    "r2-pg-quarter-mixed-login",
+    "r2-completed-baseline-isolated-status",
+    "r2-completed-baseline-isolated-login",
+    "r2-completed-baseline-mixed-login",
+    "r2-completed-baseline-mixed-status",
+    "r3-baseline-isolated-status",
+    "r3-baseline-isolated-login",
+    "r3-baseline-mixed-login",
+    "r3-baseline-mixed-status",
+    "r3-pg-quarter-isolated-status",
+    "r3-pg-quarter-isolated-login",
+    "r3-pg-quarter-mixed-login",
+    "r3-pg-quarter-mixed-status"
+  ],
+  "recovery": [
+    {
+      "file": "experimental-pg-quarter-recovery-20261014T074102-e4c1be6a/result.json",
+      "status": "PASS",
+      "cases": {
+        "CT-06": {
+          "status": "PASS",
+          "evidence": "Replayed retry produced one new attempt and one primary output"
+        },
+        "CT-12": {
+          "status": "PASS",
+          "evidence": "Real Redis list entry lost with surviving hash, repaired with same Attempt"
+        },
+        "CT-13": {
+          "status": "PASS",
+          "evidence": "Processing outage accepts durable pending source/Asset, survives restart, converges"
+        },
+        "CT-14": {
+          "status": "PASS",
+          "evidence": "Submitted Asset returns 503 while Processing is down"
+        }
+      },
+      "metrics": [
+        {
+          "event": "restoration-http-ready",
+          "at": "2026-10-14T07:42:15.582644+00:00",
+          "elapsed_seconds": 73.271,
+          "bound_seconds": 120
+        },
+        {
+          "event": "worker-kill",
+          "at": "2026-10-14T07:42:39.442293+00:00",
+          "elapsed_seconds": 97.131,
+          "asset_id": "356b4307-c519-4d46-be2f-396c054aee0c",
+          "job_id": "63370b50-bc59-4f13-9e9e-f7c1d737dfab",
+          "failed_attempt_id": "b2a70544-5414-40a8-9710-7fbe95607720",
+          "retry_attempt_id": "119d1ea8-bc84-4435-894b-a7594a068908",
+          "visible_failure_seconds": 69.874,
+          "bound_seconds": 300
+        },
+        {
+          "event": "queue-loss-repair",
+          "at": "2026-10-14T07:43:14.627778+00:00",
+          "elapsed_seconds": 132.317,
+          "asset_id": "b3e07b42-8a08-4e7f-92e6-caec9dc425f3",
+          "job_id": "09d30ee4-6906-471f-af58-5d257b4044b1",
+          "attempt_id": "017453b0-fac7-4bd5-b468-c8db43bd814e",
+          "hash_survives": true,
+          "reenqueue_seconds": 21.893,
+          "bound_seconds": 120
+        },
+        {
+          "event": "restoration-http-ready",
+          "at": "2026-10-14T07:43:15.155742+00:00",
+          "elapsed_seconds": 132.845,
+          "bound_seconds": 120
+        },
+        {
+          "event": "restoration-http-ready",
+          "at": "2026-10-14T07:44:22.706889+00:00",
+          "elapsed_seconds": 200.397,
+          "bound_seconds": 120
+        }
+      ]
+    },
+    {
+      "file": "experimental-baseline-recovery-20261014T064648-97c12b04/result.json",
+      "status": "FAIL",
+      "cases": {
+        "CT-06": {
+          "status": "PASS",
+          "evidence": "Replayed retry produced one new attempt and one primary output"
+        },
+        "CT-12": {
+          "status": "PASS",
+          "evidence": "Real Redis list entry lost with surviving hash, repaired with same Attempt"
+        }
+      },
+      "metrics": [
+        {
+          "event": "worker-kill",
+          "at": "2026-10-14T06:48:36.630593+00:00",
+          "elapsed_seconds": 107.784,
+          "asset_id": "587da5b6-9001-4e02-a841-781cabb5e05d",
+          "job_id": "e148d626-85fb-43c9-bfcc-29a5ef1cea6e",
+          "failed_attempt_id": "d85df427-6a4f-4da3-94a5-13a4b1936705",
+          "retry_attempt_id": "a8b5dcab-c050-4c01-afeb-e819482f9980",
+          "visible_failure_seconds": 79.806,
+          "bound_seconds": 300
+        },
+        {
+          "event": "queue-loss-repair",
+          "at": "2026-10-14T06:49:14.569478+00:00",
+          "elapsed_seconds": 145.722,
+          "asset_id": "d0f7a81b-03c9-4b26-a9a7-36dc86f55c44",
+          "job_id": "be1c50df-9b68-4369-a1a9-74f6c2b57d5e",
+          "attempt_id": "88dec6a2-82d9-4d19-a0ef-d365a2c86838",
+          "hash_survives": true,
+          "reenqueue_seconds": 25.561,
+          "bound_seconds": 120
+        }
+      ]
+    },
+    {
+      "file": "baseline-restoration-readiness-20261014T071112-4be3f4df/result.json",
+      "status": "PASS",
+      "cases": {
+        "CT-13": {
+          "status": "PASS",
+          "evidence": "Processing outage accepts durable pending source/Asset, survives restart, converges"
+        },
+        "CT-14": {
+          "status": "PASS",
+          "evidence": "Submitted Asset returns 503 while Processing is down"
+        }
+      },
+      "metrics": [
+        {
+          "event": "restoration-http-ready",
+          "at": "2026-10-14T07:11:50.579926+00:00",
+          "elapsed_seconds": 38.154,
+          "bound_seconds": 120
+        }
+      ]
+    }
+  ],
+  "releases": [
+    {
+      "action": "experimental-media-artifact",
+      "status": "passed",
+      "elapsed_seconds": 3.677,
+      "id": "56b2176578214ec5a42a1987ffd957ed"
+    },
+    {
+      "action": "release",
+      "status": "promoted",
+      "elapsed_seconds": 116.776,
+      "id": "0466e009b86745c396e5177e6d7d6111"
+    },
+    {
+      "action": "injected-release",
+      "status": "failed_rolled_back",
+      "elapsed_seconds": 153.215,
+      "id": "19f5cfaf26754015a4596b0a0182b6b9"
+    },
+    {
+      "action": "experimental-media-artifact",
+      "status": "passed",
+      "elapsed_seconds": 2.753,
+      "id": "6d0e819b622d449d8b8e901197679036"
+    },
+    {
+      "action": "release",
+      "status": "promoted",
+      "elapsed_seconds": 117.577,
+      "id": "dbddb6027e6948c8991bb6db48a0d060"
+    },
+    {
+      "action": "injected-release",
+      "status": "failed_rolled_back",
+      "elapsed_seconds": 139.621,
+      "id": "a447eb162b5f4d71b64c24b37f0ae875"
+    }
+  ]
+}

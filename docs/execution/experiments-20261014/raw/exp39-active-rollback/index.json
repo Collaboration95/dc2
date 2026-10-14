@@ -1,0 +1,14 @@
+{
+  "scope": "LOCAL experimental",
+  "source_directory": "artifacts/exp39-20261014-r2/active-rollback-20261014T132046-63298b30",
+  "files": [
+    {
+      "source": "result.json",
+      "stored": "result.json",
+      "stored_bytes": 2705,
+      "stored_sha256": "571dfe513237ff2b15cd1b0cbca59e396f10eb8eab2d62fb1358abbd16a9a195",
+      "decompressed_bytes": 2705,
+      "decompressed_sha256": "571dfe513237ff2b15cd1b0cbca59e396f10eb8eab2d62fb1358abbd16a9a195"
+    }
+  ]
+}

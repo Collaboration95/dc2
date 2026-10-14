@@ -1,0 +1,21 @@
+{
+  "measured_runtime_source_shas": [
+    "08ec06c22a8950007cc6db2a934cf957a4621a3c",
+    "60f244c8dbc8b4d48f761851c1f0626e1b1c92e1"
+  ],
+  "fast_command": "make lint test",
+  "python_fast": {
+    "passed": 1119,
+    "deselected": 1
+  },
+  "frontend": {
+    "passed": 152
+  },
+  "targeted_command": "python -m pytest tests/evidence/test_experimental_followups.py -q",
+  "targeted_passed": 12,
+  "local_code_lint_format_passed": true,
+  "fast_log_sha256": "919d23c6c7792cc8293ef3199c41a64f83e9cf39769e36efebe52d54da2ae846",
+  "source_log": ".venv/bin/python -m scripts.dev.checks lint\n[lint] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/experimental-followups-20261014/.venv/bin/python -m ruff check app processing media media_engine publisher tests migrations scripts/dev scripts/evidence\nAll checks passed!\n[lint] 0.038s, exit 0\n.venv/bin/python -m scripts.dev.checks test\n[test-python-fast] /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/experimental-followups-20261014/.venv/bin/python -m pytest -q -p scripts.dev.pytest_plugin --offline-fast tests --ignore=tests/integration --ignore=tests/e2e -m not integration and not e2e\n........................................................................ [  6%]\n........................................................................ [ 12%]\n........................................................................ [ 19%]\n........................................................................ [ 25%]\n........................................................................ [ 32%]\n........................................................................ [ 38%]\n........................................................................ [ 45%]\n........................................................................ [ 51%]\n........................................................................ [ 57%]\n........................................................................ [ 64%]\n........................................................................ [ 70%]\n........................................................................ [ 77%]\n........................................................................ [ 83%]\n........................................................................ [ 90%]\n........................................................................ [ 96%]\n.......................................                                  [100%]\n=============================== warnings summary ===============================\ntests/test_auth.py::test_a_token_signed_with_another_secret_is_refused\n  /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/experimental-followups-20261014/.venv/lib/python3.12/site-packages/jwt/api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 14 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.\n    return self._jws.encode(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n1119 passed, 1 deselected, 1 warning in 9.12s\n[test-python-fast] 9.605s, exit 0\n[test-frontend] npm run test -- --exclude **/*.live.test.js\n\n> flickpond-frontend@0.1.0 test\n> vitest run --exclude **/*.live.test.js\n\n\n RUN  v2.1.9 /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2/.worktrees/experimental-followups-20261014/frontend\n\n(node:29408) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u2713 app.player.integration.test.js (13 tests) 198ms\n \u2713 app.test.js (139 tests) 871ms\n\n Test Files  2 passed (2)\n      Tests  152 passed (152)\n   Start at  12:17:16\n   Duration  1.37s (transform 60ms, setup 0ms, collect 72ms, tests 1.07s, environment 462ms, prepare 78ms)\n\n[test-frontend] 1.763s, exit 0\n",
+  "new_remote_ci_triggered": false,
+  "core_product_diff_from_b913579": ""
+}

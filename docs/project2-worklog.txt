@@ -492,3 +492,43 @@ Clean-context review and exact remote CI/merge status are tracked on linked
 issues/PR after this record. Separate independent architecture triage proposes
 quota and worker-window experiments on current hardware, pending review and
 future measurement. Cloud ceiling is$200total/about3weeks; no cloud spending.
+
+14 OCTOBER 2026 — EXPERIMENTS RESOLVED; AWS JOB PREPARED
+
+User authorized finishing38/39 and AWS preparation. One Solhigh implementation
+agent owned the existing local runtime; one Astrahigh planner prepared the full
+architecture/cost/runbook without runtime/account access; one fresh Solhigh
+independent review PASS at632cac5 found no substantive findings. Parent integrated
+all measured source commits without rewriting their identities.
+
+38 REJECT: three rotated pairs,180/180fresh60s720p MP4/HLS successes at08ec06c.
+Additional PostgreSQL quota explains isolated status improvement, but every
+isolated login and mixed status gate fails. Preparation401cause remains unresolved.
+39 REJECT:48eligible windows,504/504scheduled successes at60f244c; manual worker
+residency reductions13.28/14.80/14.58% miss the declared20%, sustained status fails.
+Baseline quotas and explicitly selected fixed workers remain unchanged.
+
+Three repeated worker/queue/Redis-loss/backlog-restart proofs pass; real180s source
+processed70.823s and safely drained70.589s beyond former60s grace. Promotion118.568s,
+bad tested-image restoration145.357s and active rollback72.669s pass, Media unchanged.
+Exact original9containers/images f10bf04 restored at https://localhost:54440 with
+11.432s public workflow proof; all experiment namespaces stopped, volumes preserved.
+Failed/interrupted records and complete-arm continuations remain explicit. No
+historical target/source is rewritten, no new mixed-latency/cloud acceptance claimed.
+
+Retained local1119Python/152frontend validation; independent12targeted tests/lint,
+248stored/decompressed hash/length checks and decision-critical recalculations pass.
+Reports/raw/indexes: execution/experiments-20261014. Independent report:
+execution/reviews/experiments-20261014-review.md. Exact publication/PR/Main checks,
+accepted merge and fresh metadata closure are coordinator-owned and recorded in
+GitHub, rather than preclaimed in this source entry.
+
+AWS preparation: execution/aws/README.md, full Astra context/runbook, cost worksheet,
+nonsecret input template and nine independently verified official selected price rows.
+Provisional Singapore c6a.2xlarge/Compose/privateS3 plus persistent EBS;100host-hours
+planned/120maximum in21days, USD169.47 estimate including70USD allowances/reserves.
+Actual project account/access, region/currency, domain, usage and spending/teardown
+approval remain prerequisites. Existing local scripts require cloud adapters;
+local object/decoded-start transfer measurements are bounded inputs, not full viewing
+or S3 billing counts. No AWS/Alibaba operation or spending; no OIDC/broker/new product
+scope. Original course/proposal/roadmap visuals remain intact. Course artifacts separate.

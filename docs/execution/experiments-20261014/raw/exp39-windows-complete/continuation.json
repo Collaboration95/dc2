@@ -1,0 +1,10 @@
+{
+  "utc": "2026-10-14T12:26:47.860431+00:00",
+  "reason": "Predeclared disk stop during final burst; current630/630durable attempts audited succeeded; owned retired synthetic outputs cleaned via dedicated principal",
+  "preserved_complete_arms": 11,
+  "repeated_full_arm": "logical repeat3 fixed2",
+  "source_and_images_unchanged": true,
+  "operator_source_sha256": "b368f554a699e73b9e447e2357d3aee9c49bf99c9ea5d04388464f3f216da25f",
+  "adoption_allowed": false,
+  "numeric_gates_unchanged": true
+}

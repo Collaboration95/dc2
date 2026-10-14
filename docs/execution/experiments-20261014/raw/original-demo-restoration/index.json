@@ -1,0 +1,38 @@
+{
+  "scope": "LOCAL experimental",
+  "source_directory": "artifacts/original-demo-restoration-20261014",
+  "files": [
+    {
+      "source": "observations.jsonl",
+      "stored": "observations.jsonl.gz",
+      "stored_bytes": 438,
+      "stored_sha256": "59ce5938443e7b52607e7742e5bdb2396080d1360f8f0be490cceadbd2beb5a9",
+      "decompressed_bytes": 1640,
+      "decompressed_sha256": "30f1e2a71c9cc96af874d7de4f0f2a6419b34221dd9926cd835267f139bd6a02"
+    },
+    {
+      "source": "operations.jsonl",
+      "stored": "operations.jsonl.gz",
+      "stored_bytes": 377,
+      "stored_sha256": "c55841894d945e3305b5ca38e1c0222fd59b5bb76837bd1c666f07d54de83863",
+      "decompressed_bytes": 1274,
+      "decompressed_sha256": "e5a2fdd45bbb164335bcd78a70476acc9685197aaebeb8b2a537e142bcd8a82d"
+    },
+    {
+      "source": "restoration.json",
+      "stored": "restoration.json",
+      "stored_bytes": 3579,
+      "stored_sha256": "df8f7b9f9590cd7defa42d0ae3fa28de761f89e79e5d5110ebf5f70a8e6f6222",
+      "decompressed_bytes": 3579,
+      "decompressed_sha256": "df8f7b9f9590cd7defa42d0ae3fa28de761f89e79e5d5110ebf5f70a8e6f6222"
+    },
+    {
+      "source": "submissions.jsonl",
+      "stored": "submissions.jsonl.gz",
+      "stored_bytes": 234,
+      "stored_sha256": "bb06cc522ced3bcfdb07d2289e4bb91990b5378e63803e8ec45f0c688531792f",
+      "decompressed_bytes": 265,
+      "decompressed_sha256": "4585551ba1d3c93fb1322c70e72f50ae6992c41e963ac6bab896cb14e069a13f"
+    }
+  ]
+}

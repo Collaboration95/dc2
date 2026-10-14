@@ -1,0 +1,120 @@
+{
+  "scope": "Excluded preparation run",
+  "settlement_seconds": 48.50819562500692,
+  "counts": [
+    {
+      "state": "succeeded",
+      "n": 68
+    }
+  ],
+  "burst": [
+    {
+      "asset_id": "bc5c7656-66a5-4e1f-a240-9e9954c10398",
+      "job_id": "b6cb0447-9155-44ad-9a78-44084676b1f2",
+      "attempt_id": "6b3ad2ea-ba22-47cb-b655-89adf0beb74b",
+      "state": "succeeded",
+      "source_sha256": "8946588830f5351badd61f44f2952d76a00d87cd335a222f532384bbd81b83f2",
+      "primary_outputs": 1,
+      "hls_outputs": 1
+    },
+    {
+      "asset_id": "685c0056-858a-4853-ab1f-861f7e403b0f",
+      "job_id": "09b65923-e8d5-41f1-9905-73d046594730",
+      "attempt_id": "b0b64561-09ca-4e75-ba60-9318700b9b06",
+      "state": "succeeded",
+      "source_sha256": "8946588830f5351badd61f44f2952d76a00d87cd335a222f532384bbd81b83f2",
+      "primary_outputs": 1,
+      "hls_outputs": 1
+    },
+    {
+      "asset_id": "3f248305-b214-4dc0-a96f-a91643791ce4",
+      "job_id": "8ae97676-5d22-4dfa-9e24-c10085827934",
+      "attempt_id": "7e5947d2-e7aa-4924-ba5e-181de2bed30c",
+      "state": "succeeded",
+      "source_sha256": "8946588830f5351badd61f44f2952d76a00d87cd335a222f532384bbd81b83f2",
+      "primary_outputs": 1,
+      "hls_outputs": 1
+    },
+    {
+      "asset_id": "ea3680d5-ff53-46c8-b887-2a15ba06bba0",
+      "job_id": "2090737a-68a8-4251-af38-20e524b4f951",
+      "attempt_id": "e71ddee6-8c8b-4d56-ae5d-29e77d1ebaee",
+      "state": "succeeded",
+      "source_sha256": "8946588830f5351badd61f44f2952d76a00d87cd335a222f532384bbd81b83f2",
+      "primary_outputs": 1,
+      "hls_outputs": 1
+    },
+    {
+      "asset_id": "e240f585-cec0-4909-a66b-fdbcf10c9b74",
+      "job_id": "241fe9c4-ccc5-41d6-9117-680901279729",
+      "attempt_id": "9d147864-a950-4248-9814-dec34faa4fb8",
+      "state": "succeeded",
+      "source_sha256": "8946588830f5351badd61f44f2952d76a00d87cd335a222f532384bbd81b83f2",
+      "primary_outputs": 1,
+      "hls_outputs": 1
+    },
+    {
+      "asset_id": "fdf5fa00-eca7-4f03-9a54-6c01dedd7644",
+      "job_id": "a356f054-8c9f-4183-9636-be149d595c89",
+      "attempt_id": "a8f5dc79-675d-46ec-bf95-bb9fae432060",
+      "state": "succeeded",
+      "source_sha256": "8946588830f5351badd61f44f2952d76a00d87cd335a222f532384bbd81b83f2",
+      "primary_outputs": 1,
+      "hls_outputs": 1
+    },
+    {
+      "asset_id": "4cf03db8-ae19-408f-8b9e-6e413afb0636",
+      "job_id": "d95c3dbb-b6b3-4361-9b05-3f77cebb91e2",
+      "attempt_id": "fbde91e5-a105-4f19-9250-228bff15218d",
+      "state": "succeeded",
+      "source_sha256": "8946588830f5351badd61f44f2952d76a00d87cd335a222f532384bbd81b83f2",
+      "primary_outputs": 1,
+      "hls_outputs": 1
+    },
+    {
+      "asset_id": "3cbe68dd-444c-4281-9fa9-fc2ef215e227",
+      "job_id": "42756ee9-84da-4600-98c2-7183f2f8d2ed",
+      "attempt_id": "47ebfbbd-3bcc-498f-abb9-e3ff8a430800",
+      "state": "succeeded",
+      "source_sha256": "8946588830f5351badd61f44f2952d76a00d87cd335a222f532384bbd81b83f2",
+      "primary_outputs": 1,
+      "hls_outputs": 1
+    },
+    {
+      "asset_id": "81302e65-b066-4622-a283-8879d22fed19",
+      "job_id": "288b8321-46ab-4a30-8076-eb17ddd490f9",
+      "attempt_id": "6f3c2d49-7792-4e75-95cf-11b157cc3956",
+      "state": "succeeded",
+      "source_sha256": "8946588830f5351badd61f44f2952d76a00d87cd335a222f532384bbd81b83f2",
+      "primary_outputs": 1,
+      "hls_outputs": 1
+    },
+    {
+      "asset_id": "4f194335-3905-47f6-ad31-09fe0948d478",
+      "job_id": "7fb2759f-1e9d-4955-a881-76961f9fd5f2",
+      "attempt_id": "4b5760eb-6913-4126-a07a-9095b7818a1d",
+      "state": "succeeded",
+      "source_sha256": "8946588830f5351badd61f44f2952d76a00d87cd335a222f532384bbd81b83f2",
+      "primary_outputs": 1,
+      "hls_outputs": 1
+    },
+    {
+      "asset_id": "05662189-de26-4222-aed3-c33dee06ecc4",
+      "job_id": "6425862d-3b43-48f7-858c-a94057a855cf",
+      "attempt_id": "fc691081-9fd5-4338-aa05-47a6117d885c",
+      "state": "succeeded",
+      "source_sha256": "8946588830f5351badd61f44f2952d76a00d87cd335a222f532384bbd81b83f2",
+      "primary_outputs": 1,
+      "hls_outputs": 1
+    },
+    {
+      "asset_id": "54e4a673-11b0-4c13-83df-1c1a05dc64eb",
+      "job_id": "c809854e-2989-4d14-87a3-c90d12f89cb5",
+      "attempt_id": "7bf7baf3-ca44-44c0-af10-c70fbc164329",
+      "state": "succeeded",
+      "source_sha256": "8946588830f5351badd61f44f2952d76a00d87cd335a222f532384bbd81b83f2",
+      "primary_outputs": 1,
+      "hls_outputs": 1
+    }
+  ]
+}

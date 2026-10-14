@@ -1,0 +1,54 @@
+{
+  "scope": "LOCAL experimental",
+  "source_directory": "artifacts/exp39-20261014-r2/disk-stop-proof",
+  "files": [
+    {
+      "source": "aborted-burst-outcomes.json",
+      "stored": "aborted-burst-outcomes.json",
+      "stored_bytes": 4071,
+      "stored_sha256": "48e37d82b981773d965e0535ef5e1cd65f9097df380974a4a490af6a09a9ac58",
+      "decompressed_bytes": 4071,
+      "decompressed_sha256": "48e37d82b981773d965e0535ef5e1cd65f9097df380974a4a490af6a09a9ac58"
+    },
+    {
+      "source": "cleanup-scans.json",
+      "stored": "cleanup-scans.json",
+      "stored_bytes": 40,
+      "stored_sha256": "72d74cf621a0feb56287e86d5088ead2168ceaa6dc47c3d676ee8495fae32979",
+      "decompressed_bytes": 40,
+      "decompressed_sha256": "72d74cf621a0feb56287e86d5088ead2168ceaa6dc47c3d676ee8495fae32979"
+    },
+    {
+      "source": "correct-principal-cleanup.json",
+      "stored": "correct-principal-cleanup.json",
+      "stored_bytes": 85,
+      "stored_sha256": "4d323deb90d221a69e9325d51982997ca5cb3fde92ec8fa0a9a5f8f1cc8e41d6",
+      "decompressed_bytes": 85,
+      "decompressed_sha256": "4d323deb90d221a69e9325d51982997ca5cb3fde92ec8fa0a9a5f8f1cc8e41d6"
+    },
+    {
+      "source": "disk-after.json",
+      "stored": "disk-after.json",
+      "stored_bytes": 258,
+      "stored_sha256": "befc7e52aed1ee5b6063b12769ecdbaf3e3fdfa88859ccb39a9e12efac4e2132",
+      "decompressed_bytes": 258,
+      "decompressed_sha256": "befc7e52aed1ee5b6063b12769ecdbaf3e3fdfa88859ccb39a9e12efac4e2132"
+    },
+    {
+      "source": "drains.jsonl",
+      "stored": "drains.jsonl.gz",
+      "stored_bytes": 350,
+      "stored_sha256": "96548c52436ecea26bb846fcf06ba11d246034afa228d6d49b7cfca620c0bd1a",
+      "decompressed_bytes": 705,
+      "decompressed_sha256": "3273489f23c80883a73de37285c582a465e01df56fd61e1510cfd355201441d0"
+    },
+    {
+      "source": "retired-assets.json",
+      "stored": "retired-assets.json",
+      "stored_bytes": 70,
+      "stored_sha256": "1845b9785b957ecc1c2912e23f9ef730f022ce3a0fb97115367026252b911aa0",
+      "decompressed_bytes": 70,
+      "decompressed_sha256": "1845b9785b957ecc1c2912e23f9ef730f022ce3a0fb97115367026252b911aa0"
+    }
+  ]
+}

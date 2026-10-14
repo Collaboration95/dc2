@@ -1,0 +1,41 @@
+[
+  {
+    "repeat": 1,
+    "policy": "1",
+    "window": "idle-gap",
+    "metrics": {
+      "jobs": 6,
+      "successes": 6,
+      "elapsed_seconds": 96.76972558398847,
+      "throughput_jobs_min": 3.720171756481302,
+      "waits_seconds": {
+        "2": [
+          0.781714916229248,
+          2.157297134399414,
+          3.743802070617676,
+          0.7559280395507812,
+          2.3994240760803223,
+          3.946272134780884
+        ],
+        "60": []
+      },
+      "short_wait_p90_seconds": 3.946272134780884,
+      "maximum_wait_seconds": 3.946272134780884,
+      "processing_seconds": [
+        0.8781130313873291,
+        0.891502857208252,
+        0.8665859699249268,
+        0.9445018768310547,
+        0.8720710277557373,
+        0.8863458633422852
+      ],
+      "maximum_observed_queue_age_seconds": 2.544980049133301,
+      "after_last_arrival_drain_seconds": 6.639325915981317,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 96.76972558398847,
+      "startup_seconds": 0.30313691598712467,
+      "idle_worker_seconds": 60
+    }
+  }
+]
