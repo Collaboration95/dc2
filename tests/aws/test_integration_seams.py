@@ -209,3 +209,87 @@ def test_retained_reports_keep_inspectable_packages_cases_and_bind_exact_bytes()
             source="b" * 40,
             config_id=config,
         )
+
+
+def test_local_worker_freshness_bounds_small_clock_skew_and_rejects_stale_receipts():
+    from types import SimpleNamespace
+
+    from scripts.aws.local_adapters import LocalData
+
+    observer = LocalData.__new__(LocalData)
+    observer.redis = SimpleNamespace(time=lambda: (1000, 0))
+    assert observer._fresh({b"dc2_warm_ack": b"1000.001"})
+    assert observer._fresh({b"dc2_warm_ack": b"999"})
+    assert not observer._fresh({b"dc2_warm_ack": b"1003"})
+    assert not observer._fresh({b"dc2_warm_ack": b"879"})
+
+
+def test_operation_deadline_rejects_a_late_terminal_http_response():
+    import httpx
+
+    from scripts.aws.smoke import Ledger, Workflow
+
+    now = [0.0]
+
+    def response(request):
+        now[0] = 20
+        return httpx.Response(
+            200,
+            json={
+                "id": "00000000-0000-0000-0000-000000000001",
+                "filename": "short.mp4",
+                "status": "done",
+                "submission_status": "submitted",
+                "output_url": None,
+                "hls_url": None,
+                "error": None,
+            },
+        )
+
+    context = Context("https://demo.cloudfront.net", "ap-southeast-1", ("sources", "outputs"))
+    with Client(
+        context, api_transport=httpx.MockTransport(response), clock=lambda: now[0]
+    ) as client:
+        workflow = Workflow(client, Ledger())
+        with pytest.raises(ValueError, match="deadline"):
+            workflow.poll("00000000-0000-0000-0000-000000000001", deadline=10, clock=lambda: now[0])
+
+
+@pytest.mark.parametrize("failure", ["redis", "peer", "role"])
+def test_concrete_readiness_rejects_dependency_failure(failure):
+    from types import SimpleNamespace
+
+    from scripts.aws.exports import REVISIONS
+    from scripts.aws.local_bindings import LocalBindings
+
+    binding = LocalBindings.__new__(LocalBindings)
+    binding.running = lambda *a, **kw: True
+    binding.data = SimpleNamespace(
+        schema_revision=lambda *a, **kw: REVISIONS["media"],
+        redis=SimpleNamespace(ping=lambda: failure != "redis"),
+    )
+    binding._owned_roles = lambda *a: failure != "role"
+    binding._private_peer = lambda *a: failure != "peer"
+    binding.client = SimpleNamespace(request=lambda *a, **kw: (200, b"", {}))
+    assert binding.readiness("media", 10) is False
+
+
+def test_multipart_upload_stops_reading_when_operation_budget_expires():
+    import httpx
+
+    ticks = [0]
+
+    def clock():
+        ticks[0] += 1
+        return ticks[0]
+
+    reached = []
+    context = Context("https://demo.cloudfront.net", "ap-southeast-1", ("sources", "outputs"))
+    with Client(
+        context, api_transport=httpx.MockTransport(lambda r: reached.append(r)), clock=clock
+    ) as c:
+        with pytest.raises(ContextError, match="upload deadline"):
+            c.request(
+                "POST", "/api/upload", files={"file": ("short.bin", b"x" * 200000)}, deadline=4
+            )
+    assert not reached

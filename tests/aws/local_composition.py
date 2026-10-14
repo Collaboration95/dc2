@@ -191,7 +191,27 @@ def run(run_id, report):
             raise
 
     release_module._restore = observed_restore
-    receipts = []
+
+    class Receipts(list):
+        def append(self, value):
+            super().append(value)
+            runtime.atomic_write(
+                report,
+                json.dumps(
+                    {
+                        "mode": "local-services",
+                        "status": "INCOMPLETE",
+                        "control_plane": "synthetic-offline",
+                        "receipts": self,
+                        "aws_status": "NOT_RUN",
+                        "restore_status": "NOT_RUN",
+                    },
+                    indent=2,
+                )
+                + "\n",
+            )
+
+    receipts = Receipts()
     with (
         tempfile.TemporaryDirectory(prefix="dc2-private-prep-") as folder,
         Client(context, ca_file=state["ca_file"]) as client,
@@ -345,7 +365,7 @@ def run(run_id, report):
             journal,
             state_readiness=bindings.state_readiness,
             peer_readiness=lambda d: all(bindings.readiness(o, d) for o in REVISIONS),
-            public_readiness=lambda d: client.request("GET", "/api/health")[0] == 200,
+            public_readiness=lambda d: client.request("GET", "/api/health", deadline=d)[0] == 200,
             resume_intake=bindings.resume_intake,
             deadline=deadline,
         )
@@ -355,6 +375,14 @@ def run(run_id, report):
                 {
                     "mode": "local-services",
                     "control_plane": "synthetic-offline",
+                    "operator_source_sha": runtime.run(
+                        ["git", "rev-parse", "HEAD"], capture_output=True, text=True
+                    ).stdout.strip(),
+                    "operator_source_dirty": bool(
+                        runtime.run(
+                            ["git", "status", "--porcelain"], capture_output=True, text=True
+                        ).stdout.strip()
+                    ),
                     "artifact_gates": "synthetic control inputs; real scan/registry NOT_RUN",
                     "namespace": state["compose_project"],
                     "receipts": receipts,
