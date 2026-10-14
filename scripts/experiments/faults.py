@@ -36,6 +36,40 @@ class ExperimentRelease(Runner):
         return super().compose("-f", str(overlay), *args, **kwargs)
 
 
+class ReadyGuard:
+    """Wait for public readiness after the historical process restoration."""
+
+    def __init__(self, scenario, guard):
+        self.scenario, self.guard = scenario, guard
+
+    def __enter__(self):
+        return self.guard.__enter__()
+
+    def __exit__(self, *args):
+        result = self.guard.__exit__(*args)
+        started = time.monotonic()
+        client = self.scenario.client()
+        while time.monotonic() - started < 120:
+            try:
+                ready = client.get("health", timeout=2).status_code == 200
+            except Exception:
+                ready = False
+            if ready:
+                self.scenario.record(
+                    "restoration-http-ready",
+                    bound_seconds=120,
+                    elapsed_seconds=time.monotonic() - started,
+                )
+                return result
+            time.sleep(0.5)
+        raise EvidenceError("Public restoration readiness exceeded120s")
+
+
+class ExperimentScenario(Scenario):
+    def restore_services(self, *services):
+        return ReadyGuard(self, super().restore_services(*services))
+
+
 async def drain_long(run_id, docker, artifacts, env, state):
     """A real >60s active encode must survive warm draining without a retry."""
     folder = runtime.ROOT / ".local/experiment-fixtures/180"
@@ -176,7 +210,7 @@ def run(args):
         },
     )
     media_gate.finish("passed")
-    scenario = Scenario(args.run_id, "experimental-" + args.profile + "-recovery")
+    scenario = ExperimentScenario(args.run_id, "experimental-" + args.profile + "-recovery")
     path = runtime.ROOT / ".local/experiment-fixtures/60/source.mp4"
     try:
         scenario.report["fixture"] = json.loads(path.with_name("metadata.json").read_text())
@@ -201,7 +235,8 @@ def run(args):
     # startup, tested-image restoration and unchanged Media checks.
     release = ExperimentRelease(args.run_id)
     release.run_id = args.run_id
-    result = release.evidence()
+    with release.locked():
+        result = release.evidence()
     artifacts.write(
         "release-result.json",
         {"exit": result, "journal": release.journal, "operation": release.operation},

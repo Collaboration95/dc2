@@ -742,6 +742,7 @@ print(json.dumps(rows))
 
     async def window(self, policy, repeat, name, person, statuses, logins):
         phase = f"r{repeat}-{policy}-{name}"
+        status(phase + f" start:{len(WINDOWS[name])} fresh jobs; unchanged300s queue bound")
         count = int(policy) if policy != "manual" else (1 if name == "idle-gap" else 3)
         # Explicit preplanned operator commands, never a queue-driven controller.
         launched = time.monotonic()
