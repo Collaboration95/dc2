@@ -1,0 +1,17 @@
+{
+  "backlog_unique_keys": 28,
+  "native_dependency_edges": 42,
+  "native_parent_edges": 24,
+  "new_issues_open": 28,
+  "ready_local": 7,
+  "blocked": 7,
+  "historical_preserved": 30,
+  "product_cloud_scope": "No product edit, Docker/live workload or AWS/account operation",
+  "cost_arithmetic_usd": {
+    "expected_usage": 6.03,
+    "expected_with_reserves": 13.03,
+    "larger_usage": 13.27,
+    "larger_with_reserves": 28.27,
+    "sensitivity_with_reserves": 82.62
+  }
+}

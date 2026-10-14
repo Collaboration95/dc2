@@ -1,0 +1,21 @@
+{
+  "round": 1,
+  "captured_at_utc": "2026-10-14T17:49:36.008338+00:00",
+  "application_source_sha": "af0b21e3c10d6ad62a77549756787eac738e83b5",
+  "input_sha256": {
+    "handoff-temp.md": "3af0f1b34dfa76a9d3aa3654fd4d5d72553bcfcdbf8ef7c79883d26e89e7b7a0",
+    "AGENTS.md": "0a129ab21a75c0fa9601e80eb05b37576cd44051aa08803b5e6c5fc4fe9b3f8e",
+    "docs/execution/aws/architecture-plan.md": "e3bf91641df99b1139947e404b9fc2104c9c8ee084489acacfbb8d16aa2dfd92",
+    "docs/execution/aws/readiness/lanes/a-storage.md": "42c8ba3e5f18cee924d0167ed0e7b4578717e7cc4aeb8c347c01930b155d209e",
+    "docs/execution/aws/readiness/lanes/b-placement.md": "bf4d0dc7ed1697240eb7d153ced1210b1f838e0e3f54290a32f02e427e74fb8a",
+    "docs/execution/aws/readiness/lanes/c-lifecycle.md": "6463de8e707e602fbd336d2ce420a1c0fbbd8d3ac659f9fb0eae8bc8e40ee806",
+    "docs/execution/aws/readiness/lanes/d-delivery.md": "c7b6734b077e25f783c77feaebcb265eb07b9d169f1599d7330b7371e0125757",
+    "docs/execution/aws/readiness/README.md": "f8b19963ddba5f3f7aa98b3035e5f66a40589d0d55490f0d1029f631dc92b7b6",
+    "docs/execution/aws/readiness/gap-analysis.md": "d014a3e687c0bb72a729a376da30f2275cb65e0ce77d056508a0af2f3a958f71",
+    "docs/execution/aws/readiness/backlog.json": "af3f37222d47a7bc31cefe0cc8637b37ea8b771fd36ca3ced55b1342c8a06f90",
+    "docs/execution/aws/readiness/github-map.json": "3cea7e9a1b9ea2b43ec366d083e0857c2bee6be0b77475180d39958ee5929e7a",
+    "docs/execution/aws/readiness/remote-state.json": "d40a29414fca6c7fd543688af13c0e85d31e207395aa7a3751dc4d2241d4e870",
+    "docs/execution/aws/readiness/provenance.json": "5229e9f1dbc5707663ed73d3a843fbec4a8a960a557a4992bab2cc50b9e6515f"
+  },
+  "readiness_snapshot": "analysis and actual remote backlog complete before audit; no product/cloud implementation"
+}
