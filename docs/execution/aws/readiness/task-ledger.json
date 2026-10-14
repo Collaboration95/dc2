@@ -1,0 +1,63 @@
+{
+  "source_sha": "af0b21e3c10d6ad62a77549756787eac738e83b5",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "options": {
+    "reasoningEffort": "high",
+    "serviceTier": "default"
+  },
+  "tasks": [
+    {
+      "lane": "A",
+      "file": "a-storage.md",
+      "title": "AWS lane A: storage and credentials",
+      "brief": "Inspect media/config.py, media/services/storage.py, processing/config.py, processing/worker/storage.py, recovery stores, database roles/migrations. Exact static-key assumptions, ECS temporary credential tokens and refresh incl presign, source grants, multipart/CORS/expiry behavior, native task role least privileges, separate storage/data ownership, smallest adapters. Focus storage/security, leave networking/release to others.",
+      "taskId": "node:delegated-task:command%3Amcp%3A470f2fda-37cd-4585-b0a1-09504137f12b%3Adelegate-task%3Aaws2-readiness-af0b21e-lane-a",
+      "status": "completed",
+      "report_path": "docs/execution/aws/readiness/lanes/a-storage.md"
+    },
+    {
+      "lane": "B",
+      "file": "b-placement.md",
+      "title": "AWS lane B: placement, network and state",
+      "brief": "Inspect deploy Dockerfiles, compose/local/docker-compose.yml(active), nginx configs, PG bootstrap, existing deployments vs accepted AWS plan. Task/container roles/sizing/readiness, DNS replacement and nginx re-resolution/Cloud Map DNS billed requests, dynamic EC2 public IP wake, CloudFront methods/cache/headers/cookies/TLS interpretation, S3 endpoint vs external signed traffic policy, state EBS exports, full shutdown gaps. Assess origin-TLS proposal honestly. No provisioning.",
+      "taskId": "node:delegated-task:command%3Amcp%3A470f2fda-37cd-4585-b0a1-09504137f12b%3Adelegate-task%3Aaws2-readiness-af0b21e-lane-b",
+      "status": "completed",
+      "report_path": "docs/execution/aws/readiness/lanes/b-placement.md"
+    },
+    {
+      "lane": "C",
+      "file": "c-lifecycle.md",
+      "title": "AWS lane C: worker lifecycle and capacity",
+      "brief": "Inspect processing worker entrypoint/supervisor/tasks, Redis/RQ publication, SQL leases/fencing, recovery, release/drain paths. Existing --burst suitability and empty queue exit, bounded manual starts(max3 pending+running), interruption/retry/drain/rollback behavior, task-accounting and orphan prevention; late queue arrivals/recovery ownership. Optional automation separate. Keep proven local lifecycle and rejected38/39 intact.",
+      "taskId": "node:delegated-task:command%3Amcp%3A470f2fda-37cd-4585-b0a1-09504137f12b%3Adelegate-task%3Aaws2-readiness-af0b21e-lane-c",
+      "status": "completed",
+      "report_path": "docs/execution/aws/readiness/lanes/c-lifecycle.md"
+    },
+    {
+      "lane": "D",
+      "file": "d-delivery.md",
+      "title": "AWS lane D: delivery, clients and evidence",
+      "brief": "Inspect .github/workflows, Makefile/runtime scripts,scripts/dev/release.py, smoke/evidence helpers,frontend,Publisher and current reports. Localhost/Compose/MinIO coupling, cloud endpoint/trust adapters, independent image+owner migration releases including Media, limited cloud smoke/provenance/secret-safe logs, cost and teardown evidence. Read proposal contract and current cost arithmetic, avoid bulk tests. Build recommendation for small acceptance requiring authentic cloud results in future.",
+      "taskId": "node:delegated-task:command%3Amcp%3A470f2fda-37cd-4585-b0a1-09504137f12b%3Adelegate-task%3Aaws2-readiness-af0b21e-lane-d",
+      "status": "completed",
+      "report_path": "docs/execution/aws/readiness/lanes/d-delivery.md"
+    },
+    {
+      "lane": "independent-audit-round1",
+      "role": "review",
+      "title": "Independent final audit",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "options": {
+        "reasoningEffort": "high",
+        "serviceTier": "default"
+      },
+      "taskId": "node:delegated-task:command%3Amcp%3A470f2fda-37cd-4585-b0a1-09504137f12b%3Adelegate-task%3Aaws2-readiness-af0b21e-final-audit-round1",
+      "status": "completed",
+      "source_sha": "af0b21e3c10d6ad62a77549756787eac738e83b5",
+      "report_path": "docs/execution/aws/readiness/audit-sol.md",
+      "verdict": "PASS for backlog readiness; deployment blocked"
+    }
+  ]
+}

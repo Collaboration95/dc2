@@ -1,0 +1,49 @@
+{
+  "captured_at": "2026-10-15",
+  "branch": "Main",
+  "source_sha": "af0b21e3c10d6ad62a77549756787eac738e83b5",
+  "status_short": "",
+  "handoff_commit": "af0b21e3c10d6ad62a77549756787eac738e83b5 docs: replan lean AWS deployment and hand off Sol readiness swarm",
+  "files": {
+    "AGENTS.md": "0a129ab21a75c0fa9601e80eb05b37576cd44051aa08803b5e6c5fc4fe9b3f8e",
+    "handoff-temp.md": "3af0f1b34dfa76a9d3aa3654fd4d5d72553bcfcdbf8ef7c79883d26e89e7b7a0",
+    "docs/project2-worklog.txt": "4c9d0f729be87ec3f86ef332ed7daeb94ca6eaf9a8adbd43ddc9cabf17fa6fdc",
+    "docs/execution/aws/README.md": "29980e56de9bdec4c0e09c7aaf5f04fee874bde3b9570106b9636fb382ee3a8f",
+    "docs/execution/aws/architecture-plan.md": "830d4ec919e55095998152900639f47d5e62a55df7e92662bdea259300dfd83b",
+    "docs/execution/aws/cost-worksheet.json": "6e229d72c429f05609c4a79cafd739f761f649f7de1ec0d96e6d30877596a862",
+    "docs/execution/aws/calculate-costs.py": "323100fa09007d0e4c73136b262a4677daac3b43a05d371c568e736545469dba",
+    "docs/execution/aws/pricing-20261015.json": "4bcbae8ce393095494fb951aaa2693cb66617add437c66b0f25759253ea5133b",
+    "docs/execution/aws/job-inputs.template.json": "0aa2b88a9f2611bd3017e9273433d2bc81ba261ffb8451293de33c420c72ec06",
+    "HANDOFF.md": "10b141ba037d76139b27e07bad6d3eb8c8a8bbb44a67714f74bbdbe8ea35ebb9",
+    "docs/execution/interfaces.md": "624bce977c97442f40b783b689da58631066c0b70e4e4501eac9e86d3f7b08ff",
+    "docs/execution/handoff.md": "b24ae1665f4ce998bca93b31aba9e3032a3276f78385e337dd62026a330eb48a",
+    "compose/local/docker-compose.yml": "f58f3b117abd481ed0b205382285c7261089938da4918716d0472a32b27e19f3",
+    "project-documentation/Team17-Proposal.docx": "fd620ae83d5a951268b0cc93e074891077577e7ac3d13d1119ea44c20efc7285"
+  },
+  "application_files_sha256": {
+    "deploy/media.Dockerfile": "534f53593b0a7432e43f72f7f2bf1b7640e3c31f8f4ca50f6c11e8cc389c90b0",
+    "deploy/processing.Dockerfile": "7582e6533a264d737007c39f684cd49eb0566b703e9d1b651ab0a4023ed7841f",
+    "deploy/nginx/local.conf.template": "4f60250f129b9d0daf055eb0f71d80dae968317483690f6c249c66f67f91f4f5",
+    "deploy/postgres/bootstrap.sh": "b5f6d0962517fb695bf977ed2dc31fecaf6f37728a6636d5c96689ed0d7b092a",
+    "media/config.py": "64bf84c0d763e25bb76e68543ca4577a8aff886a928ae030f64593dbf72c95b5",
+    "media/services/storage.py": "c9593a759b6bf86c461e0196705683d55300de441af8d4c7f240e5aea3f06713",
+    "media/recovery.py": "17e04439dca393bdb0b6874a4134814c9156e933d145866f2f1a0b1d0f73e86c",
+    "processing/config.py": "a66c1c65a85e4e1f6fb24546225de6c059b8c52aa5b803e3005ddc273f6b1d50",
+    "processing/worker/storage.py": "5060cac48027d090966287b93384e3031b40b593267561d926e4def0ab38d070",
+    "processing/worker/__main__.py": "15c861930811ee8aad990be6f39b7dbd00294386a0aa17b3d1b689234a90d9bb",
+    "processing/worker/supervisor.py": "5e585ef13c2ef77a45e50014b64bdc4679c0cd064627b1216949c49b9cc8bdcf",
+    "processing/worker/tasks.py": "f95cee8f47f755953b92bb1ee36d0a2a9b840e50cea0356a17735aeea1e6712b",
+    "processing/recovery.py": "4d93a617be9200d56ba564a1d3e70d83f5e0040ad0d72d97cf7246e24d191d28",
+    "processing/lifecycle.py": "179a30786c3a32a03961cec59549440a0851b276a3c44b605ea6bb2dc13caa21",
+    "scripts/dev/release.py": "7d8d8253ee5f763099f09bc5b4a4264c7b0f67b6433e6faf8a0ef3151add892a",
+    "scripts/dev/runtime.py": "98568626632f810bed60ca617a4978fbf114c0614bc8b6e698a2ab77070c4314",
+    ".github/workflows/ci.yml": "6b8147ad1feb23c7d1917acbbaa0ca3dca779b17310d55127ee2de11625eca56",
+    ".github/workflows/dast.yml": "4657f4b28715e1d7adcb4a0b03edb92fda1663e06e9cd2f4a1a7d47fee51ff67",
+    "publisher/client.py": "761a1811515a1532e46213f222df333f0965658a828aeaf4f46729b7961d65f3",
+    "frontend/app.js": "ee3d382ec3382bbe0879e350f91ec6af47b704fcf7dc482116e0185e4a3f47a6",
+    "uv.lock": "6e5e52964d0909d4d9479cfa24fd1ee210574520733e1659bddcb17f534c6dcd"
+  },
+  "clarifications_after_source_capture": [
+    "architecture-plan.md: mark recovery starts/reservations/privileges optional; clarify planning versus implementation baseline; link readiness handoff"
+  ]
+}

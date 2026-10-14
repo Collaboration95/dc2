@@ -1,0 +1,823 @@
+{
+  "repository": "Collaboration95/dc2",
+  "source_sha": "af0b21e3c10d6ad62a77549756787eac738e83b5",
+  "issues": {
+    "aws2-storage": {
+      "number": 41,
+      "url": "https://github.com/Collaboration95/dc2/issues/41",
+      "title": "[AWS2 epic] Native credentials and owned S3 storage",
+      "workflow": "Backlog",
+      "created_this_run": true,
+      "parent_key": null,
+      "dependency_keys": [],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxgq0",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNfgpw",
+      "state": "OPEN",
+      "body_sha256": "789692d1f6271d22a6e43a35d5e91f89cee42309f9391172c2eb063ca36b96c9",
+      "parent_number": null,
+      "blocked_by_numbers": [],
+      "blocking_numbers": [],
+      "sub_issue_numbers": [
+        47,
+        48,
+        49
+      ],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "High",
+      "area": "storage"
+    },
+    "aws2-environment": {
+      "number": 42,
+      "url": "https://github.com/Collaboration95/dc2/issues/42",
+      "title": "[AWS2 epic] Minimal infrastructure and zero-compute downtime",
+      "workflow": "Backlog",
+      "created_this_run": true,
+      "parent_key": null,
+      "dependency_keys": [],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxgwA",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNfl3Q",
+      "state": "OPEN",
+      "body_sha256": "ba5eff021ffa9cf2acff536b9d5792767fc5bd82e954b1c0b8a0bd06acdb9c64",
+      "parent_number": null,
+      "blocked_by_numbers": [],
+      "blocking_numbers": [],
+      "sub_issue_numbers": [
+        45,
+        46,
+        50,
+        51,
+        52,
+        53,
+        61,
+        62
+      ],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "High",
+      "area": "infrastructure"
+    },
+    "aws2-delivery": {
+      "number": 43,
+      "url": "https://github.com/Collaboration95/dc2/issues/43",
+      "title": "[AWS2 epic] Independent releases and bounded worker execution",
+      "workflow": "Backlog",
+      "created_this_run": true,
+      "parent_key": null,
+      "dependency_keys": [],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxgz4",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNfqxg",
+      "state": "OPEN",
+      "body_sha256": "27dbeb7e8ecc664fff329eda6ffcbcffc0bd7a90b48de2cb2ff5a4e72658048d",
+      "parent_number": null,
+      "blocked_by_numbers": [],
+      "blocking_numbers": [],
+      "sub_issue_numbers": [
+        54,
+        55,
+        56,
+        57,
+        59,
+        60,
+        68
+      ],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "High",
+      "area": "delivery"
+    },
+    "aws2-acceptance": {
+      "number": 44,
+      "url": "https://github.com/Collaboration95/dc2/issues/44",
+      "title": "[AWS2 epic] Small authentic cloud evidence and closeout",
+      "workflow": "Backlog",
+      "created_this_run": true,
+      "parent_key": null,
+      "dependency_keys": [],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxg4Y",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNfwKw",
+      "state": "OPEN",
+      "body_sha256": "4179723413e488e2a1b0e9b2c687fe33acc64ce7bfb124e03b86ee84a8ce81ef",
+      "parent_number": null,
+      "blocked_by_numbers": [],
+      "blocking_numbers": [],
+      "sub_issue_numbers": [
+        58,
+        63,
+        64,
+        65,
+        66,
+        67
+      ],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "High",
+      "area": "verification"
+    },
+    "aws2-account-authorization": {
+      "number": 45,
+      "url": "https://github.com/Collaboration95/dc2/issues/45",
+      "title": "[AWS2] Record project-account, budget, window and deletion authorization",
+      "workflow": "Blocked",
+      "created_this_run": true,
+      "parent_key": "aws2-environment",
+      "dependency_keys": [],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxg_U",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNf1Ug",
+      "state": "OPEN",
+      "body_sha256": "7221f6193bab9411300409f4c14e11f6a2c2425070f37c4ae18f6fd67da3a7bd",
+      "parent_number": 42,
+      "blocked_by_numbers": [],
+      "blocking_numbers": [
+        63
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P0",
+      "risk": "High",
+      "area": "planning"
+    },
+    "aws2-origin-transport": {
+      "number": 46,
+      "url": "https://github.com/Collaboration95/dc2/issues/46",
+      "title": "[AWS2] Resolve the proposal interpretation of CloudFront origin HTTP",
+      "workflow": "Blocked",
+      "created_this_run": true,
+      "parent_key": "aws2-environment",
+      "dependency_keys": [],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxhHg",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNf8Kw",
+      "state": "OPEN",
+      "body_sha256": "c499816dabc8da9878b420712534685bf284d07c9f0b67bfaea77524c891fa5c",
+      "parent_number": 42,
+      "blocked_by_numbers": [],
+      "blocking_numbers": [
+        53,
+        63
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P0",
+      "risk": "High",
+      "area": "planning"
+    },
+    "aws2-media-task-credentials": {
+      "number": 47,
+      "url": "https://github.com/Collaboration95/dc2/issues/47",
+      "title": "[AWS2] Wire refreshing ECS credentials into Media storage",
+      "workflow": "Ready",
+      "created_this_run": true,
+      "parent_key": "aws2-storage",
+      "dependency_keys": [],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxhNo",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNgEzA",
+      "state": "OPEN",
+      "body_sha256": "80497d2ea412c67ca4ddc479e4c365d2815b8335f1e9884000df8f7cb6bd2839",
+      "parent_number": 41,
+      "blocked_by_numbers": [],
+      "blocking_numbers": [
+        49,
+        52
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "media"
+    },
+    "aws2-processing-task-credentials": {
+      "number": 48,
+      "url": "https://github.com/Collaboration95/dc2/issues/48",
+      "title": "[AWS2] Wire ECS writer and cleanup credentials into Processing",
+      "workflow": "Ready",
+      "created_this_run": true,
+      "parent_key": "aws2-storage",
+      "dependency_keys": [],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxhTM",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNgLGg",
+      "state": "OPEN",
+      "body_sha256": "ded9d2f316a6411f5f82454cdae60bbf7106c764434d7773e8a20f7e9cf2aebf",
+      "parent_number": 41,
+      "blocked_by_numbers": [],
+      "blocking_numbers": [
+        52,
+        63
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "processing"
+    },
+    "aws2-presign-expiry": {
+      "number": 49,
+      "url": "https://github.com/Collaboration95/dc2/issues/49",
+      "title": "[AWS2] Bound signed URL lifetime to the credentials actually used",
+      "workflow": "Backlog",
+      "created_this_run": true,
+      "parent_key": "aws2-storage",
+      "dependency_keys": [
+        "aws2-media-task-credentials"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxha0",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNgQ0A",
+      "state": "OPEN",
+      "body_sha256": "2b48827424049c29ba7dcd4948445e4722253aa27ab54efd4e03819e6a29d188",
+      "parent_number": 41,
+      "blocked_by_numbers": [
+        47
+      ],
+      "blocking_numbers": [
+        63
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "media"
+    },
+    "aws2-core-definitions": {
+      "number": 50,
+      "url": "https://github.com/Collaboration95/dc2/issues/50",
+      "title": "[AWS2] Define one-subnet state, storage and IAM infrastructure offline",
+      "workflow": "Ready",
+      "created_this_run": true,
+      "parent_key": "aws2-environment",
+      "dependency_keys": [],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxhg8",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNgZJA",
+      "state": "OPEN",
+      "body_sha256": "67eeed98889b062ff89205e0601edfea1b86e4f0be358b6511ca26048dc6f20b",
+      "parent_number": 42,
+      "blocked_by_numbers": [],
+      "blocking_numbers": [
+        51,
+        52,
+        53
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "High",
+      "area": "infrastructure"
+    },
+    "aws2-state-bootstrap": {
+      "number": 51,
+      "url": "https://github.com/Collaboration95/dc2/issues/51",
+      "title": "[AWS2] Bootstrap only PostgreSQL, Redis and nginx on retained EBS",
+      "workflow": "Backlog",
+      "created_this_run": true,
+      "parent_key": "aws2-environment",
+      "dependency_keys": [
+        "aws2-core-definitions"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxhmw",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNge_Q",
+      "state": "OPEN",
+      "body_sha256": "e79828bf29cfb602228daa86b0b5cfce1ecdab38231571af6eef95e3dc800bdb",
+      "parent_number": 42,
+      "blocked_by_numbers": [
+        50
+      ],
+      "blocking_numbers": [
+        61,
+        63
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "High",
+      "area": "infrastructure"
+    },
+    "aws2-task-definitions": {
+      "number": 52,
+      "url": "https://github.com/Collaboration95/dc2/issues/52",
+      "title": "[AWS2] Define three services, owner migrations and disposable worker tasks",
+      "workflow": "Backlog",
+      "created_this_run": true,
+      "parent_key": "aws2-environment",
+      "dependency_keys": [
+        "aws2-core-definitions",
+        "aws2-media-task-credentials",
+        "aws2-processing-task-credentials"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxhv4",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNgleQ",
+      "state": "OPEN",
+      "body_sha256": "a373540593ef81ecbbb8a8e54128cbf763562d58875ff03de0664c216773608f",
+      "parent_number": 42,
+      "blocked_by_numbers": [
+        47,
+        48,
+        50
+      ],
+      "blocking_numbers": [
+        59,
+        61,
+        63
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "High",
+      "area": "infrastructure"
+    },
+    "aws2-edge-config": {
+      "number": 53,
+      "url": "https://github.com/Collaboration95/dc2/issues/53",
+      "title": "[AWS2] Configure CloudFront and nginx for private authenticated API traffic",
+      "workflow": "Backlog",
+      "created_this_run": true,
+      "parent_key": "aws2-environment",
+      "dependency_keys": [
+        "aws2-core-definitions",
+        "aws2-origin-transport"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxh0c",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNguig",
+      "state": "OPEN",
+      "body_sha256": "ae72e5419c54d0f16ca1ca7d55221735dd66760ada96756343f1f5525aba5f43",
+      "parent_number": 42,
+      "blocked_by_numbers": [
+        46,
+        50
+      ],
+      "blocking_numbers": [
+        61,
+        63
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "High",
+      "area": "infrastructure"
+    },
+    "aws2-image-delivery": {
+      "number": 54,
+      "url": "https://github.com/Collaboration95/dc2/issues/54",
+      "title": "[AWS2] Bind amd64 owner artifacts to tests, scans and ECR digest receipts",
+      "workflow": "Ready",
+      "created_this_run": true,
+      "parent_key": "aws2-delivery",
+      "dependency_keys": [],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxh6k",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNg2Iw",
+      "state": "OPEN",
+      "body_sha256": "75492ef1fd95d417e038973357b57976ba6de4e36e8ade6f08c87f68b57a8d79",
+      "parent_number": 43,
+      "blocked_by_numbers": [],
+      "blocking_numbers": [
+        59,
+        63
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "High",
+      "area": "delivery"
+    },
+    "aws2-scan-disposition": {
+      "number": 55,
+      "url": "https://github.com/Collaboration95/dc2/issues/55",
+      "title": "[AWS2] Cover extracted services in delivery scans and report execution honestly",
+      "workflow": "Ready",
+      "created_this_run": true,
+      "parent_key": "aws2-delivery",
+      "dependency_keys": [],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxiAk",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNg98w",
+      "state": "OPEN",
+      "body_sha256": "ba57b54b57d0e48316600e7751005b8f42ae03b62d06f562630cd62a5ae65999",
+      "parent_number": 43,
+      "blocked_by_numbers": [],
+      "blocking_numbers": [
+        65
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "delivery"
+    },
+    "aws2-manual-worker-batches": {
+      "number": 56,
+      "url": "https://github.com/Collaboration95/dc2/issues/56",
+      "title": "[AWS2] Start at most three worker tasks with one serialized operator",
+      "workflow": "Ready",
+      "created_this_run": true,
+      "parent_key": "aws2-delivery",
+      "dependency_keys": [],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxiEo",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNhEAQ",
+      "state": "OPEN",
+      "body_sha256": "9fbd4cb1eadf56b2e6c7d9d586bcec78cd1e796a18275f223b2394b214e6bbe7",
+      "parent_number": 43,
+      "blocked_by_numbers": [],
+      "blocking_numbers": [
+        57
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "High",
+      "area": "processing"
+    },
+    "aws2-worker-lifetime-drain": {
+      "number": 57,
+      "url": "https://github.com/Collaboration95/dc2/issues/57",
+      "title": "[AWS2] Bound cloud worker lifetime and warm-drain before StopTask",
+      "workflow": "Backlog",
+      "created_this_run": true,
+      "parent_key": "aws2-delivery",
+      "dependency_keys": [
+        "aws2-manual-worker-batches"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxiLw",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNhKAA",
+      "state": "OPEN",
+      "body_sha256": "d25de1d7c38e52a22a61d77858e5b40bfa869d5e9c40b2670411ba56ae7d30a2",
+      "parent_number": 43,
+      "blocked_by_numbers": [
+        56
+      ],
+      "blocking_numbers": [
+        59,
+        61,
+        63,
+        68
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "High",
+      "area": "processing"
+    },
+    "aws2-cloud-smoke-context": {
+      "number": 58,
+      "url": "https://github.com/Collaboration95/dc2/issues/58",
+      "title": "[AWS2] Add a small cloud client and safe evidence context",
+      "workflow": "Ready",
+      "created_this_run": true,
+      "parent_key": "aws2-acceptance",
+      "dependency_keys": [],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxiRQ",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNhRVw",
+      "state": "OPEN",
+      "body_sha256": "3f5409138ac2dccfc7c48e44a2bcaeb115fa3f1f6f2632a4b8ad93e6446f9967",
+      "parent_number": 44,
+      "blocked_by_numbers": [],
+      "blocking_numbers": [
+        59,
+        61,
+        63
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "verification"
+    },
+    "aws2-processing-release": {
+      "number": 59,
+      "url": "https://github.com/Collaboration95/dc2/issues/59",
+      "title": "[AWS2] Promote and roll back Processing alone on ECS",
+      "workflow": "Backlog",
+      "created_this_run": true,
+      "parent_key": "aws2-delivery",
+      "dependency_keys": [
+        "aws2-task-definitions",
+        "aws2-image-delivery",
+        "aws2-worker-lifetime-drain",
+        "aws2-cloud-smoke-context"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxiX8",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNhYmw",
+      "state": "OPEN",
+      "body_sha256": "8f30f7de4107589dd6448d59cf0f4120c0b7d5a400e06be161c21251dae751cb",
+      "parent_number": 43,
+      "blocked_by_numbers": [
+        52,
+        54,
+        57,
+        58
+      ],
+      "blocking_numbers": [
+        60,
+        65
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "High",
+      "area": "processing"
+    },
+    "aws2-media-release": {
+      "number": 60,
+      "url": "https://github.com/Collaboration95/dc2/issues/60",
+      "title": "[AWS2] Release Media API and reconciler without changing Processing",
+      "workflow": "Backlog",
+      "created_this_run": true,
+      "parent_key": "aws2-delivery",
+      "dependency_keys": [
+        "aws2-processing-release"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxifQ",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNhgeg",
+      "state": "OPEN",
+      "body_sha256": "964e736223d63a229c63b586c996d38591626c7f9a050aa794f8cdb531c27811",
+      "parent_number": 43,
+      "blocked_by_numbers": [
+        59
+      ],
+      "blocking_numbers": [
+        65
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "media"
+    },
+    "aws2-environment-lifecycle": {
+      "number": 61,
+      "url": "https://github.com/Collaboration95/dc2/issues/61",
+      "title": "[AWS2] Open and close sessions with complete task and IP accounting",
+      "workflow": "Backlog",
+      "created_this_run": true,
+      "parent_key": "aws2-environment",
+      "dependency_keys": [
+        "aws2-state-bootstrap",
+        "aws2-task-definitions",
+        "aws2-edge-config",
+        "aws2-worker-lifetime-drain",
+        "aws2-cloud-smoke-context"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxinU",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNhnGg",
+      "state": "OPEN",
+      "body_sha256": "128ce1cbc3e66f5fc5cafd00b6616e7ccad69edcd259f57f91cb2f7d7e61daf6",
+      "parent_number": 42,
+      "blocked_by_numbers": [
+        51,
+        52,
+        53,
+        57,
+        58
+      ],
+      "blocking_numbers": [
+        62,
+        63
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "High",
+      "area": "infrastructure"
+    },
+    "aws2-metadata-export": {
+      "number": 62,
+      "url": "https://github.com/Collaboration95/dc2/issues/62",
+      "title": "[AWS2] Export both owned databases at one quiescent boundary",
+      "workflow": "Backlog",
+      "created_this_run": true,
+      "parent_key": "aws2-environment",
+      "dependency_keys": [
+        "aws2-environment-lifecycle"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxits",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNhymw",
+      "state": "OPEN",
+      "body_sha256": "b2ede794cbd69932e76ef5e635034991d6f0ee75c82f75e452fd3aa8a86eb5fe",
+      "parent_number": 42,
+      "blocked_by_numbers": [
+        61
+      ],
+      "blocking_numbers": [
+        67
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "infrastructure"
+    },
+    "aws2-cloud-workflow": {
+      "number": 63,
+      "url": "https://github.com/Collaboration95/dc2/issues/63",
+      "title": "[AWS2] Bootstrap the approved environment and prove public workflow boundaries",
+      "workflow": "Blocked",
+      "created_this_run": true,
+      "parent_key": "aws2-acceptance",
+      "dependency_keys": [
+        "aws2-account-authorization",
+        "aws2-origin-transport",
+        "aws2-presign-expiry",
+        "aws2-processing-task-credentials",
+        "aws2-state-bootstrap",
+        "aws2-task-definitions",
+        "aws2-edge-config",
+        "aws2-image-delivery",
+        "aws2-worker-lifetime-drain",
+        "aws2-cloud-smoke-context",
+        "aws2-environment-lifecycle"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxi40",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNh5OA",
+      "state": "OPEN",
+      "body_sha256": "2ed533d992910d7d4ad6493fb35e5d03e67c8f367b55d978e2a5a835b4274f1c",
+      "parent_number": 44,
+      "blocked_by_numbers": [
+        45,
+        46,
+        48,
+        49,
+        51,
+        52,
+        53,
+        54,
+        57,
+        58,
+        61
+      ],
+      "blocking_numbers": [
+        64,
+        65,
+        66
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P0",
+      "risk": "High",
+      "area": "verification"
+    },
+    "aws2-capacity-recovery": {
+      "number": 64,
+      "url": "https://github.com/Collaboration95/dc2/issues/64",
+      "title": "[AWS2] Show 1/2/3 task capacity and bounded recovery using six long uploads",
+      "workflow": "Blocked",
+      "created_this_run": true,
+      "parent_key": "aws2-acceptance",
+      "dependency_keys": [
+        "aws2-cloud-workflow"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxjAc",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNiGtw",
+      "state": "OPEN",
+      "body_sha256": "000c5646b23af75e717998c4b7792b51efb03c8777be07e50132c748cceebfeb",
+      "parent_number": 44,
+      "blocked_by_numbers": [
+        63
+      ],
+      "blocking_numbers": [
+        65,
+        67
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P0",
+      "risk": "High",
+      "area": "verification"
+    },
+    "aws2-release-evidence": {
+      "number": 65,
+      "url": "https://github.com/Collaboration95/dc2/issues/65",
+      "title": "[AWS2] Capture both owner releases and real failed-candidate rollback on AWS",
+      "workflow": "Blocked",
+      "created_this_run": true,
+      "parent_key": "aws2-acceptance",
+      "dependency_keys": [
+        "aws2-cloud-workflow",
+        "aws2-capacity-recovery",
+        "aws2-processing-release",
+        "aws2-media-release",
+        "aws2-scan-disposition"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxjH4",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNiNdw",
+      "state": "OPEN",
+      "body_sha256": "ad478dde3400e720415a11eef221e720e39479f8cf58bae1cf861f44fba3c89b",
+      "parent_number": 44,
+      "blocked_by_numbers": [
+        55,
+        59,
+        60,
+        63,
+        64
+      ],
+      "blocking_numbers": [
+        67
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P0",
+      "risk": "High",
+      "area": "verification"
+    },
+    "aws2-cloud-latency": {
+      "number": 66,
+      "url": "https://github.com/Collaboration95/dc2/issues/66",
+      "title": "[AWS2] Measure one bounded status/login cycle on a separate generator",
+      "workflow": "Blocked",
+      "created_this_run": true,
+      "parent_key": "aws2-acceptance",
+      "dependency_keys": [
+        "aws2-cloud-workflow"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxjPY",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNiW1A",
+      "state": "OPEN",
+      "body_sha256": "3e2b9c278d8a05b600993315256ca6e914ed6c34390328915456679458ee7dee",
+      "parent_number": 44,
+      "blocked_by_numbers": [
+        63
+      ],
+      "blocking_numbers": [
+        67
+      ],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "verification"
+    },
+    "aws2-cost-closeout": {
+      "number": 67,
+      "url": "https://github.com/Collaboration95/dc2/issues/67",
+      "title": "[AWS2] Reconcile costs, prove zero compute, and hand off bounded teardown",
+      "workflow": "Blocked",
+      "created_this_run": true,
+      "parent_key": "aws2-acceptance",
+      "dependency_keys": [
+        "aws2-capacity-recovery",
+        "aws2-release-evidence",
+        "aws2-metadata-export",
+        "aws2-cloud-latency"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxjZ8",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNidzQ",
+      "state": "OPEN",
+      "body_sha256": "5d908c37df84e637addeb7724c0db6eb8e04ce2586a3a47d94fa76783141e5b2",
+      "parent_number": 44,
+      "blocked_by_numbers": [
+        62,
+        64,
+        65,
+        66
+      ],
+      "blocking_numbers": [],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P0",
+      "risk": "High",
+      "area": "verification"
+    },
+    "aws2-optional-unattended": {
+      "number": 68,
+      "url": "https://github.com/Collaboration95/dc2/issues/68",
+      "title": "[AWS2] Optional unattended starts and further cost cuts",
+      "workflow": "Backlog",
+      "created_this_run": true,
+      "parent_key": "aws2-delivery",
+      "dependency_keys": [
+        "aws2-worker-lifetime-drain"
+      ],
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxj-c",
+      "issue_id": "I_kwDOUvNZ7c8AAAABXNjR3Q",
+      "state": "OPEN",
+      "body_sha256": "b5ee36a75040f32816c23703a9a39a8cb22ae5e9c222e42575a396a39cde4d7f",
+      "parent_number": 43,
+      "blocked_by_numbers": [
+        57
+      ],
+      "blocking_numbers": [],
+      "sub_issue_numbers": [],
+      "status": "Todo",
+      "priority": "P2",
+      "risk": "Medium",
+      "area": "processing"
+    }
+  },
+  "failures": [
+    {
+      "operation": "gh project item-add 14 --url .../issues/67",
+      "error": "GraphQL: Content already exists in this project (addProjectV2ItemById)",
+      "disposition": "Resume reuses fresh existing Project item; no duplicated issue or object."
+    }
+  ],
+  "project": {
+    "number": 14,
+    "id": "PVT_kwHOBBatWM4Bmtkx",
+    "url": "https://github.com/users/Collaboration95/projects/14",
+    "owner": "Collaboration95",
+    "title": "dc2 \u2014 Local delivery and lean AWS readiness"
+  },
+  "verified_at_utc": "2026-10-14T17:47:59.590099+00:00",
+  "verification": {
+    "unique_keys": 28,
+    "native_parents": "PASS",
+    "native_blocking_and_reciprocal": "PASS",
+    "project_fields": "PASS",
+    "historical_issues_preserved": 30,
+    "historical_project_items_preserved": 30
+  }
+}

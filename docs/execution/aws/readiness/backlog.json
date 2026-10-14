@@ -1,0 +1,990 @@
+{
+  "schema_version": 1,
+  "source_sha": "af0b21e3c10d6ad62a77549756787eac738e83b5",
+  "status": "Readiness backlog only; no application implementation/AWS deployment",
+  "window_anchor": "2026-10-15",
+  "maximum_elapsed_days": 14,
+  "presentation_date": "2026-10-26",
+  "project": {
+    "owner": "Collaboration95",
+    "number": 14
+  },
+  "next_issue_key": "aws2-media-task-credentials",
+  "default_credential_sdk": "existing MinIO7.2.20 via uv.lock; native ECS container provider, no new broker",
+  "iac_choice": "Parameterized CloudFormation definitions; no apply in readiness",
+  "issues": [
+    {
+      "key": "aws2-storage",
+      "title": "[AWS2 epic] Native credentials and owned S3 storage",
+      "kind": "epic",
+      "parent": null,
+      "dependencies": [],
+      "readiness": "Backlog",
+      "optional": false,
+      "priority": "P1",
+      "risk": "High",
+      "area": "storage",
+      "labels": [
+        "epic",
+        "planning"
+      ],
+      "estimate_sessions": 0,
+      "evidence": [
+        "handoff-temp.md",
+        "docs/execution/aws/architecture-plan.md"
+      ],
+      "acceptance": [
+        "Media and Processing use native temporary task identities while retaining existing owned-data and source-grant contracts.",
+        "All required children have reviewed implementation and the explicitly assigned future cloud receipts; a planning document alone completes no implementation issue. Optional children do not block the first demo."
+      ],
+      "body": "<!-- agent-orchestration:issue-key=aws2-storage -->\n\nOutcome: Media and Processing use native temporary task identities while retaining existing owned-data and source-grant contracts.\n\nSource: handoff-temp.md and docs/execution/aws/readiness/backlog.json at inspected application HEAD `af0b21e3c10d6ad62a77549756787eac738e83b5`. Two owned business services; keep existing engine, frontend, HTTP contracts and database histories. Three service tasks and at most three disposable workers, t3a.small only PG/Redis/nginx, one public subnet/free S3 gateway, CloudFront public HTTPS. Origin HTTP interpretation and actual project account/currency/spending approval remain explicit prerequisites. No NAT/ALB/paid domain/interface endpoints, large host, broker/OIDC programme or bulk experiment.\n\nCompletion requires required children implemented/reviewed and their assigned authentic evidence, never the existence of this plan. Optional work is excluded. The maximum 14-day window remains anchored to 15 October 2026; the 26 October presentation is the nearer rehearsal milestone. Expected/larger totals $13.03/$28.27 including reserves, $15/$30 targets are assumptions rather than caps or authorization. Six long submissions total plus short checks, about 0.25 GB uploads. All live AWS actions are future and gated.\n\nReadiness: Backlog outcome parent. Existing completed local issues stay closed/Done. Shared state-host/gateway/AZ outages remain disclosed.\n\n## Child handoff \u2014 implementation/evidence still future\n\n- https://github.com/Collaboration95/dc2/issues/47 \u2014 Wire refreshing ECS credentials into Media storage; Ready\n- https://github.com/Collaboration95/dc2/issues/48 \u2014 Wire ECS writer and cleanup credentials into Processing; Ready\n- https://github.com/Collaboration95/dc2/issues/49 \u2014 Bound signed URL lifetime to the credentials actually used; Backlog\n"
+    },
+    {
+      "key": "aws2-environment",
+      "title": "[AWS2 epic] Minimal infrastructure and zero-compute downtime",
+      "kind": "epic",
+      "parent": null,
+      "dependencies": [],
+      "readiness": "Backlog",
+      "optional": false,
+      "priority": "P1",
+      "risk": "High",
+      "area": "infrastructure",
+      "labels": [
+        "epic",
+        "planning"
+      ],
+      "estimate_sessions": 0,
+      "evidence": [
+        "handoff-temp.md",
+        "docs/execution/aws/architecture-plan.md"
+      ],
+      "acceptance": [
+        "One small state/gateway host and separate Fargate services open/close safely, preserve private owned state, and leave no running compute or reserved IP during downtime.",
+        "All required children have reviewed implementation and the explicitly assigned future cloud receipts; a planning document alone completes no implementation issue. Optional children do not block the first demo."
+      ],
+      "body": "<!-- agent-orchestration:issue-key=aws2-environment -->\n\nOutcome: One small state/gateway host and separate Fargate services open/close safely, preserve private owned state, and leave no running compute or reserved IP during downtime.\n\nSource: handoff-temp.md and docs/execution/aws/readiness/backlog.json at inspected application HEAD `af0b21e3c10d6ad62a77549756787eac738e83b5`. Two owned business services; keep existing engine, frontend, HTTP contracts and database histories. Three service tasks and at most three disposable workers, t3a.small only PG/Redis/nginx, one public subnet/free S3 gateway, CloudFront public HTTPS. Origin HTTP interpretation and actual project account/currency/spending approval remain explicit prerequisites. No NAT/ALB/paid domain/interface endpoints, large host, broker/OIDC programme or bulk experiment.\n\nCompletion requires required children implemented/reviewed and their assigned authentic evidence, never the existence of this plan. Optional work is excluded. The maximum 14-day window remains anchored to 15 October 2026; the 26 October presentation is the nearer rehearsal milestone. Expected/larger totals $13.03/$28.27 including reserves, $15/$30 targets are assumptions rather than caps or authorization. Six long submissions total plus short checks, about 0.25 GB uploads. All live AWS actions are future and gated.\n\nReadiness: Backlog outcome parent. Existing completed local issues stay closed/Done. Shared state-host/gateway/AZ outages remain disclosed.\n\n## Child handoff \u2014 implementation/evidence still future\n\n- https://github.com/Collaboration95/dc2/issues/45 \u2014 Record project-account, budget, window and deletion authorization; Blocked\n- https://github.com/Collaboration95/dc2/issues/46 \u2014 Resolve the proposal interpretation of CloudFront origin HTTP; Blocked\n- https://github.com/Collaboration95/dc2/issues/50 \u2014 Define one-subnet state, storage and IAM infrastructure offline; Ready\n- https://github.com/Collaboration95/dc2/issues/51 \u2014 Bootstrap only PostgreSQL, Redis and nginx on retained EBS; Backlog\n- https://github.com/Collaboration95/dc2/issues/52 \u2014 Define three services, owner migrations and disposable worker tasks; Backlog\n- https://github.com/Collaboration95/dc2/issues/53 \u2014 Configure CloudFront and nginx for private authenticated API traffic; Backlog\n- https://github.com/Collaboration95/dc2/issues/61 \u2014 Open and close sessions with complete task and IP accounting; Backlog\n- https://github.com/Collaboration95/dc2/issues/62 \u2014 Export both owned databases at one quiescent boundary; Backlog\n"
+    },
+    {
+      "key": "aws2-delivery",
+      "title": "[AWS2 epic] Independent releases and bounded worker execution",
+      "kind": "epic",
+      "parent": null,
+      "dependencies": [],
+      "readiness": "Backlog",
+      "optional": false,
+      "priority": "P1",
+      "risk": "High",
+      "area": "delivery",
+      "labels": [
+        "epic",
+        "planning"
+      ],
+      "estimate_sessions": 0,
+      "evidence": [
+        "handoff-temp.md",
+        "docs/execution/aws/architecture-plan.md"
+      ],
+      "acceptance": [
+        "Versioned owner images/migrations release independently with safe worker lifetime/drain and exact-digest rollback, without a mandatory controller.",
+        "All required children have reviewed implementation and the explicitly assigned future cloud receipts; a planning document alone completes no implementation issue. Optional children do not block the first demo."
+      ],
+      "body": "<!-- agent-orchestration:issue-key=aws2-delivery -->\n\nOutcome: Versioned owner images/migrations release independently with safe worker lifetime/drain and exact-digest rollback, without a mandatory controller.\n\nSource: handoff-temp.md and docs/execution/aws/readiness/backlog.json at inspected application HEAD `af0b21e3c10d6ad62a77549756787eac738e83b5`. Two owned business services; keep existing engine, frontend, HTTP contracts and database histories. Three service tasks and at most three disposable workers, t3a.small only PG/Redis/nginx, one public subnet/free S3 gateway, CloudFront public HTTPS. Origin HTTP interpretation and actual project account/currency/spending approval remain explicit prerequisites. No NAT/ALB/paid domain/interface endpoints, large host, broker/OIDC programme or bulk experiment.\n\nCompletion requires required children implemented/reviewed and their assigned authentic evidence, never the existence of this plan. Optional work is excluded. The maximum 14-day window remains anchored to 15 October 2026; the 26 October presentation is the nearer rehearsal milestone. Expected/larger totals $13.03/$28.27 including reserves, $15/$30 targets are assumptions rather than caps or authorization. Six long submissions total plus short checks, about 0.25 GB uploads. All live AWS actions are future and gated.\n\nReadiness: Backlog outcome parent. Existing completed local issues stay closed/Done. Shared state-host/gateway/AZ outages remain disclosed.\n\n## Child handoff \u2014 implementation/evidence still future\n\n- https://github.com/Collaboration95/dc2/issues/54 \u2014 Bind amd64 owner artifacts to tests, scans and ECR digest receipts; Ready\n- https://github.com/Collaboration95/dc2/issues/55 \u2014 Cover extracted services in delivery scans and report execution honestly; Ready\n- https://github.com/Collaboration95/dc2/issues/56 \u2014 Start at most three worker tasks with one serialized operator; Ready\n- https://github.com/Collaboration95/dc2/issues/57 \u2014 Bound cloud worker lifetime and warm-drain before StopTask; Backlog\n- https://github.com/Collaboration95/dc2/issues/59 \u2014 Promote and roll back Processing alone on ECS; Backlog\n- https://github.com/Collaboration95/dc2/issues/60 \u2014 Release Media API and reconciler without changing Processing; Backlog\n- https://github.com/Collaboration95/dc2/issues/68 \u2014 Optional unattended starts and further cost cuts; Optional, excluded\n"
+    },
+    {
+      "key": "aws2-acceptance",
+      "title": "[AWS2 epic] Small authentic cloud evidence and closeout",
+      "kind": "epic",
+      "parent": null,
+      "dependencies": [],
+      "readiness": "Backlog",
+      "optional": false,
+      "priority": "P1",
+      "risk": "High",
+      "area": "verification",
+      "labels": [
+        "epic",
+        "planning"
+      ],
+      "estimate_sessions": 0,
+      "evidence": [
+        "handoff-temp.md",
+        "docs/execution/aws/architecture-plan.md"
+      ],
+      "acceptance": [
+        "A bounded public web/CLI workflow, capacity/recovery/release proof and cost/teardown handoff are honestly attributed to the approved AWS environment.",
+        "All required children have reviewed implementation and the explicitly assigned future cloud receipts; a planning document alone completes no implementation issue. Optional children do not block the first demo."
+      ],
+      "body": "<!-- agent-orchestration:issue-key=aws2-acceptance -->\n\nOutcome: A bounded public web/CLI workflow, capacity/recovery/release proof and cost/teardown handoff are honestly attributed to the approved AWS environment.\n\nSource: handoff-temp.md and docs/execution/aws/readiness/backlog.json at inspected application HEAD `af0b21e3c10d6ad62a77549756787eac738e83b5`. Two owned business services; keep existing engine, frontend, HTTP contracts and database histories. Three service tasks and at most three disposable workers, t3a.small only PG/Redis/nginx, one public subnet/free S3 gateway, CloudFront public HTTPS. Origin HTTP interpretation and actual project account/currency/spending approval remain explicit prerequisites. No NAT/ALB/paid domain/interface endpoints, large host, broker/OIDC programme or bulk experiment.\n\nCompletion requires required children implemented/reviewed and their assigned authentic evidence, never the existence of this plan. Optional work is excluded. The maximum 14-day window remains anchored to 15 October 2026; the 26 October presentation is the nearer rehearsal milestone. Expected/larger totals $13.03/$28.27 including reserves, $15/$30 targets are assumptions rather than caps or authorization. Six long submissions total plus short checks, about 0.25 GB uploads. All live AWS actions are future and gated.\n\nReadiness: Backlog outcome parent. Existing completed local issues stay closed/Done. Shared state-host/gateway/AZ outages remain disclosed.\n\n## Child handoff \u2014 implementation/evidence still future\n\n- https://github.com/Collaboration95/dc2/issues/58 \u2014 Add a small cloud client and safe evidence context; Ready\n- https://github.com/Collaboration95/dc2/issues/63 \u2014 Bootstrap the approved environment and prove public workflow boundaries; Blocked\n- https://github.com/Collaboration95/dc2/issues/64 \u2014 Show 1/2/3 task capacity and bounded recovery using six long uploads; Blocked\n- https://github.com/Collaboration95/dc2/issues/65 \u2014 Capture both owner releases and real failed-candidate rollback on AWS; Blocked\n- https://github.com/Collaboration95/dc2/issues/66 \u2014 Measure one bounded status/login cycle on a separate generator; Blocked\n- https://github.com/Collaboration95/dc2/issues/67 \u2014 Reconcile costs, prove zero compute, and hand off bounded teardown; Blocked\n"
+    },
+    {
+      "key": "aws2-account-authorization",
+      "title": "[AWS2] Record project-account, budget, window and deletion authorization",
+      "kind": "prerequisite",
+      "parent": "aws2-environment",
+      "dependencies": [],
+      "readiness": "Blocked",
+      "optional": false,
+      "priority": "P0",
+      "risk": "High",
+      "area": "planning",
+      "labels": [
+        "planning"
+      ],
+      "estimate_sessions": 0.5,
+      "evidence": [
+        "AWS-A-11; B-14; C-L12; D-13",
+        "docs/execution/aws/job-inputs.template.json:2-26"
+      ],
+      "problem": "Actual project account/access, currency, paid approval, windows and export/deletion owner are missing. Full permission to plan/create this backlog is not a cloud expenditure approval.",
+      "scope": "Record a nonsecret prerequisite receipt; private credentials stay outside Git. Specify the authorized single operator/control station, region/currency/spend envelope and closure responsibility. No resource creation or credential probing in this issue before actual project access is supplied.",
+      "acceptance": [
+        "Actual account ID/billing owner and approved scoped identity are named without credential values; no unrelated account is used.",
+        "Resource-plan and spending authorization, $15/$30 USD forecast conversion/tax assumptions, session limits, export/deletion owner and teardown boundary are explicit.",
+        "Window remains anchored to 15 October, at most 14 elapsed days; record the 26 October presentation/rehearsal needs.",
+        "Future authorized read-only quota check covers 7.75 base/three-worker vCPU plus serialized migration/release/generator overlap; absent capacity is a blocker, never a silent topology increase."
+      ],
+      "verification_future": [
+        "Owner-supplied nonsecret receipt and consistency check against job-inputs.template.json; all cloud identity/quota commands are future after named access is supplied."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-account-authorization -->\n\n## Problem and evidence\n\nActual project account/access, currency, paid approval, windows and export/deletion owner are missing. Full permission to plan/create this backlog is not a cloud expenditure approval.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: AWS-A-11; B-14; C-L12; D-13; docs/execution/aws/job-inputs.template.json:2-26. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nRecord a nonsecret prerequisite receipt; private credentials stay outside Git. Specify the authorized single operator/control station, region/currency/spend envelope and closure responsibility. No resource creation or credential probing in this issue before actual project access is supplied.\n\nOwner/area: planning. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Actual account ID/billing owner and approved scoped identity are named without credential values; no unrelated account is used.\n- [ ] Resource-plan and spending authorization, $15/$30 USD forecast conversion/tax assumptions, session limits, export/deletion owner and teardown boundary are explicit.\n- [ ] Window remains anchored to 15 October, at most 14 elapsed days; record the 26 October presentation/rehearsal needs.\n- [ ] Future authorized read-only quota check covers 7.75 base/three-worker vCPU plus serialized migration/release/generator overlap; absent capacity is a blocker, never a silent topology increase.\n\n## Verification \u2014 future\n\n- Owner-supplied nonsecret receipt and consistency check against job-inputs.template.json; all cloud identity/quota commands are future after named access is supplied.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Blocked**. Dependencies (stable keys): none. Risk: High. Rough size: 0.5 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-origin-transport",
+      "title": "[AWS2] Resolve the proposal interpretation of CloudFront origin HTTP",
+      "kind": "spike",
+      "parent": "aws2-environment",
+      "dependencies": [],
+      "readiness": "Blocked",
+      "optional": false,
+      "priority": "P0",
+      "risk": "High",
+      "area": "planning",
+      "labels": [
+        "planning"
+      ],
+      "estimate_sessions": 0.5,
+      "evidence": [
+        "B-14; D-13",
+        "project-documentation/Team17-Proposal.docx \u00a7\u00a72.5,3.3",
+        "docs/execution/aws/architecture-plan.md:227-240"
+      ],
+      "problem": "Viewer TLS does not encrypt the CloudFront-to-public-EC2 HTTP leg. The proposal says only HTTPS is public; SG restrictions and a secret header do not resolve that interpretation.",
+      "scope": "Write a bounded decision/spike with the requirement owner: accept and disclose the restricted HTTP leg or require a narrowly priced topology/certificate correction. Keep planning/offline adapters progressing.",
+      "acceptance": [
+        "Record exact encrypted/plaintext legs and requirement-owner disposition with supporting AWS origin certificate/VPC-origin constraints.",
+        "If strict origin HTTPS is required, identify a technically feasible certificate/topology path, quantify scope/cost, and obtain revised topology approval before its definition/apply proceeds.",
+        "No assumption that self-signed local TLS or an AWS-generated hostname certificate can be installed on EC2; no hidden paid domain/ALB/private-subnet change."
+      ],
+      "verification_future": [
+        "Document review against proposal and official AWS CloudFront origin TLS/VPC-origin requirements; no cloud apply or paid action."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-origin-transport -->\n\n## Problem and evidence\n\nViewer TLS does not encrypt the CloudFront-to-public-EC2 HTTP leg. The proposal says only HTTPS is public; SG restrictions and a secret header do not resolve that interpretation.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: B-14; D-13; project-documentation/Team17-Proposal.docx \u00a7\u00a72.5,3.3; docs/execution/aws/architecture-plan.md:227-240. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nWrite a bounded decision/spike with the requirement owner: accept and disclose the restricted HTTP leg or require a narrowly priced topology/certificate correction. Keep planning/offline adapters progressing.\n\nOwner/area: planning. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Record exact encrypted/plaintext legs and requirement-owner disposition with supporting AWS origin certificate/VPC-origin constraints.\n- [ ] If strict origin HTTPS is required, identify a technically feasible certificate/topology path, quantify scope/cost, and obtain revised topology approval before its definition/apply proceeds.\n- [ ] No assumption that self-signed local TLS or an AWS-generated hostname certificate can be installed on EC2; no hidden paid domain/ALB/private-subnet change.\n\n## Verification \u2014 future\n\n- Document review against proposal and official AWS CloudFront origin TLS/VPC-origin requirements; no cloud apply or paid action.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Blocked**. Dependencies (stable keys): none. Risk: High. Rough size: 0.5 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-media-task-credentials",
+      "title": "[AWS2] Wire refreshing ECS credentials into Media storage",
+      "kind": "implementation",
+      "parent": "aws2-storage",
+      "dependencies": [],
+      "readiness": "Ready",
+      "optional": false,
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "media",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 1,
+      "evidence": [
+        "AWS-A-01",
+        "media/config.py:18-26; media/services/storage.py:22-38",
+        "uv.lock minio==7.2.20"
+      ],
+      "problem": "Media passes static access/secret strings to both SDK clients; blank fields make an anonymous client rather than discovering a task role.",
+      "scope": "Add explicit local-static/ECS-container credential mode using the existing MinIO SDK provider and bounded transport. Wire internal and public clients plus Media reconciler; retain local variables/defaults and independent packaging.",
+      "acceptance": [
+        "In ECS mode both clients use credentials= with session tokens and refresh on subsequent requests without reconstructing the application; static arguments cannot override it.",
+        "Missing ECS endpoint/provider, incomplete static pair and ambiguous mode fail safely and boundedly; no fallback to another account/EC2 identity and no secrets in errors.",
+        "Controlled provider/clock tests demonstrate token A\u2192B refresh in ordinary calls and presigns; local static MinIO path is unchanged."
+      ],
+      "verification_future": [
+        "Future targeted Media tests with mocked container credentials and HTTP guard; record locked/deployed SDK identity. Actual role/S3 proof is assigned to aws2-cloud-workflow."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-media-task-credentials -->\n\n## Problem and evidence\n\nMedia passes static access/secret strings to both SDK clients; blank fields make an anonymous client rather than discovering a task role.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: AWS-A-01; media/config.py:18-26; media/services/storage.py:22-38; uv.lock minio==7.2.20. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nAdd explicit local-static/ECS-container credential mode using the existing MinIO SDK provider and bounded transport. Wire internal and public clients plus Media reconciler; retain local variables/defaults and independent packaging.\n\nOwner/area: media. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] In ECS mode both clients use credentials= with session tokens and refresh on subsequent requests without reconstructing the application; static arguments cannot override it.\n- [ ] Missing ECS endpoint/provider, incomplete static pair and ambiguous mode fail safely and boundedly; no fallback to another account/EC2 identity and no secrets in errors.\n- [ ] Controlled provider/clock tests demonstrate token A\u2192B refresh in ordinary calls and presigns; local static MinIO path is unchanged.\n\n## Verification \u2014 future\n\n- Future targeted Media tests with mocked container credentials and HTTP guard; record locked/deployed SDK identity. Actual role/S3 proof is assigned to aws2-cloud-workflow.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Ready**. Dependencies (stable keys): none. Risk: Medium. Rough size: 1 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-processing-task-credentials",
+      "title": "[AWS2] Wire ECS writer and cleanup credentials into Processing",
+      "kind": "implementation",
+      "parent": "aws2-storage",
+      "dependencies": [],
+      "readiness": "Ready",
+      "optional": false,
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "processing",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 1,
+      "evidence": [
+        "AWS-A-01,A-03",
+        "processing/config.py:35-56; processing/worker/storage.py:24-39; processing/recovery.py:117-120"
+      ],
+      "problem": "Worker/recovery require static output keys and construct static clients; Processing API already correctly has no S3 credentials.",
+      "scope": "Explicit credential mode/refreshing provider for OutputStore and CleanupStore, preserving worker/recovery role separation. Keep Redis/reverse-token requirements and existing output reader/hash logic.",
+      "acceptance": [
+        "Worker and recovery start with native task role configuration and no static keys; API requires no bucket role. Missing role/static configuration fails safely.",
+        "Mock credential rotation includes temporary token on writer multipart/cleanup requests; output acknowledgment size/hash checks and write-only writer remain intact.",
+        "No source IAM access on workers, no output read on writers, no Put/Get on cleanup; no shared Media configuration/package import."
+      ],
+      "verification_future": [
+        "Future Processing config/storage/recovery unit checks and existing storage-performance regressions; real IAM/multipart denial proof belongs to aws2-cloud-workflow."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-processing-task-credentials -->\n\n## Problem and evidence\n\nWorker/recovery require static output keys and construct static clients; Processing API already correctly has no S3 credentials.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: AWS-A-01,A-03; processing/config.py:35-56; processing/worker/storage.py:24-39; processing/recovery.py:117-120. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nExplicit credential mode/refreshing provider for OutputStore and CleanupStore, preserving worker/recovery role separation. Keep Redis/reverse-token requirements and existing output reader/hash logic.\n\nOwner/area: processing. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Worker and recovery start with native task role configuration and no static keys; API requires no bucket role. Missing role/static configuration fails safely.\n- [ ] Mock credential rotation includes temporary token on writer multipart/cleanup requests; output acknowledgment size/hash checks and write-only writer remain intact.\n- [ ] No source IAM access on workers, no output read on writers, no Put/Get on cleanup; no shared Media configuration/package import.\n\n## Verification \u2014 future\n\n- Future Processing config/storage/recovery unit checks and existing storage-performance regressions; real IAM/multipart denial proof belongs to aws2-cloud-workflow.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Ready**. Dependencies (stable keys): none. Risk: Medium. Rough size: 1 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-presign-expiry",
+      "title": "[AWS2] Bound signed URL lifetime to the credentials actually used",
+      "kind": "implementation",
+      "parent": "aws2-storage",
+      "dependencies": [
+        "aws2-media-task-credentials"
+      ],
+      "readiness": "Backlog",
+      "optional": false,
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "media",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 0.5,
+      "evidence": [
+        "AWS-A-02,A-06",
+        "media/services/storage.py:53-69; media/api/source_access.py:14-26"
+      ],
+      "problem": "The SDK can sign for 900 seconds with credentials that expire in ~30 seconds; source-access currently reports now+requested TTL.",
+      "scope": "Use one credential snapshot/signing time for requested/effective TTL and source expires_at, with a skew margin and bounded refresh/unavailable behavior. Apply the same expiry policy to output signing, retaining schema and static MinIO TTL.",
+      "acceptance": [
+        "Near-expiry/expired/failed-refresh and concurrent signing checks never advertise beyond the credential snapshot used; returned token and expires_at match that snapshot.",
+        "No long-lived snapshot cached for later SDK operations, no SDK private-field mutation, no extended token lifetime.",
+        "Source renewal/descriptor verification, owner/revision checks and stored-source retry remain unchanged."
+      ],
+      "verification_future": [
+        "Future clock-controlled tests using the pinned SDK and dummy credentials; real expired/tampered GET and refreshed grant are later cloud-workflow evidence."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-presign-expiry -->\n\n## Problem and evidence\n\nThe SDK can sign for 900 seconds with credentials that expire in ~30 seconds; source-access currently reports now+requested TTL.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: AWS-A-02,A-06; media/services/storage.py:53-69; media/api/source_access.py:14-26. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nUse one credential snapshot/signing time for requested/effective TTL and source expires_at, with a skew margin and bounded refresh/unavailable behavior. Apply the same expiry policy to output signing, retaining schema and static MinIO TTL.\n\nOwner/area: media. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Near-expiry/expired/failed-refresh and concurrent signing checks never advertise beyond the credential snapshot used; returned token and expires_at match that snapshot.\n- [ ] No long-lived snapshot cached for later SDK operations, no SDK private-field mutation, no extended token lifetime.\n- [ ] Source renewal/descriptor verification, owner/revision checks and stored-source retry remain unchanged.\n\n## Verification \u2014 future\n\n- Future clock-controlled tests using the pinned SDK and dummy credentials; real expired/tampered GET and refreshed grant are later cloud-workflow evidence.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Backlog**. Dependencies (stable keys): aws2-media-task-credentials. Risk: Medium. Rough size: 0.5 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-core-definitions",
+      "title": "[AWS2] Define one-subnet state, storage and IAM infrastructure offline",
+      "kind": "implementation",
+      "parent": "aws2-environment",
+      "dependencies": [],
+      "readiness": "Ready",
+      "optional": false,
+      "priority": "P1",
+      "risk": "High",
+      "area": "infrastructure",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 1.5,
+      "evidence": [
+        "B-06,B-11,B-15; AWS-A-03,A-04,A-10",
+        "deploy/minio/bootstrap.py:20-39; deploy/postgres/bootstrap.sh:26-50"
+      ],
+      "problem": "Existing deployment files are local/legacy Compose; no accepted AWS VPC/state/S3/role definitions exist.",
+      "scope": "Dedicated parameterized CloudFormation templates (proposed deploy/aws/) for one AZ/public subnet/IGW/S3 gateway, t3a.small Standard credits, 16+8-GiB encrypted EBS, two ECR repos, scoped task/execution/operator roles and private S3. Define nonsecret output/SSM-ARN contracts for subsequent issues; do not apply.",
+      "acceptance": [
+        "Offline template/policy validation asserts no NAT/ALB/domain/paid endpoints/RDS/ElastiCache/EIP; state host may run only PG/Redis/nginx. Separate edge SG accommodates CloudFront prefix-list weight without broad inbound.",
+        "Role policy inventory: Media source Get/Put/Delete/AbortMultipartUpload, output Get; worker output Put/Abort only; cleanup prefix List/Delete only; API/migrations no S3. Source List is omitted unless a real runtime need is evidenced. Operator backup rights are separate.",
+        "Buckets BPA/encryption/TLS and one-day incomplete-MPU lifecycle preserve retryable sources; output exact-origin GET/Range CORS is parameterized. Endpoint allows app flows and regional ECR layer bucket access, and does not deny external signed output GET.",
+        "EBS deletion/mount contracts preserve data by default; secret values never enter source/user-data/task definition, only scoped standard SSM parameter references. Default recovery gets no RunTask/PassRole.",
+        "Define a separately invoked short-lived c6a.large/8-GiB-root generator only for the priced timed checks; no resident generator or work on t3a.small. It is gated by the approved account and fully terminated/deleted at close."
+      ],
+      "verification_future": [
+        "Future offline CloudFormation schema/policy checks (no AWS validate-template call yet), JSON/SG/IAM assertions and forbidden-resource inventory. Live apply/role checks assigned to aws2-cloud-workflow."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-core-definitions -->\n\n## Problem and evidence\n\nExisting deployment files are local/legacy Compose; no accepted AWS VPC/state/S3/role definitions exist.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: B-06,B-11,B-15; AWS-A-03,A-04,A-10; deploy/minio/bootstrap.py:20-39; deploy/postgres/bootstrap.sh:26-50. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nDedicated parameterized CloudFormation templates (proposed deploy/aws/) for one AZ/public subnet/IGW/S3 gateway, t3a.small Standard credits, 16+8-GiB encrypted EBS, two ECR repos, scoped task/execution/operator roles and private S3. Define nonsecret output/SSM-ARN contracts for subsequent issues; do not apply.\n\nOwner/area: infrastructure. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Offline template/policy validation asserts no NAT/ALB/domain/paid endpoints/RDS/ElastiCache/EIP; state host may run only PG/Redis/nginx. Separate edge SG accommodates CloudFront prefix-list weight without broad inbound.\n- [ ] Role policy inventory: Media source Get/Put/Delete/AbortMultipartUpload, output Get; worker output Put/Abort only; cleanup prefix List/Delete only; API/migrations no S3. Source List is omitted unless a real runtime need is evidenced. Operator backup rights are separate.\n- [ ] Buckets BPA/encryption/TLS and one-day incomplete-MPU lifecycle preserve retryable sources; output exact-origin GET/Range CORS is parameterized. Endpoint allows app flows and regional ECR layer bucket access, and does not deny external signed output GET.\n- [ ] EBS deletion/mount contracts preserve data by default; secret values never enter source/user-data/task definition, only scoped standard SSM parameter references. Default recovery gets no RunTask/PassRole.\n\n- [ ] Define a separately invoked short-lived c6a.large/8-GiB-root generator only for the priced timed checks; no resident generator or work on t3a.small. It is gated by the approved account and fully terminated/deleted at close.\n\n## Verification \u2014 future\n\n- Future offline CloudFormation schema/policy checks (no AWS validate-template call yet), JSON/SG/IAM assertions and forbidden-resource inventory. Live apply/role checks assigned to aws2-cloud-workflow.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Ready**. Dependencies (stable keys): none. Risk: High. Rough size: 1.5 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-state-bootstrap",
+      "title": "[AWS2] Bootstrap only PostgreSQL, Redis and nginx on retained EBS",
+      "kind": "implementation",
+      "parent": "aws2-environment",
+      "dependencies": [
+        "aws2-core-definitions"
+      ],
+      "readiness": "Backlog",
+      "optional": false,
+      "priority": "P1",
+      "risk": "High",
+      "area": "infrastructure",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 1,
+      "evidence": [
+        "B-03,B-09; AWS-A-09",
+        "deploy/postgres/bootstrap.sh; compose/local/docker-compose.yml:38-59,168-181"
+      ],
+      "problem": "Owned DB bootstrap and TCP readiness are reusable, but named volumes have no cloud mount guard. Redis container memory limit is not maxmemory/noeviction configuration.",
+      "scope": "State-only host bootstrap/systemd/Compose with stable data-volume mount guard, existing owner roles and bounded PG/WAL/Redis-AOF/log/scratch settings. Fetch scoped secrets privately and bind reachable private listeners guarded by SGs.",
+      "acceptance": [
+        "Missing/wrong data mount refuses initialization; stop/start never formats or silently initializes root-backed metadata. Use PostgreSQL TCP readiness and separate owner schema probes.",
+        "Existing own DML/denied DDL/cross-DB runtime+migrator checks remain reusable; service tasks cannot get migrator credentials.",
+        "Explicit Redis maxmemory below 128-MiB container cap, noeviction and AOF/fork headroom; log/scratch caps and Standard CPU credits are configured. No application images, FFmpeg, load generator or builds on host."
+      ],
+      "verification_future": [
+        "Future offline shell/config checks and missing-mount/secret sentinel tests. Actual cold boot/metadata continuity/pressure and roles are assigned to cloud-workflow/closeout; no new local Docker trial here."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-state-bootstrap -->\n\n## Problem and evidence\n\nOwned DB bootstrap and TCP readiness are reusable, but named volumes have no cloud mount guard. Redis container memory limit is not maxmemory/noeviction configuration.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: B-03,B-09; AWS-A-09; deploy/postgres/bootstrap.sh; compose/local/docker-compose.yml:38-59,168-181. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nState-only host bootstrap/systemd/Compose with stable data-volume mount guard, existing owner roles and bounded PG/WAL/Redis-AOF/log/scratch settings. Fetch scoped secrets privately and bind reachable private listeners guarded by SGs.\n\nOwner/area: infrastructure. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Missing/wrong data mount refuses initialization; stop/start never formats or silently initializes root-backed metadata. Use PostgreSQL TCP readiness and separate owner schema probes.\n- [ ] Existing own DML/denied DDL/cross-DB runtime+migrator checks remain reusable; service tasks cannot get migrator credentials.\n- [ ] Explicit Redis maxmemory below 128-MiB container cap, noeviction and AOF/fork headroom; log/scratch caps and Standard CPU credits are configured. No application images, FFmpeg, load generator or builds on host.\n\n## Verification \u2014 future\n\n- Future offline shell/config checks and missing-mount/secret sentinel tests. Actual cold boot/metadata continuity/pressure and roles are assigned to cloud-workflow/closeout; no new local Docker trial here.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Backlog**. Dependencies (stable keys): aws2-core-definitions. Risk: High. Rough size: 1 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-task-definitions",
+      "title": "[AWS2] Define three services, owner migrations and disposable worker tasks",
+      "kind": "implementation",
+      "parent": "aws2-environment",
+      "dependencies": [
+        "aws2-core-definitions",
+        "aws2-media-task-credentials",
+        "aws2-processing-task-credentials"
+      ],
+      "readiness": "Backlog",
+      "optional": false,
+      "priority": "P1",
+      "risk": "High",
+      "area": "infrastructure",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 1,
+      "evidence": [
+        "B-01,B-02,B-03,B-04; D-08; C-L07",
+        "deploy/media.Dockerfile; deploy/processing.Dockerfile; compose/local/docker-compose.yml:61-166"
+      ],
+      "problem": "Current role commands/images fit, but Compose health/dependencies/roles do not transfer automatically to ECS.",
+      "scope": "Parameterized ECS/Cloud Map definitions in dedicated AWS templates: Media API+essential reconciler 1024/2048, ProcessingAPI512/1024, recovery256/512, worker2048/4096 and owner-only one-off migrations. Freeze network/secret/digest/RQ-identity outputs; runtime controls reuse them.",
+      "acceptance": [
+        "Only two API names in private Cloud Map; private peer URLs resolve replaced tasks, API ingress is private, DB/Redis SG flows are scoped. Media aggregate CPU includes its reconciler, rather than copying 1.0625 local CPUs into a 1-vCPU task.",
+        "Task/execution roles and secret references are separated by execution role; no migration DSN in resident tasks; no S3 role on API. Media essential reconciler exit is observable.",
+        "Explicit API health is liveness plus deployment probes for TCP/schema/Redis/peer readiness; do not claim Media /health or Processing dispatch_connected field proves full readiness or couple Media liveness to peer outage.",
+        "Owner migration command uses only its image/DSN; STOPPED+exit0/revision required by later release invocations. Fargate worker 4-GiB billed allocation and optional historical1536-MiB container limit are reported separately; no permanent worker service."
+      ],
+      "verification_future": [
+        "Future static template rendering/resource-size/secret/role/command checks; actual DNS replacement and owner migrations assigned to cloud-workflow and release-evidence."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-task-definitions -->\n\n## Problem and evidence\n\nCurrent role commands/images fit, but Compose health/dependencies/roles do not transfer automatically to ECS.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: B-01,B-02,B-03,B-04; D-08; C-L07; deploy/media.Dockerfile; deploy/processing.Dockerfile; compose/local/docker-compose.yml:61-166. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nParameterized ECS/Cloud Map definitions in dedicated AWS templates: Media API+essential reconciler 1024/2048, ProcessingAPI512/1024, recovery256/512, worker2048/4096 and owner-only one-off migrations. Freeze network/secret/digest/RQ-identity outputs; runtime controls reuse them.\n\nOwner/area: infrastructure. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Only two API names in private Cloud Map; private peer URLs resolve replaced tasks, API ingress is private, DB/Redis SG flows are scoped. Media aggregate CPU includes its reconciler, rather than copying 1.0625 local CPUs into a 1-vCPU task.\n- [ ] Task/execution roles and secret references are separated by execution role; no migration DSN in resident tasks; no S3 role on API. Media essential reconciler exit is observable.\n- [ ] Explicit API health is liveness plus deployment probes for TCP/schema/Redis/peer readiness; do not claim Media /health or Processing dispatch_connected field proves full readiness or couple Media liveness to peer outage.\n- [ ] Owner migration command uses only its image/DSN; STOPPED+exit0/revision required by later release invocations. Fargate worker 4-GiB billed allocation and optional historical1536-MiB container limit are reported separately; no permanent worker service.\n\n## Verification \u2014 future\n\n- Future static template rendering/resource-size/secret/role/command checks; actual DNS replacement and owner migrations assigned to cloud-workflow and release-evidence.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Backlog**. Dependencies (stable keys): aws2-core-definitions, aws2-media-task-credentials, aws2-processing-task-credentials. Risk: High. Rough size: 1 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-edge-config",
+      "title": "[AWS2] Configure CloudFront and nginx for private authenticated API traffic",
+      "kind": "implementation",
+      "parent": "aws2-environment",
+      "dependencies": [
+        "aws2-core-definitions",
+        "aws2-origin-transport"
+      ],
+      "readiness": "Backlog",
+      "optional": false,
+      "priority": "P1",
+      "risk": "High",
+      "area": "infrastructure",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 1,
+      "evidence": [
+        "B-04,B-07,B-08,B-12,B-14; AWS-A-05",
+        "deploy/nginx/local.conf.template:8-39; media/api/auth.py:21-30"
+      ],
+      "problem": "Local nginx uses Docker DNS/local CA/MinIO paths; no CloudFront origin gate or cache/cookie policy exists.",
+      "scope": "After transport disposition, define approved generated viewer HTTPS and AWS nginx template preserving frontend assets, /api rewrite, trusted external HTTPS/public host, VPC resolver/qualified Media name, origin secret gate and /internal rejection. Keep local template intact.",
+      "acceptance": [
+        "CloudFront viewer HTTPS, seven methods, cookies/query/required Content-Type/Idempotency-Key/Range/Origin/auth headers forwarded and Set-Cookie preserved. /api and /api/* TTL0 plus relevant error TTL0; no SPA conversion/cached authenticated redirects/errors. Static index/scripts revalidate unless versioned.",
+        "Origin SG+secret validation fail closed; secret header omitted from Git/logs. Protocol matches explicit TLS decision, never claim viewer TLS encrypts an HTTP origin.",
+        "Remove cloud MinIO proxy paths; regional S3 signing and exact-origin CORS coexist with private buckets and external MP4/HLS segments.",
+        "Choose and document bounded buffering versus streaming, preserving100-MiB file+multipart limit, scratch/concurrency/slow-upload timeout budgets. No new large cloud boundary upload by default."
+      ],
+      "verification_future": [
+        "Future nginx/template/policy fixtures; cloud-workflow verifies owner cache isolation, secure cookies, HLS redirect/CORS and MP4 Range. DNS replacement checked in release-evidence."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-edge-config -->\n\n## Problem and evidence\n\nLocal nginx uses Docker DNS/local CA/MinIO paths; no CloudFront origin gate or cache/cookie policy exists.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: B-04,B-07,B-08,B-12,B-14; AWS-A-05; deploy/nginx/local.conf.template:8-39; media/api/auth.py:21-30. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nAfter transport disposition, define approved generated viewer HTTPS and AWS nginx template preserving frontend assets, /api rewrite, trusted external HTTPS/public host, VPC resolver/qualified Media name, origin secret gate and /internal rejection. Keep local template intact.\n\nOwner/area: infrastructure. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] CloudFront viewer HTTPS, seven methods, cookies/query/required Content-Type/Idempotency-Key/Range/Origin/auth headers forwarded and Set-Cookie preserved. /api and /api/* TTL0 plus relevant error TTL0; no SPA conversion/cached authenticated redirects/errors. Static index/scripts revalidate unless versioned.\n- [ ] Origin SG+secret validation fail closed; secret header omitted from Git/logs. Protocol matches explicit TLS decision, never claim viewer TLS encrypts an HTTP origin.\n- [ ] Remove cloud MinIO proxy paths; regional S3 signing and exact-origin CORS coexist with private buckets and external MP4/HLS segments.\n- [ ] Choose and document bounded buffering versus streaming, preserving100-MiB file+multipart limit, scratch/concurrency/slow-upload timeout budgets. No new large cloud boundary upload by default.\n\n## Verification \u2014 future\n\n- Future nginx/template/policy fixtures; cloud-workflow verifies owner cache isolation, secure cookies, HLS redirect/CORS and MP4 Range. DNS replacement checked in release-evidence.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Backlog**. Dependencies (stable keys): aws2-core-definitions, aws2-origin-transport. Risk: High. Rough size: 1 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-image-delivery",
+      "title": "[AWS2] Bind amd64 owner artifacts to tests, scans and ECR digest receipts",
+      "kind": "implementation",
+      "parent": "aws2-delivery",
+      "dependencies": [],
+      "readiness": "Ready",
+      "optional": false,
+      "priority": "P1",
+      "risk": "High",
+      "area": "delivery",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 1.5,
+      "evidence": [
+        "D-05; B-01",
+        "deploy/media.Dockerfile; deploy/processing.Dockerfile; .github/workflows/ci.yml:497-532"
+      ],
+      "problem": "CI builds/scans separate images locally but does not publish exact amd64 artifacts or record ECR digest identity.",
+      "scope": "Selected-owner build/test/Trivy/publish workflow and safe artifact schema, preserving existing Dockerfiles/gates. Manual approved cloud publish only; no spend-on-PR, OIDC or credential platform. Define both source/config image ID and registry manifest digest relation.",
+      "acceptance": [
+        "One owner selection builds Linux/amd64, locks source labels and test/scan receipts to the exact published artifact; no rebuild after scan without repeating gates.",
+        "Tests and zero fixable HIGH/CRITICAL block promotion; fake/missing/mismatched provenance rejected offline.",
+        "Publish/deploy commands remain inert without approved project inputs; scoped existing operator/Actions secret access only after supplied; retain current and rollback owner digests, never build/deploy peer by default."
+      ],
+      "verification_future": [
+        "Future workflow/config and artifact-identity mock checks; actual authorized ECR push/runtime imageDigest proof assigned to cloud-workflow/release-evidence."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-image-delivery -->\n\n## Problem and evidence\n\nCI builds/scans separate images locally but does not publish exact amd64 artifacts or record ECR digest identity.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: D-05; B-01; deploy/media.Dockerfile; deploy/processing.Dockerfile; .github/workflows/ci.yml:497-532. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nSelected-owner build/test/Trivy/publish workflow and safe artifact schema, preserving existing Dockerfiles/gates. Manual approved cloud publish only; no spend-on-PR, OIDC or credential platform. Define both source/config image ID and registry manifest digest relation.\n\nOwner/area: delivery. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] One owner selection builds Linux/amd64, locks source labels and test/scan receipts to the exact published artifact; no rebuild after scan without repeating gates.\n- [ ] Tests and zero fixable HIGH/CRITICAL block promotion; fake/missing/mismatched provenance rejected offline.\n- [ ] Publish/deploy commands remain inert without approved project inputs; scoped existing operator/Actions secret access only after supplied; retain current and rollback owner digests, never build/deploy peer by default.\n\n## Verification \u2014 future\n\n- Future workflow/config and artifact-identity mock checks; actual authorized ECR push/runtime imageDigest proof assigned to cloud-workflow/release-evidence.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Ready**. Dependencies (stable keys): none. Risk: High. Rough size: 1.5 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-scan-disposition",
+      "title": "[AWS2] Cover extracted services in delivery scans and report execution honestly",
+      "kind": "implementation",
+      "parent": "aws2-delivery",
+      "dependencies": [],
+      "readiness": "Ready",
+      "optional": false,
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "delivery",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 0.5,
+      "evidence": [
+        "D-10",
+        ".github/workflows/dast.yml:7-15,30-36; .github/workflows/ci.yml:534-569"
+      ],
+      "problem": "DAST triggers/target still use legacy paths/root Compose; a green Sonar wrapper can represent skipped/failed analysis rather than executed service coverage.",
+      "scope": "Small existing-workflow update for isolated integrated Media/public and prepared private contracts, path triggers and explicit scan execution/skipped/error dispositions. Keep DAST local/runner-only and existing report-only ZAP policy documented.",
+      "acceptance": [
+        "Future scan manifest names extracted-service target and auth/contract scope, with retained report and explicit execution status. Legacy-only/skipped results cannot count as completed extracted-service analysis.",
+        "Preserve hard test/fixable HIGH/CRITICAL image gates; missing existing Sonar credential/configuration is reported rather than fabricated or replaced by new security infrastructure.",
+        "No cloud ZAP sweep, leaked auth artifacts or adoption of runner down -v for cloud cleanup."
+      ],
+      "verification_future": [
+        "Future workflow lint and actual isolated CI target/report verification; no scan was run during readiness. If analysis cannot execute, carry the precise limitation into release-evidence and course handoff."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-scan-disposition -->\n\n## Problem and evidence\n\nDAST triggers/target still use legacy paths/root Compose; a green Sonar wrapper can represent skipped/failed analysis rather than executed service coverage.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: D-10; .github/workflows/dast.yml:7-15,30-36; .github/workflows/ci.yml:534-569. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nSmall existing-workflow update for isolated integrated Media/public and prepared private contracts, path triggers and explicit scan execution/skipped/error dispositions. Keep DAST local/runner-only and existing report-only ZAP policy documented.\n\nOwner/area: delivery. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Future scan manifest names extracted-service target and auth/contract scope, with retained report and explicit execution status. Legacy-only/skipped results cannot count as completed extracted-service analysis.\n- [ ] Preserve hard test/fixable HIGH/CRITICAL image gates; missing existing Sonar credential/configuration is reported rather than fabricated or replaced by new security infrastructure.\n- [ ] No cloud ZAP sweep, leaked auth artifacts or adoption of runner down -v for cloud cleanup.\n\n## Verification \u2014 future\n\n- Future workflow lint and actual isolated CI target/report verification; no scan was run during readiness. If analysis cannot execute, carry the precise limitation into release-evidence and course handoff.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Ready**. Dependencies (stable keys): none. Risk: Medium. Rough size: 0.5 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-manual-worker-batches",
+      "title": "[AWS2] Start at most three worker tasks with one serialized operator",
+      "kind": "implementation",
+      "parent": "aws2-delivery",
+      "dependencies": [],
+      "readiness": "Ready",
+      "optional": false,
+      "priority": "P1",
+      "risk": "High",
+      "area": "processing",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 1.5,
+      "evidence": [
+        "C-L01,C-L02,C-L04",
+        "processing/worker/__main__.py:10-20; processing/queue.py:28-55"
+      ],
+      "problem": "Burst execution exists; no ECS starter/inventory exists. Pending launches and lost RunTask responses can violate a naive cap.",
+      "scope": "Manual operator adapter with one designated control station and all launch paths serialized, private crash-safe journal before RunTask, stable token/request and task/RQ identity. Default --burst; explicit non-burst fixed test mode may prewarm1/2/3 with finite lifetime. No controller/table.",
+      "acceptance": [
+        "Count paginated nonterminal worker tasks including provisioning/pending/running/stopping and unresolved launch reservations; fourth slot refused, mixed digests included, stale absence never releases a reservation.",
+        "Offline cap0/1/2/3, concurrent local commands, partial failures, lost response/token replay, journal restart and stale-list tests preserve\u22643.",
+        "All worker launch paths including CI/smoke/release use the same station/interlock; another station or unknown journal refuses launches until explicit quiescent handover. Multiple launch writers are a stop condition for optional coordination work.",
+        "SQL ledger is authoritative; queued jobs after an empty burst exits await another bounded operator batch, and no automatic attempt retry is added."
+      ],
+      "verification_future": [
+        "Future fake-ECS transport tests with immutable token payload and pagination; actual authorized start/exit/cap receipts assigned to capacity-recovery."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-manual-worker-batches -->\n\n## Problem and evidence\n\nBurst execution exists; no ECS starter/inventory exists. Pending launches and lost RunTask responses can violate a naive cap.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: C-L01,C-L02,C-L04; processing/worker/__main__.py:10-20; processing/queue.py:28-55. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nManual operator adapter with one designated control station and all launch paths serialized, private crash-safe journal before RunTask, stable token/request and task/RQ identity. Default --burst; explicit non-burst fixed test mode may prewarm1/2/3 with finite lifetime. No controller/table.\n\nOwner/area: processing. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Count paginated nonterminal worker tasks including provisioning/pending/running/stopping and unresolved launch reservations; fourth slot refused, mixed digests included, stale absence never releases a reservation.\n- [ ] Offline cap0/1/2/3, concurrent local commands, partial failures, lost response/token replay, journal restart and stale-list tests preserve\u22643.\n- [ ] All worker launch paths including CI/smoke/release use the same station/interlock; another station or unknown journal refuses launches until explicit quiescent handover. Multiple launch writers are a stop condition for optional coordination work.\n- [ ] SQL ledger is authoritative; queued jobs after an empty burst exits await another bounded operator batch, and no automatic attempt retry is added.\n\n## Verification \u2014 future\n\n- Future fake-ECS transport tests with immutable token payload and pagination; actual authorized start/exit/cap receipts assigned to capacity-recovery.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Ready**. Dependencies (stable keys): none. Risk: High. Rough size: 1.5 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-worker-lifetime-drain",
+      "title": "[AWS2] Bound cloud worker lifetime and warm-drain before StopTask",
+      "kind": "implementation",
+      "parent": "aws2-delivery",
+      "dependencies": [
+        "aws2-manual-worker-batches"
+      ],
+      "readiness": "Backlog",
+      "optional": false,
+      "priority": "P1",
+      "risk": "High",
+      "area": "processing",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 1.5,
+      "evidence": [
+        "C-L03,C-L05,C-L06,C-L08",
+        "processing/worker/__main__.py:20; installed RQ2.12 base.py:1149-1158; scripts/dev/release.py:437-483"
+      ],
+      "problem": "RQ can retry Redis loss indefinitely; burst does not bound lifetime. ECS stopTimeout\u2264120s cannot stand in for a300s warm drain or save a900s job.",
+      "scope": "Cloud-only finite wrapper/watchdog and shared pre-stop drain using correlated owned task/RQ identity, single warm shutdown or quiesced burst. Stop claims, bound drain, and record explicit interruption/failure if forced; reuse SQL fences/recovery.",
+      "acceptance": [
+        "Per-task absolute deadline includes startup/selected batch/attempt/drain; Redis outage, perpetual queue and operator loss cannot silently leave an unbounded worker. Local worker defaults and900s per-attempt deadline stay intact.",
+        "One warm RQ shutdown, captured and last/racing claims terminal, task STOPPED required; failed/lost acknowledgement or deadline cannot count as successful drain. Avoid blind repeat signal/cold second shutdown.",
+        "Keep DB/Redis/recovery/Media source API available until outcomes recorded; timeout blocks promotion or records forced interruption, visibly failed/abandoned with owner-driven stored-source retry.",
+        "Fake tests cover active work, late claim, Redis loss, stale worker registration, wrapper deadline/operator disappearance; final stop grace configured\u2264120s and no resident watchdog service."
+      ],
+      "verification_future": [
+        "Future bounded fake-clock/RQ/ECS tests; real small interruption/drain assigned to capacity-recovery/release-evidence, not a new long trial."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-worker-lifetime-drain -->\n\n## Problem and evidence\n\nRQ can retry Redis loss indefinitely; burst does not bound lifetime. ECS stopTimeout\u2264120s cannot stand in for a300s warm drain or save a900s job.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: C-L03,C-L05,C-L06,C-L08; processing/worker/__main__.py:20; installed RQ2.12 base.py:1149-1158; scripts/dev/release.py:437-483. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nCloud-only finite wrapper/watchdog and shared pre-stop drain using correlated owned task/RQ identity, single warm shutdown or quiesced burst. Stop claims, bound drain, and record explicit interruption/failure if forced; reuse SQL fences/recovery.\n\nOwner/area: processing. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Per-task absolute deadline includes startup/selected batch/attempt/drain; Redis outage, perpetual queue and operator loss cannot silently leave an unbounded worker. Local worker defaults and900s per-attempt deadline stay intact.\n- [ ] One warm RQ shutdown, captured and last/racing claims terminal, task STOPPED required; failed/lost acknowledgement or deadline cannot count as successful drain. Avoid blind repeat signal/cold second shutdown.\n- [ ] Keep DB/Redis/recovery/Media source API available until outcomes recorded; timeout blocks promotion or records forced interruption, visibly failed/abandoned with owner-driven stored-source retry.\n- [ ] Fake tests cover active work, late claim, Redis loss, stale worker registration, wrapper deadline/operator disappearance; final stop grace configured\u2264120s and no resident watchdog service.\n\n## Verification \u2014 future\n\n- Future bounded fake-clock/RQ/ECS tests; real small interruption/drain assigned to capacity-recovery/release-evidence, not a new long trial.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Backlog**. Dependencies (stable keys): aws2-manual-worker-batches. Risk: High. Rough size: 1.5 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-cloud-smoke-context",
+      "title": "[AWS2] Add a small cloud client and safe evidence context",
+      "kind": "implementation",
+      "parent": "aws2-acceptance",
+      "dependencies": [],
+      "readiness": "Ready",
+      "optional": false,
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "verification",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 1.5,
+      "evidence": [
+        "D-01,D-02,D-03,D-04,D-09; AWS-A-05",
+        "scripts/dev/release.py:1108-1158; scripts/dev/scenario.py:179-213; publisher/client.py:42-60"
+      ],
+      "problem": "Local release/scenario reject external origin/S3 playback and force local runtime/CA; full CLI E2E uploads30 files. Frontend relative/api and Publisher system trust already fit.",
+      "scope": "Separate scripts/aws context (proposed) reusing pure workflow assertions with explicit approved HTTPS API and bounded regional-S3 capability downloader. Normal trust, private jars, no API cookies/tokens to S3. Shared selected-field evidence/export schema with byte/job/task-hour ledger.",
+      "acceptance": [
+        "Cloud context never calls local configure/Docker/trust exception; invalid TLS/host/redirect fails. Preserve signed-query bytes, strict configured bucket-host allowlist, API-cookie isolation and bounded body/time limits.",
+        "Offline fake-transport checks cover ownership/retry, HLS/MP4 redirect path, normal roots, no arbitrary cross-origin redirects, and cumulative upload/job limits; reuse small two-file CLI folder plus invalid content.",
+        "Secret sentinel DSN/cookie/source+output signatures/session token/origin header never enter exported JSON/HTML/argv/logs; only allowlisted files are indexed/compressed with hashes/lengths. Raw CLI output/HAR/full task definitions/private DB exports stay private.",
+        "Six long submissions total and about0.25GBupload; actual cloud cases emit PASS/FAIL/NOT RUN with real source/digest/fixture/task identities. CORS null-Origin issue is a future check/spike trigger, not permission to add wildcard/null origin."
+      ],
+      "verification_future": [
+        "Future service-free fake HTTP/redirect/TLS/secret-export checks. Actual decoded browser and independent CLI results assigned to cloud-workflow; preserve existing frontend and Publisher code unless a demonstrated defect needs a small adapter."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-cloud-smoke-context -->\n\n## Problem and evidence\n\nLocal release/scenario reject external origin/S3 playback and force local runtime/CA; full CLI E2E uploads30 files. Frontend relative/api and Publisher system trust already fit.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: D-01,D-02,D-03,D-04,D-09; AWS-A-05; scripts/dev/release.py:1108-1158; scripts/dev/scenario.py:179-213; publisher/client.py:42-60. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nSeparate scripts/aws context (proposed) reusing pure workflow assertions with explicit approved HTTPS API and bounded regional-S3 capability downloader. Normal trust, private jars, no API cookies/tokens to S3. Shared selected-field evidence/export schema with byte/job/task-hour ledger.\n\nOwner/area: verification. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Cloud context never calls local configure/Docker/trust exception; invalid TLS/host/redirect fails. Preserve signed-query bytes, strict configured bucket-host allowlist, API-cookie isolation and bounded body/time limits.\n- [ ] Offline fake-transport checks cover ownership/retry, HLS/MP4 redirect path, normal roots, no arbitrary cross-origin redirects, and cumulative upload/job limits; reuse small two-file CLI folder plus invalid content.\n- [ ] Secret sentinel DSN/cookie/source+output signatures/session token/origin header never enter exported JSON/HTML/argv/logs; only allowlisted files are indexed/compressed with hashes/lengths. Raw CLI output/HAR/full task definitions/private DB exports stay private.\n- [ ] Six long submissions total and about0.25GBupload; actual cloud cases emit PASS/FAIL/NOT RUN with real source/digest/fixture/task identities. CORS null-Origin issue is a future check/spike trigger, not permission to add wildcard/null origin.\n\n## Verification \u2014 future\n\n- Future service-free fake HTTP/redirect/TLS/secret-export checks. Actual decoded browser and independent CLI results assigned to cloud-workflow; preserve existing frontend and Publisher code unless a demonstrated defect needs a small adapter.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Ready**. Dependencies (stable keys): none. Risk: Medium. Rough size: 1.5 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-processing-release",
+      "title": "[AWS2] Promote and roll back Processing alone on ECS",
+      "kind": "implementation",
+      "parent": "aws2-delivery",
+      "dependencies": [
+        "aws2-task-definitions",
+        "aws2-image-delivery",
+        "aws2-worker-lifetime-drain",
+        "aws2-cloud-smoke-context"
+      ],
+      "readiness": "Backlog",
+      "optional": false,
+      "priority": "P1",
+      "risk": "High",
+      "area": "processing",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 1.5,
+      "evidence": [
+        "D-06,D-08; C-L09",
+        "scripts/dev/release.py:641-750,833-899"
+      ],
+      "problem": "Local release uses Compose IDs and assumes existing workers, incompatible with ECS digest identity/zero-idle standalone batches.",
+      "scope": "Thin Processing ECS operation reusing exact-artifact tests/scans, private locked journal/rollback intent, additive compatibility and unchanged-Media snapshot. Owner migration invocation from task contract, candidate API/recovery/future worker digest updates, bounded public smoke and prior-digest restore.",
+      "acceptance": [
+        "Only Processing migrates/updates; migration STOPPED+exit0+owner revision required. Backward-compatible additive schema is reviewed/tested against prior image, never inferred from added filenames; no schema downgrade.",
+        "Candidate digest/source/task revisions explicitly verified beyond services-stable; failing candidate may not pass by ECS restoring old digest. Journal exists before mutation and interrupted operation resumes rollback safely.",
+        "Accept zero workers baseline; shared bounded start/drain prevents orphan candidates/migration tasks and returns default worker count to zero after smoke/rollback. Media taskIDs/both container digests/media_db revision unchanged.",
+        "Good promotion+public smoke600s absolute deadline, recovery\u2264300s with no reset; retain failed candidate/timeout/rollback error and safe logs. Selected-owner pipeline invokes this adapter only on authorized manual execution."
+      ],
+      "verification_future": [
+        "Future fake-ECS/migration/journal/public smoke tests; actual good/bad Processing receipt and clock bounds assigned to release-evidence."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-processing-release -->\n\n## Problem and evidence\n\nLocal release uses Compose IDs and assumes existing workers, incompatible with ECS digest identity/zero-idle standalone batches.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: D-06,D-08; C-L09; scripts/dev/release.py:641-750,833-899. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nThin Processing ECS operation reusing exact-artifact tests/scans, private locked journal/rollback intent, additive compatibility and unchanged-Media snapshot. Owner migration invocation from task contract, candidate API/recovery/future worker digest updates, bounded public smoke and prior-digest restore.\n\nOwner/area: processing. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Only Processing migrates/updates; migration STOPPED+exit0+owner revision required. Backward-compatible additive schema is reviewed/tested against prior image, never inferred from added filenames; no schema downgrade.\n- [ ] Candidate digest/source/task revisions explicitly verified beyond services-stable; failing candidate may not pass by ECS restoring old digest. Journal exists before mutation and interrupted operation resumes rollback safely.\n- [ ] Accept zero workers baseline; shared bounded start/drain prevents orphan candidates/migration tasks and returns default worker count to zero after smoke/rollback. Media taskIDs/both container digests/media_db revision unchanged.\n- [ ] Good promotion+public smoke600s absolute deadline, recovery\u2264300s with no reset; retain failed candidate/timeout/rollback error and safe logs. Selected-owner pipeline invokes this adapter only on authorized manual execution.\n\n## Verification \u2014 future\n\n- Future fake-ECS/migration/journal/public smoke tests; actual good/bad Processing receipt and clock bounds assigned to release-evidence.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Backlog**. Dependencies (stable keys): aws2-task-definitions, aws2-image-delivery, aws2-worker-lifetime-drain, aws2-cloud-smoke-context. Risk: High. Rough size: 1.5 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-media-release",
+      "title": "[AWS2] Release Media API and reconciler without changing Processing",
+      "kind": "implementation",
+      "parent": "aws2-delivery",
+      "dependencies": [
+        "aws2-processing-release"
+      ],
+      "readiness": "Backlog",
+      "optional": false,
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "media",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 1,
+      "evidence": [
+        "D-07,D-08",
+        "scripts/dev/release.py:32-33,641-659; deploy/media.Dockerfile"
+      ],
+      "problem": "Separate Media image/migrations exist but release tooling is Processing-only; the proposal requires each service to deploy independently.",
+      "scope": "Reuse Processing adapter primitives for a small Media-owner selection, migration, API+reconciler task promotion/smoke/rollback. Avoid generic deployment framework or platform-wide rollout.",
+      "acceptance": [
+        "Only Media owning migration/task/digest changes; ProcessingAPI/recovery taskIDs/digests, worker definition and processing_db revision unchanged; no peer migration/worker restart.",
+        "Exact artifact/readiness/public smoke and prior Media digest required; failure/interrupt journal can roll back with compatible existing schema. Reconciler stays essential in the same Media task.",
+        "Selected-owner workflow invokes adapter after gates/approval, and records Media-specific migration/peer snapshot receipts."
+      ],
+      "verification_future": [
+        "Future owner-operation plan/journal mocks then real Media unchanged-peer proof assigned to release-evidence."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-media-release -->\n\n## Problem and evidence\n\nSeparate Media image/migrations exist but release tooling is Processing-only; the proposal requires each service to deploy independently.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: D-07,D-08; scripts/dev/release.py:32-33,641-659; deploy/media.Dockerfile. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nReuse Processing adapter primitives for a small Media-owner selection, migration, API+reconciler task promotion/smoke/rollback. Avoid generic deployment framework or platform-wide rollout.\n\nOwner/area: media. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Only Media owning migration/task/digest changes; ProcessingAPI/recovery taskIDs/digests, worker definition and processing_db revision unchanged; no peer migration/worker restart.\n- [ ] Exact artifact/readiness/public smoke and prior Media digest required; failure/interrupt journal can roll back with compatible existing schema. Reconciler stays essential in the same Media task.\n- [ ] Selected-owner workflow invokes adapter after gates/approval, and records Media-specific migration/peer snapshot receipts.\n\n## Verification \u2014 future\n\n- Future owner-operation plan/journal mocks then real Media unchanged-peer proof assigned to release-evidence.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Backlog**. Dependencies (stable keys): aws2-processing-release. Risk: Medium. Rough size: 1 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-environment-lifecycle",
+      "title": "[AWS2] Open and close sessions with complete task and IP accounting",
+      "kind": "implementation",
+      "parent": "aws2-environment",
+      "dependencies": [
+        "aws2-state-bootstrap",
+        "aws2-task-definitions",
+        "aws2-edge-config",
+        "aws2-worker-lifetime-drain",
+        "aws2-cloud-smoke-context"
+      ],
+      "readiness": "Backlog",
+      "optional": false,
+      "priority": "P1",
+      "risk": "High",
+      "area": "infrastructure",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 1.5,
+      "evidence": [
+        "B-03,B-04,B-13; C-L10; D-12",
+        "scripts/dev/runtime.py:467-473; docs/execution/aws/architecture-plan.md:140-166"
+      ],
+      "problem": "Local down only controls Compose. desiredCount0 alone misses standalone workers/migrations/generators/candidates and incomplete stopping/launches.",
+      "scope": "Explicit idempotent open/close operator workflow sharing worker inventory/drain and safe evidence. Close intake and every launch path, retain recovery/state until terminal outcomes, expose quiescence hook for exports, then all task/host shutdown. Wake reads current EC2 public DNS and updates CloudFront config with ETag while preserving private origin header.",
+      "acceptance": [
+        "Mock orphan migration/generator/release candidate, unresolved launch, STOPPING task, failed export hook, repeat close and stale inventory cannot produce a false zero receipt.",
+        "Close three desiredCounts0 and wait all service deployments/standalone tasks STOPPED; stop/terminate temporary generator+its volume, stop state EC2, confirm auto publicIPreleased/noEIP. Prevent optional schedules/controllers or other station launches from relaunching work.",
+        "Wake mount/TCP/schema/Redis/peer probes before intake; start services/recovery then update new public origin DNS, wait distribution deployed/public readiness. Private host replacement is distinct maintenance, not independent-service release proof.",
+        "No always-running scheduler. Close failure preserves state/export and reports incomplete work plus billed elapsed time; session deadline includes propagation/drain."
+      ],
+      "verification_future": [
+        "Future mock inventories/quiescence/open-close tests; actual close\u2192wake\u2192close and private state continuity assigned to cloud-workflow/closeout."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-environment-lifecycle -->\n\n## Problem and evidence\n\nLocal down only controls Compose. desiredCount0 alone misses standalone workers/migrations/generators/candidates and incomplete stopping/launches.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: B-03,B-04,B-13; C-L10; D-12; scripts/dev/runtime.py:467-473; docs/execution/aws/architecture-plan.md:140-166. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nExplicit idempotent open/close operator workflow sharing worker inventory/drain and safe evidence. Close intake and every launch path, retain recovery/state until terminal outcomes, expose quiescence hook for exports, then all task/host shutdown. Wake reads current EC2 public DNS and updates CloudFront config with ETag while preserving private origin header.\n\nOwner/area: infrastructure. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Mock orphan migration/generator/release candidate, unresolved launch, STOPPING task, failed export hook, repeat close and stale inventory cannot produce a false zero receipt.\n- [ ] Close three desiredCounts0 and wait all service deployments/standalone tasks STOPPED; stop/terminate temporary generator+its volume, stop state EC2, confirm auto publicIPreleased/noEIP. Prevent optional schedules/controllers or other station launches from relaunching work.\n- [ ] Wake mount/TCP/schema/Redis/peer probes before intake; start services/recovery then update new public origin DNS, wait distribution deployed/public readiness. Private host replacement is distinct maintenance, not independent-service release proof.\n- [ ] No always-running scheduler. Close failure preserves state/export and reports incomplete work plus billed elapsed time; session deadline includes propagation/drain.\n\n## Verification \u2014 future\n\n- Future mock inventories/quiescence/open-close tests; actual close\u2192wake\u2192close and private state continuity assigned to cloud-workflow/closeout.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Backlog**. Dependencies (stable keys): aws2-state-bootstrap, aws2-task-definitions, aws2-edge-config, aws2-worker-lifetime-drain, aws2-cloud-smoke-context. Risk: High. Rough size: 1.5 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-metadata-export",
+      "title": "[AWS2] Export both owned databases at one quiescent boundary",
+      "kind": "implementation",
+      "parent": "aws2-environment",
+      "dependencies": [
+        "aws2-environment-lifecycle"
+      ],
+      "readiness": "Backlog",
+      "optional": false,
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "infrastructure",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 1,
+      "evidence": [
+        "B-10; AWS-A-10",
+        "docs/execution/aws/architecture-plan.md:307-314; deploy/postgres/bootstrap.sh"
+      ],
+      "problem": "Exports are proposed, not implemented. Independent pg_dump while both services write is not a consistent cross-service boundary; exports contain private identities/hashes/capabilities.",
+      "scope": "Implement the lifecycle quiescence hook: stop intake and all reconciler/recovery writers after drain, export both DBs/roles under one private hash/schema manifest, keep latest two sets, scoped backup prefix outside app permissions. Tiny operator export/restore only.",
+      "acceptance": [
+        "No writers/active claims before a common export set; include both owning schemas/roles and source references without publishing contents. Export failure prevents claiming backup/destructive teardown and never deletes live EBS.",
+        "Restore plan targets isolated approved throwaway metadata only, checks ownership/references/revisions/cross-DB denials and cleans restore compute. Never overwrite local/frozen data.",
+        "No EBS snapshots/PITR/new backup daemon; loss since last export and shared host outage remain explicit. Definition is offline; actual restore proof assigned to closeout if backup is claimed."
+      ],
+      "verification_future": [
+        "Future fake failed-export/private-prefix/hash/manifest/quiescence tests; one actual bounded export+isolated restore later under approved owner/spend."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-metadata-export -->\n\n## Problem and evidence\n\nExports are proposed, not implemented. Independent pg_dump while both services write is not a consistent cross-service boundary; exports contain private identities/hashes/capabilities.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: B-10; AWS-A-10; docs/execution/aws/architecture-plan.md:307-314; deploy/postgres/bootstrap.sh. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nImplement the lifecycle quiescence hook: stop intake and all reconciler/recovery writers after drain, export both DBs/roles under one private hash/schema manifest, keep latest two sets, scoped backup prefix outside app permissions. Tiny operator export/restore only.\n\nOwner/area: infrastructure. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] No writers/active claims before a common export set; include both owning schemas/roles and source references without publishing contents. Export failure prevents claiming backup/destructive teardown and never deletes live EBS.\n- [ ] Restore plan targets isolated approved throwaway metadata only, checks ownership/references/revisions/cross-DB denials and cleans restore compute. Never overwrite local/frozen data.\n- [ ] No EBS snapshots/PITR/new backup daemon; loss since last export and shared host outage remain explicit. Definition is offline; actual restore proof assigned to closeout if backup is claimed.\n\n## Verification \u2014 future\n\n- Future fake failed-export/private-prefix/hash/manifest/quiescence tests; one actual bounded export+isolated restore later under approved owner/spend.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Backlog**. Dependencies (stable keys): aws2-environment-lifecycle. Risk: Medium. Rough size: 1 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-cloud-workflow",
+      "title": "[AWS2] Bootstrap the approved environment and prove public workflow boundaries",
+      "kind": "implementation",
+      "parent": "aws2-acceptance",
+      "dependencies": [
+        "aws2-account-authorization",
+        "aws2-origin-transport",
+        "aws2-presign-expiry",
+        "aws2-processing-task-credentials",
+        "aws2-state-bootstrap",
+        "aws2-task-definitions",
+        "aws2-edge-config",
+        "aws2-image-delivery",
+        "aws2-worker-lifetime-drain",
+        "aws2-cloud-smoke-context",
+        "aws2-environment-lifecycle"
+      ],
+      "readiness": "Blocked",
+      "optional": false,
+      "priority": "P0",
+      "risk": "High",
+      "area": "verification",
+      "labels": [
+        "planning"
+      ],
+      "estimate_sessions": 1.5,
+      "evidence": [
+        "AWS-A-03-A-11; B-03-B-12; D-01-D-04,D-13",
+        "docs/execution/aws/readiness/gap-analysis.md"
+      ],
+      "problem": "No approved account or authentic AWS workflow evidence exists; local passes cannot prove IAM/CORS/task placement.",
+      "scope": "After dependencies, first approved minimal apply/boot and private owner migrations, then short real CloudFront web+Publisher upload/status/retry/edit/delete/playback and permission checks. Safe selected receipts only. Use only short valid workflow fixtures here, including a small >5-MiB source if multipart is checked. All six ~21-MB long submissions occur after fixed-worker prewarming in aws2-capacity-recovery; that issue owns the required ~21-MB real S3 multipart receipt.",
+      "acceptance": [
+        "Record actual source SHA/config hashes/amd64 digests/taskroles/revisions/fixture identity/SDK version and named authorization. Validate exact approved topology, no public API/DB/Redis, private peers and both owner migration/denial checks.",
+        "Normal-trust browser decodes HLS across redirect+CORS, MP4Range/seek; Publisher private jar/API-only folder outcomes and stored-source retry. Two-owner read/retry/play and unauthenticated/internal negatives reject; cookies/cache/error forwarding tested on sameURL.",
+        "Actual storage role positives/denials include writer multipart+abort, source grant using Media signer, no worker source IAM/GetHEAD/Delete/List, cleanup noPut/Get, private unsigned/list/tampered/expired output rejection. Presign refresh tested offline+actual cloud where observable, otherwise explicitly NOT RUN rather than waiting hours.",
+        "Small fixture ledger\u2264six60s submissions and\u22480.25GBtotalupload; protocol coordinates later capacity use, no redundant100MiB upload. Check root/data/worker scratch, RSS andCPUcredits against initial envelopes.",
+        "Use lifecycle close/wake proof with same metadata/owner/source and changed EC2publicDNS/stable viewer hostname; failed prerequisites or pressure stop intake and preserve failure."
+      ],
+      "verification_future": [
+        "Future actual approved CloudFormation/owner migration and cloud suite execution; specific commands supplied by implemented adapters, not run during readiness. Store sanitized hashed results and reuse assets in following issues."
+      ],
+      "cost_impact": "Uses booked core/migration/worker hours and the shared small fixture/request/storage envelope; no new priced service. Guard approvals and cumulative limits before each action.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-cloud-workflow -->\n\n## Problem and evidence\n\nNo approved account or authentic AWS workflow evidence exists; local passes cannot prove IAM/CORS/task placement.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: AWS-A-03-A-11; B-03-B-12; D-01-D-04,D-13; docs/execution/aws/readiness/gap-analysis.md. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nAfter dependencies, first approved minimal apply/boot and private owner migrations, then short real CloudFront web+Publisher upload/status/retry/edit/delete/playback and permission checks. Safe selected receipts only. Use only short valid workflow fixtures here, including a small >5-MiB source if multipart is checked. All six ~21-MB long submissions occur after fixed-worker prewarming in aws2-capacity-recovery; that issue owns the required ~21-MB real S3 multipart receipt.\n\nOwner/area: verification. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Record actual source SHA/config hashes/amd64 digests/taskroles/revisions/fixture identity/SDK version and named authorization. Validate exact approved topology, no public API/DB/Redis, private peers and both owner migration/denial checks.\n- [ ] Normal-trust browser decodes HLS across redirect+CORS, MP4Range/seek; Publisher private jar/API-only folder outcomes and stored-source retry. Two-owner read/retry/play and unauthenticated/internal negatives reject; cookies/cache/error forwarding tested on sameURL.\n- [ ] Actual storage role positives/denials include writer multipart+abort, source grant using Media signer, no worker source IAM/GetHEAD/Delete/List, cleanup noPut/Get, private unsigned/list/tampered/expired output rejection. Presign refresh tested offline+actual cloud where observable, otherwise explicitly NOT RUN rather than waiting hours.\n- [ ] Small fixture ledger\u2264six60s submissions and\u22480.25GBtotalupload; protocol coordinates later capacity use, no redundant100MiB upload. Check root/data/worker scratch, RSS andCPUcredits against initial envelopes.\n- [ ] Use lifecycle close/wake proof with same metadata/owner/source and changed EC2publicDNS/stable viewer hostname; failed prerequisites or pressure stop intake and preserve failure.\n\n## Verification \u2014 future\n\n- Future actual approved CloudFormation/owner migration and cloud suite execution; specific commands supplied by implemented adapters, not run during readiness. Store sanitized hashed results and reuse assets in following issues.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Blocked**. Dependencies (stable keys): aws2-account-authorization, aws2-origin-transport, aws2-presign-expiry, aws2-processing-task-credentials, aws2-state-bootstrap, aws2-task-definitions, aws2-edge-config, aws2-image-delivery, aws2-worker-lifetime-drain, aws2-cloud-smoke-context, aws2-environment-lifecycle. Risk: High. Rough size: 1.5 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Uses booked core/migration/worker hours and the shared small fixture/request/storage envelope; no new priced service. Guard approvals and cumulative limits before each action.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-capacity-recovery",
+      "title": "[AWS2] Show 1/2/3 task capacity and bounded recovery using six long uploads",
+      "kind": "implementation",
+      "parent": "aws2-acceptance",
+      "dependencies": [
+        "aws2-cloud-workflow"
+      ],
+      "readiness": "Blocked",
+      "optional": false,
+      "priority": "P0",
+      "risk": "High",
+      "area": "verification",
+      "labels": [
+        "planning"
+      ],
+      "estimate_sessions": 1,
+      "evidence": [
+        "C-L01-C-L10; D-04,D-11",
+        "docs/execution/experiments-20261014/EXP38.md; EXP39.md"
+      ],
+      "problem": "Local full scaling/recovery evidence is accepted; this cloud topology needs small capacity/interruption proof rather than a bulk scaling replay.",
+      "scope": "One bounded session: prewarm fixed ordinary workers1/2/3, submit exactly1/2/3 long jobs total with no earlier long upload; drain/stop between batches. Reuse short/stored sources for interruption/queue/API outage and burst-empty/task-lifetime behavior.",
+      "acceptance": [
+        "\u22643 nonterminal/reserved workers, distinct overlapping claims1/2/3 and successful MP4/HLS or honest failure receipts; record task2vCPU/4GiB billed allocation and any1536MiB container cap. Six jobs never certify\u22651.6x/2.1x full throughput targets.",
+        "Interrupt an actually active exact attempt: visible failed/abandoned\u2264300s while online, owner stored-source retry/no reupload/one authoritative primary; remove actual queue entry with sameattempt repair\u2264120s; brief ProcessingAPI outage leaves Media durable intent and later convergence.",
+        "Empty--burst stops, after-exit arrival stays queued until manual batch, finite lifetime handles Redis loss/continuous work, warm drain failure recorded. No new automatic retry or acceptance of rejected38/39.",
+        "Billed task-hours include pull/start/prewarm/drain/forced/candidates; default return to zero encoders and all failures retained.",
+        "Capture a real ~21-MB source multipart PUT/part acknowledgment using the same six capacity submissions; object size alone is not the proof. No additional long fixture is uploaded for workflow or release."
+      ],
+      "verification_future": [
+        "Future actual small authorized task/queue faults through shared scoped operator controls; selected hashed task/Attempt/outcome/time records, no repeated bulk run on failure."
+      ],
+      "cost_impact": "Shared six long submissions\u2248126.3MB plus short checks; worker2expected/8larger cumulative hours, not per-batch clock hours. Stop before expansion.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-capacity-recovery -->\n\n## Problem and evidence\n\nLocal full scaling/recovery evidence is accepted; this cloud topology needs small capacity/interruption proof rather than a bulk scaling replay.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: C-L01-C-L10; D-04,D-11; docs/execution/experiments-20261014/EXP38.md; EXP39.md. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nOne bounded session: prewarm fixed ordinary workers1/2/3, submit exactly1/2/3 long jobs total with no earlier long upload; drain/stop between batches. Reuse short/stored sources for interruption/queue/API outage and burst-empty/task-lifetime behavior.\n\nOwner/area: verification. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] \u22643 nonterminal/reserved workers, distinct overlapping claims1/2/3 and successful MP4/HLS or honest failure receipts; record task2vCPU/4GiB billed allocation and any1536MiB container cap. Six jobs never certify\u22651.6x/2.1x full throughput targets.\n- [ ] Interrupt an actually active exact attempt: visible failed/abandoned\u2264300s while online, owner stored-source retry/no reupload/one authoritative primary; remove actual queue entry with sameattempt repair\u2264120s; brief ProcessingAPI outage leaves Media durable intent and later convergence.\n- [ ] Empty--burst stops, after-exit arrival stays queued until manual batch, finite lifetime handles Redis loss/continuous work, warm drain failure recorded. No new automatic retry or acceptance of rejected38/39.\n- [ ] Billed task-hours include pull/start/prewarm/drain/forced/candidates; default return to zero encoders and all failures retained.\n\n- [ ] Capture a real ~21-MB source multipart PUT/part acknowledgment using the same six capacity submissions; object size alone is not the proof. No additional long fixture is uploaded for workflow or release.\n\n## Verification \u2014 future\n\n- Future actual small authorized task/queue faults through shared scoped operator controls; selected hashed task/Attempt/outcome/time records, no repeated bulk run on failure.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Blocked**. Dependencies (stable keys): aws2-cloud-workflow. Risk: High. Rough size: 1 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Shared six long submissions\u2248126.3MB plus short checks; worker2expected/8larger cumulative hours, not per-batch clock hours. Stop before expansion.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-release-evidence",
+      "title": "[AWS2] Capture both owner releases and real failed-candidate rollback on AWS",
+      "kind": "implementation",
+      "parent": "aws2-acceptance",
+      "dependencies": [
+        "aws2-cloud-workflow",
+        "aws2-capacity-recovery",
+        "aws2-processing-release",
+        "aws2-media-release",
+        "aws2-scan-disposition"
+      ],
+      "readiness": "Blocked",
+      "optional": false,
+      "priority": "P0",
+      "risk": "High",
+      "area": "verification",
+      "labels": [
+        "planning"
+      ],
+      "estimate_sessions": 1,
+      "evidence": [
+        "D-05-D-08; C-L08,C-L09",
+        "docs/execution/reviews/release-validation.md; current local release script"
+      ],
+      "problem": "Local good/bad release proof is historical, not ECS evidence. Both service release boundaries must be demonstrated.",
+      "scope": "One bounded release evidence change/session using implemented owner adapters and reused short assets. Processing good promotion plus actual bad candidate/automatic restore; Media owner promotion/rollback capability with explicit unchanged Processing receipts.",
+      "acceptance": [
+        "Processing promotion+publicsmoke\u2264600s with active drain outcome and unchanged Media taskIDs/container digests/media_db head; bad exact-tested candidate actually starts/fails and automatic prior-digest restore/smoke\u2264300s. Preserve candidate failure, never splice manual rescue into PASS.",
+        "Media release demonstrates only its API/reconciler/image/owned migration changes; Processing tasks/worker definition/processing_db head unchanged. Record rollback path or NOT RUN honestly; prerequisite definition alone is not independent-release proof.",
+        "Owner migration tasks STOPPED+exit0/revisions and prior-image schema compatibility verified; no destructive schema/downmigration. Existing/current+rollback digest provenance survives interrupted journal.",
+        "No worker residency recreated after rollback; candidate/surge/migration tasks all stopped and evidence secret-safe. Existing assets/short checks fit same0.25GBupload ledger; no extra long release fixture.",
+        "Carry scan executed/skipped/error and exact scan/artifact/test gates accurately; never count a green skipped Sonar wrapper as completed analysis."
+      ],
+      "verification_future": [
+        "Future actual approved per-owner pipeline/adapter commands with one absolute release/recovery clock, real failing candidate receipt and hashed unchanged-peer snapshots."
+      ],
+      "cost_impact": "Uses existing surge/migration+shortworker allowances; no new long uploads or additional service. Failure must close charged leftovers.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-release-evidence -->\n\n## Problem and evidence\n\nLocal good/bad release proof is historical, not ECS evidence. Both service release boundaries must be demonstrated.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: D-05-D-08; C-L08,C-L09; docs/execution/reviews/release-validation.md; current local release script. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nOne bounded release evidence change/session using implemented owner adapters and reused short assets. Processing good promotion plus actual bad candidate/automatic restore; Media owner promotion/rollback capability with explicit unchanged Processing receipts.\n\nOwner/area: verification. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Processing promotion+publicsmoke\u2264600s with active drain outcome and unchanged Media taskIDs/container digests/media_db head; bad exact-tested candidate actually starts/fails and automatic prior-digest restore/smoke\u2264300s. Preserve candidate failure, never splice manual rescue into PASS.\n- [ ] Media release demonstrates only its API/reconciler/image/owned migration changes; Processing tasks/worker definition/processing_db head unchanged. Record rollback path or NOT RUN honestly; prerequisite definition alone is not independent-release proof.\n- [ ] Owner migration tasks STOPPED+exit0/revisions and prior-image schema compatibility verified; no destructive schema/downmigration. Existing/current+rollback digest provenance survives interrupted journal.\n- [ ] No worker residency recreated after rollback; candidate/surge/migration tasks all stopped and evidence secret-safe. Existing assets/short checks fit same0.25GBupload ledger; no extra long release fixture.\n- [ ] Carry scan executed/skipped/error and exact scan/artifact/test gates accurately; never count a green skipped Sonar wrapper as completed analysis.\n\n## Verification \u2014 future\n\n- Future actual approved per-owner pipeline/adapter commands with one absolute release/recovery clock, real failing candidate receipt and hashed unchanged-peer snapshots.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Blocked**. Dependencies (stable keys): aws2-cloud-workflow, aws2-capacity-recovery, aws2-processing-release, aws2-media-release, aws2-scan-disposition. Risk: High. Rough size: 1 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Uses existing surge/migration+shortworker allowances; no new long uploads or additional service. Failure must close charged leftovers.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-cloud-latency",
+      "title": "[AWS2] Measure one bounded status/login cycle on a separate generator",
+      "kind": "implementation",
+      "parent": "aws2-acceptance",
+      "dependencies": [
+        "aws2-cloud-workflow"
+      ],
+      "readiness": "Blocked",
+      "optional": false,
+      "priority": "P1",
+      "risk": "Medium",
+      "area": "verification",
+      "labels": [
+        "verification"
+      ],
+      "estimate_sessions": 0.5,
+      "evidence": [
+        "D-11; B-02",
+        "docs/execution/aws/architecture-plan.md acceptance table: Status and login"
+      ],
+      "problem": "The accepted AWS plan retains explicit status/login gates. Local latency results are historical and cannot certify the new cloud task/host envelope.",
+      "scope": "Capture one small serial timed cloud cycle with the separately priced ephemeral generator and reused asset; no bulk uploads or new repeated performance campaign.",
+      "acceptance": [
+        "One eligible status cycle:50 users/180s, p90\u2264700ms and errors<1%, reusing one completed asset; one separate20-login cycle, p90<2s, no silent password-hash weakening. Report actual image/new-account hash cost and configured measurement duration/warmup.",
+        "Independent temporary generator placement/configuration, core/task limits, warmup versus timed windows, all eligible outcomes/errors and p90 arithmetic are retained with safe raw CSV/JSONL hashes/lengths. No FFmpeg/build/load generator runs on the state host.",
+        "Run cycles serially in one booked window; retain failures as failures and stop rather than rerun a large suite or tune infrastructure/product in the evidence ticket. This is cloud latency evidence, not a re-labeling of local V3 or full cloud throughput acceptance.",
+        "Generator account/type c6a.large/root8GiB and cumulative1expected/4larger hours match the worksheet; terminate it and delete its volume, no stopped retained generator."
+      ],
+      "verification_future": [
+        "Future authorized timed launcher against the public CloudFront API, independent safe raw-record/hash/p90 verification, plus generator teardown receipt. No timed workload was run in readiness."
+      ],
+      "cost_impact": "Uses the priced1/4 generator-hour allowance; no new service, upload or unpriced compute.",
+      "stop_conditions": "No live execution until actual account/spend/origin prerequisites and cloud-workflow pass. Preserve original targets/38/39 decisions. Stop on failed gate or envelope exhaustion; never reset the14-day window anchored15October.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-cloud-latency -->\n\n## Problem and evidence\n\nThe accepted AWS plan retains explicit status/login gates. Local latency results are historical and cannot certify the new cloud task/host envelope. Inspected source af0b21e3c10d6ad62a77549756787eac738e83b5. Evidence: D-11; B-02; docs/execution/aws/architecture-plan.md acceptance table: Status and login.\n\n## Desired outcome and scope\n\nCapture one small serial timed cloud cycle with the separately priced ephemeral generator and reused asset; no bulk uploads or new repeated performance campaign. Owner: verification/Media public status and auth; preserve basiclogin/ownership/engine/frontend/queue/data boundaries. Out of scope: scaling throughput, tuning/new architecture, more fixtures and repeated campaigns.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] One eligible status cycle:50 users/180s, p90\u2264700ms and errors<1%, reusing one completed asset; one separate20-login cycle, p90<2s, no silent password-hash weakening. Report actual image/new-account hash cost and configured measurement duration/warmup.\n- [ ] Independent temporary generator placement/configuration, core/task limits, warmup versus timed windows, all eligible outcomes/errors and p90 arithmetic are retained with safe raw CSV/JSONL hashes/lengths. No FFmpeg/build/load generator runs on the state host.\n- [ ] Run cycles serially in one booked window; retain failures as failures and stop rather than rerun a large suite or tune infrastructure/product in the evidence ticket. This is cloud latency evidence, not a re-labeling of local V3 or full cloud throughput acceptance.\n- [ ] Generator account/type c6a.large/root8GiB and cumulative1expected/4larger hours match the worksheet; terminate it and delete its volume, no stopped retained generator.\n\n## Verification \u2014 future\n\nFuture authorized timed launcher against the public CloudFront API, independent safe raw-record/hash/p90 verification, plus generator teardown receipt. No timed workload was run in readiness.\n\n## Dependencies, readiness, risk and size\n\nBlocked for live execution; dependency aws2-cloud-workflow includes actual account/currency/authorization and origin-TLS decision plus implemented adapters. Medium risk;0.5 focused session, one reviewable evidence change.\n\nCost: Uses the priced1/4 generator-hour allowance; no new service, upload or unpriced compute.\n\n## Stop conditions\n\nNo live execution until actual account/spend/origin prerequisites and cloud-workflow pass. Preserve original targets/38/39 decisions. Stop on failed gate or envelope exhaustion; never reset the14-day window anchored15October. No AWS/Alibaba/other-account actions in this planning task. Source/digests, all failure results and current versus historical evidence remain distinct. Keep secrets/DSNs/cookies/capability URLs out of published records. Six long submissions plus shortsmokes\u22480.25GB remain a shared cap; the timed checks add no new upload. No implementation issue closes because its plan exists.\n"
+    },
+    {
+      "key": "aws2-cost-closeout",
+      "title": "[AWS2] Reconcile costs, prove zero compute, and hand off bounded teardown",
+      "kind": "implementation",
+      "parent": "aws2-acceptance",
+      "dependencies": [
+        "aws2-capacity-recovery",
+        "aws2-release-evidence",
+        "aws2-metadata-export",
+        "aws2-cloud-latency"
+      ],
+      "readiness": "Blocked",
+      "optional": false,
+      "priority": "P0",
+      "risk": "High",
+      "area": "verification",
+      "labels": [
+        "planning"
+      ],
+      "estimate_sessions": 1,
+      "evidence": [
+        "B-05,B-10,B-13; D-11,D-12",
+        "docs/execution/aws/calculate-costs.py; cost-worksheet.json"
+      ],
+      "problem": "A forecast is not account billing or stopped-resource proof. Stopping leaves EBS/S3/ECR/DNS charges; final delete needs an owner/export decision.",
+      "scope": "Compact operational handoff and selected account/task cost inventory; prove final close and optional approved final destructive teardown after valid private export/restore if claimed. No fresh performance programme.",
+      "acceptance": [
+        "Fresh receipts show all three desiredCounts0, no provisioning/pending/running/stopping service/standalone work, state EC2stopped/publicIPv4released/noEIP and temporarygenerator/volume removed, no launch path can wake itself.",
+        "If backup claimed, one complete quiescent set restored in an isolated approved target with role/reference/source consistency and restore tasks stopped. Otherwise explicit NOT RUN/data-loss limitation; no claimed tested backup.",
+        "Summed pulling\u2192termination/taskminimums and core startup/propagation/drain/overlap reconciled with worksheet and later delayed bill lines. DNSzone oneOctober charge, no publicDNS query/API conflation; retained\u2248$1.73 is already included, not added again. Forecast$13.03/$28.27 reserves,$15/$30 targets are not caps.",
+        "If actual approved teardown owner authorizes deletion, inventory every retained EBS/S3/incompleteMPU/ECR/log/privateDNS/CloudFront resource, export prerequisites and exact deleted/retained outcomes; no delete is performed by this planning task. Stop\u2260delete.",
+        "Final course handoff keeps original full local targets/provenance and38/39rejects; small cloud proof explicitly limited. No new14-day clock, consume the separate aws2-cloud-latency receipt for the accepted timed gates, no repeat campaign."
+      ],
+      "verification_future": [
+        "Future approved final close/account usage/optional teardown reads via scoped operator controls and safe evidence index; offline cost calculator arithmetic can be reused. Commands are future, no current cloud PASS."
+      ],
+      "cost_impact": "Retained storage/DNS\u2248$1.73/14days already included. CloudFront requests while offline can still bill. Billing delay is disclosed; absent line items remain pending, not zero.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-cost-closeout -->\n\n## Problem and evidence\n\nA forecast is not account billing or stopped-resource proof. Stopping leaves EBS/S3/ECR/DNS charges; final delete needs an owner/export decision.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: B-05,B-10,B-13; D-11,D-12; docs/execution/aws/calculate-costs.py; cost-worksheet.json. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nCompact operational handoff and selected account/task cost inventory; prove final close and optional approved final destructive teardown after valid private export/restore if claimed. No fresh performance programme.\n\nOwner/area: verification. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] Fresh receipts show all three desiredCounts0, no provisioning/pending/running/stopping service/standalone work, state EC2stopped/publicIPv4released/noEIP and temporarygenerator/volume removed, no launch path can wake itself.\n- [ ] If backup claimed, one complete quiescent set restored in an isolated approved target with role/reference/source consistency and restore tasks stopped. Otherwise explicit NOT RUN/data-loss limitation; no claimed tested backup.\n- [ ] Summed pulling\u2192termination/taskminimums and core startup/propagation/drain/overlap reconciled with worksheet and later delayed bill lines. DNSzone oneOctober charge, no publicDNS query/API conflation; retained\u2248$1.73 is already included, not added again. Forecast$13.03/$28.27 reserves,$15/$30 targets are not caps.\n- [ ] If actual approved teardown owner authorizes deletion, inventory every retained EBS/S3/incompleteMPU/ECR/log/privateDNS/CloudFront resource, export prerequisites and exact deleted/retained outcomes; no delete is performed by this planning task. Stop\u2260delete.\n- [ ] Final course handoff keeps original full local targets/provenance and38/39rejects; small cloud proof explicitly limited. No new14-day clock, consume the separate aws2-cloud-latency receipt for the accepted timed gates, no repeat campaign.\n\n## Verification \u2014 future\n\n- Future approved final close/account usage/optional teardown reads via scoped operator controls and safe evidence index; offline cost calculator arithmetic can be reused. Commands are future, no current cloud PASS.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Blocked**. Dependencies (stable keys): aws2-cloud-latency, aws2-capacity-recovery, aws2-release-evidence, aws2-metadata-export. Risk: High. Rough size: 1 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Retained storage/DNS\u2248$1.73/14days already included. CloudFront requests while offline can still bill. Billing delay is disclosed; absent line items remain pending, not zero.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    },
+    {
+      "key": "aws2-optional-unattended",
+      "title": "[AWS2] Optional unattended starts and further cost cuts",
+      "kind": "optional",
+      "parent": "aws2-delivery",
+      "dependencies": [
+        "aws2-worker-lifetime-drain"
+      ],
+      "readiness": "Backlog",
+      "optional": true,
+      "priority": "P2",
+      "risk": "Medium",
+      "area": "processing",
+      "labels": [
+        "enhancement"
+      ],
+      "estimate_sessions": 0.5,
+      "evidence": [
+        "B-16; C-L11; D-14",
+        "docs/execution/aws/architecture-plan.md:153-168,364-370"
+      ],
+      "problem": "The first operator demo does not need a controller. Diagrams/tables show RunTask/reservations without consistently marking them optional.",
+      "scope": "Optional separate lane: justify a real unattended need before any controller/lease/reservation work. Spot/ARM/consolidation/snapshots/signedCloudFront delivery remain individually priced deferred alternatives, not bundled implementation requirements.",
+      "acceptance": [
+        "No required issue depends on this optional lane and it is not Ready by default. First demo uses manual serialized batches; default recovery has no ECSRunTask/PassRole or newlaunch table.",
+        "Only if separately chosen, a scoped new issue defines Processing coordination lease/reservations/token reconciliation/cap/release-close interlock and no recursive newservice; Spot/ARM/backups need separate measured benefit/approval."
+      ],
+      "verification_future": [
+        "Future optional design decision only; no implementation/test/price saving claim from this backlog."
+      ],
+      "cost_impact": "Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.",
+      "stop_conditions": "Do not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions.",
+      "body": "<!-- agent-orchestration:issue-key=aws2-optional-unattended -->\n\n## Problem and evidence\n\nThe first operator demo does not need a controller. Diagrams/tables show RunTask/reservations without consistently marking them optional.\n\nInspected application HEAD: `af0b21e3c10d6ad62a77549756787eac738e83b5`. Evidence: B-16; C-L11; D-14; docs/execution/aws/architecture-plan.md:153-168,364-370. Lane reports and coordinator dispositions: `docs/execution/aws/readiness/gap-analysis.md`. Observations are source/offline evidence; no AWS implementation is claimed.\n\n## Desired outcome and scope\n\nOptional separate lane: justify a real unattended need before any controller/lease/reservation work. Spot/ARM/consolidation/snapshots/signedCloudFront delivery remain individually priced deferred alternatives, not bundled implementation requirements.\n\nOwner/area: processing. Preserve service ownership, authenticated owner-forwarded HTTP, attempt fencing, stored-source retry, private data/secrets, existing client design and per-owner migrations. Out of scope: unrelated product features, replacement engine/queue, HA, OIDC/credential broker, NAT/ALB/domain purchase, paid endpoints and bulk scaling trials.\n\n## Acceptance \u2014 future, not yet executed\n\n- [ ] No required issue depends on this optional lane and it is not Ready by default. First demo uses manual serialized batches; default recovery has no ECSRunTask/PassRole or newlaunch table.\n- [ ] Only if separately chosen, a scoped new issue defines Processing coordination lease/reservations/token reconciliation/cap/release-close interlock and no recursive newservice; Spot/ARM/backups need separate measured benefit/approval.\n\n## Verification \u2014 future\n\n- Future optional design decision only; no implementation/test/price saving claim from this backlog.\n\n## Dependencies, readiness, risk and size\n\nReadiness: **Backlog** \u2014 optional, excluded from the first-demo critical path. Dependencies (stable keys): aws2-worker-lifetime-drain. Risk: Medium. Rough size: 0.5 focused session(s), one reviewable change. Dependency-free Ready adapter/definition work uses offline checks; real deployment/compatibility proof belongs to the designated cloud acceptance issues and remains gated. No issue closes because its plan exists.\n\nCost/idle effect: Offline implementation incurs no AWS cost; later live work uses the existing priced allowance.\n\n## Stop conditions\n\nDo not access AWS or deploy/spend until the actual project account, scoped access, region/currency, booked windows, resource plan and spending authorization are recorded. Do not operate Alibaba or another project account. Stop for unapproved resources/costs, new product/auth/queue architecture, more than two focused sessions, secret-bearing exports, or expanded fixture/hour limits. Preserve local demo/volumes, frozen worktrees, original course documents, roadmap design and rejected 38/39 decisions. The at-most-14-day college window starts at the original 15 October checkpoint and is never restarted on credential receipt. Expected 20 core/2 cumulative worker-task-hours; larger 40/8. Include pulling, startup, propagation, drain and failures. Six long submissions total plus short checks, about 0.25 GB uploads; no 300-clip replay.\n"
+    }
+  ]
+}

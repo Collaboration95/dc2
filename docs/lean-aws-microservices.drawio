@@ -58,7 +58,7 @@
         <mxCell id="recovery-box" value="Processing" style="fontFamily=Helvetica;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;container=1;collapsible=0;fillColor=light-dark(#FFF2E8,#29393B);fillStyle=auto;strokeColor=#ED7100;fontColor=#ED7100;" vertex="1" parent="subnet">
           <mxGeometry x="330" y="405" width="120" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="recovery" value="Recovery / starter&lt;div&gt;&lt;i&gt;0.25 vCPU / 0.5 GiB&lt;/i&gt;&lt;/div&gt;" style="fontFamily=Helvetica;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.fargate;sketch=0;aspect=fixed;fillColor=#ED7100;strokeColor=none;fontColor=light-dark(#232F3E,#FAFAFA);verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;" vertex="1" parent="recovery-box">
+        <mxCell id="recovery" value="Recovery / optional starter&lt;div&gt;&lt;i&gt;0.25 vCPU / 0.5 GiB&lt;/i&gt;&lt;/div&gt;" style="fontFamily=Helvetica;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.fargate;sketch=0;aspect=fixed;fillColor=#ED7100;strokeColor=none;fontColor=light-dark(#232F3E,#FAFAFA);verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;" vertex="1" parent="recovery-box">
           <mxGeometry x="36" y="30" width="48" height="48" as="geometry" />
         </mxCell>
         <mxCell id="worker-box" value="Processing" style="fontFamily=Helvetica;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;container=1;collapsible=0;fillColor=light-dark(#FFF2E8,#29393B);fillStyle=auto;strokeColor=#ED7100;fontColor=#ED7100;" vertex="1" parent="subnet">
@@ -144,7 +144,7 @@
         <mxCell id="recovery-workers" edge="1" parent="1" source="recovery" target="worker" style="fontFamily=Helvetica;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=light-dark(#52616B,#BAC8D3);strokeWidth=1.7;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="recovery-workers-label" value="bounded RunTask" vertex="1" connectable="0" parent="recovery-workers" style="fontFamily=Helvetica;edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=11;labelBackgroundColor=none;fontColor=light-dark(#232F3E,#FAFAFA);">
+        <mxCell id="recovery-workers-label" value="optional bounded RunTask" vertex="1" connectable="0" parent="recovery-workers" style="fontFamily=Helvetica;edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=11;labelBackgroundColor=none;fontColor=light-dark(#232F3E,#FAFAFA);">
           <mxGeometry x="0" y="-16" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>

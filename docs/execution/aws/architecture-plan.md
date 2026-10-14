@@ -2,7 +2,8 @@
 
 15 October 2026 · proposal for review · no provisioning or spending approval.
 This replaces the [14 October shared-host plan](architecture-plan-20261014.md).
-Current source baseline in the handoff: `485edac`. No application code, running
+Implementation baseline before planning: `485edac`; inspected planning revision
+for the [readiness backlog](readiness/README.md): `af0b21e`. No application code, running
 demo, original proposal, roadmap design, or historical measurement was changed.
 
 ## Decision
@@ -67,10 +68,10 @@ flowchart LR
     W -->|signed source GET| S
     W -->|PUT only| O[(Private S3 outputs)]
     M -->|authorised signing / playlists| O
-    R[Processing recovery + bounded task starter] --> PD
+    R[Processing recovery; optional bounded task starter] --> PD
     R --> Q
     R -->|cleanup List / Delete| O
-    R -->|start workers when queued| W
+    R -.->|optional unattended starts| W
     C -->|time-limited HTTPS GET| O
 ```
 
@@ -98,7 +99,7 @@ flowchart TB
       R -->|processing_db + RQ| G
       W -->|processing_db + RQ| G
       W -->|source grant| M
-      R -->|ECS RunTask| W
+      R -.->|optional ECS RunTask| W
       M & W & R --> EP
     end
     EP --> S3[Same-region private S3 buckets\nregional service outside the VPC]
@@ -112,7 +113,7 @@ The diagrams show deployment units and data flow, not a claim that S3 lives in a
 |---|---|---|---|
 | Media ECS service | `deploy/media.Dockerfile`; API and `media.recovery` containers | 1 vCPU / 2 GiB total | One task while site is open; own release and DB migration |
 | Processing API ECS service | `deploy/processing.Dockerfile`; API | 0.5 vCPU / 1 GiB | One task while site is open; own release |
-| Processing recovery ECS service | Same Processing digest; `processing.recovery` plus bounded starter | 0.25 vCPU / 0.5 GiB | One task while site is open; survives API/worker outages |
+| Processing recovery ECS service | Same Processing digest; `processing.recovery`; starter optional | 0.25 vCPU / 0.5 GiB | One task while site is open; survives API/worker outages |
 | Encoding standalone tasks | Same Processing digest; `python -m processing.worker --burst` | 2 vCPU / 4 GiB each | Exit after draining; maximum 3 across running and pending tasks |
 | State/gateway EC2 | nginx, PostgreSQL 16, Redis | `t3a.small`, 2 vCPU / 2 GiB, **Standard CPU credits** | Start/stop with environment; no application/encoding images |
 | Migration task | Owning service image and owning migration role | At most 1 vCPU / 2 GiB | One-off, separately invoked; never both services' migrations together |
@@ -275,7 +276,7 @@ optimization, not worth a new signing path for the expected $0.24.
 | State | Owner / location | Sizing basis / lifetime | Failure handled |
 |---|---|---|---|
 | Users, assets, source references | Media; `media_db` on state-host data EBS | Shares 8-GiB metadata volume with Processing | Survives process restart and EC2 stop/start |
-| Jobs, attempts, outputs, launch reservations | Processing; `processing_db`, distinct role/migrations | Metadata only; no video blobs | Durable retry/reconciliation and task launch bookkeeping |
+| Jobs, attempts, outputs; launch reservations only for optional automation | Processing; `processing_db`, distinct role/migrations | Metadata only; no video blobs | Durable retry/reconciliation; manual starts use a private operator journal |
 | Redis/RQ | Processing; same host | 128-MiB memory cap; small AOF on data volume, no-eviction | Transport; reconstruct from Processing ledger if lost |
 | Root, OS, nginx, DB/Redis images, bounded logs/upload buffering | State host; **16-GiB gp3 root** | Planning envelope: OS 4, images 3, packages/logs 2, upload scratch 1, free 6 GiB | Rebuildable, not authoritative |
 | PostgreSQL data, WAL, Redis AOF, one temporary export | **8-GiB gp3 data**, encrypted, retained across host replacement | Initial envelope: metadata 0.5, WAL 2, Redis 0.25, maintenance/export 1.25, free 4 GiB | Persistent state; not a full media corpus |
@@ -419,7 +420,8 @@ captured task-hours and actual AWS line items after implementation.
    S3-compatible SDK paths; current settings require static keys. Keep local MinIO
    support. Separate Media, Processing API, worker and cleanup task roles; the API
    needs no bucket permissions. Media/reconciler share a task role; cleanup/starter
-   has output List/Delete and scoped RunTask/PassRole only. No source credentials
+   has output List/Delete; add scoped RunTask/PassRole only if optional unattended
+   starts are separately implemented. Default manual starts use the operator role. No source credentials
    on workers, no OIDC/broker, and no secrets in task definitions, images or Git.
    Inject DSNs/tokens from scoped standard SSM parameters; execution roles fetch
    them, application roles access owned resources. Keep migrations one-off.
