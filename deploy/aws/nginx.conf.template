@@ -1,0 +1,54 @@
+# Included in nginx's http context. Private file must define map:
+# map $http_x_dc2_origin_gate $dc2_origin_allowed { default 0; "PRIVATE-VALUE" 1; }
+include /etc/nginx/private/origin-gate.conf;
+limit_conn_zone $server_name zone=upload_slots:1m;
+server {
+    listen 80;
+    server_name ${DC2_PUBLIC_HOST};
+    access_log off;
+    error_log /dev/stderr crit;
+    if ($dc2_origin_allowed != 1) { return 403; }
+    root /usr/share/nginx/html;
+    resolver ${DC2_VPC_RESOLVER} valid=5s ipv6=off;
+    resolver_timeout 2s;
+    set $media_backend http://${DC2_MEDIA_FQDN}:8000;
+    client_max_body_size 101m;
+    client_body_buffer_size 128k;
+    client_body_temp_path /var/cache/nginx/body;
+    client_body_timeout 60s;
+    send_timeout 60s;
+    location = /api { return 404; }
+    location ^~ /api/ {
+        limit_conn upload_slots 8;
+        # Stream 100MiB files plus 1MiB multipart overhead. No whole-body disk buffering.
+        proxy_request_buffering off;
+        proxy_buffering off;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host ${DC2_PUBLIC_HOST};
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host ${DC2_PUBLIC_HOST};
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-DC2-Origin-Gate "";
+        rewrite ^/api/(.*)$ /$1 break;
+        proxy_pass $media_backend;
+        proxy_connect_timeout 3s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+        proxy_intercept_errors off;
+        add_header Cache-Control "no-store" always;
+    }
+    location = /internal { return 404; }
+    location ^~ /internal/ { return 404; }
+    location = /minio { return 404; }
+    location ^~ /minio/ { return 404; }
+    location / {
+        try_files $uri $uri/ =404;
+        add_header Cache-Control "no-cache" always;
+    }
+}
+server {
+    listen 127.0.0.1:8080;
+    access_log off;
+    location = /health { return 200 "alive"; }
+}

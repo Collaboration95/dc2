@@ -1,0 +1,101 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Gated short-lived c6a.large generator; terminate after timed check",
+  "Parameters": {
+    "AmiId": {
+      "Type": "AWS::EC2::Image::Id"
+    },
+    "SubnetId": {
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "VpcId": {
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "SessionEndUtc": {
+      "Type": "String"
+    },
+    "LifetimeMinutes": {
+      "Type": "Number",
+      "Default": 15,
+      "MinValue": 5,
+      "MaxValue": 60
+    }
+  },
+  "Resources": {
+    "GeneratorSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "No inbound generator",
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "Generator": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": "c6a.large",
+        "ImageId": {
+          "Ref": "AmiId"
+        },
+        "InstanceInitiatedShutdownBehavior": "terminate",
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Sub": "#!/bin/sh\n# Bound generator residency even if its operator is lost.\nshutdown -h +${LifetimeMinutes}\n"
+          }
+        },
+        "MetadataOptions": {
+          "HttpTokens": "required"
+        },
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": "0",
+            "SubnetId": {
+              "Ref": "SubnetId"
+            },
+            "AssociatePublicIpAddress": true,
+            "GroupSet": [
+              {
+                "Ref": "GeneratorSG"
+              }
+            ]
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "VolumeSize": 8,
+              "VolumeType": "gp3",
+              "Encrypted": true,
+              "DeleteOnTermination": true
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "dc2-session-end",
+            "Value": {
+              "Ref": "SessionEndUtc"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "GeneratorInstanceId": {
+      "Value": {
+        "Ref": "Generator"
+      }
+    }
+  }
+}
