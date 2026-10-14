@@ -43,12 +43,13 @@ An authenticated hosted ZAP scan executed and retained 12 alert types, all with 
 
 ## Issue outcomes
 
-The 28 new items are reconciled within the authorized scope:
+The current status policy keeps required AWS/account acceptance open until its assigned authentic evidence exists:
 
-- **Completed for preparation:** 16 issues and 3 epics (#41–#43). Their original genuine AWS criteria are unticked and NOT_RUN.
-- **Closed as not planned:** 8 issues and the authentic-evidence epic #44. Their Project status is Done because they are closed, and their Project workflow is Blocked for future AWS work.
+- **Closed for preparation:** sixteen issues #47–#62. Their verification contracts assign live evidence to the designated cloud acceptance issues; local mocks and emulation do not satisfy those live criteria.
+- **Open and Blocked:** account/origin prerequisites #45/#46 and authentic acceptance #63–#67, plus all four epics #41–#44 (eleven items). Each has a concrete blocker note. Workflow is Blocked and built-in Status is Todo.
+- **Closed as not planned:** optional automation #68, which is not a required acceptance dependency.
 
-No issue is next in the current scope. This does not authorize AWS activity or certify any original cloud criterion.
+No issue is Ready in the current no-AWS scope. [Fresh status reconciliation](evidence/status-reconciliation.json) supersedes the retained historical all-closed snapshots. Original issue contracts and acceptance boxes are unchanged. Local preparation and its review remain complete; authentic AWS/account acceptance does not.
 
 ## Preservation
 
@@ -60,4 +61,4 @@ No issue is next in the current scope. This does not authorize AWS activity or c
 
 ## Not done
 
-Account, budget and origin decisions, authentic cloud acceptance and optional automation remain excluded. None of the following is certified: IAM, Fargate, CloudFront, quotas, memory pressure or state continuity, timed cloud latency, bills, resource deletion or restore. The existing forecast and the Singapore calendar anchor are unchanged.
+Account, budget and origin decisions and authentic cloud acceptance remain open and Blocked. Optional automation remains excluded. None of the following is certified: IAM, Fargate, CloudFront, quotas, memory pressure or state continuity, timed cloud latency, bills, resource deletion or restore. The existing forecast and the Singapore calendar anchor are unchanged.
