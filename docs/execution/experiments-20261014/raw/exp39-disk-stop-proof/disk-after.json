@@ -1,0 +1,4 @@
+{
+  "df": "Filesystem     1024-blocks     Used Available Capacity Mounted on\n/dev/vda1         63911928 61743416   2152128      97% /var/lib/postgresql/data\n",
+  "cleanup_scope": "Only this new synthetic namespace; original/historical volumes unchanged"
+}

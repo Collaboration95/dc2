@@ -1,0 +1,21 @@
+{
+  "source": {
+    "revision": "08ec06c22a8950007cc6db2a934cf957a4621a3c",
+    "source_fingerprint": "e6e8a38df8421b417fdbeab0a8217ad3a6ff49105c2e8f5d35ec98e097282e70"
+  },
+  "image": {
+    "image_id": "sha256:83a5544e90471a84fbc2bd760601caab7ccd248698a3d6b58c501f1b8c4126fb",
+    "revision": "08ec06c22a8950007cc6db2a934cf957a4621a3c",
+    "source_fingerprint": "e6e8a38df8421b417fdbeab0a8217ad3a6ff49105c2e8f5d35ec98e097282e70",
+    "injection": null
+  },
+  "scan": {
+    "image_id": "sha256:83a5544e90471a84fbc2bd760601caab7ccd248698a3d6b58c501f1b8c4126fb",
+    "version": "0.75.0",
+    "archive_sha256": "4a77108cccf8e55c8d6823e1e759939a622277e66cd0daa3c1fc621ed69e4568",
+    "fixable_high_critical": 0,
+    "report_sha256": "481e35582e2f6b94fb349cd81d8db4a8566ac3062a465fce3f677451173d9b32"
+  },
+  "offline_imports_pass": true,
+  "trivy_db_sha256": "b54be7a816b103cc3a0a82765e7b7ef6f4397608a68752da1717e5ef7a6b11be"
+}

@@ -1,7 +1,20 @@
-2026-10-14: Implementation agent owns project VM exclusively. Baseline b913579.
-Read full worklog/handoff/plan/decisions and gh issues38/39 plus both research gists.
-Inventory:8CPU/8296857600bytes/cgroupv2,61GiB filesystem50.2GiB used10.7GiB free.
-Only original dc2-local-e6eff6ee namespace running; preserve all its volumes.
-Historical frozen worktree and raw/failure packs untouched.
-Current: separate opt-in harness/telemetry and preregistered trial plan in progress.
-No AWS/Alibaba, spending, remote mutations or nested agents.
+COMPLETE — LOCAL #38/#39; both hypotheses REJECTED; no product default adopted.
+Branch: perf/experiments-20261014. Product baseline: b913579be16ca7f1fb9f685e287d905bfbcfbd6a.
+#38 source:08ec06c22a8950007cc6db2a934cf957a4621a3c;3rotated pairs;180/180long jobs succeeded.
+Variant isolated status improves, but isolated login/mixed status fail gates;baseline quotas retained.
+#39 source:60f244c8dbc8b4d48f761851c1f0626e1b1c92e1;48eligible windows;504/504scheduled successes.
+Manual residency reductions13.28/14.80/14.58% miss20%;status latency fails;short-wait/queue/drain bounds pass.
+Retained sampler interruption/disk stop;full final arm repeated unchanged;18excluded scheduled jobs audited.
+#39 200status fixtures+504eligible+18excluded=722successful pre-fault attempts;initial excluded run68/68settled.
+Three worker/queue/outage/backlog-restart/Redis-loss cycles PASS;three60sdecoded starts PASS.
+Real180ssource:processing70.823s,warm drain70.589s,same attempt/primary/HLS,no forced kill/OOM.
+Good promotion118.568s;bad tested-image restoration145.357s;active rollback72.669s;Media unchanged.
+Original demo RESTORED:https://localhost:54440;exact9saved containers/images,f10bf04899e6cc80f992c65193a92fbe0b0ce8b2.
+Original infrastructure/grants/private-store and register/login/upload/process/output-read/delete PASS;11.432s.
+Every experiment namespace stopped;all volumes preserved;only owned retired synthetic data/trash cleaned.
+Validation:1119fastPython/152frontend/12targeted;lint/format;indexed hashes/lengths/secret scan PASS.
+Reports:README.md,EXP38.md,EXP39.md;raw/ indexes;verification.json;source manifests/operators included.
+No AWS/Alibaba/spend,remote mutation,push/PR/merge,gist update or nested agent.
+Parent owns fresh independent Sol review,grouped PR/remote publication,and later account/region-specific AWS preparation.
+Remaining limits:rejections are not latency acceptance;no whole-host/cloud savings or lower-memory claim;
+playback-start bytes do not represent full viewing/internal multipart charges;preparation401 cause unresolved.

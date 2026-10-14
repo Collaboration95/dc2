@@ -1,0 +1,8 @@
+{
+  "scope": "dc2-exp38-20261014-r4-8f1e9ade_object-data",
+  "mounted_live_before": false,
+  "retired_path": ".minio.sys/tmp/.trash",
+  "sizes_kib": "4045100\t/retired/.minio.sys/tmp/.trash\n276\t/retired\n",
+  "volumes_removed": 0,
+  "original_and_historical_namespaces_touched": false
+}

@@ -1,0 +1,14 @@
+{
+  "scope": "LOCAL experimental",
+  "source_directory": "artifacts/exp39-20261014-r2/experimental-baseline-recovery-20261014T124727-a865b313",
+  "files": [
+    {
+      "source": "result.json",
+      "stored": "result.json.gz",
+      "stored_bytes": 49002,
+      "stored_sha256": "d14f68736c32268342f63d8ed9c7f28e895fe81eba716d16747101339364fa9f",
+      "decompressed_bytes": 632532,
+      "decompressed_sha256": "91a41544aa27589b7e796de4b49f6ddb5a6159499d2594d2b64f71b0a411d633"
+    }
+  ]
+}

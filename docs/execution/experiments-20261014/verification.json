@@ -1,0 +1,9 @@
+{
+  "indexed_records": 248,
+  "stored_bytes_including_indexes": 20209361,
+  "all_stored_and_decompressed_hashes_and_lengths_verified": true,
+  "secret_and_signed_url_pattern_matches": 0,
+  "only_running_project": "dc2-local-e6eff6ee",
+  "running_original_containers": 9,
+  "experiments_stopped": true
+}

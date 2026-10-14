@@ -1,0 +1,38 @@
+{
+  "utc": "2026-10-14T05:54:59.092714+00:00",
+  "reason": "Preparation401 after verified login; 200auth+200upload probes could not reproduce",
+  "preserved_complete_arms": [
+    [
+      1,
+      "baseline"
+    ],
+    [
+      1,
+      "pg-quarter"
+    ],
+    [
+      2,
+      "pg-quarter"
+    ]
+  ],
+  "pending_full_arms": [
+    [
+      2,
+      "baseline"
+    ],
+    [
+      3,
+      "baseline"
+    ],
+    [
+      3,
+      "pg-quarter"
+    ]
+  ],
+  "same_frozen_source_and_images": true,
+  "preparation_and_diagnostic_cleanup": {
+    "tombstoned": 292
+  },
+  "operator_source_sha256": "a5ef8caa41676aac8ce3835ee9c113ce3b00876af70ca3ed5912c536c0c5d649",
+  "adoption_allowed": false
+}

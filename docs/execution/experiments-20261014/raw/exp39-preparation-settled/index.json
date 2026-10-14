@@ -1,0 +1,30 @@
+{
+  "scope": "LOCAL experimental",
+  "source_directory": "artifacts/exp39-20261014/settled-preparation",
+  "files": [
+    {
+      "source": "drains.jsonl",
+      "stored": "drains.jsonl.gz",
+      "stored_bytes": 412,
+      "stored_sha256": "9c76d0a9ac0b8a263858c6fb3aade522c1c88b07d00dc549131fdb86037520b8",
+      "decompressed_bytes": 983,
+      "decompressed_sha256": "5a2aae943e72d8ef9da062f700ef37b3ff341d03cfe4e02540009978f21267f3"
+    },
+    {
+      "source": "outcomes.json",
+      "stored": "outcomes.json",
+      "stored_bytes": 4459,
+      "stored_sha256": "baddf19f5e23fcab84c087c2bb26594228e5f58b4a43171b9b0cf8c132ebb1df",
+      "decompressed_bytes": 4459,
+      "decompressed_sha256": "baddf19f5e23fcab84c087c2bb26594228e5f58b4a43171b9b0cf8c132ebb1df"
+    },
+    {
+      "source": "profiles.jsonl",
+      "stored": "profiles.jsonl.gz",
+      "stored_bytes": 574,
+      "stored_sha256": "73ca1bc5131c72162f4d3262eac7000054b54286a7a823a36b77d115b60f8c4d",
+      "decompressed_bytes": 1155,
+      "decompressed_sha256": "f1577fca53dcc594b7f10ec3df552608763ab9908f7541c7d115544cc6c295b3"
+    }
+  ]
+}

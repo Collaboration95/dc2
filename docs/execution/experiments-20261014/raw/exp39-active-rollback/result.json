@@ -1,0 +1,104 @@
+{
+  "name": "active-rollback",
+  "started_at": "2026-10-14T13:20:46.518652+00:00",
+  "run_id": "exp39-20261014-r2",
+  "revision": "60f244c8dbc8b4d48f761851c1f0626e1b1c92e1",
+  "events": [
+    {
+      "event": "http",
+      "at": "2026-10-14T13:20:46.924158+00:00",
+      "elapsed_seconds": 0.406,
+      "method": "POST",
+      "route": "/auth/register",
+      "status": 201,
+      "seconds": 0.0591
+    },
+    {
+      "event": "http",
+      "at": "2026-10-14T13:20:48.031614+00:00",
+      "elapsed_seconds": 1.513,
+      "method": "POST",
+      "route": "/upload",
+      "status": 202,
+      "seconds": 1.1069
+    },
+    {
+      "event": "http",
+      "at": "2026-10-14T13:20:48.038052+00:00",
+      "elapsed_seconds": 1.519,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0058
+    },
+    {
+      "event": "asset-state",
+      "at": "2026-10-14T13:20:48.038663+00:00",
+      "elapsed_seconds": 1.52,
+      "asset_id": "6643e441-149e-4beb-9ea0-750cf6ce77e2",
+      "state": "queued"
+    },
+    {
+      "event": "http",
+      "at": "2026-10-14T13:20:48.549373+00:00",
+      "elapsed_seconds": 2.031,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0067
+    },
+    {
+      "event": "http",
+      "at": "2026-10-14T13:20:49.061844+00:00",
+      "elapsed_seconds": 2.543,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0068
+    },
+    {
+      "event": "asset-state",
+      "at": "2026-10-14T13:20:49.062560+00:00",
+      "elapsed_seconds": 2.544,
+      "asset_id": "6643e441-149e-4beb-9ea0-750cf6ce77e2",
+      "state": "processing"
+    },
+    {
+      "event": "http",
+      "at": "2026-10-14T13:22:01.723065+00:00",
+      "elapsed_seconds": 75.205,
+      "method": "GET",
+      "route": "/jobs/{job_id}",
+      "status": 200,
+      "seconds": 0.0247
+    },
+    {
+      "event": "asset-state",
+      "at": "2026-10-14T13:22:01.724295+00:00",
+      "elapsed_seconds": 75.206,
+      "asset_id": "6643e441-149e-4beb-9ea0-750cf6ce77e2",
+      "state": "done"
+    },
+    {
+      "event": "active-work-rollback",
+      "at": "2026-10-14T13:22:01.755251+00:00",
+      "elapsed_seconds": 72.66861412499566,
+      "bound_seconds": 300,
+      "unchanged_attempt": true,
+      "one_primary": true
+    },
+    {
+      "event": "http",
+      "at": "2026-10-14T13:22:01.784738+00:00",
+      "elapsed_seconds": 75.267,
+      "method": "DELETE",
+      "route": "jobs/6643e441-149e-4beb-9ea0-750cf6ce77e2",
+      "status": 204,
+      "seconds": 0.0287
+    }
+  ],
+  "cases": {},
+  "status": "PASS",
+  "finished_at": "2026-10-14T13:22:01.785260+00:00",
+  "duration_seconds": 75.267
+}

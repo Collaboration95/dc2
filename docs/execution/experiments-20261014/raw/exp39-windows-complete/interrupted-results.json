@@ -1,0 +1,2393 @@
+[
+  {
+    "repeat": 1,
+    "policy": "1",
+    "window": "idle-gap",
+    "metrics": {
+      "jobs": 6,
+      "successes": 6,
+      "elapsed_seconds": 96.92097858400666,
+      "throughput_jobs_min": 3.71436612856698,
+      "waits_seconds": {
+        "2": [
+          0.76444411277771,
+          2.8096649646759033,
+          4.382049083709717,
+          0.7360241413116455,
+          2.3550310134887695,
+          3.9446449279785156
+        ],
+        "60": []
+      },
+      "short_wait_p90_seconds": 4.382049083709717,
+      "maximum_wait_seconds": 4.382049083709717,
+      "processing_seconds": [
+        1.2662429809570312,
+        0.8896040916442871,
+        0.9034979343414307,
+        0.8799200057983398,
+        0.9047930240631104,
+        0.8877439498901367
+      ],
+      "maximum_observed_queue_age_seconds": 3.8594839572906494,
+      "after_last_arrival_drain_seconds": 6.7413045409775805,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 96.92097858400666,
+      "startup_seconds": 0.29706795897800475,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "1",
+    "window": "burst",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 295.6924212499871,
+      "throughput_jobs_min": 2.434962644481479,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.8764748573303223,
+          25.091270208358765,
+          48.378456115722656,
+          72.44087290763855,
+          95.32401990890503,
+          119.3940749168396,
+          142.96793007850647,
+          166.5624339580536,
+          191.0057110786438,
+          214.91938281059265,
+          239.2745180130005,
+          264.0769519805908
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 264.0769519805908,
+      "processing_seconds": [
+        24.123085021972656,
+        23.280279874801636,
+        23.908159017562866,
+        22.735800981521606,
+        23.955936908721924,
+        23.402603149414062,
+        23.466290950775146,
+        24.277277946472168,
+        23.64053201675415,
+        24.165791988372803,
+        24.61329984664917,
+        22.671338081359863
+      ],
+      "maximum_observed_queue_age_seconds": 263.75572419166565,
+      "after_last_arrival_drain_seconds": 288.0519996249932,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 295.6924212499871,
+      "startup_seconds": 0.3003938340116292,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "1",
+    "window": "sustained",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 285.2368207499967,
+      "throughput_jobs_min": 2.524218290285401,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7848269939422607,
+          0.7468879222869873,
+          5.023583889007568,
+          6.6543591022491455,
+          10.871748924255371,
+          14.903016090393066,
+          16.7672438621521,
+          21.17036008834839,
+          23.517970085144043,
+          27.390792846679688,
+          30.864488124847412,
+          41.769253969192505
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 41.769253969192505,
+      "processing_seconds": [
+        22.827544927597046,
+        23.6635000705719,
+        21.11588215827942,
+        21.900385856628418,
+        22.479053020477295,
+        21.51791000366211,
+        25.0660719871521,
+        22.27662682533264,
+        21.308608055114746,
+        22.76230216026306,
+        22.900063037872314,
+        22.47960901260376
+      ],
+      "mixed_latency": {
+        "status": {
+          "requests": 5808,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 2559.9257909925655,
+          "latency_pass": false,
+          "errors_pass": true,
+          "warmup_errors": 0
+        },
+        "login": {
+          "requests": 2925,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 1680.8742499852087,
+          "latency_pass": true,
+          "errors_pass": null,
+          "warmup_errors": 0
+        }
+      },
+      "maximum_observed_queue_age_seconds": 40.60625410079956,
+      "after_last_arrival_drain_seconds": 64.76936237499467,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 285.2368207499967,
+      "startup_seconds": 0.3163673749950249,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "1",
+    "window": "mixed",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 163.1091557079926,
+      "throughput_jobs_min": 4.414221855755206,
+      "waits_seconds": {
+        "2": [
+          24.726778984069824,
+          46.95957803726196,
+          70.09223794937134,
+          93.88960123062134,
+          117.03114104270935,
+          139.71936178207397
+        ],
+        "60": [
+          0.7820210456848145,
+          23.918605089187622,
+          46.04072308540344,
+          68.91925597190857,
+          92.95677399635315,
+          116.07654595375061
+        ]
+      },
+      "short_wait_p90_seconds": 139.71936178207397,
+      "maximum_wait_seconds": 139.71936178207397,
+      "processing_seconds": [
+        23.81520700454712,
+        1.019428014755249,
+        23.70045304298401,
+        0.8657820224761963,
+        24.812257051467896,
+        0.7249789237976074,
+        25.5492000579834,
+        0.8861658573150635,
+        24.625340938568115,
+        0.9280200004577637,
+        24.159635066986084,
+        0.9443860054016113
+      ],
+      "maximum_observed_queue_age_seconds": 139.04133892059326,
+      "after_last_arrival_drain_seconds": 141.07255300000543,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 163.1091557079926,
+      "startup_seconds": 0.3188969999901019,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "2",
+    "window": "idle-gap",
+    "metrics": {
+      "jobs": 6,
+      "successes": 6,
+      "elapsed_seconds": 94.85453212499851,
+      "throughput_jobs_min": 3.795285179685405,
+      "waits_seconds": {
+        "2": [
+          0.80348801612854,
+          0.8861129283905029,
+          2.442009210586548,
+          0.8544259071350098,
+          0.7850649356842041,
+          2.3616280555725098
+        ],
+        "60": []
+      },
+      "short_wait_p90_seconds": 2.442009210586548,
+      "maximum_wait_seconds": 2.442009210586548,
+      "processing_seconds": [
+        1.108978033065796,
+        1.104323148727417,
+        0.8544578552246094,
+        0.9276959896087646,
+        0.883432149887085,
+        0.8684518337249756
+      ],
+      "maximum_observed_queue_age_seconds": 1.7006900310516357,
+      "after_last_arrival_drain_seconds": 4.545180249988334,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 189.70906424999703,
+      "startup_seconds": 0.37306920799892396,
+      "idle_worker_seconds": 120
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "2",
+    "window": "burst",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 148.89119720898452,
+      "throughput_jobs_min": 4.8357459238466864,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          1.00651216506958,
+          1.2674739360809326,
+          22.772342920303345,
+          22.7774498462677,
+          45.222368001937866,
+          45.061651945114136,
+          67.33376002311707,
+          67.37005496025085,
+          90.6174259185791,
+          90.64846897125244,
+          113.50383281707764,
+          113.66831088066101
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 113.66831088066101,
+      "processing_seconds": [
+        22.853549003601074,
+        22.656694889068604,
+        23.36270809173584,
+        23.042535066604614,
+        22.548598051071167,
+        22.742048025131226,
+        23.810749053955078,
+        23.87489104270935,
+        23.36582112312317,
+        23.456286907196045,
+        23.195219039916992,
+        23.620018005371094
+      ],
+      "maximum_observed_queue_age_seconds": 112.79178595542908,
+      "after_last_arrival_drain_seconds": 139.10056883300422,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 297.78239441796904,
+      "startup_seconds": 0.3860777079826221,
+      "idle_worker_seconds": 120
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "2",
+    "window": "sustained",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 244.5096797500155,
+      "throughput_jobs_min": 2.944668696699949,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.766502857208252,
+          0.7511510848999023,
+          1.0304491519927979,
+          0.817457914352417,
+          0.8543710708618164,
+          0.7854979038238525,
+          0.8318891525268555,
+          0.7940630912780762,
+          0.8410959243774414,
+          0.8131639957427979,
+          0.8450229167938232,
+          0.8392760753631592
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 1.0304491519927979,
+      "processing_seconds": [
+        21.79920721054077,
+        23.667616844177246,
+        23.3854398727417,
+        23.899989128112793,
+        22.78738498687744,
+        23.039469003677368,
+        22.261919021606445,
+        22.73019003868103,
+        22.279399156570435,
+        24.808387994766235,
+        23.698457956314087,
+        22.99075198173523
+      ],
+      "mixed_latency": {
+        "status": {
+          "requests": 5483,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 2668.874583003344,
+          "latency_pass": false,
+          "errors_pass": true,
+          "warmup_errors": 0
+        },
+        "login": {
+          "requests": 2895,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 1682.5862500118092,
+          "latency_pass": true,
+          "errors_pass": null,
+          "warmup_errors": 0
+        }
+      },
+      "maximum_observed_queue_age_seconds": 0.5927700996398926,
+      "after_last_arrival_drain_seconds": 24.076789500017185,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 489.019359500031,
+      "startup_seconds": 0.38333254199824296,
+      "idle_worker_seconds": 120
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "2",
+    "window": "mixed",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 76.50050116700004,
+      "throughput_jobs_min": 9.411703047908736,
+      "waits_seconds": {
+        "2": [
+          0.7847139835357666,
+          17.781211137771606,
+          17.698153018951416,
+          33.69655513763428,
+          33.86124587059021,
+          50.94760084152222
+        ],
+        "60": [
+          0.7408950328826904,
+          0.7560999393463135,
+          16.83584213256836,
+          16.786620140075684,
+          33.06512904167175,
+          32.89793395996094
+        ]
+      },
+      "short_wait_p90_seconds": 50.94760084152222,
+      "maximum_wait_seconds": 50.94760084152222,
+      "processing_seconds": [
+        21.635409832000732,
+        0.9477570056915283,
+        21.577582120895386,
+        0.9454867839813232,
+        21.492766857147217,
+        0.8380098342895508,
+        21.549104928970337,
+        0.9804389476776123,
+        22.553563833236694,
+        0.9060571193695068,
+        22.048155069351196,
+        0.969994068145752
+      ],
+      "maximum_observed_queue_age_seconds": 50.370336055755615,
+      "after_last_arrival_drain_seconds": 54.44623549998505,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 153.00100233400008,
+      "startup_seconds": 0.3927780829835683,
+      "idle_worker_seconds": 120
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "3",
+    "window": "idle-gap",
+    "metrics": {
+      "jobs": 6,
+      "successes": 6,
+      "elapsed_seconds": 92.7806088340003,
+      "throughput_jobs_min": 3.880121121473765,
+      "waits_seconds": {
+        "2": [
+          0.8191261291503906,
+          0.8060200214385986,
+          0.8076817989349365,
+          0.7954719066619873,
+          0.7792079448699951,
+          0.7751069068908691
+        ],
+        "60": []
+      },
+      "short_wait_p90_seconds": 0.8191261291503906,
+      "maximum_wait_seconds": 0.8191261291503906,
+      "processing_seconds": [
+        1.119215965270996,
+        1.0954780578613281,
+        1.2438111305236816,
+        0.9728090763092041,
+        0.9599959850311279,
+        1.033682107925415
+      ],
+      "maximum_observed_queue_age_seconds": 0.590224027633667,
+      "after_last_arrival_drain_seconds": 2.6583121250150725,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 278.3418265020009,
+      "startup_seconds": 0.4279850409948267,
+      "idle_worker_seconds": 180
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "3",
+    "window": "burst",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 104.79462370899273,
+      "throughput_jobs_min": 6.870581471807077,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.8596830368041992,
+          0.8373911380767822,
+          0.9514210224151611,
+          24.118453979492188,
+          23.74540901184082,
+          23.736459970474243,
+          45.51482582092285,
+          47.091667890548706,
+          46.775519132614136,
+          68.70215916633606,
+          70.40948796272278,
+          70.30371904373169
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 70.40948796272278,
+      "processing_seconds": [
+        24.534815073013306,
+        24.373551845550537,
+        24.26461911201477,
+        22.725780963897705,
+        24.48191499710083,
+        24.090375185012817,
+        24.427700996398926,
+        25.2623291015625,
+        24.452417850494385,
+        23.753576040267944,
+        22.856173038482666,
+        25.71195101737976
+      ],
+      "maximum_observed_queue_age_seconds": 70.37944507598877,
+      "after_last_arrival_drain_seconds": 96.1230079579982,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 314.3838711269782,
+      "startup_seconds": 0.45337779200053774,
+      "idle_worker_seconds": 180
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "3",
+    "window": "sustained",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 244.9634177919943,
+      "throughput_jobs_min": 2.9392143793951035,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.8049111366271973,
+          0.772010087966919,
+          0.8215210437774658,
+          0.80600905418396,
+          0.7418060302734375,
+          0.7977519035339355,
+          0.8577399253845215,
+          0.8367841243743896,
+          0.883842945098877,
+          0.819674015045166,
+          0.8629682064056396,
+          0.7817168235778809
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 0.883842945098877,
+      "processing_seconds": [
+        22.332309007644653,
+        23.465759992599487,
+        22.218101024627686,
+        23.898948907852173,
+        22.394649028778076,
+        22.639628887176514,
+        23.459891080856323,
+        23.67543888092041,
+        22.533302068710327,
+        23.389199018478394,
+        23.64394783973694,
+        23.154126167297363
+      ],
+      "mixed_latency": {
+        "status": {
+          "requests": 5577,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 2664.5815410010982,
+          "latency_pass": false,
+          "errors_pass": true,
+          "warmup_errors": 0
+        },
+        "login": {
+          "requests": 2890,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 1689.4867499941029,
+          "latency_pass": true,
+          "errors_pass": null,
+          "warmup_errors": 0
+        }
+      },
+      "maximum_observed_queue_age_seconds": 0,
+      "after_last_arrival_drain_seconds": 24.271204290998867,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 734.8902533759829,
+      "startup_seconds": 0.45651099999668077,
+      "idle_worker_seconds": 180
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "3",
+    "window": "mixed",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 60.46829062499455,
+      "throughput_jobs_min": 11.907067200976709,
+      "waits_seconds": {
+        "2": [
+          0.8184890747070312,
+          0.7908859252929688,
+          15.384834051132202,
+          15.119892835617065,
+          15.45565390586853,
+          29.722763061523438
+        ],
+        "60": [
+          1.0424301624298096,
+          0.7576858997344971,
+          0.801192045211792,
+          14.465764045715332,
+          13.879455804824829,
+          14.83364200592041
+        ]
+      },
+      "short_wait_p90_seconds": 29.722763061523438,
+      "maximum_wait_seconds": 29.722763061523438,
+      "processing_seconds": [
+        22.366429805755615,
+        0.9281389713287354,
+        22.963210105895996,
+        0.9729630947113037,
+        23.21752095222473,
+        0.9794421195983887,
+        23.464409112930298,
+        1.0494801998138428,
+        23.449660062789917,
+        0.9993340969085693,
+        23.141145944595337,
+        1.139801025390625
+      ],
+      "maximum_observed_queue_age_seconds": 28.34332799911499,
+      "after_last_arrival_drain_seconds": 38.41304858299554,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 181.40487187498366,
+      "startup_seconds": 0.458106250007404,
+      "idle_worker_seconds": 180
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "manual",
+    "window": "idle-gap",
+    "metrics": {
+      "jobs": 6,
+      "successes": 6,
+      "elapsed_seconds": 96.93795399999362,
+      "throughput_jobs_min": 3.713715682507841,
+      "waits_seconds": {
+        "2": [
+          0.7951390743255615,
+          2.0767629146575928,
+          3.398966073989868,
+          0.8430819511413574,
+          2.302609920501709,
+          3.785128116607666
+        ],
+        "60": []
+      },
+      "short_wait_p90_seconds": 3.785128116607666,
+      "maximum_wait_seconds": 3.785128116607666,
+      "processing_seconds": [
+        0.8586959838867188,
+        0.8641719818115234,
+        0.8902320861816406,
+        0.829071044921875,
+        0.8084831237792969,
+        0.8865628242492676
+      ],
+      "maximum_observed_queue_age_seconds": 2.5145649909973145,
+      "after_last_arrival_drain_seconds": 6.583537541999249,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 96.93795399999362,
+      "startup_seconds": 0.288489541009767,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "manual",
+    "window": "burst",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 106.94394699999248,
+      "throughput_jobs_min": 6.7324988482055055,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.8154199123382568,
+          0.885840892791748,
+          0.8602719306945801,
+          25.7743079662323,
+          25.758695125579834,
+          25.423264980316162,
+          48.88287806510925,
+          49.33280801773071,
+          49.07207179069519,
+          72.5735878944397,
+          73.22820711135864,
+          73.04366302490234
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 73.22820711135864,
+      "processing_seconds": [
+        26.454782009124756,
+        26.344600200653076,
+        26.0832359790802,
+        24.643275022506714,
+        25.059622049331665,
+        24.90392804145813,
+        25.126080989837646,
+        25.207211017608643,
+        25.13203001022339,
+        23.991558074951172,
+        23.729140996932983,
+        23.61934995651245
+      ],
+      "maximum_observed_queue_age_seconds": 72.56582903862,
+      "after_last_arrival_drain_seconds": 98.21996116699302,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 320.83184099997743,
+      "startup_seconds": 0.7556517079938203,
+      "idle_worker_seconds": 180,
+      "safe_drain_seconds": 1.1182705000101123
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "manual",
+    "window": "sustained",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 244.51358075000462,
+      "throughput_jobs_min": 2.944621717090397,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7525169849395752,
+          0.7344000339508057,
+          0.7910580635070801,
+          0.8532819747924805,
+          0.7743449211120605,
+          0.7677059173583984,
+          0.8072409629821777,
+          0.7738909721374512,
+          0.7923979759216309,
+          0.966102123260498,
+          0.8374161720275879,
+          0.7544729709625244
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 0.966102123260498,
+      "processing_seconds": [
+        22.075921058654785,
+        22.52955412864685,
+        22.47951889038086,
+        22.76512098312378,
+        24.14192509651184,
+        22.955912113189697,
+        24.791122913360596,
+        23.264698028564453,
+        23.335856914520264,
+        23.76088786125183,
+        23.4758038520813,
+        22.85939311981201
+      ],
+      "mixed_latency": {
+        "status": {
+          "requests": 5543,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 2657.309833011823,
+          "latency_pass": false,
+          "errors_pass": true,
+          "warmup_errors": 0
+        },
+        "login": {
+          "requests": 2902,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 1680.5596250051167,
+          "latency_pass": true,
+          "errors_pass": null,
+          "warmup_errors": 0
+        }
+      },
+      "maximum_observed_queue_age_seconds": 0.34947824478149414,
+      "after_last_arrival_drain_seconds": 24.055569541000295,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 733.5407422500139,
+      "startup_seconds": 0.6537529590132181,
+      "idle_worker_seconds": 180,
+      "safe_drain_seconds": 1.115953582979273
+    }
+  },
+  {
+    "repeat": 1,
+    "policy": "manual",
+    "window": "mixed",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 58.40494154201588,
+      "throughput_jobs_min": 12.327724007429062,
+      "waits_seconds": {
+        "2": [
+          0.7476658821105957,
+          0.8076860904693604,
+          14.707095861434937,
+          14.607221126556396,
+          14.61398983001709,
+          29.156200885772705
+        ],
+        "60": [
+          0.8559257984161377,
+          0.7487308979034424,
+          0.762458086013794,
+          14.084398984909058,
+          13.798043012619019,
+          13.811415910720825
+        ]
+      },
+      "short_wait_p90_seconds": 29.156200885772705,
+      "maximum_wait_seconds": 29.156200885772705,
+      "processing_seconds": [
+        22.383565187454224,
+        0.9242279529571533,
+        22.552590131759644,
+        0.9219820499420166,
+        22.536417961120605,
+        1.0331151485443115,
+        23.651592016220093,
+        0.9644229412078857,
+        22.812236070632935,
+        0.9305431842803955,
+        22.993754148483276,
+        0.9387199878692627
+      ],
+      "maximum_observed_queue_age_seconds": 28.299928903579712,
+      "after_last_arrival_drain_seconds": 36.33340820900048,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 175.21482462604763,
+      "startup_seconds": 0.6530437920009717,
+      "idle_worker_seconds": 180,
+      "safe_drain_seconds": 1.1218381249927916
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "2",
+    "window": "idle-gap",
+    "metrics": {
+      "jobs": 6,
+      "successes": 6,
+      "elapsed_seconds": 94.86616183299338,
+      "throughput_jobs_min": 3.7948199130661577,
+      "waits_seconds": {
+        "2": [
+          0.7759811878204346,
+          0.7750110626220703,
+          2.2475709915161133,
+          0.8031899929046631,
+          0.7251808643341064,
+          2.2365798950195312
+        ],
+        "60": []
+      },
+      "short_wait_p90_seconds": 2.2475709915161133,
+      "maximum_wait_seconds": 2.2475709915161133,
+      "processing_seconds": [
+        0.8551549911499023,
+        0.7818648815155029,
+        0.9251441955566406,
+        0.8211679458618164,
+        0.8177351951599121,
+        0.8339531421661377
+      ],
+      "maximum_observed_queue_age_seconds": 1.762740135192871,
+      "after_last_arrival_drain_seconds": 4.585790875018574,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 189.73232366598677,
+      "startup_seconds": 0.3618559160095174,
+      "idle_worker_seconds": 120
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "2",
+    "window": "burst",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 142.9762890409911,
+      "throughput_jobs_min": 5.035800025510363,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7640490531921387,
+          0.7699899673461914,
+          21.553099870681763,
+          22.891361951828003,
+          42.19813895225525,
+          43.90569877624512,
+          63.188714027404785,
+          65.93530011177063,
+          86.35748505592346,
+          89.6607358455658,
+          108.18438196182251,
+          111.71821403503418
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 111.71821403503418,
+      "processing_seconds": [
+        21.23663902282715,
+        22.636018991470337,
+        21.479470014572144,
+        21.737735986709595,
+        21.248790979385376,
+        22.24049711227417,
+        23.386112928390503,
+        24.01937484741211,
+        22.29627799987793,
+        22.534197092056274,
+        21.93155288696289,
+        22.80462884902954
+      ],
+      "maximum_observed_queue_age_seconds": 111.32806205749512,
+      "after_last_arrival_drain_seconds": 135.60291212497395,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 285.9525780819822,
+      "startup_seconds": 0.3793693330080714,
+      "idle_worker_seconds": 120
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "2",
+    "window": "sustained",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 246.83812820899766,
+      "throughput_jobs_min": 2.9168913458555177,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7739748954772949,
+          0.7513730525970459,
+          0.7795350551605225,
+          0.7789630889892578,
+          0.759091854095459,
+          0.8043680191040039,
+          0.8078250885009766,
+          0.9012320041656494,
+          0.8976531028747559,
+          0.9193189144134521,
+          0.8587470054626465,
+          0.8442299365997314
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 0.9193189144134521,
+      "processing_seconds": [
+        22.57614493370056,
+        21.818212032318115,
+        23.645151138305664,
+        22.433018922805786,
+        23.478674173355103,
+        22.241496086120605,
+        24.418596029281616,
+        24.705947160720825,
+        24.40861201286316,
+        24.527692079544067,
+        26.41730499267578,
+        24.258908987045288
+      ],
+      "mixed_latency": {
+        "status": {
+          "requests": 5682,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 2563.3994169766083,
+          "latency_pass": false,
+          "errors_pass": true,
+          "warmup_errors": 0
+        },
+        "login": {
+          "requests": 2931,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 1670.7330829813145,
+          "latency_pass": true,
+          "errors_pass": null,
+          "warmup_errors": 0
+        }
+      },
+      "maximum_observed_queue_age_seconds": 0.57470703125,
+      "after_last_arrival_drain_seconds": 26.193035082978895,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 493.6762564179953,
+      "startup_seconds": 0.38729287500609644,
+      "idle_worker_seconds": 120
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "2",
+    "window": "mixed",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 78.479067999986,
+      "throughput_jobs_min": 9.174420878700145,
+      "waits_seconds": {
+        "2": [
+          0.7442309856414795,
+          17.779495000839233,
+          18.57994508743286,
+          34.32803392410278,
+          35.19663405418396,
+          51.123862981796265
+        ],
+        "60": [
+          0.7102539539337158,
+          0.8181049823760986,
+          17.073550939559937,
+          17.6756911277771,
+          33.51678395271301,
+          34.42270517349243
+        ]
+      },
+      "short_wait_p90_seconds": 51.123862981796265,
+      "maximum_wait_seconds": 51.123862981796265,
+      "processing_seconds": [
+        21.79494595527649,
+        0.8727610111236572,
+        22.513020038604736,
+        0.929192066192627,
+        21.844583988189697,
+        0.9101758003234863,
+        22.159245014190674,
+        0.9062790870666504,
+        22.569926977157593,
+        0.879478931427002,
+        22.826116800308228,
+        0.8627591133117676
+      ],
+      "maximum_observed_queue_age_seconds": 50.32752203941345,
+      "after_last_arrival_drain_seconds": 56.435533374984516,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 156.958135999972,
+      "startup_seconds": 0.43552962501416914,
+      "idle_worker_seconds": 120
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "3",
+    "window": "idle-gap",
+    "metrics": {
+      "jobs": 6,
+      "successes": 6,
+      "elapsed_seconds": 92.93737212498672,
+      "throughput_jobs_min": 3.873576277967645,
+      "waits_seconds": {
+        "2": [
+          0.7882800102233887,
+          0.7810120582580566,
+          0.7760591506958008,
+          0.7499420642852783,
+          0.7460050582885742,
+          0.7510318756103516
+        ],
+        "60": []
+      },
+      "short_wait_p90_seconds": 0.7882800102233887,
+      "maximum_wait_seconds": 0.7882800102233887,
+      "processing_seconds": [
+        0.8688228130340576,
+        0.8396189212799072,
+        0.923213005065918,
+        0.8454561233520508,
+        0.927454948425293,
+        0.9026041030883789
+      ],
+      "maximum_observed_queue_age_seconds": 0.571295976638794,
+      "after_last_arrival_drain_seconds": 2.6869333329959773,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 278.81211637496017,
+      "startup_seconds": 0.42951124999672174,
+      "idle_worker_seconds": 180
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "3",
+    "window": "burst",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 96.82362683297833,
+      "throughput_jobs_min": 7.436201509389922,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7596919536590576,
+          0.585752010345459,
+          0.7917430400848389,
+          20.654809951782227,
+          22.387934923171997,
+          22.25048804283142,
+          41.82909107208252,
+          44.07075786590576,
+          44.45561718940735,
+          63.32835507392883,
+          66.39719700813293,
+          67.02168488502502
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 67.02168488502502,
+      "processing_seconds": [
+        20.993542909622192,
+        22.56827211380005,
+        22.448611974716187,
+        22.113862991333008,
+        22.680251121520996,
+        23.019158124923706,
+        22.151211977005005,
+        22.911808013916016,
+        22.934640884399414,
+        21.963552951812744,
+        22.598050832748413,
+        22.371989011764526
+      ],
+      "maximum_observed_queue_age_seconds": 66.23606872558594,
+      "after_last_arrival_drain_seconds": 90.10413791600149,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 290.470880498935,
+      "startup_seconds": 0.4019774580083322,
+      "idle_worker_seconds": 180
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "3",
+    "window": "sustained",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 244.85314112500055,
+      "throughput_jobs_min": 2.9405381392776624,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7603299617767334,
+          0.7104690074920654,
+          0.8258111476898193,
+          0.5955870151519775,
+          0.7440221309661865,
+          0.7570209503173828,
+          0.7737410068511963,
+          0.776547908782959,
+          0.7774169445037842,
+          0.9203221797943115,
+          0.8301777839660645,
+          0.7534070014953613
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 0.9203221797943115,
+      "processing_seconds": [
+        21.97414207458496,
+        21.60273790359497,
+        22.30741596221924,
+        23.337510108947754,
+        22.44856286048889,
+        22.167793035507202,
+        22.752550840377808,
+        21.553061962127686,
+        22.3426730632782,
+        23.016373872756958,
+        22.372177124023438,
+        22.65536093711853
+      ],
+      "mixed_latency": {
+        "status": {
+          "requests": 5774,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 2481.8412919994444,
+          "latency_pass": false,
+          "errors_pass": true,
+          "warmup_errors": 0
+        },
+        "login": {
+          "requests": 2960,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 1645.9291669889353,
+          "latency_pass": true,
+          "errors_pass": null,
+          "warmup_errors": 0
+        }
+      },
+      "maximum_observed_queue_age_seconds": 0.7021257877349854,
+      "after_last_arrival_drain_seconds": 24.370581875002244,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 734.5594233750016,
+      "startup_seconds": 0.44159804200171493,
+      "idle_worker_seconds": 180
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "3",
+    "window": "mixed",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 58.38918916700641,
+      "throughput_jobs_min": 12.331049810276276,
+      "waits_seconds": {
+        "2": [
+          0.7425069808959961,
+          0.8206391334533691,
+          13.481905937194824,
+          14.249953985214233,
+          14.312367916107178,
+          26.296905994415283
+        ],
+        "60": [
+          0.7103879451751709,
+          0.7475738525390625,
+          0.7732939720153809,
+          12.627894878387451,
+          13.200767040252686,
+          13.600813865661621
+        ]
+      },
+      "short_wait_p90_seconds": 26.296905994415283,
+      "maximum_wait_seconds": 26.296905994415283,
+      "processing_seconds": [
+        21.112293004989624,
+        0.8325841426849365,
+        22.095287084579468,
+        0.8671648502349854,
+        22.232492923736572,
+        0.9144840240478516,
+        22.11632513999939,
+        0.9610788822174072,
+        22.377989053726196,
+        0.9615061283111572,
+        22.85591411590576,
+        0.9855308532714844
+      ],
+      "maximum_observed_queue_age_seconds": 24.264724016189575,
+      "after_last_arrival_drain_seconds": 36.347759166004835,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 175.16756750101922,
+      "startup_seconds": 0.44115470797987655,
+      "idle_worker_seconds": 180
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "manual",
+    "window": "idle-gap",
+    "metrics": {
+      "jobs": 6,
+      "successes": 6,
+      "elapsed_seconds": 94.86702825000975,
+      "throughput_jobs_min": 3.7947852551180024,
+      "waits_seconds": {
+        "2": [
+          0.7519369125366211,
+          2.224195957183838,
+          3.765768051147461,
+          0.7155349254608154,
+          2.1991770267486572,
+          3.725128173828125
+        ],
+        "60": []
+      },
+      "short_wait_p90_seconds": 3.765768051147461,
+      "maximum_wait_seconds": 3.765768051147461,
+      "processing_seconds": [
+        0.8055460453033447,
+        0.8859360218048096,
+        0.8239638805389404,
+        0.779278039932251,
+        0.8643589019775391,
+        0.8098189830780029
+      ],
+      "maximum_observed_queue_age_seconds": 2.71071720123291,
+      "after_last_arrival_drain_seconds": 4.755515625001863,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 94.86702825000975,
+      "startup_seconds": 0.2980045829899609,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "manual",
+    "window": "burst",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 98.71497037500376,
+      "throughput_jobs_min": 7.293726546893801,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.8423240184783936,
+          0.7676730155944824,
+          0.8589179515838623,
+          21.41598105430603,
+          22.952447175979614,
+          22.77713894844055,
+          43.51750707626343,
+          45.42726397514343,
+          45.27571511268616,
+          64.92796516418457,
+          67.32277393341064,
+          67.32073998451233
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 67.32277393341064,
+      "processing_seconds": [
+        21.411139965057373,
+        23.235563039779663,
+        22.96710205078125,
+        23.023024082183838,
+        23.348642826080322,
+        23.54970097541809,
+        22.45888113975525,
+        23.035025119781494,
+        23.132466793060303,
+        22.459742069244385,
+        24.33654808998108,
+        24.079318046569824
+      ],
+      "maximum_observed_queue_age_seconds": 66.15495681762695,
+      "after_last_arrival_drain_seconds": 91.68540037499042,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 296.1449111250113,
+      "startup_seconds": 0.6897813340183347,
+      "idle_worker_seconds": 180,
+      "safe_drain_seconds": 1.1001422500121407
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "manual",
+    "window": "sustained",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 244.66322454201872,
+      "throughput_jobs_min": 2.9428206930067105,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7326340675354004,
+          0.7767629623413086,
+          0.8506078720092773,
+          0.7686598300933838,
+          0.8707001209259033,
+          0.8020620346069336,
+          0.7828338146209717,
+          0.8158228397369385,
+          0.8064301013946533,
+          0.7769110202789307,
+          0.5714681148529053,
+          0.7870488166809082
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 0.8707001209259033,
+      "processing_seconds": [
+        22.14324688911438,
+        22.241003036499023,
+        23.893249034881592,
+        23.17280101776123,
+        23.46355891227722,
+        21.646689891815186,
+        22.899662017822266,
+        22.32195496559143,
+        24.63255286216736,
+        22.547462940216064,
+        22.265850067138672,
+        22.031925201416016
+      ],
+      "mixed_latency": {
+        "status": {
+          "requests": 5366,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 2687.372458021855,
+          "latency_pass": false,
+          "errors_pass": true,
+          "warmup_errors": 1
+        },
+        "login": {
+          "requests": 2886,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 1685.3647909883875,
+          "latency_pass": true,
+          "errors_pass": null,
+          "warmup_errors": 0
+        }
+      },
+      "maximum_observed_queue_age_seconds": 0.4800269603729248,
+      "after_last_arrival_drain_seconds": 24.05007095800829,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 733.9896736260562,
+      "startup_seconds": 0.6451309160038363,
+      "idle_worker_seconds": 180,
+      "safe_drain_seconds": 1.125288624985842
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "manual",
+    "window": "mixed",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 58.47082104100264,
+      "throughput_jobs_min": 12.313834271201705,
+      "waits_seconds": {
+        "2": [
+          0.7284388542175293,
+          0.80194091796875,
+          13.958268165588379,
+          15.311905145645142,
+          14.692306995391846,
+          27.91892910003662
+        ],
+        "60": [
+          0.7011311054229736,
+          0.7438769340515137,
+          0.7873029708862305,
+          13.242772102355957,
+          14.68454909324646,
+          13.83920407295227
+        ]
+      },
+      "short_wait_p90_seconds": 27.91892910003662,
+      "maximum_wait_seconds": 27.91892910003662,
+      "processing_seconds": [
+        22.039177894592285,
+        0.8274450302124023,
+        23.076546907424927,
+        0.9054920673370361,
+        22.333089113235474,
+        0.9352438449859619,
+        23.09995198249817,
+        0.9129247665405273,
+        22.62764596939087,
+        0.8567390441894531,
+        23.387041091918945,
+        1.010124921798706
+      ],
+      "maximum_observed_queue_age_seconds": 26.254204988479614,
+      "after_last_arrival_drain_seconds": 36.40177224998479,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 175.4124631230079,
+      "startup_seconds": 0.68977966698003,
+      "idle_worker_seconds": 180,
+      "safe_drain_seconds": 1.118893750011921
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "1",
+    "window": "idle-gap",
+    "metrics": {
+      "jobs": 6,
+      "successes": 6,
+      "elapsed_seconds": 94.69242520799162,
+      "throughput_jobs_min": 3.8017824467929837,
+      "waits_seconds": {
+        "2": [
+          0.7379238605499268,
+          2.2729690074920654,
+          3.8511390686035156,
+          0.7266228199005127,
+          2.2270829677581787,
+          3.704725980758667
+        ],
+        "60": []
+      },
+      "short_wait_p90_seconds": 3.8511390686035156,
+      "maximum_wait_seconds": 3.8511390686035156,
+      "processing_seconds": [
+        0.8729231357574463,
+        0.8185131549835205,
+        0.8207430839538574,
+        0.8377730846405029,
+        0.8185129165649414,
+        0.816209077835083
+      ],
+      "maximum_observed_queue_age_seconds": 2.476500988006592,
+      "after_last_arrival_drain_seconds": 4.613367082987679,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 94.69242520799162,
+      "startup_seconds": 0.2839935410011094,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "1",
+    "window": "burst",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 285.698016749986,
+      "throughput_jobs_min": 2.5201435004362356,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7349638938903809,
+          23.943079948425293,
+          46.53823900222778,
+          69.16163682937622,
+          92.78169703483582,
+          115.41176390647888,
+          139.0707290172577,
+          161.95761394500732,
+          185.3819501399994,
+          209.2769570350647,
+          232.0087490081787,
+          254.75569796562195
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 254.75569796562195,
+      "processing_seconds": [
+        22.987271070480347,
+        22.598691940307617,
+        22.517308950424194,
+        23.39432406425476,
+        22.492385149002075,
+        23.51621413230896,
+        22.74663019180298,
+        23.280697107315063,
+        23.766916036605835,
+        22.815286874771118,
+        22.803066968917847,
+        23.13093900680542
+      ],
+      "maximum_observed_queue_age_seconds": 254.22576594352722,
+      "after_last_arrival_drain_seconds": 278.44497954199323,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 285.698016749986,
+      "startup_seconds": 0.2806154999998398,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "1",
+    "window": "sustained",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 288.8940383330046,
+      "throughput_jobs_min": 2.4922632677177816,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7137229442596436,
+          0.7571589946746826,
+          10.894773006439209,
+          7.85216498374939,
+          12.48652195930481,
+          14.480601072311401,
+          15.904311895370483,
+          21.90359115600586,
+          27.273056030273438,
+          29.75292992591858,
+          32.41568684577942,
+          44.16765213012695
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 44.16765213012695,
+      "processing_seconds": [
+        21.38993811607361,
+        21.784080982208252,
+        21.726144075393677,
+        21.67768692970276,
+        22.760558128356934,
+        22.493830919265747,
+        22.377506017684937,
+        22.25075888633728,
+        22.979512929916382,
+        23.305234909057617,
+        22.520745992660522,
+        22.893353939056396
+      ],
+      "mixed_latency": {
+        "status": {
+          "requests": 5499,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 2663.6692080064677,
+          "latency_pass": false,
+          "errors_pass": true,
+          "warmup_errors": 0
+        },
+        "login": {
+          "requests": 2861,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 1753.9956250111572,
+          "latency_pass": true,
+          "errors_pass": null,
+          "warmup_errors": 0
+        }
+      },
+      "maximum_observed_queue_age_seconds": 43.93082809448242,
+      "after_last_arrival_drain_seconds": 68.22174825001275,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 288.8940383330046,
+      "startup_seconds": 0.2720570410019718,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 2,
+    "policy": "1",
+    "window": "mixed",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 151.17335445899516,
+      "throughput_jobs_min": 4.762744086592956,
+      "waits_seconds": {
+        "2": [
+          22.6647629737854,
+          43.55067300796509,
+          64.46263694763184,
+          85.41842889785767,
+          105.99995613098145,
+          127.91375398635864
+        ],
+        "60": [
+          0.7153759002685547,
+          21.695554971694946,
+          42.8314151763916,
+          63.488399028778076,
+          84.40646195411682,
+          105.03489112854004
+        ]
+      },
+      "short_wait_p90_seconds": 127.91375398635864,
+      "maximum_wait_seconds": 127.91375398635864,
+      "processing_seconds": [
+        22.59681010246277,
+        0.8842508792877197,
+        22.644306898117065,
+        0.9923739433288574,
+        22.52393889427185,
+        0.8538169860839844,
+        22.53929305076599,
+        0.8414771556854248,
+        22.383862018585205,
+        0.8349819183349609,
+        23.649418830871582,
+        0.8700668811798096
+      ],
+      "maximum_observed_queue_age_seconds": 127.06096386909485,
+      "after_last_arrival_drain_seconds": 129.14167500002077,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 151.17335445899516,
+      "startup_seconds": 0.2845055829966441,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 3,
+    "policy": "3",
+    "window": "idle-gap",
+    "metrics": {
+      "jobs": 6,
+      "successes": 6,
+      "elapsed_seconds": 92.80933570800698,
+      "throughput_jobs_min": 3.8789201242924265,
+      "waits_seconds": {
+        "2": [
+          0.7947068214416504,
+          0.8051140308380127,
+          0.7755680084228516,
+          0.7566840648651123,
+          0.7361869812011719,
+          0.7330629825592041
+        ],
+        "60": []
+      },
+      "short_wait_p90_seconds": 0.8051140308380127,
+      "maximum_wait_seconds": 0.8051140308380127,
+      "processing_seconds": [
+        0.9642541408538818,
+        0.9350378513336182,
+        0.9558589458465576,
+        0.879173994064331,
+        0.9352231025695801,
+        0.9345889091491699
+      ],
+      "maximum_observed_queue_age_seconds": 0.6516060829162598,
+      "after_last_arrival_drain_seconds": 2.6965936250053346,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 278.42800712402095,
+      "startup_seconds": 0.4442325829877518,
+      "idle_worker_seconds": 180
+    }
+  },
+  {
+    "repeat": 3,
+    "policy": "3",
+    "window": "burst",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 98.78695349997724,
+      "throughput_jobs_min": 7.288411824544887,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7481951713562012,
+          0.739372968673706,
+          0.7976269721984863,
+          21.18192481994629,
+          21.990237951278687,
+          21.88184905052185,
+          42.50101900100708,
+          44.207706928253174,
+          44.21655488014221,
+          63.80268406867981,
+          65.9806559085846,
+          66.0728349685669
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 66.0728349685669,
+      "processing_seconds": [
+        21.57284188270569,
+        22.471417903900146,
+        22.225282907485962,
+        22.176307201385498,
+        23.3162100315094,
+        23.426582098007202,
+        22.359441995620728,
+        22.885860919952393,
+        22.88889718055725,
+        22.176281929016113,
+        22.673476934432983,
+        23.305258989334106
+      ],
+      "maximum_observed_queue_age_seconds": 65.6111707687378,
+      "after_last_arrival_drain_seconds": 91.22715691599296,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 296.36086049993173,
+      "startup_seconds": 0.44616158297867514,
+      "idle_worker_seconds": 180
+    }
+  },
+  {
+    "repeat": 3,
+    "policy": "3",
+    "window": "sustained",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 244.9796399580082,
+      "throughput_jobs_min": 2.9390197492469774,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7187380790710449,
+          0.7623500823974609,
+          0.791316032409668,
+          0.7777481079101562,
+          0.7651059627532959,
+          0.8578801155090332,
+          0.7851290702819824,
+          0.7820119857788086,
+          0.8035919666290283,
+          0.8760499954223633,
+          0.7600939273834229,
+          0.745507001876831
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 0.8760499954223633,
+      "processing_seconds": [
+        21.300298929214478,
+        23.292621850967407,
+        24.737191915512085,
+        21.93617582321167,
+        23.7552330493927,
+        25.633575916290283,
+        21.755013942718506,
+        23.552508115768433,
+        23.417999982833862,
+        22.885547876358032,
+        22.579085111618042,
+        23.121379137039185
+      ],
+      "mixed_latency": {
+        "status": {
+          "requests": 5636,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 2580.5531250080094,
+          "latency_pass": false,
+          "errors_pass": true,
+          "warmup_errors": 0
+        },
+        "login": {
+          "requests": 2911,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 1674.026791995857,
+          "latency_pass": true,
+          "errors_pass": null,
+          "warmup_errors": 0
+        }
+      },
+      "maximum_observed_queue_age_seconds": 0.424968957901001,
+      "after_last_arrival_drain_seconds": 24.413843833026476,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 734.9389198740246,
+      "startup_seconds": 0.419350125011988,
+      "idle_worker_seconds": 180
+    }
+  },
+  {
+    "repeat": 3,
+    "policy": "3",
+    "window": "mixed",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 58.504597958002705,
+      "throughput_jobs_min": 12.306725028977196,
+      "waits_seconds": {
+        "2": [
+          0.7372541427612305,
+          0.884627103805542,
+          13.632102012634277,
+          14.093256950378418,
+          14.714053869247437,
+          25.883405923843384
+        ],
+        "60": [
+          0.7107110023498535,
+          0.7505159378051758,
+          0.7766268253326416,
+          12.911514043807983,
+          12.853844165802002,
+          13.876691818237305
+        ]
+      },
+      "short_wait_p90_seconds": 25.883405923843384,
+      "maximum_wait_seconds": 25.883405923843384,
+      "processing_seconds": [
+        21.222383975982666,
+        0.8082120418548584,
+        21.871158123016357,
+        0.9462418556213379,
+        22.65033197402954,
+        0.9075050354003906,
+        21.758637189865112,
+        0.9441361427307129,
+        22.42004895210266,
+        0.9409430027008057,
+        23.127817153930664,
+        1.0419750213623047
+      ],
+      "maximum_observed_queue_age_seconds": 24.161087036132812,
+      "after_last_arrival_drain_seconds": 36.373114042013185,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 175.51379387400812,
+      "startup_seconds": 0.43623904199921526,
+      "idle_worker_seconds": 180
+    }
+  },
+  {
+    "repeat": 3,
+    "policy": "manual",
+    "window": "idle-gap",
+    "metrics": {
+      "jobs": 6,
+      "successes": 6,
+      "elapsed_seconds": 94.98402274999535,
+      "throughput_jobs_min": 3.79011111108176,
+      "waits_seconds": {
+        "2": [
+          0.7397458553314209,
+          2.227477788925171,
+          3.7104179859161377,
+          0.7129800319671631,
+          2.2004899978637695,
+          3.766505002975464
+        ],
+        "60": []
+      },
+      "short_wait_p90_seconds": 3.766505002975464,
+      "maximum_wait_seconds": 3.766505002975464,
+      "processing_seconds": [
+        0.7970781326293945,
+        0.8083829879760742,
+        0.8938732147216797,
+        0.7914259433746338,
+        0.8248429298400879,
+        0.7864630222320557
+      ],
+      "maximum_observed_queue_age_seconds": 2.816200017929077,
+      "after_last_arrival_drain_seconds": 4.879678500001319,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 94.98402274999535,
+      "startup_seconds": 0.3050126660091337,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 3,
+    "policy": "manual",
+    "window": "burst",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 98.88630358301452,
+      "throughput_jobs_min": 7.2810892298705845,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7418718338012695,
+          0.7481930255889893,
+          0.7929248809814453,
+          21.056966066360474,
+          22.59242296218872,
+          22.84025001525879,
+          42.7572660446167,
+          44.30731511116028,
+          44.79387307167053,
+          63.96755814552307,
+          66.46843314170837,
+          66.7173011302948
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 66.7173011302948,
+      "processing_seconds": [
+        21.266556978225708,
+        22.97320795059204,
+        23.145853996276855,
+        22.70504093170166,
+        22.818722009658813,
+        22.734705924987793,
+        22.02762794494629,
+        23.355576038360596,
+        22.979076147079468,
+        22.313045978546143,
+        22.61822485923767,
+        23.186033010482788
+      ],
+      "maximum_observed_queue_age_seconds": 66.06508326530457,
+      "after_last_arrival_drain_seconds": 91.796310042002,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 296.65891074904357,
+      "startup_seconds": 0.716804374998901,
+      "idle_worker_seconds": 180,
+      "safe_drain_seconds": 1.1381897920218762
+    }
+  },
+  {
+    "repeat": 3,
+    "policy": "manual",
+    "window": "sustained",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 244.5558817500132,
+      "throughput_jobs_min": 2.9441123838354017,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7599952220916748,
+          0.7501189708709717,
+          0.8447000980377197,
+          0.782916784286499,
+          0.7894020080566406,
+          0.8292300701141357,
+          0.772191047668457,
+          0.772942066192627,
+          0.8284730911254883,
+          0.8142540454864502,
+          0.7360360622406006,
+          0.7473478317260742
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 0.8447000980377197,
+      "processing_seconds": [
+        21.26586079597473,
+        22.262707948684692,
+        22.57551884651184,
+        21.656556129455566,
+        21.615464210510254,
+        23.499675989151,
+        22.14702296257019,
+        22.643873929977417,
+        23.91954803466797,
+        22.81628704071045,
+        22.288887977600098,
+        22.570361137390137
+      ],
+      "mixed_latency": {
+        "status": {
+          "requests": 5604,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 2571.708250005031,
+          "latency_pass": false,
+          "errors_pass": true,
+          "warmup_errors": 0
+        },
+        "login": {
+          "requests": 2906,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 1678.572292003082,
+          "latency_pass": true,
+          "errors_pass": null,
+          "warmup_errors": 0
+        }
+      },
+      "maximum_observed_queue_age_seconds": 0.6455450057983398,
+      "after_last_arrival_drain_seconds": 23.96804708399577,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 733.6676452500396,
+      "startup_seconds": 0.6638470409961883,
+      "idle_worker_seconds": 180,
+      "safe_drain_seconds": 1.1337482499948237
+    }
+  },
+  {
+    "repeat": 3,
+    "policy": "manual",
+    "window": "mixed",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 58.51056233397685,
+      "throughput_jobs_min": 12.305470521548873,
+      "waits_seconds": {
+        "2": [
+          0.5706949234008789,
+          0.8354859352111816,
+          13.964842081069946,
+          14.083086013793945,
+          14.445158958435059,
+          27.886913061141968
+        ],
+        "60": [
+          0.7519140243530273,
+          0.7403738498687744,
+          0.7870090007781982,
+          13.280947923660278,
+          13.379989862442017,
+          13.781677007675171
+        ]
+      },
+      "short_wait_p90_seconds": 27.886913061141968,
+      "maximum_wait_seconds": 27.886913061141968,
+      "processing_seconds": [
+        21.775527000427246,
+        0.8358209133148193,
+        21.900949001312256,
+        0.9248781204223633,
+        22.405540227890015,
+        0.9821279048919678,
+        23.1303231716156,
+        0.95442795753479,
+        22.954456090927124,
+        0.9673221111297607,
+        23.257007122039795,
+        1.0257480144500732
+      ],
+      "maximum_observed_queue_age_seconds": 26.33785605430603,
+      "after_last_arrival_drain_seconds": 36.432596666010795,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 175.53168700193055,
+      "startup_seconds": 0.689253207994625,
+      "idle_worker_seconds": 180,
+      "safe_drain_seconds": 1.1163646249915473
+    }
+  },
+  {
+    "repeat": 3,
+    "policy": "1",
+    "window": "idle-gap",
+    "metrics": {
+      "jobs": 6,
+      "successes": 6,
+      "elapsed_seconds": 94.82104424998397,
+      "throughput_jobs_min": 3.7966255576231,
+      "waits_seconds": {
+        "2": [
+          0.7535960674285889,
+          2.081958055496216,
+          3.583475112915039,
+          0.7308440208435059,
+          2.1946468353271484,
+          3.723299980163574
+        ],
+        "60": []
+      },
+      "short_wait_p90_seconds": 3.723299980163574,
+      "maximum_wait_seconds": 3.723299980163574,
+      "processing_seconds": [
+        0.6577780246734619,
+        0.8116769790649414,
+        0.8655719757080078,
+        0.8245148658752441,
+        0.876986026763916,
+        0.8238921165466309
+      ],
+      "maximum_observed_queue_age_seconds": 2.590208053588867,
+      "after_last_arrival_drain_seconds": 4.681981875008205,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 94.82104424998397,
+      "startup_seconds": 0.28138916700845584,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 3,
+    "policy": "1",
+    "window": "burst",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 287.8886475000181,
+      "throughput_jobs_min": 2.500966975434329,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7721860408782959,
+          24.436866998672485,
+          46.648942947387695,
+          69.68421387672424,
+          92.90051603317261,
+          117.2514100074768,
+          140.5002338886261,
+          163.9348669052124,
+          186.96437406539917,
+          210.57509589195251,
+          233.30402994155884,
+          257.3151180744171
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 257.3151180744171,
+      "processing_seconds": [
+        23.54952096939087,
+        22.721513986587524,
+        22.82389211654663,
+        23.01302409172058,
+        24.018764972686768,
+        23.27446484565735,
+        23.146821975708008,
+        22.81043815612793,
+        23.397758960723877,
+        22.617382049560547,
+        23.807838916778564,
+        22.425312995910645
+      ],
+      "maximum_observed_queue_age_seconds": 256.7262010574341,
+      "after_last_arrival_drain_seconds": 280.8932171250053,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 287.8886475000181,
+      "startup_seconds": 0.31088591599836946,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 3,
+    "policy": "1",
+    "window": "sustained",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 285.74080425000284,
+      "throughput_jobs_min": 2.5197661282217547,
+      "waits_seconds": {
+        "2": [],
+        "60": [
+          0.7378590106964111,
+          0.7729799747467041,
+          2.95770001411438,
+          7.507535934448242,
+          10.85394287109375,
+          14.48600697517395,
+          17.342444896697998,
+          24.380521059036255,
+          21.58808708190918,
+          27.0171902179718,
+          29.315282106399536,
+          40.76326608657837
+        ]
+      },
+      "short_wait_p90_seconds": null,
+      "maximum_wait_seconds": 40.76326608657837,
+      "processing_seconds": [
+        21.47228693962097,
+        21.57073211669922,
+        21.95905089378357,
+        22.626691102981567,
+        22.369508028030396,
+        22.540385961532593,
+        22.186644077301025,
+        22.465823888778687,
+        21.508091926574707,
+        23.64151382446289,
+        22.63710379600525,
+        22.69613289833069
+      ],
+      "mixed_latency": {
+        "status": {
+          "requests": 6045,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 2387.138916994445,
+          "latency_pass": false,
+          "errors_pass": true,
+          "warmup_errors": 0
+        },
+        "login": {
+          "requests": 2961,
+          "errors": 0,
+          "error_fraction": 0.0,
+          "p90_ms": 1666.9544170144945,
+          "latency_pass": true,
+          "errors_pass": null,
+          "warmup_errors": 0
+        }
+      },
+      "maximum_observed_queue_age_seconds": 38.97436499595642,
+      "after_last_arrival_drain_seconds": 65.30263287501293,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 285.74080425000284,
+      "startup_seconds": 0.3042079579900019,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 3,
+    "policy": "1",
+    "window": "mixed",
+    "metrics": {
+      "jobs": 12,
+      "successes": 12,
+      "elapsed_seconds": 153.0487215410103,
+      "throughput_jobs_min": 4.704384282014873,
+      "waits_seconds": {
+        "2": [
+          23.478984832763672,
+          44.46902918815613,
+          65.44993710517883,
+          86.50044894218445,
+          107.46730589866638,
+          129.14987111091614
+        ],
+        "60": [
+          0.7190489768981934,
+          22.564079999923706,
+          43.58601689338684,
+          64.60117793083191,
+          85.45511102676392,
+          106.62200021743774
+        ]
+      },
+      "short_wait_p90_seconds": 129.14987111091614,
+      "maximum_wait_seconds": 129.14987111091614,
+      "processing_seconds": [
+        23.295634031295776,
+        0.8316841125488281,
+        22.672168970108032,
+        0.8361959457397461,
+        22.67306900024414,
+        0.8066959381103516,
+        22.759400129318237,
+        0.8561570644378662,
+        22.923393964767456,
+        0.9874839782714844,
+        23.087966918945312,
+        0.8551328182220459
+      ],
+      "maximum_observed_queue_age_seconds": 129.00261187553406,
+      "after_last_arrival_drain_seconds": 131.01829499998712,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 153.0487215410103,
+      "startup_seconds": 0.2943379170028493,
+      "idle_worker_seconds": 60
+    }
+  },
+  {
+    "repeat": 3,
+    "policy": "2",
+    "window": "idle-gap",
+    "metrics": {
+      "jobs": 6,
+      "successes": 6,
+      "elapsed_seconds": 94.71932804200333,
+      "throughput_jobs_min": 3.8007026384346587,
+      "waits_seconds": {
+        "2": [
+          0.7692539691925049,
+          0.7662148475646973,
+          2.2198498249053955,
+          0.7713019847869873,
+          0.7514629364013672,
+          2.24013090133667
+        ],
+        "60": []
+      },
+      "short_wait_p90_seconds": 2.24013090133667,
+      "maximum_wait_seconds": 2.24013090133667,
+      "processing_seconds": [
+        0.8159489631652832,
+        0.8279740810394287,
+        0.875939130783081,
+        0.832827091217041,
+        0.8210210800170898,
+        0.8868179321289062
+      ],
+      "maximum_observed_queue_age_seconds": 1.7035410404205322,
+      "after_last_arrival_drain_seconds": 4.6094729170145,
+      "queue_bound_pass": true,
+      "sustained_drain_pass": true,
+      "worker_seconds": 189.43865608400665,
+      "startup_seconds": 0.3658610420243349,
+      "idle_worker_seconds": 120
+    }
+  }
+]

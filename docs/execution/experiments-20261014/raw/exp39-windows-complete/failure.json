@@ -1,0 +1,5 @@
+{
+  "utc": "2026-10-14T12:02:28.782912+00:00",
+  "type": "EvidenceError",
+  "safe_error": "VM free space below preregistered 2GiB stop"
+}

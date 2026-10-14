@@ -1,0 +1,101 @@
+[
+  {
+    "id": "c805fb688f84f20e4d1898558b30c61ac4c85372903d131468f3d6148e5704ff",
+    "service": "media-recovery",
+    "project": "dc2-local-e6eff6ee",
+    "image_digest": "sha256:6dc3a46054100500cc0a58dfbbf00356512d7ba2ab397ee27fcb1161c02e2b86",
+    "running": true,
+    "cpu_limit": 0.0625,
+    "memory_limit_bytes": 201326592,
+    "revision": "f10bf04899e6cc80f992c65193a92fbe0b0ce8b2",
+    "name": "/dc2-local-e6eff6ee-media-recovery-1"
+  },
+  {
+    "id": "de5c2be91b0a345d8be4336f8fa89cf710af46b538588edb2b5f783dd5c85add",
+    "service": "media",
+    "project": "dc2-local-e6eff6ee",
+    "image_digest": "sha256:6dc3a46054100500cc0a58dfbbf00356512d7ba2ab397ee27fcb1161c02e2b86",
+    "running": true,
+    "cpu_limit": 1.0,
+    "memory_limit_bytes": 402653184,
+    "revision": "f10bf04899e6cc80f992c65193a92fbe0b0ce8b2",
+    "name": "/dc2-local-e6eff6ee-media-1"
+  },
+  {
+    "id": "39980a5fd737c69f85dca86887be940ca7c4a2b33125b25be529650d9f001ddf",
+    "service": "worker",
+    "project": "dc2-local-e6eff6ee",
+    "image_digest": "sha256:8e1c7c6e9f796185fe8cd4ac27a737b4ae27bef0c325c00fbe828366b23a1217",
+    "running": true,
+    "cpu_limit": 2.0,
+    "memory_limit_bytes": 1610612736,
+    "revision": "f10bf04899e6cc80f992c65193a92fbe0b0ce8b2",
+    "name": "/dc2-local-e6eff6ee-worker-1"
+  },
+  {
+    "id": "18e47b679bd34b59ac7893e96ba2fe381536606cdfe257cf7c81fce33d6eafc2",
+    "service": "processing-recovery",
+    "project": "dc2-local-e6eff6ee",
+    "image_digest": "sha256:8e1c7c6e9f796185fe8cd4ac27a737b4ae27bef0c325c00fbe828366b23a1217",
+    "running": true,
+    "cpu_limit": 0.0625,
+    "memory_limit_bytes": 201326592,
+    "revision": "f10bf04899e6cc80f992c65193a92fbe0b0ce8b2",
+    "name": "/dc2-local-e6eff6ee-processing-recovery-1"
+  },
+  {
+    "id": "65d14f7dd987cd07d93ce7a2db76c053f8313749218705efb710511c3f5d4485",
+    "service": "processing",
+    "project": "dc2-local-e6eff6ee",
+    "image_digest": "sha256:8e1c7c6e9f796185fe8cd4ac27a737b4ae27bef0c325c00fbe828366b23a1217",
+    "running": true,
+    "cpu_limit": 0.5,
+    "memory_limit_bytes": 268435456,
+    "revision": "f10bf04899e6cc80f992c65193a92fbe0b0ce8b2",
+    "name": "/dc2-local-e6eff6ee-processing-1"
+  },
+  {
+    "id": "fb5e6edd863966b40b5b1b7c5fa868b7ae6a2ea119c09ea98df34cc2813f477a",
+    "service": "minio",
+    "project": "dc2-local-e6eff6ee",
+    "image_digest": "sha256:56f173c87792dc4edb9ffa51000fe306fbc8f32502d08fec82530dcf6cd88176",
+    "running": true,
+    "cpu_limit": 0.125,
+    "memory_limit_bytes": 536870912,
+    "revision": "20960b6a2ddb9594ee418035b3c7c7fe92ae6a12",
+    "name": "/dc2-local-e6eff6ee-minio-1"
+  },
+  {
+    "id": "d66d9a7209fe74124283c755282eb2d7c5779113d49200cf26a67150851a7964",
+    "service": "postgres",
+    "project": "dc2-local-e6eff6ee",
+    "image_digest": "sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d",
+    "running": true,
+    "cpu_limit": 0.125,
+    "memory_limit_bytes": 536870912,
+    "revision": null,
+    "name": "/dc2-local-e6eff6ee-postgres-1"
+  },
+  {
+    "id": "9c4a12be42c44bb076ba62eb1f79dcc34c15c16a2940861fdc11582d37ee84b1",
+    "service": "nginx",
+    "project": "dc2-local-e6eff6ee",
+    "image_digest": "sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236",
+    "running": true,
+    "cpu_limit": 0.0625,
+    "memory_limit_bytes": 134217728,
+    "revision": null,
+    "name": "/dc2-local-e6eff6ee-nginx-1"
+  },
+  {
+    "id": "b9a9e563c0f25fde89476cac1f3187bcd625f3d327753cacb1d88f137a1f9e87",
+    "service": "redis",
+    "project": "dc2-local-e6eff6ee",
+    "image_digest": "sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499",
+    "running": true,
+    "cpu_limit": 0.0625,
+    "memory_limit_bytes": 134217728,
+    "revision": null,
+    "name": "/dc2-local-e6eff6ee-redis-1"
+  }
+]

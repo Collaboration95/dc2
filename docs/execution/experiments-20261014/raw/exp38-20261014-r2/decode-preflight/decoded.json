@@ -1,0 +1,112 @@
+{
+  "decoded": [
+    {
+      "event": "browser-hls-decoded",
+      "playlists": 3,
+      "segments": 1,
+      "before": {
+        "ready": 0,
+        "error": null,
+        "current_time": 0,
+        "decoded_frames": 0,
+        "selected_hls": true,
+        "selected_mp4": false,
+        "source_kind": "native-hls"
+      },
+      "after": {
+        "ready": 4,
+        "error": null,
+        "current_time": 0.209628,
+        "decoded_frames": 11,
+        "selected_hls": true,
+        "selected_mp4": false,
+        "source_kind": "native-hls"
+      }
+    },
+    {
+      "event": "browser-mp4-decoded",
+      "before": {
+        "ready": 4,
+        "error": null,
+        "current_time": 0,
+        "decoded_frames": 0,
+        "selected_hls": false,
+        "selected_mp4": true,
+        "source_kind": "mp4"
+      },
+      "after": {
+        "ready": 4,
+        "error": null,
+        "current_time": 0.216189,
+        "decoded_frames": 10,
+        "selected_hls": false,
+        "selected_mp4": true,
+        "source_kind": "mp4"
+      }
+    }
+  ],
+  "transfers": [
+    {
+      "kind": ".m3u8",
+      "status": 200,
+      "bytes": 405,
+      "method": "GET"
+    },
+    {
+      "kind": ".m3u8",
+      "status": 200,
+      "bytes": 405,
+      "method": "GET"
+    },
+    {
+      "kind": ".m3u8",
+      "status": 200,
+      "bytes": 143,
+      "method": "GET"
+    },
+    {
+      "kind": ".ts",
+      "status": 307,
+      "bytes": 0,
+      "method": "GET"
+    },
+    {
+      "kind": ".ts",
+      "status": 206,
+      "bytes": 213756,
+      "method": "GET"
+    },
+    {
+      "kind": ".m3u8",
+      "status": 200,
+      "bytes": 143,
+      "method": "GET"
+    },
+    {
+      "kind": ".m3u8",
+      "status": 200,
+      "bytes": 143,
+      "method": "GET"
+    },
+    {
+      "kind": ".ts",
+      "status": 307,
+      "bytes": 0,
+      "method": "GET"
+    },
+    {
+      "kind": ".m3u8",
+      "status": 200,
+      "bytes": 143,
+      "method": "GET"
+    },
+    {
+      "kind": ".mp4",
+      "status": 206,
+      "bytes": 609355,
+      "method": "GET"
+    }
+  ],
+  "requests": 10,
+  "transfer_bytes": 824493
+}

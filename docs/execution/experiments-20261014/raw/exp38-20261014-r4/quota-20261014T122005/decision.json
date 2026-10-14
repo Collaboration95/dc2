@@ -1,0 +1,7 @@
+{
+  "status": "REJECT",
+  "adopted": false,
+  "reason": "Mixed status/isolated login gates fail; preparation401 remains unexplained",
+  "three_full_rotated_pairs": true,
+  "continued_same_invocation": true
+}

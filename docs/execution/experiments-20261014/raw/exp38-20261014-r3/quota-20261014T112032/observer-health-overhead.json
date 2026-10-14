@@ -1,0 +1,42 @@
+{
+  "reason": "SQLAlchemy imported in every health-check process, not only API PID1",
+  "records": [
+    {
+      "cpu_seconds": 0.131877,
+      "repeat": 1,
+      "mode": "0",
+      "wall_seconds": 0.159487041993998
+    },
+    {
+      "cpu_seconds": 0.40177999999999997,
+      "repeat": 1,
+      "mode": "1",
+      "wall_seconds": 0.439101333002327
+    },
+    {
+      "cpu_seconds": 0.111579,
+      "repeat": 2,
+      "mode": "0",
+      "wall_seconds": 0.14279570800135843
+    },
+    {
+      "cpu_seconds": 0.41426399999999997,
+      "repeat": 2,
+      "mode": "1",
+      "wall_seconds": 0.7253256249823608
+    },
+    {
+      "cpu_seconds": 0.121759,
+      "repeat": 3,
+      "mode": "0",
+      "wall_seconds": 0.2428310829855036
+    },
+    {
+      "cpu_seconds": 0.393052,
+      "repeat": 3,
+      "mode": "1",
+      "wall_seconds": 0.477867374982452
+    }
+  ],
+  "invalid_for_adoption": true
+}

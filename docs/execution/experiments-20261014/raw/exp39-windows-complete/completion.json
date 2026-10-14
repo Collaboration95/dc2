@@ -1,0 +1,8 @@
+{
+  "status": "completed_with_retained_disk_stop_and_full_arm_repeat",
+  "utc": "2026-10-14T12:46:11.853407+00:00",
+  "eligible_windows": 48,
+  "eligible_scheduled_jobs": 504,
+  "extra_interrupted_scheduled_jobs": 18,
+  "status_fixture_jobs": 200
+}

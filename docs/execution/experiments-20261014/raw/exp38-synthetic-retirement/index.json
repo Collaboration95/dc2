@@ -1,0 +1,30 @@
+{
+  "scope": "LOCAL experimental",
+  "source_directory": "artifacts/exp38-20261014-r4/synthetic-retirement",
+  "files": [
+    {
+      "source": "discarded-trash-retirement.json",
+      "stored": "discarded-trash-retirement.json",
+      "stored_bytes": 289,
+      "stored_sha256": "f3cae7cc7e081434966e00dce05b57261a1a28821db28c43d623e95350bdbd07",
+      "decompressed_bytes": 289,
+      "decompressed_sha256": "f3cae7cc7e081434966e00dce05b57261a1a28821db28c43d623e95350bdbd07"
+    },
+    {
+      "source": "pre-retirement-attempt-counts.json",
+      "stored": "pre-retirement-attempt-counts.json",
+      "stored_bytes": 97,
+      "stored_sha256": "6ef9eec829bc98fb3c26ca88b279f1f9a47411351083ff6057609e4abe2649f3",
+      "decompressed_bytes": 97,
+      "decompressed_sha256": "6ef9eec829bc98fb3c26ca88b279f1f9a47411351083ff6057609e4abe2649f3"
+    },
+    {
+      "source": "retired.json",
+      "stored": "retired.json",
+      "stored_bytes": 97,
+      "stored_sha256": "780c194dd9a8763568a75206acdf2f27724d84a2adc8eb526152c823bfc71c71",
+      "decompressed_bytes": 97,
+      "decompressed_sha256": "780c194dd9a8763568a75206acdf2f27724d84a2adc8eb526152c823bfc71c71"
+    }
+  ]
+}

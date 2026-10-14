@@ -1,0 +1,22 @@
+{
+  "scope": "LOCAL experimental",
+  "source_directory": "artifacts/operational-evidence-20261014",
+  "files": [
+    {
+      "source": "operator-sources.json",
+      "stored": "operator-sources.json",
+      "stored_bytes": 10176,
+      "stored_sha256": "9881017c94e18df2de000e0392e2c039dabe2cc3138e67f52a5a5a5f95d75665",
+      "decompressed_bytes": 10176,
+      "decompressed_sha256": "9881017c94e18df2de000e0392e2c039dabe2cc3138e67f52a5a5a5f95d75665"
+    },
+    {
+      "source": "validation.json",
+      "stored": "validation.json",
+      "stored_bytes": 3983,
+      "stored_sha256": "fc2fe78788371faf959aded17181644c351505c5b36c6bee0b5f68cadeab86e5",
+      "decompressed_bytes": 3983,
+      "decompressed_sha256": "fc2fe78788371faf959aded17181644c351505c5b36c6bee0b5f68cadeab86e5"
+    }
+  ]
+}
