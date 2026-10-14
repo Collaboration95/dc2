@@ -1,6 +1,6 @@
 {
-  "captured_at_utc": "2026-10-14T21:55:08Z",
-  "status": "PREPARATION_COMPLETE_AWS_NOT_RUN",
+  "captured_at_utc": "2026-10-14T23:14:08Z",
+  "status": "PREPARATION_COMPLETE_AWS_ACCEPTANCE_BLOCKED",
   "tracked_branch": "work/aws2-prep-20261015",
   "integration_code_head": "c82fe995c4ebe4688ae2d6eb48cd3a0edfd86159",
   "reviewed_source_sha": "57f7c5fdddc2a8ba791b4e53cafb0d62548307a2",
@@ -123,12 +123,16 @@
   },
   "counts": {
     "items": 28,
-    "completed_preparation": 19,
-    "excluded_not_planned": 9,
+    "closed": 17,
+    "open_blocked": 11,
+    "completed_preparation": 16,
+    "excluded_not_planned": 1,
     "prep_children": 16,
-    "excluded_children": 8,
-    "prep_epics_complete": 3,
-    "epics_excluded": 1,
+    "blocked_children": 7,
+    "excluded_children": 1,
+    "prep_epics_complete": 0,
+    "epics_blocked": 4,
+    "epics_excluded": 0,
     "implementation_agents": 3,
     "agent_bundles": [
       9,
@@ -137,9 +141,12 @@
     ]
   },
   "progress": {
-    "current_scope": "local preparation complete",
+    "current_scope": "local preparation complete; authentic AWS/account acceptance remains open and Blocked",
     "next_issue": null,
-    "future_excluded_workflow_blocked": 9
+    "ready_count": 0,
+    "blocked_count": 11,
+    "status_policy": "Keep required real AWS/account acceptance issues open and Workflow Blocked until their required authentic evidence is available. Local preparation alone does not close these issues.",
+    "status_reconciliation": "evidence/status-reconciliation.json"
   },
   "aws": {
     "provisioning": "NOT_RUN",
@@ -155,14 +162,15 @@
       "kind": "epic",
       "title": "[AWS2 epic] Native credentials and owned S3 storage",
       "parent": null,
-      "outcome": "completed-preparation",
-      "state": "CLOSED",
-      "state_reason": "COMPLETED",
-      "closed_at": "2026-10-14T21:52:32Z",
+      "outcome": "blocked-awaiting-evidence",
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "closed_at": null,
       "url": "https://github.com/Collaboration95/dc2/issues/41",
-      "project_status": "Done",
-      "project_workflow": "Done",
-      "original_genuine_aws_status": "NOT_RUN"
+      "project_status": "Todo",
+      "project_workflow": "Blocked",
+      "original_genuine_aws_status": "NOT_RUN",
+      "blocker": "Native ECS task-role and S3 evidence assigned to #63 is still NOT_RUN."
     },
     {
       "number": 42,
@@ -170,14 +178,15 @@
       "kind": "epic",
       "title": "[AWS2 epic] Minimal infrastructure and zero-compute downtime",
       "parent": null,
-      "outcome": "completed-preparation",
-      "state": "CLOSED",
-      "state_reason": "COMPLETED",
-      "closed_at": "2026-10-14T21:52:39Z",
+      "outcome": "blocked-awaiting-evidence",
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "closed_at": null,
       "url": "https://github.com/Collaboration95/dc2/issues/42",
-      "project_status": "Done",
-      "project_workflow": "Done",
-      "original_genuine_aws_status": "NOT_RUN"
+      "project_status": "Todo",
+      "project_workflow": "Blocked",
+      "original_genuine_aws_status": "NOT_RUN",
+      "blocker": "Project-account/budget authorization (#45), origin disposition (#46), and authentic environment/open-close evidence (#63/#67) are outstanding."
     },
     {
       "number": 43,
@@ -185,14 +194,15 @@
       "kind": "epic",
       "title": "[AWS2 epic] Independent releases and bounded worker execution",
       "parent": null,
-      "outcome": "completed-preparation",
-      "state": "CLOSED",
-      "state_reason": "COMPLETED",
-      "closed_at": "2026-10-14T21:52:46Z",
+      "outcome": "blocked-awaiting-evidence",
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "closed_at": null,
       "url": "https://github.com/Collaboration95/dc2/issues/43",
-      "project_status": "Done",
-      "project_workflow": "Done",
-      "original_genuine_aws_status": "NOT_RUN"
+      "project_status": "Todo",
+      "project_workflow": "Blocked",
+      "original_genuine_aws_status": "NOT_RUN",
+      "blocker": "Actual ECR/runtime provenance and independent ECS release/recovery evidence assigned to #63/#65 are still NOT_RUN."
     },
     {
       "number": 44,
@@ -200,14 +210,15 @@
       "kind": "epic",
       "title": "[AWS2 epic] Small authentic cloud evidence and closeout",
       "parent": null,
-      "outcome": "excluded-not-planned",
-      "state": "CLOSED",
-      "state_reason": "NOT_PLANNED",
-      "closed_at": "2026-10-14T21:52:53Z",
+      "outcome": "blocked-awaiting-evidence",
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "closed_at": null,
       "url": "https://github.com/Collaboration95/dc2/issues/44",
-      "project_status": "Done",
+      "project_status": "Todo",
       "project_workflow": "Blocked",
-      "original_genuine_aws_status": "NOT_RUN"
+      "original_genuine_aws_status": "NOT_RUN",
+      "blocker": "Required authentic workflow, capacity/recovery, releases, latency and cost/closeout evidence (#63\u2013#67) is still NOT_RUN."
     },
     {
       "number": 45,
@@ -215,14 +226,15 @@
       "kind": "prerequisite",
       "title": "[AWS2] Record project-account, budget, window and deletion authorization",
       "parent": 42,
-      "outcome": "excluded-not-planned",
-      "state": "CLOSED",
-      "state_reason": "NOT_PLANNED",
-      "closed_at": "2026-10-14T21:49:39Z",
+      "outcome": "blocked-awaiting-evidence",
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "closed_at": null,
       "url": "https://github.com/Collaboration95/dc2/issues/45",
-      "project_status": "Done",
+      "project_status": "Todo",
       "project_workflow": "Blocked",
-      "original_genuine_aws_status": "NOT_RUN"
+      "original_genuine_aws_status": "NOT_RUN",
+      "blocker": "Actual project account, scoped identity, spending/resource approval and quota/window/teardown ownership receipts have not been supplied."
     },
     {
       "number": 46,
@@ -230,14 +242,15 @@
       "kind": "spike",
       "title": "[AWS2] Resolve the proposal interpretation of CloudFront origin HTTP",
       "parent": 42,
-      "outcome": "excluded-not-planned",
-      "state": "CLOSED",
-      "state_reason": "NOT_PLANNED",
-      "closed_at": "2026-10-14T21:49:46Z",
+      "outcome": "blocked-awaiting-evidence",
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "closed_at": null,
       "url": "https://github.com/Collaboration95/dc2/issues/46",
-      "project_status": "Done",
+      "project_status": "Todo",
       "project_workflow": "Blocked",
-      "original_genuine_aws_status": "NOT_RUN"
+      "original_genuine_aws_status": "NOT_RUN",
+      "blocker": "The requirement owner has not approved the CloudFront origin transport interpretation or any revised topology."
     },
     {
       "number": 47,
@@ -485,14 +498,15 @@
       "kind": "implementation",
       "title": "[AWS2] Bootstrap the approved environment and prove public workflow boundaries",
       "parent": 44,
-      "outcome": "excluded-not-planned",
-      "state": "CLOSED",
-      "state_reason": "NOT_PLANNED",
-      "closed_at": "2026-10-14T21:51:50Z",
+      "outcome": "blocked-awaiting-evidence",
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "closed_at": null,
       "url": "https://github.com/Collaboration95/dc2/issues/63",
-      "project_status": "Done",
+      "project_status": "Todo",
       "project_workflow": "Blocked",
-      "original_genuine_aws_status": "NOT_RUN"
+      "original_genuine_aws_status": "NOT_RUN",
+      "blocker": "The approved account and origin decision are unavailable; no authentic IAM, Fargate, CloudFront or public browser/CLI workflow evidence exists."
     },
     {
       "number": 64,
@@ -500,14 +514,15 @@
       "kind": "implementation",
       "title": "[AWS2] Show 1/2/3 task capacity and bounded recovery using six long uploads",
       "parent": 44,
-      "outcome": "excluded-not-planned",
-      "state": "CLOSED",
-      "state_reason": "NOT_PLANNED",
-      "closed_at": "2026-10-14T21:51:57Z",
+      "outcome": "blocked-awaiting-evidence",
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "closed_at": null,
       "url": "https://github.com/Collaboration95/dc2/issues/64",
-      "project_status": "Done",
+      "project_status": "Todo",
       "project_workflow": "Blocked",
-      "original_genuine_aws_status": "NOT_RUN"
+      "original_genuine_aws_status": "NOT_RUN",
+      "blocker": "No authentic 1/2/3 Fargate capacity, worker lifetime/interruption or recovery evidence exists; local fixtures and synthetic inventory do not satisfy this issue."
     },
     {
       "number": 65,
@@ -515,14 +530,15 @@
       "kind": "implementation",
       "title": "[AWS2] Capture both owner releases and real failed-candidate rollback on AWS",
       "parent": 44,
-      "outcome": "excluded-not-planned",
-      "state": "CLOSED",
-      "state_reason": "NOT_PLANNED",
-      "closed_at": "2026-10-14T21:52:04Z",
+      "outcome": "blocked-awaiting-evidence",
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "closed_at": null,
       "url": "https://github.com/Collaboration95/dc2/issues/65",
-      "project_status": "Done",
+      "project_status": "Todo",
       "project_workflow": "Blocked",
-      "original_genuine_aws_status": "NOT_RUN"
+      "original_genuine_aws_status": "NOT_RUN",
+      "blocker": "No authentic per-owner ECS promotion, failed-candidate rollback, migration, exact runtime digest or unchanged-peer evidence exists."
     },
     {
       "number": 66,
@@ -530,14 +546,15 @@
       "kind": "implementation",
       "title": "[AWS2] Measure one bounded status/login cycle on a separate generator",
       "parent": 44,
-      "outcome": "excluded-not-planned",
-      "state": "CLOSED",
-      "state_reason": "NOT_PLANNED",
-      "closed_at": "2026-10-14T21:52:11Z",
+      "outcome": "blocked-awaiting-evidence",
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "closed_at": null,
       "url": "https://github.com/Collaboration95/dc2/issues/66",
-      "project_status": "Done",
+      "project_status": "Todo",
       "project_workflow": "Blocked",
-      "original_genuine_aws_status": "NOT_RUN"
+      "original_genuine_aws_status": "NOT_RUN",
+      "blocker": "No authorized bounded CloudFront status/login cycle or independent generator teardown evidence exists."
     },
     {
       "number": 67,
@@ -545,14 +562,15 @@
       "kind": "implementation",
       "title": "[AWS2] Reconcile costs, prove zero compute, and hand off bounded teardown",
       "parent": 44,
-      "outcome": "excluded-not-planned",
-      "state": "CLOSED",
-      "state_reason": "NOT_PLANNED",
-      "closed_at": "2026-10-14T21:52:18Z",
+      "outcome": "blocked-awaiting-evidence",
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "closed_at": null,
       "url": "https://github.com/Collaboration95/dc2/issues/67",
-      "project_status": "Done",
+      "project_status": "Todo",
       "project_workflow": "Blocked",
-      "original_genuine_aws_status": "NOT_RUN"
+      "original_genuine_aws_status": "NOT_RUN",
+      "blocker": "No authentic account cost/usage, zero-compute closure, retained-resource inventory, or approved deletion evidence exists. Backup/restore is not claimed."
     },
     {
       "number": 68,
@@ -569,5 +587,11 @@
       "project_workflow": "Blocked",
       "original_genuine_aws_status": "NOT_RUN"
     }
-  ]
+  ],
+  "issue_status_history": {
+    "prior_scope_closures": "evidence/closure-results.json",
+    "prior_closure_validation": "evidence/closure-validation.json",
+    "current_status": "evidence/status-reconciliation.json",
+    "note": "Earlier all-closed snapshots are retained as history; they are not current status."
+  }
 }

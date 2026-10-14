@@ -641,3 +641,17 @@ criteria unticked), 8 children and epic44 NOT_PLANNED with workflow Blocked.
 Project status Done for all28; 30 historical items and38/39 rejections unchanged.
 No issue is next in current scope. Ledger, summary and HTML in execution/aws/prep.
 No AWS/account/spend/restore/bill operation; Alibaba not operated.
+
+15 OCTOBER 2026 — REQUIRED AWS/ACCOUNT ACCEPTANCE REOPENED AS BLOCKED
+
+User clarified: keep issues requiring real AWS/account evidence open with Workflow
+Blocked until that evidence is available. This supersedes the earlier scoped
+all-closed disposition. Fresh authenticated-gh reads and updates reopened account
+and origin45/46, genuine evidence63–67 and all four epics41–44 (11 open blockers).
+Their built-in Project Status is Todo; authoritative Workflow is Blocked. Completed
+preparation47–62 stays closed/Done; optional68 stays closed/not planned. Original
+contracts/acceptance boxes, all30historical items and38/39rejections are unchanged.
+Current ledger/HTML/summary and evidence/status-reconciliation.json reflect this;
+earlier closure receipts remain explicitly historical. No AWS/account/spend action
+or additional runtime experiment. Local preparation is complete; real acceptance
+is NOT_RUN and Blocked. No issue is Ready under the current no-AWS instruction.

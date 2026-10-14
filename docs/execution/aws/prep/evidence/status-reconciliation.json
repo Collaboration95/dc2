@@ -1,0 +1,134 @@
+{
+  "status": "PASS",
+  "captured_at_utc": "2026-10-14T23:14:08Z",
+  "policy": "Keep required real AWS/account acceptance issues open and Workflow Blocked until their required authentic evidence is available. Local preparation alone does not close these issues.",
+  "open_blocked": [
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    63,
+    64,
+    65,
+    66,
+    67
+  ],
+  "closed_preparation": [
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62
+  ],
+  "closed_optional_not_planned": [
+    68
+  ],
+  "project_status_projection": "Todo for open blockers; Workflow is authoritative",
+  "historical_items_preserved": 30,
+  "project_total": 58,
+  "aws_account_operations": "NOT_RUN",
+  "previous_closure_snapshot": "closure-results.json and closure-validation.json are historical, superseded for current status by this receipt.",
+  "issues": [
+    {
+      "number": 41,
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "project_status": "Todo",
+      "project_workflow": "Blocked",
+      "blocker": "Native ECS task-role and S3 evidence assigned to #63 is still NOT_RUN."
+    },
+    {
+      "number": 42,
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "project_status": "Todo",
+      "project_workflow": "Blocked",
+      "blocker": "Project-account/budget authorization (#45), origin disposition (#46), and authentic environment/open-close evidence (#63/#67) are outstanding."
+    },
+    {
+      "number": 43,
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "project_status": "Todo",
+      "project_workflow": "Blocked",
+      "blocker": "Actual ECR/runtime provenance and independent ECS release/recovery evidence assigned to #63/#65 are still NOT_RUN."
+    },
+    {
+      "number": 44,
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "project_status": "Todo",
+      "project_workflow": "Blocked",
+      "blocker": "Required authentic workflow, capacity/recovery, releases, latency and cost/closeout evidence (#63\u2013#67) is still NOT_RUN."
+    },
+    {
+      "number": 45,
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "project_status": "Todo",
+      "project_workflow": "Blocked",
+      "blocker": "Actual project account, scoped identity, spending/resource approval and quota/window/teardown ownership receipts have not been supplied."
+    },
+    {
+      "number": 46,
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "project_status": "Todo",
+      "project_workflow": "Blocked",
+      "blocker": "The requirement owner has not approved the CloudFront origin transport interpretation or any revised topology."
+    },
+    {
+      "number": 63,
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "project_status": "Todo",
+      "project_workflow": "Blocked",
+      "blocker": "The approved account and origin decision are unavailable; no authentic IAM, Fargate, CloudFront or public browser/CLI workflow evidence exists."
+    },
+    {
+      "number": 64,
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "project_status": "Todo",
+      "project_workflow": "Blocked",
+      "blocker": "No authentic 1/2/3 Fargate capacity, worker lifetime/interruption or recovery evidence exists; local fixtures and synthetic inventory do not satisfy this issue."
+    },
+    {
+      "number": 65,
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "project_status": "Todo",
+      "project_workflow": "Blocked",
+      "blocker": "No authentic per-owner ECS promotion, failed-candidate rollback, migration, exact runtime digest or unchanged-peer evidence exists."
+    },
+    {
+      "number": 66,
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "project_status": "Todo",
+      "project_workflow": "Blocked",
+      "blocker": "No authorized bounded CloudFront status/login cycle or independent generator teardown evidence exists."
+    },
+    {
+      "number": 67,
+      "state": "OPEN",
+      "state_reason": "REOPENED",
+      "project_status": "Todo",
+      "project_workflow": "Blocked",
+      "blocker": "No authentic account cost/usage, zero-compute closure, retained-resource inventory, or approved deletion evidence exists. Backup/restore is not claimed."
+    }
+  ]
+}
