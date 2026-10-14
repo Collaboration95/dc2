@@ -11,6 +11,8 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import uuid4
 
+from redis.exceptions import RedisError
+
 from scripts.aws.exports import REVISIONS, WRITERS, export_state
 from scripts.aws.local_adapters import LocalDump, PrivateFiles
 from scripts.aws.smoke import Workflow
@@ -76,13 +78,77 @@ class LocalBindings:
     def schema_revision(self, owner, *, deadline):
         return self.data.schema_revision(owner, deadline=min(deadline, self.deadline))
 
+    def _owned_roles(self, owner, deadline):
+        script = (runtime.ROOT / "deploy/postgres/smoke.sh").read_text()
+        script = script[: script.index("\ncheck_service media")]
+        peer = "processing" if owner == "media" else "media"
+        upper = owner.upper()
+        script += (
+            "\nexport PGOPTIONS='-c statement_timeout=2000 -c lock_timeout=1000'\n"
+            f'check_service {owner} "${upper}_MIGRATION_PASSWORD" '
+            f'"${upper}_RUNTIME_PASSWORD" {peer}\n'
+        )
+        self.compose("exec", "-T", "postgres", "sh", "-s", input=script, deadline=deadline)
+        return True
+
+    def _private_peer(self, owner, deadline):
+        # Probe from the actual selected owner's interservice task network. Private
+        # operator fixture inputs travel on stdin, never command args or reports.
+        if owner == "media":
+            target, token = (
+                self.private_env["MEDIA_PROCESSING_URL"],
+                self.private_env["PROCESSING_SERVICE_TOKEN"],
+            )
+            method, path, body = "GET", "/internal/v1/jobs/" + str(uuid4()), None
+        else:
+            target, token = (
+                self.private_env["PROCESSING_MEDIA_URL"],
+                self.private_env["SOURCE_SERVICE_TOKEN"],
+            )
+            method, path, body = (
+                "POST",
+                "/internal/v1/assets/" + str(uuid4()) + "/source-access",
+                {"revision": 1},
+            )
+        payload = {
+            "target": target,
+            "token": token,
+            "method": method,
+            "path": path,
+            "body": body,
+            "owner": str(uuid4()),
+            "timeout": min(2, remaining(deadline)),
+        }
+        code = """import json,sys,httpx
+p=json.load(sys.stdin)
+with httpx.Client(base_url=p['target'],trust_env=False,timeout=p['timeout']) as client:
+    headers={'Authorization':'Bearer '+p['token'],'X-Owner-Id':p['owner']}
+    args={'json':p['body']} if p['body'] is not None else {}
+    assert client.request(p['method'],p['path'],headers=headers,**args).status_code==404
+    headers['Authorization']='Bearer invalid-local-probe'
+    assert client.request(p['method'],p['path'],headers=headers,**args).status_code==401
+    headers={'Authorization':'Bearer '+p['token']}
+    assert client.request(p['method'],p['path'],headers=headers,**args).status_code==401
+"""
+        self.compose(
+            "exec", "-T", owner, "python", "-c", code, input=json.dumps(payload), deadline=deadline
+        )
+        return True
+
     def readiness(self, owner, deadline):
         try:
             if not all(self.running(name, deadline=deadline) for name in SERVICE_NAMES[owner]):
                 return False
             if self.data.schema_revision(owner, deadline=deadline) != REVISIONS[owner]:
                 return False
-            status, _, _ = self.client.request("GET", "/api/health")
+            if self.data.redis.ping() is not True:
+                return False
+            if (
+                self._owned_roles(owner, deadline) is not True
+                or self._private_peer(owner, deadline) is not True
+            ):
+                return False
+            status, _, _ = self.client.request("GET", "/api/health", deadline=deadline)
             if owner == "processing":
                 # Execute within the selected owning task network, not host/peer fallback.
                 self.compose(
@@ -97,7 +163,7 @@ class LocalBindings:
             remaining(deadline)
             return status == 200
 
-        except (OperationError, ValueError):
+        except (OperationError, ValueError, OSError, KeyError, RedisError):
             return False  # Startup is retried only within the caller's absolute deadline.
 
     def state_readiness(self, deadline):
@@ -159,7 +225,7 @@ class LocalBindings:
         )
         while remaining(deadline):
             try:
-                status, _, _ = self.client.request("POST", "/api/upload")
+                status, _, _ = self.client.request("POST", "/api/upload", deadline=deadline)
                 if (status == 503) == paused:
                     return True
             except Exception:
@@ -173,8 +239,8 @@ class LocalBindings:
     def resume_intake(self, deadline):
         return self._intake(False, deadline)
 
-    def intake_closed(self):
-        return self.client.request("POST", "/api/upload")[0] == 503
+    def intake_closed(self, deadline):
+        return self.client.request("POST", "/api/upload", deadline=deadline)[0] == 503
 
     def quiesce_writers(self, deadline):
         services = [
@@ -196,7 +262,7 @@ class LocalBindings:
             return self.proof_locked(locked, deadline)
 
     def proof_locked(self, state, deadline):
-        if not state["paused"] or not self.intake_closed():
+        if not state["paused"] or not self.intake_closed(deadline):
             raise OperationError("Intake/launches must actually be closed")
         workers, occupied = worker_inventory(self.config, self.transport, state, deadline=deadline)
         tasks = inventory(self.config, self.transport, deadline=deadline)
@@ -293,8 +359,10 @@ asyncio.run(check())
             "email": f"aws2-{uuid4().hex}@example.com",
             "password": secrets.token_urlsafe(24),
         }
-        workflow.json("POST", "/api/auth/register", expected=201, json=credentials)
-        workflow.login(**credentials)
+        workflow.json(
+            "POST", "/api/auth/register", expected=201, json=credentials, deadline=deadline
+        )
+        workflow.login(**credentials, deadline=deadline)
         with tempfile.TemporaryDirectory() as folder:
             fixture = Path(folder) / "short.mp4"
             subprocess.run(
@@ -317,7 +385,7 @@ asyncio.run(check())
                 timeout=min(10, remaining(deadline)),
             )
             payload = fixture.read_bytes()
-            result = workflow.upload(uuid4().hex, payload, duration_seconds=1)
+            result = workflow.upload(uuid4().hex, payload, duration_seconds=1, deadline=deadline)
             job_id = result["job_id"]
             if owner == "processing":
                 operations["launch_workers"](1)
@@ -326,8 +394,8 @@ asyncio.run(check())
                 raise OperationError("Actual short public encode did not succeed")
             output_url = job["output_url"]
             if self.client.context.capability_allowed(output_url):
-                status, body, headers = self.client.download(output_url)
-                workflow.range(output_url)
+                status, body, headers = self.client.download(output_url, deadline=deadline)
+                workflow.range(output_url, deadline=deadline)
             else:
                 parsed = urlsplit(output_url)
                 origin = urlsplit(self.client.context.public_url)
@@ -335,11 +403,11 @@ asyncio.run(check())
                     if (parsed.scheme, parsed.netloc) != (origin.scheme, origin.netloc):
                         raise OperationError("Public output facade left its explicit API origin")
                     output_url = parsed.path + ("?" + parsed.query if parsed.query else "")
-                status, body, headers = self.client.request("GET", output_url)
+                status, body, headers = self.client.request("GET", output_url, deadline=deadline)
                 if status == 307:
                     capability = headers["location"]
-                    status, body, headers = self.client.download(capability)
-                    workflow.range(capability)
+                    status, body, headers = self.client.download(capability, deadline=deadline)
+                    workflow.range(capability, deadline=deadline)
             if status != 200 or not body:
                 raise OperationError("Actual public output unavailable")
             output = Path(folder) / "output.mp4"
@@ -350,7 +418,7 @@ asyncio.run(check())
                 capture_output=True,
                 timeout=min(10, remaining(deadline)),
             )
-            workflow.delete(job_id)
+            workflow.delete(job_id, deadline=deadline)
         return {
             "status": "PASS",
             "mode": "local-services",
@@ -372,7 +440,18 @@ asyncio.run(check())
                 warm_shutdown=self.data.warm_shutdown,
                 deadline=deadline,
             )
-        return result
+            workers, occupied = worker_inventory(
+                self.config, self.transport, state, deadline=deadline
+            )
+            if occupied or any(t["lastStatus"] != "STOPPED" for t in workers.values()):
+                raise OperationError("Drain inventory remains uncertain")
+            self.journal.save(state)
+            return {
+                "status": result["status"],
+                "inventory_complete": True,
+                "unresolved_launches": 0,
+                "tasks": [{"id": arn, "status": "STOPPED"} for arn in sorted(workers)],
+            }
 
     def prewarm(self, count, *, deadline):
         if hasattr(deadline, "timestamp"):
@@ -416,6 +495,7 @@ asyncio.run(check())
             expected=202,
             route="/upload",
             files={"file": ("capacity.mp4", fixture["payload"], "video/mp4")},
+            deadline=deadline,
         )["job_id"]
 
     def wait_jobs(self, jobs, *, deadline):

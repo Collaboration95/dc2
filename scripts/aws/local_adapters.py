@@ -102,7 +102,7 @@ class LocalData:
                 .timestamp()
             )
             seconds, micros = self.redis.time()
-            return 0 <= seconds + micros / 1e6 - stamp <= 120
+            return -2 <= seconds + micros / 1e6 - stamp <= 120
         except (ValueError, AttributeError, TypeError):
             return False
 

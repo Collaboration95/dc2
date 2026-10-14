@@ -114,7 +114,9 @@ class Workflow:
             raise ValueError("Public response contract invalid") from None
         return data
 
-    def upload(self, fixture_id, payload, *, duration_seconds, filename="fixture.mp4"):
+    def upload(
+        self, fixture_id, payload, *, duration_seconds, filename="fixture.mp4", deadline=None
+    ):
         self.ledger.reserve(fixture_id, payload, duration_seconds=duration_seconds)
         return self.json(
             "POST",
@@ -122,16 +124,26 @@ class Workflow:
             expected=202,
             route="/upload",
             files={"file": (filename, payload, "video/mp4")},
+            deadline=deadline,
         )
 
-    def login(self, email, password):
-        return self.json("POST", "/api/auth/login", json={"email": email, "password": password})
+    def login(self, email, password, *, deadline=None):
+        return self.json(
+            "POST",
+            "/api/auth/login",
+            json={"email": email, "password": password},
+            deadline=deadline,
+        )
 
     def poll(self, job_id, *, deadline, clock=time.monotonic, sleep=time.sleep):
         if not math.isfinite(deadline):
             raise ValueError("Finite public workflow deadline required")
         while clock() < deadline:
-            data = self.json("GET", f"/api/jobs/{job_id}", route="/jobs/{job_id}")
+            data = self.json(
+                "GET", f"/api/jobs/{job_id}", route="/jobs/{job_id}", deadline=deadline, clock=clock
+            )
+            if clock() >= deadline:
+                raise ValueError("Public workflow polling deadline exceeded")
             if data["status"] in {"done", "failed", "abandoned"}:
                 return data
             sleep(min(1, max(0, deadline - clock())))
@@ -157,8 +169,10 @@ class Workflow:
             headers={"Idempotency-Key": key},
         )
 
-    def delete(self, job_id):
-        return self.json("DELETE", f"/api/jobs/{job_id}", expected=204, route="/jobs/{job_id}")
+    def delete(self, job_id, *, deadline=None):
+        return self.json(
+            "DELETE", f"/api/jobs/{job_id}", expected=204, route="/jobs/{job_id}", deadline=deadline
+        )
 
     def hls_segment(self, path):
         # The authenticated facade alone may return a capability. Decode is observed
@@ -178,8 +192,10 @@ class Workflow:
             if status not in {403, 404}:
                 raise ValueError("Cross-owner operation was not denied")
 
-    def range(self, capability):
-        status, body, headers = self.client.download(capability, byte_range=(0, 31))
+    def range(self, capability, *, deadline=None):
+        status, body, headers = self.client.download(
+            capability, byte_range=(0, 31), deadline=deadline
+        )
         if (
             status != 206
             or len(body) != 32
