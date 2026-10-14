@@ -15,6 +15,27 @@ reuse the media engine/frontend and prove service boundaries, separate ownership
 web/CLI workflows, independent deployment and measured recovery/scaling.
 The proposal's **31 person-days** is its effort allocation, not this coding schedule.
 
+## 14 October experimental follow-ups and AWS preparation
+
+The later performance experiments [#38](experiments-20261014/EXP38.md) and
+[#39](experiments-20261014/EXP39.md) are complete with **REJECT** decisions;
+[one fresh independent Sol review](reviews/experiments-20261014-review.md) PASS.
+Quota redistribution improved isolated status but missed full latency gates.
+Manual windows saved 13.28/14.80/14.58% residency, below the predeclared20% target,
+and sustained status latency failed. Baseline quotas and fixed workers remain.
+Repeated faults, long safe drain, release/rollback and exact original-demo
+restoration passed. Historical accepted targets retain their original sources.
+The restored local demo uses saved f10bf04 images, not a new PR37 build.
+
+[Prepare the AWS job](aws/README.md) contains the full-context Astra architecture,
+verified selected public price rows, measured byte/request input scopes, cost
+worksheet and nonsecret account/domain/window template. USD200 total/about3weeks
+is the recorded ceiling; the provisional120-hour envelope isUSD169.47 including
+allowances/reserves. Actual account, region, currency, domain/access and spending
+approval remain required. Current local-only scripts need the listed cloud adapters.
+Exact grouped-PR/Main publication and workflow closure are recorded in GitHub;
+this source record does not preclaim those future results. No AWS/Alibaba action.
+
 ## Completion and demo use
 
 Preserve `.worktrees/final-measurements` frozen at `f46599f`, all raw records

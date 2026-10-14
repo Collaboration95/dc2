@@ -287,7 +287,7 @@
   },
   "experiments": {
     "38": {
-      "status": "LOCAL_COMPLETE_REVIEW_PENDING",
+      "status": "LOCAL_COMPLETE_REVIEW_PASS",
       "verdict": "REJECT",
       "evidence_index": "../experiments-20261014/raw/exp38-20261014-r4/index.json",
       "accepted_config": "baseline unchanged",
@@ -303,7 +303,7 @@
       "successful_long_jobs": 180
     },
     "39": {
-      "status": "LOCAL_COMPLETE_REVIEW_PENDING",
+      "status": "LOCAL_COMPLETE_REVIEW_PASS",
       "verdict": "REJECT",
       "evidence_index": "../experiments-20261014/raw/exp39-windows-complete/index.json",
       "predeclared_queue_age_seconds": 300,
@@ -394,6 +394,7 @@
   "coordinator_review": {
     "arithmetic": "PASS",
     "official_price_rows": "PASS: nine selected official EC2/EBS/S3/transfer/ECR source rows independently verified and retained in pricing-20261014.json",
-    "experiment_dispositions": "Both REJECT; local completion verified, fresh independent review/publication pending. Baseline quotas/fixed workers retained."
+    "experiment_dispositions": "Both REJECT; fresh independent Sol review PASS at632cac5. Baseline quotas/fixed workers retained; exact PR/Main publication is recorded in GitHub.",
+    "independent_report": "../reviews/experiments-20261014-review.md"
   }
 }

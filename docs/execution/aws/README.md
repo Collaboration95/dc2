@@ -2,8 +2,9 @@
 
 This is a preparation pack, not a deployment or spending approval. The original
 local delivery is accepted at `b913579`; quota and worker-window experiments
-#38/#39 are complete with rejection decisions. Independent review and publication
-remain pending at this document revision; no experimental default is adopted.
+#38/#39 are complete with rejection decisions. [Independent review](../reviews/experiments-20261014-review.md) PASS;
+publication and exact PR/Main checks remain coordinator-owned. No experimental
+default is adopted.
 
 The proposed demo is one EC2/Compose host plus private S3, preserving the two
 business services and their separately owned databases, images and migrations.

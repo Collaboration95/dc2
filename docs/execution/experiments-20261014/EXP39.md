@@ -170,4 +170,3 @@ They are not erased by passing recovery checks. Both #38 and #39 hypotheses are
 rejected, no runtime default is changed, and accepted historical targets remain
 unchanged. The original demo retains accepted f10bf04 images, so restoration does
 not claim that its images were rebuilt to PR37.
-

@@ -75,6 +75,8 @@ is not cloud bill savings. Account/region, retention, availability, full viewing
 volume and cloud-specific request/transfer charges still determine an all-in
 budget under the unchanged $200 total/about-three-week cap.
 
-The parent owns remote gist/issue/PR publication and one fresh independent Sol
-review. Local passing tests and rejected hypotheses do not substitute for that
-review or claim new Main/PR CI results.
+[Fresh independent Sol review](../reviews/experiments-20261014-review.md) PASS
+at candidate `632cac5`, with no substantive findings. It independently verified
+all 248 indexed records and recalculated decision-critical metrics. The coordinator
+owns remote publication and exact PR/Main checks. This record does not claim
+those checks already passed, and rejection does not become performance acceptance.

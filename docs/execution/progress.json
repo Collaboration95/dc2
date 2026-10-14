@@ -427,5 +427,32 @@
       "documentation_commit_ci": "Subsequent docs revision293b9a8 failed CI38329462068 during fresh PostgreSQL startup; corrective PR32 and exact Main CI pending.",
       "scope": "Historical acceptance checkpoint at66014d0; current V5/E5 completion reopened after CI38329462068 on293b9a8 failed."
     }
-  ]
+  ],
+  "performance_followups": {
+    "issues": [
+      38,
+      39
+    ],
+    "parent_epic": 33,
+    "experimental_status": "complete; both adoption hypotheses rejected",
+    "decision_review": "PASS",
+    "reviewed_candidate": "632cac57b3298e38adbd00f179d9663146e3de4c",
+    "workflow_status_authority": "Fresh GitHub issues/Project14/PR and exact Main CI; this source ledger does not claim a future merge/check result",
+    "38": {
+      "verdict": "REJECT",
+      "measured_source": "08ec06c22a8950007cc6db2a934cf957a4621a3c",
+      "complete_rotated_pairs": 3,
+      "successful_jobs": 180,
+      "report": "docs/execution/experiments-20261014/EXP38.md"
+    },
+    "39": {
+      "verdict": "REJECT",
+      "measured_source": "60f244c8dbc8b4d48f761851c1f0626e1b1c92e1",
+      "eligible_windows": 48,
+      "successful_jobs": 504,
+      "report": "docs/execution/experiments-20261014/EXP39.md"
+    },
+    "configuration": "Baseline quotas and fixed worker counts unchanged",
+    "aws_preparation": "docs/execution/aws/README.md; actual account/region/currency/domain/access approval required; no cloud operations"
+  }
 }
