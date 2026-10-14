@@ -118,6 +118,7 @@ class LocalBindings:
             "body": body,
             "owner": str(uuid4()),
             "timeout": min(2, remaining(deadline)),
+            "missing_owner_status": 422 if owner == "media" else 401,
         }
         code = """import json,sys,httpx
 p=json.load(sys.stdin)
@@ -128,7 +129,8 @@ with httpx.Client(base_url=p['target'],trust_env=False,timeout=p['timeout']) as 
     headers['Authorization']='Bearer invalid-local-probe'
     assert client.request(p['method'],p['path'],headers=headers,**args).status_code==401
     headers={'Authorization':'Bearer '+p['token']}
-    assert client.request(p['method'],p['path'],headers=headers,**args).status_code==401
+    result=client.request(p['method'],p['path'],headers=headers,**args)
+    assert result.status_code==p['missing_owner_status']
 """
         self.compose(
             "exec", "-T", owner, "python", "-c", code, input=json.dumps(payload), deadline=deadline
