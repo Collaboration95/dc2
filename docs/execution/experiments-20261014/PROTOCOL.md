@@ -88,3 +88,9 @@ Observer correction after failed invocation1:large uploads use a bounded120s
 HTTP/body observation deadline; status/login retain10s request observers and all
 original numeric gates. No upload retries. Invocation1 remains failed and is not
 spliced; all three paired comparisons restart fresh.
+
+Observer correction after failed invocation2:wait for authenticated app/card
+visibility and count redirect bodies as0bytes; decode gates remain unchanged.
+Run a separate scoped decode preflight before fresh full pairs. Window uploads
+also use120s observer; worker Docker start/finish timestamps supplement the
+modeled window residency. No failed invocation is spliced into full comparisons.

@@ -116,6 +116,8 @@ class ExperimentDocker(p.Docker):
         if sum(quotas.values()) != 2 or set(quotas) != p.FIXED_SERVICES:
             raise EvidenceError("Invalid fixed CPU envelope")
         services = {k: {"cpus": v} for k, v in quotas.items()}
+        for service, image in getattr(self, "frozen_images", {}).items():
+            services.setdefault(service, {}).update(image=image, pull_policy="never")
         for service in ("media", "processing"):
             services[service].update(
                 environment={"PYTHONPATH": "/experiment:/app", "DC2_EXPERIMENT_TIMINGS": "1"},
@@ -224,6 +226,18 @@ class ExperimentDocker(p.Docker):
             if time.monotonic() - started >= 300:
                 raise EvidenceError("Warm drain exceeds 300s; leave outcomes intact for recovery")
             await asyncio.sleep(1)
+        lifetimes = []
+        if ids:
+            for container in json.loads(await p.blocking(self.command, "inspect", *ids)):
+                lifetimes.append(
+                    {
+                        "id": container["Id"],
+                        "started_at": container["State"]["StartedAt"],
+                        "finished_at": container["State"]["FinishedAt"],
+                        "exit_code": container["State"]["ExitCode"],
+                        "oom_killed": container["State"]["OOMKilled"],
+                    }
+                )
         self.artifacts.append(
             "drains.jsonl",
             {
@@ -232,6 +246,7 @@ class ExperimentDocker(p.Docker):
                 "elapsed_seconds": time.monotonic() - started,
                 "signal": "SIGTERM",
                 "forced": False,
+                "lifetimes": lifetimes,
             },
         )
         return time.monotonic() - started
@@ -330,15 +345,17 @@ def decoded(state, run_id, person, result):
                     {
                         "kind": Path(path).suffix,
                         "status": response.status,
-                        "bytes": len(response.body()),
+                        "bytes": len(response.body()) if response.status in (200, 206) else 0,
                         "method": request.method,
                     }
                 )
 
         page.on("requestfinished", completed)
         page.goto(state["public_url"], wait_until="domcontentloaded", timeout=30000)
+        page.locator("#app").wait_for(state="visible", timeout=30000)
         page.evaluate(
-            "result => {window.mountPlayer(document.querySelector('#player'), result);}",
+            "result => {document.querySelector('#active-job').hidden=false; "
+            "window.mountPlayer(document.querySelector('#player'), result);}",
             result,
         )
         browser_playback(page, recording, result, media)
@@ -364,6 +381,11 @@ class Trial:
             [self.env[k] for k in self.env if any(s in k for s in ("PASSWORD", "SECRET", "TOKEN"))],
         )
         self.docker = ExperimentDocker(self.state, self.artifacts)
+        self.docker.frozen_images = {
+            c["service"]: c["image_digest"]
+            for c in self.docker.all_running()
+            if c["project"] == self.state["compose_project"]
+        }
         self.private = Client(
             f"http://127.0.0.1:{self.state['processing_port']}",
             headers={"Authorization": "Bearer " + self.env["PROCESSING_SERVICE_TOKEN"]},
@@ -601,6 +623,8 @@ asyncio.run(main())
             params={"asset_ids": ",".join(assets)},
             headers={"X-Owner-Id": person["id"]},
         )
+        if any(sum(o["kind"] == "primary" for o in j["outputs"]) != 1 for j in jobs):
+            raise EvidenceError("Output inventory does not have exactly one primary per job")
         records = [
             {
                 "asset_id": j["asset_id"],
@@ -694,6 +718,7 @@ asyncio.run(main())
             for index, (offset, seconds) in enumerate(WINDOWS[name]):
                 await asyncio.sleep(max(0, started + offset - time.monotonic()))
                 acknowledgement = {}
+                launched = time.monotonic()
                 asset = await p.upload(
                     person,
                     self.paths[seconds],
@@ -708,7 +733,9 @@ asyncio.run(main())
                     "asset_id": asset,
                     "seconds": seconds,
                     "scheduled_offset_seconds": offset,
-                    "launched_offset_seconds": last_arrival - started,
+                    "launched_offset_seconds": launched - started,
+                    "acknowledged_offset_seconds": last_arrival - started,
+                    "upload_elapsed_ms": acknowledgement["elapsed_ms"],
                     "utc": utc(),
                 }
                 arrivals.append(arrival)
@@ -760,6 +787,12 @@ asyncio.run(main())
                 await asyncio.sleep(2)
             elapsed = time.monotonic() - started
             latency = await asyncio.gather(*interactive)
+            durations = {a["asset_id"]: a["seconds"] for a in arrivals}
+            if any(
+                j["source_sha256"] != self.fixtures[durations[j["asset_id"]]]["sha256"]
+                for j in jobs
+            ):
+                raise EvidenceError("Window source digest changed")
             metrics = window_metrics(jobs, arrivals, elapsed)
             if latency:
                 metrics["mixed_latency"] = dict(zip(("status", "login"), latency, strict=True))
@@ -827,10 +860,23 @@ asyncio.run(main())
                 await p.blocking(
                     self.docker.start_workers, int(policy) if policy != "manual" else 1
                 )
+                arm_start = utc()
                 person = await self.person(70)
+                person["client"].timeout = 120
+                person["client"].http.timeout = httpx.Timeout(120)
                 for name in WINDOWS:
                     await p.renew_session(person, self.artifacts, f"r{repeat}-{policy}-{name}")
                     await self.window(policy, repeat, name, person, statuses, logins)
+                await self.docker.drain()
+                self.artifacts.append(
+                    "policy-spans.jsonl",
+                    {
+                        "repeat": repeat,
+                        "policy": policy,
+                        "started_utc": arm_start,
+                        "finished_utc": utc(),
+                    },
+                )
                 await person["client"].close()
                 self.people.remove(person)
             for owner in statuses:

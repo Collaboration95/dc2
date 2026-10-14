@@ -50,7 +50,9 @@ def test_queued_age_excludes_active_and_finished_jobs():
 async def test_warm_drain_waits_beyond_old_sixty_second_grace(monkeypatch):
     docker = object.__new__(ExperimentDocker)
     docker.artifacts = MagicMock()
-    docker.command = MagicMock(return_value='[{"State":{"ExitCode":0,"OOMKilled":false}}]')
+    docker.command = MagicMock(
+        return_value='[{"Id":"owned","State":{"ExitCode":0,"OOMKilled":false,"StartedAt":"2026-10-14T00:00:00Z","FinishedAt":"2026-10-14T00:01:02Z"}}]'
+    )
     docker.worker_states = MagicMock(
         side_effect=[
             [dict(running=True, paused=False, id="owned")],

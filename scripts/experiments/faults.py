@@ -122,12 +122,13 @@ def run(args):
     path = runtime.ROOT / ".local/experiment-fixtures/60/source.mp4"
     try:
         scenario.report["fixture"] = json.loads(path.with_name("metadata.json").read_text())
-        recovery.worker_kill(scenario, path)
-        recovery.queue_loss(scenario, path)
-        recovery.processing_outage(scenario, path)
-        if args.window_faults:
-            durable_restart(scenario, path)
-            redis_loss(scenario, path)
+        for _ in range(3 if args.window_faults else 1):
+            recovery.worker_kill(scenario, path)
+            recovery.queue_loss(scenario, path)
+            recovery.processing_outage(scenario, path)
+            if args.window_faults:
+                durable_restart(scenario, path)
+                redis_loss(scenario, path)
         scenario.finish()
         artifacts.write("recovery-result.json", scenario.report)
         status(args.run_id + " " + args.profile + " worker-loss/queue-loss/outage PASS")
