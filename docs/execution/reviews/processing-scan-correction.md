@@ -20,3 +20,11 @@ The experiment measurements retain their original source/image identities.
 They are not relabelled as measurements of this later packaging correction.
 The new artifact needs fresh build, scan, integration/playback and exact PR/Main
 checks. Those results are not claimed by this source record.
+
+The legacy regression image subsequently reported the same dependency/version
+finding in [CI38576218986](https://github.com/Collaboration95/dc2/actions/runs/38576218986/job/115894615074).
+The same package-install/version-floor block is now applied identically in the
+root Dockerfile. The independently reviewed Processing correction is reused;
+the coordinator verified the two blocks are byte-identical and both parse as
+POSIX shell. The scan policy still covers all three distinct image digests.
+Application packages, encoding settings and image entry points remain unchanged.

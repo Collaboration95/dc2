@@ -16,7 +16,9 @@ COPY alembic.ini ./
 COPY migrations ./migrations
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg \
+    && apt-get install -y --no-install-recommends ffmpeg librsvg2-2 \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' librsvg2-2)" \
+        ge 2.60.0+dfsg-1+deb13u1 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python -m pip install --no-cache-dir --no-deps .
