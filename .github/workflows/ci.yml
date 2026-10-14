@@ -558,6 +558,7 @@ jobs:
         if: env.SONAR_TOKEN == '' || env.SONAR_PROJECT_KEY == '' || env.SONAR_ORGANIZATION == ''
         run: echo "::warning::SonarCloud scan skipped; configure SONAR_TOKEN and the SONAR_PROJECT_KEY and SONAR_ORGANIZATION repository variables."
       - name: Run SonarCloud analysis
+        id: sonar_analysis
         if: env.SONAR_TOKEN != '' && env.SONAR_PROJECT_KEY != '' && env.SONAR_ORGANIZATION != ''
         continue-on-error: true
         uses: SonarSource/sonarqube-scan-action@ba9859eae8dd6bd29e412f25ddbbef3d032000f4 # v8.2.2
@@ -567,3 +568,29 @@ jobs:
             -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
             -Dsonar.qualitygate.wait=true
             -Dsonar.python.coverage.reportPaths=backend.xml
+      - name: Record actual extracted-service Sonar disposition
+        if: always()
+        env:
+          ANALYSIS_OUTCOME: ${{ steps.sonar_analysis.outcome }}
+        run: |
+          python - <<'PYSCAN'
+          import json, os
+          from pathlib import Path
+          outcome = os.environ['ANALYSIS_OUTCOME']
+          status = 'executed' if outcome == 'success' else ('skipped' if outcome == 'skipped' else 'error')
+          report = {'engine':'sonar','disposition':status,'step_outcome':outcome,
+                    'target':['media','processing','media_engine','app','frontend'],
+                    'quality_gate':'reported; analysis step remains continue-on-error',
+                    'configuration_missing':not all(os.environ.get(k) for k in
+                        ('SONAR_TOKEN','SONAR_PROJECT_KEY','SONAR_ORGANIZATION'))}
+          Path('sonar-disposition.json').write_text(json.dumps(report,indent=2))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as stream:
+              stream.write('Sonar analysis: '+status+'. Green wrapper does not imply completed analysis.\n')
+          PYSCAN
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sonar-disposition-${{ github.run_id }}
+          path: sonar-disposition.json
+          if-no-files-found: warn
+          retention-days: 14
