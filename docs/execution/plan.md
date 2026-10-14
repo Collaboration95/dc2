@@ -1,5 +1,10 @@
 # dc2 pre AWS local delivery plan
 
+> AWS planning update, 15 October 2026: [the replacement Fargate plan](aws/architecture-plan.md)
+> supersedes older host, disk, snapshot and domain prerequisites in this historical
+> local-delivery record. Public browser access uses an AWS-generated URL; no domain
+> purchase is required. Actual account, currency and spending approval are pending.
+
 Complete the approved reusable media platform locally, then leave an auditable
 handoff for the team. The working target is three elapsed agentic days, with five
 days maximum. This run is authorized to plan, implement, test, review, publish and

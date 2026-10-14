@@ -1,282 +1,510 @@
-# dc2 AWS architecture and preparation plan
+# Lean AWS microservices plan
 
-Prepared 14 October 2026 (Singapore). **Planning only; no resources, account access or live workload performed.** Read-only repository inspection plus unauthenticated public AWS documentation/price-list downloads. Astra produced the original design and cost worksheet; the coordinator is reviewing and integrating them. This plan is not a deployment approval.
+15 October 2026 · proposal for review · no provisioning or spending approval.
+This replaces the [14 October shared-host plan](architecture-plan-20261014.md).
+Current source baseline in the handoff: `485edac`. No application code, running
+demo, original proposal, roadmap design, or historical measurement was changed.
 
 ## Decision
 
-Use **one Linux On-Demand `c6a.2xlarge` EC2 host (8 vCPU, 16 GiB), Docker Compose, two private S3 buckets, and public HTTPS through nginx**, provisionally in `ap-southeast-1`. Keep PostgreSQL and Redis on encrypted EBS. Use a stable Elastic IP and an existing domain/subdomain. Prefer two private ECR repositories for immutable Media/Processing images; static frontend/configuration travel as a versioned release artifact.
+Use **ECS on Fargate for the service compute and disposable encoding workers**.
+Keep **one `t3a.small` (2 vCPU / 2 GiB) for PostgreSQL, Redis, and nginx**.
+That machine never runs Media, Processing, or FFmpeg. Give Media and Processing
+separate ECS services, image digests, releases, credentials, and migrations.
+Run encoding tasks only when work exists; stop the whole environment between
+booked sessions. Public access uses an AWS-provided `*.cloudfront.net` HTTPS URL.
 
-Approve **100 host-hours planned, 120 maximum across 21 days**, with the host stopped between booked sessions. Current official Singapore compute rate is **$0.3528/hour**. The conservative 120-hour envelope is **$169.47 total**, including storage, snapshots, requests, 200 GB internet egress, a separate temporary load generator, registry, domain allowance, tax/FX reserve and contingency. Continuous 504-hour operation is **$304.95 with the same envelope** and is rejected. These are bounded estimates, not a guaranteed bill or permission to provision.
+Use one VPC, one AZ, one public subnet, an Internet Gateway, and a **free S3
+gateway endpoint**. No private/public subnet pair, NAT Gateway, load balancer,
+paid interface endpoints, purchased domain, Kubernetes, service mesh, RDS,
+ElastiCache, or replacement queue. Keep the existing Redis/RQ integration.
 
-Do not add Kubernetes, autoscaling, OIDC, a credential broker, RDS, ElastiCache, ALB, NAT Gateway or CloudFront. Two independently released business services can share a host; host/AZ high availability is not claimed. A stopped host is intentionally unavailable. Existing course/proposal documents, roadmap design and historical evidence remain unchanged. Do not operate Alibaba.
+The remaining college window is **at most 14 days**. Expected usage is **$6.03 USD**,
+or **$13.03 with visible reserves**. A larger bounded scenario is **$28.27 including
+reserves**. Use **$15 expected / $30 contingency envelope**, rather than treating
+the previous $200 ceiling as a spending target. Neither is an automatic bill cap.
+The forecast assumes **20 online hours and 2 cumulative worker-task-hours**. All
+application compute is off during downtime; only about **$1.73 of retained
+storage/internal-DNS costs across the full 14 days** remains, before external hits.
+[Reproducible calculation](calculate-costs.py), [inputs](cost-worksheet.json),
+[regional price evidence](pricing-20261015.json).
 
-## Evidence and pending decisions
+## What counts as the microservices contribution
 
-The task's accepted source is Main `b913579` (PR37). Root AGENTS, the full worklog, execution handoff/plan/decisions/interfaces, active Compose, Media/Processing storage/settings, Publisher and release/evidence code were inspected. Worklog/handoff retain older checkpoints; the task's newer accepted context supersedes their pending-status language.
+The original [Team 17 proposal](../../../project-documentation/Team17-Proposal.docx),
+§§1.3–1.4, 2.2–2.5 and 3.3–3.5, commits to independently deployed Media Management
+and Processing, separate data ownership, authenticated contracts, independent
+worker capacity, and web/CLI reuse. AD-01 deliberately combines Identity, Media,
+and Delivery; it rejects a four-service split as unnecessary. AD-02 explicitly
+permits two databases on one PostgreSQL server. Preserve those useful boundaries.
 
-- Original pre-AWS delivery: 18 stories/six epics, V1–V5 accepted. Historical scaling at `f46599f`: 270/270 MP4/HLS successes; 2.337/4.749/6.743 jobs/min, 2.032×/2.885× speedup, queue medians 375/176/120 s. Separate status p90 605/580/544 ms; login 1.873/1.888/1.899 s. Those are local results on the same Mac as the generator, not cloud proof.
-- Recovery: worker failure visible 69.2 s; queue-entry repair 23.5 s **with surviving metadata**. Historical release: good 101.2 s, active drain 34.1 s, injected bad startup plus automatic exact-image restoration 125.6 s. Shared-host failure and complete Redis loss need their own evidence.
-- PR37: 1,107 Python tests, all 15 PR/all 14 Main checks and fresh review passed per parent context. Login releases its SQL connection before bcrypt; output hashing removes one file pass; Publisher hashing allocation falls ~2.1 MB→0.27 MB. End-to-end gain remains unmeasured; older demo images were not rebuilt. Sonar job success did **not** mean completed analysis. Historical login results do not cover existing cost-12 accounts or direct measured image/account hash provenance.
-- Both local experimental follow-ups are now complete with **REJECT** decisions. No quota or worker-policy default is adopted. See [#38 disposition](../experiments-20261014/EXP38.md), [#39 disposition](../experiments-20261014/EXP39.md), and their indexed raw evidence. Coordinator integration preserves measured commits `08ec06c` (#38) and `60f244c` (#39); the local result pack is committed at `f7e039b`. [Fresh independent review](../reviews/experiments-20261014-review.md) PASS at `632cac5`, no substantive findings. Exact PR/Main checks and accepted publication remain coordinator-owned and are recorded in GitHub.
-- #38 completed three rotated pairs and 180/180 fresh long-job successes. PostgreSQL `.125→.25` CPU (Processing API `.5→.375`) reduced isolated status p90 to 252–264ms, with supporting throttle/SQL evidence. Every isolated login arm exceeded 2s and mixed status was 2.60–2.84s, so the complete-workload gates fail; baseline quotas remain. Preparation-only 401s remain unexplained and are retained. These opt-in diagnostic workloads do not replace the original accepted measurements.
-- #39 completed 48 eligible windows and 504/504 scheduled successes at baseline quotas. Advance-planned manual worker windows reduced residency by 13.28/14.80/14.58%, below the predeclared 20% threshold; sustained status latency also failed. No manual/reactive controller or policy is adopted. Queue-age, short-wait and safe-drain bounds passed. The disk stop, excluded work and full-arm continuation remain explicit.
-- Repeated worker loss, queue-list loss, full Redis reconstruction and durable backlog restart passed. A real 180s source processed for 70.823s and safely drained for 70.589s without a forced kill. Processing promotion passed in 118.568s; bad-candidate exact-image restoration in 145.357s; active rollback in 72.669s, with Media unchanged. These are local namespace proofs, not cloud-host availability or billing evidence.
-- The original nine-container demo was restored on its exact saved `f10bf04` images at `https://localhost:54440`, with public workflow smoke. Experiment namespaces were stopped and historical volumes/evidence preserved. Restoration does not claim that the demo was rebuilt to PR37.
+The implementation already has `media/`, `processing/`, separate Dockerfiles,
+separate PostgreSQL roles/migrations, HTTP integration, and `publisher/`.
+See [interfaces](../interfaces.md) and [local Compose](../../../compose/local/docker-compose.yml).
+Workers and reconciliation are execution roles inside the Processing service;
+Redis, nginx and PostgreSQL are infrastructure, not extra business microservices.
 
-**Configuration for the AWS job:** keep the baseline per-service quotas and explicitly selected fixed 1/2/3 workers. Neither experiment supports adopting its candidate. Lower worker count on a running EC2 host still provides no hourly-bill saving. Whole-host stop/restart and availability must be validated separately in AWS.
+This revision adds **separate compute and deployment boundaries**: restarting or
+releasing Processing does not replace Media's ECS tasks; adding encoders does not
+reserve more CPU on Media's host. Fargate isolates tasks; it does not promise a
+dedicated physical server per microservice. The shared database host, gateway,
+AZ, and region remain shared failure dependencies. This is a small single-AZ demo,
+not a highly available system. [Fargate task isolation](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html).
 
-Measured local cost inputs, with exact scopes: each 60s input is 21,050,412 bytes; output is 60,959,567 bytes in 29 objects, including all HLS playlists/renditions/segments. Each 2s output is 1,921,301 bytes in eight objects. The 504 eligible scheduled jobs produced 22,222,111,464 bytes in 11,592 objects. Three decoded 60s playback **starts** transferred 5,174,856 / 4,158,152 / 4,158,152 bytes over 13/12/12 recorded browser requests. They do not measure entire viewing sessions or every internal S3/multipart request. The cost worksheet retains conservative usage ceilings; fresh cloud smoke must measure actual x86 output/request/viewing volume.
+## Logical architecture
 
-## Topology, capacity and storage access
-
-```text
-Browser + independent Publisher -- HTTPS --> nginx:443 (frontend + /api)
-                                               |
-                                           Media API
-                                      /        |         \
-                             media_db    private HTTP    S3 sources + output reads
-                                             |
-                                       Processing API
-                                      /       |       \
-                            processing_db   Redis/RQ   workers (1/2/3)
-                                                        |       |
-                                reverse Media source grant     S3 output PUT
-
-Media reconciliation and Processing recovery are commands of their own service.
-Processing recovery owns output List/Delete. PostgreSQL hosts two separate DBs.
-All application containers are on ONE EC2 host; S3 is outside that failure domain.
+```mermaid
+flowchart LR
+    C[Browser and independent Publisher CLI] -->|HTTPS public API| M[Media Management]
+    M -->|token + owner ID: submit / status / retry| P[Processing API]
+    M --> MD[(media_db: users, assets, ownership)]
+    P --> PD[(processing_db: jobs, attempts, outputs)]
+    P --> Q[(Processing-owned Redis / RQ)]
+    Q --> W[Disposable Processing workers]
+    W --> PD
+    W -->|reverse authenticated source grant| M
+    M --> S[(Private S3 sources)]
+    W -->|signed source GET| S
+    W -->|PUT only| O[(Private S3 outputs)]
+    M -->|authorised signing / playlists| O
+    R[Processing recovery + bounded task starter] --> PD
+    R --> Q
+    R -->|cleanup List / Delete| O
+    R -->|start workers when queued| W
+    C -->|time-limited HTTPS GET| O
 ```
 
-One project VPC/public subnet/Internet Gateway, one host security group. Public ingress 443; port 80 only ACME HTTP-01/HTTPS redirect. SSH 22 only from the approved operator CIDR. No public PostgreSQL, Redis, Processing or Docker API ports. Keep container data networks private; attach **only S3-using Media, worker and recovery containers** to an outbound-capable Docker bridge. Current worker/recovery networks are all `internal: true`, so changing endpoints alone will not work. An ordinary public-subnet host supplies egress without a paid NAT Gateway. A free S3 gateway endpoint is optional, not required; do not impose a bucket `aws:SourceVpce` restriction that breaks external presigned playback. [AWS VPC pricing](https://aws.amazon.com/vpc/pricing/).
+Media's own reconciler runs alongside its API and uses only Media's database and
+its peer API. It has the same storage permissions as Media. Workers cannot query
+`media_db`; Media cannot query `processing_db`. Cross-service IDs stay references.
 
-Use Ubuntu LTS x86_64 without a paid AMI/software subscription. c6a has sustained CPU capacity without T-family CPU credits. Its 8 vCPU are not equivalent to eight Apple physical cores; benchmark again. [C6a specifications](https://aws.amazon.com/ec2/instance-types/c6a/), [regional availability](https://docs.aws.amazon.com/ec2/latest/instancetypes/ec2-instance-regions.html).
+## Physical placement and sizes
 
-Baseline persistent nonworkers locally total **2 CPU / 2,304 MiB**; each worker stays **2 CPU / 1,536 MiB**, making 4/6/8 CPU and up to 6,912 MiB configured ceilings. Removing MinIO for AWS removes 0.125 CPU/512 MiB: remaining nonworkers total **1.875 CPU / 1,792 MiB**, three-worker ceiling **7.875 CPU / 6,400 MiB**. Preserve the remaining baseline quotas unless #38 supports a reviewed change; record this AWS topology difference. These are ceilings, not reservations. Startup, migrations, OS, Docker and release tools still consume resources. Do not build/scan/run generators alongside timed three-worker batches; collect host and cgroup pressure/throttling. If CPU contention invalidates fairness, retain the failure and reprice a larger host before rerunning; do not weaken targets or claim an eight-core reservation. Routine demos may use one/two workers. 16 GiB gives working headroom; historical sampled RSS does not justify downsizing.
-
-EBS: **32 GiB root + 96 GiB data**, gp3 default performance, encryption with the AWS-managed EBS key. Mount data at `/srv/dc2` by UUID and require it before startup. Bind PostgreSQL, Redis AOF, private release journal/config, backups and Docker data to known persistent locations; allocate worker temporary disk explicitly. Do not place worker temp files in a memory-backed tmpfs by default. Check free space before batches; refuse new work below 20% free. No paid extra IOPS/throughput. Snapshot allowance is **128 GiB of billed snapshot data total**, including incremental changed blocks—not 128 GiB per snapshot. Retain only the last useful recovery points within that allowance.
-
-Private S3 Standard buckets: unique lowercase names without dots, e.g. `dc2-team17-<account>-<suffix>-sources` and `...-outputs`, same region as EC2. Enable Block Public Access, bucket-owner-enforced ownership (ACLs disabled), SSE-S3 and deny non-TLS access. No S3 website endpoint, public policy, custom KMS key, versioning or automatic media expiry by default. Add incomplete multipart abort lifecycle after one day; complete objects are deleted through ownership/recovery or final teardown. [Object ownership](https://docs.aws.amazon.com/AmazonS3/latest/userguide/ensure-object-ownership.html), [encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/default-bucket-encryption.html).
-
-### Service credentials without a new identity platform
-
-Use three dedicated, non-console IAM principals with project-bucket-only policies and one active access key each, fitting the existing explicit access-key/secret settings. This is a limited three-week demo choice; delete keys at teardown. The account owner must permit this mechanism. If account policy forbids keys, return that concrete constraint for a small credential-provider change; never fall back to a shared administrator key. No broad S3 instance role accessible to all containers. Operator provisioning/ECR credentials stay separate and are never passed into application containers.
-
-| Principal | Bucket permissions | Object permissions |
-|---|---|---|
-| Media (API + Media recovery) | source `ListBucket`; `GetBucketLocation` for both buckets if needed | source `GetObject`, `PutObject`, `DeleteObject`, `AbortMultipartUpload`, `ListMultipartUploadParts`; output `GetObject` only |
-| Processing worker | none for source; explicit configured region avoids discovery | output `PutObject`, `AbortMultipartUpload`, `ListMultipartUploadParts` only |
-| Processing recovery | output `ListBucket` | output `DeleteObject` only |
-
-Scope bucket actions to bucket ARNs and object actions to `bucket/*`. No wildcard account-wide policy. Source multipart permissions are needed for ordinary larger uploads even though the local bootstrap's Media policy lists only basic Get/Put/Delete. Worker must fail unsigned source Get and output Get/HEAD/List/Delete; cleanup must fail source access and output Get/Put; Media must fail output Put/Delete. Test positive multipart completion/abort and actual negative permissions, not policy text alone. [S3 operation/permission mapping](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-with-s3-policy-actions.html).
-
-Keep private runtime configuration under `/etc/dc2` (directory 0700/files 0600); pass only each service's explicit variables as Compose already does. Protect copied credentials and backups; never print `docker compose config`, environment dumps, passwords, cookie jars or full signed URLs into evidence. No secrets in Git, image layers, user-data, CI logs or the deliverable.
-
-### Endpoint, HLS, CORS and TLS configuration
-
-The current MinIO Python SDK already constructs S3-compatible requests; first attempt a configuration-only S3 transition and prove it with real S3 tests. Do not pre-emptively rewrite storage. Keep the existing `MINIO` setting names for this demo:
-
-```text
-MEDIA_PUBLIC_URL=https://<approved-demo-hostname>
-MEDIA_PROCESSING_URL=http://processing:8000
-PROCESSING_MEDIA_URL=http://media:8000
-MEDIA_MINIO_ENDPOINT=s3.ap-southeast-1.amazonaws.com
-MEDIA_MINIO_PUBLIC_ENDPOINT=s3.ap-southeast-1.amazonaws.com
-PROCESSING_MINIO_ENDPOINT=s3.ap-southeast-1.amazonaws.com
-MEDIA_MINIO_USE_SSL=true
-MEDIA_MINIO_PUBLIC_USE_SSL=true
-PROCESSING_MINIO_USE_SSL=true
-MEDIA_MINIO_REGION=ap-southeast-1
-PROCESSING_MINIO_REGION=ap-southeast-1
-MEDIA_MINIO_SOURCE_BUCKET=<private-source-bucket>
-MEDIA_MINIO_OUTPUT_BUCKET=<private-output-bucket>
-PROCESSING_MINIO_OUTPUT_BUCKET=<private-output-bucket>
-# Existing DSNs, forward/reverse tokens and three scoped key pairs: private input.
-# PROCESSING_MINIO_* credentials in recovery must come from CLEANUP_MINIO_*.
+```mermaid
+flowchart TB
+    U[Browser / CLI] -->|HTTPS: generated cloudfront.net name| CF[CloudFront]
+    subgraph V[One VPC · Singapore · one AZ · one public subnet]
+      G[Small EC2: nginx + PostgreSQL + Redis\n2 vCPU / 2 GiB · persistent EBS]
+      M[ECS Media service\n1 vCPU / 2 GiB\nAPI + Media reconciler]
+      P[ECS Processing API service\n0.5 vCPU / 1 GiB]
+      R[ECS Processing recovery service\n0.25 vCPU / 0.5 GiB]
+      W[ECS standalone worker tasks\n0 normally · target 1 · test 2 / 3\n2 vCPU / 4 GiB each]
+      EP[S3 gateway endpoint · no endpoint fee]
+      CF -->|restricted origin HTTP| G
+      G -->|private IP / private DNS| M
+      M <--> P
+      M -->|media_db only| G
+      P -->|processing_db + RQ| G
+      R -->|processing_db + RQ| G
+      W -->|processing_db + RQ| G
+      W -->|source grant| M
+      R -->|ECS RunTask| W
+      M & W & R --> EP
+    end
+    EP --> S3[Same-region private S3 buckets\nregional service outside the VPC]
+    U -->|signed output HTTPS · billed internet egress| S3
 ```
 
-Endpoints contain hostnames, not schemes or bucket paths. SDK-generated public URLs should use the bucket's regional HTTPS REST endpoint. Do not sign the nginx hostname then rewrite it to S3: SigV4 signs the host. Avoid region redirects; the worker's HTTP download path does not enable redirect following. Dotted bucket names complicate wildcard TLS validation. [S3 virtual hosting](https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html).
+[Editable AWS placement diagram](../../lean-aws-microservices.drawio).
+The diagrams show deployment units and data flow, not a claim that S3 lives in a subnet.
 
-Keep Media's current owner-checked HLS behavior: `/api/jobs/<asset>/hls/*.m3u8` returns playlist bodies; relative variant/segment paths stay on that route. Segment requests recheck ownership and 307 redirect to short-lived signed S3 output URLs. MP4 uses a signed S3 URL directly. Worker source grants come from reverse Media HTTP, are renewed on claim/expiry, and use S3 HTTPS; workers still hold no source-store key. Retain the existing 900-second signed URL default and one-hour login; document MP4 URL refresh after expiry instead of silently extending lifetimes. A previously issued URL is a bearer capability until expiry or object deletion. [Presigned URL behavior](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html).
+| Unit | Image / command | Initial size | Lifetime / ownership |
+|---|---|---|---|
+| Media ECS service | `deploy/media.Dockerfile`; API and `media.recovery` containers | 1 vCPU / 2 GiB total | One task while site is open; own release and DB migration |
+| Processing API ECS service | `deploy/processing.Dockerfile`; API | 0.5 vCPU / 1 GiB | One task while site is open; own release |
+| Processing recovery ECS service | Same Processing digest; `processing.recovery` plus bounded starter | 0.25 vCPU / 0.5 GiB | One task while site is open; survives API/worker outages |
+| Encoding standalone tasks | Same Processing digest; `python -m processing.worker --burst` | 2 vCPU / 4 GiB each | Exit after draining; maximum 3 across running and pending tasks |
+| State/gateway EC2 | nginx, PostgreSQL 16, Redis | `t3a.small`, 2 vCPU / 2 GiB, **Standard CPU credits** | Start/stop with environment; no application/encoding images |
+| Migration task | Owning service image and owning migration role | At most 1 vCPU / 2 GiB | One-off, separately invoked; never both services' migrations together |
 
-Output bucket CORS preparation (replace origin; CORS does not authorize objects):
+These are **initial cloud configurations, not measured minima**. Media keeps a
+1-vCPU allocation because the existing login evidence already has little margin;
+cutting it to 0.25 vCPU cannot honestly promise the 20-login target. The state
+host's approximate RAM envelope is PostgreSQL 512 MiB, Redis 128 MiB, nginx
+128 MiB, and OS/agents/cache/headroom in the remaining 1,280 MiB. Measure actual
+pressure and credit balance; Standard credits prevent surprise surplus charges
+but can throttle. Do not run load generators or builds on this host.
 
-```json
-[{"AllowedOrigins":["https://<approved-demo-hostname>"],
-  "AllowedMethods":["GET","HEAD"],
-  "AllowedHeaders":["Range"],
-  "ExposeHeaders":["ETag","Accept-Ranges","Content-Range","Content-Length"],
-  "MaxAgeSeconds":300}]
-```
+Fargate's supported 2-vCPU task size starts at 4 GiB, whereas local workers had a
+1.5-GiB container cap. Keep that container cap for the original scaling comparison
+if compatible, record both the container limit and billed task allocation, and
+report the cloud topology separately. Three workers temporarily reserve 6 vCPU /
+12 GiB across three tasks; no 8-vCPU / 16-GiB machine is purchased. Aggregate
+capacity at the largest test is higher than one worker and is charged accordingly.
+[Task sizes](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html).
 
-Source bucket needs no browser CORS for the current upload-through-Media flow. Browser cookies remain on the application origin; S3 uses query signatures. Check actual HLS redirects/preflights and MP4 range/seek playback in the cloud. Expand headers only if the observed request requires it. A signed GET URL is not automatically a valid signed HEAD URL. [CORS elements](https://docs.aws.amazon.com/AmazonS3/latest/userguide/ManageCorsUsing.html).
+Use Linux/x86_64 images and `linux/amd64` builds first. `t4g.small` would save only
+$0.048 over 20 host-hours and introduces another architecture; leave ARM as a later
+measured option. A 1-GiB state host has inadequate headroom for the stated envelope.
 
-Use a public ACME certificate on nginx, existing DNS A record to the Elastic IP, and normal browser/Publisher system trust. Keep HTTP-01 challenge handling and certificate reload/renewal on the host; expiry must cover presentation dates despite stopped intervals. Certificate purchase cost is zero for this chosen ACME approach; DNS/registration is a separate input. Remove MinIO proxy/health routes. Preserve dynamic Docker DNS resolution for Media, `/internal/` denial, 101 MB upload ceiling and API forwarding. No need to change the frontend design or public API.
+## Scheduling and shutdown
 
-## Exact preparation gaps
+There are two independent controls:
 
-These are future implementation tasks, not completed changes or commands already available.
+1. **Environment hours:** an operator opens a booked session, starts the state
+   host, waits for PostgreSQL TCP readiness, and starts the three ECS services.
+   Outside booked sessions, set their desired counts to zero and stop EC2 after
+   draining. The CloudFront URL remains allocated, but the application is unavailable.
+   Use auto-assigned EC2 public IPv4, which is released on stop; update the
+   CloudFront origin to the new AWS public DNS name on wake and wait for
+   propagation. A longer warmup is acceptable. Do not keep an Elastic IP.
+   This requires no always-running scheduler. An optional EventBridge start/stop
+   schedule can be added later; it is not part of the default implementation.
+2. **Worker residency:** reuse the existing `--burst` worker. Initially run it
+   manually from a bounded release/operator command. Only if unattended starts are needed, add a small starter
+   alongside **Processing recovery**, checking its own ledger about once per
+   minute and starting missing worker slots only when queued work exists.
+   Target one worker normally; an explicit operator setting selects 0/1/2/3.
+   No backlog-based scale-up policy or extra broker is required.
 
-| Gap and inspected source | Concrete preparation and acceptance |
-|---|---|
-| `compose/local/docker-compose.yml` is local-only | Add a dedicated AWS Compose file derived from it, not an overlay that accidentally preserves services/dependencies. Remove MinIO/bootstrap and dependencies, public-bind only nginx, retain DB separation, outbound S3 network, encrypted-data mounts, explicit worker count, restart policies and bounded log rotation. Keep DB/Processing diagnostic ports loopback-only if the harness needs them. Pin all live image digests. |
-| `scripts/dev/runtime.py` hardcodes local state/Compose, generates MinIO defaults, fetches/builds MinIO and smokes `/minio/health/live` | Add a small AWS configuration/backend adapter with explicit project identity, public origin, system trust, Compose path and persistent state. It must not call local `configure()` and silently generate a new namespace/credentials or choose Lima. Fresh deployment fails closed on missing input. |
-| `media/config.py`, `media/services/storage.py`, `processing/config.py`, `processing/worker/storage.py`, `processing/recovery.py`; `deploy/minio/bootstrap.py` | Supply regional endpoints and scoped IAM policies/CORS; replace MinIOAdmin bootstrap with operator-side S3/IAM setup plus bounded S3 smoke. Verify multipart, digest/size, denied operations, grant renewal, output cleanup including late writes. Session-token/provider support is currently absent; do not claim IAM role support. |
-| `deploy/nginx/local.conf.template` binds localhost TLS; frontend is a host bind mount | Add AWS nginx template for domain/ACME, remove storage proxy routes, package frontend/config into a checksummed versioned directory mounted read-only. Preserve localhost container health and dynamic upstream DNS. Prove external trusted HTTPS, host-only auth cookies, upload, MP4/HLS decoding and deletion. |
-| `deploy/media.Dockerfile`, `deploy/processing.Dockerfile`, image provenance | Produce **linux/amd64** images from the accepted SHA, preferably on native x86 CI/build host. The existing Mac arm64 image is not deployable evidence for x86. Verify pinned base digest includes target platform, dependencies/FFmpeg codecs and exact image architecture; tests and Trivy apply to those actual digests. Native ARM c7g is an alternative only after a fresh complete ARM artifact proof. |
-| `scripts/dev/release.py` uses local runtime, local Unix Docker and explicitly rejects non-local public smoke URLs | Run control on EC2's local Unix Docker socket, adapt configuration/smoke to an allowlisted approved AWS HTTPS origin with system trust. Add promotion of an already-tested immutable image, preserving source/image proof, active drain, deadline, migration compatibility, pending journal and exact rollback. Do not merely remove safety checks or run the unchanged local target. |
-| `scripts/evidence/performance.py` directly combines HTTP client and local Docker controls; recovery/E2E have local state assumptions | Split remote public client from lightweight host-side quota/SQL/fault collector. Pass approved origin and backend explicitly; external generator gets no database/service credentials. Adapt bounded recovery/browser/CLI workflow, sanitizer and manifest fields. Existing Make evidence commands alone are not AWS-ready. |
-| Persistent startup/stop/backup behavior is not a cloud runbook implementation | Add one systemd-controlled start/drain/stop procedure, mount guard, stable Compose name/volumes, worker count restore, private journal/config backup and restore verification. Existing Compose has no general `restart:` policy. Never use `down -v` as shutdown. |
-| Accounting and #38/#39 acceptance | Freeze accepted config or baseline; collect bytes/object/request counts, queue age, resource pressure, exact hash cost and runtime-hour ledger. Implement manual activation only if #39 is accepted; no automatic scheduler/controller. |
+The default demo uses explicit bounded batch starts. An unattended starter is
+**optional new code**, not a prerequisite or an existing proven feature.
+It must hold one Processing-owned coordination lease, record launch reservations
+and stable `RunTask` client tokens, include PENDING and RUNNING tasks in its cap,
+handle AWS eventual consistency and partial launch failures, and back off on
+capacity/permission errors. Redis length alone is not authoritative. Do not launch
+an unbounded worker on every upload or every timer tick. A job arriving just after
+an idle worker exits is discovered on the next pass. Show a queued state in the
+existing UI while capacity starts; measure cold start, do not promise seconds.
 
-Existing `app/` remains regression reference, not a third live service. Use existing tests/scan gates and relevant new deployment-adapter tests; do not reopen missing Project1 scope. Build and scan outside timed runs. ECR is practical but optional: if omitted, transport checksummed `docker save` artifacts and verify loaded image IDs; preserve exact-image rollback. Never pull an unverified mutable `latest` at restart.
+Standalone `RunTask` tasks are not automatically restarted by ECS. The starter
+replaces lost capacity; existing recovery determines the interrupted attempt's
+state. Current expired attempts become **failed/abandoned**, and the user retries
+from the stored source. Do not describe this as automatic job retry or silently
+change those semantics. Recovery stays at its existing 15-second interval while
+online so queue repair can meet the original 120-second target.
+[Standalone task lifecycle](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-maintenance.html),
+[RunTask consistency](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RunTask.html).
 
-## Current official pricing and bounded budget
+Use **on-demand Fargate first** for demos and measured runs. The 2 expected
+worker-task-hours cost only $0.26 including IPv4. Spot is optional for expendable
+rehearsals after interruption testing; it is not necessary to make this plan cheap.
+Spot capacity can be unavailable, has a two-minute interruption warning, and
+Fargate does not automatically fall back to on-demand. Planned releases must
+pause new claims and drain before stopping tasks; `stopTimeout=120` cannot save
+every long encode. Drain timeout must surface a failed release or explicit
+interruption, not pretend success. [Spot behavior](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-capacity-providers.html),
+[stop timeout](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_ContainerDefinition.html).
 
-**USD, checked 14 October 2026, no credits/free-tier deductions, no commitments/Spot.** EC2/EBS prices were read from the official Singapore CSV published **12 October 2026 19:39:25Z**, effective 1 October. S3 JSON published 12 October 23:11:02Z; Data Transfer 16 September; ECR 11 September. Current catalogs are mutable: refresh before approval and retain the matching price rows/version in the eventual evidence. Public list prices do not prove account quota, AZ capacity or access.
+Issue 39's rejected fixed-host scheduling policy remains rejected. This is a new
+billing/topology hypothesis: stopping Fargate tasks ends their compute bill.
+Record task residency, cold waits and actual billing separately; do not relabel
+old local experiments as proof of AWS savings. For the small AWS capacity check, prewarm ordinary non-burst workers at a fixed
+1/2/3 count, then submit only 1/2/3 jobs respectively. Disable the starter during
+that check and drain/stop the workers afterwards. That demonstrates placement and
+parallel claims, not statistically valid scaling speedup. Preserve the completed
+local experiments; do not repeat bulk cloud trials by default.
 
-| Compute option, all 8 vCPU / 16 GiB | USD/hour | 120 hours | 504 hours | Decision |
-|---|---:|---:|---:|---|
-| c6a.2xlarge, AMD x86 | 0.3528 | 42.34 | 177.81 | Default: nonburstable, conventional x86; sufficient nominal worker envelope |
-| c6i.2xlarge, Intel x86 | 0.3920 | 47.04 | 197.57 | Availability fallback after reprice/config record |
-| c7i.2xlarge, Intel x86 | 0.4116 | 49.39 | 207.45 | No measured need for extra spend |
-| c7g.2xlarge, ARM | 0.3332 | 39.98 | 167.93 | Saves only $2.35 over 120h; choose only with accepted ARM artifact/verification plan |
+## Networking and public access
 
-[Official EC2/EBS regional price CSV](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/ap-southeast-1/index.csv). Selected c6a SKU `DYD6FC9AUENHNE2A`; c6i `558MXFSRZMHVCBQR`; c7i `3XYMP49R4PHJEXJV`; c7g `4JR4QBYT9QCS66T6`. Filters: OnDemand, Linux, Shared tenancy, Used capacity, preinstalled software NA, Singapore; exclude reservations, Dedicated, Spot and paid operating systems.
+A public subnet is a route-table property; it does **not** require opening database
+or API ports to everyone. Allocate public IPs for task egress/image pulls, use
+private IPs for service communication, and restrict inbound traffic with security
+groups. The three service-task IPs, temporary worker IPs, and EC2 public IP are
+priced only while their compute runs. No IP is reserved during downtime.
+Internet Gateway has no hourly charge.
+[Public-subnet Fargate networking](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/networking-outbound.html).
 
-The worksheet deliberately charges **one full GB-month** for every retained storage allowance despite only 21 days' retention. This is a conservative cap, not a statement that AWS rounds all storage to a month. Daily deletion/proration should lower actual cost. 128 GiB main EBS includes root and data; the generator disk is separate. Internet egress counts S3 playback/downloads plus EC2 responses/evidence exports, including repeated range fetches. Charge every GB at the paid Singapore first-tier rate even if an account-wide allowance happens to exist.
+Use Cloud Map private DNS for `media` and `processing` only. Its internal namespace
+is not a purchased domain. One private hosted zone is $0.50 per billed calendar
+month; this 14-day window budgets one October charge. Add $0.50 if dates cross into November. DNS queries in the VPC
+are free; registrations have a small charge. nginx and peer clients must resolve
+changed task IPs and tolerate stale connections during releases. No Service
+Connect/Envoy sidecars or load balancer are required for one replica per API.
+[Private DNS pricing](https://aws.amazon.com/route53/pricing/).
 
-| Cost item / ceiling over entire project | Rate | Budget USD |
+The edge path is:
+
+- Browser/Publisher → **HTTPS** `https://<distribution>.cloudfront.net` using AWS's
+  default certificate. Domain registration and public hosted zone: **$0**.
+- CloudFront → the running EC2 host's AWS public DNS hostname → nginx on port 80.
+  Restrict that port to the CloudFront origin-facing managed prefix list **and**
+  require a random origin header. Reject absent/wrong headers; block `/internal/`.
+- nginx → Media through private DNS. PostgreSQL 5432 accepts only the owning task
+  groups; Redis 6379 accepts only Processing groups. The public cannot reach either
+  API task or data store. Admin access is scoped SSM, not a public SSH listener.
+
+**TLS limitation:** this minimal origin path is HTTP from CloudFront to nginx;
+viewer HTTPS is not end-to-end TLS. The origin is internet-addressed but ingress
+is restricted to CloudFront, and a direct external scan should find it closed.
+This is an explicit relaxation of a strict interpretation of the proposal's
+“only HTTPS exposed” wording. Do not conceal it in the report or claim encrypted
+origin traffic. If that interpretation must be retained, revise this origin leg
+before deployment: a CloudFront VPC origin in a private subnet is a supported
+alternative, but it changes the requested one-public-subnet topology. Do not
+silently buy a domain/ALB or assume certificates can be issued for EC2's AWS DNS
+name. Planning can proceed while this narrow tradeoff remains reviewable.
+[Origin settings](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/DownloadDistValuesOrigin.html),
+[origin headers](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/add-origin-custom-headers.html),
+[VPC origin requirements](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-vpc-origins.html).
+
+Use CloudFront pay-as-you-go with no paid WAF/Origin Shield bundle. Require viewer
+HTTPS, allow all application methods, disable caching for `/api/*` including
+redirects and errors, forward cookies/query strings and required headers, preserve
+Set-Cookie and Range behavior, and set the configured public origin explicitly.
+Cache static frontend assets only. nginx buffers uploads to bounded temporary
+disk, supports the existing 100-MiB limit, and emits correct HTTPS external URLs.
+Test slow uploads and proxy timeouts. Newer CloudFront Free plans may reduce costs,
+but have configuration/eligibility restrictions; do not assume compatibility or
+upgrade to a paid subscription. The estimate deducts no free allowances.
+[Viewer HTTPS](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-https-viewers-to-cloudfront.html),
+[flat-rate plan restrictions](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/flat-rate-pricing-plan.html).
+
+### Where S3 traffic goes
+
+Keep S3 in **the same region** and attach a **gateway** endpoint to the one subnet's
+route table. The endpoint has no hourly or per-GB processing fee. Worker source
+GETs, output PUTs and internal playlist reads use regional HTTPS S3 endpoints over
+that route. S3 remains a regional service outside the VPC; there is no bucket
+inside the subnet. Same-region service↔S3 transfer is not internet egress.
+[Gateway endpoint](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html),
+[S3 transfer pricing](https://aws.amazon.com/s3/pricing/).
+
+Preserve direct, short-lived S3 HTTPS URLs for external MP4/HLS segment playback.
+Those **viewer bytes leave AWS and can cost money**. Expected budget: 2 GB = $0.24
+before allowances. Do not impose a blanket endpoint-only bucket denial: it would
+break signed browser URLs. S3 Block Public Access remains enabled; possession of
+a valid signed URL grants only its limited object access. CORS permits the exact
+CloudFront origin and required GET/Range headers; it does not grant ownership.
+CloudFront distribution settings do not magically cache or discount these direct
+S3 URLs. Moving playback behind signed CloudFront delivery is an optional later
+optimization, not worth a new signing path for the expected $0.24.
+
+## State, disks and recovery
+
+| State | Owner / location | Sizing basis / lifetime | Failure handled |
+|---|---|---|---|
+| Users, assets, source references | Media; `media_db` on state-host data EBS | Shares 8-GiB metadata volume with Processing | Survives process restart and EC2 stop/start |
+| Jobs, attempts, outputs, launch reservations | Processing; `processing_db`, distinct role/migrations | Metadata only; no video blobs | Durable retry/reconciliation and task launch bookkeeping |
+| Redis/RQ | Processing; same host | 128-MiB memory cap; small AOF on data volume, no-eviction | Transport; reconstruct from Processing ledger if lost |
+| Root, OS, nginx, DB/Redis images, bounded logs/upload buffering | State host; **16-GiB gp3 root** | Planning envelope: OS 4, images 3, packages/logs 2, upload scratch 1, free 6 GiB | Rebuildable, not authoritative |
+| PostgreSQL data, WAL, Redis AOF, one temporary export | **8-GiB gp3 data**, encrypted, retained across host replacement | Initial envelope: metadata 0.5, WAL 2, Redis 0.25, maintenance/export 1.25, free 4 GiB | Persistent state; not a full media corpus |
+| Worker input/intermediates/output | Each Fargate task's included **20-GiB ephemeral disk** | One active encode per task; compressed+unpacked images also consume it | Disposable; task replacement restarts from S3 source |
+| Sources and completed encodes | Two private S3 Standard buckets | Fixture: 21,050,412 input + 60,959,567 output bytes per 60-second clip | Independent of compute lifetime |
+| Image releases | Two ECR repositories, exact digests | 3 GB average total expected; keep current and rollback digests | Independent deployment/rollback |
+| Small DB exports | Private S3 backup prefix, restore restricted to operator | At session close and before risky migrations; keep latest two sets, budget within S3 total | Optional recovery to last export after destructive loss |
+
+24 GiB of provisioned EBS for 14 days costs **$1.0752**, whether the host runs or
+stops. These disk sizes are reasoned initial envelopes, not measured needs. Measure
+image unpacking, WAL, database size and maximum supported 100-MiB job scratch in
+cloud smoke; refuse new jobs before scratch exhaustion and investigate WAL growth.
+Do not copy the S3 media corpus onto the state host. Fargate includes
+20 GiB by default; extra disk is not budgeted. [Fargate storage/billing](https://aws.amazon.com/fargate/pricing/).
+
+The small cloud fixture set is six 60-second submissions at most (126,302,472
+source bytes total), plus a handful of short workflow clips. A single local long
+fixture can be reused as the upload input; failed-job retries use the already
+stored source. Six successful long jobs produce about 492 MB of source/output
+bytes combined. Budget **0.25 GB total upload, 1 GB average retained S3 data, and
+2 GB playback**; backup/evidence/short clips fit within the storage allowance.
+The 1-GB upload / 5-GB storage conservative scenario allows failures and corrections.
+These are caps to work within, not a requirement to create that many files.
+
+Reuse demo assets across ownership, polling, playback and release checks. Delete
+unneeded test outputs after evidence capture; retain the few presentation assets.
+Abort incomplete multipart uploads after a day. Do not delete sources referenced
+by active/retryable jobs. Retain compact evidence and erase test data at teardown.
+
+Snapshots are **not** in the default plan. Worker retry requires surviving DB state
+and source objects, not snapshots. For the small demo, stop intake and drain jobs,
+then export both DBs/roles at a common quiescent boundary so their references agree.
+Keep exports private; export failure must be visible. This is not continuous backup
+or point-in-time recovery. If both the live metadata and its exports are lost,
+recreate demo accounts/assets; S3 files alone do not restore ownership. A state-host
+failure still interrupts the entire workflow. Report that limitation honestly.
+
+## Costs and alternatives
+
+Pricing checked against official public AWS catalogs on 15 October 2026 in USD,
+Singapore. The configured pricing connector denied discovery permission; public
+catalog downloads supplied the rates. No other project's AWS resources were read
+or changed. Exact rows and URLs are in [pricing evidence](pricing-20261015.json).
+
+| Component | Expected: 20 online hours | Larger case: 40 online hours |
 |---|---:|---:|
-| Main host 120 total running hours, including setup/build/release/recovery | $0.3528/h | 42.3360 |
-| Main EBS 128 GiB, one full month, baseline gp3 performance | $0.096/GB-month | 12.2880 |
-| Snapshot retained billed blocks, total 128 GiB-month | $0.05/GB-month | 6.4000 |
-| One Elastic IP retained all 504h, including stopped periods | $0.005/h | 2.5200 |
-| All S3 source/output/evidence storage, maximum 100 GB-month | $0.025/GB-month | 2.5000 |
-| S3 PUT/COPY/POST/LIST including multipart/reconciliation, 1 million | $0.005/1,000 | 5.0000 |
-| S3 GET/other Tier2 requests, 1 million | $0.0004/1,000 | 0.4000 |
-| Combined paid internet output/playback/evidence transfer, 200 GB | $0.12/GB | 24.0000 |
-| Private ECR retained image layers, 10 GB-month | $0.10/GB-month | 1.0000 |
-| Separate c6a.large (2 vCPU/4 GiB) HTTP generator, 16h | $0.0882/h | 1.4112 |
-| Generator public IPv4, released on termination, 16h | $0.005/h | 0.0800 |
-| Generator gp3 root, 16 GiB, conservative full month | $0.096/GB-month | 1.5360 |
-| Logs: Docker/journal rotated within EBS, selected exports within S3 allowance | Included above | 0 additional |
-| **Service subtotal at 120h** | | **99.4712** |
-| Domain/DNS allowance (existing subdomain preferred; actual vendor price UNKNOWN) | Spending allowance, not a quoted rate | 20.00 |
-| Tax/FX/payment reserve (actual billing country/currency/tax UNKNOWN) | Reserve, not a tax calculation | 25.00 |
-| Contingency for approved corrections/unbilled usage | Reserve | 25.00 |
-| **Total envelope** | | **169.47** |
-| **Unallocated margin below $200** | | **30.53** |
+| Small state host + IPv4 only while running | $0.57 | $1.14 |
+| Three Fargate service tasks, including their IPv4 | $2.46 | $4.91 |
+| Workers: 2 / 8 cumulative task-hours, including IPv4 | $0.26 | $1.03 |
+| Migration/release overlap | $0.13 | $0.27 |
+| EBS, S3 storage/requests, registry | $1.48 | $2.70 |
+| Direct S3 playback: 2 / 10 GB | $0.24 | $1.20 |
+| CloudFront delivery, requests, upload-to-origin bytes | $0.11 | $0.42 |
+| Discovery + logs + temporary independent generator | $0.78 | $1.59 |
+| **AWS usage subtotal** | **$6.03** | **$13.27** |
+| Tax/FX reserve (not a tax calculation) | $2.00 | $5.00 |
+| Contingency | $5.00 | $10.00 |
+| **Total planning allowance** | **$13.03** | **$28.27** |
 
-Sources: [S3 Singapore offer](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/ap-southeast-1/index.json), [Data Transfer Singapore offer](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSDataTransfer/current/ap-southeast-1/index.json), [ECR Singapore offer](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECR/current/ap-southeast-1/index.json), [EBS pricing/billing](https://aws.amazon.com/ebs/pricing/), [public IPv4 pricing](https://aws.amazon.com/vpc/pricing/). S3 storage SKU `M6MTARCQFUQBQ2V3`, Tier1 `VHRJWKRHEA6VHEFY`, Tier2 `T469UNPYX78434EG`; paid internet transfer SKU `SDHP4R7WGBVJPQPY` in **AWSDataTransfer**. The zero-dollar transfer placeholder in the AmazonS3 catalog is not a reason to budget zero internet egress. ECR SKU `7V2YHG7PQ82BEXNB`; gp3 `X8SY8CJFS8WV7VQN`; snapshot `5JKF9WXGUTYXYKXH`; generator `9C3E5J54K6P8KBCA`.
+Totals use unrounded inputs; displayed rows can differ by a cent. Source prices
+are unchanged; the workload and lifetime have been corrected to the user's scope.
+No free-tier or Spot savings are assumed. Recalculate offline with
+`python docs/execution/aws/calculate-costs.py`.
 
-Use local rotated logs/basic EC2 monitoring; no CloudWatch Logs agent, paid detailed metrics, data-event trails, enhanced ECR Inspector scanning or log-query service in this default. Existing Trivy scans remain required. If centralized logs become necessary, the current Singapore catalog quotes $0.70/GB ingested and $0.03/GB-month stored; 2 GB of each adds $1.46 before reserve/tax. Add the real quantity explicitly. [CloudWatch regional offer](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/ap-southeast-1/index.json). AWS Budgets monitoring/notifications are free; do not configure paid budget actions. [Budgets pricing](https://aws.amazon.com/aws-cost-management/aws-budgets/pricing/).
+Expected inputs: six long submissions and up to about a dozen short workflow jobs,
+0.25 GB CloudFront uploads, 1 GB average S3 storage, 50k Tier1 / 20k Tier2 S3 requests,
+0.25 GB logs, 3 GB image layers. Requests include recurring cleanup listings, not
+only upload object count. Conservative inputs: 1 GB uploads, 5 GB S3, 250k / 100k
+requests, 1 GB logs, 6 GB registry. Measure those numbers and stop rather than
+quietly running another bulk suite. Logs retain 3 days and omit payloads/secrets.
 
-| Main run hours | Main compute | All service ceilings | Including the same $70 allowances/reserves |
-|---:|---:|---:|---:|
-| 80 | 28.22 | 85.36 | **155.36** |
-| 100 planned | 35.28 | 92.42 | **162.42** |
-| 120 maximum | 42.34 | 99.47 | **169.47** |
-| 504 continuous | 177.81 | 234.95 | **304.95 — reject** |
+Every encoder costs **$0.12824/hour including IPv4** from image download until exit;
+Linux has a one-minute minimum. Desired-count-one API tasks still bill when idle.
+Keeping the core online all **336 hours** plus the larger cleanup/log scenario
+would be **$82.62 including reserves**; it is a sensitivity check, not the plan.
+The default is zero running tasks and stopped EC2 during downtime.
 
-Formula: `0.3528 × main_hours + 57.1352 + domain/DNS + tax/FX + contingency`, with the exact quantities/rates above held constant. These generous storage/traffic/request ceilings are **planning assumptions**, not measured #39 outcomes. S3 request/storage limits are not automatically enforced hard caps. Track them and close intake/playback before exceeding the allowance.
+### The chopping block: cost levers, ranked
 
-### Fill the cost worksheet before deployment
+| Lever | Saving / scale | Tradeoff and decision |
+|---|---|---|
+| **Close the whole environment outside booked sessions** | About **$48 compute/IP savings** versus keeping the core online for all 14 days; each extra 10 online hours is about **$1.51** | **Default.** Desired counts zero, standalone tasks drained/stopped, EC2 stopped. Public site unavailable until warmup |
+| **No resident encoding worker** | One worker left on for 336h would cost $43.09; expected 2 task-hours cost $0.26 | **Default.** Bounded starts and drain/exit; slower first job. No worker ASG or permanently warm pool |
+| **Release public IP between sessions** | **$1.58** versus retaining one IPv4 for 336h when EC2 only runs 20h | **Default.** Auto-assigned IP; update CloudFront's origin on wake. Stable CloudFront viewer URL; slower propagation |
+| **Small cloud fixture set** | Avoids unnecessary worker hours, output retention and requests. Upload transfer alone is only $0.06/GB | **Default.** Six long submissions plus short smokes; reuse stored sources on retry. Full local scaling evidence stays local |
+| **Delete the environment early** | All retained EBS costs **$0.0768/day**; other retained bytes also stop billing on deletion | **Use after the final demo/export.** Stopping alone does not remove storage charges; deleting DB volumes sacrifices warm restart |
+| **Collapse Processing API + recovery into one ECS task** | About **$0.41** over 20h if both fit in the existing 0.5-vCPU / 1-GiB task | Optional, low value. Shared task failure/permissions; lose the independent recovery placement. Measure before adopting. Both already cost zero while off |
+| **Skip the unattended worker starter** | Saves implementation/validation work, not a material AWS charge | **Default first demo:** operator starts bounded burst batches; automate only if unattended operation is actually needed |
+| **Smaller root/data disks or fewer image versions** | Every 8 GiB of EBS removed saves **$0.36** over 14 days; each ECR GB saves **$0.047** | Measure first. Keep enough WAL/scratch/rollback space; do not risk the demo for cents |
+| **Remove Cloud Map/private DNS** | At most about **$0.51** in the expected case | Not recommended: requires custom discovery/routing. A purchased domain is already absent. Recreating the hosted zone each session can add charges |
+| **Spot instead of on-demand workers** | At an illustrative 50% compute discount, only **$0.12** saved on the expected 2 worker-hours | Not the first lever. Interruption/unavailable-capacity handling costs more effort; no automatic on-demand fallback |
+| **NAT, ALB, managed Redis/RDS, interface endpoints, paid domains** | **Already excluded: $0 in this plan** | Do not add these merely to look production-like. More AWS product names do not improve the service boundary |
 
-Required user/account inputs: actual project account ID and billing owner; explicit permission for this project; approved region; **currency of the $200 ceiling** (this estimate assumes USD); billing/tax currency; project start/end dates and required demo windows; controlled hostname/DNS operator; operator access method and permitted CIDR; whether scoped service access keys are permitted; permission to delete demo resources/data on the teardown date. Provide profile/role names and nonsecret identifiers, never paste credentials into chat.
+### What remains during downtime
 
-Unknown-price lookup: for a new region, open the official EC2 regional CSV above with the region code replaced, apply the listed Linux/Shared/Used/NA filters, and match the selected SKU plus gp3/snapshot usage rows; use the corresponding S3/DataTransfer/ECR regional JSONs. For DNS, ask its owner whether the existing subdomain has an incremental charge; otherwise obtain the exact registration and hosted-zone/query quote from the chosen provider before purchase (AWS option: [Route 53 pricing](https://aws.amazon.com/route53/pricing/)). For tax/FX, the billing owner supplies the actual invoicing jurisdiction and payment conversion/fee; reprice the reserve if insufficient. An unresolved quote is not zero cost.
+| Resource | Downtime behavior | Cost basis |
+|---|---|---|
+| Media, Processing API, recovery | ECS desired count **0** | No Fargate CPU/RAM/IP charge |
+| Encoder tasks | **0 running/pending** after drain | No worker compute/IP charge |
+| EC2 + PostgreSQL + Redis + nginx | EC2 **stopped**, all processes off | No EC2 compute; auto public IPv4 released |
+| ECS cluster, IAM, SGs, Internet Gateway, S3 gateway endpoint | Definitions/routes remain | No baseline hourly charge for these components |
+| CloudFront | Distribution and generated hostname remain | No distribution-hour fee; requests still cost if people hit the closed site |
+| EBS | 24 GiB retained for restart | **$1.08** over the entire 14-day window |
+| Private DNS zone | Keep it; do not recreate each session | **$0.50** for one billed calendar month |
+| S3 + ECR + retained logs | Keep only required assets, backups and rollback images | About **$0.15** retained-storage cost over 14 days in the expected case |
+| **Retained baseline** | **Zero running application services** | **About $1.73 for all 14 days**, excluding viewer requests and tax |
 
-Operator defaults can be chosen without new product discussion: c6a.2xlarge, Linux x86, same-AZ generator, 32+96 GiB gp3, two S3 Standard buckets, three scoped service keys, ECR 10 GB ceiling, one EIP, ACME, no managed database, baseline quotas unless experiments are accepted. If currency is SGD or another currency, convert using the actual billing/payment rate and reapprove hours/ceilings; $200 USD is not $200 SGD. If DNS/domain actual cost exceeds $20, reprice; do not describe the allowance as a purchased domain.
+An **Auto Scaling Group has no extra service fee**, but its EC2 instances still
+bill unless desired/minimum capacity actually reaches zero. It is an alternative
+for a future EC2 worker pool, not a cost-saving prerequisite here. Fargate needs no
+worker ASG: stopped tasks already have zero compute charges. Keep the state host
+outside a terminating ASG so PostgreSQL can simply stop/start with its EBS; an ASG
+would need replacement/bootstrap/volume-reattach handling for no compute saving
+beyond stopping it. No dedicated scheduler VM, autoscaling controller service,
+minimum-one worker, or warm pool is included. An optional starter shares the
+already-needed recovery task and is also off during downtime.
+[EC2 Auto Scaling pricing](https://aws.amazon.com/ec2/autoscaling/pricing/).
 
-Insert measured #39/first-cloud-smoke values: job counts by fixture/profile `N`; mean and maximum source/MP4/HLS bytes; HLS object count; source retention; failed/cancelled/retried object bytes; multipart part count; source grant/read, playlist/segment GETs and cleanup LIST counts; playback sessions, seeks, repeated segment transfers; ECR layer bytes; total log/snapshot changed blocks. Estimate:
+| Option | Assessment |
+|---|---|
+| **Selected: Fargate services/workers + tiny state/proxy host** | Separate task resources/releases; zero idle worker compute; preserves existing DB/queue code; minimal host administration |
+| Separate small EC2 placements | Technically valid; Media and Processing can have distinct hosts. Encoding still needs separate c6a.large workers for stable 2-vCPU capacity. At $0.0882/h + IPv4 + EBS, an active EC2 worker is cheaper per hour than Fargate, but needs AMI/agent/lifecycle capacity management. Sensible if utilization becomes sustained |
+| ECS on EC2 or ECS Managed Instances | ECS schedules containers; EC2 capacity still exists and bills while running. This is not scale-to-zero billing per task. Managed instances also have management charges. No fleet is needed for this short demo |
+| RDS + managed Redis + Fargate | Better managed persistence, but adds separate always-billed components; no need to buy those operational properties for two weeks. Reconsider only if state-host recovery/maintenance becomes a measured problem |
+| AWS Batch + SQS / Lambda redesign | Batch adds a second job scheduler over the current RQ/SQL ledger. Lambda/API Gateway would require upload/lifecycle adaptations. No workload evidence justifies that rewrite now |
+| Tailscale Serve / Funnel | Serve needs tailnet clients; public browser access is required. Funnel can be public without client installation, but introduces an additional relay/bandwidth dependency for performance measurements. CloudFront is the chosen public edge |
+| Previous single 8-vCPU / 16-GiB host | Rejected for this revision: shared encoding contention, idle capacity, disputed disk/snapshot/domain assumptions |
 
-```text
-S3 GB-month = integral(retained source + output + failed-attempt + evidence bytes over time) / billing GB-month
-Tier1 = source PUT parts + output PUT parts + multipart control + LIST/recovery + evidence writes
-Tier2 = worker source GETs + Media playlist/copy GETs + playback segment/MP4 GETs + other reads
-Internet GB = measured external S3 response bytes + EC2 response/export bytes (avoid counting internal S3 reads twice)
-Cost = storage integral*0.025 + Tier1*0.000005 + Tier2*0.0000004 + internet_GB*0.12
-```
+Alternative references: [ECS compute-mode pricing](https://aws.amazon.com/ecs/pricing/),
+[Tailscale Funnel public access and limits](https://tailscale.com/docs/features/tailscale-funnel).
 
-270 jobs alone does not determine egress; encoding output size and actual playback sessions do. Same-region EC2↔S3 transfer has no transfer charge, while requests/storage still apply; keep both buckets local to the host region. [AWS transfer example](https://aws.amazon.com/vpc/pricing/).
+The savings versus the previous $169.47 envelope are not a like-for-like benchmark:
+this revision changes both architecture and usage/storage assumptions. Compare
+captured task-hours and actual AWS line items after implementation.
 
-## Ordered preparation, deployment, validation and teardown
+## Minimum implementation work, in order
 
-### 1. Prepare now, without AWS or competing workloads
+1. **Cloud packaging and credentials.** Build current accepted source as amd64,
+   retain exact per-service digests, preserve tests/scan gates. Add AWS task-role
+   credential providers (including temporary session-token refresh) to the existing
+   S3-compatible SDK paths; current settings require static keys. Keep local MinIO
+   support. Separate Media, Processing API, worker and cleanup task roles; the API
+   needs no bucket permissions. Media/reconciler share a task role; cleanup/starter
+   has output List/Delete and scoped RunTask/PassRole only. No source credentials
+   on workers, no OIDC/broker, and no secrets in task definitions, images or Git.
+   Inject DSNs/tokens from scoped standard SSM parameters; execution roles fetch
+   them, application roles access owned resources. Keep migrations one-off.
+2. **One public-subnet deployment definition.** Dedicated AWS IaC, EC2 state/edge
+   bootstrap, 16+8-GiB EBS, S3 gateway route, buckets, ECR, Cloud Map, the three ECS
+   services, standalone worker definition, CloudFront and narrow security groups.
+   No imported root Compose application. Private DB/queue endpoints, `MEDIA_PUBLIC_URL`
+   set to the CloudFront URL, private peer URLs, regional TLS S3 endpoints, correct
+   cookie/proxy/CORS configuration. Resolve the disclosed origin-TLS interpretation
+   before applying. Validate frontend and Publisher with normal system trust.
+3. **Manual cloud workflow first.** Startup/readiness, both owner migrations,
+   one `--burst` task, actual multipart S3 upload, complete MP4/HLS playback, stored
+   source retry, and environment stop/start. Verify task credential refresh and
+   negative bucket/database permissions. Measure memory, disk, cold start and billed
+   startup time. No application rewrite to create more service names.
+4. **Per-service ECS release adapter.** Replace Compose/container inspection with
+   ECS task-definition/service/digest checks; wait for private DNS/health, gate image
+   promotion with cloud smoke, drain workers, preserve rollback digest, and record
+   Media task IDs/image/database revision unchanged for a Processing release.
+   Candidate API health failure must restore the prior version. Recovery updates
+   use their own task and restart safely. Run backward-compatible owning migrations;
+   image rollback does not automatically reverse a destructive schema migration.
+5. **Optional bounded worker starter.** Skip this for an operator-run demo. If
+   unattended queue-to-worker starts are required, add reservations/idempotency and the operator
+   target described above. Verify zero-backlog zero-launch, cold enqueue, restart,
+   ambiguous RunTask response, overlapping ticks, unavailable capacity and 3-task cap.
+   This focused check is required before scheduling can be claimed reliable.
+6. **Focused AWS evidence and handback.** Run the focused cloud checks below, capture
+   source/digests/environment/limits, document failures, export compact evidence and
+   DB backup, then stop compute. Rehearse restart and teardown with the owner.
 
-Parent reviews and publishes the completed #38/#39 rejection decisions. Preserve immutable baselines and all failures. The worksheet now carries the measured local output/transfer inputs; retain baseline quotas and fixed workers. Implement the small deployment adapters/configuration listed above in a separately authorized coding task, with offline checks and public documentation only until account approval. No need for more architecture agents. Budget roughly one focused preparation day plus one bounded cloud verification day; this is a task estimate, not a new three-week implementation project.
+These are sequenced work items, not implemented commands or an approved deadline.
+The remaining work is cloud adapters, deployment and one cloud evidence cycle;
+it is not another extraction project. Preserve the earlier three-day/five-day
+implementation agreement as history; do not invent a fresh schedule before the
+account and demonstration windows are known. Existing automated build/test/scan
+workflow stays; all GitHub operations use authenticated `gh` exclusively.
 
-User can supply the nonsecret account/budget/region/domain/window information now, arrange access through the account owner's normal secure login process, arrange an existing subdomain, identify the demo dataset and designate a cost/teardown owner. Do not use another project's AWS profile or ask for root credentials. Do not sign in/provision until the project account and this priced plan are approved.
+## Acceptance and cost controls
 
-### 2. Gate before first paid resource
+| Demonstration | Evidence / unchanged target |
+|---|---|
+| Real service isolation | Separate ECS service/task definitions and digests; terminate a worker/Processing API task while Media task IDs and image stay unchanged; shared dependencies disclosed |
+| Independent Processing release/rollback | Successful release + smoke ≤600 s; Media tasks and media_db migration revision unchanged; failed candidate restores prior digest |
+| Worker capacity | Small 1/2/3-worker demonstration using just 1/2/3 long jobs (six total), 2-vCPU cap each; capture task identities, independent placement and concurrent claims. **Do not claim the full scaling speedup target from this sample** |
+| Status and login | 50 status users /180 s: p90 ≤700 ms, errors <1%; separately 20 logins: p90 <2 s. Record actual password-hash cost, no silent weakening |
+| Worker loss | Failure/requeue visible ≤300 s; stored-source retry succeeds, no duplicate published outputs; stopping a task does not prove host recovery |
+| Queue loss / Processing outage | Repair ≤120 s while environment is online; Media accepts/reconciles interrupted submissions; different test from waking a cold worker |
+| Web + Publisher | Same public HTTPS API; real multipart check using the existing ~21-MB source, MP4 range/seek, decoded HLS, ownership/expiry negatives, no SDK/service imports in Publisher |
+| Scheduling | Default: explicit batch starts, zero idle workers, no >3 workers. If unattended starter is implemented: verify cold enqueue, overlap/idempotency and visible launch errors. No automatic retry claim |
+| Persistence and budget | Stop/start keeps metadata and S3 sources; restore a quiescent export once if backup is claimed; record vCPU/GB/task seconds, image-pull time, IPv4 hours, S3 requests/bytes, log bytes and retained disks |
 
-Future AWS agent verifies the **explicit project profile's** account ID against the approved account, permissions/region, at least 10 On-Demand standard-instance vCPU quota (8 main + 2 generator), instance availability, actual tax/currency and latest public prices. Check any account-wide existing charges that the $200 ceiling must include. Create a dated resource/expiry manifest and a 21-day cost budget; set actual/forecast alerts at $80/$120/$150. Alerts are delayed and are not a spending cap. [Budget timing limitation](https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html).
+The original full scaling target remains 30 identical 60-second 720p clips per
+1/2/3-worker batch, speedups ≥1.6× / ≥2.1×, falling queue wait and zero failed jobs.
+Existing accepted evidence for that target is **local**. Repeating all 90 cloud
+uploads is **not** in the default test set; do it only if cloud-specific throughput
+proof becomes a separate requirement. Do not weaken or relabel the original result.
 
-Approval covers concrete resource list, quantities, image/config identities, run windows and teardown/data deletion. If any prerequisite is missing, prepare files and stop before provisioning; no substitute account. At every later start, require `spent + unbilled estimate + planned session + remaining storage/egress + reserves <= $200` and the stricter operational thresholds below.
+Use an independent short-lived generator for timed API tests; its 1/4-hour allowance
+is priced. Those status/login tests reuse one asset and need no bulk video uploads. Do not rerun historical local suites merely to fill time or overwrite
+failed evidence. Publish AWS results with their own provenance and limitations.
 
-### 3. Provision the minimal inventory and install release
+Set cost alerts around $5, $10 and $20 and inspect actual spend at session close;
+alerts are delayed, not enforcement. Give each session a latest drain time. Stop
+starting new jobs when the approved hours/worker/transfer envelope is exhausted.
+Restrict public registration or test access using existing simple app controls
+if needed for a public demo; do not add an identity platform. Before applying, verify Fargate regional on-demand vCPU quota supports at least
+7.75 vCPU for the three-worker trial and additional release/migration overlap;
+request 10 vCPU if needed and serialize migrations. Keep the CloudFront prefix
+list rule in a separate edge security group if its rule weight exhausts the
+default quota. These are account checks, not reasons to enlarge the compute host.
+No paid spend until
+actual project account, currency and resource plan are authorized.
 
-Create/tag only the approved VPC/subnet/IGW/security group, two S3 buckets and their policies/CORS, three scoped service principals, ECR repositories (if selected), main EC2/EBS/EIP. Tag resources `Project=dc2`, `Team=17`, `ExpiresAt=<UTC cutoff>` and record all IDs. Reuse account-managed networking only with explicit project scope. No Spot/Savings Plan purchase or capacity reservation.
+Teardown removes ECS services/tasks, state host, retained EBS after export, Elastic
+IP if any was deliberately retained, CloudFront distribution, Cloud Map/zone, ECR layers, S3 objects/buckets and
+log groups/parameters/roles after required evidence retention. Stop is not delete.
+Confirm exports and data-deletion ownership before destroying durable state. No
+operations on inherited Alibaba or any other project's AWS account.
 
-Attach/mount encrypted data volume and install Docker/Compose with recorded versions. Transfer private config securely; application containers never receive operator credentials. Produce/scan/test exact amd64 artifacts off the timed deployment path. Upload images, frontend bundle and nginx configuration; record source SHA, digests, FFmpeg/build versions and configuration hash. Map DNS, obtain/verify ACME certificate, then start only PostgreSQL/Redis, bootstrap roles and apply Media/Processing migrations separately. Reuse the corrected TCP PostgreSQL readiness probe. Start APIs/reconcilers, one worker, then nginx; verify permissions and external workflow before scaling. Cloud Compose/start/stop command names must be supplied by the adapter implementation, not guessed from unchanged `make up`.
+## Remaining nonsecret inputs
 
-### 4. Validate in increasing cost order
-
-1. Trusted external TLS; unsigned S3 denied; scoped IAM positive/negative/multipart tests; DB runtime DDL and cross-service connection denial; no public private-service ports. Validate endpoint region, CORS and source grant renewal after expiry.
-2. Browser actual login/upload/status, decoded HLS **and** MP4/range seeking, derived-copy/edit, retry from stored source, ownership and deletion. Independent installed Publisher uses only `https://<host>/api`, system trust and its private cookie jar; prove 30-good/one-rejected folder outcomes. Record real output bytes and requests. Inspect only bcrypt cost/provenance metadata, never hashes/passwords.
-3. Worker loss ≤300 s, lost queue-entry repair ≤120 s, Processing outage/restart intent convergence and no duplicate accepted output. Exercise complete Redis loss separately; do not extrapolate the queue-entry result. Stop/restart with durable queued backlog; old running attempts must converge through leases/retry rather than duplicate success. Record whole-host downtime separately—there is no healthy API during host failure.
-4. Full scaling only after smoke/capacity preflight: immutable same fixtures, 30×60-second 720p clips, three rotated repeats at 1/2/3 hard-2-CPU workers, zero failed/missing MP4/HLS, ≥1.6× and ≥2.1× speedup and decreasing median queue wait. Status 50 users/180 s/p90≤700 ms/errors<1%; separate login 20 users/p90<2 s, three repeats. Warmups and session renewal outside timed intervals. Preserve hash-cost and exact image provenance.
-5. If accepted #38/#39 changes are deployed, validate their cloud behavior as additional comparisons, not transplanted local claims. Predeclare mixed-load and queue-age bounds, preserve quality/correctness/recovery gates; reject policy/config regression.
-6. Independent Processing good promotion/public smoke ≤600 s with nonempty active drain; actual bad-start candidate and automatic exact tested-image restoration within the existing recovery bound; Media container/image/DB revision unchanged. Preserve journal/digests through host restart. Repeat analogous Media-only deployment smoke to establish its packaging boundary; do not invent historic timed Media-release evidence.
-
-Run HTTP load from a temporary **same-AZ c6a.large**, maximum 16 total hours, using a prebuilt fixture bundle. It is a test client, not a third business service. Resolve the application hostname to the main host's private IP on this generator while preserving the real TLS hostname/SNI; label results as in-region private-network client measurements. Browser public-network smoke runs from a separate client/Mac after Sol releases it. Publish public-path observations separately; no promise that an external internet path meets the in-region latency result. Record generator CPU/memory/event-loop delay and request schedule; abort invalid measurements if the generator saturates. Do not generate FFmpeg fixtures, build images or render browsers on the application host during timing. Host-side metric/fault collectors must remain lightweight and their overhead recorded. Terminate generator and release its dynamic IPv4/disk immediately after the booked block.
-
-A failed AWS measurement is a failed AWS measurement, not a reason to erase accepted local results. Preserve full runs, denominators, scope, source/image/config/fixture identities, raw timings/pressure/queue ages, cost ledger and sanitized hash-indexed artifacts. Do not splice passing portions or weaken thresholds after observing results.
-
-### 5. Run windows and durable stop/restart
-
-Default 21-day schedule: days 1–3 up to 32h for installation/cloud verification; days 4–10 up to 24h for fixes/rehearsals; days 11–14 up to 24h for presentation/recovery recording; days 15–21 up to 20h for selected sessions/export. Total planned **100h**, plus at most **20h correction allowance** within the same budget. Actual dates are user inputs; if started 14 October, reserve the known 26 October presentation window and teardown by **4 November at the same Singapore start time**. Any service needed until the 16 November report deadline requires repricing; keep evidence/recordings offline after teardown. Each session has an owner and explicit UTC stop deadline, at most 8h except a separately booked presentation window.
-
-Prepare a local systemd deadline timer using normal OS shutdown with instance-initiated shutdown behavior **stop** (not terminate). It is a cost backstop, not an autoscaler. Verify behavior in the first stop/restart exercise. The operator independently checks EC2 reaches `stopped`; stopping Compose alone does not stop billing. If graceful drain fails, close intake and stop within the booked deadline, record interrupted attempts for lease/retry recovery; do not let the timer extend itself indefinitely. [EC2 stop/start and OS shutdown behavior](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Stop_Start.html).
-
-Normal stop sequence:
-
-1. Close public intake and announce maintenance; capture accepted worker count, queue/backlog/active attempts, source/image/config identities and migrations. Check pending release journal; resolve unfinished rollback first.
-2. Stop reconciliation from creating new work; suspend new worker dequeues using the accepted drain mechanism and wait boundedly for active attempts. Queued intents may remain durable. Gracefully stop Media/Processing writers and recoverers once active writes finish.
-3. With application writes quiescent, create private logical dumps of **both** databases plus required role/config recovery material; verify dump readability and record migration revisions. Preserve Redis AOF/metadata on EBS; gracefully stop Redis/PostgreSQL and flush filesystems. Keep secrets/hashes out of evidence exports.
-4. Take a consistent encrypted data-volume snapshot at first install, before risky release and after substantial new durable data—not an unlimited snapshot every stop. Monitor total retained snapshot blocks; prune only approved superseded recovery points. Export sanitized evidence/recordings to the team's chosen durable location.
-5. Stop EC2 gracefully, verify `stopped`, update runtime-hours/cost ledger. EBS, snapshots, EIP, ECR and S3 continue billing while stopped. Never prune volumes or release the stable EIP between booked sessions.
-
-Restart: mount-check first; keep ingress closed and workers paused; read private journal and image/config pins, recover interrupted release if needed; start PostgreSQL/Redis with TCP readiness; verify both revisions; start APIs/reconcilers and prove durable backlog/lease convergence; restore the explicit accepted worker count; run public smoke then open intake. URLs can expire during downtime and must be renewed; don't alter source descriptors or grant worker source keys. Perform one restore rehearsal using a temporary volume within remaining storage/hours allowance; snapshot existence alone is not restore evidence.
-
-### 6. Spend stop and final teardown
-
-Maintain a project ledger at every start/stop, refreshed against billed cost daily while active. Count overlapping generator hours separately; use the full paid egress rate. At **100 main hours** review remaining demo needs. At **120 hours**, **21 days**, **150 dollars of accrued/estimated total spend**, or any worksheet usage ceiling, stop starting new experiments/windows and re-evaluate; none is permission to spend the remaining balance. At **175 dollars projected/accrued including known commitments**, close intake, stop compute and bring teardown forward, preserving the remaining $25 for lag/tax/deletion/export. AWS Budgets alone cannot enforce these rules. No unapproved extension or automatic restart. A forecast above $200 blocks deployment/continuation even before these thresholds.
-
-On the approved teardown deadline, export and verify the required sanitized evidence/recordings and any user-approved data backup outside resources being deleted. Then stop intake/drain, terminate both instances, delete approved EBS volumes/snapshots, remove ECR images/repos, abort multipart uploads and empty/delete both buckets (including versions/delete markers if someone enabled versioning), release Elastic IPs, remove project-only network resources, delete service access keys/principals/policies and the DNS record. Remove any deadline timer/schedules, log groups or paid monitoring created by exception. Do not delete unrelated account resources. Inspect the manifest for leftovers and check billing again after reporting delay; retain only explicitly approved priced resources. A stopped instance alone is not teardown.
-
-## Acceptance checklist for the parent
-
-- [x] #38 and #39 rejection decisions/evidence inserted; baseline quotas and fixed worker counts retained.
-- [x] Fresh independent review PASS at `632cac5`; accepted PR merge and exact Main checks remain coordinator-owned and are recorded in GitHub.
-- [ ] Actual project account, region, USD/currency/billing inputs, access method, hostname/DNS, dates and $200 total approval supplied; no unrelated AWS credentials used.
-- [ ] Current rates rechecked; request/byte worksheet filled or conservative ceilings retained; 100h plan/120h cap and teardown approved.
-- [ ] AWS Compose/config/release/evidence adapters implemented and reviewed; x86 artifacts tested/scanned; mutable local images not reused as proof.
-- [ ] S3 scoped IAM/multipart/renewal/CORS/TLS/decoded playback and DB ownership pass on AWS.
-- [ ] Fair generator/capacity proof, complete cloud runs and recovery/rollback results recorded honestly; local results remain attributed to original sources.
-- [ ] Durable-stop/backlog restart and actual backup restore pass; deadline stop reaches EC2 stopped; no HA claim.
-- [ ] Offline evidence/recording retained; manifests and final teardown/billing follow-up assigned. Academic report/slides remain separate work.
-
-## Paste-ready brief for the eventual AWS agent
-
-> Work on dc2 from `/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2`. Read root AGENTS, full worklog, execution handoff/plan/decisions/interfaces and this AWS plan. Baseline accepted Main is b913579; parent will supply any later accepted #38/#39 SHA, evidence and config. Historical roadmap security/deployment suggestions are superseded. Two live business services only: Media and Processing; reuse engine/frontend/Publisher. Preserve owner checks, bcrypt, separate DB roles/stores, service tokens, private objects and existing test/scan gates. No OIDC, credential broker, Kubernetes, autoscaling, managed database/cache, Alibaba or other project's AWS account.
->
-> Inputs to fill before provisioning: PROJECT_ACCOUNT_ID=___; PROJECT_PROFILE_OR_ROLE=___; REGION=___ (provisional ap-southeast-1); APPROVED_TOTAL_BUDGET/CURRENCY=___ (plan assumes USD200); BILLING/TAX_CURRENCY=___; DOMAIN/DNS_OWNER=___; OPERATOR_CIDR=___; START/TEARDOWN_UTC=___; REQUIRED_DEMO_WINDOWS=___; SERVICE_KEY_POLICY_ALLOWED=___; CONFIG=baseline quotas, fixed 1/2/3 workers (both experimental candidates rejected); DEPLOY_SHA=___; PLAN/TEARDOWN_APPROVAL=___. Obtain credentials through normal secure local authentication, never chat; verify the explicit project account identity before any change. Missing approval/account blocks paid actions, not offline preparation.
->
-> Implement/review the small AWS adapters before deployment: dedicated Compose without MinIO; outbound S3 networking; regional HTTPS SDK endpoints; three bucket-scoped service principals; output CORS; domain/ACME nginx; persistent EBS/systemd startup/drain/deadline stop; exact-image release/rollback; separate HTTP generator and host metrics/fault control. Current runtime/release/evidence scripts assume localhost/MinIO and cannot be passed off as AWS-ready unchanged. Build native linux/amd64 from the accepted source, test/scan actual digests; package frontend/config without redesign. Keep Media and Processing independently promotable with separate migrations and exact-image rollback.
->
-> Revalidate official current Singapore prices and the attached worksheet. Proposed main host: On-Demand Linux c6a.2xlarge, 8vCPU/16GiB, 32+96GiB encrypted gp3, private S3 sources/outputs, one retained Elastic IP, optional private ECR. 100 main running hours planned, 120 maximum in 21 days; temporary same-AZ c6a.large HTTP generator ≤16h. Baseline worker hard limits 2CPU/1536MiB; fixed 1/2/3 unless #39 accepted. Preserve #38 baseline on rejection. Cost envelope $169.47 at120h with listed traffic/storage/request allowances and reserves; continuous504h is rejected. Budget is total, not monthly compute. Do not credit lower replicas as EC2 savings. Stop between booked windows and tear down by the approved date.
->
-> Validate progressively: private storage/DB permission and TLS tests; real web+independent CLI, HLS/MP4 decoding/CORS/seek and expiry renewal; bounded worker/queue/Redis/backlog recovery; fair complete1/2/3 scaling and isolated latency; conditional accepted experiment policy; active Processing promotion/injected failure/exact rollback with Media unchanged; durable EC2 stop/restart and backup restore. Keep AWS claims separate from local f46599f evidence and PR37 unmeasured end-to-end gains. Record failures, exact image/config/fixture identities, bytes/requests/egress, runtime-hours and raw sanitized evidence; don't claim Sonar analysis ran when skipped. At150 estimated total dollars or120h/21days stop new windows; at175 projected/accrued dollars bring teardown forward. Export/verify evidence and finish resource-manifest teardown plus delayed billing check.
->
-> All GitHub access uses authenticated gh exclusively. Parent controls integration/review and any publication; follow its explicit authorization. The local experiment runtime was released and the original demo restored; still inspect current ownership before any future workload. This planning document did not provision or validate AWS.
+Use a private copy of [job inputs](job-inputs.template.json): actual project account
+and scoped login/profile, billing owner, region/currency, start/demo/teardown windows,
+export/deletion owner, selected source SHA, and authorization for the priced plan.
+Public browser access is confirmed. A purchased domain and Tailscale installation
+on viewers are not prerequisites. The CloudFront origin HTTP tradeoff is recorded
+for review; paid provisioning is not authorized by this planning document.

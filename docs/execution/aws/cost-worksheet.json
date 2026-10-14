@@ -1,400 +1,127 @@
 {
-  "schema_version": 1,
-  "prepared_date": "2026-10-14",
-  "timezone": "Asia/Singapore",
-  "status": "PLANNING_ONLY_NO_PROVISIONING_NO_ACCOUNT_ACCESS_NO_RUNTIME_TESTS",
-  "accepted_baseline_from_parent": "b913579",
-  "region_provisional": "ap-southeast-1",
-  "budget_total_usd_assumption": 200,
-  "currency_requires_user_confirmation": true,
-  "retention_days_ceiling": 21,
-  "main_instance": "c6a.2xlarge",
-  "architecture": "linux/amd64",
-  "main_vcpu": 8,
-  "main_memory_gib": 16,
-  "hours_planned": 100,
-  "hours_ceiling": 120,
-  "free_tier_or_credits_deducted": false,
-  "storage_billing_assumption": "Conservatively budget one full GB-month for each ceiling, despite 21-day retention; actual AWS proration may reduce bill. Snapshot quantity is total billed changed blocks, not per-snapshot disk capacity.",
-  "sources": {
-    "ec2_ebs": {
-      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/ap-southeast-1/index.csv",
-      "publication_utc": "2026-10-12T19:39:25Z",
-      "effective_date": "2026-10-01",
-      "filters": {
-        "TermType": "OnDemand",
-        "Operating System": "Linux",
-        "Tenancy": "Shared",
-        "CapacityStatus": "Used",
-        "Pre Installed S/W": "NA",
-        "Location": "Asia Pacific (Singapore)"
-      }
+  "version": "2026-10-15-fargate-replan-14-days-small-fixtures",
+  "status": "Proposal only; no spending approval",
+  "region": "ap-southeast-1",
+  "currency": "USD",
+  "rate_evidence": "pricing-20261015.json",
+  "rates_usd": {
+    "fargate_vcpu_hour": 0.05056,
+    "fargate_gb_hour": 0.00553,
+    "ipv4_hour": 0.005,
+    "s3_gb_month": 0.025,
+    "s3_tier1_request": 5e-06,
+    "s3_tier2_request": 4e-07,
+    "ecr_gb_month": 0.1,
+    "log_ingest_gb": 0.7,
+    "log_storage_gb_month": 0.03,
+    "cloudmap_resource_month": 0.1,
+    "cloudmap_api_call": 1e-06,
+    "cloudfront_viewer_gb": 0.12,
+    "cloudfront_origin_gb": 0.06,
+    "cloudfront_https_request": 1.2e-06,
+    "internet_egress_gb": 0.12,
+    "private_hosted_zone_month": 0.5,
+    "t3a.small_hour": 0.0236,
+    "c6a.large_hour": 0.0882,
+    "gp3_gb_month": 0.096
+  },
+  "duration_days": 14,
+  "storage_month_days": 30,
+  "ebs_root_gb": 16,
+  "ebs_data_gb": 8,
+  "private_zone_month_charges": 1,
+  "cloudmap_resources": 2,
+  "cloudmap_api_calls": 2000,
+  "profiles": {
+    "media": {
+      "vcpu": 1,
+      "memory_gb": 2
     },
-    "s3": {
-      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/ap-southeast-1/index.json",
-      "publication_utc": "2026-10-12T23:11:02Z"
+    "processing_api": {
+      "vcpu": 0.5,
+      "memory_gb": 1
     },
-    "transfer": {
-      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSDataTransfer/current/ap-southeast-1/index.json",
-      "publication_utc": "2026-09-16T13:22:08Z"
+    "processing_recovery": {
+      "vcpu": 0.25,
+      "memory_gb": 0.5
     },
-    "ecr": {
-      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECR/current/ap-southeast-1/index.json",
-      "publication_utc": "2026-09-11T12:44:25Z"
-    },
-    "ipv4": {
-      "url": "https://aws.amazon.com/vpc/pricing/",
-      "retrieved_date": "2026-10-14"
-    },
-    "cloudwatch_optional": {
-      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/ap-southeast-1/index.json",
-      "publication_utc": "2026-10-07T11:55:40Z"
+    "worker": {
+      "vcpu": 2,
+      "memory_gb": 4
     }
   },
-  "line_items": [
-    {
-      "item": "main_compute",
-      "quantity": 120,
-      "unit": "instance-hour",
-      "rate_usd": 0.3528,
-      "cost_usd": 42.336,
-      "source": "ec2_ebs",
-      "sku": "DYD6FC9AUENHNE2A",
-      "quantity_status": "planning_ceiling_not_measurement"
+  "scenarios": {
+    "expected": {
+      "core_hours": 20,
+      "worker_task_hours": 2,
+      "surge_task_hours": 2,
+      "generator_hours": 1,
+      "s3_average_gb": 1,
+      "s3_tier1_requests": 50000,
+      "s3_tier2_requests": 20000,
+      "ecr_average_gb": 3,
+      "log_ingest_gb": 0.25,
+      "log_average_gb": 0.05,
+      "s3_internet_gb": 2,
+      "cloudfront_viewer_gb": 0.25,
+      "cloudfront_origin_gb": 0.25,
+      "cloudfront_https_requests": 50000,
+      "tax_fx_reserve_usd": 2,
+      "contingency_usd": 5
     },
-    {
-      "item": "main_gp3",
-      "quantity": 128,
-      "unit": "GB-month",
-      "rate_usd": 0.096,
-      "cost_usd": 12.288,
-      "source": "ec2_ebs",
-      "sku": "X8SY8CJFS8WV7VQN",
-      "quantity_status": "planning_ceiling_not_measurement"
+    "conservative": {
+      "core_hours": 40,
+      "worker_task_hours": 8,
+      "surge_task_hours": 4,
+      "generator_hours": 4,
+      "s3_average_gb": 5,
+      "s3_tier1_requests": 250000,
+      "s3_tier2_requests": 100000,
+      "ecr_average_gb": 6,
+      "log_ingest_gb": 1,
+      "log_average_gb": 0.3,
+      "s3_internet_gb": 10,
+      "cloudfront_viewer_gb": 1,
+      "cloudfront_origin_gb": 1,
+      "cloudfront_https_requests": 200000,
+      "tax_fx_reserve_usd": 5,
+      "contingency_usd": 10
     },
-    {
-      "item": "snapshot_billed_blocks",
-      "quantity": 128,
-      "unit": "GB-month",
-      "rate_usd": 0.05,
-      "cost_usd": 6.4,
-      "source": "ec2_ebs",
-      "sku": "5JKF9WXGUTYXYKXH",
-      "quantity_status": "planning_ceiling_not_measurement"
-    },
-    {
-      "item": "main_elastic_ipv4",
-      "quantity": 504,
-      "unit": "address-hour",
-      "rate_usd": 0.005,
-      "cost_usd": 2.52,
-      "source": "ipv4",
-      "sku": null,
-      "quantity_status": "planning_ceiling_not_measurement"
-    },
-    {
-      "item": "s3_standard_all_buckets",
-      "quantity": 100,
-      "unit": "GB-month",
-      "rate_usd": 0.025,
-      "cost_usd": 2.5,
-      "source": "s3",
-      "sku": "M6MTARCQFUQBQ2V3",
-      "quantity_status": "planning_ceiling_not_measurement"
-    },
-    {
-      "item": "s3_tier1",
-      "quantity": 1000000,
-      "unit": "request",
-      "rate_usd": 5e-06,
-      "cost_usd": 5.0,
-      "source": "s3",
-      "sku": "VHRJWKRHEA6VHEFY",
-      "quantity_status": "planning_ceiling_not_measurement"
-    },
-    {
-      "item": "s3_tier2",
-      "quantity": 1000000,
-      "unit": "request",
-      "rate_usd": 4e-07,
-      "cost_usd": 0.4,
-      "source": "s3",
-      "sku": "T469UNPYX78434EG",
-      "quantity_status": "planning_ceiling_not_measurement"
-    },
-    {
-      "item": "combined_internet_egress",
-      "quantity": 200,
-      "unit": "GB",
-      "rate_usd": 0.12,
-      "cost_usd": 24.0,
-      "source": "transfer",
-      "sku": "SDHP4R7WGBVJPQPY",
-      "quantity_status": "planning_ceiling_not_measurement"
-    },
-    {
-      "item": "ecr_private_layers",
-      "quantity": 10,
-      "unit": "GB-month",
-      "rate_usd": 0.1,
-      "cost_usd": 1.0,
-      "source": "ecr",
-      "sku": "7V2YHG7PQ82BEXNB",
-      "quantity_status": "planning_ceiling_not_measurement"
-    },
-    {
-      "item": "generator_compute",
-      "quantity": 16,
-      "unit": "instance-hour",
-      "rate_usd": 0.0882,
-      "cost_usd": 1.4112,
-      "source": "ec2_ebs",
-      "sku": "9C3E5J54K6P8KBCA",
-      "quantity_status": "planning_ceiling_not_measurement"
-    },
-    {
-      "item": "generator_ipv4",
-      "quantity": 16,
-      "unit": "address-hour",
-      "rate_usd": 0.005,
-      "cost_usd": 0.08,
-      "source": "ipv4",
-      "sku": null,
-      "quantity_status": "planning_ceiling_not_measurement"
-    },
-    {
-      "item": "generator_gp3",
-      "quantity": 16,
-      "unit": "GB-month",
-      "rate_usd": 0.096,
-      "cost_usd": 1.536,
-      "source": "ec2_ebs",
-      "sku": "X8SY8CJFS8WV7VQN",
-      "quantity_status": "planning_ceiling_not_measurement"
+    "continuous_core_sensitivity": {
+      "core_hours": 336,
+      "worker_task_hours": 8,
+      "surge_task_hours": 4,
+      "generator_hours": 4,
+      "s3_average_gb": 5,
+      "s3_tier1_requests": 2000000,
+      "s3_tier2_requests": 100000,
+      "ecr_average_gb": 6,
+      "log_ingest_gb": 2,
+      "log_average_gb": 0.3,
+      "s3_internet_gb": 10,
+      "cloudfront_viewer_gb": 1,
+      "cloudfront_origin_gb": 1,
+      "cloudfront_https_requests": 200000,
+      "tax_fx_reserve_usd": 5,
+      "contingency_usd": 10
     }
+  },
+  "notes": [
+    "14 days maximum, reflecting the remaining two college weeks; earlier 21-day and 300-fixture assumptions are superseded.",
+    "No free tier, credits, Spot savings, domain purchase, snapshots, NAT, ALB, paid interface endpoints or Savings Plans assumed.",
+    "Worker-task hours include image download, startup, idle prewarming, retries and minimum billing. Maximum three concurrent workers.",
+    "Core hours apply to the state host and all three ECS service tasks. During downtime all tasks are zero and EC2 is stopped; the application is unavailable.",
+    "No retained Elastic IP. State public IPv4 hours equal EC2 running hours. CloudFront origin DNS is updated and allowed to propagate at each wake.",
+    "Cloud Map task registrations are priced for two registered API tasks while online, not for the full retention period. Keep the private zone to avoid recreation charges.",
+    "One private-zone calendar-month charge assumes all 14 days fall in October 2026; add $0.50 if the dates cross into November.",
+    "Expected upload allowance 0.25 GB: six 60-second fixture submissions total 126302472 bytes; short workflows and optional boundary checks share the remaining allowance. Avoid bulk trials.",
+    "Default AWS work demonstrates deployment/recovery/capacity only. Historical full scaling results remain local; a small AWS smoke does not prove numeric throughput targets.",
+    "CloudFront rates use Asia delivery. Direct signed S3 playback is a separate, non-overlapping egress quantity.",
+    "Migration/release overlap is conservatively charged at the largest nonworker task profile, including IPv4.",
+    "Storage uses a 30-day planning month; actual billing varies slightly by calendar. Metadata exports are included in S3 storage.",
+    "Expected 50k Tier1 requests include upload/multipart requests, source scans and up to about 10 failed/deleted prefixes rescanned once/minute for 20h. Measure actual request counts.",
+    "Conservative is a bounded usage scenario, not a bill cap. Tax/FX are visible reserves, not a tax calculation. Prior $200 currency remains unconfirmed.",
+    "Core billed hours include startup, CloudFront propagation waiting, readiness checks and drain, not only the visible demo."
   ],
-  "allowances_not_verified_rates": {
-    "domain_and_dns_usd": 20,
-    "tax_fx_payment_reserve_usd": 25,
-    "contingency_usd": 25
-  },
-  "scenarios": [
-    {
-      "main_hours": 80,
-      "main_compute_usd": 28.224,
-      "service_subtotal_usd": 85.3592,
-      "total_with_70_usd_allowances_reserves": 155.3592,
-      "decision": "BOUNDED_PLAN"
-    },
-    {
-      "main_hours": 100,
-      "main_compute_usd": 35.28,
-      "service_subtotal_usd": 92.4152,
-      "total_with_70_usd_allowances_reserves": 162.4152,
-      "decision": "BOUNDED_PLAN"
-    },
-    {
-      "main_hours": 120,
-      "main_compute_usd": 42.336,
-      "service_subtotal_usd": 99.4712,
-      "total_with_70_usd_allowances_reserves": 169.4712,
-      "decision": "BOUNDED_PLAN"
-    },
-    {
-      "main_hours": 504,
-      "main_compute_usd": 177.8112,
-      "service_subtotal_usd": 234.9464,
-      "total_with_70_usd_allowances_reserves": 304.9464,
-      "decision": "REJECT_CONTINUOUS"
-    }
-  ],
-  "selected_service_subtotal_usd": 99.4712,
-  "selected_total_envelope_usd": 169.4712,
-  "unallocated_margin_usd": 30.5288,
-  "zero_additional_items": {
-    "logs": "rotated EBS logs plus S3 exports counted in allowances",
-    "basic_monitoring": "no paid detailed metrics or logs ingestion",
-    "s3_ec2_same_region_transfer": "no paid transfer; requests/storage still counted",
-    "budget_monitoring_notifications": "free monitoring; no budget actions",
-    "acme_certificate": "no certificate purchase; domain/DNS separate"
-  },
-  "optional_not_selected": {
-    "cloudwatch_ingest_usd_per_gb": 0.7,
-    "cloudwatch_storage_usd_per_gb_month": 0.03,
-    "cloudwatch_2gb_each_usd": 1.46
-  },
-  "compute_alternatives": [
-    {
-      "type": "c6a.2xlarge",
-      "architecture": "amd64",
-      "usd_per_hour": 0.3528,
-      "hours120_usd": 42.336,
-      "hours504_usd": 177.8112
-    },
-    {
-      "type": "c6i.2xlarge",
-      "architecture": "amd64",
-      "usd_per_hour": 0.392,
-      "hours120_usd": 47.04,
-      "hours504_usd": 197.568
-    },
-    {
-      "type": "c7i.2xlarge",
-      "architecture": "amd64",
-      "usd_per_hour": 0.4116,
-      "hours120_usd": 49.392,
-      "hours504_usd": 207.4464
-    },
-    {
-      "type": "c7g.2xlarge",
-      "architecture": "arm64",
-      "usd_per_hour": 0.3332,
-      "hours120_usd": 39.984,
-      "hours504_usd": 167.9328
-    }
-  ],
-  "spend_controls": {
-    "review_main_hours": 100,
-    "stop_new_windows_main_hours": 120,
-    "stop_new_windows_estimated_spend_usd": 150,
-    "bring_teardown_forward_projected_or_accrued_usd": 175,
-    "hard_project_budget_assumed_usd": 200,
-    "maximum_session_hours_default": 8,
-    "generator_hours_ceiling": 16,
-    "alerts_usd": [
-      80,
-      120,
-      150
-    ],
-    "budgets_are_not_hard_caps": true
-  },
-  "required_inputs": {
-    "project_account_id": null,
-    "billing_owner": null,
-    "approved_profile_or_role": null,
-    "approved_region": null,
-    "budget_currency": null,
-    "billing_currency_tax": null,
-    "domain": null,
-    "dns_operator": null,
-    "operator_cidr": null,
-    "start_utc": null,
-    "teardown_utc": null,
-    "demo_windows": null,
-    "service_access_keys_permitted": null,
-    "plan_and_data_deletion_approval": null,
-    "existing_account_costs_within_scope": null
-  },
-  "experiments": {
-    "38": {
-      "status": "LOCAL_COMPLETE_REVIEW_PASS",
-      "verdict": "REJECT",
-      "evidence_index": "../experiments-20261014/raw/exp38-20261014-r4/index.json",
-      "accepted_config": "baseline unchanged",
-      "preregistered_candidate": {
-        "postgres_cpus": 0.25,
-        "processing_api_cpus": 0.375,
-        "all_other_limits_unchanged": true,
-        "status_p90_improvement_each_of_three_pairs_min_percent": 5,
-        "accepted": false
-      },
-      "measured_source": "08ec06c22a8950007cc6db2a934cf957a4621a3c",
-      "complete_pairs": 3,
-      "successful_long_jobs": 180
-    },
-    "39": {
-      "status": "LOCAL_COMPLETE_REVIEW_PASS",
-      "verdict": "REJECT",
-      "evidence_index": "../experiments-20261014/raw/exp39-windows-complete/index.json",
-      "predeclared_queue_age_seconds": 300,
-      "accepted_manual_policy": null,
-      "preregistered_candidate": {
-        "warm_workers": 1,
-        "processing_window_workers": 3,
-        "backlog_escalation": 3,
-        "oldest_age_escalation_seconds": 30,
-        "queue_bound_seconds": 300,
-        "idle_before_drain_seconds": 60,
-        "drain_bound_seconds": 300,
-        "worker_seconds_max_fraction_of_fixed3": 0.8,
-        "accepted": false
-      },
-      "measured_source": "60f244c8dbc8b4d48f761851c1f0626e1b1c92e1",
-      "eligible_windows": 48,
-      "successful_scheduled_jobs": 504,
-      "manual_residency_reductions_percent": [
-        13.281717739372455,
-        14.801663243751776,
-        14.57913884506472
-      ]
-    }
-  },
-  "measurement_inputs": {
-    "jobs_by_profile": {
-      "60s": 360,
-      "2s": 144
-    },
-    "source_bytes": {
-      "per_60s": 21050412,
-      "scope": "deterministic local fixture"
-    },
-    "mp4_bytes": null,
-    "hls_bytes": null,
-    "hls_objects": null,
-    "failed_attempt_bytes": null,
-    "retention_hours": null,
-    "multipart_parts": null,
-    "tier1_requests": null,
-    "tier2_requests": null,
-    "external_playback_bytes": {
-      "scope": "three decoded 60-second playback starts; not full-session viewing",
-      "bytes": [
-        5174856,
-        4158152,
-        4158152
-      ],
-      "browser_requests": [
-        13,
-        12,
-        12
-      ]
-    },
-    "external_evidence_bytes": null,
-    "ecr_retained_layer_bytes": null,
-    "snapshot_billed_blocks_gb": null,
-    "log_bytes": null,
-    "total_output_bytes_per_job": {
-      "60s": 60959567,
-      "2s": 1921301
-    },
-    "total_output_objects_per_job": {
-      "60s": 29,
-      "2s": 8
-    },
-    "eligible_output_bytes": 22222111464,
-    "eligible_output_objects": 11592,
-    "http_record_counts": {
-      "timed": 103221,
-      "warmup": 16623,
-      "other_operations": 47653,
-      "successful_upload_acknowledgements": 722,
-      "scope": "HTTP scopes include setup/internal/excluded work; not a billable S3 request count"
-    }
-  },
-  "limitations": [
-    "No cloud result is claimed.",
-    "Rates must be refreshed before approval.",
-    "Domain/DNS and tax/FX reserves are allowances, not verified quotes.",
-    "Lower worker count on an unchanged running host saves no EC2 hourly charges.",
-    "Usage ceilings need monitoring and are not automatic S3 hard caps.",
-    "Three-worker CPU quotas are ceilings, not reserved CPU; OS/control overhead must be measured."
-  ],
-  "experiment_status_source": ".worktrees/experimental-followups-20261014/docs/execution/experiments-20261014/STATUS.txt",
-  "experiment_protocol_source": ".worktrees/experimental-followups-20261014/docs/execution/experiments-20261014/PROTOCOL.md",
-  "coordinator_review": {
-    "arithmetic": "PASS",
-    "official_price_rows": "PASS: nine selected official EC2/EBS/S3/transfer/ECR source rows independently verified and retained in pricing-20261014.json",
-    "experiment_dispositions": "Both REJECT; fresh independent Sol review PASS at632cac5. Baseline quotas/fixed workers retained; exact PR/Main publication is recorded in GitHub.",
-    "independent_report": "../reviews/experiments-20261014-review.md"
-  }
+  "state_public_ipv4_lifecycle": "Auto-assigned public IPv4 only while EC2 is running; update CloudFront origin on wake; no retained EIP"
 }

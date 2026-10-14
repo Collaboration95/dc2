@@ -1,64 +1,39 @@
-# Prepare the AWS job
+# AWS replanning — 15 October 2026
 
-This is a preparation pack, not a deployment or spending approval. The original
-local delivery is accepted at `b913579`; quota and worker-window experiments
-#38/#39 are complete with rejection decisions. [Independent review](../reviews/experiments-20261014-review.md) PASS;
-publication and exact PR/Main checks remain coordinator-owned. No experimental
-default is adopted.
+**Separate ECS Fargate services, disposable workers, one small 2-vCPU / 2-GiB
+state/proxy host, private S3 through a free gateway endpoint, and a public
+CloudFront HTTPS URL.** One public subnet; no domain purchase, NAT, ALB or large host.
 
-The proposed demo is one EC2/Compose host plus private S3, preserving the two
-business services and their separately owned databases, images and migrations.
-The provisional Singapore option is `c6a.2xlarge` (8 vCPU, 16 GiB), with encrypted
-persistent disks, private source/output buckets and nginx HTTPS. The plan budgets
-100 running hours, with a 120-hour ceiling over about three weeks. Its current
-worksheet estimates USD169.47 including domain, tax/FX and contingency allowances;
-actual account, currency, region and DNS costs need confirmation before spending.
+**Latest constraints:** at most 14 days, small cloud fixtures, and zero running
+application compute during downtime. Stop EC2, set all three ECS services to zero,
+and drain/stop workers. Do not retain an Elastic IP; update the origin on wake.
+The remaining retained-storage/internal-DNS baseline is about **$1.73 for 14 days**.
 
-## Information to prepare
+- [Next-agent Sol swarm and backlog handoff](../../../handoff-temp.md)
+- [Architecture, implementation sequence, and ranked cost chopping block](architecture-plan.md)
+- [Interactive review and cost levers](review.html)
+- [Editable AWS diagram](../../lean-aws-microservices.drawio)
+- [Cost assumptions](cost-worksheet.json) and [official price rows](pricing-20261015.json)
+- Recalculate offline: `python docs/execution/aws/calculate-costs.py`
+- [Private deployment-input template](job-inputs.template.json)
 
-Fill a private copy of [job-inputs.template.json](job-inputs.template.json):
+| 14-day scenario | AWS usage | Including tax/FX reserve and contingency |
+|---|---:|---:|
+| Expected: 20 online hours, 2 worker-task-hours | $6.03 | **$13.03** |
+| Larger: 40 online hours, 8 worker-task-hours | $13.27 | **$28.27** |
 
-1. The actual project account ID, billing owner and approved local login/profile
-   or role. Configure credentials through the normal secure login process; do not
-   paste credentials into chat or commit them. Another project's AWS account is
-   not authorized for this job.
-2. The approved region and budget currency. The recorded ceiling is $200 total
-   for about three weeks; the worksheet uses USD and provisional Singapore rates.
-3. An existing domain/subdomain, its DNS operator and the operator's ingress CIDR.
-4. Required demo windows, start/teardown dates, and a named cost/data-export owner.
-5. Whether account policy permits three short-lived, bucket-scoped service key
-   pairs. Keep basic login, ownership, private stores and HTTPS; no OIDC,
-   credential broker or elaborate security infrastructure is planned.
+Use **$15 expected / $30 envelope** as planning targets, not hard billing caps.
+Expected uploads are only **0.25 GB total**, including six ~21-MB long submissions
+and short workflow checks. Reuse assets and stored sources. Existing full local
+scaling results remain local; no bulk cloud replay is planned.
 
-## What the AWS implementation must prepare
+Public browser access is confirmed. The restricted CloudFront-origin HTTP leg is
+explicitly disclosed; viewer TLS is not end-to-end TLS. The database/proxy host
+remains a shared failure point. The bounded worker starter and cloud adapters are
+still proposed work. Account/currency and paid deployment authorization remain
+pending. No provisioning, application changes or live trials occurred.
 
-Build and test the accepted source as `linux/amd64`, and retain exact image
-digests plus the existing tests/scans. Add a dedicated AWS Compose/configuration
-adapter: S3 endpoints and outbound networking, browser CORS and real domain TLS,
-encrypted persistent database/queue storage, and cloud-compatible release,
-rollback, smoke and evidence commands. Current local scripts assume
-localhost/MinIO and cannot be described as cloud-ready unchanged.
-
-Use one/two/three hard-2-CPU workers as explicitly selected. Keep baseline quotas
-and explicitly selected fixed worker counts: both experimental candidates were rejected.
-Stopping worker replicas on a running host does not save its hourly EC2 charge.
-Stop the host between booked windows and verify durable backlog recovery before
-relying on that policy. The plan retains single-host failure limits.
-
-The AWS agent must first verify the explicit project account, refresh prices,
-fill the usage worksheet, and present the concrete resource list, schedule and
-teardown before creating paid resources. No provisioning is authorized by this
-preparation task.
-
-## Full context and cost evidence
-
-- [Architecture, deployment gaps, runbook and paste-ready agent brief](architecture-plan.md)
-- [Cost assumptions, line items, usage ceilings and required inputs](cost-worksheet.json)
-- [Official public pricing rows](pricing-20261014.json)
-- [Accepted local handoff and source evidence](../handoff.md)
-- [Experimental protocol and outcomes](../experiments-20261014/PROTOCOL.md)
-
-The architecture brief carries the proposal scope, 80/20 and schedule constraints,
-measured local results and their limitations, PR37 changes, the no-Alibaba rule,
-basic-security agreement and the distinction between local and AWS evidence.
-The course report, slides and recording remain separate deliverables.
+Historical only: [old shared-host plan](architecture-plan-20261014.md),
+[old worksheet](cost-worksheet-20261014.json), [old README](README-20261014.md).
+The old large host/storage/domain assumptions and the initial 21-day/300-fixture
+replanning assumptions are superseded. Issue 38/39 rejection decisions are unchanged.

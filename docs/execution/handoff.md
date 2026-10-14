@@ -1,5 +1,10 @@
 # Project 2 morning handoff
 
+> AWS planning update, 15 October 2026: [the replacement Fargate plan](aws/architecture-plan.md)
+> supersedes older host, disk, snapshot and domain prerequisites in this historical
+> local-delivery record. Public browser access uses an AWS-generated URL; no domain
+> purchase is required. Actual account, currency and spending approval are pending.
+
 **13 October 2026, Singapore (UTC+8): local pre-AWS delivery complete, including PostgreSQL readiness correction.**
 PR32 merged at [`f10bf04899e6cc80f992c65193a92fbe0b0ce8b2`](https://github.com/Collaboration95/dc2/commit/f10bf04899e6cc80f992c65193a92fbe0b0ce8b2);
 [PR CI38330508848](https://github.com/Collaboration95/dc2/actions/runs/38330508848) passed all 15 checks and

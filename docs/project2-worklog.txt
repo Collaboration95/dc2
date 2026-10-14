@@ -1,7 +1,13 @@
 PROJECT 2 WORKLOG
-Updated: 13 October 2026, Singapore (UTC+8)
+Updated: 15 October 2026, Singapore (UTC+8)
 
-CURRENT CHECKPOINT
+CURRENT AWS PLANNING CHECKPOINT — 15 OCTOBER
+
+Public-browser Fargate proposal: docs/execution/aws/README.md. This supersedes
+older shared-host/domain defaults below. No deployment/spending authorization.
+See the final dated entry for the topology, cost scenarios and remaining work.
+
+HISTORICAL LOCAL CHECKPOINT — 13 OCTOBER
 
 Planning PR25, foundation PR26, cache correction PR27, Processing PR28, Media
 PR29 and clients PR30 are merged. PR30 merged at
@@ -532,3 +538,51 @@ approval remain prerequisites. Existing local scripts require cloud adapters;
 local object/decoded-start transfer measurements are bounded inputs, not full viewing
 or S3 billing counts. No AWS/Alibaba operation or spending; no OIDC/broker/new product
 scope. Original course/proposal/roadmap visuals remain intact. Course artifacts separate.
+
+15 OCTOBER 2026 — AWS TOPOLOGY REOPENED; TWO-WEEK MINIMAL DEMO PLAN
+
+User rejected large shared compute, unmeasured disks/snapshots, paid domains and
+costly networking. Public browser access is required. Latest corrections: at most
+14days, a few cloud fixtures, and a ranked cost chopping block with minimal idle
+charges. Earlier21-day/300-fixture assumptions in this planning turn are superseded.
+
+Recommend separate Fargate Media1vCPU/2GiB, ProcessingAPI0.5/1GiB,
+recovery0.25/0.5GiB;0/1/2/3 burst workers2vCPU/4GiB. t3a.small2vCPU/2GiB holds
+PostgreSQL(two ownedDBs), Redis and nginx; shared failure disclosed. One public
+subnet/AZ, free S3gateway, CloudFront generated hostname, no NAT/ALB/domain purchase.
+CloudFront originHTTP is an explicit reviewable tradeoff; no end-to-endTLS claim.
+Current burst worker exists; cloud credentials/release/config adapters and bounded
+starter remain proposed. On-demand funded; Spot is optional and low-value here.
+
+Downtime: all ECSdesiredCounts0, standalone workers0, EC2stopped. No retainedEIP;
+update CloudFront origin to new EC2publicDNS on wake and accept propagation delay.
+ASG is unnecessary for zero Fargate idle compute. Retained24GiBEBS, tinyS3/ECR/logs,
+and privateDNS cost aboutUSD1.73 across14days. No snapshots by default; quiescent
+metadata exports fit in S3 allowance. Default cloud test: six60s submissions total
+plus short smokes,0.25GBupload allowance, reuse sources/assets. Original numeric
+scaling targets/evidence remain local; small AWS check proves capacity, not speedup.
+
+Official public price rows captured; pricing connector discovery denied, so no
+further authenticated calls. Expected20corehours/2worker-taskhours:USD6.03usage+
+7reserves=13.03. Larger40corehours/8worker-taskhours:USD13.27+15=28.27.
+Planning targetsUSD15/30; no credits/free-tier/Spot assumed. Price all publicIPs,
+requests, playback and retained disks. Calculator and cost levers in execution/aws.
+Old20261014plan/worksheet/README/input copies remain byte-exact historical records.
+
+No app edits, live workload, AWSprovisioning, Alibabaoperation, GitHubaccess,
+agentfleet or repeatedexperiments. Proposal/roadmap and38/39rejections unchanged.
+Actual account, region/currency, short demo windows and spending approval remain.
+
+15 OCTOBER 2026 — PLANNING PUBLICATION AND SOL SWARM HANDOFF
+
+User approved the revised architecture and requested commit/push plus a handoff
+for6.1Sol multi-agent gap analysis, real GitHub epics/issues and a final independent
+normal6.1Sol audit. handoff-temp.md carries the complete brief, four bounded research
+lanes, exact cost/scope constraints, idempotent issue keys, dependency/readiness
+rules, and fresh standard-tier Sol review/correction rounds. Live T3 catalog
+confirmed codex/gpt-6.1-sol. This turn writes the prompt; it does not run that swarm
+or claim that its backlog or audit already exists. No new application/cloud work.
+
+Scoped planning checks: cost scenarios13.03/28.27/82.62USD including reserves,
+JSON/local links/whitespace and exact historical-copy checks pass. Publication
+is user-authorized; the final response records the actual remote commit result.
