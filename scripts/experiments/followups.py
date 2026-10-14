@@ -865,6 +865,15 @@ print(json.dumps(rows))
             # Idle residency belongs to this window's resource budget.
             await asyncio.sleep(60)
             if policy == "manual" and count > 1:
+                # Complete any in-flight sample before intentionally exiting
+                # workers. Lifetime records cover drain; sampling a stopped PID
+                # would otherwise masquerade as lost required telemetry.
+                stop.set()
+                await telemetry
+                self.artifacts.append(
+                    "sampling-boundaries.jsonl",
+                    {"phase": phase, "utc": utc(), "reason": "planned warm drain"},
+                )
                 workers = await p.blocking(self.docker.running_workers)
                 drain_seconds = await self.docker.drain([w["id"] for w in workers[1:]])
                 metrics["idle_worker_seconds"] = count * 60
