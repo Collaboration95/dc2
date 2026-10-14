@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,6 +16,7 @@ class Settings(BaseSettings):
     processing_service_token: SecretStr = SecretStr("")
     source_service_token: SecretStr = SecretStr("")
     processing_timeout_seconds: float = Field(default=5, gt=0, le=30)
+    storage_credential_mode: Literal["static", "ecs"] = "static"
     minio_endpoint: str = "minio:9000"
     minio_use_ssl: bool = False
     minio_region: str = "us-east-1"
