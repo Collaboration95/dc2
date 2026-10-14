@@ -129,7 +129,8 @@ with httpx.Client(base_url=p['target'],trust_env=False,timeout=p['timeout']) as 
     headers['Authorization']='Bearer invalid-local-probe'
     assert client.request(p['method'],p['path'],headers=headers,**args).status_code==401
     headers={'Authorization':'Bearer '+p['token']}
-    assert client.request(p['method'],p['path'],headers=headers,**args).status_code==p['missing_owner_status']
+    result=client.request(p['method'],p['path'],headers=headers,**args)
+    assert result.status_code==p['missing_owner_status']
 """
         self.compose(
             "exec", "-T", owner, "python", "-c", code, input=json.dumps(payload), deadline=deadline
