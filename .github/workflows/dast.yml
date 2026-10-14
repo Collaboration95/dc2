@@ -1,4 +1,4 @@
-name: DAST
+name: DAST (isolated extracted services)
 
 on:
   workflow_dispatch:
@@ -7,36 +7,39 @@ on:
   pull_request:
     paths:
       - ".github/workflows/dast.yml"
-      - "app/**"
+      - "media/**"
+      - "processing/**"
+      - "media_engine/**"
+      - "frontend/**"
+      - "tests/contracts/**"
+      - "compose/local/**"
+      - "scripts/dev/runtime.py"
+      - "scripts/dev/tls.py"
+      - "deploy/media.Dockerfile"
+      - "deploy/processing.Dockerfile"
       - "deploy/nginx/**"
-      - "migrations/**"
-      - "docker-compose.yml"
-      - "Dockerfile"
-      - "nginx.conf"
+      - "deploy/minio/**"
+      - "deploy/postgres/**"
       - "pyproject.toml"
+      - "uv.lock"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 permissions:
   contents: read
 
 jobs:
   dast:
-    name: OWASP ZAP API scan
+    name: Integrated Media public API; private contracts prepared separately
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      COMPOSE_PROJECT_NAME: flickpond-dast-${{ github.run_id }}
-      COMPOSE_FILE: docker-compose.yml:deploy/dast/compose.yml
-      JWT_SECRET: dast-only-jwt-secret-not-for-production-2026
-      REDIS_PASSWORD: dast-only-redis-password
-      POSTGRES_PASSWORD: dast-only-postgres-password
-      DAST_BASE_URL: http://127.0.0.1:3000
+      RUN_ID: dast-${{ github.run_id }}-${{ github.run_attempt }}
       GH_TOKEN: ${{ github.token }}
       UV_CACHE_DIR: ${{ github.workspace }}/.cache/uv
       UV_PYTHON_DOWNLOADS: never
+      PYTHONPATH: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -53,114 +56,123 @@ jobs:
         with:
           path: .cache/minio
           key: minio-source-20960b6a2ddb9594ee418035b3c7c7fe92ae6a12
-      - name: Fetch pinned MinIO through gh before the source-context build
+      - name: Prepare pinned storage through authenticated gh
+        run: .venv/bin/python -c 'from scripts.dev.runtime import fetch_minio; fetch_minio()'
+      - name: Prepare private token/owner contracts offline (not private DAST)
+        id: contracts
         run: |
-          test -f scripts/dev/runtime.py || { echo 'Runtime helper pending foundation integration'; exit 2; }
-          .venv/bin/python -c 'from scripts.dev.runtime import fetch_minio; fetch_minio()'
-
-      - name: Prepare report directory
+          .venv/bin/python -m pytest -p scripts.dev.pytest_plugin --offline-fast \
+            -m 'not integration and not e2e' tests/contracts tests/media/test_contract_security.py \
+            tests/processing/test_contracts.py
+      - name: Start isolated integrated stack with its own private env/CA/volumes
+        id: stack
+        run: .venv/bin/python -m scripts.dev.runtime up --run-id "$RUN_ID"
+      - name: Prepare authenticated public Media schema with normal CA trust
+        id: prepare
         run: |
-          mkdir -p zap-reports
-          chmod 777 zap-reports
-
-      - name: Start isolated application stack
-        run: docker compose up --build -d --wait --wait-timeout 180 frontend
-
-      - name: Prepare authenticated OpenAPI scan
-        run: |
-          curl --fail-with-body --silent --show-error \
-            "${DAST_BASE_URL}/api/openapi.json" \
-            | jq '.servers = [{"url": "http://127.0.0.1:3000/api"}]' \
-            > zap-reports/openapi.json
-
-          curl --fail-with-body --silent --show-error \
-            --dump-header /tmp/dast-register-headers \
-            --output /tmp/dast-register-body \
-            --request POST "${DAST_BASE_URL}/api/auth/register" \
-            --header "Content-Type: application/json" \
-            --data '{"email":"dast@example.com","password":"Dast-only-password-123!"}'
-
-          token="$(sed -nE 's/^set-cookie: access_token=([^;]+).*/\1/ip' \
-            /tmp/dast-register-headers | tr -d '\r' | head -n 1)"
-          if [ -z "${token}" ]; then
-            cat /tmp/dast-register-body
-            echo "Registration did not return an access_token cookie" >&2
-            exit 1
-          fi
-
-          echo "::add-mask::${token}"
-          echo "DAST_COOKIE=access_token=${token}" >> "${GITHUB_ENV}"
-
-          curl --fail-with-body --silent --show-error \
-            --header "Cookie: access_token=${token}" \
-            "${DAST_BASE_URL}/api/auth/me" \
-            | jq -e '.email == "dast@example.com"'
-
-      - name: Run authenticated OWASP ZAP scan
+          mkdir -p zap-private zap-reports
+          chmod 700 zap-private
+          chmod 700 zap-reports
+          .venv/bin/python - <<'PY'
+          import json, os, ssl
+          from pathlib import Path
+          import httpx
+          run = Path('.local/runs') / os.environ['RUN_ID']
+          state = json.loads((run/'state.json').read_text())
+          base = state['public_url']
+          ctx = ssl.create_default_context(cafile=str(run/'tls/ca.crt'))
+          with httpx.Client(base_url=base, verify=ctx, timeout=20, trust_env=False) as client:
+              schema = client.get('/api/openapi.json'); schema.raise_for_status()
+              spec = schema.json()
+              assert spec['info']['title'] == 'FlickPond Media Management'
+              # No service token is sent to public edge or scanner. Exclude source
+              # grants/admin endpoints; their token+owner scope is prepared offline.
+              spec['paths'] = {p:v for p,v in spec['paths'].items() if not
+                               (p.startswith('/internal/') or p.startswith('/admin/'))}
+              spec['servers'] = [{'url':base+'/api'}]
+              Path('zap-private/openapi.json').write_text(json.dumps(spec))
+              response = client.post('/api/auth/register', json={'email':'dast@example.com',
+                                                              'password':'Dast-only-password-123!'})
+              response.raise_for_status()
+              token = client.cookies.get('access_token')
+              assert token
+              assert client.get('/api/auth/me').status_code == 200
+              print('::add-mask::'+token)
+              with open(os.environ['GITHUB_ENV'],'a') as env:
+                  env.write('DAST_COOKIE=access_token='+token+'\n')
+          PY
+      - name: Run public authenticated ZAP; raw auth-bearing output stays private
+        id: zap
+        env:
+          DAST_COOKIE: ${{ env.DAST_COOKIE }}
         run: |
           set +e
-          docker run --rm --network host \
-            --volume "${PWD}/zap-reports:/zap/wrk:rw" \
+          docker run --rm --network host --workdir /zap/wrk --user "$(id -u):$(id -g)" \
+            --env HOME=/tmp --env DAST_COOKIE --env RUN_ID \
+            --volume "$PWD/zap-private:/zap/wrk:rw" \
+            --volume "$PWD/.local/runs/$RUN_ID/tls/ca.crt:/tmp/dast-ca.crt:ro" \
+            --entrypoint sh \
             ghcr.io/zaproxy/zaproxy:stable@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef \
-            zap-api-scan.py \
-            -t /zap/wrk/openapi.json \
-            -f openapi \
-            -r zap-report.html \
-            -J zap-report.json \
-            -w zap-report.md \
-            -x zap-report.xml \
-            -T 10 \
-            -z "-config replacer.full_list(0).description=flickpond-auth \
-              -config replacer.full_list(0).enabled=true \
-              -config replacer.full_list(0).matchtype=REQ_HEADER \
-              -config replacer.full_list(0).matchstr=Cookie \
-              -config replacer.full_list(0).regex=false \
-              -config replacer.full_list(0).replacement=${DAST_COOKIE}"
+            -c 'mkdir -p /tmp/dc2-zap/policies
+                cp /home/zap/.ZAP/policies/API-Minimal.policy /tmp/dc2-zap/policies/ || exit 3
+                cp "$JAVA_HOME/lib/security/cacerts" /tmp/dast-trust || exit 3
+                keytool -importcert -noprompt -alias dc2-dast -file /tmp/dast-ca.crt \
+                  -keystore /tmp/dast-trust -storepass changeit >/dev/null 2>&1 || exit 3
+                export _JAVA_OPTIONS="-Djavax.net.ssl.trustStore=/tmp/dast-trust -Djavax.net.ssl.trustStorePassword=changeit -Duser.home=/tmp"
+                zap-api-scan.py -t /zap/wrk/openapi.json -f openapi -J raw-report.json -T 10 \
+                  -z "-dir /tmp/dc2-zap -config replacer.full_list(0).description=dc2-auth \
+                      -config replacer.full_list(0).enabled=true \
+                      -config replacer.full_list(0).matchtype=REQ_HEADER \
+                      -config replacer.full_list(0).matchstr=Cookie \
+                      -config replacer.full_list(0).regex=false \
+                      -config replacer.full_list(0).replacement=$DAST_COOKIE"' \
+              > zap-private/scanner-private.log 2>&1
           status=$?
           set -e
-
-          echo "ZAP_EXIT_CODE=${status}" >> "${GITHUB_ENV}"
-          case "${status}" in
-            0|1|2) ;;
-            *)
-              echo "ZAP failed to run (exit ${status})" >&2
-              exit "${status}"
-              ;;
-          esac
-
-      - name: Summarize ZAP findings
-        if: always() && hashFiles('zap-reports/zap-report.json') != ''
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          case "$status" in 0|1|2) ;; *) echo 'ZAP execution failed; private raw log is not published'; exit 1 ;; esac
+      - name: Retain sanitized findings and honest scope/disposition
+        if: always()
+        env:
+          ZAP_OUTCOME: ${{ steps.zap.outcome }}
+          ZAP_EXIT: ${{ steps.zap.outputs.exit_code }}
+          CONTRACT_OUTCOME: ${{ steps.contracts.outcome }}
         run: |
-          high="$(jq '[.site[]?.alerts[]? | select(.riskcode == "3")] | length' zap-reports/zap-report.json)"
-          medium="$(jq '[.site[]?.alerts[]? | select(.riskcode == "2")] | length' zap-reports/zap-report.json)"
-          low="$(jq '[.site[]?.alerts[]? | select(.riskcode == "1")] | length' zap-reports/zap-report.json)"
-          informational="$(jq '[.site[]?.alerts[]? | select(.riskcode == "0")] | length' zap-reports/zap-report.json)"
-          {
-            echo "## OWASP ZAP DAST"
-            echo
-            echo "| Risk | Alerts |"
-            echo "| --- | ---: |"
-            echo "| High | ${high} |"
-            echo "| Medium | ${medium} |"
-            echo "| Low | ${low} |"
-            echo "| Informational | ${informational} |"
-            echo
-            echo "ZAP exit code: ${ZAP_EXIT_CODE:-unknown}. Findings are report-only; exit code 3 still fails because it means the scan did not run."
-          } >> "${GITHUB_STEP_SUMMARY}"
-
-      - name: Capture application logs
+          .venv/bin/python - <<'PY'
+          import json, os, shutil
+          from pathlib import Path
+          from scripts.aws.artifacts import scan_disposition
+          raw = Path('zap-private/raw-report.json')
+          executed = os.environ['ZAP_OUTCOME']=='success' and raw.exists()
+          outcome = 'executed' if executed else ('skipped' if os.environ['ZAP_OUTCOME']=='skipped' else 'error')
+          selected = []
+          if executed:
+              report = json.loads(raw.read_text())
+              for site in report.get('site',[]):
+                  for alert in site.get('alerts',[]):
+                      # URLs, request/response bodies, headers, evidence and cookie
+                      # replacement config are never retained in uploaded artifacts.
+                      selected.append({k:alert.get(k) for k in ('pluginid','riskcode','confidence','count')})
+          destination = Path('zap-reports'); destination.mkdir(exist_ok=True)
+          disposition = scan_disposition('zap', outcome=outcome, target='isolated-integrated-media-public',
+              scope='public authenticated owner; internal token+owner contracts offline only',report_retained=executed)
+          disposition.update(exit_code=os.environ['ZAP_EXIT'],private_contracts=os.environ['CONTRACT_OUTCOME'],
+                             cloud_scan='NOT_RUN')
+          (destination/'scan-disposition.json').write_text(json.dumps(disposition,indent=2))
+          if executed:
+              (destination/'sanitized-findings.json').write_text(json.dumps(selected,indent=2))
+          shutil.rmtree('zap-private',ignore_errors=True)
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as stream:
+              stream.write('ZAP: '+outcome+'. Findings remain report-only; execution errors fail.\n')
+              stream.write('Private Processing/source-grant contracts: '+os.environ['CONTRACT_OUTCOME']+' (offline, not DAST).\n')
+          PY
+      - uses: actions/upload-artifact@v4
         if: always()
-        run: docker compose logs --no-color > zap-reports/compose.log 2>&1 || true
-
-      - name: Upload ZAP reports
-        if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: zap-reports-${{ github.run_id }}
-          path: zap-reports/
+          name: extracted-service-scan-${{ github.run_id }}
+          path: zap-reports/*.json
           if-no-files-found: warn
-          retention-days: 30
-
-      - name: Tear down isolated stack
+          retention-days: 14
+      - name: Close only this runner's isolated namespace (no cloud cleanup)
         if: always()
-        run: docker compose down -v --remove-orphans
+        run: .venv/bin/python -m scripts.dev.runtime down --run-id "$RUN_ID"
