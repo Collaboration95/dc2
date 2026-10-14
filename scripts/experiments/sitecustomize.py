@@ -78,5 +78,5 @@ def install():
     threading.Thread(target=flush, name="experiment-timings", daemon=True).start()
 
 
-if os.environ.get("DC2_EXPERIMENT_TIMINGS") == "1":
+if os.environ.get("DC2_EXPERIMENT_TIMINGS") == "1" and os.getpid() == 1:
     install()

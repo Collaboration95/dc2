@@ -94,3 +94,12 @@ visibility and count redirect bodies as0bytes; decode gates remain unchanged.
 Run a separate scoped decode preflight before fresh full pairs. Window uploads
 also use120s observer; worker Docker start/finish timestamps supplement the
 modeled window residency. No failed invocation is spliced into full comparisons.
+
+Invocation3 is invalid for adoption:SQL/pool hooks were imported in health-check
+Python processes as well as the API, adding approximately0.28CPU-seconds per
+probe (measured paired process CPU). Restrict hooks to API PID1; no strength/quota
+change. Stop and retain all partial records; repeat full3pairs fresh. Required
+sampler failures cancel new workload actions instead of silently losing coverage.
+Actual output bytes/counts must include all Processing prefix objects, not only
+registered primary/master descriptors. Trivy uses a worktree-local copy of the
+parent's pinned DB; parent cache/binary and frozen measurements remain untouched.

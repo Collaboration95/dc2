@@ -5,8 +5,11 @@ python -m scripts.experiments.faults --run-id exp38-20261014 --profile baseline
 
 import argparse
 import asyncio
+import hashlib
 import json
+import shutil
 import time
+from types import SimpleNamespace
 
 from scripts.dev import runtime
 from scripts.dev.release import Runner
@@ -14,11 +17,19 @@ from scripts.dev.scenario import Scenario
 from scripts.evidence import performance as p
 from scripts.evidence import recovery
 from scripts.evidence.common import Artifacts, Client, EvidenceError, utc
-from scripts.experiments.followups import REPORT, ExperimentDocker, status
+from scripts.experiments.followups import REPORT, ExperimentDocker, decoded, status
 
 
 class ExperimentRelease(Runner):
     """Apply only preregistered CPU/telemetry overlay to historical release steps."""
+
+    def command(self, args, **kwargs):
+        # The inherited scanner uses the common-root cache. Route only its cache
+        # to this worktree; pinned binary, DB bytes, offline/exact-image gates stay.
+        if "--cache-dir" in args:
+            args = list(args)
+            args[args.index("--cache-dir") + 1] = str(self.root / ".cache/trivy-experiments")
+        return super().command(args, **kwargs)
 
     def compose(self, *args, **kwargs):
         overlay = runtime.ROOT / ".local/runs" / self.run_id / "experiment.override.json"
@@ -97,6 +108,10 @@ async def drain_long(run_id, docker, artifacts, env, state):
 
 def run(args):
     env, state = runtime.configure(args.run_id)
+    cache = runtime.ROOT / ".cache/trivy-experiments"
+    if not (cache / "db/trivy.db").exists():
+        cache.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(runtime.common_root() / ".cache/trivy/db", cache / "db")
     directory = (
         runtime.ROOT
         / "artifacts"
@@ -118,6 +133,49 @@ def run(args):
     (runtime.ROOT / ".local/runs" / args.run_id / "release.override.json").write_text(
         json.dumps(persisted, indent=2)
     )
+    # Scan the distinct live Media image as well as the Processing images that
+    # the unchanged release runner scans below. Use only our local cache.
+    media_gate = ExperimentRelease(args.run_id)
+    media_gate.run_id = args.run_id
+    media_gate.begin("experimental-media-artifact", 600)
+    media_gate.operation["docker_capacity"] = media_gate.local_preflight()
+    source_proof = media_gate.source()
+    media_image = next(c["image_digest"] for c in docker.all_running() if c["service"] == "media")
+    info = media_gate.image_info(media_image)
+    if (
+        info["revision"] != source_proof["revision"]
+        or info["source_fingerprint"] != source_proof["source_fingerprint"]
+    ):
+        raise EvidenceError("Live Media source/image mismatch before gates")
+    media_scan = media_gate.scan(media_image)
+    media_gate.command(
+        [
+            "docker",
+            "run",
+            "--rm",
+            "--network",
+            "none",
+            "--entrypoint",
+            "python",
+            media_image,
+            "-c",
+            "import media.main,media.recovery",
+        ]
+    )
+    db = cache / "db/trivy.db"
+    with db.open("rb") as stream:
+        db_digest = hashlib.file_digest(stream, "sha256").hexdigest()
+    artifacts.write(
+        "media-artifact.json",
+        {
+            "source": source_proof,
+            "image": info,
+            "scan": media_scan,
+            "offline_imports_pass": True,
+            "trivy_db_sha256": db_digest,
+        },
+    )
+    media_gate.finish("passed")
     scenario = Scenario(args.run_id, "experimental-" + args.profile + "-recovery")
     path = runtime.ROOT / ".local/experiment-fixtures/60/source.mp4"
     try:
@@ -245,8 +303,13 @@ def redis_loss(scenario, source):
             bound_seconds=120,
             same_attempt_ids=True,
         )
-    for asset, old in zip(assets, before, strict=True):
-        scenario.wait(client, asset, timeout=300)
+    for index, (asset, old) in enumerate(zip(assets, before, strict=True)):
+        result = scenario.wait(client, asset, timeout=300)
+        if index == 0:
+            playback = decoded(
+                scenario.state, scenario.run_id, {"client": SimpleNamespace(http=client)}, result
+            )
+            scenario.record("60s-decoded-cost-input", source_seconds=60, **playback)
         job = scenario.processing_job(user["id"], asset)
         assert job["current_attempt"]["attempt_id"] == old["current_attempt"]["attempt_id"]
         assert job["current_attempt"]["number"] == 1

@@ -54,6 +54,16 @@ def status(message):
         stream.write(utc() + " " + message + "\n")
 
 
+def supervise_monitor(parent, monitor):
+    """Stop new workload actions if required sampling fails; never hide the gap."""
+
+    def finished(task):
+        if not task.cancelled() and task.exception() is not None:
+            parent.cancel()
+
+    monitor.add_done_callback(finished)
+
+
 def parse_counters(text):
     return {
         line.split()[0]: int(line.split()[1])
@@ -529,6 +539,7 @@ asyncio.run(main())
         telemetry = asyncio.create_task(
             monitor(self.docker, self.env, self.state, self.artifacts, phase, stop)
         )
+        supervise_monitor(asyncio.current_task(), telemetry)
         try:
             isolated = {}
             for topic, people in (("status", statuses), ("login", logins)):
@@ -634,6 +645,49 @@ asyncio.run(main())
             }
             for j in jobs
         ]
+        # Metadata registers primary+master only. List the Processing-owned
+        # attempt prefix to include every rendition playlist/segment before delete.
+        attempts = [p.attempt_record(j, owner=person["id"], assets=assets) for j in jobs]
+        pairs = [(j["job_id"], j["attempt_id"]) for j in attempts]
+        code = """import json
+from uuid import UUID
+from pathlib import Path
+from collections import Counter
+from processing.config import get_settings
+from processing.recovery import CleanupStore
+from processing.lifecycle import output_prefix
+store=CleanupStore(get_settings())
+rows=[]
+for job,attempt in PAIRS:
+ counts=Counter();sizes=Counter()
+ prefix=output_prefix(UUID(job),UUID(attempt))
+ for item in store.client.list_objects(store.bucket,prefix=prefix,recursive=True):
+  suffix=Path(item.object_name).suffix
+  counts[suffix]+=1;sizes[suffix]+=item.size
+ rows.append({'job_id':job,'attempt_id':attempt,'objects':sum(counts.values()),
+              'bytes':sum(sizes.values()),'counts_by_extension':dict(counts),
+              'bytes_by_extension':dict(sizes)})
+print(json.dumps(rows))
+""".replace("PAIRS", repr(pairs))
+        actual = json.loads(
+            await p.blocking(
+                self.docker.compose, "exec", "-T", "processing-recovery", "python", "-c", code
+            )
+        )
+        if len(actual) != len(jobs) or any(
+            r["counts_by_extension"].get(".mp4") != 1 or r["counts_by_extension"].get(".ts", 0) < 1
+            for r in actual
+        ):
+            raise EvidenceError("Actual output inventory incomplete or duplicate primary")
+        self.artifacts.append(
+            "actual-objects.jsonl",
+            {
+                "phase": phase,
+                "attempts": actual,
+                "output_bytes": sum(r["bytes"] for r in actual),
+                "objects": sum(r["objects"] for r in actual),
+            },
+        )
         self.artifacts.append(
             "outputs.jsonl",
             {
@@ -741,6 +795,7 @@ asyncio.run(main())
                 arrivals.append(arrival)
                 self.artifacts.append("arrivals.jsonl", {"phase": phase, **arrival})
 
+        supervise_monitor(asyncio.current_task(), telemetry)
         submission = asyncio.create_task(submit())
         interactive = []
         if name == "sustained":
@@ -857,10 +912,21 @@ asyncio.run(main())
             await self.hash_cost(statuses + logins, f"r{repeat}-window-accounts")
             for policy in order:
                 await self.docker.drain()
+                arm_start = utc()
+                activation_started = time.monotonic()
                 await p.blocking(
                     self.docker.start_workers, int(policy) if policy != "manual" else 1
                 )
-                arm_start = utc()
+                self.artifacts.append(
+                    "cold-activations.jsonl",
+                    {
+                        "repeat": repeat,
+                        "policy": policy,
+                        "command_seconds": time.monotonic() - activation_started,
+                        "started_utc": arm_start,
+                        "running_verified_utc": utc(),
+                    },
+                )
                 person = await self.person(70)
                 person["client"].timeout = 120
                 person["client"].http.timeout = httpx.Timeout(120)

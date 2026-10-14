@@ -107,3 +107,56 @@ async def test_drain_rejects_abnormal_exit_and_paused_worker():
     with pytest.raises(EvidenceError, match="unpaused"):
         await docker.drain(["owned"])
     docker.command.assert_not_called()
+
+
+def test_healthcheck_python_does_not_install_api_hooks():
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    experiment = Path(__file__).resolve().parents[2] / "scripts/experiments"
+    result = subprocess.run(
+        [sys.executable, "-c", "import sys; assert 'sqlalchemy' not in sys.modules"],
+        env={**os.environ, "DC2_EXPERIMENT_TIMINGS": "1", "PYTHONPATH": str(experiment)},
+        capture_output=True,
+        timeout=5,
+    )
+    assert result.returncode == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failed", [True, False])
+async def test_sampling_loss_cancels_workload_but_normal_stop_does_not(failed):
+    import asyncio
+
+    from scripts.experiments.followups import supervise_monitor
+
+    release = asyncio.Event()
+    cleaned = []
+
+    async def work():
+        try:
+            await release.wait()
+        finally:
+            cleaned.append(True)
+
+    async def sampling():
+        if failed:
+            raise EvidenceError("Required telemetry missing")
+
+    parent = asyncio.create_task(work())
+    monitor = asyncio.create_task(sampling())
+    supervise_monitor(parent, monitor)
+    if failed:
+        with pytest.raises(EvidenceError):
+            await monitor
+        with pytest.raises(asyncio.CancelledError):
+            await parent
+    else:
+        await monitor
+        await asyncio.sleep(0)
+        assert not parent.cancelled()
+        release.set()
+        await parent
+    assert cleaned == [True]
