@@ -1,0 +1,7 @@
+2026-10-14: Implementation agent owns project VM exclusively. Baseline b913579.
+Read full worklog/handoff/plan/decisions and gh issues38/39 plus both research gists.
+Inventory:8CPU/8296857600bytes/cgroupv2,61GiB filesystem50.2GiB used10.7GiB free.
+Only original dc2-local-e6eff6ee namespace running; preserve all its volumes.
+Historical frozen worktree and raw/failure packs untouched.
+Current: separate opt-in harness/telemetry and preregistered trial plan in progress.
+No AWS/Alibaba, spending, remote mutations or nested agents.
