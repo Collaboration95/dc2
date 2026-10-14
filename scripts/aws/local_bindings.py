@@ -77,24 +77,28 @@ class LocalBindings:
         return self.data.schema_revision(owner, deadline=min(deadline, self.deadline))
 
     def readiness(self, owner, deadline):
-        if not all(self.running(name, deadline=deadline) for name in SERVICE_NAMES[owner]):
-            return False
-        if self.data.schema_revision(owner, deadline=deadline) != REVISIONS[owner]:
-            return False
-        status, _, _ = self.client.request("GET", "/api/health")
-        if owner == "processing":
-            # Execute within the selected owning task network, not host/peer fallback.
-            self.compose(
-                "exec",
-                "-T",
-                "processing",
-                "python",
-                "-c",
-                "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=2)",
-                deadline=deadline,
-            )
-        remaining(deadline)
-        return status == 200
+        try:
+            if not all(self.running(name, deadline=deadline) for name in SERVICE_NAMES[owner]):
+                return False
+            if self.data.schema_revision(owner, deadline=deadline) != REVISIONS[owner]:
+                return False
+            status, _, _ = self.client.request("GET", "/api/health")
+            if owner == "processing":
+                # Execute within the selected owning task network, not host/peer fallback.
+                self.compose(
+                    "exec",
+                    "-T",
+                    "processing",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=2)",
+                    deadline=deadline,
+                )
+            remaining(deadline)
+            return status == 200
+
+        except (OperationError, ValueError):
+            return False  # Startup is retried only within the caller's absolute deadline.
 
     def state_readiness(self, deadline):
         revisions = {

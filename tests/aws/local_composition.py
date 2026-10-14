@@ -191,7 +191,27 @@ def run(run_id, report):
             raise
 
     release_module._restore = observed_restore
-    receipts = []
+
+    class Receipts(list):
+        def append(self, value):
+            super().append(value)
+            runtime.atomic_write(
+                report,
+                json.dumps(
+                    {
+                        "mode": "local-services",
+                        "status": "INCOMPLETE",
+                        "control_plane": "synthetic-offline",
+                        "receipts": self,
+                        "aws_status": "NOT_RUN",
+                        "restore_status": "NOT_RUN",
+                    },
+                    indent=2,
+                )
+                + "\n",
+            )
+
+    receipts = Receipts()
     with (
         tempfile.TemporaryDirectory(prefix="dc2-private-prep-") as folder,
         Client(context, ca_file=state["ca_file"]) as client,
