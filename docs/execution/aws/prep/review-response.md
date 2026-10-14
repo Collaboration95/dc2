@@ -26,3 +26,26 @@ The combined state will be published as one PR against work/aws2-prep-20261015,
 preserving all three delegated source histories plus coordinator corrections.
 Fresh independent round2 review and final composition/artifact receipts remain
 required before merge or issue reconciliation. The umbrella PR70 remains against Main.
+
+Round2 checked4b4eb9a and resolved F1–F5/F7–F10. Three remaining F6 seams:
+R2-F1 concrete drain now freshly inventories stopped tasks/unresolved reservations
+and returns the capacity consumer's typed receipt; a direct offline1/2/3capacity
+composition plus missing-describe negative passes without video uploads.
+R2-F2 readiness now uses the existing owning PostgreSQL role/DML/DDL/cross-database
+probe, authenticated Redis ping and actual private peer/token/owner-header HTTP
+probes from the selected API task network. Negative dependency checks fail closed.
+R2-F3 one absolute deadline now enters API/object reads, multipart payload reads,
+public poll terminal validation and all concrete smoke/capacity HTTP edges.
+Slow terminal response and mid-upload expiry regressions reject late success.
+
+Coordinator also corrected bounded local RQ timestamp skew and ZAP's writable
+working directory, copied its pinned API policy to the private Java directory,
+and retained normal Java roots before adding the namespace CA. A health-only
+physical ZAP wrapper now executes and emits a report (exit2 means findings).
+Authenticated runner scan is a separate CI receipt, not inferred from this probe.
+
+One full coordinator local runR9 completed finite warm drain, both owners' actual
+promotion/bad restoration and short encode/range/decode/delete, close/private export
+and wake. It preceded the round2 adapter corrections; it is historical integration
+proof, not final exact-source validation. The final corrected run and fresh round3
+review remain required. Genuine AWS and restore evidence remain NOT_RUN.

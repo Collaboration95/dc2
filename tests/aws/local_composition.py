@@ -365,7 +365,7 @@ def run(run_id, report):
             journal,
             state_readiness=bindings.state_readiness,
             peer_readiness=lambda d: all(bindings.readiness(o, d) for o in REVISIONS),
-            public_readiness=lambda d: client.request("GET", "/api/health")[0] == 200,
+            public_readiness=lambda d: client.request("GET", "/api/health", deadline=d)[0] == 200,
             resume_intake=bindings.resume_intake,
             deadline=deadline,
         )
@@ -375,6 +375,14 @@ def run(run_id, report):
                 {
                     "mode": "local-services",
                     "control_plane": "synthetic-offline",
+                    "operator_source_sha": runtime.run(
+                        ["git", "rev-parse", "HEAD"], capture_output=True, text=True
+                    ).stdout.strip(),
+                    "operator_source_dirty": bool(
+                        runtime.run(
+                            ["git", "status", "--porcelain"], capture_output=True, text=True
+                        ).stdout.strip()
+                    ),
                     "artifact_gates": "synthetic control inputs; real scan/registry NOT_RUN",
                     "namespace": state["compose_project"],
                     "receipts": receipts,

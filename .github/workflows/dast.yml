@@ -107,13 +107,16 @@ jobs:
           DAST_COOKIE: ${{ env.DAST_COOKIE }}
         run: |
           set +e
-          docker run --rm --network host --user "$(id -u):$(id -g)" \
+          docker run --rm --network host --workdir /zap/wrk --user "$(id -u):$(id -g)" \
             --env HOME=/tmp --env DAST_COOKIE --env RUN_ID \
             --volume "$PWD/zap-private:/zap/wrk:rw" \
             --volume "$PWD/.local/runs/$RUN_ID/tls/ca.crt:/tmp/dast-ca.crt:ro" \
             --entrypoint sh \
             ghcr.io/zaproxy/zaproxy:stable@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef \
-            -c 'keytool -importcert -noprompt -alias dc2-dast -file /tmp/dast-ca.crt \
+            -c 'mkdir -p /tmp/dc2-zap/policies
+                cp /home/zap/.ZAP/policies/API-Minimal.policy /tmp/dc2-zap/policies/ || exit 3
+                cp "$JAVA_HOME/lib/security/cacerts" /tmp/dast-trust || exit 3
+                keytool -importcert -noprompt -alias dc2-dast -file /tmp/dast-ca.crt \
                   -keystore /tmp/dast-trust -storepass changeit >/dev/null 2>&1 || exit 3
                 export _JAVA_OPTIONS="-Djavax.net.ssl.trustStore=/tmp/dast-trust -Djavax.net.ssl.trustStorePassword=changeit -Duser.home=/tmp"
                 zap-api-scan.py -t /zap/wrk/openapi.json -f openapi -J raw-report.json -T 10 \

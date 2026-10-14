@@ -1,5 +1,7 @@
 """Explicit API trust and a separate bounded regional S3 capability transport."""
 
+import io
+import math
 import time
 from dataclasses import dataclass
 from urllib.parse import unquote, urlsplit
@@ -107,10 +109,18 @@ class Context:
 
 
 class Client:
-    def __init__(self, context, *, api_transport=None, object_transport=None, ca_file=None):
+    def __init__(
+        self,
+        context,
+        *,
+        api_transport=None,
+        object_transport=None,
+        ca_file=None,
+        clock=time.monotonic,
+    ):
         if ca_file and context.mode != "local-fixture":
             raise ContextError("Production API uses normal system trust")
-        self.context = context
+        self.context, self.clock = context, clock
         import ssl
 
         verify = ssl.create_default_context(cafile=ca_file) if ca_file else True
@@ -141,18 +151,39 @@ class Client:
     def __exit__(self, *_):
         self.close()
 
-    def _read(self, client, method, url, limit, **kwargs):
-        start = time.monotonic()
+    def _read(self, client, method, url, limit, *, deadline=None, clock=None, **kwargs):
+        clock = clock or self.clock
+        start = clock()
+        if deadline is None:
+            deadline = start + self.context.timeout_seconds
+        if not math.isfinite(deadline) or deadline <= start:
+            raise ContextError("HTTP deadline exceeded")
+        deadline = min(deadline, start + self.context.timeout_seconds)
+        kwargs["timeout"] = max(0.001, deadline - start)
+
+        class BudgetFile(io.BytesIO):
+            def read(self, size=-1):
+                if clock() >= deadline:
+                    raise ContextError("HTTP upload deadline exceeded")
+                return super().read(size)
+
+        if isinstance(kwargs.get("files"), dict):
+            bounded = {}
+            for key, item in kwargs["files"].items():
+                if isinstance(item, tuple) and len(item) >= 2 and isinstance(item[1], bytes):
+                    item = (item[0], BudgetFile(item[1]), *item[2:])
+                bounded[key] = item
+            kwargs["files"] = bounded
         try:
             with client.stream(method, url, **kwargs) as reply:
                 body = bytearray()
                 for chunk in reply.iter_bytes():
                     if len(body) + len(chunk) > limit:
                         raise ContextError("HTTP body limit exceeded")
-                    if time.monotonic() - start > self.context.timeout_seconds:
+                    if clock() >= deadline:
                         raise ContextError("HTTP deadline exceeded")
                     body.extend(chunk)
-                if time.monotonic() - start > self.context.timeout_seconds:
+                if clock() >= deadline:
                     raise ContextError("HTTP deadline exceeded")
                 return reply.status_code, bytes(body), dict(reply.headers)
         except httpx.HTTPError:
@@ -169,7 +200,7 @@ class Client:
             raise ContextError("API path must stay on configured origin")
         return self._read(self.api, method, path, self.context.max_response_bytes, **kwargs)
 
-    def download(self, capability, *, byte_range=None):
+    def download(self, capability, *, byte_range=None, deadline=None, clock=None):
         if not self.context.capability_allowed(capability):
             raise ContextError("Capability host is not an approved regional bucket")
         headers = {}
@@ -181,7 +212,13 @@ class Client:
         # Never reuse Set-Cookie from object hosts; no headers/cookies/tokens from API.
         self.objects.cookies.clear()
         result = self._read(
-            self.objects, "GET", capability, self.context.capability_limit_bytes, headers=headers
+            self.objects,
+            "GET",
+            capability,
+            self.context.capability_limit_bytes,
+            headers=headers,
+            deadline=deadline,
+            clock=clock,
         )
         self.objects.cookies.clear()
         if result[0] in {301, 302, 303, 307, 308}:
