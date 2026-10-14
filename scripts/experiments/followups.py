@@ -16,6 +16,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import asyncpg
+import httpx
 
 from scripts.dev import runtime
 from scripts.evidence import performance as p
@@ -523,6 +524,9 @@ asyncio.run(main())
                 record={"operation": "wrong-owner-check"},
             )
             publisher = await self.person(70)
+            # Uploads have no numeric latency gate; observe the complete body/ACK.
+            publisher["client"].timeout = 120
+            publisher["client"].http.timeout = httpx.Timeout(120)
             playback = await statuses[0]["client"].checked(
                 "GET", "/api/jobs/" + statuses[0]["asset_id"]
             )

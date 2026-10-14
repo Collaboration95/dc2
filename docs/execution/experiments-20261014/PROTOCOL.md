@@ -83,3 +83,8 @@ playback transfer inputs for later all-in$200/approximately3week costing. No
 prices, affordable SKU or lower-memory claim. Parent owns gist/PR/remote metadata
 and fresh independent review. Raw records compressed with stored/decompressed
 hashes and exact source/config/fixtures in an index.
+
+Observer correction after failed invocation1:large uploads use a bounded120s
+HTTP/body observation deadline; status/login retain10s request observers and all
+original numeric gates. No upload retries. Invocation1 remains failed and is not
+spliced; all three paired comparisons restart fresh.
