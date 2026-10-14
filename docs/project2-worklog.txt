@@ -616,3 +616,28 @@ and all GitHub operations. LocalStack has no supplied activation token; Moto5.2.
 and cfn-lint1.57.2 installed in an isolated cache tools venv for future local checks.
 Emulation cannot establish Fargate/CloudFront/IAM/billing evidence. Existing demo
 and frozen worktrees remain untouched; real cloud-only acceptance stays explicit.
+
+15 OCTOBER 2026 — AWS PREPARATION INTEGRATED, 28 ITEMS RECONCILED, NO AWS RUN
+
+Final independent review round5 passed local preparation at57f7c5f after rounds
+1–4 returned REVISE (10 source findings, three F6 seams, the exact-source live
+receipt, one E501 line). Stack75→74→73→72→71 merged into work/aws2-prep-20261015
+with --match-head-commit after every required hosted check passed at each exact
+head. Only failed jobs were rerun: #75 cold Docker-info timeout before tests and
+#73 one cancelled Media startup job; attempt2 passed. Integration head c82fe99 has
+the same tree as reviewed57f7c5f. Main umbrella PR70 remains draft, unmerged.
+
+Normal suite at53f9dca: 1418 Python and152 frontend pass; 283 focused checks at
+57f7c5f overlap it. R11 on clean53f9dca completed8 local phases with real local
+services and synthetic AWS inventory/registry/scan inputs: four1s/1881B fixtures,
+a44,877B private export (backup_claim=false, restore NOT_RUN). 57f7c5f is only
+an equivalent assertion split; R11 is not relabeled. Hosted authenticated ZAP
+executed with12 risk0/1 alert types retained. 11 existing containers kept IDs,
+starts and images; namespace aws2-prep-r1 stopped with volumes retained.
+
+All28 new items closed with scoped comments under the user's no-AWS instruction:
+16 preparation children and epics41–43 COMPLETED (preparation only; original AWS
+criteria unticked), 8 children and epic44 NOT_PLANNED with workflow Blocked.
+Project status Done for all28; 30 historical items and38/39 rejections unchanged.
+No issue is next in current scope. Ledger, summary and HTML in execution/aws/prep.
+No AWS/account/spend/restore/bill operation; Alibaba not operated.

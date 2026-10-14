@@ -49,3 +49,20 @@ promotion/bad restoration and short encode/range/decode/delete, close/private ex
 and wake. It preceded the round2 adapter corrections; it is historical integration
 proof, not final exact-source validation. The final corrected run and fresh round3
 review remain required. Genuine AWS and restore evidence remain NOT_RUN.
+
+Round3 (e4ed57a) accepted the round2 corrections and asked only for an
+exact-source live receipt. 53f9dca matched the Processing owner-header rejection
+contract in the peer probe, and coordinator local run R11 then completed all
+eight phases on clean 53f9dca: finite warm drain, Processing and Media
+promotion plus failed-candidate restoration, close, the 44,877-byte private
+common export (backup_claim=false, restore NOT_RUN) and wake. Round4 accepted R11 and found one E501 line in the
+generated peer probe. 57f7c5f splits that assertion into equivalent lines; R11
+stays bound to 53f9dca and is not relabeled as a live run at 57f7c5f.
+
+Round5 returned PASS FOR LOCAL PREPARATION at 57f7c5f
+([final review](audits/review-r5.md); all five rounds are in [audits](audits/)).
+Stack #75→#74→#73→#72→#71 merged into work/aws2-prep-20261015 after every
+required hosted check passed at each exact head. Only the failed jobs were rerun:
+#75 had a cold Docker-info timeout before any test ran, and #73 had one cancelled
+Media startup job. The outcome is recorded in [completion](completion.json) and
+[summary](summary.md). Genuine AWS acceptance remains NOT_RUN.

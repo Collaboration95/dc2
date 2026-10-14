@@ -1,0 +1,101 @@
+{
+  "mode": "local-services",
+  "control_plane": "synthetic-offline",
+  "operator_source_sha": "53f9dca9b7907c233893062a7a684620a7aa2257",
+  "operator_source_dirty": false,
+  "artifact_gates": "synthetic control inputs; real scan/registry NOT_RUN",
+  "namespace": "dc2-aws2-prep-r1-33d0e0a7",
+  "receipts": [
+    {
+      "case": "finite-rq-warm-drain",
+      "status": "complete",
+      "inventory_complete": true,
+      "unresolved_launches": 0,
+      "tasks": [
+        {
+          "id": "task-4",
+          "status": "STOPPED"
+        }
+      ]
+    },
+    {
+      "case": "processing-release",
+      "status": "promoted"
+    },
+    {
+      "case": "processing-bad-restore",
+      "status": "failed-restored"
+    },
+    {
+      "case": "media-release",
+      "status": "promoted"
+    },
+    {
+      "case": "media-bad-restore",
+      "status": "failed-restored"
+    },
+    {
+      "case": "close",
+      "tasks_stopped": true,
+      "state_stopped": true,
+      "public_ip_released": true,
+      "generator_removed": true
+    },
+    {
+      "case": "private-export",
+      "status": "PASS",
+      "evidence_kind": "local-services",
+      "boundary_id": "d117c724e4a94970aa79a14685963919",
+      "manifest_sha256": "12405775b344275f15caf69cae5501e4340c4d2a676362d9754d8ecfce1c4393",
+      "bytes": 44877,
+      "restore_status": "NOT_RUN",
+      "backup_claim": false,
+      "destructive_teardown_allowed": false,
+      "ebs_deleted": false
+    },
+    {
+      "case": "wake",
+      "status": "ready"
+    }
+  ],
+  "ledger": [
+    {
+      "batch": null,
+      "fixture_sha256": "b23363ac2bbccdb6e5fa41b946a270eae85ea8b2633c4d055ea8577421edca0a",
+      "upload_bytes": 1881,
+      "duration_seconds": 1,
+      "fixture_id": "5f7be06ab64a4263814bb2e6b379e2b6",
+      "long_jobs": 0,
+      "mode": "local-services"
+    },
+    {
+      "batch": null,
+      "fixture_sha256": "b23363ac2bbccdb6e5fa41b946a270eae85ea8b2633c4d055ea8577421edca0a",
+      "upload_bytes": 1881,
+      "duration_seconds": 1,
+      "fixture_id": "826fde0979fb4be4a6f8b7738b12ad65",
+      "long_jobs": 0,
+      "mode": "local-services"
+    },
+    {
+      "batch": null,
+      "fixture_sha256": "b23363ac2bbccdb6e5fa41b946a270eae85ea8b2633c4d055ea8577421edca0a",
+      "upload_bytes": 1881,
+      "duration_seconds": 1,
+      "fixture_id": "6d840853c67b418290f51a4e68a4be6f",
+      "long_jobs": 0,
+      "mode": "local-services"
+    },
+    {
+      "batch": null,
+      "fixture_sha256": "b23363ac2bbccdb6e5fa41b946a270eae85ea8b2633c4d055ea8577421edca0a",
+      "upload_bytes": 1881,
+      "duration_seconds": 1,
+      "fixture_id": "fb2bb231d1844bee94d86af8d5d2eb39",
+      "long_jobs": 0,
+      "mode": "local-services"
+    }
+  ],
+  "restore_status": "NOT_RUN",
+  "aws_status": "NOT_RUN"
+}
