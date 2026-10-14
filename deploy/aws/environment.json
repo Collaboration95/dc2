@@ -1,0 +1,3604 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Preparation: single-AZ state, zero-count services; origin HTTP unresolved",
+  "Metadata": {
+    "PreparationGates": {
+      "Apply": "NOT AUTHORIZED",
+      "Origin": "owner disposition + private header injection",
+      "Secrets": "SSM SecureString ARNs; AWS-managed SSM key; private edge injection",
+      "Readiness": "liveness excludes schema, Redis and authenticated peer readiness"
+    }
+  },
+  "Parameters": {
+    "EnvironmentId": {
+      "Type": "String",
+      "AllowedPattern": "[a-z][a-z0-9-]{1,31}"
+    },
+    "AvailabilityZone": {
+      "Type": "AWS::EC2::AvailabilityZone::Name"
+    },
+    "StateAmiId": {
+      "Type": "AWS::EC2::Image::Id"
+    },
+    "CloudFrontPrefixListId": {
+      "Type": "String",
+      "AllowedPattern": "pl-[a-f0-9]+"
+    },
+    "VpcCidr": {
+      "Type": "String",
+      "Default": "10.42.0.0/16"
+    },
+    "SubnetCidr": {
+      "Type": "String",
+      "Default": "10.42.0.0/24"
+    },
+    "SourceBucketName": {
+      "Type": "String",
+      "AllowedPattern": "[a-z0-9][a-z0-9-]{1,61}[a-z0-9]"
+    },
+    "OutputBucketName": {
+      "Type": "String",
+      "AllowedPattern": "[a-z0-9][a-z0-9-]{1,61}[a-z0-9]"
+    },
+    "BackupBucketName": {
+      "Type": "String",
+      "AllowedPattern": "[a-z0-9][a-z0-9-]{1,61}[a-z0-9]"
+    },
+    "MediaDigest": {
+      "Type": "String",
+      "AllowedPattern": "sha256:[a-f0-9]{64}"
+    },
+    "ProcessingDigest": {
+      "Type": "String",
+      "AllowedPattern": "sha256:[a-f0-9]{64}"
+    },
+    "OperatorPrincipalArn": {
+      "Type": "String",
+      "AllowedPattern": "arn:aws:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+"
+    },
+    "WorkerCommand": {
+      "Type": "CommaDelimitedList",
+      "Description": "Finite cloud wrapper included in selected Processing digest; no raw resident worker command"
+    },
+    "WorkerLifetimeSeconds": {
+      "Type": "Number",
+      "Default": 1800,
+      "MinValue": 60,
+      "MaxValue": 14400
+    },
+    "WorkerContainerMemory": {
+      "Type": "Number",
+      "Default": 1536,
+      "AllowedValues": [
+        1536,
+        4096
+      ]
+    },
+    "MediaRuntimeDsnArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:ssm:[a-z]{2}-[a-z]+-[0-9]:[0-9]{12}:parameter/[A-Za-z0-9_/.-]+$"
+    },
+    "ProcessingRuntimeDsnArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:ssm:[a-z]{2}-[a-z]+-[0-9]:[0-9]{12}:parameter/[A-Za-z0-9_/.-]+$"
+    },
+    "MediaMigrationDsnArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:ssm:[a-z]{2}-[a-z]+-[0-9]:[0-9]{12}:parameter/[A-Za-z0-9_/.-]+$"
+    },
+    "ProcessingMigrationDsnArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:ssm:[a-z]{2}-[a-z]+-[0-9]:[0-9]{12}:parameter/[A-Za-z0-9_/.-]+$"
+    },
+    "JwtSecretArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:ssm:[a-z]{2}-[a-z]+-[0-9]:[0-9]{12}:parameter/[A-Za-z0-9_/.-]+$"
+    },
+    "PeerTokenArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:ssm:[a-z]{2}-[a-z]+-[0-9]:[0-9]{12}:parameter/[A-Za-z0-9_/.-]+$"
+    },
+    "SourceTokenArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:ssm:[a-z]{2}-[a-z]+-[0-9]:[0-9]{12}:parameter/[A-Za-z0-9_/.-]+$"
+    },
+    "RedisUrlArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:ssm:[a-z]{2}-[a-z]+-[0-9]:[0-9]{12}:parameter/[A-Za-z0-9_/.-]+$"
+    },
+    "OriginGateArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:ssm:[a-z]{2}-[a-z]+-[0-9]:[0-9]{12}:parameter/[A-Za-z0-9_/.-]+$"
+    },
+    "StateSecretsArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:ssm:[a-z]{2}-[a-z]+-[0-9]:[0-9]{12}:parameter/[A-Za-z0-9_/.-]+$"
+    }
+  },
+  "Resources": {
+    "Vpc": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": {
+          "Ref": "VpcCidr"
+        },
+        "EnableDnsSupport": true,
+        "EnableDnsHostnames": true
+      }
+    },
+    "Subnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "AvailabilityZone": {
+          "Ref": "AvailabilityZone"
+        },
+        "CidrBlock": {
+          "Ref": "SubnetCidr"
+        },
+        "MapPublicIpOnLaunch": true
+      }
+    },
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {}
+    },
+    "GatewayAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "InternetGatewayId": {
+          "Ref": "InternetGateway"
+        }
+      }
+    },
+    "RouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        }
+      }
+    },
+    "InternetRoute": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "RouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "InternetGateway"
+        }
+      },
+      "DependsOn": "GatewayAttachment"
+    },
+    "RouteAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "Subnet"
+        },
+        "RouteTableId": {
+          "Ref": "RouteTable"
+        }
+      }
+    },
+    "StateSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "GroupDescription": "dc2 State",
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "OriginSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "GroupDescription": "dc2 Origin",
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "GatewaySG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "GroupDescription": "dc2 Gateway",
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "MediaSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "GroupDescription": "dc2 Media",
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "ApiSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "GroupDescription": "dc2 Api",
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "RecoverySG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "GroupDescription": "dc2 Recovery",
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "WorkerSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "GroupDescription": "dc2 Worker",
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "MediaMigrationSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "GroupDescription": "dc2 MediaMigration",
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "ProcessingMigrationSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "GroupDescription": "dc2 ProcessingMigration",
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "OriginIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "OriginSG"
+        },
+        "SourcePrefixListId": {
+          "Ref": "CloudFrontPrefixListId"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 80,
+        "ToPort": 80
+      }
+    },
+    "MediaDatabaseIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "StateSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "MediaSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 5432,
+        "ToPort": 5432
+      }
+    },
+    "MediaDatabaseOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "MediaSG"
+        },
+        "DestinationSecurityGroupId": {
+          "Ref": "StateSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 5432,
+        "ToPort": 5432
+      }
+    },
+    "ApiDatabaseIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "StateSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "ApiSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 5432,
+        "ToPort": 5432
+      }
+    },
+    "ApiDatabaseOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "ApiSG"
+        },
+        "DestinationSecurityGroupId": {
+          "Ref": "StateSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 5432,
+        "ToPort": 5432
+      }
+    },
+    "RecoveryDatabaseIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "StateSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "RecoverySG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 5432,
+        "ToPort": 5432
+      }
+    },
+    "RecoveryDatabaseOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "RecoverySG"
+        },
+        "DestinationSecurityGroupId": {
+          "Ref": "StateSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 5432,
+        "ToPort": 5432
+      }
+    },
+    "WorkerDatabaseIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "StateSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "WorkerSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 5432,
+        "ToPort": 5432
+      }
+    },
+    "WorkerDatabaseOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "WorkerSG"
+        },
+        "DestinationSecurityGroupId": {
+          "Ref": "StateSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 5432,
+        "ToPort": 5432
+      }
+    },
+    "MediaMigrationDatabaseIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "StateSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "MediaMigrationSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 5432,
+        "ToPort": 5432
+      }
+    },
+    "MediaMigrationDatabaseOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "MediaMigrationSG"
+        },
+        "DestinationSecurityGroupId": {
+          "Ref": "StateSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 5432,
+        "ToPort": 5432
+      }
+    },
+    "ProcessingMigrationDatabaseIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "StateSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "ProcessingMigrationSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 5432,
+        "ToPort": 5432
+      }
+    },
+    "ProcessingMigrationDatabaseOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "ProcessingMigrationSG"
+        },
+        "DestinationSecurityGroupId": {
+          "Ref": "StateSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 5432,
+        "ToPort": 5432
+      }
+    },
+    "ApiRedisIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "StateSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "ApiSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 6379,
+        "ToPort": 6379
+      }
+    },
+    "ApiRedisOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "ApiSG"
+        },
+        "DestinationSecurityGroupId": {
+          "Ref": "StateSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 6379,
+        "ToPort": 6379
+      }
+    },
+    "RecoveryRedisIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "StateSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "RecoverySG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 6379,
+        "ToPort": 6379
+      }
+    },
+    "RecoveryRedisOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "RecoverySG"
+        },
+        "DestinationSecurityGroupId": {
+          "Ref": "StateSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 6379,
+        "ToPort": 6379
+      }
+    },
+    "WorkerRedisIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "StateSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "WorkerSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 6379,
+        "ToPort": 6379
+      }
+    },
+    "WorkerRedisOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "WorkerSG"
+        },
+        "DestinationSecurityGroupId": {
+          "Ref": "StateSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 6379,
+        "ToPort": 6379
+      }
+    },
+    "GatewayMediaIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "MediaSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "GatewaySG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8000,
+        "ToPort": 8000
+      }
+    },
+    "GatewayMediaOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "GatewaySG"
+        },
+        "DestinationSecurityGroupId": {
+          "Ref": "MediaSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8000,
+        "ToPort": 8000
+      }
+    },
+    "WorkerMediaIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "MediaSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "WorkerSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8000,
+        "ToPort": 8000
+      }
+    },
+    "WorkerMediaOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "WorkerSG"
+        },
+        "DestinationSecurityGroupId": {
+          "Ref": "MediaSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8000,
+        "ToPort": 8000
+      }
+    },
+    "MediaApiIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "ApiSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "MediaSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8000,
+        "ToPort": 8000
+      }
+    },
+    "MediaApiOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "MediaSG"
+        },
+        "DestinationSecurityGroupId": {
+          "Ref": "ApiSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8000,
+        "ToPort": 8000
+      }
+    },
+    "Namespace": {
+      "Type": "AWS::ServiceDiscovery::PrivateDnsNamespace",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "${EnvironmentId}.internal"
+        },
+        "Vpc": {
+          "Ref": "Vpc"
+        }
+      }
+    },
+    "MediaDiscovery": {
+      "Type": "AWS::ServiceDiscovery::Service",
+      "Properties": {
+        "Name": "media",
+        "DnsConfig": {
+          "NamespaceId": {
+            "Ref": "Namespace"
+          },
+          "RoutingPolicy": "MULTIVALUE",
+          "DnsRecords": [
+            {
+              "Type": "A",
+              "TTL": 5
+            }
+          ]
+        },
+        "HealthCheckCustomConfig": {
+          "FailureThreshold": 1
+        }
+      }
+    },
+    "ProcessingDiscovery": {
+      "Type": "AWS::ServiceDiscovery::Service",
+      "Properties": {
+        "Name": "processing",
+        "DnsConfig": {
+          "NamespaceId": {
+            "Ref": "Namespace"
+          },
+          "RoutingPolicy": "MULTIVALUE",
+          "DnsRecords": [
+            {
+              "Type": "A",
+              "TTL": 5
+            }
+          ]
+        },
+        "HealthCheckCustomConfig": {
+          "FailureThreshold": 1
+        }
+      }
+    },
+    "MediaRepository": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": {
+          "Fn::Sub": "${EnvironmentId}/media"
+        },
+        "ImageTagMutability": "IMMUTABLE",
+        "ImageScanningConfiguration": {
+          "ScanOnPush": true
+        },
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        }
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "ProcessingRepository": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": {
+          "Fn::Sub": "${EnvironmentId}/processing"
+        },
+        "ImageTagMutability": "IMMUTABLE",
+        "ImageScanningConfiguration": {
+          "ScanOnPush": true
+        },
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        }
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "SourceBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Ref": "SourceBucketName"
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerEnforced"
+            }
+          ]
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "Id": "abort-incomplete",
+              "Status": "Enabled",
+              "AbortIncompleteMultipartUpload": {
+                "DaysAfterInitiation": 1
+              }
+            }
+          ]
+        }
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "SourceBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "SourceBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "SourceBucket",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Sub": "${SourceBucket.Arn}/*"
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "OutputBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Ref": "OutputBucketName"
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerEnforced"
+            }
+          ]
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "Id": "abort-incomplete",
+              "Status": "Enabled",
+              "AbortIncompleteMultipartUpload": {
+                "DaysAfterInitiation": 1
+              }
+            }
+          ]
+        },
+        "CorsConfiguration": {
+          "CorsRules": [
+            {
+              "AllowedOrigins": [
+                {
+                  "Fn::Sub": "https://${Distribution.DomainName}"
+                }
+              ],
+              "AllowedMethods": [
+                "GET"
+              ],
+              "AllowedHeaders": [
+                "Range"
+              ],
+              "ExposedHeaders": [
+                "Content-Range",
+                "Accept-Ranges",
+                "ETag"
+              ],
+              "MaxAge": 300
+            }
+          ]
+        }
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "OutputBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "OutputBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "OutputBucket",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Sub": "${OutputBucket.Arn}/*"
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "BackupBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Ref": "BackupBucketName"
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerEnforced"
+            }
+          ]
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "Id": "abort-incomplete",
+              "Status": "Enabled",
+              "AbortIncompleteMultipartUpload": {
+                "DaysAfterInitiation": 1
+              }
+            }
+          ]
+        }
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "BackupBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "BackupBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "BackupBucket",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Sub": "${BackupBucket.Arn}/*"
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "S3Gateway": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "VpcEndpointType": "Gateway",
+        "ServiceName": {
+          "Fn::Sub": "com.amazonaws.${AWS::Region}.s3"
+        },
+        "RouteTableIds": [
+          {
+            "Ref": "RouteTable"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject",
+                "s3:AbortMultipartUpload",
+                "s3:ListBucket"
+              ],
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "SourceBucket",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "OutputBucket",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "BackupBucket",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Sub": "${SourceBucket.Arn}/*"
+                },
+                {
+                  "Fn::Sub": "${OutputBucket.Arn}/*"
+                },
+                {
+                  "Fn::Sub": "${BackupBucket.Arn}/*"
+                }
+              ],
+              "Principal": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject"
+              ],
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:${AWS::Partition}:s3:::prod-${AWS::Region}-starport-layer-bucket/*"
+                }
+              ],
+              "Principal": "*"
+            }
+          ]
+        }
+      }
+    },
+    "MediaTaskRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "MediaTaskRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject",
+                    "s3:PutObject",
+                    "s3:DeleteObject",
+                    "s3:AbortMultipartUpload"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "${SourceBucket.Arn}/*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "${OutputBucket.Arn}/*"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "WorkerTaskRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "WorkerTaskRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:PutObject",
+                    "s3:AbortMultipartUpload"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "${OutputBucket.Arn}/jobs/*"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "RecoveryTaskRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "RecoveryTaskRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:ListBucket"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "OutputBucket",
+                        "Arn"
+                      ]
+                    }
+                  ],
+                  "Condition": {
+                    "StringLike": {
+                      "s3:prefix": [
+                        "jobs/*"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:DeleteObject"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "${OutputBucket.Arn}/jobs/*"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ApiTaskRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "MediaMigrationTaskRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "ProcessingMigrationTaskRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "StateRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "StateRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssm:GetParameters"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "StateSecretsArn"
+                    },
+                    {
+                      "Ref": "OriginGateArn"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssm:UpdateInstanceInformation",
+                    "ssmmessages:CreateControlChannel",
+                    "ssmmessages:CreateDataChannel",
+                    "ssmmessages:OpenControlChannel",
+                    "ssmmessages:OpenDataChannel"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "StateProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Roles": [
+          {
+            "Ref": "StateRole"
+          }
+        ]
+      }
+    },
+    "DataVolume": {
+      "Type": "AWS::EC2::Volume",
+      "Properties": {
+        "AvailabilityZone": {
+          "Ref": "AvailabilityZone"
+        },
+        "Encrypted": true,
+        "Size": 8,
+        "VolumeType": "gp3",
+        "Tags": [
+          {
+            "Key": "dc2-state",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          }
+        ]
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "StateInstance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "StateAmiId"
+        },
+        "InstanceType": "t3a.small",
+        "CreditSpecification": {
+          "CPUCredits": "standard"
+        },
+        "IamInstanceProfile": {
+          "Ref": "StateProfile"
+        },
+        "MetadataOptions": {
+          "HttpTokens": "required",
+          "HttpEndpoint": "enabled"
+        },
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": "0",
+            "SubnetId": {
+              "Ref": "Subnet"
+            },
+            "AssociatePublicIpAddress": true,
+            "GroupSet": [
+              {
+                "Ref": "StateSG"
+              },
+              {
+                "Ref": "OriginSG"
+              },
+              {
+                "Ref": "GatewaySG"
+              }
+            ]
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "VolumeSize": 16,
+              "VolumeType": "gp3",
+              "Encrypted": true,
+              "DeleteOnTermination": true
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": "#!/bin/sh\n# No implicit disk format or secret fetch.\n# Install reviewed state assets through the authorized operator workflow.\ninstall -d -m 0700 /etc/dc2-aws\n"
+        }
+      },
+      "DependsOn": "GatewayAttachment"
+    },
+    "DataAttachment": {
+      "Type": "AWS::EC2::VolumeAttachment",
+      "Properties": {
+        "InstanceId": {
+          "Ref": "StateInstance"
+        },
+        "VolumeId": {
+          "Ref": "DataVolume"
+        },
+        "Device": "/dev/sdf"
+      }
+    },
+    "ApiOriginPolicy": {
+      "Type": "AWS::CloudFront::OriginRequestPolicy",
+      "Properties": {
+        "OriginRequestPolicyConfig": {
+          "Name": {
+            "Fn::Sub": "${EnvironmentId}-viewer"
+          },
+          "CookiesConfig": {
+            "CookieBehavior": "all"
+          },
+          "QueryStringsConfig": {
+            "QueryStringBehavior": "all"
+          },
+          "HeadersConfig": {
+            "HeaderBehavior": "allViewer"
+          }
+        }
+      }
+    },
+    "NoCache": {
+      "Type": "AWS::CloudFront::CachePolicy",
+      "Properties": {
+        "CachePolicyConfig": {
+          "Name": {
+            "Fn::Sub": "${EnvironmentId}-no-cache"
+          },
+          "MinTTL": 0,
+          "DefaultTTL": 0,
+          "MaxTTL": 0,
+          "ParametersInCacheKeyAndForwardedToOrigin": {
+            "EnableAcceptEncodingGzip": false,
+            "CookiesConfig": {
+              "CookieBehavior": "none"
+            },
+            "HeadersConfig": {
+              "HeaderBehavior": "none"
+            },
+            "QueryStringsConfig": {
+              "QueryStringBehavior": "none"
+            }
+          }
+        }
+      }
+    },
+    "Distribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "DistributionConfig": {
+          "Enabled": false,
+          "Comment": "Restricted origin HTTP; private injection and owner approval required",
+          "PriceClass": "PriceClass_All",
+          "HttpVersion": "http2",
+          "DefaultRootObject": "index.html",
+          "ViewerCertificate": {
+            "CloudFrontDefaultCertificate": true
+          },
+          "Origins": [
+            {
+              "Id": "state",
+              "DomainName": {
+                "Fn::GetAtt": [
+                  "StateInstance",
+                  "PublicDnsName"
+                ]
+              },
+              "CustomOriginConfig": {
+                "HTTPPort": 80,
+                "OriginProtocolPolicy": "http-only",
+                "OriginReadTimeout": 60,
+                "OriginKeepaliveTimeout": 5
+              }
+            }
+          ],
+          "DefaultCacheBehavior": {
+            "TargetOriginId": "state",
+            "ViewerProtocolPolicy": "https-only",
+            "AllowedMethods": [
+              "GET",
+              "HEAD",
+              "OPTIONS",
+              "PUT",
+              "PATCH",
+              "POST",
+              "DELETE"
+            ],
+            "CachedMethods": [
+              "GET",
+              "HEAD"
+            ],
+            "CachePolicyId": {
+              "Ref": "NoCache"
+            },
+            "OriginRequestPolicyId": {
+              "Ref": "ApiOriginPolicy"
+            },
+            "Compress": false
+          },
+          "CacheBehaviors": [
+            {
+              "TargetOriginId": "state",
+              "ViewerProtocolPolicy": "https-only",
+              "AllowedMethods": [
+                "GET",
+                "HEAD",
+                "OPTIONS",
+                "PUT",
+                "PATCH",
+                "POST",
+                "DELETE"
+              ],
+              "CachedMethods": [
+                "GET",
+                "HEAD"
+              ],
+              "CachePolicyId": {
+                "Ref": "NoCache"
+              },
+              "OriginRequestPolicyId": {
+                "Ref": "ApiOriginPolicy"
+              },
+              "Compress": false,
+              "PathPattern": "/api"
+            },
+            {
+              "TargetOriginId": "state",
+              "ViewerProtocolPolicy": "https-only",
+              "AllowedMethods": [
+                "GET",
+                "HEAD",
+                "OPTIONS",
+                "PUT",
+                "PATCH",
+                "POST",
+                "DELETE"
+              ],
+              "CachedMethods": [
+                "GET",
+                "HEAD"
+              ],
+              "CachePolicyId": {
+                "Ref": "NoCache"
+              },
+              "OriginRequestPolicyId": {
+                "Ref": "ApiOriginPolicy"
+              },
+              "Compress": false,
+              "PathPattern": "/api/*"
+            }
+          ],
+          "CustomErrorResponses": [
+            {
+              "ErrorCode": 400,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 403,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 404,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 405,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 414,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 416,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 500,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 501,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 502,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 503,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 504,
+              "ErrorCachingMinTTL": 0
+            }
+          ]
+        }
+      }
+    },
+    "Cluster": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": {
+          "Ref": "EnvironmentId"
+        }
+      }
+    },
+    "MediaLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/dc2/${EnvironmentId}/media"
+        },
+        "RetentionInDays": 14
+      }
+    },
+    "ApiLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/dc2/${EnvironmentId}/api"
+        },
+        "RetentionInDays": 14
+      }
+    },
+    "RecoveryLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/dc2/${EnvironmentId}/recovery"
+        },
+        "RetentionInDays": 14
+      }
+    },
+    "WorkerLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/dc2/${EnvironmentId}/worker"
+        },
+        "RetentionInDays": 14
+      }
+    },
+    "MediaMigrationLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/dc2/${EnvironmentId}/mediamigration"
+        },
+        "RetentionInDays": 14
+      }
+    },
+    "ProcessingMigrationLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/dc2/${EnvironmentId}/processingmigration"
+        },
+        "RetentionInDays": 14
+      }
+    },
+    "MediaExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "MediaExecutionRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "MediaRepository",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "MediaLogs",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssm:GetParameters"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "MediaRuntimeDsnArn"
+                    },
+                    {
+                      "Ref": "JwtSecretArn"
+                    },
+                    {
+                      "Ref": "PeerTokenArn"
+                    },
+                    {
+                      "Ref": "SourceTokenArn"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "MediaTask": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "Family": {
+          "Fn::Sub": "${EnvironmentId}-media"
+        },
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "NetworkMode": "awsvpc",
+        "Cpu": "1024",
+        "Memory": "2048",
+        "RuntimePlatform": {
+          "CpuArchitecture": "X86_64",
+          "OperatingSystemFamily": "LINUX"
+        },
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "MediaTaskRole",
+            "Arn"
+          ]
+        },
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "MediaExecutionRole",
+            "Arn"
+          ]
+        },
+        "ContainerDefinitions": [
+          {
+            "Name": "media",
+            "Image": {
+              "Fn::Sub": "${MediaRepository.RepositoryUri}@${MediaDigest}"
+            },
+            "Essential": true,
+            "Cpu": 960,
+            "Memory": 1536,
+            "Command": [
+              "uvicorn",
+              "media.main:app",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "8000"
+            ],
+            "StopTimeout": 120,
+            "Environment": [
+              {
+                "Name": "MEDIA_PROCESSING_URL",
+                "Value": {
+                  "Fn::Sub": "http://processing.${EnvironmentId}.internal:8000"
+                }
+              },
+              {
+                "Name": "MEDIA_PUBLIC_URL",
+                "Value": {
+                  "Fn::Sub": "https://${Distribution.DomainName}"
+                }
+              },
+              {
+                "Name": "MEDIA_STORAGE_CREDENTIAL_MODE",
+                "Value": "ecs"
+              },
+              {
+                "Name": "MEDIA_MINIO_USE_SSL",
+                "Value": "true"
+              },
+              {
+                "Name": "MEDIA_MINIO_PUBLIC_USE_SSL",
+                "Value": "true"
+              },
+              {
+                "Name": "MEDIA_MINIO_REGION",
+                "Value": {
+                  "Ref": "AWS::Region"
+                }
+              },
+              {
+                "Name": "MEDIA_MINIO_ENDPOINT",
+                "Value": {
+                  "Fn::Sub": "s3.${AWS::Region}.amazonaws.com"
+                }
+              },
+              {
+                "Name": "MEDIA_MINIO_PUBLIC_ENDPOINT",
+                "Value": {
+                  "Fn::Sub": "s3.${AWS::Region}.amazonaws.com"
+                }
+              },
+              {
+                "Name": "MEDIA_MINIO_SOURCE_BUCKET",
+                "Value": {
+                  "Ref": "SourceBucket"
+                }
+              },
+              {
+                "Name": "MEDIA_MINIO_OUTPUT_BUCKET",
+                "Value": {
+                  "Ref": "OutputBucket"
+                }
+              }
+            ],
+            "Secrets": [
+              {
+                "Name": "MEDIA_POSTGRES_DSN",
+                "ValueFrom": {
+                  "Ref": "MediaRuntimeDsnArn"
+                }
+              },
+              {
+                "Name": "MEDIA_JWT_SECRET",
+                "ValueFrom": {
+                  "Ref": "JwtSecretArn"
+                }
+              },
+              {
+                "Name": "MEDIA_PROCESSING_SERVICE_TOKEN",
+                "ValueFrom": {
+                  "Ref": "PeerTokenArn"
+                }
+              },
+              {
+                "Name": "MEDIA_SOURCE_SERVICE_TOKEN",
+                "ValueFrom": {
+                  "Ref": "SourceTokenArn"
+                }
+              }
+            ],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "MediaLogs"
+                },
+                "awslogs-region": {
+                  "Ref": "AWS::Region"
+                },
+                "awslogs-stream-prefix": "task",
+                "mode": "non-blocking",
+                "max-buffer-size": "1m"
+              }
+            },
+            "PortMappings": [
+              {
+                "ContainerPort": 8000,
+                "Protocol": "tcp"
+              }
+            ],
+            "HealthCheck": {
+              "Command": [
+                "CMD",
+                "python",
+                "-c",
+                "import socket; s=socket.create_connection(('127.0.0.1',8000),2); s.close()"
+              ],
+              "Interval": 15,
+              "Timeout": 5,
+              "Retries": 3,
+              "StartPeriod": 30
+            }
+          },
+          {
+            "Name": "media-reconciler",
+            "Image": {
+              "Fn::Sub": "${MediaRepository.RepositoryUri}@${MediaDigest}"
+            },
+            "Essential": true,
+            "Cpu": 64,
+            "Memory": 512,
+            "Command": [
+              "python",
+              "-m",
+              "media.recovery"
+            ],
+            "StopTimeout": 120,
+            "Environment": [
+              {
+                "Name": "MEDIA_PROCESSING_URL",
+                "Value": {
+                  "Fn::Sub": "http://processing.${EnvironmentId}.internal:8000"
+                }
+              },
+              {
+                "Name": "MEDIA_PUBLIC_URL",
+                "Value": {
+                  "Fn::Sub": "https://${Distribution.DomainName}"
+                }
+              },
+              {
+                "Name": "MEDIA_STORAGE_CREDENTIAL_MODE",
+                "Value": "ecs"
+              },
+              {
+                "Name": "MEDIA_MINIO_USE_SSL",
+                "Value": "true"
+              },
+              {
+                "Name": "MEDIA_MINIO_PUBLIC_USE_SSL",
+                "Value": "true"
+              },
+              {
+                "Name": "MEDIA_MINIO_REGION",
+                "Value": {
+                  "Ref": "AWS::Region"
+                }
+              },
+              {
+                "Name": "MEDIA_MINIO_ENDPOINT",
+                "Value": {
+                  "Fn::Sub": "s3.${AWS::Region}.amazonaws.com"
+                }
+              },
+              {
+                "Name": "MEDIA_MINIO_PUBLIC_ENDPOINT",
+                "Value": {
+                  "Fn::Sub": "s3.${AWS::Region}.amazonaws.com"
+                }
+              },
+              {
+                "Name": "MEDIA_MINIO_SOURCE_BUCKET",
+                "Value": {
+                  "Ref": "SourceBucket"
+                }
+              },
+              {
+                "Name": "MEDIA_MINIO_OUTPUT_BUCKET",
+                "Value": {
+                  "Ref": "OutputBucket"
+                }
+              }
+            ],
+            "Secrets": [
+              {
+                "Name": "MEDIA_POSTGRES_DSN",
+                "ValueFrom": {
+                  "Ref": "MediaRuntimeDsnArn"
+                }
+              },
+              {
+                "Name": "MEDIA_JWT_SECRET",
+                "ValueFrom": {
+                  "Ref": "JwtSecretArn"
+                }
+              },
+              {
+                "Name": "MEDIA_PROCESSING_SERVICE_TOKEN",
+                "ValueFrom": {
+                  "Ref": "PeerTokenArn"
+                }
+              },
+              {
+                "Name": "MEDIA_SOURCE_SERVICE_TOKEN",
+                "ValueFrom": {
+                  "Ref": "SourceTokenArn"
+                }
+              }
+            ],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "MediaLogs"
+                },
+                "awslogs-region": {
+                  "Ref": "AWS::Region"
+                },
+                "awslogs-stream-prefix": "task",
+                "mode": "non-blocking",
+                "max-buffer-size": "1m"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "ApiExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "ApiExecutionRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingRepository",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "ApiLogs",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssm:GetParameters"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "ProcessingRuntimeDsnArn"
+                    },
+                    {
+                      "Ref": "PeerTokenArn"
+                    },
+                    {
+                      "Ref": "RedisUrlArn"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ApiTask": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "Family": {
+          "Fn::Sub": "${EnvironmentId}-api"
+        },
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "NetworkMode": "awsvpc",
+        "Cpu": "512",
+        "Memory": "1024",
+        "RuntimePlatform": {
+          "CpuArchitecture": "X86_64",
+          "OperatingSystemFamily": "LINUX"
+        },
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "ApiTaskRole",
+            "Arn"
+          ]
+        },
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "ApiExecutionRole",
+            "Arn"
+          ]
+        },
+        "ContainerDefinitions": [
+          {
+            "Name": "api",
+            "Image": {
+              "Fn::Sub": "${ProcessingRepository.RepositoryUri}@${ProcessingDigest}"
+            },
+            "Essential": true,
+            "Cpu": 512,
+            "Memory": 1024,
+            "Command": [
+              "uvicorn",
+              "processing.main:app",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "8000"
+            ],
+            "StopTimeout": 120,
+            "Environment": [
+              {
+                "Name": "PROCESSING_QUEUE_NAME",
+                "Value": "processing"
+              }
+            ],
+            "Secrets": [
+              {
+                "Name": "PROCESSING_POSTGRES_DSN",
+                "ValueFrom": {
+                  "Ref": "ProcessingRuntimeDsnArn"
+                }
+              },
+              {
+                "Name": "PROCESSING_SERVICE_TOKEN",
+                "ValueFrom": {
+                  "Ref": "PeerTokenArn"
+                }
+              },
+              {
+                "Name": "PROCESSING_REDIS_URL",
+                "ValueFrom": {
+                  "Ref": "RedisUrlArn"
+                }
+              }
+            ],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "ApiLogs"
+                },
+                "awslogs-region": {
+                  "Ref": "AWS::Region"
+                },
+                "awslogs-stream-prefix": "task",
+                "mode": "non-blocking",
+                "max-buffer-size": "1m"
+              }
+            },
+            "PortMappings": [
+              {
+                "ContainerPort": 8000,
+                "Protocol": "tcp"
+              }
+            ],
+            "HealthCheck": {
+              "Command": [
+                "CMD",
+                "python",
+                "-c",
+                "import socket; s=socket.create_connection(('127.0.0.1',8000),2); s.close()"
+              ],
+              "Interval": 15,
+              "Timeout": 5,
+              "Retries": 3,
+              "StartPeriod": 30
+            }
+          }
+        ]
+      }
+    },
+    "RecoveryExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "RecoveryExecutionRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingRepository",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "RecoveryLogs",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssm:GetParameters"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "ProcessingRuntimeDsnArn"
+                    },
+                    {
+                      "Ref": "RedisUrlArn"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "RecoveryTask": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "Family": {
+          "Fn::Sub": "${EnvironmentId}-recovery"
+        },
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "NetworkMode": "awsvpc",
+        "Cpu": "256",
+        "Memory": "512",
+        "RuntimePlatform": {
+          "CpuArchitecture": "X86_64",
+          "OperatingSystemFamily": "LINUX"
+        },
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "RecoveryTaskRole",
+            "Arn"
+          ]
+        },
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "RecoveryExecutionRole",
+            "Arn"
+          ]
+        },
+        "ContainerDefinitions": [
+          {
+            "Name": "recovery",
+            "Image": {
+              "Fn::Sub": "${ProcessingRepository.RepositoryUri}@${ProcessingDigest}"
+            },
+            "Essential": true,
+            "Cpu": 256,
+            "Memory": 512,
+            "Command": [
+              "python",
+              "-m",
+              "processing.recovery"
+            ],
+            "StopTimeout": 120,
+            "Environment": [
+              {
+                "Name": "PROCESSING_QUEUE_NAME",
+                "Value": "processing"
+              },
+              {
+                "Name": "PROCESSING_MEDIA_URL",
+                "Value": {
+                  "Fn::Sub": "http://media.${EnvironmentId}.internal:8000"
+                }
+              },
+              {
+                "Name": "PROCESSING_STORAGE_CREDENTIAL_MODE",
+                "Value": "ecs"
+              },
+              {
+                "Name": "PROCESSING_MINIO_USE_SSL",
+                "Value": "true"
+              },
+              {
+                "Name": "PROCESSING_MINIO_REGION",
+                "Value": {
+                  "Ref": "AWS::Region"
+                }
+              },
+              {
+                "Name": "PROCESSING_MINIO_ENDPOINT",
+                "Value": {
+                  "Fn::Sub": "s3.${AWS::Region}.amazonaws.com"
+                }
+              },
+              {
+                "Name": "PROCESSING_MINIO_OUTPUT_BUCKET",
+                "Value": {
+                  "Ref": "OutputBucket"
+                }
+              },
+              {
+                "Name": "PROCESSING_RECOVERY_INTERVAL_SECONDS",
+                "Value": "15"
+              }
+            ],
+            "Secrets": [
+              {
+                "Name": "PROCESSING_POSTGRES_DSN",
+                "ValueFrom": {
+                  "Ref": "ProcessingRuntimeDsnArn"
+                }
+              },
+              {
+                "Name": "PROCESSING_REDIS_URL",
+                "ValueFrom": {
+                  "Ref": "RedisUrlArn"
+                }
+              }
+            ],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "RecoveryLogs"
+                },
+                "awslogs-region": {
+                  "Ref": "AWS::Region"
+                },
+                "awslogs-stream-prefix": "task",
+                "mode": "non-blocking",
+                "max-buffer-size": "1m"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "WorkerExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "WorkerExecutionRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingRepository",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "WorkerLogs",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssm:GetParameters"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "ProcessingRuntimeDsnArn"
+                    },
+                    {
+                      "Ref": "RedisUrlArn"
+                    },
+                    {
+                      "Ref": "SourceTokenArn"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "WorkerTask": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "Family": {
+          "Fn::Sub": "${EnvironmentId}-worker"
+        },
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "NetworkMode": "awsvpc",
+        "Cpu": "2048",
+        "Memory": "4096",
+        "RuntimePlatform": {
+          "CpuArchitecture": "X86_64",
+          "OperatingSystemFamily": "LINUX"
+        },
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "WorkerTaskRole",
+            "Arn"
+          ]
+        },
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "WorkerExecutionRole",
+            "Arn"
+          ]
+        },
+        "ContainerDefinitions": [
+          {
+            "Name": "worker",
+            "Image": {
+              "Fn::Sub": "${ProcessingRepository.RepositoryUri}@${ProcessingDigest}"
+            },
+            "Essential": true,
+            "Cpu": 2048,
+            "Memory": {
+              "Ref": "WorkerContainerMemory"
+            },
+            "Command": {
+              "Ref": "WorkerCommand"
+            },
+            "StopTimeout": 120,
+            "Environment": [
+              {
+                "Name": "PROCESSING_QUEUE_NAME",
+                "Value": "processing"
+              },
+              {
+                "Name": "PROCESSING_MEDIA_URL",
+                "Value": {
+                  "Fn::Sub": "http://media.${EnvironmentId}.internal:8000"
+                }
+              },
+              {
+                "Name": "PROCESSING_STORAGE_CREDENTIAL_MODE",
+                "Value": "ecs"
+              },
+              {
+                "Name": "PROCESSING_MINIO_USE_SSL",
+                "Value": "true"
+              },
+              {
+                "Name": "PROCESSING_MINIO_REGION",
+                "Value": {
+                  "Ref": "AWS::Region"
+                }
+              },
+              {
+                "Name": "PROCESSING_MINIO_ENDPOINT",
+                "Value": {
+                  "Fn::Sub": "s3.${AWS::Region}.amazonaws.com"
+                }
+              },
+              {
+                "Name": "PROCESSING_MINIO_OUTPUT_BUCKET",
+                "Value": {
+                  "Ref": "OutputBucket"
+                }
+              },
+              {
+                "Name": "DC2_WORKER_LIFETIME_SECONDS",
+                "Value": {
+                  "Ref": "WorkerLifetimeSeconds"
+                }
+              }
+            ],
+            "Secrets": [
+              {
+                "Name": "PROCESSING_POSTGRES_DSN",
+                "ValueFrom": {
+                  "Ref": "ProcessingRuntimeDsnArn"
+                }
+              },
+              {
+                "Name": "PROCESSING_REDIS_URL",
+                "ValueFrom": {
+                  "Ref": "RedisUrlArn"
+                }
+              },
+              {
+                "Name": "PROCESSING_SOURCE_SERVICE_TOKEN",
+                "ValueFrom": {
+                  "Ref": "SourceTokenArn"
+                }
+              }
+            ],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "WorkerLogs"
+                },
+                "awslogs-region": {
+                  "Ref": "AWS::Region"
+                },
+                "awslogs-stream-prefix": "task",
+                "mode": "non-blocking",
+                "max-buffer-size": "1m"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "MediaMigrationExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "MediaMigrationExecutionRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "MediaRepository",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "MediaMigrationLogs",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssm:GetParameters"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "MediaMigrationDsnArn"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "MediaMigrationTask": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "Family": {
+          "Fn::Sub": "${EnvironmentId}-mediamigration"
+        },
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "NetworkMode": "awsvpc",
+        "Cpu": "512",
+        "Memory": "1024",
+        "RuntimePlatform": {
+          "CpuArchitecture": "X86_64",
+          "OperatingSystemFamily": "LINUX"
+        },
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "MediaMigrationTaskRole",
+            "Arn"
+          ]
+        },
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "MediaMigrationExecutionRole",
+            "Arn"
+          ]
+        },
+        "ContainerDefinitions": [
+          {
+            "Name": "mediamigration",
+            "Image": {
+              "Fn::Sub": "${MediaRepository.RepositoryUri}@${MediaDigest}"
+            },
+            "Essential": true,
+            "Cpu": 512,
+            "Memory": 1024,
+            "Command": [
+              "python",
+              "-m",
+              "alembic",
+              "-c",
+              "media/alembic.ini",
+              "upgrade",
+              "head"
+            ],
+            "StopTimeout": 120,
+            "Environment": [],
+            "Secrets": [
+              {
+                "Name": "MEDIA_POSTGRES_DSN",
+                "ValueFrom": {
+                  "Ref": "MediaMigrationDsnArn"
+                }
+              }
+            ],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "MediaMigrationLogs"
+                },
+                "awslogs-region": {
+                  "Ref": "AWS::Region"
+                },
+                "awslogs-stream-prefix": "task",
+                "mode": "non-blocking",
+                "max-buffer-size": "1m"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "ProcessingMigrationExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "ProcessingMigrationExecutionRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingRepository",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingMigrationLogs",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssm:GetParameters"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "ProcessingMigrationDsnArn"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProcessingMigrationTask": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "Family": {
+          "Fn::Sub": "${EnvironmentId}-processingmigration"
+        },
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "NetworkMode": "awsvpc",
+        "Cpu": "512",
+        "Memory": "1024",
+        "RuntimePlatform": {
+          "CpuArchitecture": "X86_64",
+          "OperatingSystemFamily": "LINUX"
+        },
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "ProcessingMigrationTaskRole",
+            "Arn"
+          ]
+        },
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "ProcessingMigrationExecutionRole",
+            "Arn"
+          ]
+        },
+        "ContainerDefinitions": [
+          {
+            "Name": "processingmigration",
+            "Image": {
+              "Fn::Sub": "${ProcessingRepository.RepositoryUri}@${ProcessingDigest}"
+            },
+            "Essential": true,
+            "Cpu": 512,
+            "Memory": 1024,
+            "Command": [
+              "python",
+              "-m",
+              "alembic",
+              "-c",
+              "processing/alembic.ini",
+              "upgrade",
+              "head"
+            ],
+            "StopTimeout": 120,
+            "Environment": [],
+            "Secrets": [
+              {
+                "Name": "PROCESSING_POSTGRES_DSN",
+                "ValueFrom": {
+                  "Ref": "ProcessingMigrationDsnArn"
+                }
+              }
+            ],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "ProcessingMigrationLogs"
+                },
+                "awslogs-region": {
+                  "Ref": "AWS::Region"
+                },
+                "awslogs-stream-prefix": "task",
+                "mode": "non-blocking",
+                "max-buffer-size": "1m"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "MediaService": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "ServiceName": {
+          "Fn::Sub": "${EnvironmentId}-media"
+        },
+        "TaskDefinition": {
+          "Ref": "MediaTask"
+        },
+        "DesiredCount": 0,
+        "LaunchType": "FARGATE",
+        "PlatformVersion": "1.4.0",
+        "DeploymentConfiguration": {
+          "MinimumHealthyPercent": 0,
+          "MaximumPercent": 100,
+          "DeploymentCircuitBreaker": {
+            "Enable": true,
+            "Rollback": true
+          }
+        },
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              {
+                "Ref": "Subnet"
+              }
+            ],
+            "SecurityGroups": [
+              {
+                "Ref": "MediaSG"
+              }
+            ],
+            "AssignPublicIp": "ENABLED"
+          }
+        },
+        "ServiceRegistries": [
+          {
+            "RegistryArn": {
+              "Fn::GetAtt": [
+                "MediaDiscovery",
+                "Arn"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ApiService": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "ServiceName": {
+          "Fn::Sub": "${EnvironmentId}-api"
+        },
+        "TaskDefinition": {
+          "Ref": "ApiTask"
+        },
+        "DesiredCount": 0,
+        "LaunchType": "FARGATE",
+        "PlatformVersion": "1.4.0",
+        "DeploymentConfiguration": {
+          "MinimumHealthyPercent": 0,
+          "MaximumPercent": 100,
+          "DeploymentCircuitBreaker": {
+            "Enable": true,
+            "Rollback": true
+          }
+        },
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              {
+                "Ref": "Subnet"
+              }
+            ],
+            "SecurityGroups": [
+              {
+                "Ref": "ApiSG"
+              }
+            ],
+            "AssignPublicIp": "ENABLED"
+          }
+        },
+        "ServiceRegistries": [
+          {
+            "RegistryArn": {
+              "Fn::GetAtt": [
+                "ProcessingDiscovery",
+                "Arn"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "RecoveryService": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "ServiceName": {
+          "Fn::Sub": "${EnvironmentId}-recovery"
+        },
+        "TaskDefinition": {
+          "Ref": "RecoveryTask"
+        },
+        "DesiredCount": 0,
+        "LaunchType": "FARGATE",
+        "PlatformVersion": "1.4.0",
+        "DeploymentConfiguration": {
+          "MinimumHealthyPercent": 0,
+          "MaximumPercent": 100,
+          "DeploymentCircuitBreaker": {
+            "Enable": true,
+            "Rollback": true
+          }
+        },
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              {
+                "Ref": "Subnet"
+              }
+            ],
+            "SecurityGroups": [
+              {
+                "Ref": "RecoverySG"
+              }
+            ],
+            "AssignPublicIp": "ENABLED"
+          }
+        }
+      }
+    },
+    "OperatorRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Ref": "OperatorPrincipalArn"
+                }
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "OperatorRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:ListBucket"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "BackupBucket",
+                        "Arn"
+                      ]
+                    }
+                  ],
+                  "Condition": {
+                    "StringLike": {
+                      "s3:prefix": [
+                        {
+                          "Fn::Sub": "private/${EnvironmentId}/exports/*"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject",
+                    "s3:PutObject",
+                    "s3:DeleteObject",
+                    "s3:AbortMultipartUpload"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "${BackupBucket.Arn}/private/${EnvironmentId}/exports/*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecs:RunTask"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "MediaTask"
+                    },
+                    {
+                      "Ref": "ApiTask"
+                    },
+                    {
+                      "Ref": "RecoveryTask"
+                    },
+                    {
+                      "Ref": "WorkerTask"
+                    },
+                    {
+                      "Ref": "MediaMigrationTask"
+                    },
+                    {
+                      "Ref": "ProcessingMigrationTask"
+                    }
+                  ],
+                  "Condition": {
+                    "ArnEquals": {
+                      "ecs:cluster": {
+                        "Fn::GetAtt": [
+                          "Cluster",
+                          "Arn"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecs:UpdateService"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "MediaService",
+                        "ServiceArn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "ApiService",
+                        "ServiceArn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "RecoveryService",
+                        "ServiceArn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecs:StopTask",
+                    "ecs:DescribeTasks"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task/${Cluster}/*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecs:ListTasks",
+                    "ecs:DescribeServices"
+                  ],
+                  "Resource": [
+                    "*"
+                  ],
+                  "Condition": {
+                    "ArnEquals": {
+                      "ecs:cluster": {
+                        "Fn::GetAtt": [
+                          "Cluster",
+                          "Arn"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "iam:PassRole"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "MediaTaskRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "MediaExecutionRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "ApiTaskRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "ApiExecutionRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "RecoveryTaskRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "RecoveryExecutionRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "WorkerTaskRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "WorkerExecutionRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "MediaMigrationTaskRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "MediaMigrationExecutionRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingMigrationTaskRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingMigrationExecutionRole",
+                        "Arn"
+                      ]
+                    }
+                  ],
+                  "Condition": {
+                    "StringEquals": {
+                      "iam:PassedToService": "ecs-tasks.amazonaws.com"
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssm:GetParameters"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "OriginGateArn"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:StartInstances",
+                    "ec2:StopInstances"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${StateInstance}"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:DescribeInstances",
+                    "ec2:DescribeVolumes",
+                    "ec2:DescribeAddresses"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudfront:GetDistribution",
+                    "cloudfront:GetDistributionConfig",
+                    "cloudfront:UpdateDistribution"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "PublicUrl": {
+      "Value": {
+        "Fn::Sub": "https://${Distribution.DomainName}"
+      }
+    },
+    "DistributionId": {
+      "Value": {
+        "Ref": "Distribution"
+      }
+    },
+    "StateInstanceId": {
+      "Value": {
+        "Ref": "StateInstance"
+      }
+    },
+    "StatePrivateIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "StateInstance",
+          "PrivateIp"
+        ]
+      }
+    },
+    "DataVolumeId": {
+      "Value": {
+        "Ref": "DataVolume"
+      }
+    },
+    "Cluster": {
+      "Value": {
+        "Ref": "Cluster"
+      }
+    },
+    "SubnetId": {
+      "Value": {
+        "Ref": "Subnet"
+      }
+    },
+    "OperatorRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "OperatorRole",
+          "Arn"
+        ]
+      }
+    },
+    "MediaFqdn": {
+      "Value": {
+        "Fn::Sub": "media.${EnvironmentId}.internal"
+      }
+    },
+    "ProcessingFqdn": {
+      "Value": {
+        "Fn::Sub": "processing.${EnvironmentId}.internal"
+      }
+    },
+    "MediaTaskDefinition": {
+      "Value": {
+        "Ref": "MediaTask"
+      }
+    },
+    "MediaSecurityGroup": {
+      "Value": {
+        "Ref": "MediaSG"
+      }
+    },
+    "ApiTaskDefinition": {
+      "Value": {
+        "Ref": "ApiTask"
+      }
+    },
+    "ApiSecurityGroup": {
+      "Value": {
+        "Ref": "ApiSG"
+      }
+    },
+    "RecoveryTaskDefinition": {
+      "Value": {
+        "Ref": "RecoveryTask"
+      }
+    },
+    "RecoverySecurityGroup": {
+      "Value": {
+        "Ref": "RecoverySG"
+      }
+    },
+    "WorkerTaskDefinition": {
+      "Value": {
+        "Ref": "WorkerTask"
+      }
+    },
+    "WorkerSecurityGroup": {
+      "Value": {
+        "Ref": "WorkerSG"
+      }
+    },
+    "MediaMigrationTaskDefinition": {
+      "Value": {
+        "Ref": "MediaMigrationTask"
+      }
+    },
+    "MediaMigrationSecurityGroup": {
+      "Value": {
+        "Ref": "MediaMigrationSG"
+      }
+    },
+    "ProcessingMigrationTaskDefinition": {
+      "Value": {
+        "Ref": "ProcessingMigrationTask"
+      }
+    },
+    "ProcessingMigrationSecurityGroup": {
+      "Value": {
+        "Ref": "ProcessingMigrationSG"
+      }
+    },
+    "MediaServiceName": {
+      "Value": {
+        "Fn::GetAtt": [
+          "MediaService",
+          "Name"
+        ]
+      }
+    },
+    "ApiServiceName": {
+      "Value": {
+        "Fn::GetAtt": [
+          "ApiService",
+          "Name"
+        ]
+      }
+    },
+    "RecoveryServiceName": {
+      "Value": {
+        "Fn::GetAtt": [
+          "RecoveryService",
+          "Name"
+        ]
+      }
+    },
+    "SourceBucketName": {
+      "Value": {
+        "Ref": "SourceBucket"
+      }
+    },
+    "OutputBucketName": {
+      "Value": {
+        "Ref": "OutputBucket"
+      }
+    },
+    "BackupBucketName": {
+      "Value": {
+        "Ref": "BackupBucket"
+      }
+    }
+  }
+}

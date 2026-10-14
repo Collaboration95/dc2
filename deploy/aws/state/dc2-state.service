@@ -1,0 +1,18 @@
+[Unit]
+Description=DC2 state only; refuse absent or incorrect UUID mount
+After=docker.service network-online.target srv-dc2\x2ddata.mount
+Requires=docker.service srv-dc2\x2ddata.mount
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/dc2-aws/mount.env
+ExecStart=/opt/dc2/deploy/aws/state/start.sh
+# Stop compute while retaining the mounted data and Docker volumes. Never down -v.
+ExecStop=/usr/bin/docker compose --project-name dc2-aws-state --env-file /etc/dc2-aws/state.env -f /opt/dc2/deploy/aws/state/compose.yml stop -t 120
+TimeoutStartSec=180
+TimeoutStopSec=150
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
