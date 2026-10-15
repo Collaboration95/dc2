@@ -127,7 +127,7 @@ verify-v1: ## Real dependency/engine A, integrated clients B, lifecycle/release 
 	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_runtime verify --run-id "$(V1_RUN_ID)" --flow "$(FLOW)"
 
 test-v1: ## Offline V1 operational contracts; no services/AWS credentials
-	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/v1 -q
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/v1 -m "not integration" -q
 
 .PHONY: v1-serve
 v1-serve: ## Foreground loopback Gateway bridge to integrated actual handlers; V1_PORT=0 allocates
