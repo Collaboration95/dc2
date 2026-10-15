@@ -5,11 +5,10 @@ from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
-from starlette.concurrency import run_in_threadpool
 
 from media.errors import MediaError
 from media.models import Asset, CleanupIntent, RequestKey, StagedObject, now
-from media.projection_models import DerivedSource, ProcessingProjection
+from media.projection_models import ProcessingProjection
 from media.projections import read_job, source_for_asset
 from media.repositories.assets import fingerprint, get_asset, replay
 from media.services.intake import discard_stage, stage
@@ -107,28 +106,10 @@ async def tombstone(session, owner_id, asset_id):
         )
 
 
-async def pin_copy(storage, output, key):
-    """Copy checked bytes to a unique key and pin the native S3 version."""
-    from contracts.v1 import Source
+async def pin_copied_source(session, storage, asset):
+    from media.services.direct_intake import pin_copied_source as pin
 
-    size, digest = await storage.copy_output_source(output, key)
-    metadata = await run_in_threadpool(
-        storage.internal.stat_object,
-        storage.settings.minio_source_bucket,
-        key,
-    )
-    if metadata.size != size or not metadata.version_id or metadata.version_id == "null":
-        raise MediaError(503, "immutable copied source unavailable")
-    descriptor = {
-        "bucket": storage.settings.minio_source_bucket,
-        "key": key,
-        "version_id": metadata.version_id,
-        "sha256": digest,
-        "size_bytes": size,
-        "content_type": output.media_type,
-    }
-    Source.from_dict(descriptor)
-    return descriptor
+    return await pin(session, storage, asset)
 
 
 async def edit(session, storage, owner_id, parent_id, request, key):
@@ -154,17 +135,16 @@ async def edit(session, storage, owner_id, parent_id, request, key):
             # Parent lock serializes output copy with Media deletion acceptance.
             await get_asset(session, parent_id, owner_id, lock=True)
             staged = await session.get(StagedObject, source_key, with_for_update=True)
-            descriptor = await pin_copy(storage, output, source_key)
+            size, digest_sha256 = await storage.copy_output_source(output, source_key)
             staged.created_at = now()
-            staged.write_uncertain = False
         asset = Asset(
             id=asset_id,
             owner_id=owner_id,
             filename=f"{filename_stem}-edited.{extension}",
             source_key=source_key,
             source_revision=1,
-            source_sha256=descriptor["sha256"],
-            source_size_bytes=descriptor["size_bytes"],
+            source_sha256=digest_sha256,
+            source_size_bytes=size,
             source_media_type=output.media_type,
             source_asset_id=parent_id,
             operations=operations,
@@ -177,7 +157,8 @@ async def edit(session, storage, owner_id, parent_id, request, key):
                 raise MediaError(503, "source intake reservation expired")
             session.add(asset)
             await session.flush()
-            session.add(DerivedSource(asset_id=asset.id, descriptor=descriptor))
+            descriptor = await pin_copied_source(session, storage, asset)
+            staged.write_uncertain = False
             if key:
                 session.add(
                     RequestKey(

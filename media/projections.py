@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from media.errors import MediaError
 from media.models import now
-from media.projection_models import DerivedSource, ProcessingProjection
+from media.projection_models import ProcessingProjection
 from media.repositories.assets import fingerprint, get_asset
 from media.schemas.peer import Output
 from media.schemas.public import PublicJob
@@ -55,6 +55,8 @@ def validate_transition(current, event):
     if number == current.attempt_number:
         if attempt_id != current.attempt_id:
             raise MediaError(409, "conflicting result attempt")
+        if payload["status"] == "cancelled":
+            return True
         if current.status in {"done", "failed", "cancelled"}:
             raise MediaError(409, "terminal attempt cannot change")
         if current.status == "processing" and payload["status"] == "queued":
@@ -138,8 +140,7 @@ async def source_for_asset(session, asset):
     """A2's accepted immutable revision adapter (no public descriptors)."""
     from media.services.direct_intake import source_for_asset as accepted_source
 
-    derived = await session.get(DerivedSource, asset.id)
-    descriptor = derived.descriptor if derived else await accepted_source(session, asset.id)
+    descriptor = await accepted_source(session, asset)
     if not descriptor:
         raise MediaError(409, "accepted immutable source unavailable")
     return descriptor

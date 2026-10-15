@@ -214,11 +214,12 @@ async def test_edit_local_projection_adoption_and_submit(
             )
         ),
     )
-    monkeypatch.setattr(v1_lifecycle, "pin_copy", AsyncMock(return_value=event["source"]))
+    monkeypatch.setattr(v1_lifecycle, "pin_copied_source", AsyncMock(return_value=event["source"]))
     monkeypatch.setattr(v1_lifecycle, "stage", AsyncMock())
     submit = AsyncMock()
     monkeypatch.setattr(v1_lifecycle, "stage_submit", submit)
     session.get.return_value = SimpleNamespace()
+    storage.copy_output_source.return_value = (100, "b" * 64)
     request = EditRequest.model_validate(
         {
             "operations": [{"operation": "clip", "params": {"start": 0, "end": 3}}],
@@ -228,7 +229,6 @@ async def test_edit_local_projection_adoption_and_submit(
     assert derived.source_asset_id == asset.id and derived.id != asset.id
     assert derived.operations == request.stored_operations()
     submit.assert_awaited_once_with(session, derived, event["source"])
-    assert any(isinstance(c.args[0], projections.DerivedSource) for c in session.add.call_args_list)
 
 
 async def test_retry_and_cancel_are_commands(session, asset, event, user, monkeypatch):
@@ -250,3 +250,11 @@ async def test_retry_and_cancel_are_commands(session, asset, event, user, monkey
     calls = staged.await_count
     await v1_lifecycle.tombstone(session, user.id, asset.id)
     assert staged.await_count == calls
+
+
+def test_processing_cancel_may_follow_terminal_result(event):
+    saved = current(event)
+    event["state_version"] += 1
+    event["payload"]["status"] = "cancelled"
+    event["payload"]["outputs"] = []
+    assert projections.validate_transition(saved, event)

@@ -27,11 +27,3 @@ class ProcessingProjection(Base):
         CheckConstraint("state_version >= 0 AND attempt_number >= 0"),
         CheckConstraint("status IN ('queued', 'processing', 'done', 'failed', 'cancelled')"),
     )
-
-
-class DerivedSource(Base):
-    """Accepted, immutable source copied from an owned completed output."""
-
-    __tablename__ = "derived_sources"
-    asset_id: Mapped[UUID] = mapped_column(ForeignKey("assets.id"), primary_key=True)
-    descriptor: Mapped[dict] = mapped_column(JSONB)

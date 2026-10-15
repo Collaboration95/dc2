@@ -4,7 +4,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
-revision = "0005_projection"
+revision = "media_0005"
+down_revision = "media_0004"
 down_revision = "media_0004"
 branch_labels = None
 depends_on = None
@@ -27,13 +28,6 @@ def upgrade():
         sa.CheckConstraint("status IN ('queued', 'processing', 'done', 'failed', 'cancelled')"),
     )
 
-    op.create_table(
-        "derived_sources",
-        sa.Column("asset_id", sa.Uuid(), sa.ForeignKey("assets.id"), primary_key=True),
-        sa.Column("descriptor", JSONB(), nullable=False),
-    )
-
 
 def downgrade():
-    op.drop_table("derived_sources")
     op.drop_table("processing_projections")
