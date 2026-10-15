@@ -236,3 +236,65 @@ def test_lambda_credentials_rotate_without_profile_or_metadata(settings, monkeyp
                 update={"storage_credential_mode": "lambda", "minio_access_key": "dummy"}
             )
         )
+
+
+@pytest.mark.parametrize("failure", ["runtime", "access", "secret", "expired", "naive-expiry"])
+def test_lambda_credentials_fail_closed_without_sensitive_errors(monkeypatch, failure):
+    monkeypatch.setenv("AWS_LAMBDA_FUNCTION_NAME", "unit-media")
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "dummy-private-access")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "dummy-private-secret")
+    monkeypatch.setenv("AWS_SESSION_TOKEN", "dummy-private-token")
+    monkeypatch.delenv("AWS_CREDENTIAL_EXPIRATION", raising=False)
+    if failure == "runtime":
+        monkeypatch.delenv("AWS_LAMBDA_FUNCTION_NAME")
+    elif failure == "access":
+        monkeypatch.delenv("AWS_ACCESS_KEY_ID")
+    elif failure == "secret":
+        monkeypatch.delenv("AWS_SECRET_ACCESS_KEY")
+    else:
+        monkeypatch.setenv(
+            "AWS_CREDENTIAL_EXPIRATION",
+            "2000-01-01T00:00:00Z" if failure == "expired" else "2099-01-01T00:00:00",
+        )
+    with pytest.raises(ValueError, match="Lambda storage credentials unavailable") as error:
+        LambdaProvider().retrieve()
+    assert "private" not in str(error.value)
+
+
+async def test_lambda_signer_pins_rotated_native_token(settings, monkeypatch):
+    from datetime import UTC, datetime, timedelta
+    from urllib.parse import parse_qs, urlsplit
+
+    from media.services.storage import Storage
+
+    fixed = datetime.now(UTC).replace(microsecond=0)
+    monkeypatch.setenv("AWS_LAMBDA_FUNCTION_NAME", "unit-media")
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "dummy-key")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "dummy-secret")
+    monkeypatch.setenv("AWS_SESSION_TOKEN", "native-first")
+    monkeypatch.setenv("AWS_CREDENTIAL_EXPIRATION", (fixed + timedelta(seconds=80)).isoformat())
+    store = Storage(
+        settings.model_copy(update={"storage_credential_mode": "lambda"}), clock=lambda: fixed
+    )
+    first, expires = await store.source_grant("owned-source")
+    assert parse_qs(urlsplit(first).query)["X-Amz-Security-Token"] == ["native-first"]
+    assert expires == fixed + timedelta(seconds=70)
+    monkeypatch.setenv("AWS_SESSION_TOKEN", "native-second")
+    second, _ = await store.source_grant("owned-source")
+    assert parse_qs(urlsplit(second).query)["X-Amz-Security-Token"] == ["native-second"]
+
+
+async def test_current_operator_privilege_cannot_come_from_public_header(api, settings, user):
+    @api.app.get("/operator-check")
+    async def check(operator: deps.Operator):
+        return {"id": str(operator.id)}
+
+    request = event("/operator-check", owner=user.id, token=issue_token(user.id, settings))
+    # event() sends forged x-role=operator but actor only conveys publisher.
+    user.role = "user"
+    assert (await api.invoke(request))["statusCode"] == 403
+    user.role = "operator"
+    assert (await api.invoke(request))["statusCode"] == 200
+    # The same warm adapter must honor immediate operator revocation.
+    user.role = "user"
+    assert (await api.invoke(request))["statusCode"] == 403
