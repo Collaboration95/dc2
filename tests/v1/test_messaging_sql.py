@@ -366,3 +366,27 @@ async def test_finite_task_binding_persists_and_cannot_claim_second_job(factory)
         assert saved.status == attempt.state == "queued"
         assert await session.get(AttemptTask, attempt.id) is None
     assert await claim(factory, b.id, b.current_attempt_id, SETTINGS, task_name="second-token")
+
+
+async def test_new_cancel_after_prior_public_cancel_emits_fresh_cleanup_confirmation(factory):
+    from processing.messaging import cancel_asset
+
+    submit = message()
+    await handle_command(factory, submit)
+    job, _ = await state(factory)
+    async with factory() as session:
+        await cancel_asset(session, job.owner_id, job.asset_id)
+    before = await count(factory, ProcessingOutbox)
+    cancel = {**submit, "message_id": str(uuid4()), "kind": "cancel", "source": None}
+    assert await handle_command(factory, cancel)
+    assert await count(factory, ProcessingOutbox) == before + 1
+    async with factory() as session:
+        results = (
+            await session.scalars(
+                select(ProcessingOutbox).where(ProcessingOutbox.queue == "media-results")
+            )
+        ).all()
+        latest = max(results, key=lambda item: item.body["state_version"])
+        assert latest.body["payload"]["status"] == "cancelled"
+    assert not await handle_command(factory, cancel)
+    assert await count(factory, ProcessingOutbox) == before + 1

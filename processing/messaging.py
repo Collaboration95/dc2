@@ -170,6 +170,11 @@ async def _cancel_locked(session, guard, *, command_message_id=None):
         return
     job = await session.scalar(select(Job).where(Job.id == guard.job_id).with_for_update())
     if was_deleted and job.deleted_at is not None:
+        # A new cancel command can follow a public Processing cancellation. Its
+        # fresh result must confirm Media cleanup promptly, even if the earlier
+        # result was already consumed before Media tombstoned the asset.
+        if command_message_id is not None:
+            await emit_state(session, job, await session.get(Attempt, job.current_attempt_id))
         return
     job.deleted_at = job.deleted_at or now
     job.outputs, job.updated_at = [], now
