@@ -8,7 +8,12 @@ from pydantic import ValidationError
 
 from processing.config import Settings, get_settings
 from processing.database import Base
-from processing.messaging_models import JobMessaging, ProcessingInbox, ProcessingOutbox
+from processing.messaging_models import (
+    AttemptTask,
+    JobMessaging,
+    ProcessingInbox,
+    ProcessingOutbox,
+)
 from processing.models import Attempt, Job, SubmissionGuard
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -54,6 +59,7 @@ def test_models_have_only_processing_tables_and_foreign_keys():
         "message_inbox",
         "message_outbox",
         "job_messaging",
+        "attempt_tasks",
     }
     assert all(
         model.metadata is Base.metadata
@@ -64,6 +70,7 @@ def test_models_have_only_processing_tables_and_foreign_keys():
             JobMessaging,
             ProcessingInbox,
             ProcessingOutbox,
+            AttemptTask,
         )
     )
     for table in Base.metadata.tables.values():

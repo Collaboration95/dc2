@@ -37,3 +37,11 @@ class JobMessaging(Base):
     __tablename__ = "job_messaging"
     job_id: Mapped[UUID] = mapped_column(ForeignKey("jobs.id"), primary_key=True)
     state_version: Mapped[int] = mapped_column(default=0, server_default="0")
+
+
+class AttemptTask(Base):
+    """One finite ECS task token can claim only one attempt for its lifetime."""
+
+    __tablename__ = "attempt_tasks"
+    attempt_id: Mapped[UUID] = mapped_column(ForeignKey("attempts.id"), primary_key=True)
+    task_name: Mapped[str] = mapped_column(String(256), unique=True)

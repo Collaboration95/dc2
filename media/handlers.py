@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import time
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -25,9 +26,12 @@ async def consume_results(event, factory, apply=None):
 
 
 async def invoke(event, context, mode):
+    from media.database import engine_options
+
     settings = get_settings()
-    engine = create_async_engine(settings.postgres_dsn, pool_pre_ping=True)
+    engine = create_async_engine(settings.postgres_dsn, **engine_options(settings, invocation=True))
     factory = async_sessionmaker(engine, expire_on_commit=False)
+    deadline = deadline_for(context)
     try:
         if mode == "result":
             return await consume_results(event, factory)
@@ -38,9 +42,13 @@ async def invoke(event, context, mode):
             endpoint_url=os.environ.get("SQS_ENDPOINT_URL"),
         )
         published = await publish_commands(
-            factory, transport, limit=25, deadline=deadline_for(context)
+            factory, transport, limit=25, deadline=min(deadline, time.monotonic() + 5)
         )
-        return {"published": published, "continuation_required": True}
+        from media.recovery_v1 import run_once
+        from media.services.storage import Storage
+
+        cleanup = await run_once(factory, settings, Storage(settings), deadline=deadline)
+        return {"published": published, **cleanup}
     finally:
         await engine.dispose()
 

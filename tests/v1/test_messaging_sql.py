@@ -94,7 +94,12 @@ async def test_cancel_before_submit_is_permanent(factory):
     async with factory() as session:
         guard = await session.get(SubmissionGuard, UUID(submit["asset_id"]))
         assert guard.deleted_at is not None
-    assert await count(factory, ProcessingOutbox) == 0
+    assert await count(factory, ProcessingOutbox) == 1
+    async with factory() as session:
+        ack = await session.scalar(select(ProcessingOutbox))
+        assert ack.body["job_id"] is None and ack.body["attempt_id"] is None
+        assert ack.body["payload"]["cancellation_confirmed"] is True
+        assert ack.body["payload"]["command_message_id"] == cancel["message_id"]
 
 
 async def test_cross_owner_submit_rejected_before_mutation(factory):
@@ -116,12 +121,24 @@ async def test_claim_source_substitution_rolls_back_and_completion_is_fenced(fac
     bad = copy.deepcopy(body)
     bad["source"]["key"] = "another-owner/existing-object"
     with pytest.raises(ValueError):
-        await claim(factory, UUID(body["job_id"]), UUID(body["attempt_id"]), SETTINGS, envelope=bad)
+        await claim(
+            factory,
+            UUID(body["job_id"]),
+            UUID(body["attempt_id"]),
+            SETTINGS,
+            envelope=bad,
+            task_name="source-substitution-test",
+        )
     job, attempt = await state(factory)
     assert job.status == attempt.state == "queued"
-    claimed = await claim(factory, job.id, attempt.id, SETTINGS, envelope=body)
+    claimed = await claim(
+        factory, job.id, attempt.id, SETTINGS, envelope=body, task_name="bound-worker"
+    )
     assert claimed.source == body["source"]
-    assert await claim(factory, job.id, attempt.id, SETTINGS, envelope=body) is None
+    assert (
+        await claim(factory, job.id, attempt.id, SETTINGS, envelope=body, task_name="bound-worker")
+        is None
+    )
     stale = SimpleNamespace(job_id=job.id, attempt_id=attempt.id, lease_token=uuid4())
     assert not await finish(factory, stale, error="Processing failed")
     assert await finish(factory, claimed, error="Processing failed")
@@ -182,7 +199,7 @@ async def test_sent_work_retention_gap_and_interrupted_lease_repair(factory):
     assert await repair_work(factory) == 1
     assert await repair_work(factory) == 0
     assert await publish_due(factory, ProcessingOutbox, transport, limit=2) == 1
-    work = await claim(factory, job.id, attempt.id, SETTINGS)
+    work = await claim(factory, job.id, attempt.id, SETTINGS, task_name="local-" + uuid4().hex)
     async with factory() as session, session.begin():
         saved = await session.get(Attempt, attempt.id)
         saved.lease_expires_at = await session.scalar(select(func.clock_timestamp())) - timedelta(
@@ -199,7 +216,7 @@ async def test_sent_work_retention_gap_and_interrupted_lease_repair(factory):
 async def test_cleanup_retains_late_write_intent_without_holding_sql_locks(factory):
     await handle_command(factory, message())
     job, attempt = await state(factory)
-    work = await claim(factory, job.id, attempt.id, SETTINGS)
+    work = await claim(factory, job.id, attempt.id, SETTINGS, task_name="local-" + uuid4().hex)
     await finish(factory, work, error="Processing interrupted")
 
     async def delete(_prefix):
@@ -216,3 +233,136 @@ async def test_cleanup_retains_late_write_intent_without_holding_sql_locks(facto
         )
     assert await cleanup_outputs(factory, SETTINGS, store=store) == 1
     assert store.delete_prefix.await_count == 2
+
+
+async def test_concurrent_duplicate_and_distinct_submit_ids_serialize(factory):
+    import asyncio
+
+    body = message()
+    assert sorted(
+        await asyncio.gather(handle_command(factory, body), handle_command(factory, body))
+    ) == [False, True]
+    redelivery = {**body, "message_id": str(uuid4())}
+    other = {**body, "message_id": str(uuid4())}
+    assert await asyncio.gather(handle_command(factory, redelivery), handle_command(factory, other))
+    assert await count(factory, Job) == 1
+    assert await count(factory, Attempt) == 1
+    assert await count(factory, ProcessingInbox) == 3
+    assert await count(factory, ProcessingOutbox) == 2
+
+
+async def test_retry_idempotency_and_cancel_fence_old_and_current_attempts(factory):
+    from processing.messaging import retry_job
+
+    submit = message()
+    await handle_command(factory, submit)
+    job, first = await state(factory)
+    old_work = await claim(factory, job.id, first.id, SETTINGS, task_name="local-" + uuid4().hex)
+    await finish(factory, old_work, error="Processing interrupted")
+    request_id = uuid4()
+    async with factory() as session:
+        retried = await retry_job(session, job.owner_id, job.id, request_id)
+    async with factory() as session:
+        repeated = await retry_job(session, job.owner_id, job.id, request_id)
+    assert retried["current_attempt"] == repeated["current_attempt"]
+    job, current = await state(factory)
+    assert current.id != first.id and current.attempt_number == 2
+    assert await count(factory, Attempt) == 2
+    assert not await finish(factory, old_work, error="Stale worker")
+    current_work = await claim(
+        factory, job.id, current.id, SETTINGS, task_name="local-" + uuid4().hex
+    )
+    cancel = {**submit, "message_id": str(uuid4()), "kind": "cancel", "source": None}
+    await handle_command(factory, cancel)
+    assert not await finish(factory, current_work, error="Cancelled worker")
+    job, current = await state(factory)
+    assert job.deleted_at is not None and current.state == "cancelled"
+    assert await count(factory, CleanupIntent) == 2
+    # A later submit with another message ID cannot undo the tombstone.
+    await handle_command(factory, {**submit, "message_id": str(uuid4())})
+    assert await count(factory, Attempt) == 2
+
+
+async def test_success_output_namespace_validation_and_atomic_terminal_result(factory):
+    await handle_command(factory, message())
+    job, attempt = await state(factory)
+    work = await claim(factory, job.id, attempt.id, SETTINGS, task_name="local-" + uuid4().hex)
+    output = {
+        "kind": "primary",
+        "object_key": "another-job/primary.mp4",
+        "media_type": "video/mp4",
+        "size_bytes": 456,
+        "sha256": "b" * 64,
+    }
+    with pytest.raises(ValueError):
+        await finish(factory, work, outputs=[output])
+    output["object_key"] = f"jobs/{job.id}/attempts/{attempt.id}/primary.mp4"
+    assert await finish(factory, work, outputs=[output])
+    job, attempt = await state(factory)
+    assert job.status == "done" and attempt.state == "succeeded"
+    assert job.outputs == [output]
+    async with factory() as session:
+        results = (
+            await session.scalars(
+                select(ProcessingOutbox).where(ProcessingOutbox.queue == "media-results")
+            )
+        ).all()
+        latest = max(results, key=lambda row: row.body["state_version"])
+        assert latest.body["payload"]["status"] == "done"
+        assert latest.body["payload"]["outputs"] == [output]
+    # Healthy output has no cleanup authority.
+    assert await count(factory, CleanupIntent) == 0
+
+
+async def test_sql_outbox_to_emulator_work_and_terminal_result(sqs_local, factory):
+    from delivery.sqs import SQS, decode
+
+    client, urls = sqs_local
+    await handle_command(factory, message())
+    sender = SQS(urls, producer="processing", client=client)
+    worker = SQS(urls, consumer="encoder", client=client)
+    media = SQS(urls, consumer="media-projection", client=client)
+    assert await publish_due(factory, ProcessingOutbox, sender, limit=2) == 2
+    delivery = (await worker.receive("processing-work", wait_seconds=0))[0]
+    body = decode(delivery, "processing-work")
+    job, attempt = await state(factory)
+    work = await claim(
+        factory, job.id, attempt.id, SETTINGS, envelope=body, task_name="bound-worker"
+    )
+    assert await finish(factory, work, error="Controlled local failure")
+    # Only after SQL terminal state/result outbox commit may this receipt be ACKed.
+    await worker.delete("processing-work", delivery["ReceiptHandle"])
+    assert await publish_due(factory, ProcessingOutbox, sender, limit=2) == 2
+    observed = []
+    for _ in range(3):
+        record = (await media.receive("media-results", wait_seconds=0))[0]
+        observed.append(decode(record, "media-results"))
+        await media.delete("media-results", record["ReceiptHandle"])
+    assert sorted(result["state_version"] for result in observed) == [1, 2, 3]
+    terminal = max(observed, key=lambda result: result["state_version"])
+    assert terminal["payload"]["status"] == "failed"
+    assert terminal["source"] == job.source
+
+
+async def test_finite_task_binding_persists_and_cannot_claim_second_job(factory):
+    from processing.messaging_models import AttemptTask
+
+    first, second = message(), message()
+    await handle_command(factory, first)
+    await handle_command(factory, second)
+    async with factory() as session:
+        jobs = (await session.scalars(select(Job).order_by(Job.created_at))).all()
+    a, b = jobs
+    claimed = await claim(factory, a.id, a.current_attempt_id, SETTINGS, task_name="finite-token")
+    async with factory() as session:
+        binding = await session.get(AttemptTask, a.current_attempt_id)
+        assert binding.task_name == "finite-token"
+    await finish(factory, claimed, error="Controlled finish")
+    with pytest.raises(ValueError, match="already bound"):
+        await claim(factory, b.id, b.current_attempt_id, SETTINGS, task_name="finite-token")
+    async with factory() as session:
+        saved = await session.get(Job, b.id)
+        attempt = await session.get(Attempt, b.current_attempt_id)
+        assert saved.status == attempt.state == "queued"
+        assert await session.get(AttemptTask, attempt.id) is None
+    assert await claim(factory, b.id, b.current_attempt_id, SETTINGS, task_name="second-token")

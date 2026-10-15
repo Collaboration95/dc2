@@ -2,10 +2,10 @@
 
 import asyncio
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 
 from delivery.envelope import document, fingerprint
@@ -44,7 +44,7 @@ async def stage(session, model, envelope, queue):
             body_hash=digest,
             body=body,
             queue=queue,
-            next_try_at=datetime.now(UTC),
+            next_try_at=func.clock_timestamp(),
             tries=0,
         )
         .on_conflict_do_nothing(index_elements=[model.message_id])
@@ -70,8 +70,6 @@ async def publish_due(
     Retain sent rows: replay before source-queue retention expires. Work should use
     a <=120s replay interval or the domain's SQL queued-work repair.
     """
-    from sqlalchemy import func
-
     count = 0
     for _ in range(limit):
         if deadline is not None and time.monotonic() >= deadline:

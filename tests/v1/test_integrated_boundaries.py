@@ -10,7 +10,7 @@ from alembic.config import Config
 from alembic.script import ScriptDirectory
 
 from media.api import v1_hls, v1_jobs
-from media.main import create_app
+from media.lambda_handler import handler
 from processing import lifecycle
 from processing.worker.sqs import execute_message
 
@@ -35,7 +35,7 @@ def test_deployed_media_app_uses_projection_routes(path, method, endpoint):
 
     matches = [
         route
-        for route in routes(create_app())
+        for route in routes(handler.app)
         if getattr(route, "path", None) == path and method in getattr(route, "methods", ())
     ]
     assert len(matches) == 1

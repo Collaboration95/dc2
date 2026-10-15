@@ -14,7 +14,7 @@ from delivery.envelope import document, fingerprint
 from delivery.sql import accept, publish_due, stage
 from processing import lifecycle
 from processing.errors import ProcessingError
-from processing.messaging_models import JobMessaging, ProcessingInbox, ProcessingOutbox
+from processing.messaging_models import AttemptTask, JobMessaging, ProcessingInbox, ProcessingOutbox
 from processing.models import Attempt, Job, RetryRequest, SubmissionGuard
 from processing.schemas import EditOperation
 
@@ -140,11 +140,33 @@ async def _retry_locked(session, job, request_id):
     return attempt
 
 
-async def _cancel_locked(session, guard):
+async def _cancel_locked(session, guard, *, command_message_id=None):
     now = await lifecycle.db_now(session)
     was_deleted = guard.deleted_at is not None
     guard.deleted_at = guard.deleted_at or now
     if guard.job_id is None:
+        if command_message_id is not None:
+            await stage(
+                session,
+                ProcessingOutbox,
+                {
+                    "schema_version": 1,
+                    "message_id": str(uuid4()),
+                    "kind": "result",
+                    "owner_id": str(guard.owner_id),
+                    "asset_id": str(guard.asset_id),
+                    "job_id": None,
+                    "attempt_id": None,
+                    "state_version": 0,
+                    "source": None,
+                    "payload": {
+                        "status": "cancelled",
+                        "cancellation_confirmed": True,
+                        "command_message_id": str(command_message_id),
+                    },
+                },
+                "media-results",
+            )
         return
     job = await session.scalar(select(Job).where(Job.id == guard.job_id).with_for_update())
     if was_deleted and job.deleted_at is not None:
@@ -172,7 +194,7 @@ async def handle_command(factory, message):
             if guard.job_id is not None:
                 job = await session.get(Job, guard.job_id)
                 validate_identity(body, job)
-            await _cancel_locked(session, guard)
+            await _cancel_locked(session, guard, command_message_id=body["message_id"])
             return True
         # Cancel-before-submit is a durable accepted no-op, never resurrection.
         if guard.deleted_at is not None:
@@ -251,7 +273,14 @@ async def cancel_asset(session, owner_id, asset_id):
         await _cancel_locked(session, guard)
 
 
-async def claim(factory, job_id, attempt_id, settings, *, envelope=None):
+async def claim(factory, job_id, attempt_id, settings, *, envelope=None, task_name):
+    if (
+        not isinstance(task_name, str)
+        or not task_name
+        or len(task_name) > 256
+        or any(ord(char) < 32 for char in task_name)
+    ):
+        raise ValueError("A finite worker task binding is required")
     body = document(envelope) if envelope is not None else None
 
     async def changed(session, job, attempt):
@@ -261,6 +290,16 @@ async def claim(factory, job_id, attempt_id, settings, *, envelope=None):
             validate_identity(body, job, require_source=True)
             if body["payload"].get("operations", []) != job.operations:
                 raise ValueError("Work operations do not match durable command")
+        inserted = await session.scalar(
+            insert(AttemptTask)
+            .values(attempt_id=attempt.id, task_name=task_name)
+            .on_conflict_do_nothing()
+            .returning(AttemptTask.attempt_id)
+        )
+        if inserted is None:
+            binding = await session.get(AttemptTask, attempt.id)
+            if binding is None or binding.task_name != task_name:
+                raise ValueError("Finite task or attempt already bound")
         await emit_state(session, job, attempt)
 
     return await lifecycle.claim(factory, job_id, attempt_id, settings, on_change=changed)

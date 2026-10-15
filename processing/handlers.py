@@ -4,6 +4,7 @@ import asyncio
 import os
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from delivery.runtime import deadline_for, queue_urls
 from delivery.sqs import SQS
@@ -13,8 +14,12 @@ from processing.recovery_v1 import run_once, terminal_event
 
 
 async def invoke(event, context, mode):
+    from processing.database import v1_connect_args
+
     settings = get_settings()
-    engine = create_async_engine(settings.postgres_dsn, pool_pre_ping=True)
+    engine = create_async_engine(
+        settings.postgres_dsn, poolclass=NullPool, connect_args=v1_connect_args(settings)
+    )
     factory = async_sessionmaker(engine, expire_on_commit=False)
     transport = SQS(
         queue_urls(),

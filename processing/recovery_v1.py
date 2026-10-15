@@ -1,6 +1,7 @@
 """Bounded SQL recovery independent of Redis, peer HTTP or unattended starts."""
 
 import asyncio
+import os
 import time
 from datetime import timedelta
 
@@ -12,6 +13,65 @@ from processing.messaging import emit_state, envelope, publish_outbox
 from processing.messaging_models import JobMessaging, ProcessingOutbox
 from processing.models import Attempt, Job
 from processing.recovery import cleanup_outputs, recover_expired
+
+
+class NativeCleanupStore:
+    """Native Lambda S3 List/Delete only, including overwritten private versions."""
+
+    def __init__(self, settings, *, client=None):
+        self.bucket = settings.minio_output_bucket
+        if client is None:
+            import boto3
+            from botocore.config import Config
+
+            endpoint = os.environ.get("PROCESSING_S3_ENDPOINT_URL") or os.environ.get(
+                "S3_ENDPOINT_URL"
+            )
+            if endpoint:
+                from urllib.parse import urlsplit
+
+                if urlsplit(endpoint).hostname not in {
+                    "localhost",
+                    "127.0.0.1",
+                    "moto",
+                    "localstack",
+                }:
+                    raise ValueError("S3 emulator endpoint must be local")
+            client = boto3.client(
+                "s3",
+                region_name=settings.minio_region,
+                endpoint_url=endpoint,
+                config=Config(
+                    connect_timeout=2,
+                    read_timeout=5,
+                    retries={"total_max_attempts": 2, "mode": "standard"},
+                ),
+            )
+        self.client = client
+
+    async def delete_prefix(self, prefix):
+        # Prefix comes only from Processing's persisted Job/Attempt UUID pair.
+        if not prefix.startswith("jobs/") or not prefix.endswith("/"):
+            raise ValueError("Owned attempt prefix required")
+        paginator = self.client.get_paginator("list_object_versions")
+        pages = paginator.paginate(Bucket=self.bucket, Prefix=prefix)
+        iterator = iter(pages)
+        while True:
+            page = await asyncio.to_thread(next, iterator, None)
+            if page is None:
+                break
+            objects = [
+                {"Key": item["Key"], "VersionId": item["VersionId"]}
+                for item in page.get("Versions", []) + page.get("DeleteMarkers", [])
+            ]
+            for offset in range(0, len(objects), 1000):
+                response = await asyncio.to_thread(
+                    self.client.delete_objects,
+                    Bucket=self.bucket,
+                    Delete={"Objects": objects[offset : offset + 1000], "Quiet": True},
+                )
+                if response.get("Errors"):
+                    raise ValueError("Output version cleanup was not acknowledged")
 
 
 async def repair_work(factory, *, limit=50, deadline=None):
@@ -90,7 +150,9 @@ async def run_once(factory, settings, transport, *, store=None, limit=25, deadli
             result["published"] = await publish_outbox(
                 factory, transport, limit=limit, deadline=publish_deadline
             )
-            result["cleaned"] = await cleanup_outputs(factory, settings, store=store, limit=limit)
+            result["cleaned"] = await cleanup_outputs(
+                factory, settings, store=store or NativeCleanupStore(settings), limit=limit
+            )
     except TimeoutError:
         result["deadline_reached"] = True
     return result
