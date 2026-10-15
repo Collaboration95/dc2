@@ -288,6 +288,25 @@ async def claim(factory, job_id, attempt_id, settings, *, envelope=None, task_na
         raise ValueError("A finite worker task binding is required")
     body = document(envelope) if envelope is not None else None
 
+    async def authorize(session):
+        # Resolve immutable routing columns first, then match cancel/submit's
+        # Guard -> Job lock order. No native GET is possible before this commits.
+        identity = (
+            await session.execute(select(Job.asset_id, Job.owner_id).where(Job.id == job_id))
+        ).one_or_none()
+        if identity is None:
+            return False
+        asset_id, owner_id = identity
+        guard = await session.scalar(
+            select(SubmissionGuard).where(SubmissionGuard.asset_id == asset_id).with_for_update()
+        )
+        return (
+            guard is not None
+            and guard.deleted_at is None
+            and guard.owner_id == owner_id
+            and guard.job_id == job_id
+        )
+
     async def changed(session, job, attempt):
         if body is not None:
             if body["kind"] != "work" or UUID(body["attempt_id"]) != attempt.id:
@@ -307,7 +326,9 @@ async def claim(factory, job_id, attempt_id, settings, *, envelope=None, task_na
                 raise ValueError("Finite task or attempt already bound")
         await emit_state(session, job, attempt)
 
-    return await lifecycle.claim(factory, job_id, attempt_id, settings, on_change=changed)
+    return await lifecycle.claim(
+        factory, job_id, attempt_id, settings, on_change=changed, before_claim=authorize
+    )
 
 
 async def finish(factory, work, *, outputs=None, error=None):

@@ -140,8 +140,10 @@ class Claim:
     deadline_at: datetime
 
 
-async def claim(factory, job_id, attempt_id, settings, *, on_change=None):
+async def claim(factory, job_id, attempt_id, settings, *, on_change=None, before_claim=None):
     async with factory() as session, session.begin():
+        if before_claim is not None and not await before_claim(session):
+            return None
         pair = await lock_pair(session, job_id, attempt_id)
         if pair is None:
             return None

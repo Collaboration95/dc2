@@ -390,3 +390,16 @@ async def test_new_cancel_after_prior_public_cancel_emits_fresh_cleanup_confirma
         assert latest.body["payload"]["status"] == "cancelled"
     assert not await handle_command(factory, cancel)
     assert await count(factory, ProcessingOutbox) == before + 1
+
+
+async def test_guard_tombstone_rejects_claim_even_if_job_projection_is_still_queued(factory):
+    # Deliberately inconsistent Job state cannot override the authoritative guard.
+    await handle_command(factory, message())
+    job, attempt = await state(factory)
+    async with factory() as session, session.begin():
+        guard = await session.get(SubmissionGuard, job.asset_id)
+        guard.deleted_at = await session.scalar(select(func.clock_timestamp()))
+    assert await claim(factory, job.id, attempt.id, SETTINGS, task_name="guard-fenced") is None
+    async with factory() as session:
+        saved = await session.get(Attempt, attempt.id)
+        assert saved.state == "queued" and saved.lease_token is None
