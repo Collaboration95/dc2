@@ -1,0 +1,65 @@
+name: V1 Redis-free local contracts and dependencies
+
+on:
+  pull_request:
+    branches: [Main]
+  push:
+    branches: [Main]
+  workflow_dispatch:
+    inputs:
+      flow:
+        description: a=real dependencies/engine; all also requires integrated clients/releases
+        type: choice
+        options: [a, all, b, c]
+        default: a
+
+permissions:
+  contents: read
+concurrency:
+  group: v1-local-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  v1-local:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      V1_RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
+      V1_MOTO_PYTHON: ${{ github.workspace }}/.cache/v1-moto/bin/python
+      FLOW: ${{ inputs.flow || 'a' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.17'
+      - name: Install V1 and isolated emulator tools (no legacy extra)
+        run: |
+          uv sync --locked --extra dev
+          uv venv .cache/v1-moto
+          uv pip install --python "$V1_MOTO_PYTHON" 'moto[server]==5.2.4'
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+      - name: Verify V1 control contracts
+        run: |
+          .venv/bin/ruff check scripts/aws/v1 scripts/dev/v1_runtime.py scripts/dev/v1_verify.py tests/v1
+          make test-v1
+      - name: Start unique PostgreSQL and loopback Moto
+        run: make v1-up
+      - name: Execute real dependency/engine seam and selected acceptance flow
+        run: make verify-v1 FLOW="$FLOW"
+      - name: Stop only this namespace; retain diagnostic SQL volume
+        if: always()
+        run: |
+          if test -f ".cache/v1-runtime/$V1_RUN_ID/runtime.json"; then make v1-down; fi
+      - name: Retain selected source/digest evidence (no private logs or config)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1-local-${{ github.sha }}-${{ github.run_attempt }}
+          path: .cache/v1-runtime/${{ env.V1_RUN_ID }}/evidence-*/manifest.json
+          if-no-files-found: warn
+          retention-days: 14

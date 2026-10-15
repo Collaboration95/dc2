@@ -159,7 +159,7 @@ def test_finite_batch_cap_and_stopped_inventory_releases_slot(rig):
     assert len(tasks) == 3
     payload = state(journal)["launches"].values().__iter__().__next__()["payload"]
     command = payload["overrides"]["containerOverrides"][0]["command"]
-    assert "processing.v1_worker" in command and "--max-empty-polls" in command
+    assert "processing.worker.sqs" in command and "--name" in command
     assert "--burst" not in command
     with pytest.raises(OperationError, match="cap reached"):
         session.batch(count=1, deadline=time.monotonic() + 5)
@@ -178,3 +178,19 @@ def test_concurrent_station_and_release_interlocks(rig):
     with pytest.raises(OperationError, match="Open unpaused"):
         session.batch(count=1, deadline=time.monotonic() + 5)
     assert not fake.tasks
+
+
+def test_explicit_replay_keeps_identical_payload_and_token(rig):
+    session, fake, journal = rig
+    session.open(ready=yes, repair=yes, deadline=time.monotonic() + 5)
+    fake.fail = "run-task"
+    with pytest.raises(OperationError):
+        session.batch(count=1, deadline=time.monotonic() + 5, token_factory=lambda: "lost")
+    original = state(journal)["launches"]["lost"]["payload"]
+    session.config["task_definitions"]["worker"] = "worker:2"
+    fake.fail = None
+    assert session.replay("lost", deadline=time.monotonic() + 5) == "task/lost"
+    assert fake.calls[-1][2] == original
+    assert len(state(journal)["launches"]) == 1
+    with pytest.raises(OperationError, match="expired"):
+        session.replay("lost", deadline=time.monotonic() + 5, epoch=lambda: time.time() + 9999)

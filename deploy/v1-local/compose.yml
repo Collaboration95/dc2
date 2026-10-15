@@ -1,0 +1,23 @@
+# Only the unique project selected by scripts.dev.v1_runtime is managed here.
+# S3/SQS use a separate loopback-only host Moto server, never real AWS.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: local_v1_admin
+      MEDIA_MIGRATION_PASSWORD: local_v1_media_migrate
+      MEDIA_RUNTIME_PASSWORD: local_v1_media
+      PROCESSING_MIGRATION_PASSWORD: local_v1_processing_migrate
+      PROCESSING_RUNTIME_PASSWORD: local_v1_processing
+    ports: ["127.0.0.1:${V1_POSTGRES_PORT:?}:5432"]
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ../postgres/bootstrap.sh:/docker-entrypoint-initdb.d/10-project2.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -h 127.0.0.1 -U postgres -d postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  postgres:

@@ -240,11 +240,11 @@ class Session:
                                 "command": [
                                     "python",
                                     "-m",
-                                    self.config.get("worker_module", "processing.v1_worker"),
-                                    "--deadline-epoch",
+                                    self.config.get("worker_module", "processing.worker.sqs"),
+                                    "--deadline",
                                     str(stop_at),
-                                    "--max-empty-polls",
-                                    "2",
+                                    "--name",
+                                    ("v1-" + token)[:36],
                                 ],
                             }
                         ]
@@ -276,3 +276,32 @@ class Session:
                     raise OperationError("Launch uncertain; reserved slot retained") from None
                 self.journal.save(state)
             return tasks
+
+    def replay(self, token, *, deadline, epoch=time.time):
+        """Explicit retry of identical RunTask intent within its finite lifetime.
+
+        Never free a lost-response slot by time alone. Expired tokens need ECS
+        inventory/operator disposition; do not issue a new token to evade the cap.
+        """
+        with self.journal.locked() as state:
+            if (
+                state.get("session") != "open"
+                or state.get("paused")
+                or state.get("pending_release")
+            ):
+                raise OperationError("Open unpaused session required")
+            record = state["launches"].get(token)
+            if not record or record["status"] == "stopped" or epoch() >= record["replay_before"]:
+                raise OperationError("Unknown/stopped/expired launch token requires disposition")
+            try:
+                response = self.call("ecs", "run-task", record["payload"], deadline)
+                launched = response.get("tasks", [])
+                if response.get("failures") or len(launched) != 1 or not launched[0].get("taskArn"):
+                    raise OperationError("Uncertain launch")
+                record.update(status="acknowledged", task=launched[0]["taskArn"])
+            except Exception:
+                record["status"] = "uncertain"
+                self.journal.save(state)
+                raise OperationError("Replay uncertain; reserved slot retained") from None
+            self.journal.save(state)
+            return record["task"]
