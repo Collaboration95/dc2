@@ -46,15 +46,26 @@ def save(path, data):
 
 
 def load(run_id):
-    path = directory(run_id) / "runtime.json"
+    explicit = os.environ.get("V1_RUNTIME_CONFIG")
+    path = Path(explicit).resolve() if explicit else directory(run_id) / "runtime.json"
     data = json.loads(path.read_text())
-    if data.get("root") != str(ROOT) or data.get("run_id") != run_id:
+    expected = Path(data.get("root", "/invalid")) / ".cache/v1-runtime" / run_id / "runtime.json"
+    if (
+        data.get("run_id") != run_id
+        or data.get("project") != "dc2-v1-" + run_id
+        or path.resolve() != expected.resolve()
+        or (not explicit and data.get("root") != str(ROOT))
+    ):
         raise ValueError("Runtime ownership mismatch")
     return data
 
 
 def compose(data, *args):
-    env = dict(os.environ, V1_POSTGRES_PORT=str(data["postgres_port"]))
+    env = dict(
+        os.environ,
+        V1_POSTGRES_PORT=str(data["postgres_port"]),
+        V1_TLS_DIR=str(directory(data["run_id"]) / "tls"),
+    )
     # Explicit selected context; never change the user's active Docker context.
     return run(
         [
@@ -128,6 +139,38 @@ def stop_moto(data):
     os.kill(pid, signal.SIGTERM)
 
 
+def local_tls(path):
+    """Create scoped PostgreSQL TLS material; no system trust installation."""
+    tls = path / "tls"
+    tls.mkdir(mode=0o700, exist_ok=True)
+    cert, key = tls / "server.crt", tls / "server.key"
+    if cert.exists() and key.exists():
+        return
+    run(
+        [
+            "openssl",
+            "req",
+            "-x509",
+            "-newkey",
+            "rsa:2048",
+            "-nodes",
+            "-days",
+            "30",
+            "-subj",
+            "/CN=dc2-v1-local-postgres",
+            "-addext",
+            "subjectAltName=IP:127.0.0.1,DNS:postgres",
+            "-keyout",
+            str(key),
+            "-out",
+            str(cert),
+        ],
+        capture_output=True,
+        timeout=10,
+    )
+    key.chmod(0o600)
+
+
 def up(run_id):
     path = directory(run_id)
     if (path / "runtime.json").exists():
@@ -154,9 +197,13 @@ def up(run_id):
         }
         data["endpoint_url"] = "http://127.0.0.1:" + str(data["moto_port"])
     save(path / "runtime.json", data)
+    local_tls(path)
     # Partial failures retain the exact IDs and volumes for deliberate down/review.
     compose(data, "up", "--detach", "--wait", "--wait-timeout", "90", "postgres")
     start_moto(data, path)
+    from scripts.dev.v1_verify import provision_local_objects
+
+    data["resources"] = provision_local_objects(data)
     data["state"] = "running"
     save(path / "runtime.json", data)
     return {
@@ -172,6 +219,8 @@ def up(run_id):
 
 def down(run_id, *, delete_data=False):
     data = load(run_id)
+    if data["root"] != str(ROOT):
+        raise ValueError("Teardown must run from the owning runtime checkout")
     stop_moto(data)
     compose(data, "down", *(["--volumes"] if delete_data else []))
     data.update(state="down", moto_pid=None, retained_data=not delete_data)

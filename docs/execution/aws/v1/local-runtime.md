@@ -103,8 +103,8 @@ the resource identities; never infer them from another account/environment.
 3. `batch(count=1|2|3, deadline=...)` requires an open, unpaused session with no
    pending release. It inventories ECS and reserves each request **before**
    RunTask. Active workers plus unknown/lost-response reservations count toward
-   cap three. Each worker runs `processing.worker.sqs --deadline <epoch> --name
-   <binding>`, one finite encode with its own bounded poll/deadline rules. Late
+   cap three. Each worker runs `processing.v1_worker --deadline-epoch <epoch> --name
+   <binding> --max-empty-polls 2`, one finite encode with its own bounded poll/deadline rules. Late
    work remains queued until another explicit batch.
 4. `replay(token, deadline=...)` retries the exact saved request/token within its
    original finite lifetime. It never rebuilds payloads from changed releases.
@@ -145,3 +145,36 @@ isolated authorized target is restored and owning SQL references/source versions
 are checked together. Retain previous owner artifacts; image rollback does not
 undo destructive schema changes. Exact live deletion scope belongs to the
 operator; this local runbook authorizes no destructive cloud action.
+
+## Integrated handler bridge and shared-stack attachment
+
+`make v1-serve V1_RUN_ID=<id> V1_PORT=0` starts a foreground loopback HTTP bridge
+to `media.lambda_handler.handler`, `processing.lambda_handler.handler` and Media's
+actual authorizer. It prints its allocated endpoint. Gateway v2 bodies, query
+strings, cookie arrays, response cookies and binary responses are preserved;
+identity context comes only from the authorizer. No public trust/TLS claim is
+made for this local HTTP endpoint. Basic bridge tests use injected handlers;
+product acceptance still requires the integrated actual handler suite.
+
+PostgreSQL uses a generated private test certificate with SANs for `127.0.0.1`
+and `postgres`. The runtime passes this CA explicitly to Media/Processing and
+verifies TLS in the real SQL probe. It installs no system trust. Runtime `up`
+creates two versioned Moto buckets and three queues plus DLQs. The child
+environment selects those exact queue/store endpoints and local fake native
+credentials; no inherited AWS profile or metadata fallback is used.
+
+After cherry-pick, the coordinator can attach tests/serve from its integration
+checkout to Lead C's existing dependencies without starting another stack:
+
+```sh
+export V1_RUNTIME_CONFIG=/absolute/lead-c-checkout/.cache/v1-runtime/<id>/runtime.json
+make verify-v1 V1_RUN_ID=<id> FLOW=all
+make v1-serve V1_RUN_ID=<id>
+```
+
+This explicit manifest attachment reads the owning runtime config and uses its
+TLS CA. Evidence still writes to the calling checkout. Teardown must run in the
+owning runtime checkout; never duplicate startup using the same run ID in a
+second checkout. Run owning migrations through their local migrator DSNs before
+actual handlers, using the release lane's migration adapter. Probe-table success
+does not imply product migrations or full client workflow have run.

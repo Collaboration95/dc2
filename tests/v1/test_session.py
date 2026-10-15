@@ -159,7 +159,7 @@ def test_finite_batch_cap_and_stopped_inventory_releases_slot(rig):
     assert len(tasks) == 3
     payload = state(journal)["launches"].values().__iter__().__next__()["payload"]
     command = payload["overrides"]["containerOverrides"][0]["command"]
-    assert "processing.worker.sqs" in command and "--name" in command
+    assert "processing.v1_worker" in command and "--name" in command
     assert "--burst" not in command
     with pytest.raises(OperationError, match="cap reached"):
         session.batch(count=1, deadline=time.monotonic() + 5)

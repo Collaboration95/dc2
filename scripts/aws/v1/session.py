@@ -240,11 +240,13 @@ class Session:
                                 "command": [
                                     "python",
                                     "-m",
-                                    self.config.get("worker_module", "processing.worker.sqs"),
-                                    "--deadline",
+                                    self.config.get("worker_module", "processing.v1_worker"),
+                                    "--deadline-epoch",
                                     str(stop_at),
                                     "--name",
                                     ("v1-" + token)[:36],
+                                    "--max-empty-polls",
+                                    "2",
                                 ],
                             }
                         ]

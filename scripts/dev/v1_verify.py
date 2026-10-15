@@ -10,10 +10,12 @@ import asyncio
 import hashlib
 import json
 import os
+import ssl
 import subprocess
 import sys
 import time
 import uuid
+from pathlib import Path
 from urllib.parse import urlsplit
 
 from scripts.dev.v1_runtime import ROOT, directory, load, run, save
@@ -54,17 +56,71 @@ def sdk(data, service):
     )
 
 
+def provision_local_objects(data):
+    """Create distinct versioned stores, three queues and DLQs in owned Moto."""
+    s3, sqs = sdk(data, "s3"), sdk(data, "sqs")
+    buckets = {owner: "dc2-v1-" + data["run_id"] + "-" + owner for owner in ("source", "output")}
+    for bucket in buckets.values():
+        try:
+            s3.head_bucket(Bucket=bucket)
+        except s3.exceptions.ClientError:
+            s3.create_bucket(
+                Bucket=bucket, CreateBucketConfiguration={"LocationConstraint": "ap-southeast-1"}
+            )
+        s3.put_bucket_versioning(Bucket=bucket, VersioningConfiguration={"Status": "Enabled"})
+    s3.put_bucket_cors(
+        Bucket=buckets["source"],
+        CORSConfiguration={
+            "CORSRules": [
+                {
+                    "AllowedOrigins": ["http://127.0.0.1:*"],
+                    "AllowedMethods": ["POST", "GET", "HEAD"],
+                    "AllowedHeaders": ["*"],
+                    "ExposeHeaders": ["ETag", "x-amz-version-id"],
+                }
+            ]
+        },
+    )
+    queues = {}
+    for name in ("commands", "work", "results"):
+        dlq = sqs.create_queue(QueueName=f"{data['project']}-{name}-dlq")["QueueUrl"]
+        arn = sqs.get_queue_attributes(QueueUrl=dlq, AttributeNames=["QueueArn"])["Attributes"][
+            "QueueArn"
+        ]
+        queues[name] = sqs.create_queue(
+            QueueName=f"{data['project']}-{name}",
+            Attributes={
+                "VisibilityTimeout": "60",
+                "RedrivePolicy": json.dumps({"deadLetterTargetArn": arn, "maxReceiveCount": "3"}),
+            },
+        )["QueueUrl"]
+    return {"buckets": buckets, "queues": queues}
+
+
 async def sql_probe(data, probe_id):
     import asyncpg
 
     port = data["postgres_port"]
     tables = []
     for owner in ("media", "processing"):
-        params = {"host": "127.0.0.1", "port": port, "database": owner + "_db", "timeout": 5}
+        params = {
+            "host": "127.0.0.1",
+            "port": port,
+            "database": owner + "_db",
+            "timeout": 5,
+            "ssl": ssl.create_default_context(
+                cafile=str(
+                    Path(data["root"]) / ".cache/v1-runtime" / data["run_id"] / "tls/server.crt"
+                )
+            ),
+        }
         connection = await asyncpg.connect(
             **params, user=owner + "_migrator", password=f"local_v1_{owner}_migrate"
         )
         try:
+            assert await connection.fetchval(
+                "SELECT ssl FROM pg_stat_ssl WHERE pid=pg_backend_pid()"
+            )
             await connection.execute(
                 "CREATE TABLE IF NOT EXISTS public.v1_runtime_probe "
                 "(id uuid PRIMARY KEY, state text NOT NULL)"
@@ -112,6 +168,7 @@ async def sql_probe(data, probe_id):
         "runtime_dml": "PASS",
         "runtime_ddl_denied": "PASS",
         "cross_database_runtime_and_migrator_denied": "PASS",
+        "postgres_tls": "verified local certificate",
         "queued_rows": "retained",
     }
 
@@ -121,18 +178,10 @@ def objects_and_encode(data, output, probe_id):
     from media_engine.operations import build_edit_command
 
     s3, sqs = sdk(data, "s3"), sdk(data, "sqs")
-    bucket = "dc2-v1-" + data["run_id"]
-    try:
-        s3.head_bucket(Bucket=bucket)
-    except s3.exceptions.ClientError:
-        s3.create_bucket(
-            Bucket=bucket, CreateBucketConfiguration={"LocationConstraint": "ap-southeast-1"}
-        )
-    s3.put_bucket_versioning(Bucket=bucket, VersioningConfiguration={"Status": "Enabled"})
-    queues = {
-        name: sqs.create_queue(QueueName=f"{data['project']}-{name}")["QueueUrl"]
-        for name in ("commands", "work", "results")
-    }
+    resources = provision_local_objects(data)
+    bucket = resources["buckets"]["source"]
+    output_bucket = resources["buckets"]["output"]
+    queues = resources["queues"]
     source = output / "source.mp4"
     run(
         [
@@ -233,8 +282,8 @@ def objects_and_encode(data, output, probe_id):
         timeout=5,
     )
     assert json.loads(probe.stdout)["streams"][0]["codec_name"] == "h264"
-    s3.put_object(Bucket=bucket, Key=f"outputs/{probe_id}.mp4", Body=encoded.read_bytes())
-    ranged = s3.get_object(Bucket=bucket, Key=f"outputs/{probe_id}.mp4", Range="bytes=0-31")
+    s3.put_object(Bucket=output_bucket, Key=f"outputs/{probe_id}.mp4", Body=encoded.read_bytes())
+    ranged = s3.get_object(Bucket=output_bucket, Key=f"outputs/{probe_id}.mp4", Range="bytes=0-31")
     assert ranged["Body"].read() == encoded.read_bytes()[:32]
     return {
         "s3_immutable_version": "PASS",
@@ -255,7 +304,9 @@ def local_environment(data):
     env.update(
         PYTHONPATH=str(ROOT),
         V1_RUN_ID=data["run_id"],
-        V1_RUNTIME_CONFIG=str(directory(data["run_id"]) / "runtime.json"),
+        V1_RUNTIME_CONFIG=str(
+            Path(data["root"]) / ".cache/v1-runtime" / data["run_id"] / "runtime.json"
+        ),
         AWS_ACCESS_KEY_ID="testing",
         AWS_SECRET_ACCESS_KEY="testing",
         AWS_SESSION_TOKEN="testing",
@@ -265,8 +316,34 @@ def local_environment(data):
         AWS_CONFIG_FILE="/dev/null",
         AWS_SHARED_CREDENTIALS_FILE="/dev/null",
         AWS_ENDPOINT_URL=data["endpoint_url"],
+        MEDIA_POSTGRES_SSL_CA=str(
+            Path(data["root"]) / ".cache/v1-runtime" / data["run_id"] / "tls/server.crt"
+        ),
+        PROCESSING_DATABASE_TLS="true",
+        PROCESSING_DATABASE_CA_FILE=str(
+            Path(data["root"]) / ".cache/v1-runtime" / data["run_id"] / "tls/server.crt"
+        ),
         SQS_ENDPOINT_URL=data["endpoint_url"],
         S3_ENDPOINT_URL=data["endpoint_url"],
+    )
+    resources = data.get("resources") or provision_local_objects(data)
+    endpoint = urlsplit(data["endpoint_url"]).netloc
+    env.update(
+        MEDIA_RUNTIME_MODE="lambda",
+        MEDIA_STORAGE_CREDENTIAL_MODE="lambda",
+        MEDIA_MINIO_ENDPOINT=endpoint,
+        MEDIA_MINIO_USE_SSL="false",
+        MEDIA_MINIO_PUBLIC_ENDPOINT=endpoint,
+        MEDIA_MINIO_PUBLIC_USE_SSL="false",
+        MEDIA_MINIO_SOURCE_BUCKET=resources["buckets"]["source"],
+        MEDIA_MINIO_OUTPUT_BUCKET=resources["buckets"]["output"],
+        MEDIA_MINIO_REGION="ap-southeast-1",
+        MEDIA_API_PUBLIC_PREFIX="/api/media",
+        MEDIA_JWT_SECRET="local-v1-emulator-jwt-key-never-deploy",
+        PROCESSING_COMMANDS_QUEUE_URL=resources["queues"]["commands"],
+        PROCESSING_WORK_QUEUE_URL=resources["queues"]["work"],
+        MEDIA_RESULTS_QUEUE_URL=resources["queues"]["results"],
+        WORK_QUEUE_URL=resources["queues"]["work"],
     )
     for owner in ("media", "processing"):
         env[owner.upper() + "_POSTGRES_DSN"] = (

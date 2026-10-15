@@ -45,7 +45,7 @@ jobs:
           sudo apt-get install -y ffmpeg
       - name: Verify V1 control contracts
         run: |
-          .venv/bin/ruff check scripts/aws/v1 scripts/dev/v1_runtime.py scripts/dev/v1_verify.py tests/v1
+          .venv/bin/ruff check scripts/aws/v1 scripts/dev/v1_runtime.py scripts/dev/v1_verify.py scripts/dev/v1_gateway.py tests/v1
           make test-v1
       - name: Start unique PostgreSQL and loopback Moto
         run: make v1-up
