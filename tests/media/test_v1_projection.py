@@ -258,3 +258,61 @@ def test_processing_cancel_may_follow_terminal_result(event):
     event["payload"]["status"] = "cancelled"
     event["payload"]["outputs"] = []
     assert projections.validate_transition(saved, event)
+
+
+async def test_cross_owner_edit_stops_before_copy(session, storage, user, monkeypatch):
+    parent_id = uuid4()
+    owned = AsyncMock(side_effect=MediaError(404, "not found"))
+    monkeypatch.setattr(v1_lifecycle, "get_asset", owned)
+    monkeypatch.setattr(v1_lifecycle, "replay", AsyncMock(return_value=None))
+    request = EditRequest.model_validate(
+        {
+            "operations": [{"operation": "clip", "params": {"start": 0, "end": 3}}],
+        }
+    )
+    with pytest.raises(MediaError, match="not found"):
+        await v1_lifecycle.edit(session, storage, user.id, parent_id, request, None)
+    owned.assert_awaited_once_with(session, parent_id, user.id)
+    storage.copy_output_source.assert_not_awaited()
+    session.add.assert_not_called()
+
+
+async def test_uncertain_copy_keeps_cleanup_and_never_submits(
+    session,
+    asset,
+    event,
+    storage,
+    user,
+    monkeypatch,
+):
+    monkeypatch.setattr(v1_lifecycle, "get_asset", AsyncMock(return_value=asset))
+    monkeypatch.setattr(v1_lifecycle, "replay", AsyncMock(return_value=None))
+    monkeypatch.setattr(
+        v1_lifecycle,
+        "read_job",
+        AsyncMock(
+            return_value=projections.ProjectedJob(
+                job_id=asset.processing_job_id,
+                status="done",
+                outputs=event["payload"]["outputs"],
+            )
+        ),
+    )
+    monkeypatch.setattr(v1_lifecycle, "stage", AsyncMock())
+    discard = AsyncMock()
+    monkeypatch.setattr(v1_lifecycle, "discard_stage", discard)
+    submit = AsyncMock()
+    monkeypatch.setattr(v1_lifecycle, "stage_submit", submit)
+    staged = SimpleNamespace(write_uncertain=True)
+    session.get.return_value = staged
+    storage.copy_output_source.side_effect = OSError("copy response lost")
+    request = EditRequest.model_validate(
+        {
+            "operations": [{"operation": "clip", "params": {"start": 0, "end": 3}}],
+        }
+    )
+    with pytest.raises(OSError, match="copy response lost"):
+        await v1_lifecycle.edit(session, storage, user.id, asset.id, request, None)
+    assert staged.write_uncertain
+    discard.assert_awaited_once()
+    submit.assert_not_awaited()
