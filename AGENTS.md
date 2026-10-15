@@ -18,5 +18,16 @@ For all GitHub access, use the authenticated `gh` CLI exclusively; do not use Gi
 - Preserve the roadmap site's design and illustrations. Only repair source links
   as necessary when code moves. Original course/proposal documents stay intact.
 - Read `docs/project2-worklog.txt` for current decisions and implementation status.
-- Do not operate the inherited Alibaba deployment. AWS provisioning still needs
-  the actual project account and spending limit; local work can proceed.
+- Current target: `docs/execution/aws/architecture-plan.md` and `v1/README.md`.
+  Deliver a complete V1 first: API Gateway, two domain Lambda API applications,
+  SQS instead of Redis/RQ, owned PostgreSQL/S3, one finite Fargate encoder backend.
+  The current AWS2 code is a reviewed baseline; V1 migration is not yet implemented.
+  V2 experiments follow accepted/tagged V1 and never block its completion.
+- Target 48 continuous agent hours for local integration, three elapsed days as
+  baseline and five maximum. Two calendar weeks include cloud proof and rehearsal.
+  Group at least four implementation issues per agent; avoid redundant reviewers.
+- Do not operate the inherited Alibaba deployment. The user supplied an approximate
+  $200 planning envelope; actual account/billing currency and scoped live permission
+  remain prerequisites. This plan-publication task authorizes commit/push/Main
+  merge after audit/checks, not AWS account operations or deployment. Local work
+  can proceed. Required real-AWS evidence stays open Blocked until obtained.

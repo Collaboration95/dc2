@@ -1,0 +1,105 @@
+{
+  "service": "AmazonRDS",
+  "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRDS/current/ap-southeast-1/index.json",
+  "publication_date": "2026-10-06T22:40:50Z",
+  "rows": [
+    {
+      "sku": "GKRFDZJ65PVRG4U3",
+      "attributes": {
+        "servicecode": "AmazonRDS",
+        "location": "Asia Pacific (Singapore)",
+        "locationType": "AWS Region",
+        "engineCode": "21",
+        "databaseEngine": "Aurora PostgreSQL",
+        "group": "Aurora I/O Operation",
+        "groupDescription": "Input/Output Operation",
+        "usagetype": "APS1-Aurora:StorageIOUsage",
+        "operation": "CreateDBInstance:0021",
+        "regionCode": "ap-southeast-1",
+        "servicename": "Amazon Relational Database Service"
+      },
+      "description": "USD 0.22 per 1 million I/O requests for Aurora PostgreSQL",
+      "unit": "IOs",
+      "usd": "0.0000002200"
+    },
+    {
+      "sku": "YVTJD5SMKSVRWBS3",
+      "attributes": {
+        "servicecode": "AmazonRDS",
+        "location": "Asia Pacific (Singapore)",
+        "locationType": "AWS Region",
+        "engineCode": "21",
+        "databaseEngine": "Aurora PostgreSQL",
+        "usagetype": "APS1-Aurora:ServerlessV2Usage",
+        "operation": "CreateDBInstance:0021",
+        "regionCode": "ap-southeast-1",
+        "servicename": "Amazon Relational Database Service"
+      },
+      "description": "USD 0.2 per Aurora Capacity Unit hour running Aurora PostgreSQL Serverless v2",
+      "unit": "ACU-Hr",
+      "usd": "0.2000000000"
+    },
+    {
+      "sku": "CF7X3K4CXBFEHX5V",
+      "attributes": {
+        "servicecode": "AmazonRDS",
+        "location": "Asia Pacific (Singapore)",
+        "locationType": "AWS Region",
+        "storageMedia": "SSD",
+        "volumeType": "IO Optimized-Aurora",
+        "minVolumeSize": "10 GB",
+        "maxVolumeSize": "128 TB",
+        "engineCode": "21",
+        "databaseEngine": "Aurora PostgreSQL",
+        "deploymentOption": "Single-AZ",
+        "usagetype": "APS1-Aurora:IO-OptimizedStorageUsage",
+        "operation": "CreateDBInstance:0021",
+        "regionCode": "ap-southeast-1",
+        "servicename": "Amazon Relational Database Service"
+      },
+      "description": "USD 0.248 per GB-month of I/O-Optimized consumed storage (Aurora PostgreSQL)",
+      "unit": "GB-Mo",
+      "usd": "0.2480000000"
+    },
+    {
+      "sku": "AUDF233BK8YBNPF5",
+      "attributes": {
+        "servicecode": "AmazonRDS",
+        "location": "Asia Pacific (Singapore)",
+        "locationType": "AWS Region",
+        "storage": "Aurora IO Optimization Mode",
+        "engineCode": "21",
+        "databaseEngine": "Aurora PostgreSQL",
+        "usagetype": "APS1-Aurora:ServerlessV2IOOptimizedUsage",
+        "operation": "CreateDBInstance:0021",
+        "regionCode": "ap-southeast-1",
+        "servicename": "Amazon Relational Database Service"
+      },
+      "description": "USD 0.26 per Aurora Capacity Unit hour running Aurora PostgreSQL Serverless v2 IO-Optimized",
+      "unit": "ACU-Hr",
+      "usd": "0.2600000000"
+    },
+    {
+      "sku": "4CK2WCZQNAG2RWQ7",
+      "attributes": {
+        "servicecode": "AmazonRDS",
+        "location": "Asia Pacific (Singapore)",
+        "locationType": "AWS Region",
+        "storageMedia": "SSD",
+        "volumeType": "General Purpose-Aurora",
+        "minVolumeSize": "10 GB",
+        "maxVolumeSize": "64 TB",
+        "engineCode": "21",
+        "databaseEngine": "Aurora PostgreSQL",
+        "deploymentOption": "Single-AZ",
+        "usagetype": "APS1-Aurora:StorageUsage",
+        "operation": "CreateDBInstance:0021",
+        "regionCode": "ap-southeast-1",
+        "servicename": "Amazon Relational Database Service"
+      },
+      "description": "USD 0.11 per GB-month of consumed storage for Aurora PostgreSQL",
+      "unit": "GB-Mo",
+      "usd": "0.1100000000"
+    }
+  ]
+}

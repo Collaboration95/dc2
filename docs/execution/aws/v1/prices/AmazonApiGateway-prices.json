@@ -1,0 +1,23 @@
+{
+  "service": "AmazonApiGateway",
+  "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonApiGateway/current/ap-southeast-1/index.json",
+  "publication_date": "2026-10-13T00:30:44Z",
+  "rows": [
+    {
+      "sku": "HTX6VZU3YCMMNRM5",
+      "attributes": {
+        "servicecode": "AmazonApiGateway",
+        "description": "HTTP API Requests",
+        "location": "Asia Pacific (Singapore)",
+        "locationType": "AWS Region",
+        "usagetype": "APS1-ApiGatewayHttpRequest",
+        "operation": "ApiGatewayHttpApi",
+        "regionCode": "ap-southeast-1",
+        "servicename": "Amazon API Gateway"
+      },
+      "description": "$1.25/million requests - API Gateway HTTP API (first 300 million)",
+      "unit": "Requests",
+      "usd": "0.0000012500"
+    }
+  ]
+}

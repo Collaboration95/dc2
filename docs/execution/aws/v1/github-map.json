@@ -1,0 +1,398 @@
+{
+  "repository": "Collaboration95/dc2",
+  "issues": {
+    "aws3-v1-contracts": {
+      "number": 81,
+      "url": "https://github.com/Collaboration95/dc2/issues/81",
+      "title": "[V1] Freeze gateway routes, trusted identity and message contracts",
+      "body_sha256": "aa15704c00129ef6292ab9a9592918a05c17b9581dfcb9a83f0be0c27918f3b0",
+      "phase": "V1",
+      "workflow": "Ready",
+      "dependencies": [],
+      "parent": 41,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4wh8"
+    },
+    "aws3-v1-media-lambda": {
+      "number": 82,
+      "url": "https://github.com/Collaboration95/dc2/issues/82",
+      "title": "[V1] Package Media Lambda with native credentials and owned SQL",
+      "body_sha256": "8ef6dfb9191bff704956449cfbd0160407f87e41554676bf6c0961a196e3c635",
+      "phase": "V1",
+      "workflow": "Backlog",
+      "dependencies": [
+        81
+      ],
+      "parent": 41,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4wik"
+    },
+    "aws3-v1-processing-lambda": {
+      "number": 83,
+      "url": "https://github.com/Collaboration95/dc2/issues/83",
+      "title": "[V1] Package Processing Lambda API and owned job lifecycle",
+      "body_sha256": "ffdb88ed00ffab72bf091fdf38ba4bbf0ab096536ef172048cfe90785cfb672d",
+      "phase": "V1",
+      "workflow": "Backlog",
+      "dependencies": [
+        81
+      ],
+      "parent": 41,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4wjo"
+    },
+    "aws3-v1-sqs-delivery": {
+      "number": 84,
+      "url": "https://github.com/Collaboration95/dc2/issues/84",
+      "title": "[V1] Replace Redis/RQ delivery with SQS and durable SQL repair",
+      "body_sha256": "efbba1a5d50b5cfbe4fc8fc3e9d00a08977a254de0ab7a06f91f02f360d8e6ce",
+      "phase": "V1",
+      "workflow": "Backlog",
+      "dependencies": [
+        81
+      ],
+      "parent": 43,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4wng"
+    },
+    "aws3-v1-domain-events": {
+      "number": 85,
+      "url": "https://github.com/Collaboration95/dc2/issues/85",
+      "title": "[V1] Replace peer calls with commands, results and owned projections",
+      "body_sha256": "9e4f509fefff5f9572bba33a2b0f16ab065acb00eb0f5b11b5984e956cc70c8e",
+      "phase": "V1",
+      "workflow": "Backlog",
+      "dependencies": [
+        82,
+        83,
+        84
+      ],
+      "parent": 41,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4woE"
+    },
+    "aws3-v1-direct-intake": {
+      "number": 86,
+      "url": "https://github.com/Collaboration95/dc2/issues/86",
+      "title": "[V1] Move browser and Publisher uploads directly to authorized S3",
+      "body_sha256": "50e2ea3b1e068f95fe1f2a57e1a6d4165b89db26bc124ccc31925d113fdf0f2e",
+      "phase": "V1",
+      "workflow": "Backlog",
+      "dependencies": [
+        81,
+        82
+      ],
+      "parent": 41,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4wrk"
+    },
+    "aws3-v1-fargate-worker": {
+      "number": 87,
+      "url": "https://github.com/Collaboration95/dc2/issues/87",
+      "title": "[V1] Run finite SQS Fargate encoders and remove source callbacks",
+      "body_sha256": "f48607c1079636c419b1d570f5a3ede642022a4010a3393b7029f9e37f22b7aa",
+      "phase": "V1",
+      "workflow": "Backlog",
+      "dependencies": [
+        83,
+        84
+      ],
+      "parent": 43,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4wsY"
+    },
+    "aws3-v1-bounded-recovery": {
+      "number": 88,
+      "url": "https://github.com/Collaboration95/dc2/issues/88",
+      "title": "[V1] Implement bounded Lambda repair and late-output cleanup",
+      "body_sha256": "332fea7f012ec5f1c4a42b48b7542f48af9137f4ebb5516c2a998dbdfbaf9c2b",
+      "phase": "V1",
+      "workflow": "Backlog",
+      "dependencies": [
+        85,
+        87
+      ],
+      "parent": 43,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4wvg"
+    },
+    "aws3-v1-managed-infrastructure": {
+      "number": 89,
+      "url": "https://github.com/Collaboration95/dc2/issues/89",
+      "title": "[V1] Define managed Gateway/Lambda/SQS/Aurora infrastructure offline",
+      "body_sha256": "60c1557f5f544d547a5ce41327c07f2147295fdccf9897dbe399d6a2fbd0c830",
+      "phase": "V1",
+      "workflow": "Backlog",
+      "dependencies": [
+        81
+      ],
+      "parent": 42,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4wxc"
+    },
+    "aws3-v1-owner-release": {
+      "number": 90,
+      "url": "https://github.com/Collaboration95/dc2/issues/90",
+      "title": "[V1] Adapt independent releases, migrations and rollback to Lambda/Fargate",
+      "body_sha256": "077a2ebb0936a93e395384c4741051f398cf9b9a11119e26d0da4d49501e42f9",
+      "phase": "V1",
+      "workflow": "Backlog",
+      "dependencies": [
+        82,
+        83,
+        87,
+        89
+      ],
+      "parent": 43,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4wzk"
+    },
+    "aws3-v1-session-costs": {
+      "number": 91,
+      "url": "https://github.com/Collaboration95/dc2/issues/91",
+      "title": "[V1] Adapt session open/close, cost model and evidence protocols",
+      "body_sha256": "c4e3c7b1a5262e571c8effd1c7769cb25cfa33740585e52b6c76067ef9d7ec7f",
+      "phase": "V1",
+      "workflow": "Backlog",
+      "dependencies": [
+        87,
+        88,
+        89,
+        90
+      ],
+      "parent": 42,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4w1w"
+    },
+    "aws3-v1-local-acceptance": {
+      "number": 92,
+      "url": "https://github.com/Collaboration95/dc2/issues/92",
+      "title": "[V1] Verify the complete Redis-free workflow locally",
+      "body_sha256": "01a2c275f5d56e8b07ec88ff6d06ba4059e1e8394043b326f26fb8f4f35ab06b",
+      "phase": "V1",
+      "workflow": "Backlog",
+      "dependencies": [
+        85,
+        86,
+        88,
+        90,
+        91
+      ],
+      "parent": 44,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4w4A"
+    },
+    "aws2-account-authorization": {
+      "number": 45,
+      "url": "https://github.com/Collaboration95/dc2/issues/45",
+      "title": "[V1] Record actual project account, currency and scoped cloud authorization",
+      "body_sha256": "34433330accc66dce68bdc0251f29ecac79e81168fd17dacdcb28480ccf732b8",
+      "phase": "V1",
+      "workflow": "Blocked",
+      "dependencies": [],
+      "parent": 42,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxg_U"
+    },
+    "aws2-origin-transport": {
+      "number": 46,
+      "url": "https://github.com/Collaboration95/dc2/issues/46",
+      "title": "[V1 decision] Replace the public EC2 HTTP origin with managed HTTPS",
+      "body_sha256": "b48ed0b4db4681fb5cb72f07c572969f38d5ed33b7b45d312214cb109227697f",
+      "phase": "V1",
+      "workflow": "Review",
+      "dependencies": [],
+      "parent": 42,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxhHg",
+      "post_main_merge": {
+        "state": "CLOSED",
+        "state_reason": "COMPLETED",
+        "workflow": "Done",
+        "status": "Done",
+        "body_sha256": "b403174d4688353755eeafe566be6bfaf8d7b99e167863998066b38de99a608d",
+        "instruction": "Only after verifying Main merge: tick the final merge acceptance checkbox, close #46 as completed, and set Workflow/Status Done. Other body text stays as the publication snapshot. Use validator --decision-merged with fresh issue/Project captures; this metadata does not claim the merge occurred."
+      }
+    },
+    "aws2-cloud-workflow": {
+      "number": 63,
+      "url": "https://github.com/Collaboration95/dc2/issues/63",
+      "title": "[V1 evidence] Deploy the approved target and prove real workflow boundaries",
+      "body_sha256": "8a605f47dff0b967b59a3e50720629c6e8aa629c1e008564570859ad603490a9",
+      "phase": "V1",
+      "workflow": "Blocked",
+      "dependencies": [
+        45,
+        46,
+        92
+      ],
+      "parent": 44,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxi40"
+    },
+    "aws2-capacity-recovery": {
+      "number": 64,
+      "url": "https://github.com/Collaboration95/dc2/issues/64",
+      "title": "[V1 evidence] Prove 1/2/3 encoders and bounded SQS recovery on AWS",
+      "body_sha256": "4a627f7493a71e2fcb3c44f0c93d1d08972dc690cb2358e9fc69852da081c474",
+      "phase": "V1",
+      "workflow": "Blocked",
+      "dependencies": [
+        63,
+        87,
+        88
+      ],
+      "parent": 44,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxjAc"
+    },
+    "aws2-release-evidence": {
+      "number": 65,
+      "url": "https://github.com/Collaboration95/dc2/issues/65",
+      "title": "[V1 evidence] Capture independent Lambda/Fargate release and rollback",
+      "body_sha256": "8609455b95dd8dc41a1bcd0c0b19634c4fc9bc38c8bbf40da731636a6822233d",
+      "phase": "V1",
+      "workflow": "Blocked",
+      "dependencies": [
+        63,
+        64,
+        90
+      ],
+      "parent": 44,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxjH4"
+    },
+    "aws2-cloud-latency": {
+      "number": 66,
+      "url": "https://github.com/Collaboration95/dc2/issues/66",
+      "title": "[V1 evidence] Measure warm API latency with an independent Fargate generator",
+      "body_sha256": "5cdacab6f9fd95e499377521bcc47e61bc860d9c3b1a2bef1871342845d4fb2a",
+      "phase": "V1",
+      "workflow": "Blocked",
+      "dependencies": [
+        63,
+        91
+      ],
+      "parent": 44,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxjPY"
+    },
+    "aws2-cost-closeout": {
+      "number": 67,
+      "url": "https://github.com/Collaboration95/dc2/issues/67",
+      "title": "[V1 evidence] Reconcile actual spend, close state and final V1 handoff",
+      "body_sha256": "0578a4f924e2aee6b377e35438cb829da9b57b0865143bf5a545e97ca814be56",
+      "phase": "V1",
+      "workflow": "Blocked",
+      "dependencies": [
+        64,
+        65,
+        66,
+        91
+      ],
+      "parent": 44,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxjZ8"
+    },
+    "aws3-v2-lambda-encoding": {
+      "number": 93,
+      "url": "https://github.com/Collaboration95/dc2/issues/93",
+      "title": "[V2 experiment] Benchmark bounded short encodes on Lambda",
+      "body_sha256": "fa4be4edb014b6a1c9ba88b656656e25e3a250b9f2debe67542d6388bfa296ef",
+      "phase": "V2",
+      "workflow": "Backlog",
+      "dependencies": [
+        44
+      ],
+      "parent": 80,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4zq8"
+    },
+    "aws3-v2-database-isolation": {
+      "number": 94,
+      "url": "https://github.com/Collaboration95/dc2/issues/94",
+      "title": "[V2 experiment] Measure separate database clusters and pause behavior",
+      "body_sha256": "2446dde2436e99400bc5dd950da4d2b97ce5d3f99282f7cb0823db5420f652de",
+      "phase": "V2",
+      "workflow": "Backlog",
+      "dependencies": [
+        44
+      ],
+      "parent": 80,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4zrc"
+    },
+    "aws2-optional-unattended": {
+      "number": 68,
+      "url": "https://github.com/Collaboration95/dc2/issues/68",
+      "title": "[V2 experiment] Optional unattended worker starts and further cost cuts",
+      "body_sha256": "fa2f5b61c354509bec86d75767760cd27bf097273cdead686208a6f57916daec",
+      "phase": "V2",
+      "workflow": "Backlog",
+      "dependencies": [
+        44
+      ],
+      "parent": 80,
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxj-c"
+    }
+  },
+  "epics": {
+    "aws2-storage": {
+      "number": 41,
+      "url": "https://github.com/Collaboration95/dc2/issues/41",
+      "title": "[V1 epic] Visible domain APIs, ownership and S3 intake",
+      "body_sha256": "0cda281514e3414172b989e2a3fc1ee58c37b42ad63ec5d0a8301303aa4abe15",
+      "phase": "V1",
+      "workflow": "Blocked",
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxgq0",
+      "historical_subissue_numbers": [
+        47,
+        48,
+        49
+      ]
+    },
+    "aws2-environment": {
+      "number": 42,
+      "url": "https://github.com/Collaboration95/dc2/issues/42",
+      "title": "[V1 epic] Managed runtime, session controls and budget",
+      "body_sha256": "47f2fd6235f0b5aae6169706f84c1043cb2de8a84ef9c74076b9934d104b2bfa",
+      "phase": "V1",
+      "workflow": "Blocked",
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxgwA",
+      "historical_subissue_numbers": [
+        50,
+        51,
+        52,
+        53,
+        61,
+        62
+      ]
+    },
+    "aws2-delivery": {
+      "number": 43,
+      "url": "https://github.com/Collaboration95/dc2/issues/43",
+      "title": "[V1 epic] Redis-free delivery, finite workers and independent releases",
+      "body_sha256": "bc112df324d30ef47f54fc1df08d87efb1df2eea9b8749a1853061f21b7195d9",
+      "phase": "V1",
+      "workflow": "Blocked",
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxgz4",
+      "historical_subissue_numbers": [
+        54,
+        55,
+        56,
+        57,
+        59,
+        60
+      ]
+    },
+    "aws2-acceptance": {
+      "number": 44,
+      "url": "https://github.com/Collaboration95/dc2/issues/44",
+      "title": "[V1 epic] Authentic acceptance and immutable submission baseline",
+      "body_sha256": "55bbf735cefb84ad488b80a51ecc96b479e39f46ce4bf7927cae0ea4848d46d1",
+      "phase": "V1",
+      "workflow": "Blocked",
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhAxg4Y",
+      "historical_subissue_numbers": [
+        58
+      ]
+    },
+    "aws3-v2-experiments": {
+      "number": 80,
+      "url": "https://github.com/Collaboration95/dc2/issues/80",
+      "title": "[V2 epic] Optional measured migrations after accepted V1",
+      "body_sha256": "7c002bab7da66c386ccec7f0c397b0233ee93ee29d4a43cbe517703a5d52ffa1",
+      "phase": "V2",
+      "workflow": "Backlog",
+      "project_item_id": "PVTI_lAHOBBatWM4BmtkxzhA4zps",
+      "historical_subissue_numbers": []
+    }
+  },
+  "captured_at_utc": "2026-10-15T05:22:41.710504+00:00",
+  "project": {
+    "id": "PVT_kwHOBBatWM4Bmtkx",
+    "number": 14,
+    "title": "dc2 \u2014 Local delivery and lean AWS readiness",
+    "url": "https://github.com/users/Collaboration95/projects/14"
+  },
+  "snapshot_notice": "Observed during plan publication; #46 transitions Review to Done only after Main merge. GitHub Workflow is current authority."
+}

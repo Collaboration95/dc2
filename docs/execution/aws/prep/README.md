@@ -1,3 +1,5 @@
+> Historical AWS2 preparation delivery. Current V1 migrations and live issue state are tracked in [the staged handoff](../v1/README.md). These receipts do not certify Lambda/SQS/Aurora V1; #68 is now deferred V2 and #46 resolves through the managed-HTTPS plan.
+
 # AWS preparation implementation cycle
 
 Authorized after the independent readiness audit PASS. Planning package: commit8d13508, PR69. Integration branch: `work/aws2-prep-20261015`. This cycle implements and locally verifies preparation; it performs no AWS provisioning, deployment, account operation or spend.

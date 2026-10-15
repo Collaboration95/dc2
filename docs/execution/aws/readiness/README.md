@@ -1,3 +1,5 @@
+> Historical AWS2 readiness snapshot. The current target, issue mapping and readiness are in [V1/V2 execution](../v1/README.md). This frozen packet remains provenance for completed preparation, not the new target.
+
 # Lean AWS implementation handoff — 15 October 2026
 
 Readiness analysis and real GitHub backlog; application/cloud implementation remains future. Source inspected: `af0b21e3c10d6ad62a77549756787eac738e83b5` on Main. No AWS/Alibaba operation, cloud account access, product change or live workload was performed.

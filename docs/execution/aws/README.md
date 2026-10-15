@@ -1,39 +1,37 @@
-# AWS replanning — 15 October 2026
+# Current AWS plan: V1 first, optional V2 afterwards
 
-**Separate ECS Fargate services, disposable workers, one small 2-vCPU / 2-GiB
-state/proxy host, private S3 through a free gateway endpoint, and a public
-CloudFront HTTPS URL.** One public subnet; no domain purchase, NAT, ALB or large host.
+**API Gateway, two domain Lambda applications, SQS instead of Redis/RQ, owned
+PostgreSQL databases, private S3 and one Fargate encoding backend.**
 
-**Latest constraints:** at most 14 days, small cloud fixtures, and zero running
-application compute during downtime. Stop EC2, set all three ECS services to zero,
-and drain/stop workers. Do not retain an Elastic IP; update the origin on wake.
-The remaining retained-storage/internal-DNS baseline is about **$1.73 for 14 days**.
+- [Authoritative architecture and V1/V2 gate](architecture-plan.md)
+- [Dependency-ordered handoff and live issue map](v1/README.md)
+- [Backlog](v1/backlog.json) and [GitHub identities](v1/github-map.json)
+- [Conditional cost model](v1/cost-model.json); recalculate with
+  `python docs/execution/aws/v1/calculate-costs.py`
 
-- [Next-agent Sol swarm and backlog handoff](../../../handoff-temp.md)
-- [Architecture, implementation sequence, and ranked cost chopping block](architecture-plan.md)
-- [Interactive review and cost levers](review.html)
-- [Editable AWS diagram](../../lean-aws-microservices.drawio)
-- [Cost assumptions](cost-worksheet.json) and [official price rows](pricing-20261015.json)
-- Recalculate offline: `python docs/execution/aws/calculate-costs.py`
-- [Private deployment-input template](job-inputs.template.json)
+Plan approximately $200; USD is the worksheet assumption pending the actual
+account/billing currency. Target 48 hours for a local integrated build, three
+elapsed agentic implementation days as baseline, five maximum. Two calendar weeks
+include cloud evidence, review, fixes, writeup and rehearsal.
 
-| 14-day scenario | AWS usage | Including tax/FX reserve and contingency |
-|---|---:|---:|
-| Expected: 20 online hours, 2 worker-task-hours | $6.03 | **$13.03** |
-| Larger: 40 online hours, 8 worker-task-hours | $13.27 | **$28.27** |
+## Implementation versus target
 
-Use **$15 expected / $30 envelope** as planning targets, not hard billing caps.
-Expected uploads are only **0.25 GB total**, including six ~21-MB long submissions
-and short workflow checks. Reuse assets and stored sources. Existing full local
-scaling results remain local; no bulk cloud replay is planned.
+The reviewed baseline at `8d13194` still contains container APIs, Redis/RQ, HTTP
+peer calls and inert EC2/nginx definitions. This publication preserves that work;
+it does not implement/deploy V1. Closed preparation issues #47–#62 remain historical
+Done work; new migration tickets cover missing V1 behavior. Real account/cloud
+acceptance stays open and Blocked. #46 closes only for the merged managed-HTTPS
+decision; actual TLS/client proof remains separate.
 
-Public browser access is confirmed. The restricted CloudFront-origin HTTP leg is
-explicitly disclosed; viewer TLS is not end-to-end TLS. The database/proxy host
-remains a shared failure point. The bounded worker starter and cloud adapters are
-still proposed work. Account/currency and paid deployment authorization remain
-pending. No provisioning, application changes or live trials occurred.
+## Historical material
 
-Historical only: [old shared-host plan](architecture-plan-20261014.md),
-[old worksheet](cost-worksheet-20261014.json), [old README](README-20261014.md).
-The old large host/storage/domain assumptions and the initial 21-day/300-fixture
-replanning assumptions are superseded. Issue 38/39 rejection decisions are unchanged.
+- [Previous AWS2 architecture, preserved verbatim](architecture-plan-aws2-prep-20261015.md)
+- [AWS2 readiness/audit](readiness/README.md)
+- [Completed local preparation and limits](prep/README.md)
+- `cost-worksheet.json`, `pricing-20261015.json`, `calculate-costs.py` and `review.html`
+  describe the previous topology. Their $13.03/$28.27 forecasts are not V1 prices.
+- Older `*-20261014.*` files are also historical. Original course documents,
+  roadmap illustrations and frozen measurements remain unchanged.
+
+No AWS account inspection, provisioning, deployment or inherited Alibaba action
+is authorized by this plan/publication task.
