@@ -29,6 +29,7 @@ class Accepted(BaseModel):
 
 
 class PublicJob(BaseModel):
+    processing_job_id: UUID | None = None
     id: UUID
     filename: str
     status: Literal["queued", "processing", "done", "failed"]
