@@ -268,3 +268,82 @@ async def test_existing_job_cancellation_needs_current_version_before_cleanup(fa
         assert projection.result_hash == fingerprint(
             {k: v for k, v in cancelled.items() if k != "message_id"}
         )
+
+
+async def test_native_source_version_deletion_and_late_object_with_moto(factory):
+    """Real PostgreSQL + existing Moto + actual Minio delete implementation."""
+    import asyncio
+    from urllib.parse import urlsplit
+
+    import boto3
+
+    from media.config import Settings
+    from media.services.storage import Storage
+
+    endpoint = os.environ.get("V1_TEST_S3_ENDPOINT")
+    if not endpoint:
+        pytest.skip("Lead C local Moto S3 endpoint not provided")
+    parsed = urlsplit(endpoint)
+    if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost"}:
+        raise ValueError("Cleanup emulator test requires explicit loopback HTTP endpoint")
+    client = boto3.client(
+        "s3",
+        endpoint_url=endpoint,
+        region_name="us-east-1",
+        aws_access_key_id="local-test",
+        aws_secret_access_key="local-test",
+    )
+    bucket = "b2-cleanup-" + uuid4().hex
+    client.create_bucket(Bucket=bucket)
+    client.put_bucket_versioning(Bucket=bucket, VersioningConfiguration={"Status": "Enabled"})
+    owner, asset_id, descriptor = await seed(factory)
+    key = descriptor["key"]
+    accepted = client.put_object(Bucket=bucket, Key=key, Body=b"accepted")["VersionId"]
+    client.put_object(Bucket=bucket, Key=key, Body=b"overwritten")
+    client.put_object(Bucket=bucket, Key=key + "-sibling", Body=b"must-remain")
+    storage = Storage(
+        Settings(
+            postgres_dsn="postgresql+asyncpg://unused:unused@invalid/media_db",
+            minio_endpoint=parsed.netloc,
+            minio_use_ssl=False,
+            minio_region="us-east-1",
+            minio_source_bucket=bucket,
+            minio_access_key="local-test",
+            minio_secret_key="local-test",
+        )
+    )
+    try:
+        async with factory() as session, session.begin():
+            pin = await session.get(SourceVersion, asset_id)
+            pin.bucket, pin.version_id = bucket, accepted
+        await cancel_and_ack(factory, owner, asset_id)
+        assert await cleanup_tombstones(factory, storage) == 1
+
+        def exact_versions():
+            return [
+                v
+                for v in client.list_object_versions(Bucket=bucket).get("Versions", [])
+                if v["Key"] == key
+            ]
+
+        assert not await asyncio.to_thread(exact_versions)
+        client.put_object(Bucket=bucket, Key=key, Body=b"late-after-delete")
+        await force_due(factory, asset_id)
+        assert await cleanup_tombstones(factory, storage) == 1
+        assert not await asyncio.to_thread(exact_versions)
+        sibling = client.get_object(Bucket=bucket, Key=key + "-sibling")
+        assert sibling["Body"].read() == b"must-remain"
+        sibling["Body"].close()
+    finally:
+        versions = client.list_object_versions(Bucket=bucket)
+        items = versions.get("Versions", []) + versions.get("DeleteMarkers", [])
+        if items:
+            client.delete_objects(
+                Bucket=bucket,
+                Delete={
+                    "Objects": [
+                        {"Key": item["Key"], "VersionId": item["VersionId"]} for item in items
+                    ]
+                },
+            )
+        client.delete_bucket(Bucket=bucket)
