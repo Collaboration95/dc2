@@ -211,3 +211,49 @@ def test_handler_override_cannot_inject_a_command(config):
     bad["handlers"]["MediaApi"] = "python -c unsafe"
     with pytest.raises(ValueError):
         parameters(bad)
+
+
+def test_migration_tasks_only_inject_own_migration_credentials():
+    resources = template()["Resources"]
+    for domain in ("Media", "Processing"):
+        definition = resources[domain + "MigrationTaskDefinition"]["Properties"]
+        container = definition["ContainerDefinitions"][0]
+        assert {s["Name"] for s in container["Secrets"]} == {
+            domain.upper() + "_POSTGRES_DSN",
+            domain.upper() + "_MIGRATION_DSN",
+        }
+        assert all(
+            s["ValueFrom"] == {"Ref": domain + "MigrationDsnParameterArn"}
+            for s in container["Secrets"]
+        )
+        environment = {e["Name"]: e["Value"] for e in container["Environment"]}
+        assert environment["PGSSLMODE"] == "verify-full"
+        assert environment["PGSSLROOTCERT"] == "/opt/rds/global-bundle.pem"
+        assert container["EntryPoint"] == ["/usr/bin/env"]
+        assert "alembic" in container["Command"]
+
+
+def test_privileged_bootstrap_input_never_reaches_app_or_owner_migrations():
+    resources = template()["Resources"]
+    bootstrap = resources["BootstrapTaskDefinition"]["Properties"]["ContainerDefinitions"][0]
+    assert bootstrap["EntryPoint"] == ["python", "/opt/db-bootstrap.py"]
+    assert bootstrap["Secrets"][0]["Name"] == "DC2_BOOTSTRAP_INPUT_JSON"
+    assert "Policies" not in resources["BootstrapRole"]["Properties"]
+    allowed = permitted(resources, "BootstrapExecution", "ssm:GetParameters")
+    assert len(allowed) == 1
+    assert "bootstrap-input" in json.dumps(allowed)
+    for name, resource in resources.items():
+        if name not in ("BootstrapTaskDefinition", "BootstrapExecutionRole"):
+            assert "bootstrap-input" not in json.dumps(resource)
+
+
+def test_s3_gateway_allows_project_data_and_ecr_image_layers():
+    endpoint = template()["Resources"]["S3Gateway"]["Properties"]
+    statements = endpoint["PolicyDocument"]["Statement"]
+    assert all(s["Principal"] == "*" for s in statements)
+    assert statements[1]["Action"] == ["s3:GetObject"]
+    assert statements[1]["Resource"] == [
+        {"Fn::Sub": ("arn:${AWS::Partition}:s3:::prod-${AWS::Region}-starport-layer-bucket/*")}
+    ]
+    # No endpoint-wide Resource=* escape hatch for S3 data.
+    assert all("*" not in s["Resource"] for s in statements)

@@ -108,8 +108,11 @@ Private dual-stack Lambda/DB subnets span two AZs. Lambda SDK traffic uses
 have no IPv4 default route; the free S3 gateway provides the only IPv4 HTTPS route.
 Public worker/migration tasks use transient IPv4 to pull images/retrieve secrets,
 plus narrow SG-to-SG private PostgreSQL access. There is no NAT, paid endpoint,
-ALB, Redis, nginx, EC2 application host or Batch dependency. S3 gateway IAM allows
-only the two data buckets; frontend uses CloudFront OAC. Buckets are private,
+ALB, Redis, nginx, EC2 application host or Batch dependency. S3 gateway policy allows
+the two data buckets and read-only ECR image layers in the regional starport bucket;
+frontend uses CloudFront OAC. The endpoint policy includes required principals.
+The ECR-layer permission follows [AWS ECR documentation](https://docs.aws.amazon.com/AmazonECR/latest/userguide/vpc-endpoints.html#ecr-setting-up-s3-gateway)
+and grants no runtime identity access to unrelated buckets. Buckets are private,
 TLS-only, encrypted, versioned and retained. Sources support POST CORS only for
 the exact generated frontend HTTPS origin; output GET/HEAD CORS supports playback.
 CloudFront forwards `/api/*` to HTTPS Gateway, forwards cookies/query/authorization,
@@ -132,3 +135,58 @@ excludes the viewer Host header and disables API caching.
   connection-free minutes. Maintenance can wake Aurora; storage/CDN can still bill.
 - Retain actual cost/close receipts. Local render/policy/lint checks are not cloud,
   IAM, pause, latency, recovery or throughput evidence. #45/#63–#67 remain open.
+
+## Private database bootstrap
+
+The separately emitted `BootstrapTaskDefinitionArn` is a finite (180-second
+application deadline), 0.25-vCPU/512-MiB operator task using the worker image.
+C2 must copy the standalone `scripts/aws/v1/bootstrap.py` to
+`/opt/db-bootstrap.py` in that image. It does not import either domain, an AWS SDK,
+or runtime credentials. Its task role has no permissions; its execution role
+reads only the temporary exact SSM path `/dc2/<EnvironmentId>/bootstrap-input`,
+pulls only the worker repository and writes the task log stream. Neither owner
+migration task nor any runtime role can read that path or Aurora's master secret.
+
+The operator privately constructs a JSON object with exactly `host`, `port`,
+`user`, `password`, and `role_passwords`. `host` is `DatabaseEndpoint`; `port` is
+5432; `user` is `dc2bootstrap`; the password comes from the generated managed
+`BootstrapSecretArn`. `role_passwords` has exactly four distinct, randomly
+generated values of at least 24 characters, keyed by `media_migrator`,
+`media_runtime`, `processing_migrator`, `processing_runtime`. No example credential
+value is supplied. Store the complete object as a temporary SecureString at the
+bootstrap path through the operator's private tooling; never use a command-line
+JSON literal, public receipt or task definition environment value. ECS secret
+injection provides `DC2_BOOTSTRAP_INPUT_JSON` to the process. The script immediately
+removes it from its inherited environment and prints only a safe result.
+
+Run this task in one public task subnet with `MigrationSecurityGroupId`, temporary
+public IPv4, the emitted cluster and no concurrent encoders. It requires the
+normal verified RDS CA and exits nonzero on failures without printing SQL/DSNs.
+It creates `media_db` owned by `media_owner` and `processing_db` owned by
+`processing_owner`. Owners cannot log in. Migrators inherit only their own owner;
+runtimes receive CONNECT, schema USAGE and DML/sequence grants, without schema
+CREATE, database CREATE or peer access. Both existing and future migration-created
+tables receive runtime grants. Existing databases with unexpected owners are
+rejected before any credential mutation. Re-running reconciles grants and resets
+only the four project role passwords to the supplied values; coordinate a closed
+session and the matching SSM DSN update when deliberately rotating them.
+
+After success, the operator builds separate percent-encoded asyncpg DSNs for each
+role/own DB and writes only its corresponding configured SecureString. Include
+verified TLS, and retain the CA image path described above. Remove the temporary
+bootstrap input after those four parameters are durable; do not remove the
+RDS-managed master secret. Run owner migrations afterward. A workstation already
+inside the private network may instead use a mode-0600 private input file:
+
+```sh
+DC2_BOOTSTRAP_INPUT_FILE=/private/operator/db-bootstrap.json \
+  python -m scripts.aws.v1.bootstrap --ca-file /private/operator/global-bundle.pem
+```
+
+Do not set both private input methods. Bootstrap role/schema reconciliation is
+covered by fake-connection tests; real RDS ownership, migrations, TLS, IAM and
+connection pause still require operator evidence. The current operator reported
+an explicit `FlickPondRequireMFA` policy denial on S3 bucket creation and no enrolled
+MFA device. The helper does not modify account security or bypass that denial.
+Foundation deployment did not complete; the empty staging rollback stack is
+operator-owned known state, not a successful V1 deployment.

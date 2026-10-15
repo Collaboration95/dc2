@@ -138,6 +138,65 @@
       ]
     }
   },
+  "Rules": {
+    "ExplicitApplicationImages": {
+      "RuleCondition": {
+        "Fn::Equals": [
+          {
+            "Ref": "DeployApplications"
+          },
+          "true"
+        ]
+      },
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Equals": [
+                  {
+                    "Ref": "MediaImageUri"
+                  },
+                  ""
+                ]
+              }
+            ]
+          },
+          "AssertDescription": "Media digest image must be explicit before activation"
+        },
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Equals": [
+                  {
+                    "Ref": "ProcessingImageUri"
+                  },
+                  ""
+                ]
+              }
+            ]
+          },
+          "AssertDescription": "Processing digest image must be explicit before activation"
+        },
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Equals": [
+                  {
+                    "Ref": "WorkerImageUri"
+                  },
+                  ""
+                ]
+              }
+            ]
+          },
+          "AssertDescription": "Worker digest image must be explicit before activation"
+        }
+      ]
+    }
+  },
   "Resources": {
     "Vpc": {
       "Type": "AWS::EC2::VPC",
@@ -648,6 +707,7 @@
           "Version": "2012-10-17",
           "Statement": [
             {
+              "Principal": "*",
               "Effect": "Allow",
               "Action": [
                 "s3:*"
@@ -670,6 +730,18 @@
                 },
                 {
                   "Fn::Sub": "${OutputBucket.Arn}/*"
+                }
+              ]
+            },
+            {
+              "Principal": "*",
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject"
+              ],
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:${AWS::Partition}:s3:::prod-${AWS::Region}-starport-layer-bucket/*"
                 }
               ]
             }
@@ -4379,6 +4451,23 @@
       },
       "Condition": "Applications"
     },
+    "MediaRootInvokePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "MediaApiAlias"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Sub": "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*/api/media"
+        },
+        "SourceAccount": {
+          "Ref": "AWS::AccountId"
+        }
+      },
+      "Condition": "Applications"
+    },
     "MediaOwnedRoute": {
       "Type": "AWS::ApiGatewayV2::Route",
       "Properties": {
@@ -4542,6 +4631,23 @@
         "Principal": "apigateway.amazonaws.com",
         "SourceArn": {
           "Fn::Sub": "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*/api/processing/*"
+        },
+        "SourceAccount": {
+          "Ref": "AWS::AccountId"
+        }
+      },
+      "Condition": "Applications"
+    },
+    "ProcessingRootInvokePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ProcessingApiAlias"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Sub": "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*/api/processing"
         },
         "SourceAccount": {
           "Ref": "AWS::AccountId"
@@ -5291,6 +5397,14 @@
               {
                 "Name": "DC2_WORKER_CAP",
                 "Value": "3"
+              },
+              {
+                "Name": "PGSSLMODE",
+                "Value": "verify-full"
+              },
+              {
+                "Name": "PGSSLROOTCERT",
+                "Value": "/opt/rds/global-bundle.pem"
               }
             ],
             "Secrets": [
@@ -5534,9 +5648,23 @@
               {
                 "Name": "DC2_WORKER_CAP",
                 "Value": "3"
+              },
+              {
+                "Name": "PGSSLMODE",
+                "Value": "verify-full"
+              },
+              {
+                "Name": "PGSSLROOTCERT",
+                "Value": "/opt/rds/global-bundle.pem"
               }
             ],
             "Secrets": [
+              {
+                "Name": "MEDIA_POSTGRES_DSN",
+                "ValueFrom": {
+                  "Ref": "MediaMigrationDsnParameterArn"
+                }
+              },
               {
                 "Name": "MEDIA_MIGRATION_DSN",
                 "ValueFrom": {
@@ -5777,9 +5905,23 @@
               {
                 "Name": "DC2_WORKER_CAP",
                 "Value": "3"
+              },
+              {
+                "Name": "PGSSLMODE",
+                "Value": "verify-full"
+              },
+              {
+                "Name": "PGSSLROOTCERT",
+                "Value": "/opt/rds/global-bundle.pem"
               }
             ],
             "Secrets": [
+              {
+                "Name": "PROCESSING_POSTGRES_DSN",
+                "ValueFrom": {
+                  "Ref": "ProcessingMigrationDsnParameterArn"
+                }
+              },
               {
                 "Name": "PROCESSING_MIGRATION_DSN",
                 "ValueFrom": {
@@ -5797,6 +5939,192 @@
                   "Ref": "AWS::Region"
                 },
                 "awslogs-stream-prefix": "ProcessingMigration"
+              }
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          }
+        ]
+      },
+      "Condition": "Applications"
+    },
+    "BootstrapRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          }
+        ]
+      },
+      "Condition": "Applications"
+    },
+    "BootstrapExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "temporary-bootstrap-input",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "WorkerRepository",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "TaskLogGroup",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssm:GetParameters"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/dc2/${EnvironmentId}/bootstrap-input"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "Condition": "Applications"
+    },
+    "BootstrapTaskDefinition": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "Family": {
+          "Fn::Sub": "${EnvironmentId}-bootstrap"
+        },
+        "Cpu": "256",
+        "Memory": "512",
+        "NetworkMode": "awsvpc",
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "RuntimePlatform": {
+          "CpuArchitecture": "X86_64",
+          "OperatingSystemFamily": "LINUX"
+        },
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "BootstrapExecutionRole",
+            "Arn"
+          ]
+        },
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "BootstrapRole",
+            "Arn"
+          ]
+        },
+        "ContainerDefinitions": [
+          {
+            "Name": "bootstrap",
+            "Image": {
+              "Ref": "WorkerImageUri"
+            },
+            "Essential": true,
+            "EntryPoint": [
+              "python",
+              "/opt/db-bootstrap.py"
+            ],
+            "Command": [],
+            "Secrets": [
+              {
+                "Name": "DC2_BOOTSTRAP_INPUT_JSON",
+                "ValueFrom": {
+                  "Fn::Sub": "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/dc2/${EnvironmentId}/bootstrap-input"
+                }
+              }
+            ],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "TaskLogGroup"
+                },
+                "awslogs-region": {
+                  "Ref": "AWS::Region"
+                },
+                "awslogs-stream-prefix": "bootstrap"
               }
             }
           }
@@ -6114,6 +6442,12 @@
       "Condition": "Applications",
       "Value": {
         "Ref": "ProcessingMigrationTaskDefinition"
+      }
+    },
+    "BootstrapTaskDefinitionArn": {
+      "Condition": "Applications",
+      "Value": {
+        "Ref": "BootstrapTaskDefinition"
       }
     },
     "ProcessingCommandsMappingId": {

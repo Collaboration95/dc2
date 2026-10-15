@@ -183,15 +183,31 @@ def template():
             ],
             "PolicyDocument": policy(
                 [
-                    allow(
-                        ["s3:*"],
-                        [
-                            attr("SourceBucket"),
-                            sub("${SourceBucket.Arn}/*"),
-                            attr("OutputBucket"),
-                            sub("${OutputBucket.Arn}/*"),
-                        ],
-                    )
+                    {
+                        "Principal": "*",
+                        **allow(
+                            ["s3:*"],
+                            [
+                                attr("SourceBucket"),
+                                sub("${SourceBucket.Arn}/*"),
+                                attr("OutputBucket"),
+                                sub("${OutputBucket.Arn}/*"),
+                            ],
+                        ),
+                    },
+                    # Public task subnets also have this gateway route. ECR's
+                    # presigned image-layer downloads need the regional starport bucket.
+                    {
+                        "Principal": "*",
+                        **allow(
+                            ["s3:GetObject"],
+                            [
+                                sub(
+                                    "arn:${AWS::Partition}:s3:::prod-${AWS::Region}-starport-layer-bucket/*"
+                                )
+                            ],
+                        ),
+                    },
                 ]
             ),
         },
@@ -730,6 +746,21 @@ def template():
             },
             app=True,
         )
+        add(
+            f"{domain}RootInvokePermission",
+            "Lambda::Permission",
+            {
+                "FunctionName": ref(f"{domain}ApiAlias"),
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": sub(
+                    f"arn:${{AWS::Partition}}:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:"
+                    f"${{HttpApi}}/*/*/api/{domain.lower()}"
+                ),
+                "SourceAccount": ref("AWS::AccountId"),
+            },
+            app=True,
+        )
         paths = [
             ("Owned", f"ANY /api/{domain.lower()}/{{proxy+}}", True),
             ("Root", f"ANY /api/{domain.lower()}", True),
@@ -958,6 +989,8 @@ def template():
             "WORKER_LIFETIME_SECONDS": {"Fn::Sub": "${WorkerLifetimeSeconds}"},
             f"{domain.upper()}_POSTGRES_SSL_CA": "/opt/rds/global-bundle.pem",
             "DC2_WORKER_CAP": "3",
+            "PGSSLMODE": "verify-full",
+            "PGSSLROOTCERT": "/opt/rds/global-bundle.pem",
         }
         command = (
             ["python", "-m", "processing.v1_worker", "--max-empty-polls", "2"]
@@ -993,14 +1026,17 @@ def template():
                         "Command": command,
                         "Environment": [{"Name": k, "Value": v} for k, v in env.items()],
                         "Secrets": [
-                            {
-                                "Name": (
-                                    f"{domain.upper()}_POSTGRES_DSN"
-                                    if is_worker
-                                    else f"{domain.upper()}_MIGRATION_DSN"
-                                ),
-                                "ValueFrom": ref(secret),
-                            }
+                            {"Name": f"{domain.upper()}_POSTGRES_DSN", "ValueFrom": ref(secret)},
+                            *(
+                                []
+                                if is_worker
+                                else [
+                                    {
+                                        "Name": f"{domain.upper()}_MIGRATION_DSN",
+                                        "ValueFrom": ref(secret),
+                                    }
+                                ]
+                            ),
                         ],
                         "LogConfiguration": {
                             "LogDriver": "awslogs",
@@ -1016,6 +1052,102 @@ def template():
             },
             app=True,
         )
+    # A one-off privileged DB bootstrap is separate from owner migrations.
+    # Input is temporary SSM JSON; no master credential reaches app task roles.
+    bootstrap_input = sub(
+        "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:"
+        "parameter/dc2/${EnvironmentId}/bootstrap-input"
+    )
+    add(
+        "BootstrapRole",
+        "IAM::Role",
+        {
+            "AssumeRolePolicyDocument": policy(
+                [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {"Service": "ecs-tasks.amazonaws.com"},
+                        "Action": "sts:AssumeRole",
+                    }
+                ]
+            ),
+            "Tags": tags,
+        },
+        app=True,
+    )
+    add(
+        "BootstrapExecutionRole",
+        "IAM::Role",
+        {
+            "AssumeRolePolicyDocument": policy(
+                [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {"Service": "ecs-tasks.amazonaws.com"},
+                        "Action": "sts:AssumeRole",
+                    }
+                ]
+            ),
+            "Policies": [
+                {
+                    "PolicyName": "temporary-bootstrap-input",
+                    "PolicyDocument": policy(
+                        [
+                            allow(["ecr:GetAuthorizationToken"], ["*"]),
+                            allow(
+                                [
+                                    "ecr:BatchCheckLayerAvailability",
+                                    "ecr:GetDownloadUrlForLayer",
+                                    "ecr:BatchGetImage",
+                                ],
+                                [attr("WorkerRepository")],
+                            ),
+                            allow(
+                                ["logs:CreateLogStream", "logs:PutLogEvents"],
+                                [attr("TaskLogGroup")],
+                            ),
+                            allow(["ssm:GetParameters"], [bootstrap_input]),
+                        ]
+                    ),
+                }
+            ],
+        },
+        app=True,
+    )
+    add(
+        "BootstrapTaskDefinition",
+        "ECS::TaskDefinition",
+        {
+            "Family": sub("${EnvironmentId}-bootstrap"),
+            "Cpu": "256",
+            "Memory": "512",
+            "NetworkMode": "awsvpc",
+            "RequiresCompatibilities": ["FARGATE"],
+            "RuntimePlatform": {"CpuArchitecture": "X86_64", "OperatingSystemFamily": "LINUX"},
+            "ExecutionRoleArn": attr("BootstrapExecutionRole"),
+            "TaskRoleArn": attr("BootstrapRole"),
+            "ContainerDefinitions": [
+                {
+                    "Name": "bootstrap",
+                    "Image": ref("WorkerImageUri"),
+                    "Essential": True,
+                    "EntryPoint": ["python", "/opt/db-bootstrap.py"],
+                    "Command": [],
+                    "Secrets": [{"Name": "DC2_BOOTSTRAP_INPUT_JSON", "ValueFrom": bootstrap_input}],
+                    "LogConfiguration": {
+                        "LogDriver": "awslogs",
+                        "Options": {
+                            "awslogs-group": ref("TaskLogGroup"),
+                            "awslogs-region": ref("AWS::Region"),
+                            "awslogs-stream-prefix": "bootstrap",
+                        },
+                    },
+                }
+            ],
+            "Tags": tags,
+        },
+        app=True,
+    )
     outputs = {
         "VpcId": ref("Vpc"),
         "PrivateSubnetIds": {"Fn::Join": [",", [ref("PrivateASubnet"), ref("PrivateBSubnet")]]},
@@ -1049,6 +1181,18 @@ def template():
                 ]
             },
         },
+        "Rules": {
+            "ExplicitApplicationImages": {
+                "RuleCondition": {"Fn::Equals": [ref("DeployApplications"), "true"]},
+                "Assertions": [
+                    {
+                        "Assert": {"Fn::Not": [{"Fn::Equals": [ref(f"{d}ImageUri"), ""]}]},
+                        "AssertDescription": f"{d} digest image must be explicit before activation",
+                    }
+                    for d in ("Media", "Processing", "Worker")
+                ],
+            },
+        },
         "Resources": resources,
         "Outputs": {name: {"Value": value} for name, value in outputs.items()},
     }
@@ -1058,7 +1202,7 @@ def template():
             "Condition": "Applications",
             "Value": ref(f"{name}Alias"),
         }
-    for name in ("Worker", "MediaMigration", "ProcessingMigration"):
+    for name in ("Worker", "MediaMigration", "ProcessingMigration", "Bootstrap"):
         result["Outputs"][f"{name}TaskDefinitionArn"] = {
             "Condition": "Applications",
             "Value": ref(f"{name}TaskDefinition"),
