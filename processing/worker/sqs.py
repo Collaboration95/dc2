@@ -100,6 +100,7 @@ async def execute_message(
         UUID(envelope["attempt_id"]),
         settings,
         envelope=envelope,
+        task_name=task_name,
     )
     if work is None:
         # A duplicate may belong to an active lease. Never delete its receipt:

@@ -105,6 +105,7 @@ async def test_claim_rejects_substitution_before_get_or_encode():
         source=source,
     )
     assert claim.call_args.kwargs["envelope"] == body
+    assert claim.call_args.kwargs["task_name"] == "local"
     source.download.assert_not_awaited()
     finish.assert_not_awaited()
 
@@ -196,7 +197,7 @@ def test_worker_import_graph_has_no_redis_or_rq():
             "-c",
             "import sys; import processing.worker.sqs; "
             "import processing.worker.finite; "
-            "assert not {'redis', 'rq'}.intersection(sys.modules)",
+            "assert not {'redis', 'rq', 'processing.worker.cloud'}.intersection(sys.modules)",
         ],
         capture_output=True,
         text=True,

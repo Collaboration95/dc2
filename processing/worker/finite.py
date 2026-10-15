@@ -3,7 +3,7 @@
 import argparse
 import sys
 
-from processing.worker.cloud import supervise
+from processing.worker.watchdog import supervise
 
 
 def main():
