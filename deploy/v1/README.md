@@ -19,9 +19,9 @@ From integrated frozen source (replace SOURCE_SHA with that full commit):
 docker build --platform linux/amd64 --build-arg SOURCE_SHA=SOURCE_SHA -f deploy/v1/media.Dockerfile -t dc2-v1-media .
 docker build --platform linux/amd64 --build-arg SOURCE_SHA=SOURCE_SHA -f deploy/v1/processing.Dockerfile -t dc2-v1-processing .
 docker build --platform linux/amd64 --build-arg SOURCE_SHA=SOURCE_SHA -f deploy/v1/worker.Dockerfile -t dc2-v1-worker .
-docker run --rm --entrypoint python dc2-v1-media /opt/check_runtime.py lambda-api
-docker run --rm --entrypoint python dc2-v1-processing /opt/check_runtime.py lambda-api
-docker run --rm --entrypoint python dc2-v1-worker /opt/check_runtime.py finite-worker
+docker run --rm --entrypoint python dc2-v1-media /opt/check_runtime.py lambda-api media
+docker run --rm --entrypoint python dc2-v1-processing /opt/check_runtime.py lambda-api processing
+docker run --rm --entrypoint python dc2-v1-worker /opt/check_runtime.py finite-worker worker
 ```
 
 The checks execute at image build and can be rerun against its exact config ID.
@@ -99,3 +99,17 @@ PYTHONPATH="$PWD" /path/to/shared/.venv/bin/pytest -q tests/aws/v1/test_release.
 These deterministic checks certify adapter behavior only. Docker builds, real SQL
 migration/compatibility/public workflow and actual AWS aliases/versions/timing are
 separate evidence; #65 remains open until executed by the authorized operator.
+
+The runtime check imports every owning API/authorizer/control or worker/native-source
+graph, checks executable exports and denies socket connections during imports. It
+rejects importable Redis/RQ modules as well as installed distributions, checks the
+opposite domain is absent and parses the actual RDS CA bundle. For workers it runs
+FFmpeg/FFprobe version checks. Final artifact checks should run by immutable config
+ID with `--platform linux/amd64 --network none --read-only --cap-drop ALL` and the
+image default non-root user. API bootstrap import and worker CLI `--help` are
+separate entrypoint checks. These are packaging checks, not service I/O acceptance.
+
+Actual local AMD64 build/import evidence at frozen source `f54943544bf96db5b1eae245d2e06927c9f93581`
+is retained in [the sanitized local manifest](../../docs/execution/aws/v1/evidence/local-images-f549435.json).
+All three builds and non-root runtime checks passed under ARM-host emulation;
+registry receipts, vulnerability scans and cloud execution remain NOT_RUN.
