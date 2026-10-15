@@ -1,3 +1,5 @@
+> Historical AWS2 preparation summary; issue statuses below are the earlier scoped snapshot. See [V1/V2 handoff](../v1/README.md) for current phase/relationships and decision #46 / deferred #68.
+
 # AWS preparation delivery
 
 The user authorized preparation, local verification, integration and issue reconciliation. Actual AWS deployment and account operations were excluded. The delivery branch is `work/aws2-prep-20261015` at integration code head `c82fe99`. Main umbrella [PR70](https://github.com/Collaboration95/dc2/pull/70) remains a draft and is not merged.

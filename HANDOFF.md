@@ -1,4 +1,14 @@
-> **Latest replanning, 15 October:** [Lean Fargate plan](docs/execution/aws/architecture-plan.md).
+> **Current execution authority, 15 October:** [Staged V1/V2 plan](docs/execution/aws/architecture-plan.md)
+> and [V1 issue handoff](docs/execution/aws/v1/README.md). API Gateway, two domain
+> Lambda API applications, SQS replacing Redis/RQ, owned PostgreSQL/S3 and one
+> Fargate encoder backend. Current code remains the reviewed AWS2 baseline;
+> these migrations are not implemented by the plan publication. V2 is optional
+> after accepted/tagged V1. Budget approximately $200 with actual currency/account
+> to be recorded. Commit/push/Main merge is authorized; AWS operations are not.
+>
+> Historical AWS2 planning notice below is preserved, including superseded prices.
+> Its [lean Fargate plan](docs/execution/aws/architecture-plan-aws2-prep-20261015.md)
+> is no longer the active execution target.
 > User clarified **14 days maximum**, minimal cloud fixtures, and cost levers with
 > zero running compute during downtime. Expected allowance **$13.03 USD**, larger
 > scenario **$28.27**, including reserves. No retained EIP; accept origin warmup.

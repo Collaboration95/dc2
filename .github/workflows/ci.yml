@@ -39,6 +39,8 @@ jobs:
           cache-dependency-glob: uv.lock
       - run: uv sync --locked --extra dev --extra browser
       - run: make lint
+      - name: Validate staged V1/V2 planning packet
+        run: python scripts/planning/validate_v1_plan.py
       - run: .venv/bin/python -m scripts.dev.checks coverage-fast
       - uses: actions/upload-artifact@v4
         with:

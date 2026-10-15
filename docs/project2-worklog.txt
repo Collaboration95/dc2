@@ -655,3 +655,24 @@ Current ledger/HTML/summary and evidence/status-reconciliation.json reflect this
 earlier closure receipts remain explicitly historical. No AWS/account/spend action
 or additional runtime experiment. Local preparation is complete; real acceptance
 is NOT_RUN and Blocked. No issue is Ready under the current no-AWS instruction.
+
+
+2026-10-15 — Accepted staged V1, optional V2; plan/Main publication authorized
+- User requires visibly separate domain APIs: API Gateway plus Media and Processing
+  Lambda applications, SQS replacing Redis/RQ, owned PostgreSQL/S3 and one Fargate
+  encoding backend. Native Lambda credentials/direct intake/queue repair are new
+  migration work; current reviewed AWS2 code remains the baseline, not completed V1.
+- Complete V1 first and preserve an immutable accepted baseline. V2 experiments
+  (short Lambda encodes, independent DB clusters, unattended starts) are optional
+  after V1 acceptance and never block V1. Operator-batched workers remain V1 default.
+- Target local integration in 48 continuous agent hours, three elapsed days baseline,
+  five maximum; two calendar weeks include proof/review/rehearsal. Original October
+  window/presentation anchors remain. Budget approximately $200, USD worksheet
+  assumption pending actual account currency; no free allowances or bill cap claim.
+- Active authority: docs/execution/aws/architecture-plan.md and v1/README.md.
+  Previous AWS2 architecture archived verbatim. Closed #47–#62 remain historical
+  preparation; new V1 tickets expose implementation gaps. Cloud #45/#63–#67 stay
+  open Blocked; #46 is resolved only as a merged managed-HTTPS decision. #68 is V2.
+- User authorizes one practical backlog audit, substantive corrections, commit/push
+  and Main merge after checks. Prior PR70 draft-only instruction is superseded for
+  publication. No AWS/Alibaba/account/deployment/spending operation is authorized.
