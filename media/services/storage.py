@@ -7,23 +7,23 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 from minio import Minio
+from minio.credentials import StaticProvider
 from starlette.concurrency import run_in_threadpool
 from urllib3 import PoolManager, Retry, Timeout
 
 from media.config import Settings, get_settings
 from media.errors import MediaError
+from media.storage_credentials import credential_provider
 
 MAX_FILE_SIZE = 100 * 1024 * 1024
 
 
 class Storage:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, *, clock=None):
         self.settings = settings
-        options = {
-            "access_key": settings.minio_access_key,
-            "secret_key": settings.minio_secret_key.get_secret_value(),
-            "region": settings.minio_region,
-        }
+        self.clock = clock or (lambda: datetime.now(UTC))
+        self.provider = credential_provider(settings)
+        options = {"credentials": self.provider, "region": settings.minio_region}
         transport = PoolManager(
             num_pools=10,
             maxsize=20,
@@ -50,23 +50,52 @@ class Storage:
     async def delete_source(self, key):
         await run_in_threadpool(self.internal.remove_object, self.settings.minio_source_bucket, key)
 
+    def _sign(self, key, *, output=False, inline=False):
+        try:
+            credential = self.provider.retrieve() if self.provider else None
+            signed_at = self.clock().replace(microsecond=0)
+            seconds = self.settings.signed_url_ttl_seconds
+            if credential and credential.expiration:
+                seconds = min(
+                    seconds,
+                    int((credential.expiration.replace(tzinfo=UTC) - signed_at).total_seconds())
+                    - 10,
+                )
+                if seconds < 30:
+                    raise ValueError("Insufficient signing lifetime")
+            # One disposable signer pins exactly the snapshot used to compute TTL.
+            signer = Minio(
+                self.settings.minio_public_endpoint if output else self.settings.minio_endpoint,
+                secure=(
+                    self.settings.minio_public_use_ssl if output else self.settings.minio_use_ssl
+                ),
+                region=self.settings.minio_region,
+                credentials=(
+                    StaticProvider(
+                        credential.access_key, credential.secret_key, credential.session_token
+                    )
+                    if credential
+                    else None
+                ),
+            )
+            url = signer.get_presigned_url(
+                "GET",
+                self.settings.minio_output_bucket if output else self.settings.minio_source_bucket,
+                key,
+                expires=timedelta(seconds=seconds),
+                request_date=signed_at,
+                response_headers={"response-content-disposition": "inline"} if inline else None,
+            )
+            return url, signed_at + timedelta(seconds=seconds)
+        except Exception:
+            raise MediaError(503, "storage signing unavailable") from None
+
     async def source_grant(self, key):
-        ttl = timedelta(seconds=self.settings.signed_url_ttl_seconds)
-        # Explicit region means signing is local and does not need bucket discovery.
-        url = await run_in_threadpool(
-            self.internal.presigned_get_object, self.settings.minio_source_bucket, key, expires=ttl
-        )
-        return url, datetime.now(UTC) + ttl
+        return await run_in_threadpool(self._sign, key)
 
     async def sign_output(self, key, *, inline=False):
-        headers = {"response-content-disposition": "inline"} if inline else None
-        return await run_in_threadpool(
-            self.public.presigned_get_object,
-            self.settings.minio_output_bucket,
-            key,
-            expires=timedelta(seconds=self.settings.signed_url_ttl_seconds),
-            response_headers=headers,
-        )
+        url, _ = await run_in_threadpool(self._sign, key, output=True, inline=inline)
+        return url
 
     async def read_playlist(self, key):
         def read():

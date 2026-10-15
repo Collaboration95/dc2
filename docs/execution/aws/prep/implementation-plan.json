@@ -1,0 +1,113 @@
+{
+  "status": "Implementation authorized after readiness audit PASS and planning commit publication",
+  "integration_branch": "work/aws2-prep-20261015",
+  "subagent_policy": "Three implementation bundles covering 21 implementation/evidence-preparation issues (7 issues per implementation agent on average); no recursive delegation. One consolidated independent implementation review later.",
+  "bundles": [
+    {
+      "name": "storage-and-evidence",
+      "branch": "work/aws2-storage-evidence",
+      "issues": [
+        47,
+        48,
+        49,
+        58,
+        63,
+        64,
+        65,
+        66,
+        67
+      ],
+      "owns": [
+        "media storage credential/signing code",
+        "Processing output/cleanup credential configuration",
+        "scripts/aws context/smoke/evidence/protocol/latency/cost modules",
+        "their focused unit tests"
+      ],
+      "excludes": [
+        "control-plane operator/release/session modules",
+        "CloudFormation/state/bootstrap/export modules",
+        "GitHub metadata",
+        "actual cloud evidence claims"
+      ]
+    },
+    {
+      "name": "infrastructure-and-state",
+      "branch": "work/aws2-infrastructure-state",
+      "issues": [
+        50,
+        51,
+        52,
+        53,
+        62
+      ],
+      "owns": [
+        "deploy/aws CloudFormation/nginx/state/bootstrap/export definitions",
+        "scripts/aws config/definition-validation/export modules",
+        "their focused unit/schema tests"
+      ],
+      "excludes": [
+        "media/processing runtime credential implementation",
+        "operator/release/session modules",
+        "GitHub metadata",
+        "actual account/TLS requirement-owner decisions"
+      ]
+    },
+    {
+      "name": "delivery-and-operations",
+      "branch": "work/aws2-delivery-operations",
+      "issues": [
+        54,
+        55,
+        56,
+        57,
+        59,
+        60,
+        61
+      ],
+      "owns": [
+        "scripts/aws transport/journal/manual-worker/drain/release/environment modules",
+        "cloud worker finite wrapper",
+        "selected-owner prep workflow and extracted-service scan disposition",
+        "their focused unit tests"
+      ],
+      "excludes": [
+        "service credential/signing modules",
+        "context/evidence/protocol modules",
+        "CloudFormation/config/export ownership",
+        "GitHub metadata"
+      ]
+    }
+  ],
+  "coordinator_owns": [
+    "root Makefile/dependency integration and cross-bundle interface contract",
+    "all GitHub issues/Project/PR operations via gh only",
+    "isolated emulation/integration runtime ownership and final local checks",
+    "bundle merges, independent consolidated review, source/evidence ledger, worklog and final HTML"
+  ],
+  "safety": [
+    "No real AWS network/API/CLI/account operation, deployment or spend",
+    "No Alibaba operations; no private credential dumps",
+    "Preserve existing root demo and frozen historical worktrees/volumes",
+    "Only coordinator starts isolated containers/emulators; workers use pure offline checks",
+    "Existing cloud acceptance criteria remain unexecuted; implement runnable prep protocols/harnesses and record future gates separately",
+    "No mandatory controller/launch table/OIDC/paid service or frontend redesign"
+  ],
+  "emulator": {
+    "localstack": "No supplied activation token; no account/license created",
+    "fallback": "Moto5.2.4 loopback server plus isolated local service checks; neither proves Fargate/CloudFront/real IAM/billing",
+    "tools_venv": ".cache/aws-test-tools",
+    "cfn_lint": "1.57.2"
+  },
+  "inter_bundle_contract": {
+    "shared_config": "Explicit nonsecret region/account/environment/resource IDs, HTTPS public origin, buckets, digest/task family/service mapping, approved operator station and session deadlines; missing approval blocks live operations",
+    "transport": "Injectable call(service, operation, payload, deadline) returning dict; AWS CLI production planner is future/gated, emulator execution accepts loopback endpoints + dummy credentials only",
+    "evidence": "Selected fields only; public output capabilities/DSNs/cookies/origin-header/SSM values never persist; private state is separate",
+    "services": "media, processing_api, processing_recovery; worker and owner migrations are standalone families",
+    "worker": "Maximum3 nonterminal + unresolved launches; single control station; private journal before launch; task/RQ identity; finite cloud lifetime; warm drain before force stop",
+    "readiness": "TCP/owned schema/Redis/private peer checks beyond liveness; no worker required to leave API online",
+    "exports": "Common quiescent proof hook from environment lifecycle, private owner DB/roles export manifest; failure blocks backup claim/destructive teardown"
+  },
+  "planning_commit": "8d13508318c57c85bb09bc9a6c7deec12290e357",
+  "planning_pr": "https://github.com/Collaboration95/dc2/pull/69",
+  "branches_are_isolated": "Each child works in its assigned new local worktree; child commits only its bundle. Coordinator creates/links/reviews/merges PRs via gh into work/aws2-prep-20261015."
+}

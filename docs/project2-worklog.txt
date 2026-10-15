@@ -616,3 +616,63 @@ and all GitHub operations. LocalStack has no supplied activation token; Moto5.2.
 and cfn-lint1.57.2 installed in an isolated cache tools venv for future local checks.
 Emulation cannot establish Fargate/CloudFront/IAM/billing evidence. Existing demo
 and frozen worktrees remain untouched; real cloud-only acceptance stays explicit.
+
+15 OCTOBER 2026 — AWS PREPARATION INTEGRATED, 28 ITEMS RECONCILED, NO AWS RUN
+
+Final independent review round5 passed local preparation at57f7c5f after rounds
+1–4 returned REVISE (10 source findings, three F6 seams, the exact-source live
+receipt, one E501 line). Stack75→74→73→72→71 merged into work/aws2-prep-20261015
+with --match-head-commit after every required hosted check passed at each exact
+head. Only failed jobs were rerun: #75 cold Docker-info timeout before tests and
+#73 one cancelled Media startup job; attempt2 passed. Integration head c82fe99 has
+the same tree as reviewed57f7c5f. Main umbrella PR70 remains draft, unmerged.
+
+Normal suite at53f9dca: 1418 Python and152 frontend pass; 283 focused checks at
+57f7c5f overlap it. R11 on clean53f9dca completed8 local phases with real local
+services and synthetic AWS inventory/registry/scan inputs: four1s/1881B fixtures,
+a44,877B private export (backup_claim=false, restore NOT_RUN). 57f7c5f is only
+an equivalent assertion split; R11 is not relabeled. Hosted authenticated ZAP
+executed with12 risk0/1 alert types retained. 11 existing containers kept IDs,
+starts and images; namespace aws2-prep-r1 stopped with volumes retained.
+
+All28 new items closed with scoped comments under the user's no-AWS instruction:
+16 preparation children and epics41–43 COMPLETED (preparation only; original AWS
+criteria unticked), 8 children and epic44 NOT_PLANNED with workflow Blocked.
+Project status Done for all28; 30 historical items and38/39 rejections unchanged.
+No issue is next in current scope. Ledger, summary and HTML in execution/aws/prep.
+No AWS/account/spend/restore/bill operation; Alibaba not operated.
+
+15 OCTOBER 2026 — REQUIRED AWS/ACCOUNT ACCEPTANCE REOPENED AS BLOCKED
+
+User clarified: keep issues requiring real AWS/account evidence open with Workflow
+Blocked until that evidence is available. This supersedes the earlier scoped
+all-closed disposition. Fresh authenticated-gh reads and updates reopened account
+and origin45/46, genuine evidence63–67 and all four epics41–44 (11 open blockers).
+Their built-in Project Status is Todo; authoritative Workflow is Blocked. Completed
+preparation47–62 stays closed/Done; optional68 stays closed/not planned. Original
+contracts/acceptance boxes, all30historical items and38/39rejections are unchanged.
+Current ledger/HTML/summary and evidence/status-reconciliation.json reflect this;
+earlier closure receipts remain explicitly historical. No AWS/account/spend action
+or additional runtime experiment. Local preparation is complete; real acceptance
+is NOT_RUN and Blocked. No issue is Ready under the current no-AWS instruction.
+
+
+2026-10-15 — Accepted staged V1, optional V2; plan/Main publication authorized
+- User requires visibly separate domain APIs: API Gateway plus Media and Processing
+  Lambda applications, SQS replacing Redis/RQ, owned PostgreSQL/S3 and one Fargate
+  encoding backend. Native Lambda credentials/direct intake/queue repair are new
+  migration work; current reviewed AWS2 code remains the baseline, not completed V1.
+- Complete V1 first and preserve an immutable accepted baseline. V2 experiments
+  (short Lambda encodes, independent DB clusters, unattended starts) are optional
+  after V1 acceptance and never block V1. Operator-batched workers remain V1 default.
+- Target local integration in 48 continuous agent hours, three elapsed days baseline,
+  five maximum; two calendar weeks include proof/review/rehearsal. Original October
+  window/presentation anchors remain. Budget approximately $200, USD worksheet
+  assumption pending actual account currency; no free allowances or bill cap claim.
+- Active authority: docs/execution/aws/architecture-plan.md and v1/README.md.
+  Previous AWS2 architecture archived verbatim. Closed #47–#62 remain historical
+  preparation; new V1 tickets expose implementation gaps. Cloud #45/#63–#67 stay
+  open Blocked; #46 is resolved only as a merged managed-HTTPS decision. #68 is V2.
+- User authorizes one practical backlog audit, substantive corrections, commit/push
+  and Main merge after checks. Prior PR70 draft-only instruction is superseded for
+  publication. No AWS/Alibaba/account/deployment/spending operation is authorized.

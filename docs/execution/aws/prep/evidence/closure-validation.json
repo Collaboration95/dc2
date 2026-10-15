@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "new_closed": 28,
+  "completed_preparation": 19,
+  "excluded_not_planned": 9,
+  "historical_issues_preserved": 30,
+  "historical_project_items_preserved": 30,
+  "project_total": 58,
+  "real_aws": "NOT_RUN"
+}

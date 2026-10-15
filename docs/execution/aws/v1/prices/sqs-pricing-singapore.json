@@ -1,0 +1,178 @@
+{
+  "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSQueueService/current/ap-southeast-1/index.json",
+  "publication_date": "2026-09-11T12:46:07Z",
+  "rows": [
+    {
+      "sku": "RQZVF8C5J25UDYJZ",
+      "attributes": {
+        "servicecode": "AWSQueueService",
+        "location": "Asia Pacific (Singapore)",
+        "locationType": "AWS Region",
+        "group": "SQS-APIRequest-Tier1",
+        "groupDescription": "Amazon SQS Requests",
+        "usagetype": "APS1-Requests-FIFO-Tier1",
+        "operation": "",
+        "messageDeliveryFrequency": "Exactly Once",
+        "messageDeliveryOrder": "Guaranteed",
+        "queueType": "FIFO (first-in, first-out)",
+        "regionCode": "ap-southeast-1",
+        "servicename": "Amazon Simple Queue Service"
+      },
+      "description": "$0.50 per million Amazon SQS FIFO requests in Tier1 in Asia Pacific (Singapore)",
+      "beginRange": "0",
+      "endRange": "100000000000",
+      "unit": "Requests",
+      "usd": "0.0000005000"
+    },
+    {
+      "sku": "RQZVF8C5J25UDYJZ",
+      "attributes": {
+        "servicecode": "AWSQueueService",
+        "location": "Asia Pacific (Singapore)",
+        "locationType": "AWS Region",
+        "group": "SQS-APIRequest-Tier1",
+        "groupDescription": "Amazon SQS Requests",
+        "usagetype": "APS1-Requests-FIFO-Tier1",
+        "operation": "",
+        "messageDeliveryFrequency": "Exactly Once",
+        "messageDeliveryOrder": "Guaranteed",
+        "queueType": "FIFO (first-in, first-out)",
+        "regionCode": "ap-southeast-1",
+        "servicename": "Amazon Simple Queue Service"
+      },
+      "description": "$0.46 per million Amazon SQS FIFO requests in Tier2 in Asia Pacific (Singapore)",
+      "beginRange": "100000000000",
+      "endRange": "200000000000",
+      "unit": "Requests",
+      "usd": "0.0000004600"
+    },
+    {
+      "sku": "RQZVF8C5J25UDYJZ",
+      "attributes": {
+        "servicecode": "AWSQueueService",
+        "location": "Asia Pacific (Singapore)",
+        "locationType": "AWS Region",
+        "group": "SQS-APIRequest-Tier1",
+        "groupDescription": "Amazon SQS Requests",
+        "usagetype": "APS1-Requests-FIFO-Tier1",
+        "operation": "",
+        "messageDeliveryFrequency": "Exactly Once",
+        "messageDeliveryOrder": "Guaranteed",
+        "queueType": "FIFO (first-in, first-out)",
+        "regionCode": "ap-southeast-1",
+        "servicename": "Amazon Simple Queue Service"
+      },
+      "description": "$0.42 per million Amazon SQS FIFO requests in Tier3 in Asia Pacific (Singapore)",
+      "beginRange": "200000000000",
+      "endRange": "Inf",
+      "unit": "Requests",
+      "usd": "0.0000004200"
+    },
+    {
+      "sku": "MNCJEPJRCSC9RFY2",
+      "attributes": {
+        "servicecode": "AWSQueueService",
+        "location": "Any",
+        "locationType": "AWS Region",
+        "group": "SQS-APIRequest-Tier1",
+        "groupDescription": "Amazon SQS Requests",
+        "usagetype": "Global-Requests",
+        "operation": "",
+        "queueType": "Any",
+        "regionCode": "",
+        "servicename": "Amazon Simple Queue Service"
+      },
+      "description": "First 1,000,000 Amazon SQS Requests per month are free",
+      "beginRange": "0",
+      "endRange": "1000000",
+      "unit": "Requests",
+      "usd": "0.0000000000"
+    },
+    {
+      "sku": "PVF7MDBNRK7V9S5H",
+      "attributes": {
+        "servicecode": "AWSQueueService",
+        "location": "Asia Pacific (Singapore)",
+        "locationType": "AWS Region",
+        "group": "SQS-APIRequest-Tier1",
+        "groupDescription": "Amazon SQS Requests",
+        "usagetype": "APS1-Requests-Tier1",
+        "operation": "",
+        "messageDeliveryFrequency": "At Least Once",
+        "messageDeliveryOrder": "Not Guaranteed",
+        "queueType": "Standard",
+        "regionCode": "ap-southeast-1",
+        "servicename": "Amazon Simple Queue Service"
+      },
+      "description": "$0.40 per million Amazon SQS standard requests in Tier1 in Asia Pacific (Singapore)",
+      "beginRange": "0",
+      "endRange": "100000000000",
+      "unit": "Requests",
+      "usd": "0.0000004000"
+    },
+    {
+      "sku": "PVF7MDBNRK7V9S5H",
+      "attributes": {
+        "servicecode": "AWSQueueService",
+        "location": "Asia Pacific (Singapore)",
+        "locationType": "AWS Region",
+        "group": "SQS-APIRequest-Tier1",
+        "groupDescription": "Amazon SQS Requests",
+        "usagetype": "APS1-Requests-Tier1",
+        "operation": "",
+        "messageDeliveryFrequency": "At Least Once",
+        "messageDeliveryOrder": "Not Guaranteed",
+        "queueType": "Standard",
+        "regionCode": "ap-southeast-1",
+        "servicename": "Amazon Simple Queue Service"
+      },
+      "description": "$0.35 per million Amazon SQS standard requests in Tier2 in Asia Pacific (Singapore)",
+      "beginRange": "100000000000",
+      "endRange": "200000000000",
+      "unit": "Requests",
+      "usd": "0.0000003500"
+    },
+    {
+      "sku": "PVF7MDBNRK7V9S5H",
+      "attributes": {
+        "servicecode": "AWSQueueService",
+        "location": "Asia Pacific (Singapore)",
+        "locationType": "AWS Region",
+        "group": "SQS-APIRequest-Tier1",
+        "groupDescription": "Amazon SQS Requests",
+        "usagetype": "APS1-Requests-Tier1",
+        "operation": "",
+        "messageDeliveryFrequency": "At Least Once",
+        "messageDeliveryOrder": "Not Guaranteed",
+        "queueType": "Standard",
+        "regionCode": "ap-southeast-1",
+        "servicename": "Amazon Simple Queue Service"
+      },
+      "description": "$0.32 per million Amazon SQS standard requests in Tier3 in Asia Pacific (Singapore)",
+      "beginRange": "200000000000",
+      "endRange": "Inf",
+      "unit": "Requests",
+      "usd": "0.0000003200"
+    },
+    {
+      "sku": "3J4Q6XVA5SEHWDTA",
+      "attributes": {
+        "servicecode": "AWSQueueService",
+        "location": "Asia Pacific (Singapore)",
+        "locationType": "AWS Region",
+        "group": "SQS-APIRequest-Tier1",
+        "groupDescription": "Amazon SQS Requests",
+        "usagetype": "APS1-Requests-Fair-Tier1",
+        "operation": "",
+        "queueType": "Fair",
+        "regionCode": "ap-southeast-1",
+        "servicename": "Amazon Simple Queue Service"
+      },
+      "description": "$0.10 per million Amazon SQS fair queue requests in Asia Pacific (Singapore)",
+      "beginRange": "0",
+      "endRange": "Inf",
+      "unit": "Requests",
+      "usd": "0.0000001000"
+    }
+  ]
+}

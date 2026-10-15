@@ -1,0 +1,130 @@
+{
+  "status": "PASS",
+  "captured_at_utc": "2026-10-14T21:49:17Z",
+  "tracked_branch": "work/aws2-prep-20261015",
+  "integration_head": "c82fe995c4ebe4688ae2d6eb48cd3a0edfd86159",
+  "integration_tree": "aca413d99b84a200515fb757e2cf14b55c9efaf9",
+  "reviewed_source_sha": "57f7c5fdddc2a8ba791b4e53cafb0d62548307a2",
+  "reviewed_tree": "aca413d99b84a200515fb757e2cf14b55c9efaf9",
+  "tree_identical_to_reviewed": true,
+  "file_diff_vs_reviewed": 0,
+  "local_run_source_sha": "53f9dca9b7907c233893062a7a684620a7aa2257",
+  "root_checkout": "clean; updated via gh pr checkout 70",
+  "pr71_exact_head": "ed6c1961a1f32fa7dbcb5db185ff84ce825c5a57",
+  "pr71_checks": [
+    {
+      "name": "Lint and Python unit tests",
+      "workflow": "CI",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "Integrated Media public API; private contracts prepared separately",
+      "workflow": "DAST",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "Frontend tests",
+      "workflow": "CI",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "Legacy real integration",
+      "workflow": "CI",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "Processing worker, recovery and database ownership",
+      "workflow": "CI",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "Media owned persistence and boundary contracts",
+      "workflow": "CI",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "Independent Publisher HTTPS and cookie persistence",
+      "workflow": "CI",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "Local HTTPS and browser trust",
+      "workflow": "CI",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "Scan container image (app)",
+      "workflow": "CI",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "Scan container image (processing)",
+      "workflow": "CI",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "Scan container image (media)",
+      "workflow": "CI",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "Fast checks",
+      "workflow": "CI",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "Combined backend package coverage",
+      "workflow": "CI",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "Integration checks",
+      "workflow": "CI",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "SonarCloud SAST",
+      "workflow": "CI",
+      "conclusion": "SUCCESS"
+    },
+    {
+      "name": "GitGuardian Security Checks",
+      "workflow": "",
+      "conclusion": "SUCCESS"
+    }
+  ],
+  "pr71_check_count": 16,
+  "merge_receipts": {
+    "71": {
+      "merge_commit": "c82fe995c4ebe4688ae2d6eb48cd3a0edfd86159",
+      "head": "ed6c1961a1f32fa7dbcb5db185ff84ce825c5a57",
+      "base": "work/aws2-prep-20261015",
+      "merged_at": "2026-10-14T21:48:50Z"
+    },
+    "72": {
+      "merge_commit": "ed6c1961a1f32fa7dbcb5db185ff84ce825c5a57",
+      "head": "529ac3e7f09b10fbe2e1816e7450c2b78f85fb14",
+      "base": "work/aws2-integrated-prep",
+      "merged_at": "2026-10-14T21:41:30Z"
+    },
+    "73": {
+      "merge_commit": "529ac3e7f09b10fbe2e1816e7450c2b78f85fb14",
+      "head": "c11d5aa0bbb40e74d471f6e9e2600268753e335b",
+      "base": "work/aws2-local-validation",
+      "merged_at": "2026-10-14T21:34:42Z"
+    },
+    "74": {
+      "merge_commit": "c11d5aa0bbb40e74d471f6e9e2600268753e335b",
+      "head": "435917389971759953f6338fba15b2fd86e14e10",
+      "base": "work/aws2-final-local-fixes",
+      "merged_at": "2026-10-14T21:21:40Z"
+    },
+    "75": {
+      "merge_commit": "435917389971759953f6338fba15b2fd86e14e10",
+      "head": "57f7c5fdddc2a8ba791b4e53cafb0d62548307a2",
+      "base": "work/aws2-peer-contract-fix",
+      "merged_at": "2026-10-14T21:13:17Z"
+    }
+  },
+  "main_merge": "NOT_DONE; PR70 remains draft"
+}

@@ -1,0 +1,226 @@
+"""Explicit API trust and a separate bounded regional S3 capability transport."""
+
+import io
+import math
+import time
+from dataclasses import dataclass
+from urllib.parse import unquote, urlsplit
+
+import httpx
+
+
+class ContextError(ValueError):
+    """Messages are fixed strings; response bodies and capabilities stay private."""
+
+
+def _parts(url):
+    try:
+        parts = urlsplit(url)
+        _ = parts.port
+        return parts
+    except (ValueError, TypeError):
+        raise ContextError("Invalid HTTP URL") from None
+
+
+@dataclass(frozen=True)
+class Context:
+    public_url: str
+    region: str
+    buckets: tuple[str, ...]
+    mode: str = "aws"
+    timeout_seconds: float = 10
+    max_response_bytes: int = 2 * 1024 * 1024
+    capability_limit_bytes: int = 100 * 1024 * 1024
+    fixture_object_origin: str = ""
+
+    def __post_init__(self):
+        p = _parts(self.public_url)
+        if (
+            p.username
+            or p.password
+            or p.query
+            or p.fragment
+            or p.path not in {"", "/"}
+            or not p.hostname
+            or self.mode not in {"aws", "local-fixture"}
+        ):
+            raise ContextError("Invalid API context")
+        if self.mode == "aws":
+            if (
+                p.scheme != "https"
+                or not p.hostname.endswith(".cloudfront.net")
+                or p.port not in {None, 443}
+            ):
+                raise ContextError("Production context requires generated CloudFront HTTPS")
+        elif p.hostname not in {"localhost", "127.0.0.1", "::1"} or p.scheme != "https":
+            raise ContextError("Local fixtures require explicit loopback HTTPS")
+        if self.fixture_object_origin:
+            fixture = _parts(self.fixture_object_origin)
+            if (
+                self.mode != "local-fixture"
+                or fixture.scheme != "https"
+                or fixture.hostname not in {"localhost", "127.0.0.1", "::1"}
+                or fixture.username
+                or fixture.password
+                or fixture.query
+                or fixture.fragment
+                or fixture.path not in {"", "/"}
+            ):
+                raise ContextError("Object fixtures require an explicit loopback HTTPS origin")
+        import re
+
+        if (
+            not re.fullmatch(r"[a-z]{2}-[a-z]+-\d", self.region)
+            or not self.buckets
+            or any(not re.fullmatch(r"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]", b) for b in self.buckets)
+        ):
+            raise ContextError("Invalid regional bucket context")
+        if not (
+            0 < self.timeout_seconds <= 30
+            and 0 < self.max_response_bytes <= 4 * 1024**2
+            and 0 < self.capability_limit_bytes <= 100 * 1024**2
+        ):
+            raise ContextError("Invalid HTTP bounds")
+
+    def capability_allowed(self, url):
+        p = _parts(url)
+        if self.fixture_object_origin:
+            fixture = _parts(self.fixture_object_origin)
+            path = unquote(p.path).split("/")
+            return (
+                p.scheme == "https"
+                and p.hostname == fixture.hostname
+                and (p.port or 443) == (fixture.port or 443)
+                and not p.username
+                and not p.password
+                and not p.fragment
+                and len(path) > 2
+                and path[1] in self.buckets
+                and not any(part in {".", ".."} or "\\" in part for part in path)
+            )
+        return (
+            p.scheme == "https"
+            and not p.username
+            and not p.password
+            and not p.fragment
+            and p.port in {None, 443}
+            and p.hostname in {f"{b}.s3.{self.region}.amazonaws.com" for b in self.buckets}
+        )
+
+
+class Client:
+    def __init__(
+        self,
+        context,
+        *,
+        api_transport=None,
+        object_transport=None,
+        ca_file=None,
+        clock=time.monotonic,
+    ):
+        if ca_file and context.mode != "local-fixture":
+            raise ContextError("Production API uses normal system trust")
+        self.context, self.clock = context, clock
+        import ssl
+
+        verify = ssl.create_default_context(cafile=ca_file) if ca_file else True
+        self.api = httpx.Client(
+            base_url=context.public_url,
+            verify=verify,
+            follow_redirects=False,
+            trust_env=False,
+            timeout=context.timeout_seconds,
+            transport=api_transport,
+        )
+        # A separate jar and no API auth/default headers, even when redirects return S3 URLs.
+        self.objects = httpx.Client(
+            verify=verify if context.fixture_object_origin else True,
+            follow_redirects=False,
+            trust_env=False,
+            timeout=context.timeout_seconds,
+            transport=object_transport,
+        )
+
+    def close(self):
+        self.api.close()
+        self.objects.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.close()
+
+    def _read(self, client, method, url, limit, *, deadline=None, clock=None, **kwargs):
+        clock = clock or self.clock
+        start = clock()
+        if deadline is None:
+            deadline = start + self.context.timeout_seconds
+        if not math.isfinite(deadline) or deadline <= start:
+            raise ContextError("HTTP deadline exceeded")
+        deadline = min(deadline, start + self.context.timeout_seconds)
+        kwargs["timeout"] = max(0.001, deadline - start)
+
+        class BudgetFile(io.BytesIO):
+            def read(self, size=-1):
+                if clock() >= deadline:
+                    raise ContextError("HTTP upload deadline exceeded")
+                return super().read(size)
+
+        if isinstance(kwargs.get("files"), dict):
+            bounded = {}
+            for key, item in kwargs["files"].items():
+                if isinstance(item, tuple) and len(item) >= 2 and isinstance(item[1], bytes):
+                    item = (item[0], BudgetFile(item[1]), *item[2:])
+                bounded[key] = item
+            kwargs["files"] = bounded
+        try:
+            with client.stream(method, url, **kwargs) as reply:
+                body = bytearray()
+                for chunk in reply.iter_bytes():
+                    if len(body) + len(chunk) > limit:
+                        raise ContextError("HTTP body limit exceeded")
+                    if clock() >= deadline:
+                        raise ContextError("HTTP deadline exceeded")
+                    body.extend(chunk)
+                if clock() >= deadline:
+                    raise ContextError("HTTP deadline exceeded")
+                return reply.status_code, bytes(body), dict(reply.headers)
+        except httpx.HTTPError:
+            raise ContextError("HTTP transport failed") from None
+
+    def request(self, method, path, **kwargs):
+        if (
+            not path.startswith("/")
+            or path.startswith("//")
+            or "\\" in path
+            or urlsplit(path).netloc
+            or "follow_redirects" in kwargs
+        ):
+            raise ContextError("API path must stay on configured origin")
+        return self._read(self.api, method, path, self.context.max_response_bytes, **kwargs)
+
+    def download(self, capability, *, byte_range=None, deadline=None, clock=None):
+        if not self.context.capability_allowed(capability):
+            raise ContextError("Capability host is not an approved regional bucket")
+        headers = {}
+        if byte_range is not None:
+            start, end = byte_range
+            if not (0 <= start <= end and end - start + 1 <= self.context.capability_limit_bytes):
+                raise ContextError("Invalid byte range")
+            headers["Range"] = f"bytes={start}-{end}"
+        # Never reuse Set-Cookie from object hosts; no headers/cookies/tokens from API.
+        self.objects.cookies.clear()
+        result = self._read(
+            self.objects,
+            "GET",
+            capability,
+            self.context.capability_limit_bytes,
+            headers=headers,
+            deadline=deadline,
+            clock=clock,
+        )
+        self.objects.cookies.clear()
+        if result[0] in {301, 302, 303, 307, 308}:
+            raise ContextError("Object redirect rejected")
+        return result

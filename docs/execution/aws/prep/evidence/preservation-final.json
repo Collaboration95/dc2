@@ -1,0 +1,82 @@
+{
+  "status": "PASS",
+  "containers": [
+    {
+      "surface": "project",
+      "id": "c805fb688f84",
+      "started_at_unchanged": true,
+      "image_unchanged": true,
+      "running": true
+    },
+    {
+      "surface": "project",
+      "id": "de5c2be91b0a",
+      "started_at_unchanged": true,
+      "image_unchanged": true,
+      "running": true
+    },
+    {
+      "surface": "project",
+      "id": "39980a5fd737",
+      "started_at_unchanged": true,
+      "image_unchanged": true,
+      "running": true
+    },
+    {
+      "surface": "project",
+      "id": "18e47b679bd3",
+      "started_at_unchanged": true,
+      "image_unchanged": true,
+      "running": true
+    },
+    {
+      "surface": "project",
+      "id": "65d14f7dd987",
+      "started_at_unchanged": true,
+      "image_unchanged": true,
+      "running": true
+    },
+    {
+      "surface": "project",
+      "id": "fb5e6edd8639",
+      "started_at_unchanged": true,
+      "image_unchanged": true,
+      "running": true
+    },
+    {
+      "surface": "project",
+      "id": "d66d9a7209fe",
+      "started_at_unchanged": true,
+      "image_unchanged": true,
+      "running": true
+    },
+    {
+      "surface": "project",
+      "id": "9c4a12be42c4",
+      "started_at_unchanged": true,
+      "image_unchanged": true,
+      "running": true
+    },
+    {
+      "surface": "project",
+      "id": "b9a9e563c0f2",
+      "started_at_unchanged": true,
+      "image_unchanged": true,
+      "running": true
+    },
+    {
+      "surface": "desktop",
+      "id": "b1308a653b9d",
+      "started_at_unchanged": true,
+      "image_unchanged": true,
+      "running": true
+    },
+    {
+      "surface": "desktop",
+      "id": "0d40dc723256",
+      "started_at_unchanged": true,
+      "image_unchanged": true,
+      "running": true
+    }
+  ]
+}

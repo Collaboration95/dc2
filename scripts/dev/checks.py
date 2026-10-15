@@ -35,6 +35,8 @@ def fast_env() -> dict[str, str]:
         "REAPER_",
         "OUTPUT_",
         "API_PUBLIC_",
+        "AWS_",
+        "LOCALSTACK_",
     )
     return {key: value for key, value in env.items() if not key.startswith(prefixes)}
 
@@ -170,7 +172,7 @@ def integration(*, coverage: bool = False) -> list[Path]:
 def lint() -> None:
     paths = packages() + [
         str(p)
-        for p in ("tests", "migrations", "scripts/dev", "scripts/evidence")
+        for p in ("tests", "migrations", "scripts/dev", "scripts/evidence", "scripts/aws")
         if (ROOT / p).exists()
     ]
     run([str(PYTHON), "-m", "ruff", "check", *paths], label="lint", timeout=60)

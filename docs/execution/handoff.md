@@ -1,6 +1,8 @@
+> Current V1/V2 migration authority is [the cloud architecture](aws/architecture-plan.md) and [V1 handoff](aws/v1/README.md). This local handoff remains baseline evidence.
+
 # Project 2 morning handoff
 
-> AWS planning update, 15 October 2026: [the replacement Fargate plan](aws/architecture-plan.md)
+> AWS planning update, 15 October 2026: [the historical AWS2 Fargate plan](aws/architecture-plan-aws2-prep-20261015.md)
 > supersedes older host, disk, snapshot and domain prerequisites in this historical
 > local-delivery record. Public browser access uses an AWS-generated URL; no domain
 > purchase is required. Actual account, currency and spending approval are pending.

@@ -1,0 +1,761 @@
+{
+  "schema_version": 1,
+  "status": "V1_PLAN_ACCEPTED_IMPLEMENTATION_PENDING",
+  "source_baseline": "8d1319407d6840eb4890e6953f46d9e8df56a822",
+  "repository": "Collaboration95/dc2",
+  "project_number": 14,
+  "project_id": "PVT_kwHOBBatWM4Bmtkx",
+  "authoritative_plan": "docs/execution/aws/architecture-plan.md",
+  "planning_envelope": {
+    "amount": 200,
+    "currency_assumption": "USD",
+    "actual_account_currency": "UNCONFIRMED"
+  },
+  "implementation_clock": {
+    "target_hours": 48,
+    "baseline_elapsed_days": 3,
+    "maximum_elapsed_days": 5,
+    "calendar_window_days": 14,
+    "original_anchor": "2026-10-15",
+    "presentation": "2026-10-26"
+  },
+  "live_actions_authorized": false,
+  "main_merge_authorized": true,
+  "next_issue_key": "aws3-v1-contracts",
+  "legacy_completed_issue_numbers": [
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62
+  ],
+  "implementation_bundles": [
+    {
+      "name": "Domain APIs and clients",
+      "keys": [
+        "aws3-v1-contracts",
+        "aws3-v1-media-lambda",
+        "aws3-v1-processing-lambda",
+        "aws3-v1-direct-intake"
+      ]
+    },
+    {
+      "name": "Messaging and finite execution",
+      "keys": [
+        "aws3-v1-sqs-delivery",
+        "aws3-v1-domain-events",
+        "aws3-v1-fargate-worker",
+        "aws3-v1-bounded-recovery"
+      ]
+    },
+    {
+      "name": "Runtime, delivery and verification",
+      "keys": [
+        "aws3-v1-managed-infrastructure",
+        "aws3-v1-owner-release",
+        "aws3-v1-session-costs",
+        "aws3-v1-local-acceptance"
+      ]
+    }
+  ],
+  "epics": [
+    {
+      "key": "aws2-storage",
+      "number": 41,
+      "title": "[V1 epic] Visible domain APIs, ownership and S3 intake",
+      "phase": "V1",
+      "area": "media",
+      "workflow": "Blocked",
+      "dependencies": [
+        "aws3-v1-contracts",
+        "aws3-v1-media-lambda",
+        "aws3-v1-processing-lambda",
+        "aws3-v1-domain-events",
+        "aws3-v1-direct-intake",
+        "aws2-cloud-workflow"
+      ]
+    },
+    {
+      "key": "aws2-environment",
+      "number": 42,
+      "title": "[V1 epic] Managed runtime, session controls and budget",
+      "phase": "V1",
+      "area": "foundation",
+      "workflow": "Blocked",
+      "dependencies": [
+        "aws3-v1-managed-infrastructure",
+        "aws3-v1-session-costs",
+        "aws2-account-authorization",
+        "aws2-origin-transport",
+        "aws2-cost-closeout"
+      ]
+    },
+    {
+      "key": "aws2-delivery",
+      "number": 43,
+      "title": "[V1 epic] Redis-free delivery, finite workers and independent releases",
+      "phase": "V1",
+      "area": "processing",
+      "workflow": "Blocked",
+      "dependencies": [
+        "aws3-v1-sqs-delivery",
+        "aws3-v1-fargate-worker",
+        "aws3-v1-bounded-recovery",
+        "aws3-v1-owner-release",
+        "aws2-capacity-recovery",
+        "aws2-release-evidence"
+      ]
+    },
+    {
+      "key": "aws2-acceptance",
+      "number": 44,
+      "title": "[V1 epic] Authentic acceptance and immutable submission baseline",
+      "phase": "V1",
+      "area": "verification",
+      "workflow": "Blocked",
+      "dependencies": [
+        "aws3-v1-local-acceptance",
+        "aws2-cloud-workflow",
+        "aws2-capacity-recovery",
+        "aws2-release-evidence",
+        "aws2-cloud-latency",
+        "aws2-cost-closeout"
+      ]
+    },
+    {
+      "key": "aws3-v2-experiments",
+      "number": null,
+      "title": "[V2 epic] Optional measured migrations after accepted V1",
+      "phase": "V2",
+      "area": "planning",
+      "workflow": "Backlog",
+      "dependencies": [
+        "aws2-acceptance"
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "key": "aws3-v1-contracts",
+      "title": "[V1] Freeze gateway routes, trusted identity and message contracts",
+      "parent": "aws2-storage",
+      "area": "planning",
+      "acceptance": [
+        "Version the two API/event contracts and public `/api/media/*` / `/api/processing/*` paths; Gateway preserves these paths and each adapter strips its owner prefix exactly once.",
+        "Specify existing cookie/JWT/bcrypt login plus a Media-owned authorizer/current-role lookup; public identity headers are ignored, Processing never receives Media DB credentials, and public raw-source job creation is refused.",
+        "Define idempotent direct-S3 reservation/finalize and command/work/result envelopes with owner/source/attempt/version/tombstone rules; no media bytes, secrets or expiring URLs in SQS.",
+        "Contract fixtures cover malformed/expired/forged actors, wrong owner, replay, reorder and cancel-before-submit; document the worker project-source GET permission change and closed-session queued behavior.",
+        "Freeze producer permissions: only Media emits commands, Processing dispatch emits work and Processing completion emits results; consumers bind owner/asset/source revision to durable accepted state before source GET. Public API roles cannot inject raw-source work."
+      ],
+      "dependencies": [],
+      "existing_number": null,
+      "phase": "V1",
+      "kind": "implementation",
+      "workflow": "Ready",
+      "priority": "P0",
+      "risk": "High",
+      "files": "docs/execution/interfaces.md; media/schemas; processing/schemas; existing public/private OpenAPI; new V1 contract fixtures",
+      "verification_kind": "future-local",
+      "labels": [
+        "v1",
+        "planning"
+      ]
+    },
+    {
+      "key": "aws3-v1-media-lambda",
+      "title": "[V1] Package Media Lambda with native credentials and owned SQL",
+      "parent": "aws2-storage",
+      "area": "media",
+      "acceptance": [
+        "Run the existing Media application through an HTTP API payload-v2 adapter with correct path/cookie/error behavior; retain frontend behavior and basic login.",
+        "Add native Lambda S3 credentials/signing without ECS metadata/profile fallback; scoped role access, bounded grant expiry and credential-refresh tests.",
+        "Use invocation-scoped owned SQL connections and TLS; authorizer/runtime/migration roles stay distinct where needed and neither accesses processing_db.",
+        "Expose service/version health and independently version Media API/authorizer/result-handler artifacts; meaningful local Lambda-event and PostgreSQL checks pass."
+      ],
+      "dependencies": [
+        "aws3-v1-contracts"
+      ],
+      "existing_number": null,
+      "phase": "V1",
+      "kind": "implementation",
+      "workflow": "Backlog",
+      "priority": "P1",
+      "risk": "High",
+      "files": "media/main.py; media/database.py; media/storage_credentials.py; media/api; deploy/media.Dockerfile; tests/media",
+      "verification_kind": "future-local",
+      "labels": [
+        "v1",
+        "media"
+      ]
+    },
+    {
+      "key": "aws3-v1-processing-lambda",
+      "title": "[V1] Package Processing Lambda API and owned job lifecycle",
+      "parent": "aws2-storage",
+      "area": "processing",
+      "acceptance": [
+        "Expose a separately deployed/versioned Processing API for owned job operations; trust verified Gateway context, reject forged public source creation and preserve retry/cancel semantics.",
+        "Keep jobs/attempts/leases in processing_db with owner-only migrations, invocation-scoped TLS connections and no Media ORM/settings/database import.",
+        "Separate API/control/worker privileges and entrypoints; FFmpeg never executes inside an API request.",
+        "Local payload-v2/authentication, PostgreSQL isolation, lifecycle and malformed-input checks pass; packaging is an implemented adapter, not only a template."
+      ],
+      "dependencies": [
+        "aws3-v1-contracts"
+      ],
+      "existing_number": null,
+      "phase": "V1",
+      "kind": "implementation",
+      "workflow": "Backlog",
+      "priority": "P1",
+      "risk": "High",
+      "files": "processing/main.py; processing/auth.py; processing/database.py; processing/lifecycle.py; deployment handlers; tests/processing",
+      "verification_kind": "future-local",
+      "labels": [
+        "v1",
+        "processing"
+      ]
+    },
+    {
+      "key": "aws3-v1-sqs-delivery",
+      "title": "[V1] Replace Redis/RQ delivery with SQS and durable SQL repair",
+      "parent": "aws2-delivery",
+      "area": "processing",
+      "acceptance": [
+        "Implement command/work/result SQS adapters with distinct consumers, matching DLQ/redrive policy, visibility renewal and bounded long polling.",
+        "Replace RQ job IDs, started registries, transport locks and Redis worker receipts with stable IDs and authoritative SQL state; no Redis/RQ imports or URL requirement in V1 runtime artifacts.",
+        "Commit outbox/inbox and domain state correctly; delete messages only after durable commit, with bounded retry/replay after lost send/delete responses and retention gaps.",
+        "Exercise duplicate/reordered work, publication failure, consumer restart, poison messages and stale attempt claims using an explicitly identified emulator/fake plus real PostgreSQL where state matters.",
+        "Enforce the contract producer/consumer allowlist in queue adapters and reject owner/source/job mismatches before encoding; cover injected messages and cross-owner source substitution with negative checks."
+      ],
+      "dependencies": [
+        "aws3-v1-contracts"
+      ],
+      "existing_number": null,
+      "phase": "V1",
+      "kind": "implementation",
+      "workflow": "Backlog",
+      "priority": "P1",
+      "risk": "High",
+      "files": "processing/queue.py; processing/models.py; queue settings; worker queue entry; owned migrations; tests/processing",
+      "verification_kind": "future-local",
+      "labels": [
+        "v1",
+        "processing"
+      ]
+    },
+    {
+      "key": "aws3-v1-domain-events",
+      "title": "[V1] Replace peer calls with commands, results and owned projections",
+      "parent": "aws2-storage",
+      "area": "media",
+      "acceptance": [
+        "Media commits source/job intents and publishes trusted Processing commands; Processing deduplicates them and publishes versioned results from its owned outbox.",
+        "Media consumes results into an owned status/output projection; no synchronous per-request status peer call or worker source-grant callback remains in the V1 workflow.",
+        "Public status clearly distinguishes accepted/queued/processing/terminal state and handles a temporarily offline peer without fabricated completion.",
+        "Prove lost replies, duplicate and stale terminal events, deleted assets, cancel-before-submit and stored-source retry cannot revive or cross-own data."
+      ],
+      "dependencies": [
+        "aws3-v1-media-lambda",
+        "aws3-v1-processing-lambda",
+        "aws3-v1-sqs-delivery"
+      ],
+      "existing_number": null,
+      "phase": "V1",
+      "kind": "implementation",
+      "workflow": "Backlog",
+      "priority": "P1",
+      "risk": "High",
+      "files": "media/services/lifecycle.py; media/services/processing_client.py; media/models.py; Processing command/result handlers; both owned migrations",
+      "verification_kind": "future-local",
+      "labels": [
+        "v1",
+        "media"
+      ]
+    },
+    {
+      "key": "aws3-v1-direct-intake",
+      "title": "[V1] Move browser and Publisher uploads directly to authorized S3",
+      "parent": "aws2-storage",
+      "area": "clients",
+      "acceptance": [
+        "Implement reserve/grant/upload/finalize for both clients while preserving the frontend design and public asset identity; no 100-MiB body crosses Gateway/Lambda.",
+        "Server generates owner-scoped keys and verifies the actual object size/content/checksum/revision before adoption; finalize/retry remains idempotent. Pin a server-verified immutable version/revision so replaying an upload grant cannot replace accepted bytes.",
+        "Reject forged key/owner, altered/missing/oversized objects, expired grants and abandoned/late finalization; retain orphan/uncertain-write cleanup.",
+        "Exercise browser CORS/cookies, Publisher HTTP-only independence and successful upload/edit/retry/playback/delete with normal TLS or the explicit local test CA."
+      ],
+      "dependencies": [
+        "aws3-v1-contracts",
+        "aws3-v1-media-lambda"
+      ],
+      "existing_number": null,
+      "phase": "V1",
+      "kind": "implementation",
+      "workflow": "Backlog",
+      "priority": "P1",
+      "risk": "High",
+      "files": "frontend/app.js; frontend tests; publisher; media/api/uploads.py; media/services/intake.py; media/services/storage.py",
+      "verification_kind": "future-local",
+      "labels": [
+        "v1",
+        "clients"
+      ]
+    },
+    {
+      "key": "aws3-v1-fargate-worker",
+      "title": "[V1] Run finite SQS Fargate encoders and remove source callbacks",
+      "parent": "aws2-delivery",
+      "area": "processing",
+      "acceptance": [
+        "Reuse the existing pure media engine for one attempt at a time, consuming SQS work and reading only its owned SQL state.",
+        "Use a scoped native ECS project-source GET role and output PUT role, verify immutable source identity/digest, and remove reverse Media source-grant HTTP calls. Resolve the descriptor from the durable accepted command/job; reject a substituted existing key belonging to another owner before GET/encode.",
+        "Preserve attempt lease/heartbeat/fencing, a finite absolute runtime, visibility renewal, graceful drain, forced-stop accounting and stored-source retry.",
+        "Adapt bounded operator batches/journal to SQS/SQL observations: maximum three nonterminal/reserved tasks, ambiguous launch replay uses the same token, zero idle workers. No unattended controller is implied."
+      ],
+      "dependencies": [
+        "aws3-v1-sqs-delivery",
+        "aws3-v1-processing-lambda"
+      ],
+      "existing_number": null,
+      "phase": "V1",
+      "kind": "implementation",
+      "workflow": "Backlog",
+      "priority": "P1",
+      "risk": "High",
+      "files": "processing/worker; processing/lifecycle.py; scripts/aws/operations.py; worker Docker entry; tests/aws and worker integration",
+      "verification_kind": "future-local",
+      "labels": [
+        "v1",
+        "processing"
+      ]
+    },
+    {
+      "key": "aws3-v1-bounded-recovery",
+      "title": "[V1] Implement bounded Lambda repair and late-output cleanup",
+      "parent": "aws2-delivery",
+      "area": "processing",
+      "acceptance": [
+        "Implement bounded owned recovery handlers for expired leases, stranded outboxes and stale output cleanup, reusing the tested durable lifecycle rules.",
+        "Handle ECS terminal events and late S3 output writes idempotently; cancelled/deleted/stale attempts cannot publish valid results or retain late private outputs unnoticed.",
+        "Use a session-scoped repair tick/continuation for gaps that events alone cannot cover; disable schedules/mappings during close and retain SQL repair state.",
+        "Test real owned SQL state plus selected event/emulator adapters for crash-before-send, lost ACK, late writes, retry races and a peer outage. Report real AWS delivery latency as NOT_RUN.",
+        "Preserve the original recovery gates in controlled local checks: lost committed queue work is re-enqueued within 120 seconds and interrupted work is requeued or marked failed within 300 seconds. A retry encode may await another explicit operator batch; no unattended launch is promised."
+      ],
+      "dependencies": [
+        "aws3-v1-domain-events",
+        "aws3-v1-fargate-worker"
+      ],
+      "existing_number": null,
+      "phase": "V1",
+      "kind": "implementation",
+      "workflow": "Backlog",
+      "priority": "P1",
+      "risk": "High",
+      "files": "media/recovery.py; processing/recovery.py; cleanup intents; Lambda event handlers; recovery tests",
+      "verification_kind": "future-local",
+      "labels": [
+        "v1",
+        "processing"
+      ]
+    },
+    {
+      "key": "aws3-v1-managed-infrastructure",
+      "title": "[V1] Define managed Gateway/Lambda/SQS/Aurora infrastructure offline",
+      "parent": "aws2-environment",
+      "area": "foundation",
+      "acceptance": [
+        "Render inert versioned definitions for two domain Lambda releases, owned authorizer, explicit routes, three queues/DLQs, private buckets, Aurora owner databases and native scoped roles/parameters.",
+        "Use the selected managed HTTPS legs; no V1 application EC2/nginx/Redis, NAT, paid endpoints, ALB or unselected Batch dependency. Validate database subnet/version/capacity assumptions.",
+        "Define invocation-scoped concurrency and permissions, required dual-stack service endpoints/S3 gateway route, owning migrations and bounded worker task definitions. Restrict each queue producer/consumer to its owning handler role; public API roles cannot publish raw-source work.",
+        "Schema/lint/policy/renderer checks pass with dummy inputs. No account calls, credential discovery, deployment or spend; produce a concrete future live-verification checklist."
+      ],
+      "dependencies": [
+        "aws3-v1-contracts"
+      ],
+      "existing_number": null,
+      "phase": "V1",
+      "kind": "implementation",
+      "workflow": "Backlog",
+      "priority": "P1",
+      "risk": "High",
+      "files": "new deploy/aws/v1 definitions; scripts/aws adapters; role/SSM references; CloudFormation renderer checks",
+      "verification_kind": "future-local",
+      "labels": [
+        "v1",
+        "foundation"
+      ]
+    },
+    {
+      "key": "aws3-v1-owner-release",
+      "title": "[V1] Adapt independent releases, migrations and rollback to Lambda/Fargate",
+      "parent": "aws2-delivery",
+      "area": "verification",
+      "acceptance": [
+        "Promote exact tested/scanned owner artifacts, Lambda versions/aliases and worker definitions using per-owner migration and compatibility gates.",
+        "Processing promotion/failed candidate restore keeps Media alias, image, roles/config and schema unchanged; Media promotion likewise preserves Processing.",
+        "Retain previous known-good artifacts, validate deployed candidates through the new public contracts and distinguish image rollback from schema rollback.",
+        "Locally verify adapter behavior, negative artifact/smoke cases and meaningful real service/SQL behavior; actual AWS version/runtime/clock receipts remain #65."
+      ],
+      "dependencies": [
+        "aws3-v1-media-lambda",
+        "aws3-v1-processing-lambda",
+        "aws3-v1-fargate-worker",
+        "aws3-v1-managed-infrastructure"
+      ],
+      "existing_number": null,
+      "phase": "V1",
+      "kind": "implementation",
+      "workflow": "Backlog",
+      "priority": "P1",
+      "risk": "High",
+      "files": "scripts/aws/releases.py; artifacts.py; owner workflows; migrations; existing release tests",
+      "verification_kind": "future-local",
+      "labels": [
+        "v1",
+        "verification"
+      ]
+    },
+    {
+      "key": "aws3-v1-session-costs",
+      "title": "[V1] Adapt session open/close, cost model and evidence protocols",
+      "parent": "aws2-environment",
+      "area": "foundation",
+      "acceptance": [
+        "Open restores bounded function concurrency, queue mappings and repair schedules, waits for readiness, and permits explicit finite worker batches.",
+        "Close quiesces intake, drains/records terminal work, disables mappings/schedules and sets application/authorizer concurrency to zero; report eventual DB pause and possible maintenance/storage/request charges.",
+        "Replace ECS-core/state-host assumptions in target operations and forecast. Price actual DB-awake time, Lambda, SQS polls, pulls/retries/migrations, independent Fargate generator and retained data under the approximately $200 envelope.",
+        "Update safe evidence/job-input/restore/close handoffs. Local checks are distinct from #45 account authorization and #67 actual billing/pause/teardown proof."
+      ],
+      "dependencies": [
+        "aws3-v1-fargate-worker",
+        "aws3-v1-bounded-recovery",
+        "aws3-v1-managed-infrastructure",
+        "aws3-v1-owner-release"
+      ],
+      "existing_number": null,
+      "phase": "V1",
+      "kind": "implementation",
+      "workflow": "Backlog",
+      "priority": "P1",
+      "risk": "High",
+      "files": "scripts/aws/operations.py; config.py; evidence.py; V1 cost calculator; job input template and runbook",
+      "verification_kind": "future-local",
+      "labels": [
+        "v1",
+        "foundation"
+      ]
+    },
+    {
+      "key": "aws3-v1-local-acceptance",
+      "title": "[V1] Verify the complete Redis-free workflow locally",
+      "parent": "aws2-acceptance",
+      "area": "verification",
+      "acceptance": [
+        "Run one coherent isolated browser + Publisher workflow with real PostgreSQL, real short encoding and explicit S3/SQS/Gateway/Lambda emulation boundaries.",
+        "Cover direct intake, normal identity/ownership, projection, edit, stored retry, MP4/HLS/range playback, delete, duplicate/reorder/cancel/late-write failures and finite close/wake.",
+        "Exercise independent owner promotion/failed rollback and cross-database/role negatives; no Redis/RQ in default V1 runtime or images. Preserve isolated legacy regression evidence/fixtures.",
+        "Provide an implemented V1 verification command in CI/runbook with source/digest evidence. Preserve historical thresholds/results; do not call emulated AWS identity/networking a cloud PASS."
+      ],
+      "dependencies": [
+        "aws3-v1-direct-intake",
+        "aws3-v1-domain-events",
+        "aws3-v1-bounded-recovery",
+        "aws3-v1-owner-release",
+        "aws3-v1-session-costs"
+      ],
+      "existing_number": null,
+      "phase": "V1",
+      "kind": "implementation",
+      "workflow": "Backlog",
+      "priority": "P1",
+      "risk": "High",
+      "files": "new V1 local runtime/verification entry; frontend/Publisher/real integration tests; CI and evidence manifest",
+      "verification_kind": "future-local",
+      "labels": [
+        "v1",
+        "verification"
+      ]
+    },
+    {
+      "key": "aws2-account-authorization",
+      "title": "[V1] Record actual project account, currency and scoped cloud authorization",
+      "parent": "aws2-environment",
+      "area": "planning",
+      "acceptance": [
+        "Retain a nonsecret actual project account/region, operator, billing currency, available quota and resource/session ownership receipt; no credentials or other-project access.",
+        "Record the user approximately $200 envelope and chosen live limits with the actual currency. The V1 USD forecast is not an account bill or live-action authorization.",
+        "Record the approved resource/window/close/optional-deletion scope before any real AWS execution; local planning and implementation may progress without this receipt."
+      ],
+      "dependencies": [],
+      "existing_number": 45,
+      "phase": "V1",
+      "kind": "cloud-prerequisite",
+      "workflow": "Blocked",
+      "priority": "P0",
+      "risk": "High",
+      "files": "private account/config inputs; public nonsecret authorization receipt",
+      "verification_kind": "future-authorized-cloud",
+      "labels": [
+        "v1",
+        "planning"
+      ]
+    },
+    {
+      "key": "aws2-origin-transport",
+      "title": "[V1 decision] Replace the public EC2 HTTP origin with managed HTTPS",
+      "parent": "aws2-environment",
+      "area": "planning",
+      "acceptance": [
+        "Owner-selected V1 uses CloudFront HTTPS, API Gateway HTTPS origin and native Lambda integration; frontend and signed S3 object access use regional HTTPS. No public EC2 HTTP origin remains in the target.",
+        "Record generated service hostnames/certificate responsibility and private DB TLS in architecture-plan.md; no purchased domain, self-signed public certificate or hidden ALB/NAT.",
+        "Merge this reviewed decision into Main, then close this decision ticket only. Actual normal-trust browser/CLI and negative ingress receipts remain #63/#66."
+      ],
+      "dependencies": [],
+      "existing_number": 46,
+      "phase": "V1",
+      "kind": "decision",
+      "workflow": "Review",
+      "priority": "P1",
+      "risk": "High",
+      "files": "docs/execution/aws/architecture-plan.md; native AWS API Gateway/Lambda/CloudFront documentation",
+      "verification_kind": "future-main-merge-decision",
+      "labels": [
+        "v1",
+        "planning"
+      ]
+    },
+    {
+      "key": "aws2-cloud-workflow",
+      "title": "[V1 evidence] Deploy the approved target and prove real workflow boundaries",
+      "parent": "aws2-acceptance",
+      "area": "verification",
+      "acceptance": [
+        "After actual account/scope authorization and all required local migrations, capture real Gateway routes, Lambda identities/versions, Aurora roles/TLS, SQS/DLQ permissions and S3 grant behavior.",
+        "Run short browser and Publisher reserve/upload/finalize/status/edit/retry/delete/playback checks through normal public TLS, including forged identity, wrong-owner and cross-database denials.",
+        "Verify native Lambda/ECS credentials and the selected worker source-GET/output-PUT/cleanup permissions; no secrets in evidence. Prove deployed V1 has no Redis/RQ/state-host dependency. Capture denied unauthorized queue sends and cross-owner source substitution against the deployed policies/consumers.",
+        "Retain real source/digests, executed versus NOT_RUN outcomes and actual endpoint/pause/readiness behavior. Keep the six long uploads for #64; short >5-MiB multipart may be checked here within the shared upload allowance."
+      ],
+      "dependencies": [
+        "aws2-account-authorization",
+        "aws2-origin-transport",
+        "aws3-v1-local-acceptance"
+      ],
+      "existing_number": 63,
+      "phase": "V1",
+      "kind": "cloud-evidence",
+      "workflow": "Blocked",
+      "priority": "P1",
+      "risk": "High",
+      "files": "future authorized V1 deployment, client/role evidence and safe manifests",
+      "verification_kind": "future-authorized-cloud",
+      "labels": [
+        "v1",
+        "verification"
+      ]
+    },
+    {
+      "key": "aws2-capacity-recovery",
+      "title": "[V1 evidence] Prove 1/2/3 encoders and bounded SQS recovery on AWS",
+      "parent": "aws2-acceptance",
+      "area": "verification",
+      "acceptance": [
+        "Capture ordinary 2-vCPU workers at fixed counts 1/2/3 with exactly 1/2/3 long submissions respectively: six long uploads total; record image, limits, actual task residency and outcomes.",
+        "Use short/stored sources for interruption, duplicate/lost delivery, cancelled/stale attempts, empty-burst and finite drain; confirm the global three-task reservation cap.",
+        "Distinguish capacity/recovery smoke from the historical full scaling target. Retain failed observations; do not rewrite original #38/#39 results or silently expand fixtures.",
+        "Record SQS/SQL repair and user-visible failure timing, real terminal outcomes and zero remaining encoders after drain, with selected safe receipts. Retain the original <=120-second lost-queue repair and <=300-second interrupted-job requeue/failure gates; do not equate operator-delayed execution with automatic starts."
+      ],
+      "dependencies": [
+        "aws2-cloud-workflow",
+        "aws3-v1-fargate-worker",
+        "aws3-v1-bounded-recovery"
+      ],
+      "existing_number": 64,
+      "phase": "V1",
+      "kind": "cloud-evidence",
+      "workflow": "Blocked",
+      "priority": "P1",
+      "risk": "High",
+      "files": "",
+      "verification_kind": "future-authorized-cloud",
+      "labels": [
+        "v1",
+        "verification"
+      ]
+    },
+    {
+      "key": "aws2-release-evidence",
+      "title": "[V1 evidence] Capture independent Lambda/Fargate release and rollback",
+      "parent": "aws2-acceptance",
+      "area": "verification",
+      "acceptance": [
+        "Capture a real Processing good promotion and failed candidate restoration with exact Lambda aliases/versions and worker digests; Media aliases/artifacts/schema remain unchanged.",
+        "Capture Media owner promotion/rollback with unchanged Processing receipts, compatible owning migrations and current/rollback artifacts.",
+        "Run the same public/client smoke and clock the actual operation, including failures, startup and restoration; retain the original 600-second good-promotion/300-second bad-operation gates.",
+        "No successful image rollback is presented as reversal of a destructive migration or proof from local adapters alone."
+      ],
+      "dependencies": [
+        "aws2-cloud-workflow",
+        "aws2-capacity-recovery",
+        "aws3-v1-owner-release"
+      ],
+      "existing_number": 65,
+      "phase": "V1",
+      "kind": "cloud-evidence",
+      "workflow": "Blocked",
+      "priority": "P1",
+      "risk": "High",
+      "files": "",
+      "verification_kind": "future-authorized-cloud",
+      "labels": [
+        "v1",
+        "verification"
+      ]
+    },
+    {
+      "key": "aws2-cloud-latency",
+      "title": "[V1 evidence] Measure warm API latency with an independent Fargate generator",
+      "parent": "aws2-acceptance",
+      "area": "verification",
+      "acceptance": [
+        "Run one serial eligible status cycle: 50 users/180 seconds, p90 <=700 ms and errors <1%; then 20-login cycle p90 <2 seconds, with unchanged password hash strength and explicit warmup.",
+        "Use a separate temporary Fargate generator/task definition, not an API/encoder/DB placement; retain configured CPU/RAM, source/digests, safe raw samples/hash/length and p90 arithmetic.",
+        "Record cold Lambda/Aurora wake separately; do not introduce retries in timed windows, suppress failures, tune in the evidence ticket or relabel local results.",
+        "Reuse assets, perform no new bulk upload, account for the priced generator task/IP lifetime and retain actual stopped-task receipts."
+      ],
+      "dependencies": [
+        "aws2-cloud-workflow",
+        "aws3-v1-session-costs"
+      ],
+      "existing_number": 66,
+      "phase": "V1",
+      "kind": "cloud-evidence",
+      "workflow": "Blocked",
+      "priority": "P1",
+      "risk": "Medium",
+      "files": "",
+      "verification_kind": "future-authorized-cloud",
+      "labels": [
+        "v1",
+        "verification"
+      ]
+    },
+    {
+      "key": "aws2-cost-closeout",
+      "title": "[V1 evidence] Reconcile actual spend, close state and final V1 handoff",
+      "parent": "aws2-acceptance",
+      "area": "verification",
+      "acceptance": [
+        "Capture zero encoder/migration/generator tasks, disabled event mappings/repair schedules and zero application/authorizer reserved concurrency after drain; observe DB pause without hiding maintenance/request/storage charges.",
+        "Reconcile actual Lambda GB-seconds, Aurora ACU-awake/storage/I/O, SQS polls, Fargate pulling-to-stop, image/log/S3/CDN and later bill lines against the V1 model and actual account currency; absent billing remains pending.",
+        "If backup/restore is claimed, restore an authorized isolated coherent target and verify owner/reference/source consistency; otherwise state NOT_RUN and data-loss limits. Optional destructive cleanup still needs exact approved scope.",
+        "Keep original local evidence/latency/scaling gates intact, link #63\u2013#66 receipts, and tag the immutable project2-v1 baseline only when all required V1 implementation/acceptance passes. This issue does not require V2."
+      ],
+      "dependencies": [
+        "aws2-capacity-recovery",
+        "aws2-release-evidence",
+        "aws2-cloud-latency",
+        "aws3-v1-session-costs"
+      ],
+      "existing_number": 67,
+      "phase": "V1",
+      "kind": "cloud-evidence",
+      "workflow": "Blocked",
+      "priority": "P1",
+      "risk": "High",
+      "files": "",
+      "verification_kind": "future-authorized-cloud",
+      "labels": [
+        "v1",
+        "verification"
+      ]
+    },
+    {
+      "key": "aws3-v2-lambda-encoding",
+      "title": "[V2 experiment] Benchmark bounded short encodes on Lambda",
+      "parent": "aws3-v2-experiments",
+      "area": "processing",
+      "acceptance": [
+        "Start from accepted immutable V1 and use the same pure engine and fixed short fixture; define admission, full-pipeline deadline/headroom, memory/scratch and combined executor-cap rules before implementation.",
+        "Compare cold/warm complete-job latency, correctness, interruption/retry, cleanup and actual cost per success with V1 Fargate; local 24-second medians are not Lambda evidence.",
+        "Merge only if a measured benefit justifies the additional execution path; preserve V1 and stop at the remaining time/spend limit. No V1 issue depends on this experiment."
+      ],
+      "dependencies": [
+        "aws2-acceptance"
+      ],
+      "existing_number": null,
+      "phase": "V2",
+      "kind": "experiment",
+      "workflow": "Backlog",
+      "priority": "P2",
+      "risk": "High",
+      "files": "",
+      "verification_kind": "future-authorized-cloud",
+      "labels": [
+        "v2",
+        "processing"
+      ]
+    },
+    {
+      "key": "aws3-v2-database-isolation",
+      "title": "[V2 experiment] Measure separate database clusters and pause behavior",
+      "parent": "aws3-v2-experiments",
+      "area": "foundation",
+      "acceptance": [
+        "Start from accepted V1; compare the single-cluster/two-owned-DB baseline with two independent clusters or a narrowly scoped pause/capacity change.",
+        "Measure isolation, connection/cold resume, warm latency, migration/restore/release behavior and real cost without changing the application database model.",
+        "Keep the V1 default unless evidence warrants the change. Data API/DSQL/DynamoDB requires a separately chosen compatibility spike, not an automatic expansion of this issue."
+      ],
+      "dependencies": [
+        "aws2-acceptance"
+      ],
+      "existing_number": null,
+      "phase": "V2",
+      "kind": "experiment",
+      "workflow": "Backlog",
+      "priority": "P2",
+      "risk": "Medium",
+      "files": "",
+      "verification_kind": "future-authorized-cloud",
+      "labels": [
+        "v2",
+        "foundation"
+      ]
+    },
+    {
+      "key": "aws2-optional-unattended",
+      "title": "[V2 experiment] Optional unattended worker starts and further cost cuts",
+      "parent": "aws3-v2-experiments",
+      "area": "processing",
+      "acceptance": [
+        "Remain outside the V1 critical path. First V1 demo uses serialized finite operator batches; a queued UI state is explicit.",
+        "After accepted V1, choose one measured automation/cost experiment. Unattended launch must preserve SQL coordination/reservations, stable launch tokens, cap including ambiguous requests, and close/release interlocks.",
+        "Prove no-backlog/no-launch, restart/lost-response/concurrent-trigger behavior, bounded three-executor cap and no idle respawn. Batch/Spot/ARM/consolidation are separate options, not a bundled programme."
+      ],
+      "dependencies": [
+        "aws2-acceptance"
+      ],
+      "existing_number": 68,
+      "phase": "V2",
+      "kind": "experiment",
+      "workflow": "Backlog",
+      "priority": "P2",
+      "risk": "Medium",
+      "files": "",
+      "verification_kind": "future-authorized-cloud",
+      "labels": [
+        "v2",
+        "processing"
+      ]
+    }
+  ]
+}

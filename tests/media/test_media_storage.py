@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from minio import Minio
+from minio.credentials import StaticProvider
 
 from media.errors import MediaError
 from media.services.storage import Storage, get_storage
@@ -19,6 +20,7 @@ def store(settings):
 
 async def test_minio_capabilities_use_correct_internal_and_public_hosts(store, settings):
     # Real local signing with explicit region requires no MinIO network call.
+    store.provider = StaticProvider("test-access", "test-secret")
     store.internal = Minio(
         settings.minio_endpoint,
         secure=False,

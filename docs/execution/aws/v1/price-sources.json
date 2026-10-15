@@ -1,0 +1,35 @@
+{
+  "scope": "Public unauthenticated regional catalogs captured during consultation; no AWS account calls. Other rates derive from ../pricing-20261015.json.",
+  "sources": [
+    {
+      "file": "prices/AWSLambda-prices.json",
+      "sha256": "55f621f4b20ef7dbb1628caf701e47ca81d278478308ca8ad34e19f9052f9eba",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSLambda/current/ap-southeast-1/index.json",
+      "publication_date": "2026-10-14T17:19:44Z"
+    },
+    {
+      "file": "prices/AWSSecretsManager-prices.json",
+      "sha256": "6b2c9e3b6e6fdc73000c7120c9e53221be8ea5325c883e9d178db7461e3ad6dc",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSSecretsManager/current/ap-southeast-1/index.json",
+      "publication_date": "2026-09-11T12:46:10Z"
+    },
+    {
+      "file": "prices/AmazonApiGateway-prices.json",
+      "sha256": "08107fc9bc198d5cd413f84d412f1a404719d71935fb08855977014d64ade0b8",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonApiGateway/current/ap-southeast-1/index.json",
+      "publication_date": "2026-10-13T00:30:44Z"
+    },
+    {
+      "file": "prices/AmazonRDS-prices.json",
+      "sha256": "5d519e3889cf582e10dfb478cda338e2a6dfeb77054b59b47ebee689759f38bb",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRDS/current/ap-southeast-1/index.json",
+      "publication_date": "2026-10-06T22:40:50Z"
+    },
+    {
+      "file": "prices/sqs-pricing-singapore.json",
+      "sha256": "c3c09c8c57798caddb5b82d37092466d4ffdf1a780bd3f84713d66ae47e034ec",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSQueueService/current/ap-southeast-1/index.json",
+      "publication_date": "2026-09-11T12:46:07Z"
+    }
+  ]
+}
