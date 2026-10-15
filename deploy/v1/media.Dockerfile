@@ -16,7 +16,7 @@ COPY delivery ./delivery
 COPY runtime_support ./runtime_support
 COPY media ./media
 COPY deploy/v1/check_runtime.py /opt/check_runtime.py
-RUN python /opt/check_runtime.py lambda-api
+RUN --network=none python /opt/check_runtime.py lambda-api media
 RUN useradd --system --create-home --uid 10001 flickpond
 USER flickpond
 ENTRYPOINT ["python", "-m", "awslambdaric"]

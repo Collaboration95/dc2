@@ -17,7 +17,7 @@ COPY runtime_support ./runtime_support
 COPY processing ./processing
 COPY media_engine ./media_engine
 COPY deploy/v1/check_runtime.py /opt/check_runtime.py
-RUN python /opt/check_runtime.py finite-worker
+RUN --network=none python /opt/check_runtime.py finite-worker worker
 RUN useradd --system --create-home --uid 10001 flickpond
 USER flickpond
 ENTRYPOINT ["python", "-m", "processing.v1_worker"]
