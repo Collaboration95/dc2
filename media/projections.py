@@ -11,7 +11,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from media.errors import MediaError
-from media.models import now
+from media.models import CleanupIntent, now
 from media.projection_models import ProcessingProjection
 from media.repositories.assets import fingerprint, get_asset
 from media.schemas.peer import Output
@@ -82,8 +82,12 @@ async def apply_result(session, envelope):
         include_deleted=True,
         lock=True,
     )
+    if event["job_id"] is None and event["attempt_id"] is None:
+        return await confirm_cancellation(session, asset, event, no_job=True)
     if asset.deleted_at:
-        return False  # Durable tombstone dominates every result, including late submit.
+        if event["payload"].get("status") == "cancelled":
+            return await confirm_cancellation(session, asset, event, no_job=False)
+        return False  # Durable tombstone dominates every late non-cancel result.
     if not event["job_id"] or not event["source"]:
         raise MediaError(422, "result requires job and immutable source")
     job_id = UUID(event["job_id"])
@@ -132,6 +136,70 @@ async def apply_result(session, envelope):
     asset.submission_state = "submitted"
     asset.submitted_at = asset.submitted_at or now()
     asset.last_submit_error = None
+    await session.flush()
+    return True
+
+
+async def confirm_cancellation(session, asset, event, *, no_job):
+    """Only a consumed durable result authorizes later source cleanup."""
+    from media.messaging_models import MediaOutbox
+
+    payload = event["payload"]
+    if not asset.deleted_at or payload.get("status") != "cancelled":
+        raise MediaError(409, "cancellation acknowledgement requires a tombstone")
+    current = await session.get(ProcessingProjection, asset.id)
+    if no_job:
+        if payload.get("cancellation_confirmed") is not True:
+            raise MediaError(422, "unconfirmed cancellation acknowledgement")
+        if asset.processing_job_id or current is not None:
+            raise MediaError(409, "no-job cancellation conflicts with accepted job")
+        try:
+            command_id = UUID(payload["command_message_id"])
+        except (KeyError, ValueError, TypeError) as exc:
+            raise MediaError(422, "invalid cancellation command identity") from exc
+        command = await session.get(MediaOutbox, command_id)
+        if (
+            command is None
+            or command.queue != "processing-commands"
+            or any(
+                command.body.get(k) != value
+                for k, value in {
+                    "kind": "cancel",
+                    "owner_id": str(asset.owner_id),
+                    "asset_id": str(asset.id),
+                    "job_id": None,
+                }.items()
+            )
+        ):
+            raise MediaError(409, "cancellation acknowledgement does not match command")
+        if event["source"] is not None or payload.get("outputs"):
+            raise MediaError(422, "no-job cancellation cannot publish source or outputs")
+    else:
+        if not event["source"] or not event["attempt_id"]:
+            raise MediaError(422, "cancelled job requires immutable source and attempt")
+        if asset.processing_job_id and str(asset.processing_job_id) != event["job_id"]:
+            raise MediaError(409, "cancellation belongs to another Processing job")
+        if event["source"] != await source_for_asset(session, asset):
+            raise MediaError(409, "cancellation source differs from accepted source")
+        number = payload.get("attempt_number")
+        if type(number) is not int or number < 1 or payload.get("outputs"):
+            raise MediaError(422, "invalid cancelled attempt")
+        if not validate_transition(current, event):
+            # An identical replay remains acknowledged through the existing ledger;
+            # a stale version can never grant new cleanup authority.
+            return False
+    intent = await session.get(CleanupIntent, asset.id, with_for_update=True)
+    if intent is None:
+        raise MediaError(409, "cancellation cleanup intent is absent")
+    intent.processing_deleted_at = intent.processing_deleted_at or now()
+    intent.next_try_at = now()
+    if current is not None:
+        current.state_version = event["state_version"]
+        current.attempt_id = UUID(event["attempt_id"])
+        current.attempt_number = payload["attempt_number"]
+        current.status = "cancelled"
+        current.outputs = []
+        current.result_hash = fingerprint({k: v for k, v in event.items() if k != "message_id"})
     await session.flush()
     return True
 
