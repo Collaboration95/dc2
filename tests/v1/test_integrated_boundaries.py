@@ -42,7 +42,7 @@ def test_deployed_media_app_uses_projection_routes(path, method, endpoint):
     assert matches[0].endpoint is endpoint
 
 
-async def test_worker_passes_task_binding_through_real_durable_claim(monkeypatch):
+async def test_worker_enters_real_durable_claim_with_task_binding_callback(monkeypatch):
     # Keep the actual worker -> messaging call; intercept only SQL lifecycle work.
     # AsyncMock at the messaging boundary would hide signature incompatibilities.
     sql_claim = AsyncMock(return_value=None)
@@ -59,7 +59,9 @@ async def test_worker_passes_task_binding_through_real_durable_claim(monkeypatch
         deadline=time.monotonic() + 60,
         task_name="integration-task",
     )
-    assert sql_claim.call_args.kwargs["task_name"] == "integration-task"
+    assert callable(sql_claim.call_args.kwargs["on_change"])
+    # Messaging persists task_name atomically through this SQL callback;
+    # the real SQL suite verifies the binding survives later deliveries.
 
 
 @pytest.mark.parametrize("owner", ["media", "processing"])
