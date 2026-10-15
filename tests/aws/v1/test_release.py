@@ -348,3 +348,99 @@ def test_operator_transport_requires_project_identity_and_bounded_clients():
     with pytest.raises(OperationError, match="deadline"):
         transport.call("lambda", "get-alias", {}, deadline=time.monotonic() + 1)
     assert len(calls) == 1
+
+
+def test_missing_uncertain_publication_is_never_blindly_repeated(setup):
+    config, aws, journal, args = setup
+    aws.lost.add("publish-version")
+    with pytest.raises(PublicationUncertain):
+        promote(config, aws, journal, **args())
+    # Model an eventually consistent list, or an intent persisted immediately
+    # before process death: absence is not permission for a duplicate publish.
+    aws.descriptions.clear()
+    with pytest.raises(PublicationUncertain, match="do not repeat"):
+        promote(config, aws, journal, **args())
+    assert sum(op == "publish-version" for _, op, _ in aws.calls) == 1
+
+
+def test_failed_owning_revision_gate_moves_no_alias(setup):
+    config, aws, journal, args = setup
+    options = args()
+    options["schema_revision"] = lambda *a, **k: "wrong-revision"
+    with pytest.raises(OperationError, match="schema revision mismatch"):
+        promote(config, aws, journal, **options)
+    assert not any(op == "update-alias" for _, op, _ in aws.calls)
+    assert journal.path.read_text().find("migration_task") >= 0
+
+
+def test_failed_restore_smoke_retains_intent_for_retry(setup):
+    config, aws, journal, args = setup
+    options = args()
+    options["public_smoke"] = lambda *a, **k: False
+    with pytest.raises(OperationError):
+        promote(config, aws, journal, **options)
+    with pytest.raises(OperationError, match="Restored public smoke failed"):
+        restore(
+            config,
+            aws,
+            journal,
+            schema_revision=options["schema_revision"],
+            quiescent=options["quiescent"],
+            public_smoke=lambda *a, **k: False,
+            deadline=options["deadline"],
+        )
+    with journal.locked() as state:
+        assert state["pending_release"]["phase"] == "restoring"
+    receipt = restore(
+        config,
+        aws,
+        journal,
+        schema_revision=options["schema_revision"],
+        quiescent=options["quiescent"],
+        public_smoke=lambda *a, **k: True,
+        deadline=options["deadline"],
+    )
+    assert receipt["status"] == "restored"
+
+
+def test_tampered_worker_definition_cannot_launch_or_update_lambda(setup):
+    config, aws, journal, args = setup
+    call = aws.call
+
+    def tamper(service, op, payload, **kwargs):
+        result = call(service, op, payload, **kwargs)
+        if op == "describe-task-definition" and payload["taskDefinition"] == WORKER:
+            result["taskDefinition"]["containerDefinitions"][0]["image"] = "repo:mutable"
+        return result
+
+    aws.call = tamper
+    with pytest.raises(OperationError, match="exact owning artifact"):
+        promote(config, aws, journal, **args())
+    assert not any(
+        op in {"run-task", "update-alias", "update-function-code"} for _, op, _ in aws.calls
+    )
+
+
+def test_alias_revision_aba_is_not_overwritten(setup):
+    config, aws, journal, args = setup
+    options = args()
+
+    def smoke(*a, **k):
+        # Another actor touched the same candidate version: revision proves drift.
+        aws.aliases["processing-api"]["RevisionId"] += "external"
+        return False
+
+    options["public_smoke"] = smoke
+    with pytest.raises(OperationError):
+        promote(config, aws, journal, **options)
+    with pytest.raises(OperationError, match="Concurrent alias revision"):
+        restore(
+            config,
+            aws,
+            journal,
+            schema_revision=options["schema_revision"],
+            quiescent=options["quiescent"],
+            public_smoke=lambda *a, **k: True,
+            deadline=options["deadline"],
+        )
+    assert aws.aliases["processing-api"]["FunctionVersion"] == "2"
