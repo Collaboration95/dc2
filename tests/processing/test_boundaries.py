@@ -55,7 +55,17 @@ def test_models_have_only_processing_tables_and_foreign_keys():
         "message_outbox",
         "job_messaging",
     }
-    assert all(model.metadata is Base.metadata for model in (Job, Attempt, SubmissionGuard, JobMessaging, ProcessingInbox, ProcessingOutbox))
+    assert all(
+        model.metadata is Base.metadata
+        for model in (
+            Job,
+            Attempt,
+            SubmissionGuard,
+            JobMessaging,
+            ProcessingInbox,
+            ProcessingOutbox,
+        )
+    )
     for table in Base.metadata.tables.values():
         for fk in table.foreign_keys:
             assert fk.column.table.metadata is Base.metadata

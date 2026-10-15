@@ -10,8 +10,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PYTHON = ROOT / ".venv/bin/python"
 PACKAGE_NAMES = (
-    "app", "processing", "media", "media_engine", "publisher",
-    "contracts", "delivery", "runtime_support",
+    "app",
+    "processing",
+    "media",
+    "media_engine",
+    "publisher",
+    "contracts",
+    "delivery",
+    "runtime_support",
 )
 
 
