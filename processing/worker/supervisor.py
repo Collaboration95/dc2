@@ -47,15 +47,14 @@ class Supervisor:
     async def renew_authority(self):
         async with self.renew_lock:
             self.check()
-            if not await heartbeat(self.factory, self.work, self.settings):
-                self.lost.set()
-                raise LeaseLost()
-            if self.renew is not None:
-                try:
+            try:
+                if not await heartbeat(self.factory, self.work, self.settings):
+                    raise LeaseLost()
+                if self.renew is not None:
                     await self.renew()
-                except Exception:
-                    self.lost.set()
-                    raise LeaseLost() from None
+            except Exception:
+                self.lost.set()
+                raise LeaseLost() from None
             self.check()
         return True
 

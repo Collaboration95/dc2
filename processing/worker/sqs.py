@@ -32,7 +32,7 @@ def native_sqs(region):
     from botocore.config import Config
     from botocore.credentials import ContainerProvider
 
-    endpoint = os.environ.get("PROCESSING_SQS_ENDPOINT_URL")
+    endpoint = os.environ.get("PROCESSING_SQS_ENDPOINT_URL") or os.environ.get("SQS_ENDPOINT_URL")
     if endpoint:
         # Endpoint overrides are explicitly local, never alternate public accounts.
         from urllib.parse import urlsplit
@@ -174,6 +174,8 @@ async def run(
             WaitTimeSeconds=min(20, max(0, int(deadline - time.monotonic()) - 1)),
             VisibilityTimeout=visibility,
         )
+        if stop.is_set():
+            return 0
         messages = received.get("Messages", [])
         if not messages:
             continue
