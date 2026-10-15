@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -37,7 +38,13 @@ def create_app():
         app.add_exception_handler(exception, unavailable)
 
     @app.get("/health")
-    async def health():
+    async def health(request: Request):
+        if getattr(request.state, "gateway_v1", False):
+            return {
+                "status": "ok",
+                "service": "media",
+                "version": os.environ.get("MEDIA_RELEASE_VERSION", "v1"),
+            }
         return {"status": "ok"}
 
     for router in (
