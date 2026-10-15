@@ -5,7 +5,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "media_0006"
-down_revision = "media_0005"
+down_revision = "0005_projection"
 branch_labels = None
 depends_on = None
 
