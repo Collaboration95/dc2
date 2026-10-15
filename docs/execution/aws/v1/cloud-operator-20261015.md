@@ -1,6 +1,7 @@
 # V1 live operator receipt — 15 October 2026
 
-Status: account preflight observed; deployment and #63–#67 NOT_RUN.
+Status: account preflight observed; bootstrap attempted and rolled back.
+V1 application deployment and #63–#67 acceptance NOT_RUN.
 This receipt does not close #45 or any genuine cloud acceptance issue.
 
 The user's current execution instruction authorizes scoped DC2 V1 setup,
@@ -96,3 +97,38 @@ Actual invoice currency, usable bounded Lambda reservations, valid infrastructur
 and image handoffs, deployed TLS/roles/SQL/migrations, workflow, recovery, releases,
 latency, pause and final bill reconciliation remain unproven. Keep #45 and
 #63–#67 open until their individual acceptance criteria have real receipts.
+
+## Live attempt and known resource state
+
+The represented bootstrap template is `deploy/aws/v1-operator-bootstrap.json`.
+It passed Singapore `cfn-lint`. Its CREATE change set contained only two Add
+changes: an S3 bucket and a bucket policy. STS was reverified before execution.
+
+- Stack: `dc2-v1-20261015t1146-bootstrap`.
+- Stack ARN: `arn:aws:cloudformation:ap-southeast-1:866865534361:stack/dc2-v1-20261015t1146-bootstrap/503c8ca0-c88f-11f1-ba3f-06ffdc7d1997`.
+- Change set: `private-template-staging`, ID `433f40ec-848c-4aa3-8c66-bd287f60be93`.
+- Result: **ROLLBACK_COMPLETE**. `s3:CreateBucket` received an explicit identity-policy
+  deny from `FlickPondRequireMFA`. The staging bucket was not created.
+  Later `HeadBucket` returned 404 and the scoped owned-bucket listing was empty.
+  CloudFormation retains a `DELETE_SKIPPED` logical record because of Retain;
+  this record is not an existing S3 bucket.
+- No encoder, migration, generator, database, Lambda or session was launched.
+  There is no recurring compute from this attempt. The empty rolled-back stack is
+  retained as a failure receipt. V1 foundation execution did not begin.
+- The IAM user's MFA-device metadata returned an empty list. No MFA enrollment,
+  IAM-policy edit or other security-setting change was performed.
+
+The newly authorized request for Lambda ConcurrentExecutions=200 was attempted
+with service code `lambda`, quota `L-B99A9384`. AWS rejected it with
+`IllegalArgumentException`: desired value must exceed the published default
+1000. No quota request ID exists, and the applied quota remains 10. A larger
+quota was not requested. Do not claim a pending or approved increase.
+
+`python -m scripts.aws.v1_foundation` implements prepare/observe/execute for the
+initial foundation only. It verifies identity before mutations, requires a cost
+receipt, checks closed application conditions and 0..2 ACU limits, stages oversized
+templates only in the exact project artifact bucket, records hashes/change-set
+IDs, and permits initial Add changes only. It does not open sessions. The current
+C1 foundation snapshot passed its local guard and `cfn-lint`, but the demonstrated
+account denial prevents live provisioning. No successful-cloud claim follows
+from these local checks.

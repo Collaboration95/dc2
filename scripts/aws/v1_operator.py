@@ -47,7 +47,7 @@ def aws(args: list[str]) -> dict[str, Any]:
                 "data": None, "error": "bounded AWS command timeout"}
     return {
         "observed_at": observed, "command": command, "returncode": result.returncode,
-        "data": json.loads(result.stdout) if result.returncode == 0 else None,
+        "data": json.loads(result.stdout or "{}") if result.returncode == 0 else None,
         "error": result.stderr.strip() if result.returncode else None,
     }
 
@@ -86,6 +86,9 @@ def queries() -> dict[str, list[str]]:
         "lambda-quota": ["lambda", "get-account-settings"],
         "inventory": ["resourcegroupstaggingapi", "get-resources", "--tag-filters",
                       f"Key=Project,Values={NAMESPACE}"],
+        "environment-inventory": ["resourcegroupstaggingapi", "get-resources", "--tag-filters",
+                                  "Key=Project,Values=dc2",
+                                  f"Key=Environment,Values={NAMESPACE}"],
         "stacks": ["cloudformation", "list-stacks", "--query",
                    f"StackSummaries[?starts_with(StackName, `{NAMESPACE}`)]"],
         "billing": ["ce", "get-cost-and-usage", "--time-period",

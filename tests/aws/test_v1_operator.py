@@ -47,3 +47,9 @@ def test_cli_always_sets_profile_region_and_bounded_timeouts(monkeypatch):
         return type("Result", (), {"returncode": 0, "stdout": "{}", "stderr": ""})()
     monkeypatch.setattr(operator.subprocess, "run", run)
     assert operator.aws(["sts", "get-caller-identity"])["returncode"] == 0
+
+
+def test_empty_successful_mutation_response_is_valid(monkeypatch):
+    monkeypatch.setattr(operator.subprocess, "run", lambda *a, **k: type(
+        "Result", (), {"returncode": 0, "stdout": "", "stderr": ""})())
+    assert operator.aws(["cloudformation", "execute-change-set"])["data"] == {}
