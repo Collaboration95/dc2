@@ -16,7 +16,6 @@ from media.services.intake import discard_stage, stage
 
 async def command(session, asset, kind, *, message_id=None, source=None):
     from contracts.v1 import Envelope
-
     from media.messaging import stage_command
 
     current = await session.get(ProcessingProjection, asset.id)

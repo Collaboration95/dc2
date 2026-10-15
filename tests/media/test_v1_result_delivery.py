@@ -10,13 +10,13 @@ from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
+
 from delivery.envelope import fingerprint
 from delivery.sql import MessageConflict
 from delivery.sqs import consume_batch
+from media import projections
 from media.messaging import consume_result
 from media.messaging_models import MediaInbox
-
-from media import projections
 
 # Reuse wire fixture from the focused projection tests.
 from tests.media.test_v1_projection import event  # noqa: F401

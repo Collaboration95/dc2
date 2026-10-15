@@ -4,7 +4,6 @@ import asyncio
 from http.cookies import CookieError, SimpleCookie
 
 from contracts.v1 import Actor
-
 from media.config import get_settings
 from media.database import invocation_session
 from media.models import User

@@ -9,9 +9,9 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from contracts.v1 import Actor
 from fastapi import Request
 
+from contracts.v1 import Actor
 from media import authorizer, database
 from media.api import deps
 from media.config import get_settings
@@ -94,7 +94,6 @@ async def test_lambda_mode_refuses_plain_http(settings):
 
 async def test_auth_public_base64_body_and_cookie_flags(settings, monkeypatch):
     from contracts.gateway import GatewayAdapter
-
     from media.api import auth
 
     app = create_app()
