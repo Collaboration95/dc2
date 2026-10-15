@@ -106,3 +106,50 @@ def test_uncertain_s3_response_retains_intent(tmp_path):
         assert error.value.uncertain and "secret" not in str(error.value)
     finally:
         client.close()
+
+
+def test_cli_edit_retains_identity_and_delete_handles_empty_response(monkeypatch, tmp_path, capsys):
+    from publisher import cli
+
+    asset = str(uuid4())
+    seen = []
+
+    def peer(req):
+        seen.append(req)
+        if req.url.path.endswith("auth/me"):
+            return httpx.Response(200, json={"id": str(uuid4())})
+        if req.method == "DELETE":
+            return httpx.Response(204)
+        assert json.loads(req.content)["operations"][0]["operation"] == "clip"
+        return httpx.Response(202, json={"job_id": asset})
+
+    monkeypatch.setattr(
+        cli,
+        "PublicClient",
+        lambda base, jar, ca, timeout: PublicClient(
+            base, jar, ca, timeout, transport=httpx.MockTransport(peer)
+        ),
+    )
+    base = [
+        "--base-url",
+        "https://media.test/api/media",
+        "--cookie-jar",
+        str(tmp_path / "cookies"),
+        "--json",
+    ]
+    assert (
+        cli.main(
+            base
+            + [
+                "edit",
+                asset,
+                "--operations",
+                json.dumps([{"operation": "clip", "params": {"start": 0, "end": 1}}]),
+            ]
+        )
+        == 0
+    )
+    assert json.loads(capsys.readouterr().out)["job_id"] == asset
+    assert cli.main(base + ["delete", asset]) == 0
+    assert json.loads(capsys.readouterr().out) == {"ok": True, "job_id": asset}
+    assert seen[-1].method == "DELETE"

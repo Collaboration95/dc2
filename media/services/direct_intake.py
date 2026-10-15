@@ -172,25 +172,9 @@ async def finalize(session, storage, owner_id, reservation_id, request, *, enque
         session.add(asset)
         await session.flush()
         if enqueue is None:
-            from media.messaging import stage_command
+            from media.messaging import enqueue_submit
 
-            async def enqueue(session, asset, descriptor):
-                await stage_command(
-                    session,
-                    {
-                        "schema_version": 1,
-                        "message_id": str(row.id),
-                        "kind": "submit",
-                        "owner_id": str(owner_id),
-                        "asset_id": str(asset.id),
-                        "job_id": None,
-                        "attempt_id": None,
-                        "state_version": 0,
-                        "source": descriptor,
-                        "payload": {"filename": asset.filename, "operations": []},
-                    },
-                )
-
+            enqueue = enqueue_submit
         await enqueue(session, asset, source(row))
     return asset
 

@@ -246,3 +246,186 @@ async def test_cleanup_preserves_pin_deletes_all_other_exact_key_versions(
     await native_store.delete_direct_upload(reservation, preserve_version="accepted")
     assert len(removed) == 1
     assert removed[0].version_id == "late"
+
+
+async def test_finalized_reservation_replay_does_not_issue_new_write_grant(
+    session, storage, user, reservation
+):
+    body = intake.ReserveRequest(
+        request_id=reservation.request_id,
+        filename="clip.mp4",
+        content_type="video/mp4",
+        size_bytes=reservation.size_bytes,
+        sha256=reservation.sha256,
+    )
+    reservation.request_hash = intake.fingerprint(body.model_dump(mode="json"))
+    reservation.finalized_at = now()
+    reservation.expires_at = now() - timedelta(minutes=1)
+    session.scalar.return_value = reservation
+    result = await intake.reserve(session, storage, user.id, body)
+    assert result["upload"] is None
+    assert result["asset_id"] == reservation.asset_id
+    storage.direct_upload_grant.assert_not_awaited()
+
+
+async def test_uncertain_reservation_insert_replays_winner(session, storage, user, reservation):
+    from sqlalchemy.exc import IntegrityError
+
+    body = intake.ReserveRequest(
+        request_id=reservation.request_id,
+        filename="clip.mp4",
+        content_type="video/mp4",
+        size_bytes=reservation.size_bytes,
+        sha256=reservation.sha256,
+    )
+    reservation.request_hash = intake.fingerprint(body.model_dump(mode="json"))
+    session.scalar.side_effect = [None, reservation]
+    session.flush.side_effect = IntegrityError("duplicate", None, None)
+    result = await intake.reserve(session, storage, user.id, body)
+    assert result["reservation_id"] == reservation.id
+
+
+async def test_finalize_lost_commit_response_replays_without_storage_or_enqueue(
+    session, storage, reservation, asset
+):
+    reservation.finalized_at = now()
+    reservation.version_id = "already-adopted"
+    session.scalar.return_value = reservation
+    session.get.return_value = asset
+    enqueue = AsyncMock()
+    assert (
+        await intake.finalize(
+            session,
+            storage,
+            reservation.owner_id,
+            reservation.id,
+            request(reservation),
+            enqueue=enqueue,
+        )
+        is asset
+    )
+    storage.verify_direct_upload.assert_not_awaited()
+    enqueue.assert_not_awaited()
+
+
+async def test_finalize_deleted_asset_cannot_resurrect(session, storage, reservation, asset):
+    reservation.finalized_at = now()
+    asset.deleted_at = now()
+    session.scalar.return_value = reservation
+    session.get.return_value = asset
+    with pytest.raises(MediaError) as error:
+        await intake.finalize(
+            session,
+            storage,
+            reservation.owner_id,
+            reservation.id,
+            request(reservation),
+            enqueue=AsyncMock(),
+        )
+    assert error.value.status_code == 410
+    session.add.assert_not_called()
+
+
+async def test_owner_is_in_finalize_sql_predicate(session, storage, reservation):
+    with pytest.raises(MediaError):
+        await intake.finalize(
+            session, storage, reservation.owner_id, reservation.id, request(reservation)
+        )
+    query = session.scalar.await_args.args[0]
+    params = query.compile().params
+    assert reservation.owner_id in params.values()
+    assert reservation.id in params.values()
+    assert "owner_id" in str(query)
+
+
+async def test_pin_derived_source_reverifies_version_before_staging_command(
+    session, storage, asset
+):
+    storage.settings.minio_source_bucket = "source"
+    storage.verify_direct_upload.return_value = "derived-v1"
+    result = await intake.pin_copied_source(session, storage, asset)
+    assert result == {
+        "bucket": "source",
+        "key": asset.source_key,
+        "version_id": "derived-v1",
+        "sha256": asset.source_sha256,
+        "size_bytes": asset.source_size_bytes,
+        "content_type": asset.source_media_type,
+    }
+    assert session.add.call_args.args[0].asset_id == asset.id
+    assert storage.verify_direct_upload.await_args.kwargs == {"check_content": False}
+
+
+async def test_cleanup_repeats_authority_after_late_write_and_preserves_version(
+    session, storage, reservation
+):
+    from contextlib import asynccontextmanager
+
+    reservation.version_id = "accepted"
+    reservation.finalized_at = now()
+    session.scalars.return_value = [reservation]
+    session.get.return_value = reservation
+
+    @asynccontextmanager
+    async def factory():
+        yield session
+
+    assert await intake.cleanup_expired_uploads(factory, storage, limit=1) == 1
+    assert await intake.cleanup_expired_uploads(factory, storage, limit=1) == 1
+    assert storage.delete_direct_upload.await_count == 2
+    assert storage.delete_direct_upload.await_args.kwargs == {"preserve_version": "accepted"}
+    assert reservation.cleanup_checked_at is not None
+    session.execute.assert_not_awaited()  # No removal of future cleanup authority.
+
+
+async def test_absent_object_does_not_adopt_or_enqueue(session, storage, reservation):
+    session.scalar.return_value = reservation
+    storage.verify_direct_upload.side_effect = MediaError(503, "missing")
+    enqueue = AsyncMock()
+    with pytest.raises(MediaError):
+        await intake.finalize(
+            session,
+            storage,
+            reservation.owner_id,
+            reservation.id,
+            request(reservation),
+            enqueue=enqueue,
+        )
+    assert reservation.finalized_at is None
+    session.add.assert_not_called()
+    enqueue.assert_not_awaited()
+
+
+async def test_finalize_uses_shared_enqueue_in_adoption_transaction(
+    session, storage, reservation, monkeypatch
+):
+    import sys
+    from contextlib import asynccontextmanager
+
+    active = False
+
+    @asynccontextmanager
+    async def transaction():
+        nonlocal active
+        active = True
+        try:
+            yield
+        finally:
+            active = False
+
+    session.begin.side_effect = transaction
+    session.scalar.return_value = reservation
+    storage.verify_direct_upload.return_value = "v1"
+    emitted = []
+
+    async def enqueue(session, asset, descriptor):
+        assert active
+        assert reservation.finalized_at is not None
+        assert asset.id == reservation.asset_id
+        emitted.append(descriptor)
+
+    monkeypatch.setitem(sys.modules, "media.messaging", SimpleNamespace(enqueue_submit=enqueue))
+    await intake.finalize(
+        session, storage, reservation.owner_id, reservation.id, request(reservation)
+    )
+    assert len(emitted) == 1 and emitted[0]["version_id"] == "v1"
