@@ -72,9 +72,9 @@ async def download(client, work, settings, path):
             url = await renew_source(client, work, settings)
 
 
-async def pipeline(work, settings, supervisor, client, store, directory):
+async def pipeline(work, settings, supervisor, client, store, directory, *, downloader=None):
     source = directory / "source"
-    await supervisor.guard(download(client, work, settings, source))
+    await supervisor.guard((downloader or download)(client, work, settings, source))
     operations = work.operations
     by_name = {item["operation"]: item for item in operations}
     extension = by_name.get("convert", {}).get("params", {}).get("format", "mp4")
