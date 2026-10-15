@@ -4,7 +4,7 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from processing import models  # noqa: F401
+from processing import messaging_models, models  # noqa: F401
 from processing.config import get_settings
 from processing.database import Base, v1_connect_args
 

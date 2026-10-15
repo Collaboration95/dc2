@@ -15,19 +15,32 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from processing.config import get_settings
 from processing.lifecycle import cleanup_intent, db_now, lock_pair, output_prefix
 from processing.models import Attempt, CleanupIntent, Job
-from processing.queue import enqueue_attempt, get_queue
 from processing.worker.storage import OutputStore
 
 logger = logging.getLogger(__name__)
 
 
-async def recover_expired(factory, *, limit=100):
+def enqueue_attempt(*args, **kwargs):
+    # Lazy legacy adapter: importing V1 recovery never loads Redis/RQ.
+    from processing.queue import enqueue_attempt as legacy_enqueue
+
+    return legacy_enqueue(*args, **kwargs)
+
+
+def get_queue(settings):
+    from processing.queue import get_queue as legacy_queue
+
+    return legacy_queue(settings)
+
+
+async def recover_expired(factory, *, limit=100, on_change=None, job_filter=None):
     async with factory() as session:
         ids = (
             await session.execute(
                 select(Attempt.job_id, Attempt.id)
                 .join(Job, Job.current_attempt_id == Attempt.id)
                 .where(
+                    job_filter if job_filter is not None else True,
                     Job.deleted_at.is_(None),
                     Job.status == "processing",
                     Attempt.state == "processing",
@@ -62,6 +75,8 @@ async def recover_expired(factory, *, limit=100):
             attempt.state, attempt.error, attempt.finished_at = "abandoned", message, now
             attempt.lease_expires_at = now
             await cleanup_intent(session, job_id, attempt_id, now)
+            if on_change is not None:
+                await on_change(session, job, attempt)
             recovered += 1
             logger.info("expired attempt job=%s attempt=%s", job_id, attempt_id)
     return recovered

@@ -4,10 +4,7 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from media import (
-    models,  # noqa: F401
-    upload_models,  # noqa: F401
-)
+from media import messaging_models, models, projection_models, upload_models  # noqa: F401
 from media.config import get_settings
 from media.database import Base
 
