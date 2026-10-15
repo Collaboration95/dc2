@@ -2,6 +2,6 @@
 
 from contracts.gateway import GatewayAdapter
 from media.authorizer import handler as authorizer  # noqa: F401
-from media.main import create_app
+from media.main import create_v1_app
 
-handler = GatewayAdapter(create_app(), service="media")
+handler = GatewayAdapter(create_v1_app(), service="media")
