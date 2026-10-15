@@ -162,7 +162,24 @@ class Envelope:
         if data["kind"] in ("work", "result") and (
             data["job_id"] is None or data["attempt_id"] is None
         ):
-            raise ContractError("Job and attempt required")
+            # A committed cancel-before-submit guard has no Job or Attempt. Its
+            # acknowledgement must describe only that durable tombstone, never
+            # invent job identifiers or masquerade as a normal job result.
+            payload = data["payload"]
+            if (
+                data["kind"] != "result"
+                or data["job_id"] is not None
+                or data["attempt_id"] is not None
+                or data["source"] is not None
+                or set(payload) != {"status", "cancellation_confirmed", "command_message_id"}
+                or payload["status"] != "cancelled"
+                or payload["cancellation_confirmed"] is not True
+            ):
+                raise ContractError("Job and attempt required outside cancellation acknowledgement")
+            data["payload"] = {
+                **payload,
+                "command_message_id": uuid_text(payload["command_message_id"]),
+            }
         _safe_payload(data["payload"])
         try:
             json.dumps(data["payload"], allow_nan=False)

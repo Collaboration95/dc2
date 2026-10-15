@@ -45,8 +45,26 @@ server chooses staging keys. Uncertain and late writes retain cleanup intent.
 Every message includes all envelope fields, including nullable job_id, attempt_id
 and source. `Source` is `{bucket,key,version_id,sha256,size_bytes,content_type}`;
 no URLs, credentials or bytes belong in queues. Submit/work require source;
-work/result require job and attempt. Cancel may precede submit and carry null
-source/job/attempt. Only Media produces submit/retry/cancel commands; Processing
+work and normal job results require job and attempt. Cancel may precede submit
+and carry null source/job/attempt. A single result exception acknowledges a
+persisted cancellation guard when no job was ever created: source, job_id and
+attempt_id must ALL be null, with exactly this payload:
+
+```json
+{"status":"cancelled","cancellation_confirmed":true,"command_message_id":"00000000-0000-4000-8000-000000000002"}
+```
+
+The confirmation must be the JSON boolean true; command_message_id must be a
+UUID identifying the accepted cancel command. Missing/extra payload fields,
+partial job/attempt IDs, nonnull source, and other statuses are rejected in this
+exception. Normal existing-job cancellation results keep their real job/attempt
+IDs and existing payload contract. Processing emits the tombstone acknowledgement
+only from its committed guard/inbox/outbox transaction; a queue send alone is not
+confirmation. Media binds the result's owner/asset and original cancel command
+identity to its durable cleanup state before marking cancellation confirmed.
+Envelope validation establishes shape, not proof of that persisted binding.
+
+Only Media produces submit/retry/cancel commands; Processing
 dispatch produces work; Processing completion produces results. Queue IAM policies
 establish producer authority; schema validation does not authenticate a producer.
 
