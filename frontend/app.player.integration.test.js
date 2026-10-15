@@ -73,6 +73,7 @@ async function loadPage({ role = "user" } = {}) {
   fetchMock.mockResolvedValueOnce(
     jsonResponse({ id: "u-1", email: "maya@example.test", role }),
   );
+  globalThis.FLICKPOND_LEGACY_API = true; // Frozen pre-Gateway regression.
   await import("./app.js");
   await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/auth/me"));
   await vi.advanceTimersByTimeAsync(0);

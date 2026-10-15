@@ -8,6 +8,8 @@ from typing import Annotated
 from fastapi import Depends, Request
 from minio import Minio
 from minio.credentials import StaticProvider
+from minio.datatypes import PostPolicy
+from minio.deleteobjects import DeleteObject
 from starlette.concurrency import run_in_threadpool
 from urllib3 import PoolManager, Retry, Timeout
 
@@ -36,6 +38,81 @@ class Storage:
         self.public = Minio(
             settings.minio_public_endpoint, secure=settings.minio_public_use_ssl, **options
         )
+
+    async def direct_upload_grant(self, reservation):
+        def grant():
+            policy = PostPolicy(reservation.bucket, reservation.expires_at)
+            policy.add_equals_condition("key", reservation.key)
+            policy.add_equals_condition("Content-Type", reservation.content_type)
+            policy.add_content_length_range_condition(1, reservation.size_bytes)
+            fields = self.public.presigned_post_policy(policy)
+            fields.update({"key": reservation.key, "Content-Type": reservation.content_type})
+            scheme = "https" if self.settings.minio_public_use_ssl else "http"
+            return {
+                "method": "POST",
+                "url": f"{scheme}://{self.settings.minio_public_endpoint}/{reservation.bucket}",
+                "fields": fields,
+            }
+
+        try:
+            return await run_in_threadpool(grant)
+        except Exception:
+            raise MediaError(503, "storage signing unavailable") from None
+
+    async def verify_direct_upload(self, reservation, *, check_content=True):
+        def verify():
+            from media.services.media_type import SNIFF_LENGTH, sniff_video_type
+
+            stat = self.internal.stat_object(reservation.bucket, reservation.key)
+            version = stat.version_id
+            if not version or version == "null":
+                raise MediaError(503, "source versioning required")
+            if stat.size != reservation.size_bytes or stat.size > MAX_FILE_SIZE:
+                raise MediaError(422, "source size does not match reservation")
+            if stat.content_type != reservation.content_type:
+                raise MediaError(415, "source content type does not match reservation")
+            response = self.internal.get_object(
+                reservation.bucket, reservation.key, version_id=version
+            )
+            try:
+                digest, size, prefix = hashlib.sha256(), 0, b""
+                while chunk := response.read(1024 * 1024):
+                    size += len(chunk)
+                    if size > reservation.size_bytes:
+                        raise MediaError(422, "source size does not match reservation")
+                    prefix = (prefix + chunk)[:SNIFF_LENGTH]
+                    digest.update(chunk)
+                if size != reservation.size_bytes or digest.hexdigest() != reservation.sha256:
+                    raise MediaError(422, "source checksum does not match reservation")
+                if check_content and sniff_video_type(prefix) != reservation.content_type:
+                    raise MediaError(415, "source bytes do not match content type")
+                return version
+            finally:
+                response.close()
+                response.release_conn()
+
+        try:
+            return await run_in_threadpool(verify)
+        except MediaError:
+            raise
+        except Exception:
+            raise MediaError(503, "source object unavailable; retry finalization") from None
+
+    async def delete_direct_upload(self, reservation, *, preserve_version=None):
+        def remove():
+            # Versioned buckets need explicit version deletions, not a delete marker.
+            objects = self.internal.list_objects(
+                reservation.bucket, prefix=reservation.key, recursive=True, include_version=True
+            )
+            deletes = (
+                DeleteObject(obj.object_name, obj.version_id)
+                for obj in objects
+                if obj.object_name == reservation.key and obj.version_id != preserve_version
+            )
+            if list(self.internal.remove_objects(reservation.bucket, deletes)):
+                raise MediaError(503, "source cleanup deferred")
+
+        await run_in_threadpool(remove)
 
     async def put_source(self, key, stream, size, media_type):
         await run_in_threadpool(

@@ -126,16 +126,16 @@ def test_transport_replay_reopens_file_and_restores_key(factory, tmp_path):
     client = factory(peer)
     intents = Intents(tmp_path / "intents", [BASE, USER])
     identity = intents.identity("upload", ["clip.mp4", 13, "digest"])
-    first = cli.mutation(client, intents, identity, lambda key: client.upload(video, key))
+    first = cli.mutation(client, intents, identity, lambda key: client.legacy_upload(video, key))
     assert not first["ok"]
     assert "secret" not in first["error"]
     intents = Intents(tmp_path / "intents", [BASE, USER])
-    second = cli.mutation(client, intents, identity, lambda key: client.upload(video, key))
+    second = cli.mutation(client, intents, identity, lambda key: client.legacy_upload(video, key))
     assert second["ok"]
     assert first["intent_key"] == second["intent_key"]
     assert requests[0].headers["idempotency-key"] == requests[1].headers["idempotency-key"]
     assert intents.data == {}
-    third = cli.mutation(client, intents, identity, lambda key: client.upload(video, key))
+    third = cli.mutation(client, intents, identity, lambda key: client.legacy_upload(video, key))
     assert third["intent_key"] != second["intent_key"]
 
 
@@ -211,6 +211,8 @@ def args(tmp_path, *command):
 
 
 def install_peer(monkeypatch, handler):
+    # These frozen peers exercise the pre-Gateway multipart contract.
+    monkeypatch.setattr(PublicClient, "upload", PublicClient.legacy_upload)
     actual = PublicClient
     monkeypatch.setattr(
         cli,
@@ -443,7 +445,7 @@ def test_public_schema_conformance_and_explicit_ca(tmp_path, monkeypatch):
         client.authenticate("login", EMAIL, "password-fixture")
         video = tmp_path / "clip.mp4"
         video.write_bytes(b"fixture video")
-        assert client.upload(video, KEY) == ASSET
+        assert client.legacy_upload(video, KEY) == ASSET
         assert client.retry(ASSET, KEY) == ASSET
         assert client.status(ASSET)["status"] == "done"
     finally:
