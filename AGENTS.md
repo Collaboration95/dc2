@@ -31,3 +31,10 @@ For all GitHub access, use the authenticated `gh` CLI exclusively; do not use Gi
   remain prerequisites. This plan-publication task authorizes commit/push/Main
   merge after audit/checks, not AWS account operations or deployment. Local work
   can proceed. Required real-AWS evidence stays open Blocked until obtained.
+- Local VM resources: the project Lima VM defaults to 2 vCPU / 2 GiB (`make capacity-start`).
+  The 8 / 8 profile is for scaling measurements only and needs `CAPACITY_ARGS=--benchmark`;
+  never choose it for routine work, smoke checks or documentation. Every start takes an
+  expiring lease (2 h by default; `--keep-alive` for a demo, 24 h at most). Stop the VM you
+  started when the work ends (`make capacity-stop`), do not stop another task's unexpired
+  lease, and never let `status` or a background task start it. `make capacity-reap` stops a
+  VM whose lease lapsed. V1 verification (`make verify-v1`) needs no VM.

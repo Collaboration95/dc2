@@ -12,7 +12,7 @@ export PLAYWRIGHT_BROWSERS_PATH := $(CURDIR)/.local/playwright
 .PHONY: help setup setup-browser doctor doctor-infra lint test test-python test-frontend coverage \
         coverage-report integration integration-coverage clean test-app test-processing test-media \
         test-media-engine test-publisher test-cli publisher up down logs smoke-infra images env status local-tls \
-        browser browser-install browser-open browser-trust-smoke capacity-install capacity-start capacity-status capacity-stop capacity-env \
+        browser browser-install browser-open browser-trust-smoke capacity-install capacity-start capacity-status capacity-stop capacity-env capacity-reap capacity-renew \
         e2e verify-local evidence-status evidence-performance evidence-scaling evidence-recovery evidence-release release rollback
 
 help: ## List project commands
@@ -94,8 +94,11 @@ browser-open: ## Open the scoped project browser
 
 browser: browser-open ## Open the scoped project browser (alias of browser-open)
 
-capacity-install capacity-start capacity-status capacity-stop capacity-env: ## Delegate isolated capacity ACTION
-	$(PYTHON) scripts/dev/capacity.py $(patsubst capacity-%,%,$@)
+# Default VM is 2 CPU / 2 GiB with a 2 h lease. CAPACITY_ARGS examples: --benchmark (8/8, for
+# scaling measurements only), --lease-minutes 60, --keep-alive (demo, up to 24 h), --force.
+CAPACITY_ARGS ?=
+capacity-install capacity-start capacity-status capacity-stop capacity-env capacity-reap capacity-renew: ## Delegate isolated capacity ACTION (CAPACITY_ARGS for options)
+	$(PYTHON) scripts/dev/capacity.py $(patsubst capacity-%,%,$@) $(CAPACITY_ARGS)
 
 e2e: ## Full HTTPS browser/CLI workflow
 	$(PYTHON) -m scripts.dev.e2e --run-id "$(RUN_ID)"
