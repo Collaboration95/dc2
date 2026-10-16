@@ -1,0 +1,21 @@
+name: Diag (temporary)
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.17'
+      - run: uv sync --locked --extra legacy --extra dev --extra browser
+      - run: >-
+          .venv/bin/python -m pytest -q -p scripts.dev.pytest_plugin --offline-fast
+          tests/aws/v1/test_deploy.py -m "not integration" --durations=12 --timeout=300
