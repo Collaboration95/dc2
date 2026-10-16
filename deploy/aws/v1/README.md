@@ -8,7 +8,7 @@ Render offline from the repository root:
 ```sh
 PYTHONPATH="$PWD" python -m scripts.aws.v1.config \
   --config deploy/aws/v1/config.example.json --output-dir .cache/v1-render
-cfn-lint .cache/v1-render/template.json --regions ap-southeast-1
+python -m scripts.aws.v1.lint            # offline cfn-lint; skips if absent, --require in CI
 PYTHONPATH="$PWD" python -m pytest tests/aws/v1/test_infrastructure.py -q
 ```
 

@@ -31,7 +31,7 @@ including ambiguous reservations; no idle service or unattended launcher.
 | Check | Real observation | Consequence |
 |---|---|---|
 | Fargate on-demand quota | 6 vCPUs | Three 2-vCPU encoders fit; migration/generator must run separately |
-| Lambda account quota | 10 concurrent executions; 10 unreserved; zero functions | Positive per-function reservations conflict with AWS's 100-unit unreserved pool; session opening pending correction |
+| Lambda account quota | 10 concurrent executions; 10 unreserved; zero functions | Any reservation fails. Resolved in the session design: no reserved concurrency; SQS mapping MaximumConcurrency and Gateway throttling bound work (see 2026-10-16 facts) |
 | Aurora PostgreSQL 16.6 | `InvalidParameterCombination`: version unavailable | Do not deploy this version |
 | Aurora PostgreSQL 16.8 | Two orderable `db.serverless` options; engine advertises minimum 0 ACUs | Supported candidate; deployed pause/network behavior remains unproven |
 | Cost Explorer | 14 October UnblendedCost 0, Unit USD, Estimated true | Actual cost-report unit is USD; this does not confirm invoice/payment currency |
@@ -67,12 +67,46 @@ tasks the compute/IP rate is approximately $0.78472/hour, before requests,
 storage/logs/egress. The allowance requires operator observation and closeout;
 it is not a hard AWS budget cap. No account-wide budget changes are authorized.
 
+## Observed account facts, 2026-10-16 (read-only; re-verify before each run)
+
+- Lambda ConcurrentExecutions is 10 total and 10 unreserved. AWS keeps 10 unreserved, so
+  **any** reserved concurrency fails. The session design therefore reserves nothing:
+  mappings use `ScalingConfig.MaximumConcurrency` (minimum 2) and the HTTP API stage is
+  throttled. Close disables mappings and rules and zeroes the stage throttle; it does not
+  call `put-function-concurrency`.
+- Fargate On-Demand vCPU quota is 6: three encoders of at most 2 vCPU each; migration and
+  generator tasks must not overlap them.
+- Stack `dc2-v1-20261015t1146-bootstrap` from the previous sprint is present
+  (ROLLBACK_COMPLETE, no resources); a new foundation attempt must not reuse its name.
+- Budget `flickpond-monthly` is $30/month USD. It is an alert, not a verified cap, and
+  is separate from the approximately $200 planning envelope. The never-pauses forecast
+  ($43.87) exceeds it; the booked-use forecasts ($12.27 and $14.27) do not.
+
+## Session and release commands
+
+Explicit `--profile`, `--region ap-southeast-1` and `--account` are mandatory (no default
+profile). Add `--dry-run` first to print the planned calls. Inputs are the stack outputs
+saved to a private file and a nonsecret operator config naming the journal, outputs file
+and optional `sql` paths. See `deploy/aws/v1/README.md`.
+
+```sh
+python -m scripts.aws.v1.session init --confirm-empty --confirm-exclusive --config ops.json ...
+python -m scripts.aws.v1.session open|status|close --config ops.json ...
+python -m scripts.aws.v1.session window --config ops.json ...   # API only, for releases
+python -m scripts.aws.v1.release promote|restore|status --config ops.json ...
+```
+
+A failed or partial `close` is journaled (`closing`, `session_failures`), keeps every
+wake source disabled, and is resumed by running `close` again. It never records a
+database pause; Aurora capacity is observed separately and is evidence for #67.
+
 ## Reproduction and private state
 
 Run from the selected worktree with its own `PYTHONPATH`:
 
 ```sh
 PYTHONPATH="$PWD" python -m scripts.aws.v1_operator \
+  --profile <profile> --account <12-digit account> --operator-arn <IAM user ARN> \
   --output-dir /absolute/path/to/ignored/private/cache
 ```
 
@@ -93,7 +127,7 @@ images, secrets, snapshots and logs may continue billing. No backup/restore clai
 
 ## Still required
 
-Actual invoice currency, usable bounded Lambda reservations, valid infrastructure
+Actual invoice currency, the unverified Gateway-throttle-zero intake gate, valid infrastructure
 and image handoffs, deployed TLS/roles/SQL/migrations, workflow, recovery, releases,
 latency, pause and final bill reconciliation remain unproven. Keep #45 and
 #63–#67 open until their individual acceptance criteria have real receipts.

@@ -60,23 +60,43 @@ def calculate(data, *, hours=None, acu=None, clusters=None):
     }
 
 
-def main():
-    directory = Path(__file__).parent
-    data = json.loads((directory / "cost-inputs.json").read_text())
-    result = {
+def build(data):
+    scenarios = {
+        "v1_low": calculate(data),
+        "v1_one_acu": calculate(data, acu=1),
+        "v2_two_clusters_comparison": calculate(data, clusters=2),
+        "never_pauses_sensitivity": calculate(data, hours=336),
+    }
+    budget = data["observed_account_facts"]["budget_alert_usd_per_month"]
+    for scenario in scenarios.values():
+        # A forecast over the account's alert threshold is a decision point, not a failure.
+        scenario["exceeds_monthly_budget_alert"] = scenario["with_reserves_usd"] > budget
+    assumptions = data["assumptions"]
+    rates = data["rates_usd"]
+    return {
+        "document_kind": data["document_kind"],
         "status": data["status"],
         "region": data["region"],
         "currency_assumption": data["currency_assumption"],
         "planning_envelope": data["planning_envelope"],
+        "observed_account_facts": data["observed_account_facts"],
         "notes": data["notes"],
-        "scenarios": {
-            "v1_low": calculate(data),
-            "v1_one_acu": calculate(data, acu=1),
-            "v2_two_clusters_comparison": calculate(data, clusters=2),
-            "never_pauses_sensitivity": calculate(data, hours=336),
+        "marginal_rates_usd": {
+            # What one more hour of an open session costs, excluding retained storage.
+            "db_awake_hour_at_average_acu": round(
+                assumptions["db_average_acu"] * rates["acu_hour"], 6
+            ),
+            "encoder_task_hour_incl_ipv4": rates["fargate_worker_hour"],
+            "three_encoders_hour_incl_ipv4": round(3 * rates["fargate_worker_hour"], 5),
         },
+        "scenarios": scenarios,
     }
-    print(json.dumps(result, indent=2))
+
+
+def main():
+    directory = Path(__file__).parent
+    data = json.loads((directory / "cost-inputs.json").read_text())
+    print(json.dumps(build(data), indent=2))
 
 
 if __name__ == "__main__":

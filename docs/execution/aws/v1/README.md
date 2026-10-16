@@ -89,8 +89,9 @@ is assumed.
   remain real baseline commands. New V1 runtime/verification entrypoints are deliverables
   of the implementation issues; they are not silently assumed to exist today.
 - Keep emulator/fake, actual local service/encoding, hosted CI and genuine cloud
-  evidence separately identified. Existing deployment definitions and
-  `../job-inputs.template.json` are the old topology; V1 adapters/inputs are pending.
+  evidence separately identified. Cloud runs (#63-#67) fill in
+  [`job-inputs.template.json`](job-inputs.template.json) (V1 topology); the older
+  `../job-inputs.template.json` is the legacy topology and must not be reused.
 
 The approximately $200 ceiling uses USD as a worksheet assumption pending actual
 billing currency. Native Lambda authorization, DB pooling/pause, VPC IPv6 routes,

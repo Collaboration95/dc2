@@ -1,8 +1,22 @@
 {
+  "document_kind": "FORECAST_NOT_BILL",
   "status": "CONDITIONAL_PLAN_NOT_ACCOUNT_BILL",
   "region": "ap-southeast-1",
   "currency_assumption": "USD",
   "planning_envelope": 200,
+  "observed_account_facts": {
+    "observed_on": "2026-10-16",
+    "source": "read-only operator check; re-verify before each run",
+    "lambda_concurrent_executions_limit": 10,
+    "lambda_unreserved_concurrency": 10,
+    "lambda_reserved_concurrency_possible": false,
+    "fargate_on_demand_vcpu_quota": 6,
+    "max_encoders_at_2_vcpu": 3,
+    "budget_name": "flickpond-monthly",
+    "budget_alert_usd_per_month": 30,
+    "budget_is_hard_cap": "UNVERIFIED",
+    "previous_stack": "dc2-v1-20261015t1146-bootstrap (ROLLBACK_COMPLETE; no resources)"
+  },
   "notes": [
     "USD is a planning assumption; confirm actual account currency/scope in #45 before live work.",
     "DB awake time includes booked-session repair polling, startup, pause tails and maintenance.",
@@ -14,8 +28,17 @@
     "Storage is a planning allowance, not a measured minimum or cap. Extra snapshots/transfers/retries and actual active capacity can consume contingency.",
     "No Lambda encoding, Batch or always-warm worker savings assumed.",
     "Earlier legacy forecast remains reproducible in ../cost-worksheet.json; it is not the current topology.",
-    "Authorizer requests/duration are separately included; the assumed warm durations are not measured latency results."
+    "Authorizer requests/duration are separately included; the assumed warm durations are not measured latency results.",
+    "Audit 2026-10-16: no ECS-core, state-host, EC2, nginx or Redis rows remain in this model; compute is Lambda, HTTP API, SQS, one Aurora Serverless v2 cluster (0..2 ACU, auto-pause), Fargate encoders and the generator, S3, CloudFront and ECR.",
+    "The $30/month budget on the account is an alert threshold, distinct from the $200 planning envelope. Scenarios above it are flagged, not hidden; the never-pauses sensitivity exceeds it.",
+    "Lambda has no reserved concurrency (account limit 10), so there is no concurrency charge line. Open work is bounded by SQS MaximumConcurrency and Gateway throttling; this model assumes the same invocation counts.",
+    "This file forecasts; it is not a bill. Actual spend comes only from the cost-report receipts reconciled by scripts.aws.v1.cost."
   ],
+  "marginal_rates_usd": {
+    "db_awake_hour_at_average_acu": 0.1,
+    "encoder_task_hour_incl_ipv4": 0.12824,
+    "three_encoders_hour_incl_ipv4": 0.38472
+  },
   "scenarios": {
     "v1_low": {
       "db_awake_hours_each": 20,
@@ -48,7 +71,8 @@
       },
       "usage_usd": 5.27,
       "reserves_usd": 7,
-      "with_reserves_usd": 12.27
+      "with_reserves_usd": 12.27,
+      "exceeds_monthly_budget_alert": false
     },
     "v1_one_acu": {
       "db_awake_hours_each": 20,
@@ -81,7 +105,8 @@
       },
       "usage_usd": 7.27,
       "reserves_usd": 7,
-      "with_reserves_usd": 14.27
+      "with_reserves_usd": 14.27,
+      "exceeds_monthly_budget_alert": false
     },
     "v2_two_clusters_comparison": {
       "db_awake_hours_each": 20,
@@ -114,7 +139,8 @@
       },
       "usage_usd": 7.97,
       "reserves_usd": 7,
-      "with_reserves_usd": 14.97
+      "with_reserves_usd": 14.97,
+      "exceeds_monthly_budget_alert": false
     },
     "never_pauses_sensitivity": {
       "db_awake_hours_each": 336,
@@ -147,7 +173,8 @@
       },
       "usage_usd": 36.87,
       "reserves_usd": 7,
-      "with_reserves_usd": 43.87
+      "with_reserves_usd": 43.87,
+      "exceeds_monthly_budget_alert": true
     }
   }
 }
