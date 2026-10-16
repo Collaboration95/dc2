@@ -71,8 +71,8 @@ def rig(tmp_path):
     config, hooks, _ = config_from_outputs(outputs(), station="s", environment="e2e")
     journal = Journal(directory / "session.json", station="s", environment="e2e")
     journal.initialize(verified_empty=True, exclusive_station=True)
-    # The template deploys every function at reserved concurrency 0.
-    cloud = Cloud(account_limit=10, concurrency=dict.fromkeys(config["functions"], 0))
+    # The template reserves nothing: an account limit of 10 forbids any reservation.
+    cloud = Cloud(account_limit=10)
     session = Session(config, cloud, journal)
     owner = OwnerHooks(cloud, **hooks, sleep=lambda s: None)
     return session, cloud, journal, owner, config
@@ -90,26 +90,32 @@ def state(journal):
     return json.loads(journal.path.read_text())
 
 
-def test_account_limit_ten_opens_unreserved_and_never_requests_a_positive_reservation(rig):
+CONCURRENCY_CALLS = {
+    "put-function-concurrency",
+    "delete-function-concurrency",
+    "get-function-concurrency",
+    "get-account-settings",
+}
+
+
+def test_account_limit_ten_opens_without_touching_lambda_concurrency_at_all(rig):
     session, cloud, journal, owner, config = rig
     result = session.open(ready=owner.ready, repair=owner.repair, deadline=deadline())
     assert result["worker_starts"] == 0
-    puts = [c for c in cloud.calls if c["operation"] == "put-function-concurrency"]
-    assert {c["payload"]["ReservedConcurrentExecutions"] for c in puts} == {0}
-    assert "get-account-settings" not in cloud.operations()  # nothing positive to preflight
-    assert all(v is None for v in cloud.functions.values())  # unreserved while open
+    assert not CONCURRENCY_CALLS & set(cloud.operations())
     assert set(cloud.mappings.values()) == {"Enabled"}
     assert set(cloud.rules.values()) == {"ENABLED"}
     assert cloud.stage == {"ThrottlingBurstLimit": 10, "ThrottlingRateLimit": 5}
 
 
-def test_close_sets_zero_everywhere_and_disables_every_wake_source(rig):
+def test_close_disables_every_wake_source_and_the_edge_without_reservations(rig):
     session, cloud, journal, owner, config = rig
     session.open(ready=owner.ready, repair=owner.repair, deadline=deadline())
     reader = counts(succeeded=3)
     result = session.close(drain=reader.drain, outcomes=reader.outcomes, deadline=deadline())
     assert result["database_pause"] == "NOT_OBSERVED"
-    assert set(cloud.functions.values()) == {0}
+    # Close never depends on put-function-concurrency: mappings, rules and the edge close it.
+    assert not CONCURRENCY_CALLS & set(cloud.operations())
     assert set(cloud.mappings.values()) == {"Disabled"}
     assert set(cloud.rules.values()) == {"DISABLED"}
     assert cloud.stage == {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0}
@@ -136,19 +142,15 @@ def test_each_owner_is_probed_with_the_direct_readiness_event_before_intake_serv
     assert {"dc2_operation": "ready"} in [c["payload"]["Payload"] for c in probes]
     first_processing = invocations(cloud, "fn-ProcessingApi")[0]
     first_media = invocations(cloud, "fn-MediaApi")[0]
-    media_restore = max(
-        i
-        for i, c in enumerate(cloud.calls)
-        if c["operation"] == "delete-function-concurrency"
-        and c["payload"]["FunctionName"] == "fn-MediaApi"
-    )
     edge_open = max(i for i, c in enumerate(cloud.calls) if c["operation"] == "update-stage")
-    # A quiesced function cannot be invoked: Media is probed after restore, before the edge.
-    assert first_processing < media_restore < first_media < edge_open
+    # Both owners are proven ready before the public edge opens.
+    assert first_processing < first_media < edge_open
 
 
 def test_failed_intake_probe_requiesces_intake_and_leaves_the_edge_closed(rig):
-    session, cloud, journal, owner, config = rig
+    _, cloud, journal, owner, config = rig
+    config["zero_reservation"] = "required"
+    session = Session(config, cloud, journal)
     real = cloud.call
 
     def call(service, operation, payload, *, deadline):
@@ -181,8 +183,6 @@ def test_window_serves_only_the_public_api_and_never_enables_background_work(rig
     assert result["session"] == "window"
     assert set(cloud.mappings.values()) <= {"Disabled"}
     assert set(cloud.rules.values()) <= {"DISABLED"}
-    assert cloud.functions["fn-ProcessingApi"] is None and cloud.functions["fn-MediaApi"] is None
-    assert cloud.functions.get("fn-ProcessingCommands", 0) == 0
     assert state(journal)["paused"] is True
     assert session.status(deadline=deadline())["drift"] == []
     with pytest.raises(OperationError, match="Open unpaused"):
@@ -217,7 +217,9 @@ def test_positive_reservation_is_applied_when_the_account_keeps_the_unreserved_p
 
 
 def test_refused_zero_reservation_fails_close_unless_gateway_gate_makes_it_best_effort(rig):
-    session, cloud, journal, owner, config = rig
+    _, cloud, journal, owner, config = rig
+    config["zero_reservation"] = "required"
+    session = Session(config, cloud, journal)
     session.open(ready=owner.ready, repair=owner.repair, deadline=deadline())
     cloud.fail.add("put-function-concurrency")
     reader = counts()
@@ -233,7 +235,7 @@ def test_refused_zero_reservation_fails_close_unless_gateway_gate_makes_it_best_
 
 def test_best_effort_without_an_edge_gate_is_rejected(rig):
     _, cloud, journal, _, config = rig
-    config["zero_reservation"] = "best-effort"
+    config["zero_reservation"] = "off"
     del config["gateway"]
     with pytest.raises(OperationError, match="edge throttle gate"):
         Session(config, cloud, journal)
@@ -448,10 +450,11 @@ def test_dry_run_prints_planned_calls_without_building_a_live_transport(action, 
         }
 
 
-def test_dry_run_open_plans_unreserved_functions_and_invokes_the_real_hooks(tmp_path):
+def test_dry_run_open_plans_edge_and_probes_without_lambda_concurrency_calls(tmp_path):
     code, out = run("open", "--config", str(operator_files(tmp_path)), *SCOPE, "--dry-run")
     ops = [c["operation"] for c in out["planned_calls"]]
-    assert "delete-function-concurrency" in ops and "invoke" in ops and "update-stage" in ops
+    assert "invoke" in ops and "update-stage" in ops
+    assert not CONCURRENCY_CALLS & set(ops)
     probes = [c["payload"]["Payload"] for c in out["planned_calls"] if c["operation"] == "invoke"]
     assert {"dc2_operation": "ready"} in probes
     assert out["result"]["worker_starts"] == 0 and "simulated" in out

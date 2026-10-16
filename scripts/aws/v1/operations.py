@@ -83,7 +83,7 @@ def config_from_outputs(
                 "stage": "$default",
                 "open": dict(edge_open or DEFAULT_EDGE_OPEN),
             },
-            "zero_reservation": "required",
+            "zero_reservation": "off",
             "cluster": outputs["ClusterArn"],
             "task_definitions": {"worker": outputs["WorkerTaskDefinitionArn"]},
             "network": {

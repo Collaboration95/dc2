@@ -4,8 +4,11 @@ There is no SDK, credential discovery or live transport in this module. The old
 AWS2 transport remains unchanged. One private Journal is the designated operator
 station; it is not a distributed lock. Every launcher must share that station.
 
-Concurrency model: the template deploys every function at reserved concurrency 0.
-A function configured with an int is reserved at that value, which Lambda only allows
+Concurrency model: the template reserves nothing (the account limit of 10 forbids any
+reservation) and is closed through disabled mappings/rules and a zero Gateway throttle,
+so the default zero_reservation policy "off" never calls the Lambda concurrency APIs.
+Older configurations may keep "required"/"best-effort" zero reservations. A function
+configured with an int is reserved at that value, which Lambda only allows
 while the account keeps MINIMUM_UNRESERVED executions free (checked before any change);
 one configured with None is unreserved while open, the only option under a small
 account limit. Close always writes 0, which Lambda permits whatever the account limit.
@@ -19,7 +22,7 @@ from scripts.aws.transport import OperationError, remaining, safe_record
 from scripts.aws.workers import worker_inventory
 
 MINIMUM_UNRESERVED = 100
-ZERO_POLICIES = {"required", "best-effort"}
+ZERO_POLICIES = {"required", "best-effort", "off"}
 
 
 def _bounded(value):
@@ -47,8 +50,8 @@ class Session:
                 or not all(type(limits.get(k)) is int and limits[k] > 0 for k in ("rate", "burst"))
             ):
                 raise OperationError("Edge gate needs api_id, stage and positive open limits")
-        if policy == "best-effort" and gateway is None:
-            raise OperationError("Best-effort zero reservation requires the edge throttle gate")
+        if policy != "required" and gateway is None:
+            raise OperationError("Without required zero reservations the edge throttle gate is needed")
         if not set(config.get("intake_functions", [])) <= functions.keys():
             raise OperationError("Intake function must belong to this session")
         if not config.get("intake_functions"):
@@ -69,6 +72,8 @@ class Session:
 
     def _concurrency(self, name, value, deadline):
         """value None removes the reservation; the observed state must match either way."""
+        if value is None and self.config.get("zero_reservation") == "off":
+            return  # No reservation exists to remove; the account limit forbids creating one.
         if value is None:
             self.call("lambda", "delete-function-concurrency", {"FunctionName": name}, deadline)
         else:
@@ -83,7 +88,10 @@ class Session:
             raise OperationError("Function concurrency was not confirmed")
 
     def _zero(self, name, deadline, warnings):
-        """Quiesce one function; best-effort mode records a refusal instead of failing."""
+        """Quiesce one function; best-effort records a refusal, off never calls Lambda."""
+        policy = self.config.get("zero_reservation", "required")
+        if policy == "off":
+            return
         try:
             self._concurrency(name, 0, deadline)
         except OperationError:
@@ -274,6 +282,8 @@ class Session:
             for name, value in functions.items():
                 serving = api and (live is None or name in live)
                 want = self.config["functions"][name] if serving else 0
+                if self.config.get("zero_reservation") == "off" and want in {None, 0}:
+                    want = None  # Reservations are not used at all in this mode.
                 want = "unreserved" if want is None else want
                 if value != want:
                     drift.append(f"function:{name}={value}")

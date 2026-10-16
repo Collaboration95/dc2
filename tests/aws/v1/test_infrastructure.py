@@ -197,7 +197,7 @@ def test_closed_defaults_finite_worker_and_partial_batches():
         assert mapping["Enabled"] is False
     for resource in resources.values():
         if resource["Type"] == "AWS::Lambda::Function":
-            assert resource["Properties"]["ReservedConcurrentExecutions"] == 0
+            assert "ReservedConcurrentExecutions" not in resource["Properties"]
             assert resource["Properties"]["VpcConfig"]["Ipv6AllowedForDualStack"] is True
             assert resource["Condition"] == "Applications"
     worker = resources["WorkerTaskDefinition"]["Properties"]["ContainerDefinitions"][0]
@@ -264,12 +264,9 @@ def test_template_is_closed_safe_and_never_requires_positive_reservations():
     """Account limit 10 leaves nothing reservable; only the session API may open the stack."""
     built = template()
     resources = built["Resources"]
-    assert "Fn::If" not in json.dumps(
-        [r["Properties"].get("ReservedConcurrentExecutions") for r in resources.values()]
-    )
     functions = [r for r in resources.values() if r["Type"] == "AWS::Lambda::Function"]
     assert functions
-    assert {r["Properties"]["ReservedConcurrentExecutions"] for r in functions} == {0}
+    assert all("ReservedConcurrentExecutions" not in r["Properties"] for r in functions)
     # Without per-function reservations the SQS consumers carry the explicit bound.
     for name in ("ProcessingCommandsMapping", "MediaResultsMapping"):
         assert resources[name]["Properties"]["ScalingConfig"] == {"MaximumConcurrency": 2}

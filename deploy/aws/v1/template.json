@@ -3082,7 +3082,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": 0,
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -3220,7 +3219,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": 0,
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -3358,7 +3356,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": 0,
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -3483,7 +3480,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": 0,
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -3608,7 +3604,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": 0,
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -3743,7 +3738,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": 0,
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -3878,7 +3872,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": 0,
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -4003,7 +3996,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": 0,
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -4128,7 +4120,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": 0,
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",

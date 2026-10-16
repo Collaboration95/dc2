@@ -69,26 +69,47 @@ remains queued until another explicitly authorized operator batch.
 
 ## Concurrency and session model
 
-The operator reported an account Lambda concurrency limit of **10**. Lambda keeps 10
-executions unreserved, so no function may hold a positive reservation there; a
-reservation of **0** is always permitted. The model therefore never depends on positive
-reservations:
+Observed account facts, read-only check, **2026-10-16** (re-verify before each run):
+
+- Lambda `ConcurrentExecutions` is **10** total and 10 unreserved. AWS requires the
+  account to keep 10 unreserved, so **any** reserved concurrency fails.
+- Fargate On-Demand vCPU quota is **6**: three encoders of at most 2 vCPU each.
+- Stack `dc2-v1-20261015t1146-bootstrap` from the previous sprint (rolled back) exists.
+- Budget `flickpond-monthly` is **$30/month USD**; the planning envelope in
+  `docs/execution/aws/v1/cost-model.json` is separate and larger. A budget is an alert,
+  not proof of a spend cap.
+
+The model therefore uses **no Lambda reserved concurrency anywhere**, and close does
+not depend on `put-function-concurrency`:
 
 | Control | Template (closed-safe default) | Session open | Session close |
 |---|---|---|---|
-| Function reserved concurrency | `0` on every function | `delete-function-concurrency` (unreserved), or `put` an explicit value only when a preflight proves the account allows it | `put` `0` |
-| SQS consumers | mappings `Enabled: false`, `MaximumConcurrency: 2` | enabled | disabled |
+| Function reserved concurrency | none | none (config `zero_reservation: "off"`) | none |
+| SQS consumers | mappings `Enabled: false`, `MaximumConcurrency: 2` (the SQS minimum) | enabled | disabled |
 | Repair/event rules | `DISABLED` | enabled | disabled |
 | Gateway stage throttle | rate 0 / burst 0 | configured open limits | `0` / `0` |
 
-Open work is bounded by the account limit, the two mappings' `MaximumConcurrency` and
-the Gateway throttle, not by per-function reservations. There is **one runtime
-authority**: the session API. The earlier `SessionOpen`/`Open` template condition is
-removed so a stack update can never contradict an operator-opened session. A stack
-update that changes a mapping, rule or stage may re-apply the closed defaults; run
+Open work is bounded by the account limit of 10, the two mappings' `MaximumConcurrency`
+and the Gateway throttle. There is **one runtime authority**: the session API
+(`python -m scripts.aws.v1.session`). The earlier `SessionOpen`/`Open` template condition
+is removed so a stack update cannot contradict an operator-opened session. A stack update
+that changes a mapping, rule or stage may re-apply the closed defaults; run
 `session status` afterward and re-open if it reports drift. Gateway throttle zero as an
-intake gate is an unverified live behavior (#63); the Lambda zero reservation on the
-intake functions remains the primary gate.
+intake gate is an unverified live behavior (#63), and it is the only intake gate here:
+verify it with a real request while closed before relying on it. Accounts with a larger
+quota may opt into explicit reservations (`reservations` in the operator config and
+`zero_reservation: "required"`); the session then preflights the unreserved pool first.
+
+Operator CLIs (all need `--profile`, `--region ap-southeast-1` and `--account`; there is
+no default profile; `--dry-run` prints the planned calls with no AWS access):
+
+```sh
+python -m scripts.aws.v1.session init|open|window|close|batch|status --config <ops.json> ...
+python -m scripts.aws.v1.release promote|restore|status --config <ops.json> ...
+```
+
+`window` serves only the public API (consumers, rules and workers stay disabled) so a
+release can be smoke-tested through the Gateway; end it with `close`.
 
 ## Interfaces and permissions
 

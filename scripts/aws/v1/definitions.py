@@ -636,10 +636,6 @@ def template():
                 "Timeout": 10 if name == "MediaAuthorizer" else 60,
                 "MemorySize": 2048 if name.endswith("Api") else 512,
                 "Architectures": ["x86_64"],
-                # Closed-safe default. The session API (scripts.aws.v1.session) is the only
-                # runtime authority that lifts it; the account limit may forbid positive
-                # reservations, so opening deletes the reservation rather than raising it.
-                "ReservedConcurrentExecutions": 0,
                 "Environment": {"Variables": env},
                 "VpcConfig": {
                     "SubnetIds": [ref("PrivateASubnet"), ref("PrivateBSubnet")],
@@ -699,7 +695,8 @@ def template():
             "ApiId": ref("HttpApi"),
             "StageName": "$default",
             "AutoDeploy": True,
-            # Closed by default; the session API applies the open limits at runtime.
+            # Closed by default (account limit 10 forbids Lambda reservations, so this and
+            # the disabled mappings/rules are the gates); the session API opens it.
             "DefaultRouteSettings": {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0},
         },
         app=True,
