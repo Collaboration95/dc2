@@ -8,7 +8,7 @@ Render offline from the repository root:
 ```sh
 PYTHONPATH="$PWD" python -m scripts.aws.v1.config \
   --config deploy/aws/v1/config.example.json --output-dir .cache/v1-render
-cfn-lint .cache/v1-render/template.json --regions ap-southeast-1
+python -m scripts.aws.v1.lint            # offline cfn-lint; skips if absent, --require in CI
 PYTHONPATH="$PWD" python -m pytest tests/aws/v1/test_infrastructure.py -q
 ```
 
@@ -30,7 +30,8 @@ verified account; do not run inherited AWS2 deploy paths.
 1. Review current regional engine orderability, service quotas and cost inputs.
    Default PostgreSQL **16.8** comes from the operator's actual Singapore inventory;
    16.6 was unavailable. Verify minimum-zero Serverless v2 support at apply time.
-2. Provision foundation with `deploy_applications=false`, `session_open=false`.
+2. Provision foundation with `deploy_applications=false`. There is no `session_open`
+   input: the template is always closed-safe (see "Concurrency and session model").
    Set all five future SSM parameter ARNs to distinct project paths; their secret
    values are not needed for this phase. The generated template is larger than
    CloudFormation's inline 51,200-byte limit: use the operator's private encrypted
@@ -54,11 +55,10 @@ verified account; do not run inherited AWS2 deploy paths.
    IPv4 address and the migration SG. Use its own migration DSN only. Check real
    negative cross-database/DDL tests before intake. Migration tasks must complete
    before encoder batches: the observed Fargate quota was only six vCPUs.
-7. Open only through Lead C's bounded session controls after readiness and quotas
-   pass. Default reserved concurrency is zero; no unbounded fallback is selected.
-   The operator observed account Lambda concurrency **10**, which cannot support
-   positive reservations with AWS's minimum unreserved pool. Resolve that quota
-   prerequisite before opening; infrastructure-only deployment can proceed.
+7. Open only through the session API (`python -m scripts.aws.v1.session open ...`)
+   after readiness and quotas pass. The template deploys every function with reserved
+   concurrency 0, both mappings and all four rules disabled, and Gateway throttle 0.
+   See "Concurrency and session model" for how the account limit of 10 is handled.
 
 No ECS service, autoscaler or automatic worker starts exist. `WorkerTaskDefinitionArn`
 is one finite 2-vCPU/4-GiB task; Lead C's inventory/journal gate enforces cap three,
@@ -66,6 +66,50 @@ including unresolved launches. `DC2_WORKER_CAP=3` is documentary process input,
 not an ECS-enforced quota. The worker command must receive an absolute
 `--deadline-epoch` and unique `--name` from the launcher before RunTask. Late work
 remains queued until another explicitly authorized operator batch.
+
+## Concurrency and session model
+
+Observed account facts, read-only check, **2026-10-16** (re-verify before each run):
+
+- Lambda `ConcurrentExecutions` is **10** total and 10 unreserved. AWS requires the
+  account to keep 10 unreserved, so **any** reserved concurrency fails.
+- Fargate On-Demand vCPU quota is **6**: three encoders of at most 2 vCPU each.
+- Stack `dc2-v1-20261015t1146-bootstrap` from the previous sprint (rolled back) exists.
+- Budget `flickpond-monthly` is **$30/month USD**; the planning envelope in
+  `docs/execution/aws/v1/cost-model.json` is separate and larger. A budget is an alert,
+  not proof of a spend cap.
+
+The model therefore uses **no Lambda reserved concurrency anywhere**, and close does
+not depend on `put-function-concurrency`:
+
+| Control | Template (closed-safe default) | Session open | Session close |
+|---|---|---|---|
+| Function reserved concurrency | none | none (config `zero_reservation: "off"`) | none |
+| SQS consumers | mappings `Enabled: false`, `MaximumConcurrency: 2` (the SQS minimum) | enabled | disabled |
+| Repair/event rules | `DISABLED` | enabled | disabled |
+| Gateway stage throttle | rate 0 / burst 0 | configured open limits | `0` / `0` |
+
+Open work is bounded by the account limit of 10, the two mappings' `MaximumConcurrency`
+and the Gateway throttle. There is **one runtime authority**: the session API
+(`python -m scripts.aws.v1.session`). The earlier `SessionOpen`/`Open` template condition
+is removed so a stack update cannot contradict an operator-opened session. A stack update
+that changes a mapping, rule or stage may re-apply the closed defaults; run
+`session status` afterward and re-open if it reports drift. Gateway throttle zero as an
+intake gate is an unverified live behavior (#63), and it is the only intake gate here:
+verify it with a real request while closed before relying on it. Accounts with a larger
+quota may opt into explicit reservations (`reservations` in the operator config and
+`zero_reservation: "required"`); the session then preflights the unreserved pool first.
+
+Operator CLIs (all need `--profile`, `--region ap-southeast-1` and `--account`; there is
+no default profile; `--dry-run` prints the planned calls with no AWS access):
+
+```sh
+python -m scripts.aws.v1.session init|open|window|close|batch|status --config <ops.json> ...
+python -m scripts.aws.v1.release promote|restore|status --config <ops.json> ...
+```
+
+`window` serves only the public API (consumers, rules and workers stay disabled) so a
+release can be smoke-tested through the Gateway; end it with `close`.
 
 ## Interfaces and permissions
 
@@ -105,7 +149,7 @@ cannot SQS-send. Workers may GET source versions and PUT outputs, never mutate
 source objects or read Media DB parameters. Explicit queue denies also constrain
 producers/consumers. The repair tick runs each minute during open sessions; ECS
 terminal and output-created events are bounded recovery hints. Closed sessions
-disable all four rules and both mappings; Lead C controls concurrency and drain.
+disable all four rules and both mappings; the session API controls concurrency and drain.
 
 Private dual-stack Lambda/DB subnets span two AZs. Lambda SDK traffic uses
 `AWS_USE_DUALSTACK_ENDPOINT=true` and IPv6 egress-only routing. Private subnets

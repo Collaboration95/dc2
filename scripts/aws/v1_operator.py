@@ -1,7 +1,11 @@
 """Scoped, read-only V1 account preflight. Never loads the default AWS profile.
 
-Run from the intended checkout: python -m scripts.aws.v1_operator --output-dir
-<ignored private directory>. Receipts contain account/resource metadata, not secrets.
+Run from the intended checkout: python -m scripts.aws.v1_operator --profile <name>
+--account <12 digits> --operator-arn <IAM ARN> --output-dir <ignored private directory>.
+The same values may come from DC2_AWS_PROFILE, DC2_AWS_ACCOUNT and DC2_AWS_OPERATOR_ARN.
+They are operator input, not source: a hard-coded account would let a stale checkout
+verify (and then mutate) the wrong identity. Receipts contain account/resource
+metadata, not secrets.
 """
 from __future__ import annotations
 
@@ -9,15 +13,43 @@ import argparse
 import datetime as dt
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
 
-PROFILE = "dc2-project2"
 REGION = "ap-southeast-1"
-ACCOUNT = "866865534361"
-OPERATOR = f"arn:aws:iam::{ACCOUNT}:user/Guruprasath"
-NAMESPACE = "dc2-v1-20261015t1146"
+NAMESPACE = os.environ.get("DC2_V1_NAMESPACE", "dc2-v1-20261015t1146")
+# Empty until configure()/environment supplies them; every AWS call refuses to run unscoped.
+PROFILE = os.environ.get("DC2_AWS_PROFILE", "")
+ACCOUNT = os.environ.get("DC2_AWS_ACCOUNT", "")
+OPERATOR = os.environ.get("DC2_AWS_OPERATOR_ARN", "")
+
+
+def configure(profile: str, account: str, operator_arn: str) -> None:
+    """Bind the explicit operator scope. Rejects defaults and mismatched identities."""
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", profile or "") or profile == "default":
+        raise ValueError("An explicit non-default AWS profile is required")
+    if not re.fullmatch(r"[0-9]{12}", account or ""):
+        raise ValueError("An explicit 12-digit account is required")
+    user = rf"arn:aws:iam::{account}:user/[A-Za-z0-9+=,.@_/-]{{1,64}}"
+    if not re.fullmatch(user, operator_arn or ""):
+        raise ValueError("Operator ARN must be an IAM user in the explicit account")
+    global PROFILE, ACCOUNT, OPERATOR
+    PROFILE, ACCOUNT, OPERATOR = profile, account, operator_arn
+
+
+def add_scope_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--profile", default=os.environ.get("DC2_AWS_PROFILE"))
+    parser.add_argument("--account", default=os.environ.get("DC2_AWS_ACCOUNT"))
+    parser.add_argument("--operator-arn", default=os.environ.get("DC2_AWS_OPERATOR_ARN"))
+
+
+def apply_scope(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    try:
+        configure(args.profile, args.account, args.operator_arn)
+    except ValueError as error:
+        parser.error(str(error))
 
 
 def sanitized_environment() -> dict[str, str]:
@@ -31,6 +63,8 @@ def sanitized_environment() -> dict[str, str]:
 
 
 def aws(args: list[str]) -> dict[str, Any]:
+    if not PROFILE or not ACCOUNT:
+        raise RuntimeError("Explicit profile and account are required; no default profile")
     command = [
         "aws", "--profile", PROFILE, "--region", REGION, "--no-cli-pager",
         "--output", "json", "--cli-connect-timeout", "10", "--cli-read-timeout", "20",
@@ -100,7 +134,9 @@ def queries() -> dict[str, list[str]]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
+    add_scope_arguments(parser)
     args = parser.parse_args()
+    apply_scope(parser, args)
     private_receipt(args.output_dir, "identity", verify_identity())
     failures = []
     for name, command in queries().items():

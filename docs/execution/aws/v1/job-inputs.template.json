@@ -1,0 +1,99 @@
+{
+  "document_kind": "JOB_INPUT_TEMPLATE_NONSECRET",
+  "topology": "v1-gateway-lambda-sqs-aurora-fargate",
+  "instructions": "Copy to an ignored private path, replace every null, and never commit the filled copy. Values are references and facts only: no credentials, DSNs, cookies or signed URLs. Forecasts are not bills.",
+  "scope": {
+    "account_id": null,
+    "profile_name": null,
+    "operator_arn": null,
+    "region": "ap-southeast-1",
+    "namespace": null,
+    "authorization_reference": null,
+    "billing_currency_and_tax": null
+  },
+  "spend": {
+    "planning_envelope_usd": 200,
+    "account_budget_name": "flickpond-monthly",
+    "account_budget_alert_usd_per_month": 30,
+    "budget_is_hard_cap": "UNVERIFIED",
+    "run_allowance_usd": null,
+    "forecast_reference": "docs/execution/aws/v1/cost-model.json",
+    "forecast_scenario_selected": null,
+    "forecast_is_a_bill": false
+  },
+  "quotas_observed": {
+    "observed_on": null,
+    "lambda_concurrent_executions": null,
+    "lambda_unreserved": null,
+    "fargate_on_demand_vcpu": null
+  },
+  "session": {
+    "open_utc": null,
+    "planned_close_utc": null,
+    "edge_open_throttle": {"rate": 5, "burst": 10},
+    "lambda_reserved_concurrency": "none",
+    "sqs_mapping_maximum_concurrency": 2,
+    "max_encoder_tasks": 3,
+    "encoder_vcpu": 2,
+    "encoder_memory_gib": 4,
+    "worker_lifetime_seconds": 1800,
+    "database_min_acu": 0,
+    "database_max_acu": 2
+  },
+  "sources": {
+    "deployment_source_sha": null,
+    "image_digests": {"media": null, "processing": null, "worker": null},
+    "template_sha256": null,
+    "parameters_sha256": null,
+    "stack_outputs_file": null
+  },
+  "workload": {
+    "long_fixture_submissions": 6,
+    "fixture_references": [],
+    "smoke_user_reference": null,
+    "stored_source_retry_cases": []
+  },
+  "evidence": {
+    "private_directory": null,
+    "issues": {
+      "63": "NOT_RUN",
+      "64": "NOT_RUN",
+      "65": "NOT_RUN",
+      "66": "NOT_RUN",
+      "67": "NOT_RUN"
+    },
+    "receipt_kinds_required": [
+      "sts_identity",
+      "stack_outputs",
+      "session_open",
+      "release_promote_and_restore",
+      "public_smoke",
+      "session_close",
+      "aurora_capacity_observation",
+      "cost_report"
+    ]
+  },
+  "close_handoff": {
+    "close_result": null,
+    "running_tasks_after_close": null,
+    "mappings_disabled": null,
+    "rules_disabled": null,
+    "edge_throttle_after_close": null,
+    "queued_work_retained": null,
+    "attempt_outcome_counts": null,
+    "aurora_acu_observed_after_five_idle_minutes": null,
+    "database_pause": "NOT_OBSERVED",
+    "possible_remaining_charges": ["aurora storage and maintenance wake", "s3", "ecr", "logs", "cloudfront", "sqs requests"]
+  },
+  "restore_handoff": {
+    "pending_release_id": null,
+    "prior_versions": {},
+    "schema_rollback": false,
+    "reopen_requires": ["session status shows no drift", "readiness probes pass", "repair tick clean"]
+  },
+  "teardown": {
+    "owner": null,
+    "data_export_and_deletion_owner": null,
+    "deletion_authorized": false
+  }
+}

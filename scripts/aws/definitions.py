@@ -572,7 +572,7 @@ def environment_template():
         "ProcessingMigration": (512, 1024),
     }
     commands = {
-        "Media": ["uvicorn", "media.main:app", "--host", "0.0.0.0", "--port", "8000"],
+        "Media": ["uvicorn", "media.main:legacy_app", "--host", "0.0.0.0", "--port", "8000"],
         "Api": ["uvicorn", "processing.main:app", "--host", "0.0.0.0", "--port", "8000"],
         "Recovery": ["python", "-m", "processing.recovery"],
         "Worker": [

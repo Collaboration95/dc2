@@ -203,6 +203,25 @@ def _validate_definition(transport, reference, digest, deadline):
         raise OperationError("Task definition must use exact owning artifact")
 
 
+def validate_inputs(config, *, owner, bundle, image_uri, worker_definition):
+    """Offline release-input gates shared by promote and its --dry-run. Returns the digest."""
+    validate_bundle(bundle, owner=owner)
+    owners = config.get("owner_functions", {})
+    if set(owners) != {"media", "processing"} or any(not v for v in owners.values()):
+        raise OperationError("Both complete owner function maps are required")
+    names = [name for functions in owners.values() for name in functions.values()]
+    if len(names) != len(set(names)):
+        raise OperationError("Owner function maps must be disjoint without duplicates")
+    digest = bundle["api"]["manifest_digest"]
+    if "@" not in image_uri or image_uri.rsplit("@", 1)[-1] != digest:
+        raise OperationError("Image URI must pin tested registry manifest")
+    if owner == "processing" and not worker_definition:
+        raise OperationError("Processing finite worker definition required")
+    if owner == "media" and worker_definition is not None:
+        raise OperationError("Media cannot change Processing worker")
+    return digest
+
+
 def promote(
     config,
     transport,
@@ -228,20 +247,13 @@ def promote(
     worker_definition, deadline=...) exercises the public V1 contracts; it must
     stop/drain any finite test workers before returning. No fixture is AWS proof.
     """
-    validate_bundle(bundle, owner=owner)
-    owners = config.get("owner_functions", {})
-    if set(owners) != {"media", "processing"} or any(not v for v in owners.values()):
-        raise OperationError("Both complete owner function maps are required")
-    names = [name for functions in owners.values() for name in functions.values()]
-    if len(names) != len(set(names)):
-        raise OperationError("Owner function maps must be disjoint without duplicates")
-    digest = bundle["api"]["manifest_digest"]
-    if image_uri.rsplit("@", 1)[-1] != digest or "@" not in image_uri:
-        raise OperationError("Image URI must pin tested registry manifest")
-    if owner == "processing" and not worker_definition:
-        raise OperationError("Processing finite worker definition required")
-    if owner == "media" and worker_definition is not None:
-        raise OperationError("Media cannot change Processing worker")
+    digest = validate_inputs(
+        config,
+        owner=owner,
+        bundle=bundle,
+        image_uri=image_uri,
+        worker_definition=worker_definition,
+    )
     journal.check_context(config)
     with journal.locked() as state:
         remaining(deadline, clock)
@@ -434,3 +446,10 @@ def restore(config, transport, journal, *, schema_revision, quiescent, public_sm
         state["pending_release"] = None
         journal.save(state)
         return receipt
+
+
+if __name__ == "__main__":
+    # Lazy: the CLI module imports promote/restore from here.
+    from scripts.aws.v1.release_cli import main
+
+    raise SystemExit(main())

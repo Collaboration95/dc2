@@ -14,14 +14,6 @@
         "false"
       ]
     },
-    "SessionOpen": {
-      "Type": "String",
-      "Default": "false",
-      "AllowedValues": [
-        "true",
-        "false"
-      ]
-    },
     "AuroraEngineVersion": {
       "Type": "String",
       "Default": "16.8"
@@ -115,26 +107,6 @@
           "Ref": "DeployApplications"
         },
         "true"
-      ]
-    },
-    "Open": {
-      "Fn::And": [
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "SessionOpen"
-            },
-            "true"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "DeployApplications"
-            },
-            "true"
-          ]
-        }
       ]
     }
   },
@@ -3110,13 +3082,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": {
-          "Fn::If": [
-            "Open",
-            2,
-            0
-          ]
-        },
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -3254,13 +3219,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": {
-          "Fn::If": [
-            "Open",
-            1,
-            0
-          ]
-        },
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -3398,13 +3356,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": {
-          "Fn::If": [
-            "Open",
-            2,
-            0
-          ]
-        },
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -3529,13 +3480,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": {
-          "Fn::If": [
-            "Open",
-            1,
-            0
-          ]
-        },
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -3660,13 +3604,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": {
-          "Fn::If": [
-            "Open",
-            1,
-            0
-          ]
-        },
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -3801,13 +3738,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": {
-          "Fn::If": [
-            "Open",
-            1,
-            0
-          ]
-        },
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -3942,13 +3872,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": {
-          "Fn::If": [
-            "Open",
-            1,
-            0
-          ]
-        },
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -4073,13 +3996,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": {
-          "Fn::If": [
-            "Open",
-            1,
-            0
-          ]
-        },
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -4204,13 +4120,6 @@
         "Architectures": [
           "x86_64"
         ],
-        "ReservedConcurrentExecutions": {
-          "Fn::If": [
-            "Open",
-            1,
-            0
-          ]
-        },
         "Environment": {
           "Variables": {
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
@@ -4325,13 +4234,10 @@
         "FunctionResponseTypes": [
           "ReportBatchItemFailures"
         ],
-        "Enabled": {
-          "Fn::If": [
-            "Open",
-            true,
-            false
-          ]
-        }
+        "ScalingConfig": {
+          "MaximumConcurrency": 2
+        },
+        "Enabled": false
       },
       "Condition": "Applications"
     },
@@ -4352,13 +4258,10 @@
         "FunctionResponseTypes": [
           "ReportBatchItemFailures"
         ],
-        "Enabled": {
-          "Fn::If": [
-            "Open",
-            true,
-            false
-          ]
-        }
+        "ScalingConfig": {
+          "MaximumConcurrency": 2
+        },
+        "Enabled": false
       },
       "Condition": "Applications"
     },
@@ -4381,8 +4284,8 @@
         "StageName": "$default",
         "AutoDeploy": true,
         "DefaultRouteSettings": {
-          "ThrottlingBurstLimit": 10,
-          "ThrottlingRateLimit": 5
+          "ThrottlingBurstLimit": 0,
+          "ThrottlingRateLimit": 0
         }
       },
       "Condition": "Applications"
@@ -4974,13 +4877,7 @@
     "MediaRepairRule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
-        "State": {
-          "Fn::If": [
-            "Open",
-            "ENABLED",
-            "DISABLED"
-          ]
-        },
+        "State": "DISABLED",
         "Targets": [
           {
             "Arn": {
@@ -5020,13 +4917,7 @@
     "ProcessingRepairRule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
-        "State": {
-          "Fn::If": [
-            "Open",
-            "ENABLED",
-            "DISABLED"
-          ]
-        },
+        "State": "DISABLED",
         "Targets": [
           {
             "Arn": {
@@ -5066,13 +4957,7 @@
     "ProcessingEcsEventsRule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
-        "State": {
-          "Fn::If": [
-            "Open",
-            "ENABLED",
-            "DISABLED"
-          ]
-        },
+        "State": "DISABLED",
         "Targets": [
           {
             "Arn": {
@@ -5132,13 +5017,7 @@
     "ProcessingS3EventsRule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
-        "State": {
-          "Fn::If": [
-            "Open",
-            "ENABLED",
-            "DISABLED"
-          ]
-        },
+        "State": "DISABLED",
         "Targets": [
           {
             "Arn": {
@@ -6295,6 +6174,14 @@
         "Ref": "ProcessingCommandsDlq"
       }
     },
+    "ProcessingCommandsDlqArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "ProcessingCommandsDlq",
+          "Arn"
+        ]
+      }
+    },
     "ProcessingWorkQueueUrl": {
       "Value": {
         "Ref": "ProcessingWorkQueue"
@@ -6313,6 +6200,14 @@
         "Ref": "ProcessingWorkDlq"
       }
     },
+    "ProcessingWorkDlqArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "ProcessingWorkDlq",
+          "Arn"
+        ]
+      }
+    },
     "MediaResultsQueueUrl": {
       "Value": {
         "Ref": "MediaResultsQueue"
@@ -6329,6 +6224,14 @@
     "MediaResultsDlqUrl": {
       "Value": {
         "Ref": "MediaResultsDlq"
+      }
+    },
+    "MediaResultsDlqArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "MediaResultsDlq",
+          "Arn"
+        ]
       }
     },
     "MediaApiFunctionName": {
@@ -6497,6 +6400,12 @@
       "Condition": "Applications",
       "Value": {
         "Ref": "ProcessingS3EventsRule"
+      }
+    },
+    "HttpApiId": {
+      "Condition": "Applications",
+      "Value": {
+        "Ref": "HttpApi"
       }
     },
     "HttpApiUrl": {
