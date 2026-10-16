@@ -33,7 +33,7 @@ not data to preserve:
 | DLQ | Typical cause | Why SQL already covers it |
 |---|---|---|
 | `processing-commands` | Invalid envelope, owner/source-prefix mismatch, `retry` before `submit` outlived the retry window, conflicting duplicate ID | The inbox row is rolled back with the failed transaction, so a redrive after a fix is processed once. |
-| `processing-work` | Identity/source mismatch, a task binding conflict, a message for an unknown attempt. Stale, cancelled, terminal or already-claimed work is **deleted by the encoder** and never reaches the DLQ | Repair re-sends work for a queued attempt with the same message ID on a backoff of 60s doubling to 15 min. |
+| `processing-work` | Identity/source mismatch, a task binding conflict, a message for an unknown attempt. Stale, cancelled, terminal or already-claimed work is **deleted by the encoder** and never reaches the DLQ | Repair re-sends work for a queued attempt with the same message ID every 45s while a session is open (fixed, never backing off, so a loss is found inside the 120s gate). |
 | `media-results` | A result Media rejects (409/422: source differs from the accepted descriptor, outputs outside the attempt prefix, attempt regression) | The rejected apply rolls back its inbox row. The projection stays at the last good version and **any later version applies**: only a poisoned *final* result can leave a stale status. |
 
 ## Inspect (read-only)
@@ -84,6 +84,16 @@ to its original queue. Equivalent: `aws sqs start-message-move-task
 reported, never worked around: the manual loop below is unreachable without a
 loopback `--endpoint-url`. Redrive is safe to repeat: the SQL inbox deduplicates by
 message ID and content hash, and the encoder deletes stale work.
+
+Who may redrive or inject: each source queue's resource policy denies `SendMessage`
+to every principal outside its producer-role allowlist, with one narrow exception for
+**IAM users of this account** (the operator's long-term identity and its MFA session keep
+the user ARN) and for the SQS service when it presents itself for a move task. Handler,
+task and public API roles, other accounts and assumed-role sessions stay denied, and
+`ReceiveMessage`/`DeleteMessage` stay consumer-only. The move task sends under the
+caller's identity, so no extra grant is needed beyond the identity policy. An operator who
+signs in through an assumed role must use an IAM user for redrive and poison injection.
+Which identity SQS presents is part of the pending native-redrive evidence (#63-#67).
 
 ### Local emulator (manual fallback)
 

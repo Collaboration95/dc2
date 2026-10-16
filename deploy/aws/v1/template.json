@@ -1561,8 +1561,7 @@
                     "s3:GetObject",
                     "s3:GetObjectVersion",
                     "s3:PutObject",
-                    "s3:DeleteObject",
-                    "s3:DeleteObjectVersion"
+                    "s3:AbortMultipartUpload"
                   ],
                   "Resource": [
                     {
@@ -1574,9 +1573,7 @@
                   "Effect": "Allow",
                   "Action": [
                     "s3:GetObject",
-                    "s3:GetObjectVersion",
-                    "s3:DeleteObject",
-                    "s3:DeleteObjectVersion"
+                    "s3:GetObjectVersion"
                   ],
                   "Resource": [
                     {
@@ -1587,8 +1584,7 @@
                 {
                   "Effect": "Allow",
                   "Action": [
-                    "s3:ListBucket",
-                    "s3:ListBucketVersions"
+                    "s3:ListBucket"
                   ],
                   "Resource": [
                     {
@@ -1602,6 +1598,39 @@
                         "OutputBucket",
                         "Arn"
                       ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:ListBucketVersions"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "SourceBucket",
+                        "Arn"
+                      ]
+                    }
+                  ],
+                  "Condition": {
+                    "StringLike": {
+                      "s3:prefix": [
+                        "sources/*",
+                        "staging/*"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:DeleteObjectVersion"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "${SourceBucket.Arn}/*"
                     }
                   ]
                 },
@@ -2123,36 +2152,6 @@
                 {
                   "Effect": "Allow",
                   "Action": [
-                    "s3:GetObject",
-                    "s3:GetObjectVersion",
-                    "s3:PutObject",
-                    "s3:DeleteObject",
-                    "s3:DeleteObjectVersion"
-                  ],
-                  "Resource": [
-                    {
-                      "Fn::Sub": "${SourceBucket.Arn}/*"
-                    }
-                  ]
-                },
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "s3:GetObject",
-                    "s3:GetObjectVersion",
-                    "s3:DeleteObject",
-                    "s3:DeleteObjectVersion"
-                  ],
-                  "Resource": [
-                    {
-                      "Fn::Sub": "${OutputBucket.Arn}/*"
-                    }
-                  ]
-                },
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "s3:ListBucket",
                     "s3:ListBucketVersions"
                   ],
                   "Resource": [
@@ -2161,12 +2160,25 @@
                         "SourceBucket",
                         "Arn"
                       ]
-                    },
-                    {
-                      "Fn::GetAtt": [
-                        "OutputBucket",
-                        "Arn"
+                    }
+                  ],
+                  "Condition": {
+                    "StringLike": {
+                      "s3:prefix": [
+                        "sources/*",
+                        "staging/*"
                       ]
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:DeleteObjectVersion"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "${SourceBucket.Arn}/*"
                     }
                   ]
                 },
@@ -2298,12 +2310,32 @@
                 {
                   "Effect": "Allow",
                   "Action": [
-                    "s3:DeleteObject",
+                    "s3:ListBucketVersions"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "OutputBucket",
+                        "Arn"
+                      ]
+                    }
+                  ],
+                  "Condition": {
+                    "StringLike": {
+                      "s3:prefix": [
+                        "jobs/*"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
                     "s3:DeleteObjectVersion"
                   ],
                   "Resource": [
                     {
-                      "Fn::Sub": "${OutputBucket.Arn}/*"
+                      "Fn::Sub": "${OutputBucket.Arn}/jobs/*"
                     }
                   ]
                 },
@@ -2421,6 +2453,38 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "s3:ListBucketVersions"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "OutputBucket",
+                        "Arn"
+                      ]
+                    }
+                  ],
+                  "Condition": {
+                    "StringLike": {
+                      "s3:prefix": [
+                        "jobs/*"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:DeleteObjectVersion"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "${OutputBucket.Arn}/jobs/*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
                     "ssm:GetParameter",
                     "ssm:GetParameters"
                   ],
@@ -2512,14 +2576,52 @@
                 {
                   "Effect": "Allow",
                   "Action": [
-                    "s3:GetObject",
-                    "s3:GetObjectVersion",
-                    "s3:DeleteObject",
+                    "sqs:SendMessage"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingWorkQueue",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "MediaResultsQueue",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:ListBucketVersions"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "OutputBucket",
+                        "Arn"
+                      ]
+                    }
+                  ],
+                  "Condition": {
+                    "StringLike": {
+                      "s3:prefix": [
+                        "jobs/*"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
                     "s3:DeleteObjectVersion"
                   ],
                   "Resource": [
                     {
-                      "Fn::Sub": "${OutputBucket.Arn}/*"
+                      "Fn::Sub": "${OutputBucket.Arn}/jobs/*"
                     }
                   ]
                 },
@@ -2792,6 +2894,7 @@
           "Version": "2012-10-17",
           "Statement": [
             {
+              "Sid": "DenyInsecureTransport",
               "Effect": "Deny",
               "Principal": "*",
               "Action": "sqs:*",
@@ -2808,6 +2911,7 @@
               }
             },
             {
+              "Sid": "DenyUnlistedProducers",
               "Effect": "Deny",
               "Principal": "*",
               "Action": [
@@ -2829,10 +2933,19 @@
                       ]
                     }
                   ]
+                },
+                "ArnNotLike": {
+                  "aws:PrincipalArn": {
+                    "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:user/*"
+                  }
+                },
+                "StringNotEquals": {
+                  "aws:PrincipalServiceName": "sqs.amazonaws.com"
                 }
               }
             },
             {
+              "Sid": "DenyUnlistedConsumers",
               "Effect": "Deny",
               "Principal": "*",
               "Action": [
@@ -2876,6 +2989,7 @@
           "Version": "2012-10-17",
           "Statement": [
             {
+              "Sid": "DenyInsecureTransport",
               "Effect": "Deny",
               "Principal": "*",
               "Action": "sqs:*",
@@ -2892,6 +3006,7 @@
               }
             },
             {
+              "Sid": "DenyUnlistedProducers",
               "Effect": "Deny",
               "Principal": "*",
               "Action": [
@@ -2923,12 +3038,27 @@
                         "ProcessingEcsEventsRole",
                         "Arn"
                       ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingS3EventsRole",
+                        "Arn"
+                      ]
                     }
                   ]
+                },
+                "ArnNotLike": {
+                  "aws:PrincipalArn": {
+                    "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:user/*"
+                  }
+                },
+                "StringNotEquals": {
+                  "aws:PrincipalServiceName": "sqs.amazonaws.com"
                 }
               }
             },
             {
+              "Sid": "DenyUnlistedConsumers",
               "Effect": "Deny",
               "Principal": "*",
               "Action": [
@@ -2972,6 +3102,7 @@
           "Version": "2012-10-17",
           "Statement": [
             {
+              "Sid": "DenyInsecureTransport",
               "Effect": "Deny",
               "Principal": "*",
               "Action": "sqs:*",
@@ -2988,6 +3119,7 @@
               }
             },
             {
+              "Sid": "DenyUnlistedProducers",
               "Effect": "Deny",
               "Principal": "*",
               "Action": [
@@ -3019,12 +3151,27 @@
                         "ProcessingEcsEventsRole",
                         "Arn"
                       ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingS3EventsRole",
+                        "Arn"
+                      ]
                     }
                   ]
+                },
+                "ArnNotLike": {
+                  "aws:PrincipalArn": {
+                    "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:user/*"
+                  }
+                },
+                "StringNotEquals": {
+                  "aws:PrincipalServiceName": "sqs.amazonaws.com"
                 }
               }
             },
             {
+              "Sid": "DenyUnlistedConsumers",
               "Effect": "Deny",
               "Principal": "*",
               "Action": [

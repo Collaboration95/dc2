@@ -36,8 +36,10 @@ enforce POST policy signatures, so real S3 policy enforcement stays a cloud chec
 
 Storage requirements: versioning enabled before intake; browser CORS permits
 POST from the actual frontend origin; native Media role permits source
-PutObject/GetObject/GetObjectVersion/ListBucketVersions/DeleteObjectVersion and
-DeleteObject as required by cleanup, scoped to the source bucket/prefixes.
+PutObject/GetObject/GetObjectVersion/AbortMultipartUpload on source objects and
+ListBucketVersions/DeleteObjectVersion for cleanup, scoped to the source bucket and its
+`sources/` and `staging/` prefixes. The repair role holds only the last two. No role needs
+a plain DeleteObject: it adds a delete marker and releases nothing.
 Presigned POST uses MEDIA_MINIO_PUBLIC_ENDPOINT (host[:port], no URL scheme),
 MEDIA_MINIO_PUBLIC_USE_SSL, MEDIA_MINIO_REGION and native signing credentials.
 Internal validation uses MEDIA_MINIO_ENDPOINT/MEDIA_MINIO_USE_SSL. Buckets use
@@ -61,6 +63,14 @@ Exports in media.services.direct_intake:
   `cleanup_retired_at` (Media migration `media_0008`). A failed scan never retires a
   row. Storage calls occur outside SQL locks. Tombstone cleanup must explicitly delete all source object versions;
   creating a delete marker alone does not reclaim pinned source bytes.
+
+Staged copies. An edit copies an output into `sources/<owner>/<asset>/source` behind a
+`StagedObject` row. If adoption fails or the Lambda dies, `cleanup_staged_objects` (Media
+repair, bounded by `recovery_batch_size`) finds rows older than `orphan_grace_seconds` that
+no Asset adopted, deletes every version and delete marker of the key, then the row. A failed
+or timed-out deletion keeps the row and retries after 60s. A write of unknown outcome keeps
+its row too, with a fresh clock. The row lock is held across the deletion because adoption
+needs the same row; that, not a lease, is what keeps a late adopter from losing its bytes.
 
 Local offline tests cover policy bounds, ownership predicate, expiry, unsupported
 or altered content, digest/size/version rejection, replay, lost-response behavior,

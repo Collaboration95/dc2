@@ -7,6 +7,7 @@ removes a unique schema; it never touches shared application tables.
 import os
 from datetime import timedelta
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
@@ -18,9 +19,9 @@ from media import messaging_models, projection_models, upload_models  # noqa: F4
 from media.database import Base
 from media.errors import MediaError
 from media.messaging import consume_result
-from media.models import Asset, CleanupIntent, User, now
+from media.models import Asset, CleanupIntent, StagedObject, User, now
 from media.projections import apply_result
-from media.recovery_v1 import cleanup_tombstones, run_once
+from media.recovery_v1 import cleanup_staged_objects, cleanup_tombstones, run_once
 from media.services.v1_lifecycle import tombstone
 from media.upload_models import SourceVersion, UploadReservation
 
@@ -338,8 +339,11 @@ async def test_native_source_version_deletion_and_late_object_with_moto(factory)
                     expires_at=now() - timedelta(seconds=1),
                 )
             )
-        repaired = await run_once(factory, SimpleNamespace(recovery_batch_size=25), storage)
-        assert repaired == {"cleanup": 1, "uploads": 1}
+        settings = SimpleNamespace(
+            recovery_batch_size=25, orphan_grace_seconds=3600, minio_source_bucket=bucket
+        )
+        repaired = await run_once(factory, settings, storage)
+        assert repaired == {"cleanup": 1, "uploads": 1, "staged": 0}
         assert not [
             v
             for v in client.list_object_versions(Bucket=bucket).get("Versions", [])
@@ -514,3 +518,200 @@ async def test_poisoned_result_does_not_block_a_later_version(factory):
         assert await consume_result(session, result(3, "failed"), apply_result)
         projection = await session.get(ProcessingProjection, asset_id)
         assert (projection.state_version, projection.status) == (3, "failed")
+
+
+# --- Staged source copies a failed edit or dead Lambda left behind (#117) -------------------
+
+GRACE = 3600
+
+
+async def stage_rows(factory, *keys, age=timedelta(hours=2), uncertain=False):
+    """Staged intents ``age`` old, oldest first so the batch order is observable."""
+    async with factory() as session, session.begin():
+        for index, key in enumerate(keys):
+            session.add(
+                StagedObject(
+                    key=key,
+                    created_at=now() - age - timedelta(seconds=len(keys) - index),
+                    write_uncertain=uncertain,
+                )
+            )
+
+
+async def staged_keys(factory):
+    async with factory() as session:
+        return set(await session.scalars(select(StagedObject.key)))
+
+
+def removals():
+    removed, state = [], {"fail": False}
+
+    async def remove(bucket, key):
+        removed.append((bucket, key))
+        if state["fail"]:
+            raise RuntimeError("store unavailable https://signed.example/?X-Amz-Signature=secret")
+
+    return SimpleNamespace(remove_source_versions=remove), removed, state
+
+
+async def clean_staged(factory, storage, **options):
+    return await cleanup_staged_objects(
+        factory, storage, "owned-source", grace_seconds=GRACE, **options
+    )
+
+
+async def test_stale_unadopted_stages_lose_every_version_and_their_row(factory):
+    storage, removed, _ = removals()
+    await stage_rows(factory, "sources/o/a/source", "sources/o/b/source")
+    assert await clean_staged(factory, storage) == 2
+    assert removed == [
+        ("owned-source", "sources/o/a/source"),
+        ("owned-source", "sources/o/b/source"),
+    ]
+    assert await staged_keys(factory) == set()
+
+
+async def test_recent_and_adopted_stages_are_never_touched(factory):
+    storage, removed, _ = removals()
+    _, _, descriptor = await seed(factory)
+    await stage_rows(factory, descriptor["key"])  # stale, but an Asset adopted it
+    await stage_rows(factory, "sources/o/fresh/source", age=timedelta(minutes=5))
+    assert await clean_staged(factory, storage) == 0
+    assert removed == []
+    assert await staged_keys(factory) == {descriptor["key"], "sources/o/fresh/source"}
+
+
+async def test_staged_recovery_is_bounded_per_pass_and_oldest_first(factory):
+    storage, removed, _ = removals()
+    keys = [f"sources/o/{n}/source" for n in range(5)]
+    await stage_rows(factory, *keys)
+    assert await clean_staged(factory, storage, limit=2) == 2
+    assert [key for _, key in removed] == keys[:2]
+    assert await staged_keys(factory) == set(keys[2:])
+    assert await clean_staged(factory, storage, limit=10) == 3
+    assert await staged_keys(factory) == set()
+
+
+async def test_an_uncertain_removal_keeps_the_intent_and_retries_soon(factory):
+    storage, removed, state = removals()
+    state["fail"] = True
+    await stage_rows(factory, "sources/o/a/source")
+    assert await clean_staged(factory, storage) == 0
+    assert await staged_keys(factory) == {"sources/o/a/source"}
+    # Not due again immediately (no hot loop), but due well before a full grace period.
+    assert await clean_staged(factory, storage) == 0
+    assert len(removed) == 1
+    async with factory() as session, session.begin():
+        staged = await session.get(StagedObject, "sources/o/a/source")
+        staged.created_at -= timedelta(seconds=120)
+    state["fail"] = False
+    assert await clean_staged(factory, storage) == 1
+    assert await staged_keys(factory) == set()
+
+
+async def test_a_write_of_unknown_outcome_is_rescanned_instead_of_retired(factory):
+    storage, removed, _ = removals()
+    await stage_rows(factory, "sources/o/late/source", uncertain=True)
+    assert await clean_staged(factory, storage) == 1
+    # A late PUT may still land, so the row stays, with a fresh clock.
+    assert await staged_keys(factory) == {"sources/o/late/source"}
+    assert await clean_staged(factory, storage) == 0
+    assert len(removed) == 1
+
+
+async def test_an_adopter_holding_the_stage_lock_is_not_overtaken_by_cleanup(factory):
+    storage, removed, _ = removals()
+    await stage_rows(factory, "sources/o/a/source")
+    async with factory() as holder, holder.begin():
+        await holder.scalar(
+            select(StagedObject).where(StagedObject.key == "sources/o/a/source").with_for_update()
+        )
+        assert await clean_staged(factory, storage) == 0
+        assert removed == []
+    assert await clean_staged(factory, storage) == 1
+
+
+async def test_run_once_includes_staged_recovery_with_the_repair_settings(factory):
+    storage, removed, _ = removals()
+    storage.delete_direct_upload = AsyncMock()
+    await stage_rows(factory, "sources/o/a/source")
+    settings = SimpleNamespace(
+        recovery_batch_size=25, orphan_grace_seconds=GRACE, minio_source_bucket="owned-source"
+    )
+    assert await run_once(factory, settings, storage) == {"cleanup": 0, "uploads": 0, "staged": 1}
+    assert removed == [("owned-source", "sources/o/a/source")]
+
+
+async def test_staged_copy_with_versions_and_delete_marker_is_fully_released_with_moto(factory):
+    import asyncio
+    from urllib.parse import urlsplit
+
+    import boto3
+
+    from media.config import Settings
+    from media.services.storage import Storage
+
+    endpoint = os.environ.get("V1_TEST_S3_ENDPOINT")
+    if not endpoint:
+        pytest.skip("Lead C local Moto S3 endpoint not provided")
+    parsed = urlsplit(endpoint)
+    if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost"}:
+        raise ValueError("Cleanup emulator test requires explicit loopback HTTP endpoint")
+    client = boto3.client(
+        "s3",
+        endpoint_url=endpoint,
+        region_name="us-east-1",
+        aws_access_key_id="local-test",
+        aws_secret_access_key="local-test",
+    )
+    bucket = "stage-recovery-" + uuid4().hex
+    client.create_bucket(Bucket=bucket)
+    client.put_bucket_versioning(Bucket=bucket, VersioningConfiguration={"Status": "Enabled"})
+    orphan = f"sources/{uuid4()}/{uuid4()}/source"
+    _, _, descriptor = await seed(factory)
+    kept = descriptor["key"]
+    for key in (orphan, kept):
+        client.put_object(Bucket=bucket, Key=key, Body=b"first")
+        client.put_object(Bucket=bucket, Key=key, Body=b"second")
+    client.put_object(Bucket=bucket, Key=orphan + "-sibling", Body=b"must-remain")
+    # A plain delete is what the old discard did: it only adds a marker over the bytes.
+    client.delete_object(Bucket=bucket, Key=orphan)
+    storage = Storage(
+        Settings(
+            postgres_dsn="postgresql+asyncpg://unused:unused@invalid/media_db",
+            minio_endpoint=parsed.netloc,
+            minio_use_ssl=False,
+            minio_region="us-east-1",
+            minio_source_bucket=bucket,
+            minio_access_key="local-test",
+            minio_secret_key="local-test",
+        )
+    )
+
+    def versions_of(key):
+        listing = client.list_object_versions(Bucket=bucket, Prefix=key)
+        return [
+            item
+            for item in listing.get("Versions", []) + listing.get("DeleteMarkers", [])
+            if item["Key"] == key
+        ]
+
+    try:
+        assert len(versions_of(orphan)) == 3  # two versions plus the marker
+        await stage_rows(factory, orphan, kept)
+        assert await cleanup_staged_objects(
+            factory, storage, bucket, grace_seconds=GRACE, limit=10
+        ) == 1
+        assert not await asyncio.to_thread(versions_of, orphan)
+        assert len(await asyncio.to_thread(versions_of, kept)) == 2  # adopted: untouched
+        assert len(await asyncio.to_thread(versions_of, orphan + "-sibling")) == 1
+        assert await staged_keys(factory) == {kept}
+    finally:
+        listing = client.list_object_versions(Bucket=bucket)
+        items = listing.get("Versions", []) + listing.get("DeleteMarkers", [])
+        if items:
+            client.delete_objects(
+                Bucket=bucket,
+                Delete={"Objects": [{"Key": i["Key"], "VersionId": i["VersionId"]} for i in items]},
+            )
+        client.delete_bucket(Bucket=bucket)

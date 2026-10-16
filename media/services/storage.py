@@ -98,21 +98,31 @@ class Storage:
         except Exception:
             raise MediaError(503, "source object unavailable; retry finalization") from None
 
-    async def delete_direct_upload(self, reservation, *, preserve_version=None):
+    async def remove_source_versions(self, bucket, key, *, preserve_version=None):
+        """Delete every stored version and delete marker of exactly ``key``.
+
+        A bare DELETE on a versioned bucket only adds a delete marker and leaves the bytes
+        stored, so cleanup must name each version. Raises when any deletion is refused.
+        """
+
         def remove():
-            # Versioned buckets need explicit version deletions, not a delete marker.
             objects = self.internal.list_objects(
-                reservation.bucket, prefix=reservation.key, recursive=True, include_version=True
+                bucket, prefix=key, recursive=True, include_version=True
             )
             deletes = (
                 DeleteObject(obj.object_name, obj.version_id)
                 for obj in objects
-                if obj.object_name == reservation.key and obj.version_id != preserve_version
+                if obj.object_name == key and obj.version_id != preserve_version
             )
-            if list(self.internal.remove_objects(reservation.bucket, deletes)):
+            if list(self.internal.remove_objects(bucket, deletes)):
                 raise MediaError(503, "source cleanup deferred")
 
         await run_in_threadpool(remove)
+
+    async def delete_direct_upload(self, reservation, *, preserve_version=None):
+        await self.remove_source_versions(
+            reservation.bucket, reservation.key, preserve_version=preserve_version
+        )
 
     async def put_source(self, key, stream, size, media_type):
         await run_in_threadpool(
@@ -125,7 +135,8 @@ class Storage:
         )
 
     async def delete_source(self, key):
-        await run_in_threadpool(self.internal.remove_object, self.settings.minio_source_bucket, key)
+        # Version-aware so a failed edit's copied bytes are actually released.
+        await self.remove_source_versions(self.settings.minio_source_bucket, key)
 
     def _sign(self, key, *, output=False, inline=False, version_id=None):
         try:

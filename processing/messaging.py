@@ -22,21 +22,25 @@ from processing.schemas import EditOperation
 # Media writes accepted sources under one of these owner-scoped prefixes. A queue
 # message naming any other key is rejected before it can reach a native S3 GET.
 SOURCE_PREFIXES = ("sources", "staging")
-# First re-send waits one repair period (inside the 120s lost-work gate), then
-# doubles so an idle queued attempt does not flood the queue while awaiting an
-# explicit operator batch.
-REPAIR_BASE_SECONDS = 60
-REPAIR_CAP_SECONDS = 900
+# Lost-work repair must finish inside the 120s recovery gate while a session is open.
+# A message can vanish right after a send, so the worst case is one full interval plus
+# one wait for the next repair tick plus scheduling delay. The interval is therefore
+# constant and sized from the gate: it never backs off. (Work that is deleted or terminal
+# is not selected at all, so nothing needs a long backoff to be retired.) The cost of
+# this is one duplicate work message per idle queued attempt per interval, which an encoder
+# drops once the attempt is claimed; closing the session disables the repair schedule.
+LOST_WORK_GATE_SECONDS = 120
+REPAIR_TICK_SECONDS = 60  # the repair rule's `rate(1 minute)`; a test ties the two together
+REPAIR_SCHEDULING_SLACK_SECONDS = 15  # EventBridge delivery plus Lambda start-up
+REPAIR_INTERVAL_SECONDS = (
+    LOST_WORK_GATE_SECONDS - REPAIR_TICK_SECONDS - REPAIR_SCHEDULING_SLACK_SECONDS
+)
 TERMINAL_ATTEMPTS = {"succeeded", "failed", "abandoned", "cancelled"}
 
 
 def work_message_id(attempt_id, version):
     """Stable per (attempt, state version): a repair re-sends rather than re-stages."""
     return uuid5(NAMESPACE_URL, f"processing/work/{attempt_id}/{version}")
-
-
-def repair_delay(count):
-    return min(REPAIR_CAP_SECONDS, REPAIR_BASE_SECONDS * 2 ** min(count, 5))
 
 
 def assert_owned_source(body):
@@ -117,7 +121,7 @@ async def emit_state(session, job, attempt):
         # The send itself is the first delivery; repair only needs to look again
         # after one period, not on the very next tick.
         attempt.next_dispatch_at = await lifecycle.db_now(session) + timedelta(
-            seconds=REPAIR_BASE_SECONDS
+            seconds=REPAIR_INTERVAL_SECONDS
         )
     return saved.state_version
 

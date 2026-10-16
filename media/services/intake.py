@@ -70,6 +70,7 @@ async def discard_stage(session, storage, key):
                 if staged.write_uncertain:
                     staged.created_at = now()
                 try:
+                    # Removes every version; a plain delete would leave the bytes stored.
                     await storage.delete_source(key)
                 except Exception:
                     return
