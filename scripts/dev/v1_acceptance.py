@@ -1,6 +1,7 @@
 """Actual-domain local acceptance helpers; only Gateway/S3/SQS service legs emulate AWS."""
 
 import asyncio
+import http.client
 import json
 import os
 import ssl
@@ -82,7 +83,7 @@ def app_runtime(run_id):
     previous = os.environ.copy()
     os.environ.clear()
     os.environ.update(env)
-    http = thread = None
+    front = thread = None
     try:
         # Actual migration history, never metadata.create_all or runtime DDL.
         for owner in ("media", "processing"):
@@ -98,27 +99,27 @@ def app_runtime(run_id):
         import processing.lambda_handler
         from scripts.dev.v1_gateway import Gateway
 
-        http = server(
+        front = server(
             Gateway(
                 media.lambda_handler.handler,
                 processing.lambda_handler.handler,
                 media.lambda_handler.authorizer,
             )
         )
-        http.socket = context.wrap_socket(http.socket, server_side=True)
-        thread = threading.Thread(target=http.serve_forever, daemon=True)
+        front.socket = context.wrap_socket(front.socket, server_side=True)
+        thread = threading.Thread(target=front.serve_forever, daemon=True)
         thread.start()
         yield {
             "data": data,
             "env": env,
             "ca": str(tls / "server.crt"),
-            "url": f"https://127.0.0.1:{http.server_port}",
+            "url": f"https://127.0.0.1:{front.server_port}",
             "observations": observations,
         }
     finally:
-        if http:
-            http.shutdown()
-            http.server_close()
+        if front:
+            front.shutdown()
+            front.server_close()
             thread.join(timeout=2)
         storage.shutdown()
         storage.server_close()

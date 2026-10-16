@@ -31,7 +31,7 @@ def test_independent_owner_release_and_failed_restore_with_real_sql(tmp_path, ow
         from uuid import uuid4
 
         identity = client.authenticate(
-            "register", f"release-{uuid4().hex}@example.test", "local-release-password"
+            "register", f"release-{uuid4().hex}@example.com", "local-release-password"
         )
 
         def revision(which, **kwargs):

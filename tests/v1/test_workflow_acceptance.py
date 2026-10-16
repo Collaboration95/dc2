@@ -68,10 +68,10 @@ def test_publisher_direct_post_encode_projection_and_ownership(tmp_path):
         )
         try:
             identity = client.authenticate(
-                "register", f"accept-{uuid4().hex}@example.test", "local-acceptance-password"
+                "register", f"accept-{uuid4().hex}@example.com", "local-acceptance-password"
             )
             other.authenticate(
-                "register", f"other-{uuid4().hex}@example.test", "local-other-password"
+                "register", f"other-{uuid4().hex}@example.com", "local-other-password"
             )
             assert client.identity() == identity["id"]
             request_id = str(uuid4())
@@ -99,7 +99,8 @@ def test_publisher_direct_post_encode_projection_and_ownership(tmp_path):
             ) as objects:
                 result = objects.get(completed["output_url"], headers={"Range": "bytes=0-31"})
                 assert result.status_code == 206 and len(result.content) == 32
-            playlist = client.http.get(completed["hls_url"])
+            # hls_url is origin-relative; httpx would append it to the /api/media base_url.
+            playlist = client.http.get(runtime["url"] + completed["hls_url"])
             assert playlist.status_code == 200 and "#EXTM3U" in playlist.text
             # Stored-source edit command, then cancel before execution: no worker auto-starts.
             derived = client.edit(

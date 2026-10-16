@@ -310,6 +310,8 @@ def local_environment(data):
         AWS_ACCESS_KEY_ID="testing",
         AWS_SECRET_ACCESS_KEY="testing",
         AWS_SESSION_TOKEN="testing",
+        # LambdaProvider refuses to read credentials outside a Lambda runtime.
+        AWS_LAMBDA_FUNCTION_NAME="local-v1-media",
         AWS_REGION="ap-southeast-1",
         AWS_DEFAULT_REGION="ap-southeast-1",
         AWS_EC2_METADATA_DISABLED="true",
