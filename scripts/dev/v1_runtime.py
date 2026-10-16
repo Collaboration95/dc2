@@ -86,7 +86,9 @@ def compose(data, *args):
 def moto_python():
     selected = os.environ.get("V1_MOTO_PYTHON")
     if selected:
-        return str(Path(selected).resolve())
+        # Not resolve(): a venv's python is a symlink to the base interpreter, and following
+        # it drops the venv's site-packages, so Moto would fail to import in a fresh venv.
+        return os.path.abspath(selected)
     common = Path(run(["git", "rev-parse", "--git-common-dir"], capture_output=True).stdout.strip())
     repo = (ROOT / common).resolve().parent
     executable = repo / ".cache/aws-test-tools/bin/python"
@@ -116,7 +118,9 @@ def start_moto(data, path):
     end = time.monotonic() + 20
     while time.monotonic() < end:
         if process.poll() is not None:
-            raise RuntimeError("Moto exited; inspect the private runtime log")
+            # The Moto log holds only local emulator output (no application data).
+            tail = (path / "moto-private.log").read_text()[-1500:]
+            raise RuntimeError("Moto exited; inspect the private runtime log. Tail:\n" + tail)
         try:
             with urllib.request.urlopen(data["endpoint_url"] + "/moto-api/", timeout=1) as reply:
                 if reply.status == 200:
