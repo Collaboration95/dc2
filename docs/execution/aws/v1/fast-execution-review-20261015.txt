@@ -1,0 +1,204 @@
+V1 FAST EXECUTION REVIEW — 15 OCTOBER 2026
+
+Result: implement existing #81–#92. The backlog is sufficient; tighten the
+handoffs below rather than create more epics or repeat historical AWS2 analysis.
+This is a review and execution recommendation, not completed implementation.
+
+BASELINE AND FRESH EVIDENCE
+
+Reviewed source: 9a082a385d442980412aa7bbe4b42c78107e8e2d, clean working tree
+before this report, branch work/aws2-prep-20261015.
+Remote Main: 3e289c11ee79947e87627dd12a1dd7cb2ea65cb0. Authenticated gh compare
+reports Main two commits ahead with no changed files: the reviewed source tree
+is already integrated. No open PRs were returned. No project2-v1 tag exists.
+
+handoff-temp.md explicitly declares its AWS2 swarm completed/superseded.
+Current authority: architecture-plan.md and v1/README.md in this directory's
+parent/current directory. Current code is the AWS2 preparation baseline; the
+Lambda/SQS/direct-intake/Aurora migrations remain pending.
+
+Fresh gh reads: all issues, parent/subissue/blocking relationships, Project 14,
+Main commit and comparison, and open/recent PR metadata. All GitHub access used
+authenticated gh exclusively. Captures are local review receipts under /tmp:
+  dc2-v1-issues-relations-20261015.json
+  dc2-v1-project-20261015.json
+  dc2-v1-prs-20261015.json
+
+Verification passed:
+python scripts/planning/validate_v1_plan.py \
+  --remote /tmp/dc2-v1-issues-relations-20261015.json \
+  --project /tmp/dc2-v1-project-20261015.json --decision-merged
+Result: 5 epics, 22 current handoffs, acyclic dependencies, native relationships
+and Project states agree; 12 implementation issues, next #81.
+
+Live workflow: 26 open issues: 1 Ready, 15 Backlog, 10 Blocked; no In Progress
+or Review items. Blocked includes four full-outcome epics. Local implementation
+is #81 Ready plus #82–#92 Backlog; six account/evidence issues are Blocked.
+#46 is closed/Done for the merged HTTPS decision. #47–#62 remain historical Done.
+No remote metadata was changed. Historical test totals are not new V1 evidence.
+
+EXECUTE FIRST
+
+#81 https://github.com/Collaboration95/dc2/issues/81
+Freeze executable payload-v2, identity, intake and message fixtures. Avoid a long
+design round: settle the concrete interfaces below, run fixture checks and merge.
+The gate unlocks #82, #83, #84 and #89 concurrently.
+
+Decisions required in #81:
+1. Explicit /api/media/* and /api/processing/* route table, login/register/health
+   exemptions, cookie scope, errors and exactly-once owner-prefix stripping.
+2. Trusted Gateway identity, current-role checks and authorizer cache policy;
+   reject missing context, forged public owner headers and raw-source creation.
+3. Public job_id currently identifies a Media asset (media/api/uploads.py and
+   media/api/jobs.py); Processing has a separate job UUID. Preserve the external
+   identity and define the mapping, discovery and retry/cancel owner routes.
+4. Durable reserve/upload/finalize schema, grant type, size/checksum enforcement,
+   expiry, replay and immutable accepted object version. An integer SQL source
+   revision alone cannot prevent a reused grant overwriting accepted S3 bytes.
+5. Versioned command/work/result envelopes, durable message IDs, source binding,
+   state versions, attempt fences, tombstones and precise publication/ACK rules.
+   Specify partial-batch failures and receipt/lease loss. Queue producer claims
+   inside payloads cannot replace IAM producer/consumer permissions.
+
+THREE IMPLEMENTATION LANES — FOUR ISSUES PER OWNER
+
+Lane A: domain APIs and clients — #81, #82, #83, #86.
+https://github.com/Collaboration95/dc2/issues/82
+https://github.com/Collaboration95/dc2/issues/83
+https://github.com/Collaboration95/dc2/issues/86
+Reuse FastAPI, bcrypt/cookie auth, owned SQL models and migrations, existing
+frontend design, Publisher and storage signing. Add payload-v2 adapters and
+native Lambda credentials; retain explicit ECS and emulator credential modes.
+Both database.py modules currently cache pooled engines: implement invocation-
+safe connections/disposal and verified DB TLS, including the authorizer.
+Processing public endpoints operate on existing owned jobs; trusted commands
+create jobs. Separate the API artifact from the FFmpeg worker artifact.
+#86 owns durable reservation/adoption, both upload clients and the small missing
+Publisher edit/delete surface needed for the full stated client workflow.
+Minimum checks: cookies/prefix/auth negatives; real SQL ownership/connection
+cleanup; grant replay, immutable bytes, wrong owner, expiry, size/checksum;
+browser CORS and Publisher uncertain-response replay.
+
+Lane B: messaging and finite execution — #84, #85, #87, #88.
+https://github.com/Collaboration95/dc2/issues/84
+https://github.com/Collaboration95/dc2/issues/85
+https://github.com/Collaboration95/dc2/issues/87
+https://github.com/Collaboration95/dc2/issues/88
+#84 replaces processing/queue.py Redis locks/lists/RQ registries with three SQS
+adapters, owner-local inbox/outbox migrations and authoritative SQL reservations.
+Publish outside row locks; commit inbox/state before ACK. Cover concurrent sends,
+mixed-success batches, conflicting duplicate IDs, lost send/delete responses and
+retention-gap repair, including previously successful publications.
+#85 replaces HTTP submit/read/retry/cancel and result projection. Include
+media/api/hls.py, jobs.py and derive/live_job paths: playback and editing must
+work from Media's owned projection when Processing is unavailable. Preserve
+cancel-before-submit guards, version checks and stale-output rejection.
+#87 retains claim/heartbeat/finish fences, supervisor and encoding engine; replace
+the RQ shell and signed source callbacks with descriptor-bound native S3 GET.
+Keep streamed digest/size checks, visibility renewal, finite empty-poll/deadline
+exit and task-attempt correlation. Preserve the cap of three including unresolved
+launch reservations. Losing visibility/lease must not permit two valid encodes.
+#88 converts recovery daemons into bounded invocations: deadlines, SDK retries,
+pagination/fairness and resumable cleanup. Preserve deletion outside SQL locks.
+Test delayed ECS/S3 events against newer attempts, late writes and close/reopen.
+Keep open-session gates: queue repair within 120s; interrupted work requeued or
+failed within 300s. Another encode can still require an operator batch.
+Minimum checks: transport fakes/emulator plus real PostgreSQL concurrency,
+duplicate/reorder/lost-response/cancel/retention/visibility tests; short real
+encoding and stale source/result negatives.
+
+Lane C: runtime, delivery and acceptance — #89, #90, #91, #92.
+https://github.com/Collaboration95/dc2/issues/89
+https://github.com/Collaboration95/dc2/issues/90
+https://github.com/Collaboration95/dc2/issues/91
+https://github.com/Collaboration95/dc2/issues/92
+#89 adds separate inert deploy/aws/v1 definitions and schema. Historical AWS2
+definitions/tests explicitly encode EC2/Redis and even reject RDS; retain them
+as isolated legacy evidence. Include CloudFront OAC/HTTPS origin, routes,
+authorizer, S3 CORS/versioning, three queues/DLQs/mappings, repair/event rules,
+Aurora ownership bootstrap/TLS and two-AZ dual-stack placement. Validate policies
+and syntax offline; actual IPv6 routing, IAM and DB pause remain cloud checks.
+#90 reuses release journals/compatibility/migration safeguards, replacing ECS API
+promotion with immutable Lambda versions/aliases. Include alias revision checks,
+lost-response reconciliation, scan/digest proof and unchanged-peer snapshots.
+Correct issue file reference releases.py to scripts/aws/release.py.
+#91 replaces EC2/ECS-core lifecycle assumptions; the real files are
+scripts/aws/lifecycle.py and workers.py, not operations.py. Close rejects intake
+and batches, drains or fences work, persists outcomes, then disables mappings,
+repair and concurrency. Failed/partial close must be journaled/resumable and
+must not claim DB pause. Reopen reconciles retained work. Parameterize actual
+V1 cost/evidence inputs; forecasts remain distinct from bills.
+#92 supplies an implemented isolated V1 verification/CI entrypoint with real
+PostgreSQL and short FFmpeg, browser plus independent Publisher, full workflow,
+faults, release rollback and close/wake. Label every emulated AWS boundary.
+Minimum checks: renderer/lint/policy checks, adapter/state-machine tests and one
+coherent real local run tied to source/artifact digests.
+
+COORDINATE TO AVOID REWORK
+
+The coordinator owns shared contracts, dependency groups/uv.lock, shared settings,
+Makefile/CI seams, migration-number allocation and integration. Domain lane owns
+API/auth/database/client changes; messaging lane owns queue/lifecycle/worker and
+projection behavior; runtime lane owns infrastructure/release/session/verification.
+Assign one editor to each shared models/migrations/lifecycle file.
+
+Clarify acceptance without creating dependency cycles:
+- #82 delivers result-handler packaging/entrypoints; #85 delivers its semantics.
+- #83 adapter/lifecycle boundaries start after #81; final Redis-free integration
+  relies on #84/#85. Do not mark the end-to-end lifecycle done from adapter tests.
+- #87 integrates #85's accepted-source interface; it need not wait for all Media
+  projection features to be finished before worker development starts.
+- Root pyproject.toml includes Redis/RQ and both Dockerfiles export all runtime
+  dependencies. Removing imports is insufficient. Coordinator separates package
+  groups; #82/#83/#87 build clean artifacts; #90/#92 verify their installed contents.
+- Correct operations.py references in #87/#91 as implementation begins.
+
+FASTEST ORDER AND TARGET CHECKPOINTS
+
+Target checkpoints are planning estimates, not measured durations or a promise:
+0–2h: #81 fixtures and fixed shared interfaces; Lane C can inspect inert skeletons.
+2–16h: parallel #82/#83, #84 and #89; build #86 clients against frozen fixtures;
+        prepare #90/#91 adapter tests without claiming dependency completion.
+16–30h: #85 and #87 integration, finish #86, wire independent owner artifacts.
+30–40h: #88 repair, #90 release and #91 session lifecycle; short fault checks.
+40–48h: #92 coherent local workflow, relevant checks/CI and one practical review.
+Keep the three-day baseline/five-day maximum and original October/26 October
+rehearsal anchor. Escalate failed correctness checkpoints; do not remove them
+to meet a clock. Avoid repeated full suites absent a change or unresolved failure.
+
+Critical chain: #81 -> #84 + #82/#83 -> #85/#87 -> #88 -> #91 -> #92;
+#89 -> #90 joins it. The twelve tickets are merge/completion boundaries, not
+twelve serial implementation sessions. Preparatory work can overlap; acceptance
+and closure still respect dependencies and merged verification evidence.
+
+CLOUD AND FINAL COMPLETION
+
+#45 needs actual project account, billing currency and scoped authorization:
+https://github.com/Collaboration95/dc2/issues/45
+#63–#67 require authentic deployment/workflow, 1/2/3-worker/recovery, independent
+release/rollback, warm API performance, actual spend and resource-close receipts.
+They remain open Blocked. Four epics stay open until these outcomes are proven.
+Local checks cannot establish cloud IAM/networking, Aurora pause, TLS or billing.
+Do not use Alibaba or another account; no live operation was performed here.
+Tag project2-v1 only after required local and real-cloud acceptance. Defer V2
+#68/#80/#93/#94. Preserve original measurements, frontend/roadmap and proposal.
+
+DELEGATED REVIEW PROVENANCE
+
+Three bounded T3 children, provider codex, model gpt-6.1-sol, medium reasoning,
+priority/Fast service tier; all completed. Read-only disjoint bundle reviews,
+no recursive agents or independent top-level conversations. Task suffixes:
+dc2-fast-v1-review-20261015-api
+dc2-fast-v1-review-20261015-queue
+dc2-fast-v1-review-20261015-runtime
+Parent inspected critical reported paths and consolidated the findings above.
+No application changes, new implementation tests, remote mutations or cloud runs.
+
+Machine-readable status; counts cover all 26 open Project issues, including epics:
+NEXT_ISSUE: 81
+READY_COUNT: 1
+IN_PROGRESS_COUNT: 0
+REVIEW_COUNT: 0
+BLOCKED_COUNT: 10
+DRIFT_COUNT: 0
+SYNCED: no
