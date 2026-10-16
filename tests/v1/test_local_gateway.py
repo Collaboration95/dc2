@@ -2,6 +2,8 @@ import base64
 import threading
 import urllib.request
 
+import pytest
+
 from scripts.dev.v1_gateway import Gateway, server
 
 
@@ -52,6 +54,8 @@ def test_anonymous_paths_and_denial_do_not_forge_actor():
     assert gateway.invoke("GET", "/unknown", {})["statusCode"] == 404
 
 
+# Binds a real loopback socket, which the offline-fast tier forbids.
+@pytest.mark.integration
 def test_real_http_bridge_preserves_multiple_set_cookie_and_binary_response():
     gateway = Gateway(
         lambda event, _: {

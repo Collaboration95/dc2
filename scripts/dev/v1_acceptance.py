@@ -96,7 +96,6 @@ def app_runtime(run_id):
         # import handlers after the explicit env above instead.
         import media.lambda_handler
         import processing.lambda_handler
-
         from scripts.dev.v1_gateway import Gateway
 
         http = server(
