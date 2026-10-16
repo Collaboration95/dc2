@@ -18,7 +18,7 @@ import uuid
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from scripts.dev.v1_runtime import ROOT, directory, load, run, save
+from scripts.dev.v1_runtime import ROOT, directory, load, moto_python, run, save
 
 
 def digest(path):
@@ -56,8 +56,16 @@ def sdk(data, service):
     )
 
 
-def provision_local_objects(data):
-    """Create distinct versioned stores, three queues and DLQs in owned Moto."""
+def provision_local_objects(data, *, purge=False):
+    """Create distinct versioned stores, three queues and DLQs in owned Moto.
+
+    ``purge`` deletes and recreates every queue and DLQ. A reused runtime otherwise hands the
+    next run the previous run's undeleted work (for example a cancelled edit's message), and
+    the finite encoder, which takes exactly one message per task, then fails on a job that no
+    longer exists. Recreation rather than PurgeQueue: AWS and Moto both allow one purge per
+    queue per 60 seconds, which would make back-to-back runs fail, and a purge cannot drop
+    messages still invisible from an earlier receive. The namespace is owned by this run ID.
+    """
     s3, sqs = sdk(data, "s3"), sdk(data, "sqs")
     buckets = {owner: "dc2-v1-" + data["run_id"] + "-" + owner for owner in ("source", "output")}
     for bucket in buckets.values():
@@ -73,7 +81,7 @@ def provision_local_objects(data):
         CORSConfiguration={
             "CORSRules": [
                 {
-                    "AllowedOrigins": ["http://127.0.0.1:*"],
+                    "AllowedOrigins": ["http://127.0.0.1:*", "https://127.0.0.1:*"],
                     "AllowedMethods": ["POST", "GET", "HEAD"],
                     "AllowedHeaders": ["*"],
                     "ExposeHeaders": ["ETag", "x-amz-version-id"],
@@ -83,6 +91,13 @@ def provision_local_objects(data):
     )
     queues = {}
     for name in ("commands", "work", "results"):
+        if purge:
+            for suffix in ("", "-dlq"):
+                try:
+                    url = sqs.get_queue_url(QueueName=f"{data['project']}-{name}{suffix}")
+                except sqs.exceptions.QueueDoesNotExist:
+                    continue
+                sqs.delete_queue(QueueUrl=url["QueueUrl"])
         dlq = sqs.create_queue(QueueName=f"{data['project']}-{name}-dlq")["QueueUrl"]
         arn = sqs.get_queue_attributes(QueueUrl=dlq, AttributeNames=["QueueArn"])["Attributes"][
             "QueueArn"
@@ -94,7 +109,7 @@ def provision_local_objects(data):
                 "RedrivePolicy": json.dumps({"deadLetterTargetArn": arn, "maxReceiveCount": "3"}),
             },
         )["QueueUrl"]
-    return {"buckets": buckets, "queues": queues}
+    return {"buckets": buckets, "queues": queues, "purged_queues": bool(purge)}
 
 
 async def sql_probe(data, probe_id):
@@ -191,7 +206,7 @@ def objects_and_encode(data, output, probe_id):
     from media_engine.operations import build_edit_command
 
     s3, sqs = sdk(data, "s3"), sdk(data, "sqs")
-    resources = provision_local_objects(data)
+    resources = provision_local_objects(data, purge=True)
     bucket = resources["buckets"]["source"]
     output_bucket = resources["buckets"]["output"]
     queues = resources["queues"]
@@ -368,21 +383,42 @@ def local_environment(data):
     return env
 
 
-def selected_tests(patterns, output, data):
+COVERAGE_RC = """[run]
+branch = True
+parallel = True
+relative_files = True
+patch = subprocess
+source =
+{sources}
+"""
+
+
+def selected_tests(patterns, output, data, *, tag="tests"):
     tests = sorted({str(p.relative_to(ROOT)) for pattern in patterns for p in ROOT.glob(pattern)})
     if not tests:
         return {"status": "INCOMPLETE", "reason": "Owning acceptance tests not integrated"}
-    report = output / "tests.xml"
+    report = output / f"{tag}.xml"
     env = local_environment(data)
+    command = [sys.executable, "-m", "pytest", *tests, "-q", "--junitxml", str(report)]
+    if os.environ.get("V1_COVERAGE") == "1":
+        # The encoder, alembic and watchdog run as child processes, so measure those too
+        # (patch = subprocess). Each invocation writes its own fragment for later combining.
+        from scripts.dev.common import packages
+
+        rc = output / f"coveragerc-{tag}"
+        rc.write_text(COVERAGE_RC.format(sources="\n".join("    " + p for p in packages())))
+        env["COVERAGE_FILE"] = str(output / f".coverage.{tag}")
+        command += [f"--cov-config={rc}", "--cov-report=", "--cov-fail-under=0"]
+        command += [f"--cov={name}" for name in packages()]
     result = subprocess.run(
-        [sys.executable, "-m", "pytest", *tests, "-q", "--junitxml", str(report)],
+        command,
         cwd=ROOT,
         env=env,
         capture_output=True,
         text=True,
         timeout=180,
     )
-    (output / "pytest-private.log").write_text(result.stdout + result.stderr)
+    (output / f"pytest-private-{tag}.log").write_text(result.stdout + result.stderr)
     from xml.etree import ElementTree as ET
 
     if not report.exists():
@@ -403,6 +439,78 @@ def selected_tests(patterns, output, data):
     return {"status": status, "counts": counts, "junit_sha256": digest(report), "tests": tests}
 
 
+def browser_requested():
+    return os.environ.get("V1_BROWSER") == "1"
+
+
+def combine_coverage(output, run_id):
+    """Merge every fragment of this run into one tier the CI coverage gate can consume."""
+    from coverage import Coverage
+
+    from scripts.dev.common import fingerprint, packages
+
+    fragments = sorted(
+        str(path) for path in output.rglob(".coverage.*") if not path.name.endswith(".json")
+    )
+    if not fragments:
+        return {"status": "NOT_COLLECTED", "reason": "No test fragment was produced"}
+    target = ROOT / "artifacts/coverage/.coverage.v1-integration"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    for stale in target.parent.glob(".coverage.v1-integration*"):
+        stale.unlink()
+    merged = Coverage(data_file=str(target), config_file=False, branch=True)
+    merged.combine(data_paths=fragments, strict=True, keep=True)
+    merged.save()
+    target.with_suffix(target.suffix + ".json").write_text(
+        json.dumps({"fingerprint": fingerprint(), "tier": "v1-integration", "packages": packages()})
+        + "\n"
+    )
+    return {"status": "COLLECTED", "fragments": len(fragments), "tier": "v1-integration"}
+
+
+def run_flow(name, data, phase):
+    if name == "a":
+        probe_id = uuid.uuid4()
+        sql = asyncio.run(sql_probe(data, probe_id))
+        objects = objects_and_encode(data, phase, probe_id)
+        return {"status": "PASS", "scope": "dependency/engine seam only", **sql, **objects}
+    if name == "b":
+        # Publisher workflow always; the real browser only when explicitly requested, so a
+        # machine without Chromium gets an honest NOT_RUN rather than a silent skip.
+        publisher = selected_tests(
+            ["tests/v1/test_workflow_acceptance.py"], phase, data, tag="publisher"
+        )
+        if not browser_requested():
+            return {
+                **publisher,
+                "browser": "NOT_RUN: set V1_BROWSER=1 (make browser-install first)",
+            }
+        browser = selected_tests(
+            ["tests/v1/test_browser_acceptance.py"], phase, data, tag="browser"
+        )
+        statuses = {publisher["status"], browser["status"]}
+        status = (
+            "FAIL" if "FAIL" in statuses else "INCOMPLETE" if "INCOMPLETE" in statuses else "PASS"
+        )
+        return {"status": status, "publisher": publisher, "browser": browser}
+    session = selected_tests(["tests/v1/test_session.py"], phase, data, tag="session")
+    release_path = ROOT / "tests/v1/test_release_acceptance.py"
+    result = {
+        "status": "INCOMPLETE",
+        "sessions": session,
+        "release": "NOT_RUN: owning real SQL release acceptance not integrated",
+    }
+    if release_path.exists():
+        release = selected_tests(
+            ["tests/v1/test_release_acceptance.py"], phase, data, tag="release"
+        )
+        result.update(
+            release=release,
+            status="PASS" if session["status"] == release["status"] == "PASS" else "FAIL",
+        )
+    return result
+
+
 def verify(run_id, flow):
     start = time.monotonic()
     data = load(run_id)
@@ -410,56 +518,27 @@ def verify(run_id, flow):
         raise ValueError("Start the unique V1 runtime first")
     output = directory(run_id) / ("evidence-" + uuid.uuid4().hex[:10])
     output.mkdir(mode=0o700)
+    from scripts.dev import v1_provenance
+
+    try:
+        moto = moto_python()
+    except ValueError:
+        moto = sys.executable
+    provenance = v1_provenance.collect(data, moto)
     manifest = {
         "run_id": run_id,
-        "source_sha": run(["git", "rev-parse", "HEAD"], capture_output=True).stdout.strip(),
-        "tracked_dirty": bool(
-            run(
-                ["git", "status", "--porcelain", "--untracked-files=no"], capture_output=True
-            ).stdout.strip()
-        ),
+        # Flat copies keep older readers working; provenance holds the bound detail.
+        "source_sha": provenance["source"]["sha"],
+        "tracked_dirty": provenance["source"]["dirty"],
+        **provenance,
+        "browser_requested": browser_requested(),
         "flows": {},
-        "boundaries": {
-            "sql_ffmpeg": "real",
-            "s3_sqs": "Moto HTTP emulation",
-            "gateway_lambda": "NOT_RUN",
-            "AWS": "NOT_RUN",
-        },
     }
     for name in ["a", "b", "c"] if flow == "all" else [flow]:
         phase = output / name
         phase.mkdir()
         try:
-            if name == "a":
-                probe_id = uuid.uuid4()
-                sql = asyncio.run(sql_probe(data, probe_id))
-                objects = objects_and_encode(data, phase, probe_id)
-                result = {
-                    "status": "PASS",
-                    "scope": "dependency/engine seam only",
-                    **sql,
-                    **objects,
-                }
-            elif name == "b":
-                # A dedicated marker-owned suite must cover browser AND Publisher;
-                # do not infer full acceptance from generic route unit tests.
-                result = selected_tests(["tests/v1/test_workflow_acceptance.py"], phase, data)
-            else:
-                session = selected_tests(["tests/v1/test_session.py"], phase, data)
-                release_path = ROOT / "tests/v1/test_release_acceptance.py"
-                result = {
-                    "status": "INCOMPLETE",
-                    "sessions": session,
-                    "release": "NOT_RUN: owning real SQL release acceptance not integrated",
-                }
-                if release_path.exists():
-                    release = selected_tests(["tests/v1/test_release_acceptance.py"], phase, data)
-                    result.update(
-                        release=release,
-                        status="PASS"
-                        if session["status"] == release["status"] == "PASS"
-                        else "FAIL",
-                    )
+            result = run_flow(name, data, phase)
         except Exception as error:
             # Keep DSNs, SDK URLs and transport stderr out of selected evidence.
             result = {
@@ -473,9 +552,20 @@ def verify(run_id, flow):
     manifest["status"] = (
         "FAIL" if "FAIL" in statuses else "INCOMPLETE" if "INCOMPLETE" in statuses else "PASS"
     )
+    browser_ran = manifest["flows"].get("b", {}).get("browser", {})
+    # Complete local acceptance needs every flow and the real browser leg, and is still
+    # an emulated-boundary result: it is never a cloud PASS.
     manifest["complete_v1_acceptance"] = (
-        "NOT_RUN" if flow != "all" or manifest["status"] != "PASS" else "PASS"
+        "PASS"
+        if flow == "all"
+        and manifest["status"] == "PASS"
+        and isinstance(browser_ran, dict)
+        and browser_ran.get("status") == "PASS"
+        else "NOT_RUN"
     )
+    manifest["cloud_acceptance"] = "NOT_RUN"
+    if os.environ.get("V1_COVERAGE") == "1":
+        manifest["coverage"] = combine_coverage(output, run_id)
     manifest["elapsed_seconds"] = round(time.monotonic() - start, 3)
     save(output / "manifest.json", manifest)
     return {

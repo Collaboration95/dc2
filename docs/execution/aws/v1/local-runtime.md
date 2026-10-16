@@ -67,16 +67,39 @@ schema and bucket. Docker Desktop's VM disk can fill; PostgreSQL then fails with
   overwrite, actual SQS HTTP redelivery, a one-second audiovisual fixture encoded
   with the inherited engine to MP4/HLS and a ranged object read. This is a
   dependency/engine seam, not a complete product workflow.
-- `FLOW=b` requires `tests/v1/test_workflow_acceptance.py`, owned by integration.
-  It must exercise browser and Publisher direct intake, login/owner denials,
-  command/result SQL projections, edit/retry/cancel/delete and playback with the
-  integrated handlers. Missing tests produce `INCOMPLETE` and exit 1.
-- `FLOW=c` runs the session failure contracts and requires
-  `tests/v1/test_release_acceptance.py` for independent owner promotion, failed
-  restoration and actual SQL migration/peer isolation. Fake adapter tests alone
-  leave this gate `INCOMPLETE` and exit 1.
+- `FLOW=b` runs `tests/v1/test_workflow_acceptance.py` (Publisher direct intake,
+  login and owner denials, command/result projections, duplicate and reordered
+  results, edit/cancel/delete, MP4 range and HLS reads, and a stored-source retry:
+  attempt one fails after a real encode against an unwritable output bucket, the local
+  file is deleted, and attempt two succeeds from the stored object). With `V1_BROWSER=1`
+  it also runs `tests/v1/test_browser_acceptance.py`: the shipped frontend in headless
+  Chromium over local HTTPS registers, signs out and in, uploads straight to the object
+  store, waits for a real encode, plays the HLS ladder through hls.js, reads the MP4 by
+  range under CORS and deletes. Install the browser first (`make browser-install`
+  or `playwright install chromium`). Without the flag the browser leg is recorded
+  `NOT_RUN` and `complete_v1_acceptance` stays `NOT_RUN`; with the flag a missing browser
+  fails. Chromium's native HLS path is hidden in the test because it rejected the
+  bridge's cross-origin segment redirects (not root-caused); hls.js is the path every
+  non-Safari browser takes.
+- `FLOW=c` runs the session contracts and `tests/v1/test_release_acceptance.py`: for each
+  owner the schema is really stepped back one Alembic revision, a fake ECS task runs the
+  owner's real migrator, promotion is checked for row preservation, peer isolation and
+  alias moves, and a failed candidate restores aliases while the schema stays forward;
+  a session close/wake with real SQL readiness, the actual repair handlers and SQL
+  outcome counts keeps the queued message through close and then runs the exact finite
+  encoder command the session issued. The Lambda/ECS control plane is an in-memory
+  transport, so alias and RunTask behaviour is our state machine, not AWS.
 - `FLOW=all` executes every flow and fails on any failed/incomplete gate. Skipped
   acceptance tests cannot satisfy the gate. Never label `FLOW=a` complete V1.
+
+Re-running against the same runtime is supported. Each verification recreates the
+run-owned queues (PurgeQueue is limited to once a minute and cannot drop invisible
+messages), and every finite encoder gets a unique task name because
+`attempt_tasks.task_name` is unique like a real task ARN. Repair re-stages every queued
+attempt in the SQL volume, so a runtime that accumulated interrupted runs may deliver
+another job's message to a finite task first; the session test therefore issues batches
+until its own asset completes. Start from `make v1-down DELETE_DATA=1 && make v1-up` for
+a pristine volume.
 
 Child tests receive an explicit local AWS endpoint and dummy credentials,
 metadata disabled, no inherited AWS profile, local owner DSNs and
@@ -85,12 +108,51 @@ connections. Required migrations run through the owning migrator, never a
 runtime role. The probe table `public.v1_runtime_probe` is separate from product
 schema and preserves queued rows for restart checks.
 
-Every invocation retains `.cache/v1-runtime/<id>/evidence-*/manifest.json` with
-Git SHA, dirty-source flag, outcome per flow, hashes/lengths and explicit
-emulation boundaries. Private raw test logs are not published by CI. Keep failed
-manifests. The V1 CI workflow runs operational contracts and `FLOW=a` by default;
-manual `flow=all` adds the full integration gate. This default CI pass does not
-close #92 or establish a cloud PASS.
+Every invocation retains `.cache/v1-runtime/<id>/evidence-*/manifest.json`:
+
+- `source`: commit SHA, dirty flag, untracked-file count and, when dirty, a hash of the
+  uncommitted bytes. `source_sha` and `tracked_dirty` remain as flat copies.
+- `images`: each V1 image is `BUILT` (config ID, revision label, whether it equals the
+  source SHA; taken from a `make v1-images` receipt for this exact commit, otherwise from a
+  local `:latest` tag) or `NOT_BUILT`. Every image has `exercised_by_this_run: false`:
+  handlers run from source in-process. The PostgreSQL image actually running is recorded.
+- `tools`: Python, FFmpeg and Moto versions.
+- `boundaries`: what is `real`, what is `emulated` (API Gateway bridge, Moto S3/SQS,
+  manual event-source delivery, in-process Lambda handlers, a local subprocess for
+  Fargate, an in-memory release transport, a local certificate) and what is `not_run`
+  (IAM, Aurora networking and pause, public DNS/TLS/CloudFront, registry images, billing).
+- per-flow outcomes and test counts, `browser_requested`, `complete_v1_acceptance`
+  (needs every flow and the browser leg) and `cloud_acceptance`, always `NOT_RUN`.
+
+Private raw test logs are not published by CI. Keep failed manifests.
+
+`V1_COVERAGE=1` additionally measures the test processes and their children (encoder,
+Alembic) and writes `artifacts/coverage/.coverage.v1-integration`, the tier that
+`ci.yml`'s combined gate merges with the fast and legacy tiers.
+
+## CI and local gates
+
+`.github/workflows/v1.yml` is a reusable workflow that `ci.yml` calls on every pull
+request, defaulting to `FLOW=all` with `V1_BROWSER=1` and `V1_COVERAGE=1`. It lints the
+rendered template (`make lint-cfn CFN_LINT_ARGS=--require`, cfn-lint pinned and installed
+outside `uv.lock`), runs `make test-aws` and `make test-v1` (both under the same
+offline network guard as `make test`), starts a unique runtime, verifies all flows,
+requires `complete_v1_acceptance == PASS`, uploads the manifest and the coverage
+fragment, and tears down only its namespace. A manual dispatch can set `images` to run
+`make v1-images` (native amd64 builds and Runtime Interface Emulator handler runs).
+That job has not been exercised on a GitHub runner yet. A green run is a local-emulation
+result and does not close #92 or establish a cloud PASS.
+
+## Local VM resources
+
+V1 verification needs only Docker and uses no VM. The optional project Lima VM
+(`make capacity-start`) defaults to 2 vCPU / 2 GiB with a 2 hour lease; `--benchmark`
+(`CAPACITY_ARGS=--benchmark`) is the only way to ask for 8 / 8 and prints the cost first.
+Requests are validated, an existing instance keeps its persisted size, and `status` never
+starts anything. `make capacity-reap` stops a VM whose lease lapsed, `capacity-renew`
+extends one, `--keep-alive` allows an intentional demo up to 24 hours, and a task that
+started the VM stops it when it finishes (`capacity.py run -- COMMAND`). Another task's
+unexpired lease is never overridden without `--force`.
 
 ## Booked session module
 

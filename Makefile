@@ -12,7 +12,7 @@ export PLAYWRIGHT_BROWSERS_PATH := $(CURDIR)/.local/playwright
 .PHONY: help setup setup-browser doctor doctor-infra lint test test-python test-frontend coverage \
         coverage-report integration integration-coverage clean test-app test-processing test-media \
         test-media-engine test-publisher test-cli publisher up down logs smoke-infra images env status local-tls \
-        browser browser-install browser-open browser-trust-smoke capacity-install capacity-start capacity-status capacity-stop capacity-env \
+        browser browser-install browser-open browser-trust-smoke capacity-install capacity-start capacity-status capacity-stop capacity-env capacity-reap capacity-renew \
         e2e verify-local evidence-status evidence-performance evidence-scaling evidence-recovery evidence-release release rollback
 
 help: ## List project commands
@@ -94,8 +94,11 @@ browser-open: ## Open the scoped project browser
 
 browser: browser-open ## Open the scoped project browser (alias of browser-open)
 
-capacity-install capacity-start capacity-status capacity-stop capacity-env: ## Delegate isolated capacity ACTION
-	$(PYTHON) scripts/dev/capacity.py $(patsubst capacity-%,%,$@)
+# Default VM is 2 CPU / 2 GiB with a 2 h lease. CAPACITY_ARGS examples: --benchmark (8/8, for
+# scaling measurements only), --lease-minutes 60, --keep-alive (demo, up to 24 h), --force.
+CAPACITY_ARGS ?=
+capacity-install capacity-start capacity-status capacity-stop capacity-env capacity-reap capacity-renew: ## Delegate isolated capacity ACTION (CAPACITY_ARGS for options)
+	$(PYTHON) scripts/dev/capacity.py $(patsubst capacity-%,%,$@) $(CAPACITY_ARGS)
 
 e2e: ## Full HTTPS browser/CLI workflow
 	$(PYTHON) -m scripts.dev.e2e --run-id "$(RUN_ID)"
@@ -127,7 +130,30 @@ verify-v1: ## Real dependency/engine A, integrated clients B, lifecycle/release 
 	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_runtime verify --run-id "$(V1_RUN_ID)" --flow "$(FLOW)"
 
 test-v1: ## Offline V1 operational contracts; no services/AWS credentials
-	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/v1 -m "not integration" -q
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/v1 -m "not integration" -q \
+		-p scripts.dev.pytest_plugin --offline-fast
+
+# cfn-lint is a lint-only tool kept out of uv.lock. Locally a missing linter is a clean skip;
+# CI passes CFN_LINT_ARGS=--require so a missing linter fails.
+CFN_LINT_ARGS ?=
+.PHONY: lint-cfn test-aws test-aws-v1 v1-images
+lint-cfn: ## Render and lint the V1 CloudFormation template offline (no AWS calls)
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.aws.v1.lint $(CFN_LINT_ARGS)
+
+v1-images: ## Build and verify the three V1 images (amd64; local evidence only, no AWS)
+	$(BOOTSTRAP_PYTHON) deploy/v1/build_and_verify.py
+
+# The V1 runtime environment deliberately has no legacy extra (no rq, no PyYAML), so the two
+# AWS2 modules that import them run only where the legacy extra is installed: `make test` and
+# `make test-aws`, which CI's fast job executes. The V1 job uses test-aws-v1.
+test-aws-v1: ## Offline AWS control-plane suite for the no-legacy V1 environment
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/aws -m "not integration and not e2e" -q \
+		--ignore=tests/aws/test_cloud_worker.py --ignore=tests/aws/test_definitions.py \
+		-p scripts.dev.pytest_plugin --offline-fast
+
+test-aws: ## Offline AWS control-plane suite incl. AWS2 legacy tests (needs the legacy extra)
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/aws -m "not integration and not e2e" -q \
+		-p scripts.dev.pytest_plugin --offline-fast
 
 .PHONY: v1-serve
 v1-serve: ## Foreground loopback Gateway bridge to integrated actual handlers; V1_PORT=0 allocates

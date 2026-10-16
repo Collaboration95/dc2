@@ -21,10 +21,13 @@ from scripts.dev.v1_verify import local_environment, provision_local_objects, sd
 
 
 @contextmanager
-def app_runtime(run_id):
-    """Real HTTPS clients, actual handlers, native SQL, Moto S3 reverse TLS leg."""
+def app_runtime(run_id, *, gateway=None):
+    """Real HTTPS clients, actual handlers, native SQL, Moto S3 reverse TLS leg.
+
+    ``gateway`` substitutes a Gateway subclass, for example one that also serves the frontend.
+    """
     data = load(run_id)
-    data["resources"] = provision_local_objects(data)
+    data["resources"] = provision_local_objects(data, purge=True)
     env = local_environment(data)
     tls = Path(data["root"]) / ".cache/v1-runtime" / run_id / "tls"
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -96,12 +99,20 @@ def app_runtime(run_id):
         processing_settings.cache_clear()
         # configured_gateway would replace the public TLS storage endpoint;
         # import handlers after the explicit env above instead.
+        import importlib
+
+        import media.authorizer
         import media.lambda_handler
         import processing.lambda_handler
         from scripts.dev.v1_gateway import Gateway
 
+        # The handlers build their app (and storage client) at import. A second runtime in the
+        # same process has a new storage endpoint, so rebuild them rather than reuse the first.
+        for module in (media.authorizer, media.lambda_handler, processing.lambda_handler):
+            importlib.reload(module)
+
         front = server(
-            Gateway(
+            (gateway or Gateway)(
                 media.lambda_handler.handler,
                 processing.lambda_handler.handler,
                 media.lambda_handler.authorizer,
@@ -140,6 +151,89 @@ def migrate(owner, env):
     )
     if result.returncode:
         raise AssertionError(f"{owner} owning migration failed ({result.returncode})")
+
+
+def alembic_command(owner, env, *arguments):
+    result = subprocess.run(
+        [sys.executable, "-m", "alembic", "-c", f"{owner}/alembic.ini", *arguments],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=45,
+    )
+    if result.returncode:
+        raise AssertionError(f"{owner} alembic {arguments[0]} failed ({result.returncode})")
+    return result.stdout
+
+
+def script_revisions(owner):
+    """(previous, head) from the owner's migration scripts, not from the database."""
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    script = ScriptDirectory.from_config(Config(str(ROOT / owner / "alembic.ini")))
+    head = script.get_current_head()
+    return script.get_revision(head).down_revision, head
+
+
+def step_back(owner, env):
+    """Really undo the newest owner migration so a later upgrade has work to do."""
+    alembic_command(owner, env, "downgrade", "-1")
+
+
+def sql_fetch(runtime, owner, query, *arguments):
+    """One short runtime-role read; connections never outlive the call."""
+
+    async def read():
+        import asyncpg
+
+        connection = await asyncpg.connect(
+            host="127.0.0.1",
+            port=runtime["data"]["postgres_port"],
+            user=owner + "_runtime",
+            password="local_v1_" + owner,
+            database=owner + "_db",
+            ssl=ssl.create_default_context(cafile=runtime["ca"]),
+            timeout=5,
+        )
+        try:
+            return await connection.fetch(query, *arguments)
+        finally:
+            await connection.close()
+
+    return asyncio.run(read())
+
+
+def short_video(path, seconds=1, size="160x90"):
+    """A tiny audiovisual MP4 the inherited engine can encode in about a second."""
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            f"testsrc2=size={size}:rate=10:duration={seconds}",
+            "-f",
+            "lavfi",
+            "-i",
+            f"sine=frequency=440:duration={seconds}",
+            "-c:v",
+            "libx264",
+            "-threads",
+            "1",
+            "-c:a",
+            "aac",
+            "-y",
+            str(path),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=20,
+    )
+    return path
 
 
 async def factory_for(owner):
@@ -227,8 +321,12 @@ def pump(runtime, *, results=True, reverse=False):
     asyncio.run(invoke())
 
 
-def encode_one(runtime):
-    """Run the actual essential watchdog and finite SQS subprocess, one encode."""
+def encode_one(runtime, *, expect=0, **environment):
+    """Run the actual essential watchdog and finite SQS subprocess, one encode.
+
+    ``environment`` overrides the child's variables, to inject a transient fault such as an
+    unwritable output bucket without touching the persisted runtime.
+    """
     result = subprocess.run(
         [
             sys.executable,
@@ -244,9 +342,12 @@ def encode_one(runtime):
             "1",
         ],
         cwd=ROOT,
-        env=runtime["env"],
+        env={**runtime["env"], **environment},
         capture_output=True,
         text=True,
         timeout=70,
     )
-    assert result.returncode == 0, f"Actual finite encoder exited {result.returncode}"
+    # The private pytest log keeps the child's tail so a failed run is diagnosable.
+    assert result.returncode == expect, (
+        f"Actual finite encoder exited {result.returncode}\n{result.stderr[-3000:]}"
+    )

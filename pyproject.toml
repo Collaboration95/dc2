@@ -59,6 +59,7 @@ timeout = 30
 markers = [
   "integration: requires real external services",
   "e2e: requires the full local HTTPS topology",
+  "unmeasured: exercises only unmeasured code; skipped by the coverage run for speed",
 ]
 
 [tool.ruff]
