@@ -122,6 +122,7 @@ def config_from_outputs(
         }
         hooks = {
             "processing_api": names["ProcessingApi"],
+            "media_api": names["MediaApi"],
             "repairs": [names["MediaRepair"], names["ProcessingRepair"]],
         }
         urls = {"gateway": outputs["HttpApiUrl"], "frontend": outputs.get("FrontendUrl")}
@@ -254,9 +255,11 @@ class PlanTransport:
         elif operation == "get-stage":
             return {"DefaultRouteSettings": dict(self.stage)}
         elif operation == "invoke":
-            health = payload["Payload"].get("rawPath", "").endswith("/health")
-            body = {"status": "ok", "service": "processing"} if health else {}
-            reply = {"statusCode": 200, "body": json.dumps(body)} if health else {"published": 0}
+            if payload["Payload"].get("dc2_operation") == "ready":
+                service = "media" if "Media" in payload["FunctionName"] else "processing"
+                reply = {"service": service, "ready": True}
+            else:
+                reply = {"published": 0}
             return {"StatusCode": 200, "FunctionError": False, "Payload": reply}
         elif operation == "run-task":
             arn = "arn:simulated:task/" + payload["clientToken"]

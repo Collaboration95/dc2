@@ -41,6 +41,7 @@ def run_action(args, session, data, hook_names, transport, deadline):
         return session.open(
             ready=owner.ready,
             repair=owner.repair,
+            intake_ready=owner.intake_ready,
             deadline=deadline,
             window=args.action == "window",
         )

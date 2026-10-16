@@ -22,21 +22,6 @@ OUTCOME_STATES = ("queued", "succeeded", "failed", "abandoned", "cancelled")
 COUNT_SQL = "SELECT state, count(*) FROM attempts GROUP BY state"
 
 
-def gateway_event(method, path, body=None):
-    """Minimal HTTP API payload-v2 event for an unauthenticated public route."""
-    payload = {
-        "version": "2.0",
-        "rawPath": path,
-        "rawQueryString": "",
-        "headers": {"content-type": "application/json"},
-        "requestContext": {"http": {"method": method}},
-        "isBase64Encoded": False,
-    }
-    if body is not None:
-        payload["body"] = json.dumps(body)
-    return payload
-
-
 class OwnerHooks:
     """ready/repair hooks for Session.open using alias invocations only."""
 
@@ -45,6 +30,7 @@ class OwnerHooks:
         transport,
         *,
         processing_api,
+        media_api,
         repairs,
         qualifier="live",
         clock=time.monotonic,
@@ -52,10 +38,11 @@ class OwnerHooks:
         poll_seconds=5,
         repair_rounds=3,
     ):
-        if not processing_api or not repairs:
-            raise OperationError("Readiness function and repair functions are required")
+        if not processing_api or not media_api or not repairs:
+            raise OperationError("Readiness functions and repair functions are required")
         self.transport, self.qualifier = transport, qualifier
-        self.processing_api, self.repairs = processing_api, list(repairs)
+        self.processing_api, self.media_api = processing_api, media_api
+        self.repairs = list(repairs)
         self.clock, self.sleep = clock, sleep
         self.poll_seconds, self.repair_rounds = poll_seconds, repair_rounds
 
@@ -72,28 +59,24 @@ class OwnerHooks:
             deadline=deadline,
         )
 
-    def _healthy(self, deadline):
-        result = self._invoke(
-            self.processing_api, gateway_event("GET", "/api/processing/health"), deadline
+    def _probe(self, function, service, deadline):
+        """Direct-invoke readiness: Gateway cannot construct this event, IAM gates it."""
+        result = self._invoke(function, {"dc2_operation": "ready"}, deadline)
+        reply = result.get("Payload")
+        return (
+            not result.get("FunctionError")
+            and result.get("StatusCode") == 200
+            and isinstance(reply, dict)
+            and reply.get("service") == service
+            and reply.get("ready") is True
         )
-        if result.get("FunctionError") or result.get("StatusCode") != 200:
-            return False
-        reply = result.get("Payload") or {}
-        if reply.get("statusCode") != 200:
-            return False
-        try:
-            body = json.loads(reply.get("body") or "{}")
-        except ValueError:
-            return False
-        # Processing health runs SELECT 1, so success proves cluster wake, TLS and creds.
-        return body.get("status") == "ok" and body.get("service") == "processing"
 
-    def ready(self, *, deadline):
+    def _poll(self, function, service, deadline):
         """Poll while Aurora resumes. Cold resume can outlast a single Lambda timeout."""
         while True:
             try:
                 remaining(deadline, self.clock)
-                if self._healthy(deadline):
+                if self._probe(function, service, deadline):
                     return True
             except OperationError:
                 pass  # transient SDK/Lambda failure while resuming; the deadline bounds us
@@ -101,6 +84,14 @@ class OwnerHooks:
                 self.sleep(min(self.poll_seconds, remaining(deadline, self.clock)))
             except OperationError:
                 return False
+
+    def ready(self, *, deadline):
+        """Processing's owned database (runs while Media intake is still quiesced)."""
+        return self._poll(self.processing_api, "processing", deadline)
+
+    def intake_ready(self, *, deadline):
+        """Media's owned database, probed once its intake function is restored."""
+        return self._poll(self.media_api, "media", deadline)
 
     def repair(self, *, deadline):
         """Run every owner's bounded repair tick; a clean round means no deadline hit."""

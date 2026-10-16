@@ -143,7 +143,7 @@ class Session:
         if result.get("State") != ("ENABLED" if enabled else "DISABLED"):
             raise OperationError("Repair schedule state was not confirmed")
 
-    def open(self, *, ready, repair, deadline, window=False):
+    def open(self, *, ready, repair, deadline, window=False, intake_ready=None):
         """Open only after owning SQL readiness and bounded recovery succeed.
 
         ready/repair are deadline-aware owner hooks. They must close their SQL
@@ -153,6 +153,10 @@ class Session:
         smoke-tested through the real contracts while every queue consumer, repair rule
         and worker stays disabled (the owner must remain quiescent). It may run with a
         pending release, which a full open refuses; `close` ends it like any session.
+
+        intake_ready probes the intake-side owner (Media) after its function is restored
+        but before the edge opens, because a quiesced function cannot be invoked. A
+        failure re-quiesces intake so a half-open session never serves the public API.
         """
         with self.journal.locked() as state:
             allowed = {"closed", "opening", "window"} if window else {"closed", "opening"}
@@ -202,6 +206,21 @@ class Session:
                     "restore:" + name,
                     lambda n=name: self._concurrency(n, self.config["functions"][n], deadline),
                 )
+            if intake_ready is not None:
+                try:
+                    self._step(
+                        state,
+                        "intake-ready",
+                        lambda: self._require(intake_ready(deadline=deadline)),
+                    )
+                except Exception:
+                    # Never leave intake serving after a failed probe, even without an edge gate.
+                    for name in self.config["intake_functions"]:
+                        try:
+                            self._zero(name, deadline, [])
+                        except OperationError:
+                            pass
+                    raise
             if self.config.get("gateway"):
                 self._step(state, "edge:open", lambda: self._edge(True, deadline))
             # A window never unpauses launches: batches need a full open session.

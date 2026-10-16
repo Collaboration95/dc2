@@ -71,7 +71,8 @@ def rig(tmp_path):
     config, hooks, _ = config_from_outputs(outputs(), station="s", environment="e2e")
     journal = Journal(directory / "session.json", station="s", environment="e2e")
     journal.initialize(verified_empty=True, exclusive_station=True)
-    cloud = Cloud(account_limit=10)
+    # The template deploys every function at reserved concurrency 0.
+    cloud = Cloud(account_limit=10, concurrency=dict.fromkeys(config["functions"], 0))
     session = Session(config, cloud, journal)
     owner = OwnerHooks(cloud, **hooks, sleep=lambda s: None)
     return session, cloud, journal, owner, config
@@ -115,21 +116,84 @@ def test_close_sets_zero_everywhere_and_disables_every_wake_source(rig):
     assert state(journal)["close_outcomes"]["succeeded"] == 3
 
 
-def test_intake_stays_closed_until_readiness_repair_and_consumers_succeeded(rig):
+def invocations(cloud, function):
+    return [
+        i
+        for i, c in enumerate(cloud.calls)
+        if c["operation"] == "invoke" and c["payload"]["FunctionName"] == function
+    ]
+
+
+def test_each_owner_is_probed_with_the_direct_readiness_event_before_intake_serves(rig):
     session, cloud, journal, owner, config = rig
-    session.open(ready=owner.ready, repair=owner.repair, deadline=deadline())
-    ops = [(c["operation"], c["payload"].get("Name")) for c in cloud.calls]
-    intake_open = max(i for i, c in enumerate(cloud.calls) if c["operation"] == "update-stage")
-    for name in ("fn-MediaApi", "fn-MediaAuthorizer"):
-        last = max(
-            i
-            for i, c in enumerate(cloud.calls)
-            if c["payload"].get("FunctionName") == name
-            and c["operation"] == "delete-function-concurrency"
+    session.open(
+        ready=owner.ready,
+        repair=owner.repair,
+        intake_ready=owner.intake_ready,
+        deadline=deadline(),
+    )
+    probes = [c for c in cloud.calls if c["operation"] == "invoke"]
+    assert {"dc2_operation": "ready"} in [c["payload"]["Payload"] for c in probes]
+    first_processing = invocations(cloud, "fn-ProcessingApi")[0]
+    first_media = invocations(cloud, "fn-MediaApi")[0]
+    media_restore = max(
+        i
+        for i, c in enumerate(cloud.calls)
+        if c["operation"] == "delete-function-concurrency"
+        and c["payload"]["FunctionName"] == "fn-MediaApi"
+    )
+    edge_open = max(i for i, c in enumerate(cloud.calls) if c["operation"] == "update-stage")
+    # A quiesced function cannot be invoked: Media is probed after restore, before the edge.
+    assert first_processing < media_restore < first_media < edge_open
+
+
+def test_failed_intake_probe_requiesces_intake_and_leaves_the_edge_closed(rig):
+    session, cloud, journal, owner, config = rig
+    real = cloud.call
+
+    def call(service, operation, payload, *, deadline):
+        if operation == "invoke" and payload["FunctionName"] == "fn-MediaApi":
+            return {"StatusCode": 200, "FunctionError": False,
+                    "Payload": {"service": "media", "ready": False}}
+        return real(service, operation, payload, deadline=deadline)
+
+    cloud.call = call
+    with pytest.raises(OperationError):
+        session.open(
+            ready=owner.ready,
+            repair=owner.repair,
+            intake_ready=lambda **k: owner.intake_ready(
+                deadline=time.monotonic() + 0.05
+            ),
+            deadline=deadline(),
         )
-        assert last > max(i for i, c in enumerate(cloud.calls) if c["operation"] == "invoke")
-        assert last < intake_open
-    assert ("enable-rule", "rule-MediaRepair") in ops
+    assert cloud.functions["fn-MediaApi"] == 0 and cloud.functions["fn-MediaAuthorizer"] == 0
+    assert cloud.stage == {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0}
+    assert state(journal)["session"] == "opening" and state(journal)["paused"]
+
+
+def test_window_serves_only_the_public_api_and_never_enables_background_work(rig):
+    session, cloud, journal, owner, config = rig
+    result = session.open(
+        ready=owner.ready, repair=owner.repair, intake_ready=owner.intake_ready,
+        deadline=deadline(), window=True,
+    )
+    assert result["session"] == "window"
+    assert set(cloud.mappings.values()) <= {"Disabled"}
+    assert set(cloud.rules.values()) <= {"DISABLED"}
+    assert cloud.functions["fn-ProcessingApi"] is None and cloud.functions["fn-MediaApi"] is None
+    assert cloud.functions.get("fn-ProcessingCommands", 0) == 0
+    assert state(journal)["paused"] is True
+    assert session.status(deadline=deadline())["drift"] == []
+    with pytest.raises(OperationError, match="Open unpaused"):
+        session.batch(count=1, deadline=deadline())
+    # A window may coexist with a release intent; a full open may not.
+    with journal.locked() as saved:
+        saved["pending_release"] = {"v1_request": {}}
+        journal.save(saved)
+    session.open(ready=owner.ready, repair=owner.repair, deadline=deadline(), window=True)
+    with pytest.raises(OperationError, match="release intent"):
+        session.open(ready=owner.ready, repair=owner.repair, deadline=deadline())
 
 
 def test_positive_reservation_is_refused_before_any_change_under_a_small_account_limit(rig):
@@ -224,6 +288,21 @@ def test_readiness_polls_through_an_aurora_resume_and_gives_up_at_the_deadline(r
     cloud.call = call
     assert owner.ready(deadline=deadline()) is True and len(attempts) == 3
     cloud.call = lambda *a, **k: (_ for _ in ()).throw(OperationError("down"))
+    assert owner.ready(deadline=time.monotonic() + 0.05) is False
+
+
+@pytest.mark.parametrize(
+    "reply",
+    [
+        {"service": "processing", "ready": False, "error": "database unavailable"},
+        {"service": "media", "ready": True},  # right shape from the wrong owner
+        {"ready": True},
+        None,
+    ],
+)
+def test_readiness_requires_the_named_owner_to_report_ready(rig, reply):
+    _, cloud, _, owner, _ = rig
+    cloud.call = lambda *a, **k: {"StatusCode": 200, "FunctionError": False, "Payload": reply}
     assert owner.ready(deadline=time.monotonic() + 0.05) is False
 
 
@@ -373,6 +452,8 @@ def test_dry_run_open_plans_unreserved_functions_and_invokes_the_real_hooks(tmp_
     code, out = run("open", "--config", str(operator_files(tmp_path)), *SCOPE, "--dry-run")
     ops = [c["operation"] for c in out["planned_calls"]]
     assert "delete-function-concurrency" in ops and "invoke" in ops and "update-stage" in ops
+    probes = [c["payload"]["Payload"] for c in out["planned_calls"] if c["operation"] == "invoke"]
+    assert {"dc2_operation": "ready"} in probes
     assert out["result"]["worker_starts"] == 0 and "simulated" in out
 
 
