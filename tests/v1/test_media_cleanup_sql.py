@@ -20,9 +20,9 @@ from media.errors import MediaError
 from media.messaging import consume_result
 from media.models import Asset, CleanupIntent, User, now
 from media.projections import apply_result
-from media.recovery_v1 import cleanup_tombstones
+from media.recovery_v1 import cleanup_tombstones, run_once
 from media.services.v1_lifecycle import tombstone
-from media.upload_models import SourceVersion
+from media.upload_models import SourceVersion, UploadReservation
 
 pytestmark = pytest.mark.integration
 
@@ -317,7 +317,32 @@ async def test_native_source_version_deletion_and_late_object_with_moto(factory)
             pin = await session.get(SourceVersion, asset_id)
             pin.bucket, pin.version_id = bucket, accepted
         await cancel_and_ack(factory, owner, asset_id)
-        assert await cleanup_tombstones(factory, storage) == 1
+        orphan_key = f"sources/{owner}/{uuid4()}/unfinalized"
+        client.put_object(Bucket=bucket, Key=orphan_key, Body=b"orphan-version")
+        async with factory() as session, session.begin():
+            session.add(
+                UploadReservation(
+                    id=uuid4(),
+                    owner_id=owner,
+                    request_id=uuid4(),
+                    request_hash="b" * 64,
+                    asset_id=uuid4(),
+                    filename="orphan.mp4",
+                    bucket=bucket,
+                    key=orphan_key,
+                    content_type="video/mp4",
+                    size_bytes=14,
+                    sha256="c" * 64,
+                    expires_at=now() - timedelta(seconds=1),
+                )
+            )
+        repaired = await run_once(factory, SimpleNamespace(recovery_batch_size=25), storage)
+        assert repaired == {"cleanup": 1, "uploads": 1}
+        assert not [
+            v
+            for v in client.list_object_versions(Bucket=bucket).get("Versions", [])
+            if v["Key"] == orphan_key
+        ]
 
         def exact_versions():
             return [
@@ -347,3 +372,17 @@ async def test_native_source_version_deletion_and_late_object_with_moto(factory)
                 },
             )
         client.delete_bucket(Bucket=bucket)
+
+
+async def test_wrong_owner_ack_cannot_grant_cleanup(factory):
+    owner, asset_id, _ = await seed(factory)
+    ack = await cancel_and_ack(factory, owner, asset_id)
+    async with factory() as session, session.begin():
+        intent = await session.get(CleanupIntent, asset_id)
+        intent.processing_deleted_at = None
+    ack["owner_id"], ack["message_id"] = str(uuid4()), str(uuid4())
+    async with factory() as session:
+        with pytest.raises(MediaError, match="not found"):
+            await consume_result(session, ack, apply_result)
+    async with factory() as session:
+        assert (await session.get(CleanupIntent, asset_id)).processing_deleted_at is None

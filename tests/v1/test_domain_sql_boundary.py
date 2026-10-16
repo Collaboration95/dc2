@@ -128,7 +128,12 @@ async def test_finalize_command_completion_and_reordered_projection(domains):
         )
     body = work.body
     bound = await claim(
-        processing, UUID(body["job_id"]), UUID(body["attempt_id"]), SETTINGS, envelope=body
+        processing,
+        UUID(body["job_id"]),
+        UUID(body["attempt_id"]),
+        SETTINGS,
+        envelope=body,
+        task_name="domain-boundary",
     )
     output = {
         "kind": "primary",
@@ -152,7 +157,9 @@ async def test_stored_source_retry_then_media_delete_dominates_late_results(doma
     await handle_command(processing, command)
     async with processing() as session:
         job = await session.scalar(select(Job))
-    bound = await claim(processing, job.id, job.current_attempt_id, SETTINGS)
+    bound = await claim(
+        processing, job.id, job.current_attempt_id, SETTINGS, task_name="domain-boundary-retry"
+    )
     assert await finish(processing, bound, error="Curated failure")
     assert (await project_results(media, processing)).status == "failed"
     async with media() as session:
