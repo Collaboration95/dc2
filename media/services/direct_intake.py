@@ -37,7 +37,26 @@ def source(reservation):
 
 
 async def source_for_asset(session, asset_or_id):
+    """The only sanctioned way to name an adopted source: always carries its VersionId.
+
+    A staging key stays writable by a replayed grant until the grant expires, so a reader
+    holding just the key could be served bytes that were never verified.
+    """
     asset_id = getattr(asset_or_id, "id", asset_or_id)
+    descriptor = await _stored_source(session, asset_id)
+    adopted_key = getattr(asset_or_id, "source_key", None)
+    if descriptor and adopted_key is not None and descriptor["key"] != adopted_key:
+        raise MediaError(409, "accepted source does not match the asset")
+    return descriptor
+
+
+async def pinned_version(session, asset):
+    """VersionId a legacy signed-URL reader must request, or None for unpinned history."""
+    descriptor = await source_for_asset(session, asset)
+    return descriptor["version_id"] if descriptor else None
+
+
+async def _stored_source(session, asset_id):
     reservation = await session.scalar(
         select(UploadReservation).where(
             UploadReservation.asset_id == asset_id, UploadReservation.finalized_at.is_not(None)

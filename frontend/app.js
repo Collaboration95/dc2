@@ -39,7 +39,9 @@ const ALLOWED_CONTENT_TYPES = new Set([
   "video/x-matroska",
   "video/x-msvideo",
 ]);
-// Mirrors app/api/uploads.py's MAX_FILE_SIZE. Same caveat: advisory only.
+// Mirrors media/services/storage.py's MAX_FILE_SIZE (enforced again at reservation and
+// finalize). Advisory here, but it is the only guard before file.arrayBuffer() hashes the
+// whole file in memory for the reservation, so keep it ahead of that call.
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
 
 const PAGE_SIZE = 12;

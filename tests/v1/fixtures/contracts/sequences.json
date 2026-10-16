@@ -1,0 +1,164 @@
+{
+  "sequences": {
+    "replayed_delivery_of_the_same_message": {
+      "steps": [
+        {
+          "use": "result_processing"
+        },
+        {
+          "use": "result_processing"
+        }
+      ],
+      "expect": [
+        "applied",
+        "stale"
+      ]
+    },
+    "same_state_under_a_new_message_id": {
+      "steps": [
+        {
+          "use": "result_processing"
+        },
+        {
+          "use": "result_processing",
+          "message_id": "00000000-0000-4000-8000-000000000901"
+        }
+      ],
+      "expect": [
+        "applied",
+        "stale"
+      ]
+    },
+    "reordered_older_state_arrives_late": {
+      "steps": [
+        {
+          "use": "result_processing"
+        },
+        {
+          "use": "result_queued"
+        }
+      ],
+      "expect": [
+        "applied",
+        "stale"
+      ]
+    },
+    "two_different_terminal_states_at_one_version": {
+      "steps": [
+        {
+          "use": "result_done"
+        },
+        {
+          "use": "result_failed"
+        }
+      ],
+      "expect": [
+        "applied",
+        "conflict"
+      ]
+    },
+    "terminal_attempt_cannot_restart": {
+      "steps": [
+        {
+          "use": "result_done"
+        },
+        {
+          "use": "result_processing",
+          "state_version": 4
+        }
+      ],
+      "expect": [
+        "applied",
+        "conflict"
+      ]
+    },
+    "cancellation_may_follow_completion_of_the_same_attempt": {
+      "steps": [
+        {
+          "use": "result_done"
+        },
+        {
+          "use": "result_cancelled_existing_job"
+        }
+      ],
+      "expect": [
+        "applied",
+        "applied"
+      ]
+    },
+    "retry_opens_a_new_attempt_after_failure": {
+      "steps": [
+        {
+          "use": "result_failed"
+        },
+        {
+          "use": "result_queued",
+          "state_version": 4,
+          "attempt_id": "00000000-0000-4000-8000-000000000032",
+          "payload": {
+            "attempt_number": 2
+          }
+        }
+      ],
+      "expect": [
+        "applied",
+        "applied"
+      ]
+    },
+    "late_result_from_a_superseded_attempt": {
+      "steps": [
+        {
+          "use": "result_failed"
+        },
+        {
+          "use": "result_queued",
+          "state_version": 4,
+          "attempt_id": "00000000-0000-4000-8000-000000000032",
+          "payload": {
+            "attempt_number": 2
+          }
+        },
+        {
+          "use": "result_processing",
+          "state_version": 5
+        }
+      ],
+      "expect": [
+        "applied",
+        "applied",
+        "stale"
+      ]
+    }
+  },
+  "cancel_before_submit": {
+    "command": "cancel_before_submit",
+    "acknowledgement": "result_cancellation_ack_without_job",
+    "late_submit": "submit",
+    "acknowledgement_names_the_command": true,
+    "submit_after_cancel_is_a_valid_envelope_that_processing_must_refuse": true,
+    "enforced_by": [
+      "tests/v1/test_messaging_sql.py::test_cancel_before_submit_is_permanent",
+      "tests/v1/test_messaging_sql.py::test_guard_tombstone_rejects_claim_even_if_job_projection_is_still_queued"
+    ]
+  },
+  "conflicting_replay": {
+    "valid": "submit",
+    "mutation": {
+      "payload": {
+        "operations": [
+          {
+            "operation": "clip",
+            "params": {
+              "start": 1,
+              "end": 2
+            }
+          }
+        ]
+      }
+    },
+    "same_message_id_must_hash_differently": true,
+    "enforced_by": [
+      "tests/v1/test_messaging_sql.py::test_submit_duplicate_conflict_and_rollback"
+    ]
+  }
+}

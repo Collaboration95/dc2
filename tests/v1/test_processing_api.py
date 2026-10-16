@@ -195,9 +195,23 @@ async def test_bad_body_does_not_reflect_input(app):
 async def test_db_failure_returns_safe_service_error(app):
     session = fake_session(app, None)
     session.execute.side_effect = OperationalError("SQL password", {}, Exception("private-secret"))
-    result = await GatewayAdapter(app, service="processing").invoke(event("/health"))
+    result = await GatewayAdapter(app, service="processing").invoke(
+        event(f"/jobs/{uuid4()}", owner=uuid4())
+    )
     assert result["statusCode"] == 503
     assert json.loads(result["body"]) == {"error": "Processing database unavailable"}
+
+
+async def test_public_health_never_opens_a_database_session(app):
+    """A health probe must not wake a paused Aurora cluster."""
+
+    def forbidden():
+        raise AssertionError("health opened a database session")
+
+    app.dependency_overrides[get_v1_session] = forbidden
+    result = await GatewayAdapter(app, service="processing").invoke(event("/health"))
+    assert result["statusCode"] == 200
+    assert json.loads(result["body"])["service"] == "processing"
 
 
 async def test_malformed_actor_denied(app):
