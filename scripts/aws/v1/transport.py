@@ -176,7 +176,14 @@ def validate_arguments(service, operation, payload):
 
 
 class OperatorTransport:
-    def __init__(self, clients, *, identity, account, region, clock=time.monotonic):
+    def __init__(
+        self, clients, *, identity, account, region, clock=time.monotonic, budgets=None
+    ):
+        """budgets maps a service to a larger network allowance (seconds, at most 70).
+
+        A synchronous Lambda invocation can legitimately run for the function timeout
+        (60 s) while Aurora resumes; other services keep the strict fifteen seconds.
+        """
         # The account is operator input, never source code: a stale constant could point
         # a mutation at the wrong account. It must match a freshly verified STS identity.
         if not isinstance(account, str) or not _ACCOUNT.fullmatch(account) or region != REGION:
@@ -185,12 +192,15 @@ class OperatorTransport:
             raise OperationError("Operator must supply freshly verified STS identity")
         if not clients or any(c.meta.region_name != region for c in clients.values()):
             raise OperationError("Explicit regional clients required")
-        for client in clients.values():
+        budgets = budgets or {}
+        if any(type(v) not in {int, float} or not 15 < v <= 70 for v in budgets.values()):
+            raise OperationError("Extended network budgets must exceed 15 and not exceed 70")
+        for service, client in clients.items():
             config = client.meta.config
             if (config.retries or {}).get("total_max_attempts") != 1:
                 raise OperationError("SDK retries must be disabled; reconcile writes explicitly")
-            if config.connect_timeout + config.read_timeout > 15:
-                raise OperationError("SDK network timeouts must total at most fifteen seconds")
+            if config.connect_timeout + config.read_timeout > budgets.get(service, 15):
+                raise OperationError("SDK network timeouts exceed the service budget")
         self.clients, self.clock = clients, clock
 
     def call(self, service, operation, payload, *, deadline):
