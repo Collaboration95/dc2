@@ -2,6 +2,7 @@
 
 import json
 import os
+import sys
 from unittest.mock import Mock
 
 import pytest
@@ -230,6 +231,112 @@ def test_cli_refuses_a_non_loopback_emulator_endpoint():
         dlq.main(["inspect", "--limit", "5"])
     with pytest.raises(SystemExit):
         dlq.main(["redrive"])
+
+
+class FakeBoto3:
+    """boto3 stand-in: STS answers with `account`; the SQS client is only built if allowed."""
+
+    def __init__(self, account):
+        self.account, self.profiles, self.clients = account, [], []
+        self.sqs = Mock()
+        self.Session = self.make_session
+
+    def make_session(self, profile_name=None, region_name=None):
+        self.profiles.append((profile_name, region_name))
+        owner = self
+
+        class Session:
+            def client(self, name, config=None):
+                owner.clients.append(name)
+                if name == "sts":
+                    return Mock(get_caller_identity=Mock(return_value={"Account": owner.account}))
+                return owner.sqs
+
+        return Session()
+
+
+SCOPE_ARGS = ["--profile", "dc2-project2-mfa", "--region", "ap-southeast-1"]
+
+
+@pytest.fixture
+def clean_env(monkeypatch):
+    for name in ("AWS_PROFILE", "AWS_DEFAULT_PROFILE", "AWS_ACCESS_KEY_ID", "AWS_SESSION_TOKEN",
+                 "DC2_AWS_ACCOUNT"):
+        monkeypatch.delenv(name, raising=False)
+
+
+@pytest.fixture
+def no_client(monkeypatch):
+    """Any attempt to build an AWS client fails the test: usage errors must come first."""
+    def forbidden(*_a, **_k):
+        raise AssertionError("an AWS client was built")
+
+    monkeypatch.setattr(dlq, "build_client", forbidden)
+    monkeypatch.setattr(dlq, "build_verified_client", forbidden)
+
+
+@pytest.mark.parametrize("extra", [
+    [],
+    ["--profile", "dc2-project2-mfa"],
+    ["--region", "ap-southeast-1"],
+    ["--profile", "default", "--region", "ap-southeast-1"],
+    ["--profile", "dc2-project2-mfa", "--region", "us-east-1"],
+    ["--profile", "dc2-project2-mfa", "--region", "ap-southeast-1", "--account", "123"],
+])
+def test_real_aws_commands_need_an_explicit_profile_region_and_account_before_any_client(
+        no_client, clean_env, extra):
+    with pytest.raises(SystemExit):
+        dlq.main(["status", "--dlq-arn", DLQ_ARN, *extra])
+
+
+def test_a_non_loopback_endpoint_is_a_usage_error_not_a_fallback_to_default_credentials(
+        no_client, clean_env):
+    with pytest.raises(SystemExit):
+        dlq.main(["status", "--dlq-arn", DLQ_ARN, "--endpoint-url", "https://sqs.example.test",
+                  *SCOPE_ARGS])
+
+
+def test_the_sts_account_is_verified_before_any_sqs_client_exists(
+        monkeypatch, clean_env, capsys):
+    fake = FakeBoto3("999999999999")
+    monkeypatch.setitem(sys.modules, "boto3", fake)
+    with pytest.raises(SystemExit, match="different account"):
+        dlq.main(["status", "--dlq-arn", DLQ_ARN, *SCOPE_ARGS])
+    assert fake.profiles == [("dc2-project2-mfa", "ap-southeast-1")]
+    assert fake.clients == ["sts"]  # the SQS client was never created
+    fake.sqs.list_message_move_tasks.assert_not_called()
+
+
+def test_the_expected_project_account_is_the_default_check_and_account_overrides_it(
+        monkeypatch, clean_env, capsys):
+    fake = FakeBoto3(dlq.EXPECTED_ACCOUNT)
+    fake.sqs.list_message_move_tasks.return_value = {"Results": []}
+    monkeypatch.setitem(sys.modules, "boto3", fake)
+    dlq.main(["status", "--dlq-arn", DLQ_ARN, *SCOPE_ARGS])
+    assert fake.clients == ["sts", "sqs"]
+    fake.sqs.list_message_move_tasks.assert_called_once()
+    other = FakeBoto3("123456789012")
+    other.sqs.list_message_move_tasks.return_value = {"Results": []}
+    monkeypatch.setitem(sys.modules, "boto3", other)
+    dlq.main(["status", "--dlq-arn", DLQ_ARN, *SCOPE_ARGS, "--account", "123456789012"])
+    assert other.clients == ["sts", "sqs"]
+
+
+def test_inherited_aws_credentials_are_refused_for_real_aws(monkeypatch, clean_env):
+    monkeypatch.setenv("AWS_PROFILE", "default")
+    with pytest.raises(SystemExit, match="Unset inherited"):
+        dlq.main(["status", "--dlq-arn", DLQ_ARN, *SCOPE_ARGS])
+
+
+def test_a_loopback_emulator_keeps_working_without_a_profile_and_rejects_one(monkeypatch):
+    client = Mock()
+    client.list_message_move_tasks.return_value = {"Results": []}
+    built = []
+    monkeypatch.setattr(dlq, "build_client", lambda endpoint: built.append(endpoint) or client)
+    dlq.main(["status", "--dlq-arn", DLQ_ARN, "--endpoint-url", LOOPBACK])
+    assert built == [LOOPBACK]
+    with pytest.raises(SystemExit):
+        dlq.main(["status", "--dlq-arn", DLQ_ARN, "--endpoint-url", LOOPBACK, *SCOPE_ARGS])
 
 
 @pytest.mark.integration
