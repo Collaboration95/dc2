@@ -150,7 +150,12 @@ repeated. A rerun after the bootstrap task finished but before every DSN reached
 task and publishes the saved passwords, so SSM and PostgreSQL agree; if the password file is lost
 the recorded task is retired and a fresh bootstrap applies newly generated ones. Retiring means
 stopping any unfinished earlier bootstrap task (the recorded one, and any launched under the same
-`startedBy` whose ARN was never journaled) and waiting up to 5 minutes for STOPPED; if that cannot
+`startedBy` whose ARN was never journaled) and waiting up to 5 minutes for STOPPED. ListTasks
+filters on the desired status, so a task drops out of it as soon as StopTask is accepted; every
+discovered ARN is therefore journaled (`bootstrap_retiring`) before it is stopped and described
+directly until ECS reports STOPPED, across resumes too. An ARN ECS reports MISSING (or not at all)
+counts as stopped only after 3 consecutive looks, the same reconciliation as a vanished task. If
+that cannot
 be confirmed the step fails and nothing is relaunched, so a stale task cannot reset the roles after
 the new DSNs are published. The task's successful exit code is journaled before any DSN is written,
 so a resume never describes the task again (ECS shows stopped tasks for only about an hour). A task

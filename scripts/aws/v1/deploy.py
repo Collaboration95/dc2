@@ -93,6 +93,8 @@ TEARDOWN_STEPS = (
 )
 # Re-sweeps before a bucket delete gives up; a 15-minute upload grant is the longest write source.
 BUCKET_DELETE_ATTEMPTS, BUCKET_RETRY_SECONDS = 5, 10
+# Consecutive MISSING answers before a task ECS does not report is taken as long stopped.
+MISSING_LOOKS = 3
 # Session close checks that cannot pass while an encoder task still runs.
 DRAIN_CHECKS = {"drain", "outcomes", "inventory"}
 AURORA_VERSION = "16.8" # the renderer's default; the observed orderable version
@@ -1079,19 +1081,36 @@ class Pipeline:
     def clear_task(self, label):
         """Forget a launch: its token, task and journaled verdict."""
         self.mark(self.step, "started", **{
-            f"{label}_token": None, f"{label}_task": None, f"{label}_done": None})
+            f"{label}_token": None, f"{label}_task": None, f"{label}_done": None,
+            f"{label}_retiring": None})
 
     def stop_unfinished(self, label, arn):
         """Stop every unfinished task of this label and wait (bounded) until all are STOPPED.
 
         Covers the recorded task and any task this pipeline launched under the label's
-        `startedBy` whose ARN was never journaled (the run-task reply was lost). A recorded
-        task ECS no longer reports (MISSING) was stopped more than an hour ago, since ECS keeps
-        stopped tasks visible for at least that long. Anything else that cannot be confirmed
-        stopped within the wait fails the step: a second launch next to a live one could
-        overwrite credentials after they were published.
+        `startedBy` whose ARN was never journaled (the run-task reply was lost). ListTasks
+        filters on the *desired* status, so a task leaves that listing the moment StopTask is
+        accepted, while it is still running. Every matching ARN is therefore journaled
+        (`<label>_retiring`) before it is stopped and described directly, round after round and
+        across resumes, until ECS reports it STOPPED. Nothing is relaunched, and no credential
+        replaced, before then: a second task next to a live one could reset the roles after
+        the new DSNs are published.
+
+        An ARN that DescribeTasks reports MISSING counts as stopped only after
+        `MISSING_LOOKS` consecutive rounds, the same reconciliation `finite_task` applies: ECS
+        keeps stopped tasks visible for at least an hour, so a task that stays unknown was
+        stopped long ago, but a single empty answer may be launch-time lag.
         """
-        cluster, marker, stopped = self.outputs()["ClusterArn"], self.started_by(label), []
+        cluster, marker = self.outputs()["ClusterArn"], self.started_by(label)
+        key = f"{label}_retiring"
+        retained = list(self.detail(self.step).get(key) or [])
+        requested, missing = set(), {}
+
+        def retain(arns):
+            fresh = [a for a in arns if a not in retained]
+            if fresh:  # durable before any StopTask names these ARNs
+                retained.extend(fresh)
+                self.mark(self.step, "started", **{key: list(retained)})
 
         def listed():
             arns, token = [], None
@@ -1112,27 +1131,39 @@ class Pipeline:
             running = listed()
             if running is None:
                 return True, None  # the cluster is gone, and every task with it
-            candidates = list(dict.fromkeys([*([arn] if arn else []), *running]))
-            live = []
+            if arn:
+                retain([arn])
+            described = {}
+            candidates = list(dict.fromkeys([*retained, *running]))
             for start in range(0, len(candidates), 100):
-                described = self.aws("ecs", "describe-tasks", {
+                answer = self.aws("ecs", "describe-tasks", {
                     "cluster": cluster, "tasks": candidates[start:start + 100]})
-                bad = [f for f in described.get("failures", []) if f.get("reason") != "MISSING"]
-                if bad:
-                    raise DeployError(f"Cannot confirm the {label} task stopped")
-                live += [t for t in described.get("tasks", []) if t["lastStatus"] != "STOPPED"
-                         and (t["taskArn"] == arn or t.get("startedBy") == marker)]
-            for task in live:
-                if task["taskArn"] not in stopped:
+                for failure in answer.get("failures", []):
+                    if failure.get("reason") != "MISSING":
+                        raise DeployError(f"Cannot confirm the {label} task stopped")
+                described.update({t["taskArn"]: t for t in answer.get("tasks", [])})
+            retain([a for a, t in described.items() if t.get("startedBy") == marker])
+            # Unknown to ECS, by a MISSING failure or an empty answer alike.
+            for a in retained:
+                if a in described:
+                    missing.pop(a, None)
+                else:
+                    missing[a] = missing.get(a, 0) + 1
+            for a in retained:
+                task = described.get(a)
+                if task and task["lastStatus"] != "STOPPED" and a not in requested:
                     self.aws("ecs", "stop-task", {
-                        "cluster": cluster, "task": task["taskArn"],
+                        "cluster": cluster, "task": a,
                         "reason": f"dc2-v1 deploy: replacing the {label} task"})
-                    stopped.append(task["taskArn"])
-            return not live, None
+                    requested.add(a)
+            unresolved = [a for a in retained
+                          if not (described.get(a) and described[a]["lastStatus"] == "STOPPED")
+                          and missing.get(a, 0) < MISSING_LOOKS]
+            return not unresolved, None
 
         self.poll(check, what=f"the previous {label} task to reach STOPPED", timeout=300,
                   interval=10)
-        return stopped
+        return retained
 
     def retire_task(self, label):
         """Make sure no earlier launch of this label can still run, then forget it.
@@ -1141,7 +1172,8 @@ class Pipeline:
         """
         saved = self.detail(self.step)
         if not saved.get(f"{label}_done") and (
-                saved.get(f"{label}_task") or saved.get(f"{label}_token")):
+                saved.get(f"{label}_task") or saved.get(f"{label}_token")
+                or saved.get(f"{label}_retiring")):
             self.stop_unfinished(label, saved.get(f"{label}_task"))
         self.clear_task(label)
 
@@ -1153,6 +1185,8 @@ class Pipeline:
         and that never reported a verdict is retired and relaunched once.
         """
         outputs = self.outputs()
+        if self.detail(self.step).get(f"{label}_retiring"):
+            self.retire_task(label)  # an earlier replacement stopped part-way: finish it first
         saved = self.detail(self.step)
         if saved.get(f"{label}_done") and saved.get(f"{label}_task"):
             return {"task": saved[f"{label}_task"], "exit_codes": saved[f"{label}_done"]}
@@ -1180,7 +1214,7 @@ class Pipeline:
                 "cluster": outputs["ClusterArn"], "tasks": [arn]}).get("tasks", [])
             if not described:  # MISSING: a few looks absorb launch-time lag, then give up
                 misses.append(1)
-                return len(misses) >= 3, None
+                return len(misses) >= MISSING_LOOKS, None
             misses.clear()
             return described[0]["lastStatus"] == "STOPPED", described[0]
 
