@@ -14,8 +14,9 @@ from scripts.aws.v1.transport import OperatorTransport
 
 OLD = "repo@sha256:" + "a" * 64
 NEW = "repo@sha256:" + "b" * 64
-WORKER = "arn:aws:ecs:ap-southeast-1:866865534361:task-definition/worker:2"
-MIGRATION = "arn:aws:ecs:ap-southeast-1:866865534361:task-definition/migration:2"
+ACCOUNT = "123456789012"
+WORKER = "arn:aws:ecs:ap-southeast-1:123456789012:task-definition/worker:2"
+MIGRATION = "arn:aws:ecs:ap-southeast-1:123456789012:task-definition/migration:2"
 
 
 def proof(owner, kind):
@@ -321,7 +322,7 @@ def test_legacy_transport_remains_offline():
 def test_operator_transport_requires_project_identity_and_bounded_clients():
     with pytest.raises(OperationError, match="identity"):
         OperatorTransport(
-            {}, identity={"Account": "other"}, account="866865534361", region="ap-southeast-1"
+            {}, identity={"Account": "other"}, account=ACCOUNT, region="ap-southeast-1"
         )
     client = SimpleNamespace(
         meta=SimpleNamespace(
@@ -335,18 +336,26 @@ def test_operator_transport_requires_project_identity_and_bounded_clients():
     client.get_alias = lambda **payload: calls.append(payload) or {"FunctionVersion": "1"}
     transport = OperatorTransport(
         {"lambda": client},
-        identity={"Account": "866865534361"},
-        account="866865534361",
+        identity={"Account": ACCOUNT},
+        account=ACCOUNT,
         region="ap-southeast-1",
     )
     assert (
         transport.call(
-            "lambda", "get-alias", {"FunctionName": "f"}, deadline=time.monotonic() + 10
+            "lambda",
+            "get-alias",
+            {"FunctionName": "f", "Name": "live"},
+            deadline=time.monotonic() + 10,
         )["FunctionVersion"]
         == "1"
     )
     with pytest.raises(OperationError, match="deadline"):
-        transport.call("lambda", "get-alias", {}, deadline=time.monotonic() + 1)
+        transport.call(
+            "lambda",
+            "get-alias",
+            {"FunctionName": "f", "Name": "live"},
+            deadline=time.monotonic() + 1,
+        )
     assert len(calls) == 1
 
 

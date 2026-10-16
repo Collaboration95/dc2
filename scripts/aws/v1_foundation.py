@@ -11,10 +11,12 @@ import json
 from pathlib import Path
 from typing import Any
 
+from scripts.aws import v1_operator
 from scripts.aws.v1_operator import (
-    ACCOUNT,
     NAMESPACE,
     REGION,
+    add_scope_arguments,
+    apply_scope,
     aws,
     private_receipt,
     verify_identity,
@@ -90,7 +92,9 @@ def main() -> int:
     parser.add_argument("--cost-receipt", type=Path)
     parser.add_argument("--staging-bucket")
     parser.add_argument("--output-dir", type=Path, required=True)
+    add_scope_arguments(parser)
     args = parser.parse_args()
+    apply_scope(parser, args)
     private_receipt(args.output_dir, "identity", verify_identity())
     if args.action == "prepare":
         if not all([args.template, args.parameters, args.cost_receipt]):
@@ -103,7 +107,7 @@ def main() -> int:
         digest = hashlib.sha256(body).hexdigest()
         location = ["--template-body", f"file://{args.template.resolve()}"]
         if len(body) > 51200:
-            expected_bucket = f"{NAMESPACE}-artifacts-{ACCOUNT}"
+            expected_bucket = f"{NAMESPACE}-artifacts-{v1_operator.ACCOUNT}"
             if args.staging_bucket != expected_bucket:
                 raise ValueError("oversize template requires the exact project staging bucket")
             key = f"templates/{digest}.json"
