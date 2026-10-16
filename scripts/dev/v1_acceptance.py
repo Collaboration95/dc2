@@ -96,9 +96,17 @@ def app_runtime(run_id):
         processing_settings.cache_clear()
         # configured_gateway would replace the public TLS storage endpoint;
         # import handlers after the explicit env above instead.
+        import importlib
+
+        import media.authorizer
         import media.lambda_handler
         import processing.lambda_handler
         from scripts.dev.v1_gateway import Gateway
+
+        # The handlers build their app (and storage client) at import. A second runtime in the
+        # same process has a new storage endpoint, so rebuild them rather than reuse the first.
+        for module in (media.authorizer, media.lambda_handler, processing.lambda_handler):
+            importlib.reload(module)
 
         front = server(
             Gateway(
@@ -310,8 +318,12 @@ def pump(runtime, *, results=True, reverse=False):
     asyncio.run(invoke())
 
 
-def encode_one(runtime):
-    """Run the actual essential watchdog and finite SQS subprocess, one encode."""
+def encode_one(runtime, *, expect=0, **environment):
+    """Run the actual essential watchdog and finite SQS subprocess, one encode.
+
+    ``environment`` overrides the child's variables, to inject a transient fault such as an
+    unwritable output bucket without touching the persisted runtime.
+    """
     result = subprocess.run(
         [
             sys.executable,
@@ -327,12 +339,12 @@ def encode_one(runtime):
             "1",
         ],
         cwd=ROOT,
-        env=runtime["env"],
+        env={**runtime["env"], **environment},
         capture_output=True,
         text=True,
         timeout=70,
     )
     # The private pytest log keeps the child's tail so a failed run is diagnosable.
-    assert result.returncode == 0, (
+    assert result.returncode == expect, (
         f"Actual finite encoder exited {result.returncode}\n{result.stderr[-3000:]}"
     )

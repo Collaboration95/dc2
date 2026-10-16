@@ -7,7 +7,6 @@ owned projections execute for real. Browser rendering and AWS IAM remain NOT_RUN
 
 import hashlib
 import os
-import subprocess
 from pathlib import Path
 from uuid import uuid4
 
@@ -24,7 +23,7 @@ def test_publisher_direct_post_encode_projection_and_ownership(tmp_path):
     import processing
     import publisher
     from publisher.client import PublicClient, PublisherError
-    from scripts.dev.v1_acceptance import app_runtime, encode_one, pump
+    from scripts.dev.v1_acceptance import app_runtime, encode_one, pump, short_video
 
     # Exact candidate imports are part of the evidence, never shared installed code.
     root = Path.cwd().resolve()
@@ -32,33 +31,7 @@ def test_publisher_direct_post_encode_projection_and_ownership(tmp_path):
         Path(package.__file__).resolve().is_relative_to(root)
         for package in (media, processing, publisher)
     )
-    source = tmp_path / "short-av.mp4"
-    subprocess.run(
-        [
-            "ffmpeg",
-            "-v",
-            "error",
-            "-f",
-            "lavfi",
-            "-i",
-            "testsrc2=size=160x90:rate=10:duration=1",
-            "-f",
-            "lavfi",
-            "-i",
-            "sine=frequency=440:duration=1",
-            "-c:v",
-            "libx264",
-            "-threads",
-            "1",
-            "-c:a",
-            "aac",
-            "-y",
-            str(source),
-        ],
-        check=True,
-        capture_output=True,
-        timeout=20,
-    )
+    source = short_video(tmp_path / "short-av.mp4")
     with app_runtime(os.environ["V1_RUN_ID"]) as runtime:
         client = PublicClient(
             runtime["url"] + "/api/media", tmp_path / "publisher.cookies", ca_file=runtime["ca"]
@@ -133,3 +106,53 @@ def test_publisher_direct_post_encode_projection_and_ownership(tmp_path):
         finally:
             client.close()
             other.close()
+
+
+def test_publisher_retry_reuses_the_stored_source_after_a_transient_encode_failure(tmp_path):
+    if not os.environ.get("V1_RUNTIME_CONFIG"):
+        pytest.skip("Explicit Lead C runtime attachment required")
+    from publisher.client import PublicClient
+    from scripts.dev.v1_acceptance import (
+        app_runtime,
+        encode_one,
+        pump,
+        short_video,
+        sql_fetch,
+    )
+
+    source = short_video(tmp_path / "retry-av.mp4")
+    with app_runtime(os.environ["V1_RUN_ID"]) as runtime:
+        client = PublicClient(
+            runtime["url"] + "/api/media", tmp_path / "cookies", ca_file=runtime["ca"]
+        )
+        try:
+            client.authenticate("register", f"retry-{uuid4().hex}@example.com", "local-retry-pass")
+            asset = client.upload(source, str(uuid4()))
+            pump(runtime, results=False)
+            # An unwritable output bucket fails the attempt after the real encode: the
+            # failure is transient and says nothing about the stored source bytes.
+            encode_one(runtime, PROCESSING_MINIO_OUTPUT_BUCKET="dc2-v1-no-such-bucket")
+            pump(runtime)
+            assert client.status(asset)["status"] == "failed"
+            # Only the stored object may feed attempt two: the local file is gone.
+            source.unlink()
+            key = str(uuid4())
+            assert client.retry(asset, key) == asset
+            assert client.retry(asset, key) == asset  # replayed intent adds no attempt
+            pump(runtime, results=False)
+            encode_one(runtime)
+            pump(runtime)
+            finished = client.status(asset)
+            assert finished["status"] == "done" and finished["output_url"]
+            attempts = sql_fetch(
+                runtime,
+                "processing",
+                "SELECT a.attempt_number, a.state FROM attempts a JOIN jobs j ON j.id = a.job_id "
+                "WHERE j.asset_id = $1 ORDER BY a.attempt_number",
+                __import__("uuid").UUID(asset),
+            )
+            assert [(row[0], row[1]) for row in attempts] == [(1, "failed"), (2, "succeeded")]
+            client.delete(asset)
+            pump(runtime)
+        finally:
+            client.close()
