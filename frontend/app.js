@@ -127,7 +127,14 @@ const el = {
   editHint: document.getElementById("edit-hint"),
 };
 
-const STATUS_LABEL = { queued: "Queued", processing: "Processing", done: "Done", failed: "Failed" };
+const STATUS_LABEL = {
+  accepted: "Accepted",
+  queued: "Queued",
+  processing: "Processing",
+  done: "Done",
+  failed: "Failed",
+  cancelled: "Cancelled",
+};
 
 // ---------------------------------------------------------------------------
 // Identity. The session cookie is HttpOnly, so this page cannot read it and
@@ -352,7 +359,11 @@ async function intentRequest(url, init, key) {
 }
 
 const POLL_INTERVAL_MS = 2000;
-const PROGRESS_LABEL = { queued: "Queued...", processing: "Processing..." };
+const PROGRESS_LABEL = {
+  accepted: "Accepted...",
+  queued: "Queued...",
+  processing: "Processing...",
+};
 // 30 polls is a minute. The transcode step finishes well inside that under
 // normal load, so past this something is wrong -- most likely a worker that
 // died holding the job, which leaves the row at `processing` with nobody left
@@ -426,7 +437,8 @@ function followJob(scope, jobId, handlers) {
       handlers.onDone(job);
       return;
     }
-    if (job.status === "failed") {
+    // Cancelled is terminal like failed, but only failed jobs offer a retry.
+    if (job.status === "failed" || job.status === "cancelled") {
       handlers.onFailed(job);
       return;
     }
@@ -699,7 +711,11 @@ function pollUploadJob(jobId) {
       mountPlayer(el.player, job);
     },
     onFailed(job) {
-      setStatus(`Processing failed: ${job.error ?? "Unknown error"}`);
+      setStatus(
+        job.status === "cancelled"
+          ? "Processing was cancelled."
+          : `Processing failed: ${job.error ?? "Unknown error"}`,
+      );
       clearUploadPlayer();
       el.jobActions.hidden = false;
     },
@@ -1232,7 +1248,11 @@ el.editForm.addEventListener("submit", async (event) => {
       },
       onFailed(job) {
         el.editProgress.hidden = true;
-        setEditStatus(`The edit failed: ${job.error ?? "Unknown error"}`);
+        setEditStatus(
+          job.status === "cancelled"
+            ? "The edit was cancelled."
+            : `The edit failed: ${job.error ?? "Unknown error"}`,
+        );
         updateProcessButton();
       },
       onError(err) {

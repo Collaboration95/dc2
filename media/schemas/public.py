@@ -32,7 +32,7 @@ class PublicJob(BaseModel):
     processing_job_id: UUID | None = None
     id: UUID
     filename: str
-    status: Literal["queued", "processing", "done", "failed"]
+    status: Literal["accepted", "queued", "processing", "done", "failed", "cancelled"]
     submission_status: Literal["pending", "submitted", "error"]
     output_url: str | None = None
     hls_url: str | None = None

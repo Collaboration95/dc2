@@ -1,7 +1,10 @@
 """Finite V1 encoder: python -m processing.worker.sqs --deadline EPOCH --name TASK.
 
-A task processes at most one claimed attempt. Empty receives and total runtime
-are bounded. Work arriving later requires another explicit operator batch.
+A task encodes at most one claimed attempt. Messages that durable SQL proves stale
+(cancelled, superseded, terminal or already claimed) are deleted and polling goes
+on, so leftovers never spend a finite task or cycle to the DLQ. Empty receives,
+handled messages and total runtime are bounded. Work arriving later requires
+another explicit operator batch.
 """
 
 import argparse
@@ -19,6 +22,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from processing.config import get_settings
+from processing.errors import TaskBindingError
 from processing.worker.source import SourceStore
 from processing.worker.storage import OutputStore
 from processing.worker.supervisor import AttemptDeadline, LeaseLost, Supervisor
@@ -63,6 +67,20 @@ def native_sqs(region):
     )
 
 
+class _Unencoded(str):
+    """Falsy like False (nothing was encoded) yet distinguishable by identity."""
+
+    def __bool__(self):
+        return False
+
+
+# Besides True/False, execute_message may report that no attempt was claimed and the
+# poll loop should continue: STALE deletes the receipt (durable state proves it
+# dead), SKIPPED keeps it for the redrive policy.
+STALE = _Unencoded("stale")
+SKIPPED = _Unencoded("skipped")
+
+
 def decode_work(body):
     # Canonical validation is intentionally lazy so legacy engine helpers remain
     # independently importable. The transport receives only versioned V1 work.
@@ -86,26 +104,33 @@ async def execute_message(
     source=None,
     store=None,
     task_name="local",
+    disposition=None,
 ):
-    if claim is None or finish is None:
+    if claim is None or finish is None or disposition is None:
         from processing import messaging
 
         claim = claim or messaging.claim
         finish = finish or messaging.finish
+        disposition = disposition or messaging.work_disposition
+    job_id, attempt_id = UUID(envelope["job_id"]), UUID(envelope["attempt_id"])
     # This API atomically validates source/owner/asset/current attempt and the
     # SubmissionGuard fence in the owned database before any native GET.
-    work = await claim(
-        factory,
-        UUID(envelope["job_id"]),
-        UUID(envelope["attempt_id"]),
-        settings,
-        envelope=envelope,
-        task_name=task_name,
-    )
-    if work is None:
-        # A duplicate may belong to an active lease. Never delete its receipt:
-        # SQL recovery decides whether a new attempt/work publication is needed.
+    try:
+        work = await claim(
+            factory, job_id, attempt_id, settings, envelope=envelope, task_name=task_name
+        )
+    except TaskBindingError:
+        # A reused task name fails every message, so polling on would only hide it.
+        # Keep the receipt and end this task with a failure the operator can see.
         return False
+    except ValueError:
+        # Identity/source mismatch: never ACK, so the redrive policy quarantines
+        # it, but do not let it spend this finite task.
+        return SKIPPED
+    if work is None:
+        # Delete only what durable state proves dead. Anything else stays visible
+        # to the redrive policy; SQL repair, not this receipt, recreates work.
+        return STALE if await disposition(factory, job_id, attempt_id) == "stale" else SKIPPED
     async with Supervisor(factory, work, settings, renew=renew, deadline=deadline) as supervisor:
         try:
             await supervisor.renew_authority()
@@ -150,6 +175,7 @@ async def run(
     decode=decode_work,
     execute=execute_message,
     stop=None,
+    max_messages=25,
 ):
     if not math.isfinite(end_epoch) or not 0 < end_epoch - time.time() <= 3600:
         raise ValueError("A future absolute deadline within one hour is required")
@@ -165,7 +191,8 @@ async def run(
             raise AttemptDeadline()
         return await asyncio.wait_for(asyncio.to_thread(method, **kwargs), remaining)
 
-    for _ in range(empty_polls):
+    empties = handled = 0
+    while empties < empty_polls and handled < max_messages:
         if stop.is_set() or deadline - time.monotonic() < 1:
             return 0
         received = await call(
@@ -179,13 +206,15 @@ async def run(
             return 0
         messages = received.get("Messages", [])
         if not messages:
+            empties += 1
             continue
+        handled += 1
         message = messages[0]
         try:
             envelope = decode(message["Body"])
         except (ValueError, KeyError, TypeError):
-            # Let redrive policy quarantine malformed/conflicting input.
-            return 2
+            # Malformed/conflicting input stays for the redrive policy to quarantine.
+            continue
 
         async def renew(receipt=message["ReceiptHandle"]):
             await call(
@@ -203,13 +232,17 @@ async def run(
             deadline=deadline,
             task_name=name,
         )
-        if complete:
+        if complete is SKIPPED:
+            continue
+        if complete is STALE or complete:
             await call(
                 sqs.delete_message,
                 QueueUrl=queue_url,
                 ReceiptHandle=message["ReceiptHandle"],
             )
-        # Exactly one delivery/encode per task, successful or uncertain.
+        if complete is STALE:
+            continue
+        # Exactly one encode per task, successful or uncertain.
         return 0 if complete else 1
     return 0
 

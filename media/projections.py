@@ -231,7 +231,9 @@ async def public_job(session, asset, storage, settings):
     result = PublicJob(
         id=asset.id,
         filename=asset.filename,
-        status="queued",
+        # Before any Processing result is projected the upload is only accepted;
+        # "queued" would claim Processing has acknowledged the work.
+        status="accepted" if asset.submission_state == "pending" else "queued",
         submission_status=asset.submission_state,
         processing_job_id=asset.processing_job_id,
     )
@@ -239,9 +241,13 @@ async def public_job(session, asset, storage, settings):
         result.status = "failed"
         result.error = asset.last_submit_error
     if job:
-        # Deleted assets are filtered by the caller; cancellation remains hidden.
-        result.status = "failed" if job.status == "cancelled" else job.status
-        result.error = job.error if job.status in {"failed", "cancelled"} else None
+        # Deleted assets are filtered by the caller; a cancelled projection is its
+        # own terminal state, never a failure the user could retry.
+        result.status = job.status
+        if job.status == "cancelled":
+            result.error = "Processing was cancelled"
+        else:
+            result.error = job.error if job.status == "failed" else None
         if job.status == "done":
             primary = next(o for o in job.outputs if o.kind == "primary")
             result.output_url = await storage.sign_output(primary.object_key)

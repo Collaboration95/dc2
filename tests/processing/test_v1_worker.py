@@ -53,30 +53,215 @@ async def test_empty_poll_finite_and_one_delivery_per_task():
     client.delete_message.assert_called_once_with(QueueUrl="local", ReceiptHandle="receipt")
 
 
-@pytest.mark.parametrize("failure", [False, True])
-async def test_no_ack_on_lease_loss_or_malformed_work(failure):
+async def test_no_ack_on_lease_loss_after_a_claim():
+    client = Mock()
+    client.receive_message.return_value = {
+        "Messages": [{"Body": "work", "ReceiptHandle": "receipt"}]
+    }
+    execute = AsyncMock(return_value=False)
+    assert (
+        await sqs.run(
+            None,
+            settings(),
+            client,
+            "local",
+            end_epoch=time.time() + 60,
+            name="task",
+            decode=lambda _: envelope(),
+            execute=execute,
+        )
+        == 1
+    )
+    execute.assert_awaited_once()
+    client.delete_message.assert_not_called()
+
+
+async def test_malformed_work_is_left_for_redrive_without_spending_the_task():
     client = Mock()
     client.receive_message.return_value = {
         "Messages": [{"Body": "bad", "ReceiptHandle": "receipt"}]
     }
-    execute = AsyncMock(return_value=False)
+    execute = AsyncMock()
 
     def decode(_):
-        if failure:
-            raise ValueError("invalid")
-        return envelope()
+        raise ValueError("invalid")
 
-    assert await sqs.run(
-        None,
-        settings(),
-        client,
-        "local",
-        end_epoch=time.time() + 60,
-        name="task",
-        decode=decode,
-        execute=execute,
-    ) in {1, 2}
+    assert (
+        await sqs.run(
+            None,
+            settings(),
+            client,
+            "local",
+            end_epoch=time.time() + 60,
+            name="task",
+            decode=decode,
+            execute=execute,
+            max_messages=3,
+        )
+        == 0
+    )
+    assert client.receive_message.call_count == 3
+    execute.assert_not_awaited()
     client.delete_message.assert_not_called()
+
+
+def receipts(*names):
+    return [{"Messages": [{"Body": name, "ReceiptHandle": name}]} for name in names]
+
+
+async def test_stale_messages_are_acked_and_polling_continues_to_real_work():
+    client = Mock()
+    client.receive_message.side_effect = receipts("terminal", "duplicate", "real")
+    execute = AsyncMock(side_effect=[sqs.STALE, sqs.STALE, True])
+    assert (
+        await sqs.run(
+            None,
+            settings(),
+            client,
+            "local",
+            end_epoch=time.time() + 60,
+            name="task",
+            decode=lambda _: envelope(),
+            execute=execute,
+        )
+        == 0
+    )
+    assert execute.await_count == 3
+    assert [c.kwargs["ReceiptHandle"] for c in client.delete_message.call_args_list] == [
+        "terminal",
+        "duplicate",
+        "real",
+    ]
+
+
+async def test_stale_messages_do_not_consume_empty_polls_but_empty_polls_still_end_the_task():
+    client = Mock()
+    client.receive_message.side_effect = [*receipts("stale"), {}, {}, {}]
+    execute = AsyncMock(return_value=sqs.STALE)
+    assert (
+        await sqs.run(
+            None,
+            settings(),
+            client,
+            "local",
+            end_epoch=time.time() + 60,
+            name="task",
+            decode=lambda _: envelope(),
+            execute=execute,
+            empty_polls=2,
+        )
+        == 0
+    )
+    assert client.receive_message.call_count == 3
+    client.delete_message.assert_called_once()
+
+
+async def test_unclaimable_messages_keep_their_receipt_and_do_not_end_the_task():
+    client = Mock()
+    client.receive_message.side_effect = [*receipts("unknown", "real")]
+    execute = AsyncMock(side_effect=[sqs.SKIPPED, True])
+    assert (
+        await sqs.run(
+            None,
+            settings(),
+            client,
+            "local",
+            end_epoch=time.time() + 60,
+            name="task",
+            decode=lambda _: envelope(),
+            execute=execute,
+        )
+        == 0
+    )
+    client.delete_message.assert_called_once_with(QueueUrl="local", ReceiptHandle="real")
+
+
+async def test_message_handling_is_bounded_even_if_every_receive_is_stale():
+    client = Mock()
+    client.receive_message.return_value = receipts("stale")[0]
+    execute = AsyncMock(return_value=sqs.STALE)
+    assert (
+        await sqs.run(
+            None,
+            settings(),
+            client,
+            "local",
+            end_epoch=time.time() + 60,
+            name="task",
+            decode=lambda _: envelope(),
+            execute=execute,
+            max_messages=4,
+        )
+        == 0
+    )
+    assert execute.await_count == 4
+
+
+async def test_claim_value_error_is_skipped_not_fatal_and_never_acked():
+    claim = AsyncMock(side_effect=ValueError("Work attempt does not match"))
+    outcome = await sqs.execute_message(
+        None,
+        envelope(),
+        settings(),
+        renew=AsyncMock(),
+        deadline=time.monotonic() + 60,
+        claim=claim,
+        finish=AsyncMock(),
+        disposition=AsyncMock(),
+    )
+    assert outcome is sqs.SKIPPED and not outcome
+
+
+async def test_reused_task_name_fails_the_task_instead_of_hiding_behind_skips():
+    from processing.errors import TaskBindingError
+
+    client = Mock()
+    client.receive_message.side_effect = receipts("first", "second")
+    execute = AsyncMock(
+        return_value=await sqs.execute_message(
+            None,
+            envelope(),
+            settings(),
+            renew=AsyncMock(),
+            deadline=time.monotonic() + 60,
+            claim=AsyncMock(side_effect=TaskBindingError("Finite task or attempt already bound")),
+            finish=AsyncMock(),
+            disposition=AsyncMock(),
+        )
+    )
+    assert (
+        await sqs.run(
+            None,
+            settings(),
+            client,
+            "local",
+            end_epoch=time.time() + 60,
+            name="task",
+            decode=lambda _: envelope(),
+            execute=execute,
+        )
+        == 1
+    )
+    execute.assert_awaited_once()
+    client.delete_message.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("verdict", "expected"),
+    [("stale", sqs.STALE), ("pending", sqs.SKIPPED), ("unknown", sqs.SKIPPED)],
+)
+async def test_unclaimed_work_is_acked_only_when_sql_proves_it_stale(verdict, expected):
+    outcome = await sqs.execute_message(
+        None,
+        envelope(),
+        settings(),
+        renew=AsyncMock(),
+        deadline=time.monotonic() + 60,
+        claim=AsyncMock(return_value=None),
+        finish=AsyncMock(),
+        disposition=AsyncMock(return_value=verdict),
+    )
+    assert outcome is expected
 
 
 async def test_visibility_failure_revokes_sql_lease_authority(monkeypatch):
@@ -103,6 +288,7 @@ async def test_claim_rejects_substitution_before_get_or_encode():
         claim=claim,
         finish=finish,
         source=source,
+        disposition=AsyncMock(return_value="unknown"),
     )
     assert claim.call_args.kwargs["envelope"] == body
     assert claim.call_args.kwargs["task_name"] == "local"

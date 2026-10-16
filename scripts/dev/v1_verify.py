@@ -173,6 +173,19 @@ async def sql_probe(data, probe_id):
     }
 
 
+def receive_matching(sqs, queue, message_id, *, visibility):
+    for _ in range(10):
+        for message in sqs.receive_message(
+            QueueUrl=queue, MaxNumberOfMessages=10, VisibilityTimeout=visibility, WaitTimeSeconds=0
+        ).get("Messages", []):
+            if json.loads(message["Body"]).get("message_id") == message_id:
+                return message
+            sqs.change_message_visibility(
+                QueueUrl=queue, ReceiptHandle=message["ReceiptHandle"], VisibilityTimeout=0
+            )
+    raise AssertionError("Expected work message was not delivered")
+
+
 def objects_and_encode(data, output, probe_id):
     from media_engine.hls import build_ladder_command
     from media_engine.operations import build_edit_command
@@ -241,11 +254,11 @@ def objects_and_encode(data, output, probe_id):
     # This is a transport seam, not a substitute for the owning SQL inbox handler.
     queue = queues["work"]
     sqs.send_message(QueueUrl=queue, MessageBody=json.dumps(payload))
-    message = sqs.receive_message(QueueUrl=queue, MaxNumberOfMessages=1, VisibilityTimeout=0)[
-        "Messages"
-    ][0]
+    # A reused runtime may still hold earlier runs' work, so pick this payload by ID
+    # and hand every foreign message straight back instead of assuming queue order.
+    message = receive_matching(sqs, queue, payload["message_id"], visibility=0)
     assert json.loads(message["Body"]) == payload
-    duplicate = sqs.receive_message(QueueUrl=queue, MaxNumberOfMessages=1)["Messages"][0]
+    duplicate = receive_matching(sqs, queue, payload["message_id"], visibility=30)
     assert duplicate["MessageId"] == message["MessageId"]
     sqs.delete_message(QueueUrl=queue, ReceiptHandle=duplicate["ReceiptHandle"])
     encoded = output / "output.mp4"

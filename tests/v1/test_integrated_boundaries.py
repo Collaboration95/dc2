@@ -58,6 +58,7 @@ async def test_worker_enters_real_durable_claim_with_task_binding_callback(monke
         renew=AsyncMock(),
         deadline=time.monotonic() + 60,
         task_name="integration-task",
+        disposition=AsyncMock(return_value="unknown"),
     )
     assert callable(sql_claim.call_args.kwargs["on_change"])
     # Messaging persists task_name atomically through this SQL callback;

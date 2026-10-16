@@ -7,7 +7,7 @@ removes a unique schema; it never touches shared application tables.
 import os
 from datetime import timedelta
 from types import SimpleNamespace
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 import pytest_asyncio
@@ -85,7 +85,9 @@ async def cancel_and_ack(factory, owner, asset_id):
     async with factory() as session:
         await tombstone(session, owner, asset_id)
     async with factory() as session:
-        command = await session.scalar(select(MediaOutbox))
+        command = await session.scalar(
+            select(MediaOutbox).where(MediaOutbox.body["asset_id"].astext == str(asset_id))
+        )
         command_id = str(command.message_id)
     ack = {
         "schema_version": 1,
@@ -386,3 +388,129 @@ async def test_wrong_owner_ack_cannot_grant_cleanup(factory):
             await consume_result(session, ack, apply_result)
     async with factory() as session:
         assert (await session.get(CleanupIntent, asset_id)).processing_deleted_at is None
+
+
+async def scan_ok(factory, asset_id, calls=None):
+    async def remove(bucket, key):
+        if calls is not None:
+            calls.append(key)
+
+    await force_due(factory, asset_id)
+    return await cleanup_tombstones(factory, SimpleNamespace(remove_source_versions=remove))
+
+
+async def test_tombstone_rescans_back_off_then_retire_after_the_horizon(factory):
+    owner, asset_id, _ = await seed(factory)
+    await cancel_and_ack(factory, owner, asset_id)
+    for attempts, expected in ((1, 60), (2, 120), (3, 240), (4, 480)):
+        assert await scan_ok(factory, asset_id) == 1
+        async with factory() as session:
+            intent = await session.get(CleanupIntent, asset_id)
+            wait = (intent.next_try_at - now()).total_seconds()
+        assert intent.attempts == attempts and expected - 2 <= wait <= expected + 1
+    # Inside the horizon a clean scan keeps the tombstone scheduled for late writes.
+    async with factory() as session, session.begin():
+        intent = await session.get(CleanupIntent, asset_id)
+        intent.processing_deleted_at = now() - timedelta(hours=12)
+    assert await scan_ok(factory, asset_id) == 1
+    # A clean scan one horizon after the acknowledgement retires it for good.
+    async with factory() as session, session.begin():
+        intent = await session.get(CleanupIntent, asset_id)
+        intent.processing_deleted_at = now() - timedelta(days=2)
+    calls = []
+    assert await scan_ok(factory, asset_id, calls) == 0 and not calls
+    async with factory() as session:
+        assert (await session.get(CleanupIntent, asset_id)).source_deleted_at is not None
+
+
+async def test_failed_tombstone_scans_never_retire_however_old(factory):
+    owner, asset_id, _ = await seed(factory)
+    await cancel_and_ack(factory, owner, asset_id)
+    async with factory() as session, session.begin():
+        intent = await session.get(CleanupIntent, asset_id)
+        intent.processing_deleted_at = now() - timedelta(days=30)
+
+    async def broken(bucket, key):
+        raise OSError("store unavailable")
+
+    await force_due(factory, asset_id)
+    store = SimpleNamespace(remove_source_versions=broken)
+    assert await cleanup_tombstones(factory, store) == 0
+    assert await scan_ok(factory, asset_id) == 1  # still scheduled; recovers when healthy
+
+
+async def test_tombstone_batches_are_bounded_and_oldest_first(factory):
+    assets = []
+    for offset in (30, 10, 20):
+        owner, asset_id, _ = await seed(factory)
+        await cancel_and_ack(factory, owner, asset_id)
+        async with factory() as session, session.begin():
+            intent = await session.get(CleanupIntent, asset_id)
+            intent.next_try_at = now() - timedelta(seconds=offset)
+        assets.append(asset_id)
+    keys = []
+
+    async def remove(bucket, key):
+        keys.append(key)
+
+    store = SimpleNamespace(remove_source_versions=remove)
+    assert await cleanup_tombstones(factory, store, limit=2) == 2
+    assert [k.split("/")[2] for k in keys] == [str(assets[0]), str(assets[2])]
+    assert await cleanup_tombstones(factory, store, limit=2) == 1
+    assert keys[-1].split("/")[2] == str(assets[1])
+
+
+async def test_poisoned_result_does_not_block_a_later_version(factory):
+    owner, asset_id, descriptor = await seed(factory)
+    job_id, attempt_id = uuid4(), uuid4()
+
+    def result(version, status, outputs=()):
+        return {
+            "schema_version": 1,
+            "message_id": str(uuid4()),
+            "kind": "result",
+            "owner_id": str(owner),
+            "asset_id": str(asset_id),
+            "job_id": str(job_id),
+            "attempt_id": str(attempt_id),
+            "source": descriptor,
+            "state_version": version,
+            "payload": {
+                "status": status,
+                "attempt_number": 1,
+                "outputs": list(outputs),
+                "error": None if status != "failed" else "Processing failed",
+            },
+        }
+
+    async with factory() as session:
+        assert await consume_result(session, result(1, "processing"), apply_result)
+    # A done result whose primary output lies outside the attempt namespace is poison.
+    poison = result(
+        2,
+        "done",
+        [
+            {
+                "kind": "primary",
+                "object_key": f"jobs/{uuid4()}/attempts/{uuid4()}/primary.mp4",
+                "media_type": "video/mp4",
+                "size_bytes": 5,
+                "sha256": "e" * 64,
+            }
+        ],
+    )
+    for _ in range(2):  # every redelivery fails the same way and records nothing
+        async with factory() as session:
+            with pytest.raises(MediaError, match="outside the accepted attempt"):
+                await consume_result(session, poison, apply_result)
+    from media.messaging_models import MediaInbox
+    from media.projection_models import ProcessingProjection
+
+    async with factory() as session:
+        assert await session.get(MediaInbox, UUID(poison["message_id"])) is None
+        assert (await session.get(ProcessingProjection, asset_id)).state_version == 1
+    # Processing's re-emitted snapshot at a higher version applies normally.
+    async with factory() as session:
+        assert await consume_result(session, result(3, "failed"), apply_result)
+        projection = await session.get(ProcessingProjection, asset_id)
+        assert (projection.state_version, projection.status) == (3, "failed")
