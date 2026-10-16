@@ -142,6 +142,89 @@ def migrate(owner, env):
         raise AssertionError(f"{owner} owning migration failed ({result.returncode})")
 
 
+def alembic_command(owner, env, *arguments):
+    result = subprocess.run(
+        [sys.executable, "-m", "alembic", "-c", f"{owner}/alembic.ini", *arguments],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=45,
+    )
+    if result.returncode:
+        raise AssertionError(f"{owner} alembic {arguments[0]} failed ({result.returncode})")
+    return result.stdout
+
+
+def script_revisions(owner):
+    """(previous, head) from the owner's migration scripts, not from the database."""
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    script = ScriptDirectory.from_config(Config(str(ROOT / owner / "alembic.ini")))
+    head = script.get_current_head()
+    return script.get_revision(head).down_revision, head
+
+
+def step_back(owner, env):
+    """Really undo the newest owner migration so a later upgrade has work to do."""
+    alembic_command(owner, env, "downgrade", "-1")
+
+
+def sql_fetch(runtime, owner, query, *arguments):
+    """One short runtime-role read; connections never outlive the call."""
+
+    async def read():
+        import asyncpg
+
+        connection = await asyncpg.connect(
+            host="127.0.0.1",
+            port=runtime["data"]["postgres_port"],
+            user=owner + "_runtime",
+            password="local_v1_" + owner,
+            database=owner + "_db",
+            ssl=ssl.create_default_context(cafile=runtime["ca"]),
+            timeout=5,
+        )
+        try:
+            return await connection.fetch(query, *arguments)
+        finally:
+            await connection.close()
+
+    return asyncio.run(read())
+
+
+def short_video(path, seconds=1):
+    """A tiny audiovisual MP4 the inherited engine can encode in about a second."""
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            f"testsrc2=size=160x90:rate=10:duration={seconds}",
+            "-f",
+            "lavfi",
+            "-i",
+            f"sine=frequency=440:duration={seconds}",
+            "-c:v",
+            "libx264",
+            "-threads",
+            "1",
+            "-c:a",
+            "aac",
+            "-y",
+            str(path),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=20,
+    )
+    return path
+
+
 async def factory_for(owner):
     from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
