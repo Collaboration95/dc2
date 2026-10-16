@@ -55,14 +55,47 @@ def run_action(args, session, data, hook_names, transport, deadline):
     return {"tasks": session.batch(count=args.count, deadline=deadline)}
 
 
-def main(argv=None, *, environ=None, transport_factory=None, stdout=None):
+def run_dlq(args, urls, sqs_factory, scope):
+    """Delegate to the shared delivery.dlq helper; never duplicate its inspect/redrive logic.
+
+    Inspect prints identities only. Redrive moves messages back to their source queue and
+    so needs an explicit confirmation and, like a live run, a verified identity.
+    """
+    from delivery import dlq
+
+    if not args.queue:
+        raise OperationError("dlq needs --queue")
+    target = urls["dlq"][args.queue]
+    needed = target["url"] if args.dlq_command == "inspect" else target["arn"]
+    if not needed:
+        raise OperationError("Stack outputs lack this DLQ; re-render the V1 template")
+    if args.dlq_command == "redrive" and not args.confirm_redrive and not args.dry_run:
+        raise OperationError("Redrive requires --confirm-redrive after inspecting the DLQ")
+    if not 1 <= args.limit <= 50:
+        raise OperationError("--limit must be 1..50")
+    if args.dry_run:
+        return {"would_run": f"delivery.dlq {args.dlq_command}", "queue": args.queue}
+    client = sqs_factory(scope)
+    if args.dlq_command == "inspect":
+        return dlq.inspect(client, target["url"], limit=args.limit)
+    if args.dlq_command == "redrive":
+        return {"task_handle": dlq.redrive(client, target["arn"])}
+    return dlq.status(client, target["arn"])
+
+
+def main(argv=None, *, environ=None, transport_factory=None, sqs_factory=None, stdout=None):
     environ = os.environ if environ is None else environ
     stdout = stdout or sys.stdout
     parser = argparse.ArgumentParser(prog="scripts.aws.v1.session", description=__doc__)
-    parser.add_argument("action", choices=["init", "open", "window", "close", "batch", "status"])
+    actions = ["init", "open", "window", "close", "batch", "status", "dlq"]
+    parser.add_argument("action", choices=actions)
     parser.add_argument("--config", required=True)
     parser.add_argument("--count", type=int, default=1, help="batch: encoder tasks (1..3)")
     parser.add_argument("--minutes", type=int, default=60, help="batch: session end horizon")
+    parser.add_argument("--queue", choices=operations.QUEUES, help="dlq: which queue's DLQ")
+    parser.add_argument("--dlq-command", choices=["inspect", "status", "redrive"], default="status")
+    parser.add_argument("--limit", type=int, default=10, help="dlq inspect: messages (1..50)")
+    parser.add_argument("--confirm-redrive", action="store_true", help="dlq redrive writes")
     parser.add_argument("--confirm-empty", action="store_true", help="init: inventory is empty")
     parser.add_argument("--confirm-exclusive", action="store_true", help="init: sole station")
     operations.add_scope_arguments(parser)
@@ -70,7 +103,7 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None):
     scope = operations.resolve_scope(parser, args, environ)
     plan = holder = None
     try:
-        data, config, hook_names, _ = operations.load_operator_config(args.config)
+        data, config, hook_names, urls = operations.load_operator_config(args.config)
         if args.dry_run:
             plan = operations.PlanTransport()
             holder = operations.PlanJournal(
@@ -84,7 +117,9 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None):
                 station=data["operator_station"],
                 environment=data["environment_id"],
             )
-        if args.action == "init":
+        if args.action == "dlq":
+            result = run_dlq(args, urls, sqs_factory or operations.live_sqs_client, scope)
+        elif args.action == "init":
             if not args.dry_run:
                 journal.initialize(
                     verified_empty=args.confirm_empty, exclusive_station=args.confirm_exclusive

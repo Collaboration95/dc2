@@ -1181,6 +1181,7 @@ def template():
         outputs[f"{name}QueueUrl"] = ref(f"{name}Queue")
         outputs[f"{name}QueueArn"] = queue_arn(name)
         outputs[f"{name}DlqUrl"] = ref(f"{name}Dlq")
+        outputs[f"{name}DlqArn"] = attr(f"{name}Dlq")
     result = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Description": "DC2 V1 managed two-domain stack. Operator applies explicitly.",

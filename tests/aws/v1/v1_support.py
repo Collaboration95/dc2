@@ -13,6 +13,9 @@ def outputs():
     values = {f"{h}FunctionName": f"fn-{h}" for h in HANDLERS}
     values |= {f"{h}MappingId": uuid for h, uuid in MAPPING_IDS.items()}
     values |= {f"{h}RuleName": f"rule-{h}" for h in operations.RULES}
+    for queue in operations.QUEUES:
+        values[f"{queue}DlqUrl"] = f"https://sqs.example.invalid/1/{queue}-dlq"
+        values[f"{queue}DlqArn"] = f"arn:aws:sqs:ap-southeast-1:123456789012:{queue}-dlq"
     values |= {
         "HttpApiId": "abc123def",
         "HttpApiUrl": "https://abc123def.execute-api.ap-southeast-1.amazonaws.com",

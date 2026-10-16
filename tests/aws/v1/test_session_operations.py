@@ -375,7 +375,7 @@ def test_ambient_aws_credentials_and_endpoints_are_refused():
 
 def operator_files(tmp_path):
     directory = tmp_path / "ops"
-    directory.mkdir(mode=0o700)
+    directory.mkdir(mode=0o700, exist_ok=True)
     (directory / "outputs.json").write_text(json.dumps(outputs()))
     config = {
         "operator_station": "s",
@@ -500,3 +500,58 @@ def test_outputs_translation_rejects_unknown_handlers_and_missing_values():
     assert config["gateway"]["open"] == operations.DEFAULT_EDGE_OPEN
     assert set(config["owner_functions"]) == {"media", "processing"}
     assert urls["gateway"].startswith("https://")
+
+
+class Sqs:
+    def __init__(self):
+        self.calls = []
+
+    def receive_message(self, **kwargs):
+        self.calls.append(("receive", kwargs))
+        return {}
+
+    def start_message_move_task(self, **kwargs):
+        self.calls.append(("redrive", kwargs))
+        return {"TaskHandle": "handle"}
+
+    def list_message_move_tasks(self, **kwargs):
+        self.calls.append(("status", kwargs))
+        return {"Results": []}
+
+
+def dlq_run(tmp_path, *extra, sqs=None):
+    config = operator_files(tmp_path)
+    return run(
+        "dlq", "--config", str(config), *SCOPE, *extra,
+        sqs_factory=lambda scope: sqs, transport_factory=lambda scope: Cloud(),
+    )
+
+
+def test_dlq_actions_reuse_the_shared_helper_with_the_queue_s_own_dlq(tmp_path):
+    sqs = Sqs()
+    code, out = dlq_run(tmp_path, "--queue", "MediaResults", "--dlq-command", "status", sqs=sqs)
+    assert code == 0 and sqs.calls[0][1]["SourceArn"].endswith("MediaResults-dlq")
+    sqs = Sqs()
+    dlq_run(tmp_path, "--queue", "ProcessingWork", "--dlq-command", "inspect", sqs=sqs)
+    receive = sqs.calls[0][1]
+    assert receive["QueueUrl"].endswith("ProcessingWork-dlq") and receive["VisibilityTimeout"] == 0
+
+
+def test_dlq_redrive_needs_confirmation_and_dry_run_never_builds_a_client(tmp_path):
+    sqs = Sqs()
+    code, out = dlq_run(tmp_path, "--queue", "MediaResults", "--dlq-command", "redrive", sqs=sqs)
+    assert code == 1 and "--confirm-redrive" in out["error"] and not sqs.calls
+    code, out = dlq_run(
+        tmp_path, "--queue", "MediaResults", "--dlq-command", "redrive", "--confirm-redrive",
+        sqs=sqs,
+    )
+    assert code == 0 and sqs.calls[0][0] == "redrive"
+
+    def forbidden(scope):
+        raise AssertionError("dry-run must not build a client")
+
+    code, out = run(
+        "dlq", "--config", str(operator_files(tmp_path)), *SCOPE, "--queue", "MediaResults",
+        "--dry-run", sqs_factory=forbidden,
+    )
+    assert code == 0 and out["result"]["queue"] == "MediaResults"

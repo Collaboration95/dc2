@@ -36,6 +36,7 @@ MAPPINGS = ("ProcessingCommands", "MediaResults")
 RULES = ("MediaRepair", "ProcessingRepair", "ProcessingEcsEvents", "ProcessingS3Events")
 # Default open throttle mirrors the previous template value; tune per session.
 DEFAULT_EDGE_OPEN = {"rate": 5, "burst": 10}
+QUEUES = ("ProcessingCommands", "ProcessingWork", "MediaResults")
 SERVICES = ("lambda", "events", "apigatewayv2", "ecs")
 PROFILE_PATTERN = re.compile(r"[A-Za-z0-9_.-]{1,64}")
 
@@ -125,7 +126,14 @@ def config_from_outputs(
             "media_api": names["MediaApi"],
             "repairs": [names["MediaRepair"], names["ProcessingRepair"]],
         }
-        urls = {"gateway": outputs["HttpApiUrl"], "frontend": outputs.get("FrontendUrl")}
+        urls = {
+            "gateway": outputs["HttpApiUrl"],
+            "frontend": outputs.get("FrontendUrl"),
+            "dlq": {
+                q: {"url": outputs.get(f"{q}DlqUrl"), "arn": outputs.get(f"{q}DlqArn")}
+                for q in QUEUES
+            },
+        }
     except KeyError:
         raise OperationError("Stack outputs are missing a required V1 value") from None
     return config, hooks, urls
@@ -185,16 +193,14 @@ def resolve_scope(parser, args, environ):
     return {"profile": args.profile, "region": args.region, "account": account}
 
 
-def live_transport(scope, *, boto3_module=None):
-    """Explicit-profile SDK clients, one attempt each, after a fresh STS identity check."""
+def _verified_session(scope, boto3_module):
+    """One explicit profile, ambient credentials refused, STS account proven first."""
     refuse_ambient_credentials()
     if boto3_module is None:
         import boto3 as boto3_module
     from botocore.config import Config
 
     quick = Config(retries={"total_max_attempts": 1}, connect_timeout=5, read_timeout=10)
-    # Synchronous owner invocations may wait on an Aurora resume (function timeout 60 s).
-    long = Config(retries={"total_max_attempts": 1}, connect_timeout=5, read_timeout=65)
     session = boto3_module.Session(profile_name=scope["profile"], region_name=scope["region"])
     try:
         identity = session.client("sts", config=quick).get_caller_identity()
@@ -202,6 +208,22 @@ def live_transport(scope, *, boto3_module=None):
         raise OperationError("STS identity verification failed") from None
     if identity.get("Account") != scope["account"]:
         raise OperationError("Profile resolves to a different account; no calls made")
+    return session, identity, quick
+
+
+def live_sqs_client(scope, *, boto3_module=None):
+    """SQS client for the shared delivery.dlq helper, under the same identity checks."""
+    session, _, quick = _verified_session(scope, boto3_module)
+    return session.client("sqs", config=quick)
+
+
+def live_transport(scope, *, boto3_module=None):
+    """Explicit-profile SDK clients, one attempt each, after a fresh STS identity check."""
+    session, identity, quick = _verified_session(scope, boto3_module)
+    from botocore.config import Config
+
+    # Synchronous owner invocations may wait on an Aurora resume (function timeout 60 s).
+    long = Config(retries={"total_max_attempts": 1}, connect_timeout=5, read_timeout=65)
     clients = {
         service: session.client(service, config=long if service == "lambda" else quick)
         for service in SERVICES

@@ -94,7 +94,11 @@ python -m scripts.aws.v1.session init --confirm-empty --confirm-exclusive --conf
 python -m scripts.aws.v1.session open|status|close --config ops.json ...
 python -m scripts.aws.v1.session window --config ops.json ...   # API only, for releases
 python -m scripts.aws.v1.release promote|restore|status --config ops.json ...
+python -m scripts.aws.v1.session dlq --queue MediaResults --dlq-command inspect|status|redrive ...
 ```
+
+The `dlq` action calls the shared `delivery.dlq` helper (see `dlq-runbook.md`) under the same
+explicit-profile identity checks; redrive needs `--confirm-redrive`.
 
 A failed or partial `close` is journaled (`closing`, `session_failures`), keeps every
 wake source disabled, and is resumed by running `close` again. It never records a
