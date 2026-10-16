@@ -7,11 +7,14 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
     Uuid,
+    func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -36,9 +39,21 @@ class UploadReservation(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     finalized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cleanup_checked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    # Rescan schedule: attempts drive the backoff, next_at orders the batch, and retired_at
+    # (a clean scan past the horizon) ends it. Failed scans never retire a row.
+    cleanup_next_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now, server_default=func.now()
+    )
+    cleanup_attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    cleanup_retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     __table_args__ = (
         UniqueConstraint("owner_id", "request_id"),
+        Index(
+            "ix_upload_reservations_cleanup_due",
+            "cleanup_next_at",
+            postgresql_where=text("cleanup_retired_at IS NULL"),
+        ),
         CheckConstraint(
             "finalized_at IS NULL OR (version_id IS NOT NULL AND version_id NOT IN ('', 'null'))",
             name="ck_upload_reservations_finalized_has_pin",

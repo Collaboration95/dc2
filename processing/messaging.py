@@ -404,10 +404,14 @@ async def publish_outbox(factory, transport, **kwargs):
     return await publish_due(factory, ProcessingOutbox, transport, **kwargs)
 
 
-async def consume_commands(event, factory):
+async def consume_commands(event, factory, *, guard=None):
+    """``guard`` returns a context manager around each message (credential self-heal)."""
+    from contextlib import nullcontext
+
     from delivery.sqs import consume_batch
 
     async def handle(body):
-        return await handle_command(factory, body)
+        with (guard or nullcontext)():
+            return await handle_command(factory, body)
 
     return await consume_batch(event, "processing-commands", handle)
