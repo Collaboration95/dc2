@@ -11,6 +11,11 @@ from delivery.sqs import SQS
 from processing.config import get_settings
 from processing.messaging import consume_commands, publish_outbox
 from processing.recovery_v1 import run_once, terminal_event
+from runtime_support.settings import credentials_rejected, heal_on_rejection
+
+
+def _heal():
+    return heal_on_rejection(get_settings)
 
 
 async def invoke(event, context, mode):
@@ -30,18 +35,23 @@ async def invoke(event, context, mode):
     deadline = deadline_for(context)
     try:
         if mode == "command":
-            result = await consume_commands(event, factory)
+            # consume_batch reports errors as batch failures instead of raising, so
+            # the self-heal guard has to wrap each message, not just this call.
+            result = await consume_commands(event, factory, guard=_heal)
             # ACK follows committed domain/inbox/outbox, not network availability.
             try:
                 await publish_outbox(factory, transport, deadline=deadline, limit=25)
-            except Exception:
-                pass  # Durable outbox is repaired by the session-scoped tick.
+            except Exception as error:
+                # Durable outbox is repaired by the session-scoped tick.
+                if credentials_rejected(error):
+                    get_settings.cache_clear()
             return result
-        if mode == "ecs":
-            await terminal_event(factory, event)
-        # S3 notifications are also hints. Repeated retained cleanup intents, not
-        # a supplied bucket/key, determine what can safely be deleted.
-        return await run_once(factory, settings, transport, deadline=deadline)
+        with _heal():
+            stopped = await terminal_event(factory, event) if mode == "ecs" else None
+            # S3 notifications are also hints. Repeated retained cleanup intents, not
+            # a supplied bucket/key, determine what can safely be deleted.
+            result = await run_once(factory, settings, transport, deadline=deadline)
+        return result if stopped is None else {**result, "stopped": stopped}
     finally:
         await engine.dispose()
 
