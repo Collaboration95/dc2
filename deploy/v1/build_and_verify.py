@@ -21,6 +21,7 @@ import hashlib
 import http.client
 import json
 import os
+import re
 import secrets
 import shutil
 import subprocess
@@ -419,15 +420,40 @@ def health_ok(service):
     return check
 
 
+CONNECTION_CLASSES = ("ConnectionRefusedError", "OSError", "TimeoutError")
+# runtime_support.errors raises SanitizedHandlerError(f"{operation} failed ({ExceptionClass})")
+# where operation is "<owner>.<name>" (media.repair, processing.ecs, ...). Match that exact
+# shape, not a substring, so a different failure class or a leaked driver message is rejected.
+SANITIZED_CONNECTION_FAILURE = re.compile(
+    r"(media|processing)\.[a-z0-9]+ failed \((" + "|".join(CONNECTION_CLASSES) + r")\)"
+)
+
+
+def retryable_connection_error(result):
+    """True for a raised connection-class error: raw, or sanitized since #103."""
+    if result["function_error"] in CONNECTION_CLASSES:
+        return True
+    body = result["body"]
+    return (
+        result["function_error"] == "SanitizedHandlerError"
+        and isinstance(body, dict)
+        and body.get("errorType") == "SanitizedHandlerError"
+        and isinstance(body.get("errorMessage"), str)
+        and SANITIZED_CONNECTION_FAILURE.fullmatch(body["errorMessage"]) is not None
+    )
+
+
 def database_down(result):
     """Finite, never a success, and the DSN password never appears in the response.
 
     SQS handlers must report per-item failure (so messages are retried); scheduled/event
     handlers must raise so Lambda retries and alarms, rather than return a green result.
+    Raising is the contract: the sanitized error still fails the invocation, so SQS and
+    EventBridge retry it; only the exception class name changed.
     """
     body = result["body"]
     visible = (isinstance(body, dict) and body.get("batchItemFailures")) or (
-        result["function_error"] in {"ConnectionRefusedError", "OSError", "TimeoutError"}
+        retryable_connection_error(result)
     )
     return bool(visible) and result["seconds"] < 60 and "unused" not in json.dumps(body)
 

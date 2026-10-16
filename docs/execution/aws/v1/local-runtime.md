@@ -144,8 +144,10 @@ outside `uv.lock`), runs `make test-aws` and `make test-v1` (both under the same
 offline network guard as `make test`), starts a unique runtime, verifies all flows,
 requires `complete_v1_acceptance == PASS`, uploads the manifest and the coverage
 fragment, and tears down only its namespace. A manual dispatch can set `images` to run
-`make v1-images` (native amd64 builds and Runtime Interface Emulator handler runs).
-That job has not been exercised on a GitHub runner yet. A green run is a local-emulation
+`make v1-images` (native amd64 builds and Runtime Interface Emulator handler runs). The
+job also runs by itself when a pull request or push changes `deploy/v1/**`,
+`deploy/aws/v1/**`, `media/handlers.py`, `processing/handlers.py`, `*/lambda_handler.py`,
+`processing/worker/**`, `runtime_support/**`, `pyproject.toml` or `uv.lock`. A green run is a local-emulation
 result and does not close #92 or establish a cloud PASS.
 
 ## Local VM resources
