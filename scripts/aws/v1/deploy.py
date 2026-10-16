@@ -147,8 +147,13 @@ ALLOWED = {
         "get-parameters-by-path",
     },
     "secretsmanager": {"get-secret-value"},
-    "logs": {"describe-log-groups", "delete-log-group", "list-tags-for-resource"},
-    "ecs": {"run-task", "describe-tasks", "list-tasks", "stop-task", "describe-task-definition"},
+    "logs": {"describe-log-groups", "delete-log-group", "list-tags-for-resource",
+             "get-log-events"},
+    "ecs": {"run-task", "describe-tasks", "list-tasks", "stop-task", "describe-task-definition",
+            "register-task-definition", "deregister-task-definition"},
+    # Read-only observations the cloud-proof harnesses make through this same transport.
+    "cloudwatch": {"get-metric-statistics"},
+    "apigatewayv2": {"get-stage"},
 }
 READ_PREFIXES = ("describe", "get", "list", "head")
 SENSITIVE_RESULT = {("secretsmanager", "get-secret-value"), ("ecr", "get-authorization-token")}

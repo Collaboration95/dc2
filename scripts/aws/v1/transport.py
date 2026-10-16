@@ -158,6 +158,21 @@ OPERATIONS = {
             {"cluster": CLUSTER, "task": CLUSTER},
             {"reason": lambda v: isinstance(v, str) and len(v) <= 255},
         ),
+        # The cloud-proof latency generator is a temporary Fargate task definition that is
+        # deregistered when its run ends; nothing else may register one.
+        "register-task-definition": (
+            {
+                "family": CLUSTER,
+                "containerDefinitions": lambda v: isinstance(v, list) and len(v) == 1,
+                "cpu": _text(re.compile(r"[0-9]{3,5}")),
+                "memory": _text(re.compile(r"[0-9]{3,6}")),
+                "networkMode": lambda v: v == "awsvpc",
+                "requiresCompatibilities": lambda v: v == ["FARGATE"],
+                "executionRoleArn": CLUSTER,
+            },
+            {"runtimePlatform": _object, "tags": _any},
+        ),
+        "deregister-task-definition": ({"taskDefinition": CLUSTER}, {}),
     },
 }
 
