@@ -3,6 +3,7 @@
 import os
 import re
 from collections.abc import Mapping
+from contextlib import contextmanager
 
 PARAMETER_ARN = re.compile(
     r"arn:(aws(?:-us-gov|-cn)?):ssm:([a-z0-9-]+):(\d{12}):parameter/[^\s]+\Z"
@@ -27,6 +28,22 @@ def credentials_rejected(error: BaseException) -> bool:
         seen = getattr(seen, "orig", None) or getattr(seen, "__cause__", None)
         depth += 1
     return False
+
+
+@contextmanager
+def heal_on_rejection(settings_getter):
+    """Forget the cached Settings when the database refuses the cached credentials.
+
+    Handlers that build their own engine cannot rely on a session helper to do this.
+    The invocation still fails (and is retried by SQS/EventBridge); the next one
+    re-reads the rotated secret instead of replaying the stale DSN until recycle.
+    """
+    try:
+        yield
+    except Exception as error:
+        if credentials_rejected(error):
+            settings_getter.cache_clear()
+        raise
 
 
 class RuntimeConfigurationError(RuntimeError):

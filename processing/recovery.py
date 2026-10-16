@@ -33,6 +33,25 @@ def get_queue(settings):
     return legacy_queue(settings)
 
 
+INTERRUPTED = "Processing interrupted; retry the stored source"
+
+
+async def interrupt(session, job, attempt, now, message, on_change=None):
+    """The one fenced failure transition for a processing attempt that can no longer finish.
+
+    Caller holds the Job lock and has verified the attempt is current and processing.
+    Lease expiry and an ECS STOPPED event both end here, so they cannot diverge. There is
+    no automatic requeue: a retry reserves a new attempt (the owner asks for it), and the
+    one-task-per-attempt binding would reject a second claim of this one anyway.
+    """
+    job.status, job.error, job.updated_at = "failed", message, now
+    attempt.state, attempt.error, attempt.finished_at = "abandoned", message, now
+    attempt.lease_expires_at = now
+    await cleanup_intent(session, job.id, attempt.id, now)
+    if on_change is not None:
+        await on_change(session, job, attempt)
+
+
 async def recover_expired(factory, *, limit=100, on_change=None, job_filter=None):
     async with factory() as session:
         ids = (
@@ -66,17 +85,16 @@ async def recover_expired(factory, *, limit=100, on_change=None, job_filter=None
                 or (attempt.lease_expires_at > now and attempt.deadline_at > now)
             ):
                 continue
-            message = (
+            await interrupt(
+                session,
+                job,
+                attempt,
+                now,
                 "Processing exceeded its time limit"
                 if attempt.deadline_at <= now
-                else "Processing interrupted; retry the stored source"
+                else INTERRUPTED,
+                on_change,
             )
-            job.status, job.error, job.updated_at = "failed", message, now
-            attempt.state, attempt.error, attempt.finished_at = "abandoned", message, now
-            attempt.lease_expires_at = now
-            await cleanup_intent(session, job_id, attempt_id, now)
-            if on_change is not None:
-                await on_change(session, job, attempt)
             recovered += 1
             logger.info("expired attempt job=%s attempt=%s", job_id, attempt_id)
     return recovered

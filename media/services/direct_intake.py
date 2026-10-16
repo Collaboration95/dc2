@@ -1,6 +1,9 @@
 """Reserve outside byte transport; atomically adopt a verified immutable version."""
 
+import asyncio
+import time
 from datetime import timedelta
+from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -198,27 +201,77 @@ async def finalize(session, storage, owner_id, reservation_id, request, *, enque
     return asset
 
 
-async def cleanup_expired_uploads(factory, storage, limit=100):
-    # Never remove the ledger: a POST started before expiry can finish late.
+CLEANUP_BASE_SECONDS = 60
+CLEANUP_CAP_SECONDS = 3600
+CLEANUP_HORIZON = timedelta(days=1)
+
+
+def cleanup_delay(attempts):
+    """Early rescans catch the likely late write; later ones thin out to hourly."""
+    return min(CLEANUP_CAP_SECONDS, CLEANUP_BASE_SECONDS * 2 ** min(max(attempts - 1, 0), 6))
+
+
+async def cleanup_expired_uploads(
+    factory, storage, limit=100, *, deadline=None, horizon=CLEANUP_HORIZON
+):
+    """Rescan expired grants for late writes, bounded, backing off, then retire them.
+
+    A POST begun before expiry can finish after it, so the ledger row outlives expiry. It
+    cannot outlive it forever: a scan that succeeds at least ``horizon`` after expiry
+    retires the row (kept as audit). A failed scan never retires; it only backs off.
+    Storage I/O runs between short transactions, never under a row lock.
+    """
     async with factory() as session:
-        rows = list(
+        due = now()
+        ids = list(
             await session.scalars(
-                select(UploadReservation)
-                .where(UploadReservation.expires_at < now())
-                .order_by(UploadReservation.cleanup_checked_at, UploadReservation.id)
+                select(UploadReservation.id)
+                .where(
+                    UploadReservation.expires_at < due,
+                    UploadReservation.cleanup_retired_at.is_(None),
+                    UploadReservation.cleanup_next_at <= due,
+                )
+                .order_by(UploadReservation.cleanup_next_at, UploadReservation.id)
                 .limit(limit)
             )
         )
     completed = 0
-    for row in rows:
+    for reservation_id in ids:
+        if deadline is not None and time.monotonic() >= deadline:
+            break
+        async with factory() as session, session.begin():
+            row = await session.get(UploadReservation, reservation_id, with_for_update=True)
+            current = now()
+            if (
+                row is None
+                or row.cleanup_retired_at is not None
+                or row.expires_at >= current
+                or row.cleanup_next_at > current
+            ):
+                continue  # Another invocation scanned or retired it since the listing.
+            # Reserve the scan: a concurrent or crashed invocation retries after this lease.
+            row.cleanup_attempts += 1
+            row.cleanup_next_at = current + timedelta(seconds=CLEANUP_BASE_SECONDS)
+            target = SimpleNamespace(bucket=row.bucket, key=row.key)
+            preserve, expires_at = row.version_id, row.expires_at
+            scan, lease = row.cleanup_attempts, row.cleanup_next_at
+        failed = False
         try:
-            await storage.delete_direct_upload(row, preserve_version=row.version_id)
+            if deadline is None:
+                await storage.delete_direct_upload(target, preserve_version=preserve)
+            else:
+                async with asyncio.timeout(max(0.001, deadline - time.monotonic())):
+                    await storage.delete_direct_upload(target, preserve_version=preserve)
             completed += 1
         except Exception:
-            pass  # Durable ledger and next tick retain retry authority.
-        async with factory() as session:
-            async with session.begin():
-                current = await session.get(UploadReservation, row.id, with_for_update=True)
-                if current:
-                    current.cleanup_checked_at = now()
+            failed = True  # The durable row and the next due time retain retry authority.
+        async with factory() as session, session.begin():
+            row = await session.get(UploadReservation, reservation_id, with_for_update=True)
+            if row is None or row.cleanup_attempts != scan or row.cleanup_next_at != lease:
+                continue
+            finished = now()
+            row.cleanup_checked_at = finished
+            row.cleanup_next_at = finished + timedelta(seconds=cleanup_delay(scan))
+            if not failed and finished >= expires_at + horizon:
+                row.cleanup_retired_at = finished
     return completed

@@ -9,7 +9,6 @@ server-side finalize/cleanup that must hold even if S3 enforcement were absent. 
 policy enforcement, IAM and TLS remain cloud checks (#45, #63-#67).
 """
 
-import asyncio
 import base64
 import hashlib
 import json
@@ -172,6 +171,15 @@ async def expire(factory, reservation_id):
         )
 
 
+async def make_due(factory, reservation_id):
+    async with factory() as session, session.begin():
+        await session.execute(
+            update(UploadReservation)
+            .where(UploadReservation.id == reservation_id)
+            .values(cleanup_next_at=now() - timedelta(seconds=1))
+        )
+
+
 async def stored(factory, reservation_id):
     async with factory() as session:
         return await session.get(UploadReservation, reservation_id)
@@ -182,7 +190,7 @@ async def test_grant_binds_key_type_size_and_a_short_expiry(factory, storage):
     reserved, _ = await reserve(factory, storage, owner)
     policy = json.loads(base64.b64decode(reserved["upload"]["fields"]["policy"]))
     conditions = [c for c in policy["conditions"] if isinstance(c, (list, dict))]
-    key = f"staging/{owner}/{reserved['reservation_id']}/source"
+    key = f"staging/{owner}/{reserved["reservation_id"]}/source"
     assert ["eq", "$key", key] in conditions
     assert ["eq", "$Content-Type", "video/mp4"] in conditions
     assert ["content-length-range", 1, len(VIDEO)] in conditions
@@ -196,7 +204,7 @@ async def test_replayed_grant_after_finalize_cannot_change_the_served_source(
     _, client = s3
     owner = await make_user(factory)
     reserved, request = await reserve(factory, storage, owner)
-    key = f"staging/{owner}/{reserved['reservation_id']}/source"
+    key = f"staging/{owner}/{reserved["reservation_id"]}/source"
     post(reserved["upload"], VIDEO)
 
     asset = await finalize(factory, storage, owner, reserved, request)
@@ -230,7 +238,7 @@ async def test_finalize_pins_the_exact_version_it_verified(s3, bucket, storage, 
     _, client = s3
     owner = await make_user(factory)
     reserved, request = await reserve(factory, storage, owner)
-    key = f"staging/{owner}/{reserved['reservation_id']}/source"
+    key = f"staging/{owner}/{reserved["reservation_id"]}/source"
     post(reserved["upload"], VIDEO)
     post(reserved["upload"], VIDEO)  # An identical re-upload before finalize is legitimate.
     newest, older = versions_of(client, bucket, key)  # S3 lists the newest version first.
@@ -316,7 +324,7 @@ async def test_expired_reservation_is_refused_and_its_bytes_are_reclaimed(
     _, client = s3
     owner = await make_user(factory)
     reserved, request = await reserve(factory, storage, owner)
-    key = f"staging/{owner}/{reserved['reservation_id']}/source"
+    key = f"staging/{owner}/{reserved["reservation_id"]}/source"
     post(reserved["upload"], VIDEO)
     await expire(factory, reserved["reservation_id"])
 
@@ -338,7 +346,7 @@ async def test_cleanup_keeps_the_pin_removes_late_writes_and_stays_armed(
     _, client = s3
     owner = await make_user(factory)
     reserved, request = await reserve(factory, storage, owner)
-    key = f"staging/{owner}/{reserved['reservation_id']}/source"
+    key = f"staging/{owner}/{reserved["reservation_id"]}/source"
     post(reserved["upload"], VIDEO)
     asset = await finalize(factory, storage, owner, reserved, request)
     pinned = (await stored(factory, reserved["reservation_id"])).version_id
@@ -351,7 +359,7 @@ async def test_cleanup_keeps_the_pin_removes_late_writes_and_stays_armed(
     # A POST begun before expiry can complete late; the retained ledger removes it too.
     post(reserved["upload"], b"late write after the first sweep")
     assert len(versions_of(client, bucket, key)) == 2
-    await asyncio.sleep(0)  # fair-batch ordering uses cleanup_checked_at, already advanced
+    await make_due(factory, reserved["reservation_id"])  # skip the rescan backoff
     await direct_intake.cleanup_expired_uploads(factory, storage)
     assert versions_of(client, bucket, key) == [pinned]
     async with factory() as session:

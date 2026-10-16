@@ -260,8 +260,7 @@ async def test_delayed_ecs_and_s3_events_cannot_touch_a_newer_attempt(factory):
     live = await claim(factory, job.id, second.id, SETTINGS, task_name="task-two")
     store = SimpleNamespace(delete_prefix=AsyncMock())
     # A STOPPED notification for task one arrives after attempt two started.
-    stopped = {"detail": {"lastStatus": "STOPPED", "taskArn": "arn:task-one"}}
-    assert await terminal_event(factory, stopped) == 0
+    assert await terminal_event(factory, stopped_event("task-one")) == 0
     # A late S3 notification triggers the generic tick; only attempt one is scanned.
     await run_once(factory, SETTINGS, transport, store=store)
     scanned = [call.args[0] for call in store.delete_prefix.call_args_list]
@@ -269,6 +268,130 @@ async def test_delayed_ecs_and_s3_events_cannot_touch_a_newer_attempt(factory):
     job, current = await state(factory)
     assert (job.status, current.id, current.state) == ("processing", second.id, "processing")
     assert await finish(factory, live, error="Controlled failure")
+
+
+def stopped_event(started_by, *, status="STOPPED", exit_code=137):
+    """An ECS Task State Change as EventBridge delivers it (trimmed to what routing uses)."""
+    task_id = uuid4().hex
+    return {
+        "version": "0",
+        "id": str(uuid4()),
+        "detail-type": "ECS Task State Change",
+        "source": "aws.ecs",
+        "detail": {
+            "clusterArn": "arn:aws:ecs:ap-southeast-1:123456789012:cluster/v1",
+            "taskArn": f"arn:aws:ecs:ap-southeast-1:123456789012:task/v1/{task_id}",
+            "startedBy": started_by,
+            "lastStatus": status,
+            "desiredStatus": "STOPPED",
+            "stopCode": "EssentialContainerExited",
+            "containers": [{"name": "worker", "exitCode": exit_code}],
+        },
+    }
+
+
+async def test_a_stopped_task_fails_its_live_attempt_before_the_lease_expires(factory):
+    job, attempt, _, _ = await submitted(factory)
+    await claim(factory, job.id, attempt.id, SETTINGS, task_name="v1-live")
+    _, before = await state(factory)
+    async with factory() as session:
+        remaining = await session.scalar(
+            select(func.extract("epoch", before.lease_expires_at - func.clock_timestamp()))
+        )
+    assert remaining > 30  # The lease is nowhere near expiry.
+    versions = await message_version(factory, job.id)
+
+    assert await terminal_event(factory, stopped_event("v1-live")) == 1
+
+    job, current = await state(factory)
+    assert (job.status, current.state) == ("failed", "abandoned")
+    assert current.error == job.error == "Processing interrupted; retry the stored source"
+    assert await message_version(factory, job.id) == versions + 1  # Media is told promptly.
+    async with factory() as session:
+        assert await session.get(CleanupIntent, attempt.id) is not None
+
+
+async def test_a_duplicate_stopped_event_changes_nothing_the_second_time(factory):
+    job, attempt, _, _ = await submitted(factory)
+    await claim(factory, job.id, attempt.id, SETTINGS, task_name="v1-twice")
+    event = stopped_event("v1-twice")
+    assert await terminal_event(factory, event) == 1
+    versions = await message_version(factory, job.id)
+    rows = await count(factory, ProcessingOutbox)
+    assert await terminal_event(factory, event) == 0
+    assert await message_version(factory, job.id) == versions
+    assert await count(factory, ProcessingOutbox) == rows
+
+
+async def test_a_stopped_event_before_any_claim_is_a_no_op(factory):
+    job, attempt, _, _ = await submitted(factory)
+    assert await terminal_event(factory, stopped_event("v1-never-claimed")) == 0
+    job, current = await state(factory)
+    assert (job.status, current.state) == ("queued", "queued")
+
+
+async def test_a_stopped_task_cannot_fail_another_tasks_attempt(factory):
+    job, attempt, _, _ = await submitted(factory)
+    await claim(factory, job.id, attempt.id, SETTINGS, task_name="v1-owner")
+    assert await terminal_event(factory, stopped_event("v1-someone-else")) == 0
+    assert (await state(factory))[1].state == "processing"
+
+
+@pytest.mark.parametrize("status", ["RUNNING", "PENDING", "DEPROVISIONING"])
+async def test_only_a_stopped_status_ends_an_attempt(factory, status):
+    job, attempt, _, _ = await submitted(factory)
+    await claim(factory, job.id, attempt.id, SETTINGS, task_name="v1-running")
+    assert await terminal_event(factory, stopped_event("v1-running", status=status)) == 0
+    assert (await state(factory))[1].state == "processing"
+
+
+@pytest.mark.parametrize("how", ["task id", "task arn"])
+async def test_a_worker_bound_by_task_id_or_arn_is_matched_too(factory, how):
+    job, attempt, _, _ = await submitted(factory)
+    event = stopped_event("v1-unrelated")
+    arn = event["detail"]["taskArn"]
+    name = arn.rsplit("/", 1)[-1] if how == "task id" else arn
+    await claim(factory, job.id, attempt.id, SETTINGS, task_name=name)
+    assert await terminal_event(factory, event) == 1
+
+
+async def test_a_stopped_event_after_the_worker_finished_does_not_undo_the_result(factory):
+    job, attempt, _, _ = await submitted(factory)
+    work = await claim(factory, job.id, attempt.id, SETTINGS, task_name="v1-done")
+    output = {
+        "kind": "primary",
+        "object_key": f"jobs/{job.id}/attempts/{attempt.id}/primary.mp4",
+        "media_type": "video/mp4",
+        "size_bytes": 5,
+        "sha256": "c" * 64,
+    }
+    assert await finish(factory, work, outputs=[output])
+    assert await terminal_event(factory, stopped_event("v1-done", exit_code=0)) == 0
+    job, current = await state(factory)
+    assert (job.status, current.state) == ("done", "succeeded")
+
+
+async def test_a_worker_cannot_finish_an_attempt_its_stopped_task_already_failed(factory):
+    job, attempt, _, _ = await submitted(factory)
+    work = await claim(factory, job.id, attempt.id, SETTINGS, task_name="v1-late")
+    assert await terminal_event(factory, stopped_event("v1-late")) == 1
+    assert not await finish(factory, work, error="Controlled failure")
+    assert (await state(factory))[0].status == "failed"
+
+
+async def test_the_ecs_handler_path_also_runs_expiry_and_reports_the_stop(factory):
+    job, attempt, transport, _ = await submitted(factory)
+    await claim(factory, job.id, attempt.id, SETTINGS, task_name="v1-handler")
+    stopped = await terminal_event(factory, stopped_event("v1-handler"))
+    store = SimpleNamespace(delete_prefix=AsyncMock())
+    result = await run_once(factory, SETTINGS, transport, store=store)
+    assert stopped == 1 and result["expired"] == 0  # Already failed; nothing left to expire.
+    assert store.delete_prefix.await_count == 1  # Its output prefix is now scheduled.
+
+
+async def message_version(factory, job_id):
+    async with factory() as session:
+        return (await session.get(JobMessaging, job_id)).state_version
 
 
 async def seed_intents(factory, count_):

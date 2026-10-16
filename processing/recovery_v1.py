@@ -16,9 +16,9 @@ from processing.messaging import (
     repair_delay,
     work_message_id,
 )
-from processing.messaging_models import JobMessaging, ProcessingOutbox
+from processing.messaging_models import AttemptTask, JobMessaging, ProcessingOutbox
 from processing.models import Attempt, Job
-from processing.recovery import cleanup_outputs, recover_expired
+from processing.recovery import INTERRUPTED, cleanup_outputs, interrupt, recover_expired
 
 
 class NativeCleanupStore:
@@ -198,17 +198,53 @@ async def run_once(factory, settings, transport, *, store=None, limit=25, deadli
     return result
 
 
-async def terminal_event(factory, event):
-    """An ECS notification is a repair hint, never authority to fail a live lease.
+def stopped_task_names(event):
+    """Every name a finite worker may have been bound under for this STOPPED task.
 
-    No worker task ID can revoke another attempt. The SQL expiry/deadline fence
-    decides interruption; duplicated/reordered STOPPED events are harmless.
+    RunTask names the worker after ``startedBy`` (scripts/aws/v1/session.py batch), which
+    ECS echoes in the event. An operator-run task may use its task ARN or ID instead.
     """
-    if event.get("detail", {}).get("lastStatus") != "STOPPED":
+    detail = event.get("detail") if isinstance(event, dict) else None
+    if not isinstance(detail, dict) or detail.get("lastStatus") != "STOPPED":
+        return set()
+    arn = detail.get("taskArn")
+    names = {detail.get("startedBy"), arn, arn.rsplit("/", 1)[-1] if isinstance(arn, str) else None}
+    return {name for name in names if isinstance(name, str) and name}
+
+
+async def terminal_event(factory, event):
+    """A STOPPED task fails the attempt it claimed now, not at lease expiry.
+
+    The binding written at claim time (attempt_tasks) is the only correlation. A task
+    that stopped before claiming binds nothing, and an event for an attempt that is no
+    longer current finds no live pair, so neither can touch newer work. A duplicate finds
+    the attempt already terminal. All three are no-ops; only the same fenced transition
+    that lease expiry applies ever runs.
+    """
+    names = stopped_task_names(event)
+    if not names:
         return 0
-    return await recover_expired(
-        factory,
-        limit=25,
-        on_change=emit_state,
-        job_filter=Job.id.in_(select(JobMessaging.job_id)),
-    )
+    async with factory() as session:
+        bound = (
+            await session.execute(
+                select(Attempt.job_id, AttemptTask.attempt_id)
+                .join(Attempt, Attempt.id == AttemptTask.attempt_id)
+                .where(
+                    AttemptTask.task_name.in_(names),
+                    Attempt.job_id.in_(select(JobMessaging.job_id)),
+                )
+            )
+        ).all()
+    stopped = 0
+    for job_id, attempt_id in bound:
+        async with factory() as session, session.begin():
+            pair = await lifecycle.lock_pair(session, job_id, attempt_id)
+            if pair is None:
+                continue
+            job, attempt = pair
+            if job.status != "processing" or attempt.state != "processing":
+                continue
+            now = await lifecycle.db_now(session)
+            await interrupt(session, job, attempt, now, INTERRUPTED, emit_state)
+            stopped += 1
+    return stopped

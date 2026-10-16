@@ -10,6 +10,7 @@ from delivery.runtime import deadline_for, queue_urls
 from delivery.sqs import SQS, consume_batch
 from media.config import get_settings
 from media.messaging import consume_result, publish_commands
+from runtime_support.settings import heal_on_rejection
 
 
 async def consume_results(event, factory, apply=None):
@@ -19,8 +20,11 @@ async def consume_results(event, factory, apply=None):
         apply = apply_result
 
     async def handle(body):
-        async with factory() as session:
-            await consume_result(session, body, apply)
+        # consume_batch turns every error into a batch failure, so a rejected login
+        # must be noticed here or the warm container keeps replaying the old DSN.
+        with heal_on_rejection(get_settings):
+            async with factory() as session:
+                await consume_result(session, body, apply)
 
     return await consume_batch(event, "media-results", handle)
 
@@ -41,13 +45,16 @@ async def invoke(event, context, mode):
             region=os.environ.get("AWS_REGION"),
             endpoint_url=os.environ.get("SQS_ENDPOINT_URL"),
         )
-        published = await publish_commands(
-            factory, transport, limit=25, deadline=min(deadline, time.monotonic() + 5)
-        )
         from media.recovery_v1 import run_once
         from media.services.storage import Storage
 
-        cleanup = await run_once(factory, settings, Storage(settings), deadline=deadline)
+        # The repair pass raises on a refused login, so one guard covers the outbox
+        # publish and the cleanup that follows it.
+        with heal_on_rejection(get_settings):
+            published = await publish_commands(
+                factory, transport, limit=25, deadline=min(deadline, time.monotonic() + 5)
+            )
+            cleanup = await run_once(factory, settings, Storage(settings), deadline=deadline)
         return {"published": published, **cleanup}
     finally:
         await engine.dispose()
