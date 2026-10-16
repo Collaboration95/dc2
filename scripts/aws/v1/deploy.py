@@ -45,7 +45,7 @@ from scripts.aws.journal import Journal
 from scripts.aws.transport import SECRET_KEY, OperationError
 from scripts.aws.v1 import bootstrap as db_bootstrap
 from scripts.aws.v1 import config as render_config
-from scripts.aws.v1 import operations, session_cli
+from scripts.aws.v1 import credentials, operations, session_cli
 from scripts.aws.v1.definitions import template as render_template
 from scripts.aws.v1.hooks import refuse_ambient_credentials
 from scripts.aws.v1.migration import migrate
@@ -323,6 +323,10 @@ class DeployJournal(Journal):
             os.close(fd)
 
 
+def simulated_session(_profile):
+    return {"kind": "session", "expires_at": None, "remaining_seconds": None}
+
+
 def in_flight(status):
     # REVIEW_IN_PROGRESS is a stack holding only an unexecuted change set: nothing is running.
     return status.endswith("_IN_PROGRESS") and status != "REVIEW_IN_PROGRESS"
@@ -425,7 +429,7 @@ def planned_cost(hours):
 class Pipeline:
     def __init__(
         self, settings, aws, journal, *, docker=None, http=None, session_main=None,
-        clock=time.monotonic, sleep=time.sleep, stderr=None, today=None,
+        clock=time.monotonic, sleep=time.sleep, stderr=None, today=None, credential_probe=None,
     ):
         self.s, self.aws_transport, self.journal = settings, aws, journal
         self.docker, self.http = docker, http or urllib_http
@@ -436,6 +440,9 @@ class Pipeline:
         self.plan, self.step = [], "init"
         self.deferred, self.journal_held, self.receipt = [], False, None
         self.simulated = bool(getattr(aws, "simulated", False))
+        # A simulation has no credentials to classify; it answers like an MFA session.
+        self.credential_probe = credential_probe or (
+            simulated_session if self.simulated else credentials.probe)
 
     # ---- plumbing --------------------------------------------------------------
     def say(self, message):
@@ -598,6 +605,7 @@ class Pipeline:
             raise DeployError("STS account differs from --account; no further calls")
         arn = identity.get("Arn", "")
         record("identity", "pass", arn=arn, simulated=self.simulated)
+        self._credentials(record)
         user = re.fullmatch(r"arn:aws:iam::[0-9]{12}:user/(?:.*/)?([^/]+)", arn)
         if user:
             devices = self.aws("iam", "list-mfa-devices", {"UserName": user.group(1)},
@@ -670,6 +678,13 @@ class Pipeline:
         if blockers:
             raise DeployError("Preflight blockers: " + ", ".join(blockers))
         return {"checks": checks}
+
+    def _credentials(self, record):
+        """Long-term keys pass STS but fail every call CloudFormation makes for them."""
+        info = self.credential_probe(self.s.profile)
+        status, detail = credentials.assess(self.s.profile, info)
+        record("credentials", status, kind=info["kind"], expires_at=info["expires_at"],
+               simulated=self.simulated, **({"detail": detail} if detail else {}))
 
     def _collisions(self, record):
         names = [self.s.env, self.s.bootstrap_stack]
@@ -1615,6 +1630,12 @@ class Pipeline:
     def teardown(self):
         if self.s.execute and not self.s.dry_run and self.s.confirm_run_id != self.s.run_id:
             raise DeployError("Destructive teardown needs --confirm-run-id equal to --run-id")
+        if self.s.execute:  # deleting the stack is CloudFormation-driven too
+            try:
+                credentials.require_mfa_session(
+                    self.s.profile, self.credential_probe(self.s.profile))
+            except OperationError as error:
+                raise DeployError(str(error)) from None
         actions = {
             "td-inventory": self.td_inventory, "td-quiesce": self.td_quiesce,
             "td-buckets-emptied": self.td_buckets, "td-images-deleted": self.td_images,
