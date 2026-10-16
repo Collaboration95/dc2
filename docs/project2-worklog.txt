@@ -676,3 +676,24 @@ is NOT_RUN and Blocked. No issue is Ready under the current no-AWS instruction.
 - User authorizes one practical backlog audit, substantive corrections, commit/push
   and Main merge after checks. Prior PR70 draft-only instruction is superseded for
   publication. No AWS/Alibaba/account/deployment/spending operation is authorized.
+
+2026-10-17 — Local V1 implemented on dev/v1-integration; cloud proof still pending
+- V1 local implementation merged into dev/v1-integration via PRs #97–#106: seed import,
+  lanes A/B/C (domain APIs and intake, SQS delivery and repair, session/release
+  operators), wave 2 hardening, reproducible amd64 images, error hygiene, full local
+  verification with the browser leg, native HLS across Gateway/S3 redirects and the
+  journaled deploy/teardown pipeline. Redis/RQ is absent from V1.
+- Verification: all local gates pass (make lint, make test-v1, coverage-fast, and
+  make verify-v1 FLOW=all V1_BROWSER=1) with complete_v1_acceptance: PASS; worker
+  recovery measured about 31s. Evidence is local: PostgreSQL 16,
+  FFmpeg and Docker are real, S3/SQS are Moto, Gateway/Lambda/Fargate/IAM/Aurora are not
+  exercised. cloud_acceptance remains NOT_RUN.
+- Commands: make v1-up, make verify-v1 FLOW=all V1_BROWSER=1, make v1-down DELETE_DATA=1.
+  Handoff: docs/execution/aws/v1/README.md (rewritten, original plan kept as history).
+- Defects found by verification (#107, #108): local DLQ redrive crashed because Moto
+  5.2.4 lacks StartMessageMoveTask, and the V1 README still called the runtime pending.
+  Redrive now falls back to a validated manual loop on a loopback emulator only; real AWS
+  keeps the native move task, and its redrive evidence stays a separate cloud item.
+- Remaining: cloud proof first (#45, #63–#67, blocked on an MFA-capable session; no AWS
+  operation without it), then close epics #41–#44 and preserve the project2-v1 tag. V2
+  experiments (#80, #93, #94, #68) start only after the tag.
