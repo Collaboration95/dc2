@@ -872,6 +872,70 @@ def test_a_task_that_keeps_vanishing_fails_instead_of_looping(rig):
     assert len(rig.ops("run-task")) == 2
 
 
+def lose_the_task_arn_and_the_password_file(rig):
+    """The run-task reply was journaled nowhere and the password file is gone."""
+    old = interrupt_while_waiting_for_the_bootstrap_task(rig)
+    rig.journal.mutate(lambda d: d["steps"]["db-bootstrap"]["detail"].update(bootstrap_task=None))
+    (rig.s.state_dir / "db-bootstrap-passwords.json").unlink()
+    return old
+
+
+def test_an_unjournaled_task_is_described_until_stopped_even_after_it_leaves_the_listing(rig):
+    old = lose_the_task_arn_and_the_password_file(rig)
+    rig.sim.stop_lag = 3  # ECS keeps reporting RUNNING a while after StopTask
+    rig.deploy(stop_after="db-bootstrap")
+    calls = rig.sim.calls
+    stop = first_index(rig, "stop-task", task=old)
+    relaunch = [i for i, (_, op, _) in enumerate(calls) if op == "run-task"][1]
+    after = [i for i in range(stop + 1, relaunch)
+             if calls[i][1] == "describe-tasks" and old in calls[i][2]["tasks"]]
+    assert len(after) >= 4  # three RUNNING answers, then STOPPED
+    assert published_passwords(rig) == rig.sim.role_passwords
+
+
+def test_a_discovered_arn_is_journaled_before_stoptask_names_it(rig):
+    old = lose_the_task_arn_and_the_password_file(rig)
+    seen = []
+    real = rig.sim.ecs_stop_task
+
+    def watching(payload):
+        retiring = rig.journal.view()["steps"]["db-bootstrap"]["detail"].get("bootstrap_retiring")
+        seen.append(payload["task"] in (retiring or []))
+        return real(payload)
+
+    rig.sim.ecs_stop_task = watching
+    rig.deploy(stop_after="db-bootstrap")
+    assert seen == [True] and rig.sim.tasks[old]["stopped"]
+
+
+def test_a_stop_that_never_completes_blocks_every_resume_until_it_is_observed(rig):
+    old = lose_the_task_arn_and_the_password_file(rig)
+    rig.sim.stop_lag = 10**9
+    for _ in range(2):  # a resume keeps the retained ARN and still launches nothing
+        with pytest.raises(DeployError, match="previous bootstrap task to reach STOPPED"):
+            rig.deploy(stop_after="db-bootstrap")
+        detail = rig.journal.view()["steps"]["db-bootstrap"]["detail"]
+        assert detail["bootstrap_retiring"] == [old] and len(rig.ops("run-task")) == 1
+        assert not (rig.s.state_dir / "db-bootstrap-passwords.json").exists()
+    rig.sim.tasks[old]["lag"] = 0  # the task finally stops
+    rig.deploy(stop_after="db-bootstrap")
+    assert len(rig.ops("run-task")) == 2
+    assert rig.journal.view()["steps"]["db-bootstrap"]["detail"]["bootstrap_retiring"] is None
+
+
+def test_a_retained_arn_ecs_does_not_know_counts_as_stopped_only_after_repeated_looks(rig):
+    old = interrupt_while_waiting_for_the_bootstrap_task(rig)
+    (rig.s.state_dir / "db-bootstrap-passwords.json").unlink()
+    rig.sim.tasks.pop(old)
+    mark = len(rig.sim.calls)
+    rig.deploy(stop_after="db-bootstrap")
+    relaunch = [i for i, (_, op, _) in enumerate(rig.sim.calls) if op == "run-task"][1]
+    looks = [i for i in range(mark, relaunch) if rig.sim.calls[i][1] == "describe-tasks"
+             and old in rig.sim.calls[i][2]["tasks"]]
+    assert len(looks) >= deploy.MISSING_LOOKS
+    assert rig.ops("stop-task") == []
+
+
 def test_a_rerun_keeps_the_signing_key_stable(rig):
     rig.deploy(stop_after="db-bootstrap")
     key = f"/dc2/{rig.s.env}/jwt_secret"
