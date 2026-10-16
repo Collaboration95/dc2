@@ -10,6 +10,7 @@ from delivery.runtime import deadline_for, queue_urls
 from delivery.sqs import SQS, consume_batch
 from media.config import get_settings
 from media.messaging import consume_result, publish_commands
+from runtime_support.errors import sanitized_entrypoint
 from runtime_support.settings import heal_on_rejection
 
 
@@ -60,9 +61,11 @@ async def invoke(event, context, mode):
         await engine.dispose()
 
 
+@sanitized_entrypoint("media.result")
 def result_handler(event, context):
     return asyncio.run(invoke(event, context, "result"))
 
 
+@sanitized_entrypoint("media.repair")
 def repair_handler(event, context):
     return asyncio.run(invoke(event, context, "repair"))

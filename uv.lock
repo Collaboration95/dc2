@@ -496,7 +496,6 @@ dependencies = [
     { name = "pyjwt" },
     { name = "python-multipart" },
     { name = "sqlalchemy", extra = ["asyncio"] },
-    { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.optional-dependencies]
@@ -516,6 +515,7 @@ dev = [
 legacy = [
     { name = "redis" },
     { name = "rq" },
+    { name = "uvicorn", extra = ["standard"] },
 ]
 v1-media = [
     { name = "awslambdaric" },
@@ -551,7 +551,7 @@ requires-dist = [
     { name = "rq", marker = "extra == 'legacy'", specifier = ">=2,<3" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.9,<1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0,<3" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.34,<1" },
+    { name = "uvicorn", extras = ["standard"], marker = "extra == 'legacy'", specifier = ">=0.34,<1" },
 ]
 provides-extras = ["legacy", "v1-media", "v1-processing", "v1-worker", "dev", "browser"]
 

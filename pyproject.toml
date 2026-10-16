@@ -16,7 +16,6 @@ dependencies = [
   "minio>=7.2,<8",
   "pydantic-settings>=2.7,<3",
   "sqlalchemy[asyncio]>=2.0,<3",
-  "uvicorn[standard]>=0.34,<1",
   "python-multipart>=0.0.20,<1",
   "pyjwt>=2.10,<3",
   # Pydantic's EmailStr needs this. Hand-rolling an email regex is a
@@ -28,9 +27,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# The inherited application and its regression fixtures retain their queue stack.
+# The inherited application and its regression fixtures retain their queue stack and the
+# uvicorn server their compose images run.
 # V1 artifacts export only the base plus their named V1 extra.
-legacy = ["redis>=5,<7", "rq>=2,<3"]
+legacy = ["redis>=5,<7", "rq>=2,<3", "uvicorn[standard]>=0.34,<1"]
 v1-media = ["awslambdaric>=3.1,<4"]
 v1-processing = ["awslambdaric>=3.1,<4"]
 v1-worker = []
