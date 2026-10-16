@@ -2,9 +2,11 @@
 
 A task encodes at most one claimed attempt. Messages that durable SQL proves stale
 (cancelled, superseded, terminal or already claimed) are deleted and polling goes
-on, so leftovers never spend a finite task or cycle to the DLQ. Empty receives,
-handled messages and total runtime are bounded. Work arriving later requires
-another explicit operator batch.
+on, so leftovers never spend a finite task or cycle to the DLQ. They also do not
+spend the per-task message allowance: repair re-sends queued work every interval, so
+a backlog of duplicates must not starve the fresh work behind it. Empty receives,
+non-stale messages, stale drains and total runtime are each bounded. Work arriving
+later requires another explicit operator batch.
 """
 
 import argparse
@@ -179,6 +181,7 @@ async def run(
     execute=execute_message,
     stop=None,
     max_messages=25,
+    max_stale=500,
 ):
     if not math.isfinite(end_epoch) or not 0 < end_epoch - time.time() <= 3600:
         raise ValueError("A future absolute deadline within one hour is required")
@@ -194,8 +197,10 @@ async def run(
             raise AttemptDeadline()
         return await asyncio.wait_for(asyncio.to_thread(method, **kwargs), remaining)
 
-    empties = handled = 0
-    while empties < empty_polls and handled < max_messages:
+    # ``handled`` counts receipts that stay in the queue or encode; acknowledged stale
+    # duplicates are bounded separately (and by the deadline) so they cannot starve work.
+    empties = handled = stale = 0
+    while empties < empty_polls and handled < max_messages and stale < max_stale:
         if stop.is_set() or deadline - time.monotonic() < 1:
             return 0
         received = await call(
@@ -244,6 +249,8 @@ async def run(
                 ReceiptHandle=message["ReceiptHandle"],
             )
         if complete is STALE:
+            handled -= 1
+            stale += 1
             continue
         # Exactly one encode per task, successful or uncertain.
         return 0 if complete else 1

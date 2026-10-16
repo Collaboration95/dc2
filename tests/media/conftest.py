@@ -115,6 +115,7 @@ def peer():
 @pytest.fixture
 def storage():
     mock = AsyncMock()
+    mock.settings.orphan_grace_seconds = 3600
     mock.source_grant.return_value = (
         "http://minio:9000/owned-source/source?signed=test",
         now() + timedelta(minutes=15),

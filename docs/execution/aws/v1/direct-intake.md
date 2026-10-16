@@ -68,9 +68,11 @@ Staged copies. An edit copies an output into `sources/<owner>/<asset>/source` be
 `StagedObject` row. If adoption fails or the Lambda dies, `cleanup_staged_objects` (Media
 repair, bounded by `recovery_batch_size`) finds rows older than `orphan_grace_seconds` that
 no Asset adopted, deletes every version and delete marker of the key, then the row. A failed
-or timed-out deletion keeps the row and retries after 60s. A write of unknown outcome keeps
-its row too, with a fresh clock. The row lock is held across the deletion because adoption
-needs the same row; that, not a lease, is what keeps a late adopter from losing its bytes.
+or timed-out deletion keeps the row, leaves it stale and retries on the next pass. A
+write of unknown outcome keeps its row too, with a fresh clock once a deletion has returned.
+Adoption (`intake.assert_adoptable`) refuses a row older than `orphan_grace_seconds`, so a
+stale row is the cleanup's alone even if an abandoned S3 deletion is still running; the row
+lock is held across the deletion as well, but age is the durable fence.
 
 Local offline tests cover policy bounds, ownership predicate, expiry, unsupported
 or altered content, digest/size/version rejection, replay, lost-response behavior,

@@ -11,7 +11,7 @@ from media.models import Asset, CleanupIntent, RequestKey, StagedObject, now
 from media.projection_models import ProcessingProjection
 from media.projections import read_job, source_for_asset
 from media.repositories.assets import fingerprint, get_asset, replay
-from media.services.intake import discard_stage, stage
+from media.services.intake import assert_adoptable, discard_stage, stage
 
 
 async def command(session, asset, kind, *, message_id=None, source=None):
@@ -157,6 +157,7 @@ async def edit(session, storage, owner_id, parent_id, request, key):
             staged = await session.get(StagedObject, source_key, with_for_update=True)
             if staged is None:
                 raise MediaError(503, "source intake reservation expired")
+            assert_adoptable(staged, storage)
             session.add(asset)
             await session.flush()
             descriptor = await pin_copied_source(session, storage, asset)

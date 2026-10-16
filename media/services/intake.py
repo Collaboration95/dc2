@@ -1,5 +1,6 @@
 import hashlib
 import re
+from datetime import timedelta
 from pathlib import PurePosixPath
 from uuid import uuid4
 
@@ -55,6 +56,18 @@ async def stage(session, key):
         session.add(StagedObject(key=key, write_uncertain=True))
 
 
+def assert_adoptable(staged, storage):
+    """Refuse a staged row old enough for recovery to own.
+
+    Media repair deletes every version of a stale, unadopted key and may still have a
+    deletion running after its own timeout. Both sides take the row lock, but only the
+    age is a durable fence, so an adopter must not outlive the grace period.
+    """
+    grace = timedelta(seconds=storage.settings.orphan_grace_seconds)
+    if staged.created_at is not None and staged.created_at < now() - grace:
+        raise MediaError(503, "source intake reservation expired")
+
+
 async def discard_stage(session, storage, key):
     # An intake commit acknowledgement can be lost after the Asset was adopted.
     # Lock its reservation and verify non-adoption before deleting any bytes.
@@ -89,6 +102,7 @@ async def accept(session, storage, asset, operation, key, digest):
             staged = await session.get(StagedObject, asset.source_key, with_for_update=True)
             if staged is None:
                 raise MediaError(503, "source intake reservation expired")
+            assert_adoptable(staged, storage)
             session.add(asset)
             await session.flush()
             if key:

@@ -42,6 +42,7 @@ VIDEO = b"\x00\x00\x00\x18ftypisom" + b"content" * 10
 
 class Objects:
     def __init__(self):
+        self.settings = SimpleNamespace(orphan_grace_seconds=3600)
         self.sources = {}
         self.outputs = {}
         self.deleted = []

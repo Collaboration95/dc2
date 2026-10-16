@@ -1,3 +1,4 @@
+from datetime import timedelta
 from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -7,7 +8,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from media.errors import MediaError
-from media.models import RequestKey, StagedObject
+from media.models import RequestKey, StagedObject, now
 from media.repositories.assets import fingerprint, get_asset, list_assets, replay
 from media.services import intake
 from media.services.storage import Storage
@@ -203,3 +204,18 @@ async def test_discarding_a_failed_edit_stage_deletes_each_stored_version_not_a_
     assert deleted == [(settings.minio_source_bucket, key, v) for v in ("v2", "marker", "v1")]
     storage.internal.remove_object.assert_not_called()
     assert "staged_objects.key" in str(session.execute.call_args.args[0])
+
+
+async def test_adoption_refuses_a_stage_old_enough_for_recovery_to_own(session, storage, asset):
+    # Repair deletes stale stages and a timed-out deletion may still be running, so
+    # staleness is the durable fence: an adopter that outlives the grace is refused.
+    stale = StagedObject(key=asset.source_key, created_at=now() - timedelta(hours=2))
+    session.get.return_value = stale
+    with pytest.raises(MediaError) as error:
+        await intake.accept(session, storage, asset, "upload", uuid4(), "digest")
+    assert error.value.status_code == 503
+    session.flush.assert_not_awaited()
+    session.get.return_value = StagedObject(
+        key=asset.source_key, created_at=now() - timedelta(minutes=5)
+    )
+    assert await intake.accept(session, storage, asset, "upload", None, "digest") is asset
