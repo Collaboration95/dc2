@@ -356,26 +356,80 @@ async def test_pin_derived_source_reverifies_version_before_staging_command(
     assert storage.verify_direct_upload.await_args.kwargs == {"check_content": False}
 
 
-async def test_cleanup_repeats_authority_after_late_write_and_preserves_version(
-    session, storage, reservation
-):
+def expired_for_scan(reservation, *, age=timedelta(minutes=5)):
+    """Make the unit-test reservation look like a persisted, expired, due ledger row."""
+    reservation.expires_at = now() - age
+    reservation.version_id = "accepted"
+    reservation.finalized_at = reservation.expires_at - timedelta(minutes=1)
+    reservation.cleanup_attempts = 0
+    reservation.cleanup_next_at = now() - timedelta(seconds=1)
+    reservation.cleanup_retired_at = None
+
+
+@pytest.fixture
+def scan(session, reservation):
     from contextlib import asynccontextmanager
 
-    reservation.version_id = "accepted"
-    reservation.finalized_at = now()
-    session.scalars.return_value = [reservation]
+    expired_for_scan(reservation)
+    session.scalars.return_value = [reservation.id]
     session.get.return_value = reservation
 
     @asynccontextmanager
     async def factory():
         yield session
 
-    assert await intake.cleanup_expired_uploads(factory, storage, limit=1) == 1
-    assert await intake.cleanup_expired_uploads(factory, storage, limit=1) == 1
+    return factory
+
+
+async def test_cleanup_repeats_authority_after_late_write_and_preserves_version(
+    scan, storage, reservation
+):
+    assert await intake.cleanup_expired_uploads(scan, storage, limit=1) == 1
+    # Not due again until the backoff elapses, however often the repair tick fires.
+    assert await intake.cleanup_expired_uploads(scan, storage, limit=1) == 0
+    reservation.cleanup_next_at = now() - timedelta(seconds=1)
+    assert await intake.cleanup_expired_uploads(scan, storage, limit=1) == 1
     assert storage.delete_direct_upload.await_count == 2
     assert storage.delete_direct_upload.await_args.kwargs == {"preserve_version": "accepted"}
-    assert reservation.cleanup_checked_at is not None
-    session.execute.assert_not_awaited()  # No removal of future cleanup authority.
+    assert reservation.cleanup_attempts == 2
+    assert reservation.cleanup_retired_at is None  # Early scans keep the authority armed.
+
+
+async def test_cleanup_backs_off_between_rescans_and_caps_the_interval(scan, storage, reservation):
+    waits = []
+    for _ in range(9):
+        before = now()
+        await intake.cleanup_expired_uploads(scan, storage)
+        waits.append(round((reservation.cleanup_next_at - before).total_seconds() / 10) * 10)
+        reservation.cleanup_next_at = now() - timedelta(seconds=1)
+    assert waits == [60, 120, 240, 480, 960, 1920, 3600, 3600, 3600]
+
+
+async def test_cleanup_retires_only_after_a_clean_scan_past_the_horizon(scan, storage, reservation):
+    reservation.expires_at = now() - intake.CLEANUP_HORIZON - timedelta(minutes=1)
+    storage.delete_direct_upload.side_effect = MediaError(503, "source cleanup deferred")
+    assert await intake.cleanup_expired_uploads(scan, storage) == 0
+    assert reservation.cleanup_retired_at is None  # A failed scan never retires.
+    reservation.cleanup_next_at = now() - timedelta(seconds=1)
+    storage.delete_direct_upload.side_effect = None
+    assert await intake.cleanup_expired_uploads(scan, storage) == 1
+    assert reservation.cleanup_retired_at is not None
+
+
+async def test_cleanup_skips_a_row_another_invocation_already_retired(scan, storage, reservation):
+    reservation.cleanup_retired_at = now()
+    assert await intake.cleanup_expired_uploads(scan, storage) == 0
+    storage.delete_direct_upload.assert_not_awaited()
+
+
+async def test_cleanup_stops_at_the_invocation_deadline_without_touching_storage(
+    scan, storage, reservation
+):
+    import time
+
+    assert await intake.cleanup_expired_uploads(scan, storage, deadline=time.monotonic()) == 0
+    storage.delete_direct_upload.assert_not_awaited()
+    assert reservation.cleanup_attempts == 0
 
 
 async def test_absent_object_does_not_adopt_or_enqueue(session, storage, reservation):

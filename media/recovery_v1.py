@@ -14,16 +14,11 @@ from sqlalchemy import or_, select
 
 from media.models import Asset, CleanupIntent, now
 from media.projections import source_for_asset
-from media.services.direct_intake import cleanup_expired_uploads
-
-CLEANUP_BASE_SECONDS = 60
-CLEANUP_CAP_SECONDS = 3600
-CLEANUP_HORIZON = timedelta(days=1)
-
-
-def cleanup_delay(attempts):
-    """Early rescans catch the likely late write; later ones thin out to hourly."""
-    return min(CLEANUP_CAP_SECONDS, CLEANUP_BASE_SECONDS * 2 ** min(max(attempts - 1, 0), 6))
+from media.services.direct_intake import (
+    CLEANUP_HORIZON,
+    cleanup_delay,
+    cleanup_expired_uploads,
+)
 
 
 def unretired(horizon):
@@ -136,9 +131,10 @@ async def run_once(factory, settings, storage, *, deadline=None):
             limit=limit,
             deadline=deadline,
         )
-    if deadline is None:
-        result["uploads"] = await cleanup_expired_uploads(factory, storage, limit=limit)
-    elif time.monotonic() < deadline:
-        async with asyncio.timeout(max(0.001, deadline - time.monotonic())):
-            result["uploads"] = await cleanup_expired_uploads(factory, storage, limit=limit)
+    if deadline is None or time.monotonic() < deadline:
+        # The scan reserves each row before storage I/O and bounds that I/O by the
+        # deadline itself, so a cut-off pass leaves a lease, not a half-written state.
+        result["uploads"] = await cleanup_expired_uploads(
+            factory, storage, limit=limit, deadline=deadline
+        )
     return result

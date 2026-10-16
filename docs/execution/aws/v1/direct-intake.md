@@ -55,8 +55,11 @@ Exports in media.services.direct_intake:
 - cleanup_expired_uploads(factory, storage, limit=100) must run from Media repair.
   It scans bounded fair batches after grant expiry, removes all unadopted versions
   and preserves the adopted version. It retains the ledger and repeats deletion
-  because a POST begun before expiry can finish late. Storage calls occur outside
-  SQL locks. Tombstone cleanup must explicitly delete all source object versions;
+  because a POST begun before expiry can finish late, but on a schedule: batches are
+  ordered by `cleanup_next_at`, each scan reserves its row for 60s, rescans back off
+  60s doubling to 1h, and a clean scan at least a day after expiry sets
+  `cleanup_retired_at` (Media migration `media_0008`). A failed scan never retires a
+  row. Storage calls occur outside SQL locks. Tombstone cleanup must explicitly delete all source object versions;
   creating a delete marker alone does not reclaim pinned source bytes.
 
 Local offline tests cover policy bounds, ownership predicate, expiry, unsupported

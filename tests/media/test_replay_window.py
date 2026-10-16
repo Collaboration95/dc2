@@ -132,6 +132,6 @@ def test_finalized_reservation_pin_constraint_matches_the_migration():
         if getattr(c, "name", None) == "ck_upload_reservations_finalized_has_pin"
     )
     scripts = ScriptDirectory(str(ROOT / "media/migrations"))
-    assert scripts.get_heads() == ["media_0007"]
+    assert scripts.get_heads() == ["media_0008"]  # the pin check came in at 0007
     module = scripts.get_revision("media_0007").module
     assert str(constraint.sqltext) == module.PREDICATE
