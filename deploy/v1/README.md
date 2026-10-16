@@ -35,7 +35,7 @@ API default commands are `media.lambda_handler.handler` and
 `processing.lambda_handler.handler`. Every authorizer/control handler is another
 Lambda function with the SAME owning image and its own ImageConfig.Command.
 C1 confirms Media authorizer `media.lambda_handler.authorizer`; other handlers
-come from the integrated messaging/recovery lane. The finite worker entrypoint is
+come from the integrated messaging/recovery lane. The worker image also carries `/opt/db-bootstrap.py` for the template's bootstrap task. The finite worker entrypoint is
 `python -m processing.v1_worker --deadline-epoch EPOCH --name TASK --max-empty-polls 2`.
 Migration task definitions use the owning API image with ECS **entryPoint**
 `["python", "-m", "alembic"]` and command
@@ -137,6 +137,9 @@ It writes `docs/execution/aws/v1/evidence/local-images-<sha12>.json` (source SHA
 config IDs, layer digests, sizes, every check) and exits non-zero on any failure. It never
 calls AWS and never pushes. Config IDs embed the build time, so compare `layers_sha256`
 between rebuilds, not config IDs. Evidence is LOCAL: no registry receipt, scan or cloud run.
+
+Current run: [local-images-7149324f99bf.json](../../docs/execution/aws/v1/evidence/local-images-7149324f99bf.json)
+(64/64 checks; amd64 images 262 MB Media, 262 MB Processing, 675 MB worker).
 
 The 2026-10-15 frozen-source manifest [local-images-f549435.json](../../docs/execution/aws/v1/evidence/local-images-f549435.json)
 predates the pruned dependency set, bootstrap script and RIE checks and is retained as history.
