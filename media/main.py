@@ -1,5 +1,6 @@
 import os
 from contextlib import asynccontextmanager
+from functools import cache
 
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -79,4 +80,19 @@ def create_v1_app():
     return create_app(v1=True)
 
 
-app = create_app()
+# The default entry is the V1 app: projections and durable commands, no Processing
+# HTTP peer. The inherited peer-calling app is built only when its isolated legacy
+# stack asks for it (``media.main:legacy_app``), so importing this module never
+# wires the Peer routes into a V1 process.
+app = create_v1_app()
+
+
+@cache
+def _legacy_app():
+    return create_app()
+
+
+def __getattr__(name):
+    if name == "legacy_app":
+        return _legacy_app()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

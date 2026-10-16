@@ -608,6 +608,8 @@ main {
   background: currentColor;
   flex-shrink: 0;
 }
+.badge-accepted,
+.badge-cancelled,
 .badge-queued {
   background: var(--border-subtle);
   color: var(--text-muted);

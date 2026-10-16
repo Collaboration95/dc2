@@ -488,7 +488,18 @@ describe("polling", () => {
     expect(el.status.textContent).not.toContain("undefined");
   });
 
+  it("stops polling a cancelled job without offering a retry", async () => {
+    const el = await pollReturning({ status: "cancelled", error: "Processing was cancelled" });
+
+    expect(el.status.textContent).toBe("Processing was cancelled.");
+    expect(el.jobBadge.textContent).toBe("Cancelled");
+    expect(el.jobRetry.hidden).toBe(true);
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it.each([
+    ["accepted", "Accepted..."],
     ["queued", "Queued..."],
     ["processing", "Processing..."],
   ])("keeps polling every 2s while the job is %s", async (status, label) => {
@@ -554,9 +565,9 @@ describe("polling", () => {
   });
 
   it("shows an unrecognised status verbatim rather than blanking the UI", async () => {
-    const el = await pollReturning({ status: "cancelled" });
+    const el = await pollReturning({ status: "paused" });
 
-    expect(el.status.textContent).toBe("cancelled");
+    expect(el.status.textContent).toBe("paused");
   });
 
   it("a new upload cancels the previous job's scheduled poll", async () => {
@@ -926,9 +937,9 @@ describe("library", () => {
 
   it("shows a status the badge has no styling for, verbatim", async () => {
     const el = await loadApp();
-    await openLibraryWith(el, [{ id: "9", filename: "odd.mp4", status: "cancelled" }]);
+    await openLibraryWith(el, [{ id: "9", filename: "odd.mp4", status: "paused" }]);
 
-    expect(el.libraryGrid.querySelector(".badge").textContent).toContain("cancelled");
+    expect(el.libraryGrid.querySelector(".badge").textContent).toContain("paused");
   });
 
   it("keeps the card and says why when a library delete is refused", async () => {

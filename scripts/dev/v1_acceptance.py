@@ -9,6 +9,7 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -236,7 +237,9 @@ def encode_one(runtime):
             "--deadline-epoch",
             str(time.time() + 60),
             "--name",
-            "local-acceptance",
+            # A finite task name binds one attempt for good; a reused runtime's SQL
+            # still holds earlier runs' bindings.
+            f"local-acceptance-{uuid.uuid4().hex}",
             "--max-empty-polls",
             "1",
         ],

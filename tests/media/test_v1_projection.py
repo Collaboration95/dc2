@@ -316,3 +316,30 @@ async def test_uncertain_copy_keeps_cleanup_and_never_submits(
     assert staged.write_uncertain
     discard.assert_awaited_once()
     submit.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    ("submission", "projected", "expected", "error"),
+    [
+        ("pending", None, "accepted", None),
+        ("submitted", None, "queued", None),
+        ("error", None, "failed", "peer rejected"),
+        ("submitted", "queued", "queued", None),
+        ("submitted", "processing", "processing", None),
+        ("submitted", "failed", "failed", "bad source"),
+        ("submitted", "cancelled", "cancelled", "Processing was cancelled"),
+    ],
+)
+async def test_public_status_distinguishes_accepted_queued_and_cancelled(
+    asset, storage, settings, monkeypatch, submission, projected, expected, error
+):
+    asset.submission_state, asset.last_submit_error = submission, "peer rejected"
+    job = None
+    if projected:
+        job = projections.ProjectedJob(
+            job_id=uuid4(), status=projected, outputs=[], error="bad source"
+        )
+    monkeypatch.setattr(projections, "read_job", AsyncMock(return_value=job))
+    result = await projections.public_job(SimpleNamespace(), asset, storage, settings)
+    assert (result.status, result.error) == (expected, error)
+    assert result.submission_status == submission
