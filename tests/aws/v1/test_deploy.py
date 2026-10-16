@@ -1223,6 +1223,9 @@ def test_the_format_plan_helper_groups_steps_and_filters_reads():
     assert "read" in deploy.format_plan(plan, "all")
 
 
+# Needs the external AWS CLI and spawns it per request shape, which took over 100 s on a CI
+# runner under coverage. Marked integration so the fast tier skips it; the V1 CI job runs it.
+@pytest.mark.integration
 @pytest.mark.timeout(120)
 @pytest.mark.skipif(shutil.which("aws") is None, reason="needs the AWS CLI's offline skeletons")
 def test_every_request_field_exists_in_the_installed_cli_skeleton(deployed, tmp_path):
