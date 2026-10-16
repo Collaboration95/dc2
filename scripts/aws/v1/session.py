@@ -51,7 +51,7 @@ class Session:
             ):
                 raise OperationError("Edge gate needs api_id, stage and positive open limits")
         if policy != "required" and gateway is None:
-            raise OperationError("Without required zero reservations the edge throttle gate is needed")
+            raise OperationError("Without zero reservations the edge throttle gate is needed")
         if not set(config.get("intake_functions", [])) <= functions.keys():
             raise OperationError("Intake function must belong to this session")
         if not config.get("intake_functions"):

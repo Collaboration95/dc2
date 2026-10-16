@@ -6,6 +6,7 @@ import time
 from types import SimpleNamespace
 
 import pytest
+from v1_support import MAPPING_IDS, outputs
 
 from scripts.aws.journal import Journal
 from scripts.aws.transport import OperationError
@@ -18,30 +19,9 @@ from scripts.aws.v1.hooks import (
     refuse_ambient_credentials,
     sql_reader,
 )
-from scripts.aws.v1.operations import HANDLERS, PlanTransport, config_from_outputs
+from scripts.aws.v1.operations import PlanTransport, config_from_outputs
 from scripts.aws.v1.session import Session
 from scripts.aws.v1.session_cli import main
-
-MAPPING_IDS = {
-    "ProcessingCommands": "11111111-1111-4111-8111-111111111111",
-    "MediaResults": "22222222-2222-4222-8222-222222222222",
-}
-
-
-def outputs():
-    values = {f"{h}FunctionName": f"fn-{h}" for h in HANDLERS}
-    values |= {f"{h}MappingId": uuid for h, uuid in MAPPING_IDS.items()}
-    values |= {f"{h}RuleName": f"rule-{h}" for h in operations.RULES}
-    values |= {
-        "HttpApiId": "abc123def",
-        "HttpApiUrl": "https://abc123def.execute-api.ap-southeast-1.amazonaws.com",
-        "ClusterArn": "arn:aws:ecs:ap-southeast-1:123456789012:cluster/c",
-        "WorkerTaskDefinitionArn": "arn:aws:ecs:ap-southeast-1:123456789012:task-definition/w:1",
-        "PublicTaskSubnetIds": "subnet-a,subnet-b",
-        "WorkerSecurityGroupId": "sg-worker",
-        "MigrationSecurityGroupId": "sg-migration",
-    }
-    return values
 
 
 class Cloud(PlanTransport):
