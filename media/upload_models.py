@@ -3,7 +3,16 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, Uuid
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    Uuid,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from media.database import Base
@@ -28,7 +37,13 @@ class UploadReservation(Base):
     finalized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cleanup_checked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
-    __table_args__ = (UniqueConstraint("owner_id", "request_id"),)
+    __table_args__ = (
+        UniqueConstraint("owner_id", "request_id"),
+        CheckConstraint(
+            "finalized_at IS NULL OR (version_id IS NOT NULL AND version_id NOT IN ('', 'null'))",
+            name="ck_upload_reservations_finalized_has_pin",
+        ),
+    )
 
 
 class SourceVersion(Base):
