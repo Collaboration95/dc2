@@ -88,11 +88,12 @@ def fast(*, coverage: bool = False, domain: str | None = None) -> Path | None:
         )
         if not paths or any(not (ROOT / path).exists() for path in paths):
             raise SystemExit(f"No focused tests found for {domain}; its lane must supply them")
-    command = (
-        pytest_args()
-        + paths
-        + ["--ignore=tests/integration", "--ignore=tests/e2e", "-m", "not integration and not e2e"]
-    )
+    # Tests marked `unmeasured` exercise only code outside the measured packages (the AWS
+    # operator tooling), and tracing them made the coverage run four times slower. They still
+    # run in `make test` and in the V1 CI job, which has no coverage tracer.
+    selection = "not integration and not e2e" + (" and not unmeasured" if coverage else "")
+    ignored = ["--ignore=tests/integration", "--ignore=tests/e2e"]
+    command = pytest_args() + paths + ignored + ["-m", selection]
     if coverage:
         return measure(command, "fast", fast_env(), 120)
     run(command, label=f"test-python-{domain or 'fast'}", timeout=120, env=fast_env())

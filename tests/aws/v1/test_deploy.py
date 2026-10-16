@@ -60,6 +60,20 @@ class FakeGateway:
         return 404, {}, b"{}"
 
 
+# The deploy pipeline lives in scripts/, which is not a measured package, and its tests save a
+# growing journal thousands of times: ~10 s plain but ~40 s under the coverage tracer, which
+# broke the coverage run's 120 s budget. They run in `make test` and the V1 CI job instead.
+pytestmark = pytest.mark.unmeasured
+
+
+@pytest.fixture(autouse=True)
+def no_disk_sync(monkeypatch):
+    """These tests save the journal thousands of times; real fsyncs made the module take
+    over 100 s on a CI runner under coverage and broke the fast tier's 120 s budget. The
+    journal's durability is covered by its own tests; here only the saved content matters."""
+    monkeypatch.setattr(os, "fsync", lambda _fd: None)
+
+
 class FakeSession:
     """Stands in for session_cli.main; records each action and answers like a closed API."""
 
