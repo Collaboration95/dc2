@@ -73,8 +73,8 @@ jobs:
         run: make lint-cfn CFN_LINT_ARGS=--require
       - name: Lint the V1 control scripts and tests
         run: .venv/bin/ruff check scripts/aws/v1 scripts/dev tests/v1
-      - name: Offline AWS control-plane suite (network guarded)
-        run: make test-aws
+      - name: Offline AWS control-plane suite for the no-legacy environment (network guarded)
+        run: make test-aws-v1
       - name: Offline V1 operational contracts (network guarded)
         run: make test-v1
       - name: Start unique PostgreSQL and loopback Moto

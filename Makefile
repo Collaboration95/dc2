@@ -136,14 +136,22 @@ test-v1: ## Offline V1 operational contracts; no services/AWS credentials
 # cfn-lint is a lint-only tool kept out of uv.lock. Locally a missing linter is a clean skip;
 # CI passes CFN_LINT_ARGS=--require so a missing linter fails.
 CFN_LINT_ARGS ?=
-.PHONY: lint-cfn test-aws v1-images
+.PHONY: lint-cfn test-aws test-aws-v1 v1-images
 lint-cfn: ## Render and lint the V1 CloudFormation template offline (no AWS calls)
 	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.aws.v1.lint $(CFN_LINT_ARGS)
 
 v1-images: ## Build and verify the three V1 images (amd64; local evidence only, no AWS)
 	$(BOOTSTRAP_PYTHON) deploy/v1/build_and_verify.py
 
-test-aws: ## Offline AWS control-plane suite (fakes only; network guarded)
+# The V1 runtime environment deliberately has no legacy extra (no rq, no PyYAML), so the two
+# AWS2 modules that import them run only where the legacy extra is installed: `make test` and
+# `make test-aws`, which CI's fast job executes. The V1 job uses test-aws-v1.
+test-aws-v1: ## Offline AWS control-plane suite for the no-legacy V1 environment
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/aws -m "not integration and not e2e" -q \
+		--ignore=tests/aws/test_cloud_worker.py --ignore=tests/aws/test_definitions.py \
+		-p scripts.dev.pytest_plugin --offline-fast
+
+test-aws: ## Offline AWS control-plane suite incl. AWS2 legacy tests (needs the legacy extra)
 	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/aws -m "not integration and not e2e" -q \
 		-p scripts.dev.pytest_plugin --offline-fast
 

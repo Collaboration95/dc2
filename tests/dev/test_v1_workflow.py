@@ -42,8 +42,10 @@ def test_v1_job_requires_a_pinned_cfn_lint_that_stays_out_of_the_lockfile(steps)
     lint = steps["Lint the V1 template (render, snapshot freshness, cfn-lint required)"]["run"]
     assert "make lint-cfn" in lint and "--require" in lint
     assert "cfn-lint" not in (ROOT / "uv.lock").read_text()
-    assert "offline-fast" in (ROOT / "Makefile").read_text().split("\ntest-aws:", 1)[1]
-    assert steps["Offline AWS control-plane suite (network guarded)"]["run"] == "make test-aws"
+    makefile = (ROOT / "Makefile").read_text()
+    assert "offline-fast" in makefile.split("\ntest-aws-v1:", 1)[1].split("\n\n", 1)[0]
+    name = "Offline AWS control-plane suite for the no-legacy environment (network guarded)"
+    assert steps[name]["run"] == "make test-aws-v1"
 
 
 def test_v1_job_fails_unless_complete_acceptance_passed_for_the_all_flow(steps):

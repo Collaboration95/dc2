@@ -61,7 +61,7 @@ class Objects:
         self.deleted.append(key)
         self.sources.pop(key, None)
 
-    async def source_grant(self, key):
+    async def source_grant(self, key, version_id=None):
         return f"http://minio:9000/test-source/{key}?signed=test", now() + timedelta(minutes=15)
 
     async def sign_output(self, key, *, inline=False):
