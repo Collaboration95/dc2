@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
+import pytest
 from fastapi.routing import APIRoute
 
 from contracts.v1 import Actor
@@ -60,6 +61,19 @@ def test_handler_has_only_v1_domain_routes_and_no_peer_dependencies():
     legacy_paths = {route.path for route in domain_routes(create_app())}
     assert "/upload" in legacy_paths
     assert any("internal" in path for path in legacy_paths)
+
+
+def test_default_media_app_is_v1_and_legacy_peer_app_is_explicit():
+    import media.main as entry
+
+    default = {route.path for route in domain_routes(entry.app)}
+    assert "/upload" not in default and not any("internal" in path for path in default)
+    assert "/uploads/reservations" in default
+    legacy = {route.path for route in domain_routes(entry.legacy_app)}
+    assert "/upload" in legacy and any("internal" in path for path in legacy)
+    assert entry.legacy_app is entry.legacy_app
+    with pytest.raises(AttributeError):
+        _ = entry.no_such_app
 
 
 async def test_exported_handler_reads_owned_projection_without_peer(settings, user, monkeypatch):
