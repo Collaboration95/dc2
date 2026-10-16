@@ -35,7 +35,7 @@ API default commands are `media.lambda_handler.handler` and
 `processing.lambda_handler.handler`. Every authorizer/control handler is another
 Lambda function with the SAME owning image and its own ImageConfig.Command.
 C1 confirms Media authorizer `media.lambda_handler.authorizer`; other handlers
-come from the integrated messaging/recovery lane. The finite worker entrypoint is
+come from the integrated messaging/recovery lane. The worker image also carries `/opt/db-bootstrap.py` for the template's bootstrap task. The finite worker entrypoint is
 `python -m processing.v1_worker --deadline-epoch EPOCH --name TASK --max-empty-polls 2`.
 Migration task definitions use the owning API image with ECS **entryPoint**
 `["python", "-m", "alembic"]` and command
@@ -109,7 +109,37 @@ ID with `--platform linux/amd64 --network none --read-only --cap-drop ALL` and t
 image default non-root user. API bootstrap import and worker CLI `--help` are
 separate entrypoint checks. These are packaging checks, not service I/O acceptance.
 
-Actual local AMD64 build/import evidence at frozen source `f54943544bf96db5b1eae245d2e06927c9f93581`
-is retained in [the sanitized local manifest](../../docs/execution/aws/v1/evidence/local-images-f549435.json).
-All three builds and non-root runtime checks passed under ARM-host emulation;
-registry receipts, vulnerability scans and cloud execution remain NOT_RUN.
+## Reproducible local build and verification
+
+```sh
+python3 deploy/v1/build_and_verify.py          # clean committed tree; add --no-cache for cold layers
+```
+
+One command builds the three images for `linux/amd64` from `HEAD` (the image label is the
+commit, so a dirty tree is refused), then verifies, per image:
+
+- `check_runtime.py` passes under the README flags and again as a Lambda-style foreign uid;
+- installed distributions: no Redis/RQ, test/dev tooling or the legacy `uvicorn[standard]`
+  stack anywhere; `awslambdaric` only in the API images; FFmpeg only in the worker; `/app`
+  carries exactly the owning source;
+- every Lambda handler in `deploy/aws/v1/template.json` is invoked inside its own image under
+  the AWS Lambda Runtime Interface Emulator (RIE binary copied out of the public
+  `public.ecr.aws/lambda/python:3.12` image) with the function's `MemorySize`, using
+  payload-v2 health and protected-route events, authorizer events, SQS batches and the
+  Processing `{"dc2_operation": "ready"}` direct invoke (false without a database, true against
+  a throwaway PostgreSQL container the script creates and removes);
+- the ECS `entryPoint`/`command` shapes of the worker, both owner migrations (run to `head`
+  on the throwaway PostgreSQL) and the DB bootstrap task execute from the owning image;
+- the worker entrypoint exits fast and finitely with no configuration, with no queue and with
+  an expired deadline.
+
+It writes `docs/execution/aws/v1/evidence/local-images-<sha12>.json` (source SHA, input hashes,
+config IDs, layer digests, sizes, every check) and exits non-zero on any failure. It never
+calls AWS and never pushes. Config IDs embed the build time, so compare `layers_sha256`
+between rebuilds, not config IDs. Evidence is LOCAL: no registry receipt, scan or cloud run.
+
+Current run: [local-images-7149324f99bf.json](../../docs/execution/aws/v1/evidence/local-images-7149324f99bf.json)
+(64/64 checks; amd64 images 262 MB Media, 262 MB Processing, 675 MB worker).
+
+The 2026-10-15 frozen-source manifest [local-images-f549435.json](../../docs/execution/aws/v1/evidence/local-images-f549435.json)
+predates the pruned dependency set, bootstrap script and RIE checks and is retained as history.

@@ -1,0 +1,1094 @@
+{
+  "aws": "NOT_RUN",
+  "checks": [
+    {
+      "name": "media: image builds",
+      "ok": true
+    },
+    {
+      "name": "media: check_runtime passes (image_user)",
+      "ok": true
+    },
+    {
+      "name": "media: check_runtime passes (lambda_uid)",
+      "ok": true
+    },
+    {
+      "name": "media: no legacy-queue/dev/test distributions",
+      "ok": true
+    },
+    {
+      "name": "media: Lambda runtime client present",
+      "ok": true
+    },
+    {
+      "name": "media: ffmpeg package absent from API image",
+      "ok": true
+    },
+    {
+      "name": "media: no ffmpeg/ffprobe binary on PATH",
+      "ok": true
+    },
+    {
+      "detail": [
+        [],
+        []
+      ],
+      "name": "media: /app carries exactly its owning source",
+      "ok": true
+    },
+    {
+      "detail": "flickpond",
+      "name": "media: runs as non-root image user",
+      "ok": true
+    },
+    {
+      "name": "media: image is linux/amd64",
+      "ok": true
+    },
+    {
+      "name": "media: revision label equals source SHA",
+      "ok": true
+    },
+    {
+      "name": "processing: image builds",
+      "ok": true
+    },
+    {
+      "name": "processing: check_runtime passes (image_user)",
+      "ok": true
+    },
+    {
+      "name": "processing: check_runtime passes (lambda_uid)",
+      "ok": true
+    },
+    {
+      "name": "processing: no legacy-queue/dev/test distributions",
+      "ok": true
+    },
+    {
+      "name": "processing: Lambda runtime client present",
+      "ok": true
+    },
+    {
+      "name": "processing: ffmpeg package absent from API image",
+      "ok": true
+    },
+    {
+      "name": "processing: no ffmpeg/ffprobe binary on PATH",
+      "ok": true
+    },
+    {
+      "detail": [
+        [],
+        []
+      ],
+      "name": "processing: /app carries exactly its owning source",
+      "ok": true
+    },
+    {
+      "detail": "flickpond",
+      "name": "processing: runs as non-root image user",
+      "ok": true
+    },
+    {
+      "name": "processing: image is linux/amd64",
+      "ok": true
+    },
+    {
+      "name": "processing: revision label equals source SHA",
+      "ok": true
+    },
+    {
+      "name": "worker: image builds",
+      "ok": true
+    },
+    {
+      "name": "worker: check_runtime passes (image_user)",
+      "ok": true
+    },
+    {
+      "name": "worker: check_runtime passes (lambda_uid)",
+      "ok": true
+    },
+    {
+      "name": "worker: no legacy-queue/dev/test distributions",
+      "ok": true
+    },
+    {
+      "name": "worker: no Lambda-only runtime client in worker",
+      "ok": true
+    },
+    {
+      "name": "worker: ffmpeg and ffprobe installed",
+      "ok": true
+    },
+    {
+      "detail": [
+        [],
+        []
+      ],
+      "name": "worker: /app carries exactly its owning source",
+      "ok": true
+    },
+    {
+      "detail": "flickpond",
+      "name": "worker: runs as non-root image user",
+      "ok": true
+    },
+    {
+      "name": "worker: image is linux/amd64",
+      "ok": true
+    },
+    {
+      "name": "worker: revision label equals source SHA",
+      "ok": true
+    },
+    {
+      "name": "RIE binary extracted from public Lambda Python image",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"statusCode\": 200, \"headers\": {\"content-length\": \"48\", \"content-type\": \"application/json\"}, \"body\": \"{\\\"status\\\":\\\"ok\\\",\\\"service\\\":\\\"media\\\",\\\"version\\\":\\\"v1\\\"}\", \"isBase64Encoded\": false}, \"function_error\": null, \"seconds\": 1.52}",
+      "name": "media: RIE media.lambda_handler.handler: GET /health through payload v2 is 200 ok",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"statusCode\": 401, \"headers\": {\"content-type\": \"application/json\"}, \"body\": \"{\\\"error\\\": \\\"Missing or invalid trusted context\\\"}\", \"isBase64Encoded\": false}, \"function_error\": null, \"seconds\": 0.0}",
+      "name": "media: RIE media.lambda_handler.handler: protected route without trusted actor is 401",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"statusCode\": 404, \"headers\": {\"content-type\": \"application/json\"}, \"body\": \"{\\\"error\\\": \\\"Route not found\\\"}\", \"isBase64Encoded\": false}, \"function_error\": null, \"seconds\": 0.0}",
+      "name": "media: RIE media.lambda_handler.handler: path outside the service prefix is 404",
+      "ok": true
+    },
+    {
+      "name": "media: image can issue a session token with its own code",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"isAuthorized\": false}, \"function_error\": null, \"seconds\": 1.4}",
+      "name": "media: RIE media.lambda_handler.authorizer: request without a session cookie is denied",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"isAuthorized\": false}, \"function_error\": null, \"seconds\": 0.0}",
+      "name": "media: RIE media.lambda_handler.authorizer: forged session cookie is denied",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"isAuthorized\": false}, \"function_error\": null, \"seconds\": 0.08}",
+      "name": "media: RIE media.lambda_handler.authorizer: validly signed session is denied while its database is unreachable",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"isAuthorized\": false}, \"function_error\": null, \"seconds\": 0.0}",
+      "name": "media: RIE media.lambda_handler.authorizer: non payload-v2 event fails closed",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"batchItemFailures\": [{\"itemIdentifier\": \"00000000-0000-4000-8000-000000000001\"}]}, \"function_error\": null, \"seconds\": 1.27}",
+      "name": "media: RIE media.handlers.result_handler: undeliverable SQS message is a batch item failure",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"errorType\": \"ConnectionRefusedError\", \"errorMessage\": \"[Errno 111] Connect call failed ('127.0.0.1', 1)\"}, \"function_error\": \"ConnectionRefusedError\", \"seconds\": 2.51}",
+      "name": "media: RIE media.handlers.repair_handler: repair without a database raises a retryable connection error",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"statusCode\": 200, \"headers\": {\"content-length\": \"76\", \"content-type\": \"application/json\"}, \"body\": \"{\\\"status\\\":\\\"ok\\\",\\\"service\\\":\\\"processing\\\",\\\"schema_version\\\":1,\\\"version\\\":\\\"v1-dev\\\"}\", \"isBase64Encoded\": false}, \"function_error\": null, \"seconds\": 1.37}",
+      "name": "processing: RIE processing.lambda_handler.handler: GET /health through payload v2 is 200 ok",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"statusCode\": 401, \"headers\": {\"content-type\": \"application/json\"}, \"body\": \"{\\\"error\\\": \\\"Missing or invalid trusted context\\\"}\", \"isBase64Encoded\": false}, \"function_error\": null, \"seconds\": 0.0}",
+      "name": "processing: RIE processing.lambda_handler.handler: protected route without trusted actor is 401",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"service\": \"processing\", \"ready\": false, \"error\": \"database unavailable\"}, \"function_error\": null, \"seconds\": 0.06}",
+      "name": "processing: RIE processing.lambda_handler.handler: direct ready probe without a database is a clean not-ready",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"statusCode\": 400, \"headers\": {\"content-type\": \"application/json\"}, \"body\": \"{\\\"error\\\": \\\"Malformed gateway request\\\"}\", \"isBase64Encoded\": false}, \"function_error\": null, \"seconds\": 0.0}",
+      "name": "processing: RIE processing.lambda_handler.handler: ready probe shape is not reachable through Gateway events",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"batchItemFailures\": [{\"itemIdentifier\": \"00000000-0000-4000-8000-000000000001\"}]}, \"function_error\": null, \"seconds\": 1.58}",
+      "name": "processing: RIE processing.handlers.command_handler: without a database: batch item failure or retryable connection error",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"errorType\": \"ConnectionRefusedError\", \"errorMessage\": \"[Errno 111] Connect call failed ('127.0.0.1', 1)\"}, \"function_error\": \"ConnectionRefusedError\", \"seconds\": 1.57}",
+      "name": "processing: RIE processing.handlers.repair_handler: without a database: batch item failure or retryable connection error",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"errorType\": \"ConnectionRefusedError\", \"errorMessage\": \"[Errno 111] Connect call failed ('127.0.0.1', 1)\"}, \"function_error\": \"ConnectionRefusedError\", \"seconds\": 1.52}",
+      "name": "processing: RIE processing.handlers.ecs_handler: without a database: batch item failure or retryable connection error",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"errorType\": \"ConnectionRefusedError\", \"errorMessage\": \"[Errno 111] Connect call failed ('127.0.0.1', 1)\"}, \"function_error\": \"ConnectionRefusedError\", \"seconds\": 1.52}",
+      "name": "processing: RIE processing.handlers.s3_handler: without a database: batch item failure or retryable connection error",
+      "ok": true
+    },
+    {
+      "detail": "{\"body\": {\"service\": \"processing\", \"ready\": true}, \"function_error\": null, \"seconds\": 1.44}",
+      "name": "processing: RIE processing.lambda_handler.handler: direct ready probe against throwaway PostgreSQL is ready",
+      "ok": true
+    },
+    {
+      "name": "worker: ECS shape WorkerTaskDefinition runs from the template entryPoint/command",
+      "ok": true
+    },
+    {
+      "name": "media: ECS shape MediaMigrationTaskDefinition runs from the template entryPoint/command",
+      "ok": true
+    },
+    {
+      "name": "processing: ECS shape ProcessingMigrationTaskDefinition runs from the template entryPoint/command",
+      "ok": true
+    },
+    {
+      "name": "media: image does not carry the DB bootstrap script",
+      "ok": true
+    },
+    {
+      "name": "processing: image does not carry the DB bootstrap script",
+      "ok": true
+    },
+    {
+      "detail": "DB bootstrap failed; inspect private operator diagnostics, not public SQL logs\n",
+      "name": "worker: ECS shape BootstrapTaskDefinition runs from the template entryPoint/command",
+      "ok": true
+    },
+    {
+      "detail": "1 in 2.1s leaks=[]",
+      "name": "worker: fail-fast entrypoint: no configuration at all exits [1]",
+      "ok": true
+    },
+    {
+      "detail": "1 in 1.9s leaks=[]",
+      "name": "worker: fail-fast entrypoint: database configured, no work queue exits [1]",
+      "ok": true
+    },
+    {
+      "detail": "124 in 0.2s leaks=[]",
+      "name": "worker: fail-fast entrypoint: expired deadline exits [124]",
+      "ok": true
+    },
+    {
+      "detail": "0 in 0.3s leaks=[]",
+      "name": "worker: fail-fast entrypoint: --help exits [0]",
+      "ok": true
+    },
+    {
+      "detail": [
+        [],
+        []
+      ],
+      "name": "media: every template Lambda handler was invoked under RIE",
+      "ok": true
+    },
+    {
+      "detail": [
+        [],
+        []
+      ],
+      "name": "processing: every template Lambda handler was invoked under RIE",
+      "ok": true
+    }
+  ],
+  "docker": {
+    "context": "desktop-linux",
+    "host_architecture": "aarch64",
+    "operating_system": "Docker Desktop",
+    "server_version": "28.0.1"
+  },
+  "ecs_task_shapes": {
+    "BootstrapTaskDefinition": {
+      "command": [],
+      "entrypoint": [
+        "python",
+        "/opt/db-bootstrap.py"
+      ],
+      "image": "worker",
+      "ok": true
+    },
+    "MediaMigrationTaskDefinition": {
+      "alembic_head": "media_0007",
+      "command": [
+        "python",
+        "-m",
+        "alembic",
+        "-c",
+        "media/alembic.ini",
+        "upgrade",
+        "head"
+      ],
+      "entrypoint": [
+        "/usr/bin/env"
+      ],
+      "image": "media",
+      "ok": true
+    },
+    "ProcessingMigrationTaskDefinition": {
+      "alembic_head": "processing_0005",
+      "command": [
+        "python",
+        "-m",
+        "alembic",
+        "-c",
+        "processing/alembic.ini",
+        "upgrade",
+        "head"
+      ],
+      "entrypoint": [
+        "/usr/bin/env"
+      ],
+      "image": "processing",
+      "ok": true
+    },
+    "WorkerTaskDefinition": {
+      "command": [
+        "python",
+        "-m",
+        "processing.v1_worker",
+        "--max-empty-polls",
+        "2"
+      ],
+      "entrypoint": [
+        "/usr/bin/env"
+      ],
+      "image": "worker",
+      "ok": true
+    }
+  },
+  "failures": [],
+  "generated_utc": "2026-10-16T04:16:51+00:00",
+  "host_python": "3.14.7",
+  "images": {
+    "media": {
+      "app_entries": [
+        "contracts",
+        "delivery",
+        "media",
+        "pyproject.toml",
+        "runtime_support",
+        "uv.lock"
+      ],
+      "architecture": "amd64",
+      "binaries": {},
+      "build_command": [
+        "docker",
+        "build",
+        "--platform",
+        "linux/amd64",
+        "--build-arg",
+        "SOURCE_SHA=7149324f99bf628888ce7d0f55dbffe377d67ed9",
+        "--no-cache",
+        "-f",
+        "deploy/v1/media.Dockerfile",
+        "-t",
+        "dc2-v1-media:local-7149324f99bf",
+        "."
+      ],
+      "build_elapsed_seconds": 12.4,
+      "build_exit_code": 0,
+      "cmd": [
+        "media.lambda_handler.handler"
+      ],
+      "config_id": "sha256:f943939218160943218fe592f3364a68a94c52573768101bb5df1c8777a94a06",
+      "entrypoint": [
+        "python",
+        "-m",
+        "awslambdaric"
+      ],
+      "imported_executables": {
+        "media.handlers": {
+          "callables": [
+            "result_handler",
+            "repair_handler"
+          ],
+          "file": "/app/media/handlers.py"
+        },
+        "media.lambda_handler": {
+          "callables": [
+            "handler",
+            "authorizer"
+          ],
+          "file": "/app/media/lambda_handler.py"
+        }
+      },
+      "installed_package_count": 45,
+      "installed_packages": {
+        "alembic": "1.20.0",
+        "annotated-doc": "0.0.5",
+        "annotated-types": "0.8.0",
+        "anyio": "4.15.1",
+        "argon2-cffi": "25.1.0",
+        "argon2-cffi-bindings": "26.1.0",
+        "asyncpg": "0.32.0",
+        "awslambdaric": "3.1.1",
+        "bcrypt": "4.3.0",
+        "boto3": "1.43.114",
+        "botocore": "1.43.114",
+        "certifi": "2026.7.22",
+        "cffi": "2.1.1",
+        "dnspython": "2.9.0",
+        "email-validator": "2.3.0",
+        "fastapi": "0.143.0",
+        "greenlet": "3.5.6",
+        "h11": "0.16.0",
+        "httpcore": "1.0.9",
+        "httpx": "0.28.1",
+        "idna": "3.20",
+        "jmespath": "1.1.0",
+        "mako": "1.4.3",
+        "markupsafe": "3.0.4",
+        "minio": "7.2.20",
+        "opentelemetry-api": "1.45.1",
+        "pip": "25.0.1",
+        "pycparser": "3.11",
+        "pycryptodome": "3.24.1",
+        "pydantic": "2.14.1",
+        "pydantic-core": "2.50.1",
+        "pydantic-settings": "2.15.0",
+        "pyjwt": "2.15.1",
+        "python-dateutil": "2.9.0.post0",
+        "python-dotenv": "1.2.4",
+        "python-multipart": "0.0.32",
+        "s3transfer": "0.19.2",
+        "simplejson": "4.2.0",
+        "six": "1.17.0",
+        "snapshot-restore-py": "1.0.0",
+        "sqlalchemy": "2.1.4",
+        "starlette": "1.7.0",
+        "typing-extensions": "4.16.0",
+        "typing-inspection": "0.4.4",
+        "urllib3": "2.8.0"
+      },
+      "layer_count": 17,
+      "layers_sha256": "61af38b9bf3403ed5e2c10ae55d57a895d9df80b72825a3fbe0fc7eebe22886f",
+      "os": "linux",
+      "revision_label": "7149324f99bf628888ce7d0f55dbffe377d67ed9",
+      "rie": {
+        "api": {
+          "cases": {
+            "GET /health through payload v2 is 200 ok": {
+              "function_error": null,
+              "response": {
+                "body": "{\"status\":\"ok\",\"service\":\"media\",\"version\":\"v1\"}",
+                "headers": {
+                  "content-length": "48",
+                  "content-type": "application/json"
+                },
+                "isBase64Encoded": false,
+                "statusCode": 200
+              },
+              "seconds": 1.52
+            },
+            "path outside the service prefix is 404": {
+              "function_error": null,
+              "response": {
+                "body": "{\"error\": \"Route not found\"}",
+                "headers": {
+                  "content-type": "application/json"
+                },
+                "isBase64Encoded": false,
+                "statusCode": 404
+              },
+              "seconds": 0.0
+            },
+            "protected route without trusted actor is 401": {
+              "function_error": null,
+              "response": {
+                "body": "{\"error\": \"Missing or invalid trusted context\"}",
+                "headers": {
+                  "content-type": "application/json"
+                },
+                "isBase64Encoded": false,
+                "statusCode": 401
+              },
+              "seconds": 0.0
+            }
+          },
+          "handler": "media.lambda_handler.handler"
+        },
+        "authorizer": {
+          "cases": {
+            "forged session cookie is denied": {
+              "function_error": null,
+              "response": {
+                "isAuthorized": false
+              },
+              "seconds": 0.0
+            },
+            "non payload-v2 event fails closed": {
+              "function_error": null,
+              "response": {
+                "isAuthorized": false
+              },
+              "seconds": 0.0
+            },
+            "request without a session cookie is denied": {
+              "function_error": null,
+              "response": {
+                "isAuthorized": false
+              },
+              "seconds": 1.4
+            },
+            "validly signed session is denied while its database is unreachable": {
+              "function_error": null,
+              "response": {
+                "isAuthorized": false
+              },
+              "seconds": 0.08
+            }
+          },
+          "handler": "media.lambda_handler.authorizer"
+        },
+        "repair": {
+          "cases": {
+            "repair without a database raises a retryable connection error": {
+              "function_error": "ConnectionRefusedError",
+              "response": {
+                "errorMessage": "[Errno 111] Connect call failed ('127.0.0.1', 1)",
+                "errorType": "ConnectionRefusedError"
+              },
+              "seconds": 2.51
+            }
+          },
+          "handler": "media.handlers.repair_handler"
+        },
+        "results": {
+          "cases": {
+            "undeliverable SQS message is a batch item failure": {
+              "function_error": null,
+              "response": {
+                "batchItemFailures": [
+                  {
+                    "itemIdentifier": "00000000-0000-4000-8000-000000000001"
+                  }
+                ]
+              },
+              "seconds": 1.27
+            }
+          },
+          "handler": "media.handlers.result_handler"
+        }
+      },
+      "runtime_contents": {
+        "ffmpeg": false,
+        "redis": false,
+        "rq": false
+      },
+      "runtime_exit_code": 0,
+      "runtime_output_sha256": "f109dee9ff3f650932da93a946a43d404326915b891b75c26f1c7ac5a0483cde",
+      "runtime_platform": {
+        "machine": "x86_64",
+        "system": "Linux"
+      },
+      "size_bytes": 262339405,
+      "source_sha": "7149324f99bf628888ce7d0f55dbffe377d67ed9",
+      "tag": "dc2-v1-media:local-7149324f99bf",
+      "user": "flickpond"
+    },
+    "processing": {
+      "app_entries": [
+        "contracts",
+        "delivery",
+        "processing",
+        "pyproject.toml",
+        "runtime_support",
+        "uv.lock"
+      ],
+      "architecture": "amd64",
+      "binaries": {},
+      "build_command": [
+        "docker",
+        "build",
+        "--platform",
+        "linux/amd64",
+        "--build-arg",
+        "SOURCE_SHA=7149324f99bf628888ce7d0f55dbffe377d67ed9",
+        "--no-cache",
+        "-f",
+        "deploy/v1/processing.Dockerfile",
+        "-t",
+        "dc2-v1-processing:local-7149324f99bf",
+        "."
+      ],
+      "build_elapsed_seconds": 11.6,
+      "build_exit_code": 0,
+      "cmd": [
+        "processing.lambda_handler.handler"
+      ],
+      "config_id": "sha256:31d9f8101c50dee1b97eca3be0decaf1c89752701f13e4187791f241aef5f1d3",
+      "entrypoint": [
+        "python",
+        "-m",
+        "awslambdaric"
+      ],
+      "imported_executables": {
+        "processing.handlers": {
+          "callables": [
+            "command_handler",
+            "repair_handler",
+            "ecs_handler",
+            "s3_handler"
+          ],
+          "file": "/app/processing/handlers.py"
+        },
+        "processing.lambda_handler": {
+          "callables": [
+            "handler"
+          ],
+          "file": "/app/processing/lambda_handler.py"
+        }
+      },
+      "installed_package_count": 45,
+      "installed_packages": {
+        "alembic": "1.20.0",
+        "annotated-doc": "0.0.5",
+        "annotated-types": "0.8.0",
+        "anyio": "4.15.1",
+        "argon2-cffi": "25.1.0",
+        "argon2-cffi-bindings": "26.1.0",
+        "asyncpg": "0.32.0",
+        "awslambdaric": "3.1.1",
+        "bcrypt": "4.3.0",
+        "boto3": "1.43.114",
+        "botocore": "1.43.114",
+        "certifi": "2026.7.22",
+        "cffi": "2.1.1",
+        "dnspython": "2.9.0",
+        "email-validator": "2.3.0",
+        "fastapi": "0.143.0",
+        "greenlet": "3.5.6",
+        "h11": "0.16.0",
+        "httpcore": "1.0.9",
+        "httpx": "0.28.1",
+        "idna": "3.20",
+        "jmespath": "1.1.0",
+        "mako": "1.4.3",
+        "markupsafe": "3.0.4",
+        "minio": "7.2.20",
+        "opentelemetry-api": "1.45.1",
+        "pip": "25.0.1",
+        "pycparser": "3.11",
+        "pycryptodome": "3.24.1",
+        "pydantic": "2.14.1",
+        "pydantic-core": "2.50.1",
+        "pydantic-settings": "2.15.0",
+        "pyjwt": "2.15.1",
+        "python-dateutil": "2.9.0.post0",
+        "python-dotenv": "1.2.4",
+        "python-multipart": "0.0.32",
+        "s3transfer": "0.19.2",
+        "simplejson": "4.2.0",
+        "six": "1.17.0",
+        "snapshot-restore-py": "1.0.0",
+        "sqlalchemy": "2.1.4",
+        "starlette": "1.7.0",
+        "typing-extensions": "4.16.0",
+        "typing-inspection": "0.4.4",
+        "urllib3": "2.8.0"
+      },
+      "layer_count": 17,
+      "layers_sha256": "70a67e21d7022c47d55d28480d8ce9dcc6b871580a27860f5cc5d9eb24dd4758",
+      "os": "linux",
+      "revision_label": "7149324f99bf628888ce7d0f55dbffe377d67ed9",
+      "rie": {
+        "api": {
+          "cases": {
+            "GET /health through payload v2 is 200 ok": {
+              "function_error": null,
+              "response": {
+                "body": "{\"status\":\"ok\",\"service\":\"processing\",\"schema_version\":1,\"version\":\"v1-dev\"}",
+                "headers": {
+                  "content-length": "76",
+                  "content-type": "application/json"
+                },
+                "isBase64Encoded": false,
+                "statusCode": 200
+              },
+              "seconds": 1.37
+            },
+            "direct ready probe without a database is a clean not-ready": {
+              "function_error": null,
+              "response": {
+                "error": "database unavailable",
+                "ready": false,
+                "service": "processing"
+              },
+              "seconds": 0.06
+            },
+            "protected route without trusted actor is 401": {
+              "function_error": null,
+              "response": {
+                "body": "{\"error\": \"Missing or invalid trusted context\"}",
+                "headers": {
+                  "content-type": "application/json"
+                },
+                "isBase64Encoded": false,
+                "statusCode": 401
+              },
+              "seconds": 0.0
+            },
+            "ready probe shape is not reachable through Gateway events": {
+              "function_error": null,
+              "response": {
+                "body": "{\"error\": \"Malformed gateway request\"}",
+                "headers": {
+                  "content-type": "application/json"
+                },
+                "isBase64Encoded": false,
+                "statusCode": 400
+              },
+              "seconds": 0.0
+            }
+          },
+          "handler": "processing.lambda_handler.handler"
+        },
+        "control": {
+          "command": {
+            "cases": {
+              "without a database: batch item failure or retryable connection error": {
+                "function_error": null,
+                "response": {
+                  "batchItemFailures": [
+                    {
+                      "itemIdentifier": "00000000-0000-4000-8000-000000000001"
+                    }
+                  ]
+                },
+                "seconds": 1.58
+              }
+            },
+            "handler": "processing.handlers.command_handler"
+          },
+          "ecs": {
+            "cases": {
+              "without a database: batch item failure or retryable connection error": {
+                "function_error": "ConnectionRefusedError",
+                "response": {
+                  "errorMessage": "[Errno 111] Connect call failed ('127.0.0.1', 1)",
+                  "errorType": "ConnectionRefusedError"
+                },
+                "seconds": 1.52
+              }
+            },
+            "handler": "processing.handlers.ecs_handler"
+          },
+          "repair": {
+            "cases": {
+              "without a database: batch item failure or retryable connection error": {
+                "function_error": "ConnectionRefusedError",
+                "response": {
+                  "errorMessage": "[Errno 111] Connect call failed ('127.0.0.1', 1)",
+                  "errorType": "ConnectionRefusedError"
+                },
+                "seconds": 1.57
+              }
+            },
+            "handler": "processing.handlers.repair_handler"
+          },
+          "s3": {
+            "cases": {
+              "without a database: batch item failure or retryable connection error": {
+                "function_error": "ConnectionRefusedError",
+                "response": {
+                  "errorMessage": "[Errno 111] Connect call failed ('127.0.0.1', 1)",
+                  "errorType": "ConnectionRefusedError"
+                },
+                "seconds": 1.52
+              }
+            },
+            "handler": "processing.handlers.s3_handler"
+          }
+        },
+        "ready_with_postgres": {
+          "cases": {
+            "direct ready probe against throwaway PostgreSQL is ready": {
+              "function_error": null,
+              "response": {
+                "ready": true,
+                "service": "processing"
+              },
+              "seconds": 1.44
+            }
+          },
+          "handler": "processing.lambda_handler.handler"
+        }
+      },
+      "runtime_contents": {
+        "ffmpeg": false,
+        "redis": false,
+        "rq": false
+      },
+      "runtime_exit_code": 0,
+      "runtime_output_sha256": "38c207fa79e26b3944461d275fa0e8a2af303e0bed38a9cecb1f18bd81a568a8",
+      "runtime_platform": {
+        "machine": "x86_64",
+        "system": "Linux"
+      },
+      "size_bytes": 262319120,
+      "source_sha": "7149324f99bf628888ce7d0f55dbffe377d67ed9",
+      "tag": "dc2-v1-processing:local-7149324f99bf",
+      "user": "flickpond"
+    },
+    "worker": {
+      "app_entries": [
+        "contracts",
+        "delivery",
+        "media_engine",
+        "processing",
+        "pyproject.toml",
+        "runtime_support",
+        "uv.lock"
+      ],
+      "architecture": "amd64",
+      "binaries": {
+        "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+        "ffprobe": "ffprobe version 7.1.5-0+deb13u1 Copyright (c) 2007-2026 the FFmpeg developers"
+      },
+      "build_command": [
+        "docker",
+        "build",
+        "--platform",
+        "linux/amd64",
+        "--build-arg",
+        "SOURCE_SHA=7149324f99bf628888ce7d0f55dbffe377d67ed9",
+        "--no-cache",
+        "-f",
+        "deploy/v1/worker.Dockerfile",
+        "-t",
+        "dc2-v1-worker:local-7149324f99bf",
+        "."
+      ],
+      "build_elapsed_seconds": 42.4,
+      "build_exit_code": 0,
+      "cmd": null,
+      "config_id": "sha256:0621d3595367f8cf63d74e73e38f101888de7184d764045c5859d2ea4504c706",
+      "entrypoint": [
+        "python",
+        "-m",
+        "processing.v1_worker"
+      ],
+      "entrypoint_failfast": {
+        "--help": {
+          "exit_code": 0,
+          "output_bytes": 364,
+          "output_head": "usage: v1_worker.py [-h] --deadline-epoch DEADLINE --name NAME\n                    [--max-empty-polls EMPTY_POLLS]\n\nWatchdog for finite SQS encoders\n\noptions:\n  -h, --help            show this help me",
+          "seconds": 0.3
+        },
+        "database configured, no work queue": {
+          "exit_code": 1,
+          "output_bytes": 0,
+          "output_head": "",
+          "seconds": 1.9
+        },
+        "expired deadline": {
+          "exit_code": 124,
+          "output_bytes": 0,
+          "output_head": "",
+          "seconds": 0.2
+        },
+        "no configuration at all": {
+          "exit_code": 1,
+          "output_bytes": 0,
+          "output_head": "",
+          "seconds": 2.1
+        }
+      },
+      "imported_executables": {
+        "processing.v1_worker": {
+          "callables": [
+            "main"
+          ],
+          "file": "/app/processing/v1_worker.py"
+        },
+        "processing.worker.source": {
+          "callables": [
+            "SourceStore"
+          ],
+          "file": "/app/processing/worker/source.py"
+        },
+        "processing.worker.sqs": {
+          "callables": [
+            "main",
+            "run",
+            "execute_message"
+          ],
+          "file": "/app/processing/worker/sqs.py"
+        },
+        "processing.worker.tasks": {
+          "callables": [
+            "pipeline"
+          ],
+          "file": "/app/processing/worker/tasks.py"
+        }
+      },
+      "installed_package_count": 42,
+      "installed_packages": {
+        "alembic": "1.20.0",
+        "annotated-doc": "0.0.5",
+        "annotated-types": "0.8.0",
+        "anyio": "4.15.1",
+        "argon2-cffi": "25.1.0",
+        "argon2-cffi-bindings": "26.1.0",
+        "asyncpg": "0.32.0",
+        "bcrypt": "4.3.0",
+        "boto3": "1.43.114",
+        "botocore": "1.43.114",
+        "certifi": "2026.7.22",
+        "cffi": "2.1.1",
+        "dnspython": "2.9.0",
+        "email-validator": "2.3.0",
+        "fastapi": "0.143.0",
+        "greenlet": "3.5.6",
+        "h11": "0.16.0",
+        "httpcore": "1.0.9",
+        "httpx": "0.28.1",
+        "idna": "3.20",
+        "jmespath": "1.1.0",
+        "mako": "1.4.3",
+        "markupsafe": "3.0.4",
+        "minio": "7.2.20",
+        "opentelemetry-api": "1.45.1",
+        "pip": "25.0.1",
+        "pycparser": "3.11",
+        "pycryptodome": "3.24.1",
+        "pydantic": "2.14.1",
+        "pydantic-core": "2.50.1",
+        "pydantic-settings": "2.15.0",
+        "pyjwt": "2.15.1",
+        "python-dateutil": "2.9.0.post0",
+        "python-dotenv": "1.2.4",
+        "python-multipart": "0.0.32",
+        "s3transfer": "0.19.2",
+        "six": "1.17.0",
+        "sqlalchemy": "2.1.4",
+        "starlette": "1.7.0",
+        "typing-extensions": "4.16.0",
+        "typing-inspection": "0.4.4",
+        "urllib3": "2.8.0"
+      },
+      "layer_count": 18,
+      "layers_sha256": "a8520c9cc25b4b23905e8e395322a23130c6b49075def6febc349246e7f6cbd0",
+      "os": "linux",
+      "revision_label": "7149324f99bf628888ce7d0f55dbffe377d67ed9",
+      "runtime_contents": {
+        "ffmpeg": true,
+        "redis": false,
+        "rq": false
+      },
+      "runtime_exit_code": 0,
+      "runtime_output_sha256": "13c278a3ba33e920d117f96a410277cd4f78007b20b68e69c65da708b8c213a5",
+      "runtime_platform": {
+        "machine": "x86_64",
+        "system": "Linux"
+      },
+      "size_bytes": 674688744,
+      "source_sha": "7149324f99bf628888ce7d0f55dbffe377d67ed9",
+      "tag": "dc2-v1-worker:local-7149324f99bf",
+      "user": "flickpond"
+    }
+  },
+  "input_sha256": {
+    "deploy/aws/v1/template.json": "d3a6e958a1e0a133cedd17258a9641282f62bbc21b508403e23a0fa34fe02618",
+    "deploy/v1/build_and_verify.py": "e37e31aa6c16b643962f54e5da0e2f9fce7249402feb132a08744df26e80c161",
+    "deploy/v1/check_runtime.py": "ab648c3d537c90173c41eb0f3c30f3dbb17774847010315ee08c56b49a3a5b0f",
+    "deploy/v1/global-bundle.pem": "90a6f1a7978a1b1b096dca6c57511ca48d3b8cf052f8e704baf358f34ea2f21b",
+    "deploy/v1/media.Dockerfile": "65d21907e22ede675cf0519f85fe5f0f303ad414fade5a36ddd971198d82180c",
+    "deploy/v1/processing.Dockerfile": "5d36c49fe387402a5ed4e341dfa1e3e609873312199ac5deb36bf8a1e68364f8",
+    "deploy/v1/worker.Dockerfile": "1f3d32c5d277b5b772f4a8f9aad93f5ca065168012fdbc24e66185072adda9af",
+    "pyproject.toml": "3e1670e03f678e6ddcc6499081c164044782e796ab85d01c58bc999b78be5dcb",
+    "scripts/aws/v1/bootstrap.py": "e3603f1ae00c92b560a03140a29bcbf34a0911e32caa1d5efb2635520f78cec6",
+    "uv.lock": "0a863f6b3f4b1a240244ff8cfca069bbb28b5ca4f9c0235c03d48dbf8a6e56d2"
+  },
+  "lambda_runtime_interface_emulator": {
+    "binary_sha256": "d61dac909d83dc3026e5c9c92edc73ac7d865c80f37511792041fd481e6017c9",
+    "image": "public.ecr.aws/lambda/python:3.12",
+    "repo_digest": "public.ecr.aws/lambda/python@sha256:3856536f53e945debf4c90d0ff301cbaa837c07a4ab9b0e2c102c6e54ceb9762"
+  },
+  "limitations": [
+    "Local config IDs are not registry digests and embed the build timestamp",
+    "No vulnerability scan performed",
+    "No registry manifest/publication proof; no AWS call of any kind",
+    "RIE emulates the invoke protocol only: no IAM, VPC, API Gateway, SQS or RDS TLS",
+    "Handlers ran without a reachable database. Only the Processing ready probe and the owner migrations used a throwaway PostgreSQL, with TLS disabled (no RDS CA)",
+    "Host runs amd64 images under emulation when the host is ARM; no performance claim"
+  ],
+  "platform": "linux/amd64",
+  "promotion_eligible": false,
+  "registry_manifest_receipt": "NOT_RUN",
+  "scan": "NOT_RUN",
+  "schema_version": 2,
+  "scope": "LOCAL exact-image packaging, content and Lambda-RIE handler proof only; NOT cloud evidence",
+  "source_sha": "7149324f99bf628888ce7d0f55dbffe377d67ed9",
+  "status": "LOCAL_ARTIFACT_PASS",
+  "template_functions": {
+    "MediaApi": {
+      "handler": "media.lambda_handler.handler",
+      "memory_mb": 2048,
+      "owner": "media",
+      "timeout_seconds": 60
+    },
+    "MediaAuthorizer": {
+      "handler": "media.lambda_handler.authorizer",
+      "memory_mb": 512,
+      "owner": "media",
+      "timeout_seconds": 10
+    },
+    "MediaRepair": {
+      "handler": "media.handlers.repair_handler",
+      "memory_mb": 512,
+      "owner": "media",
+      "timeout_seconds": 60
+    },
+    "MediaResults": {
+      "handler": "media.handlers.result_handler",
+      "memory_mb": 512,
+      "owner": "media",
+      "timeout_seconds": 60
+    },
+    "ProcessingApi": {
+      "handler": "processing.lambda_handler.handler",
+      "memory_mb": 2048,
+      "owner": "processing",
+      "timeout_seconds": 60
+    },
+    "ProcessingCommands": {
+      "handler": "processing.handlers.command_handler",
+      "memory_mb": 512,
+      "owner": "processing",
+      "timeout_seconds": 60
+    },
+    "ProcessingEcsEvents": {
+      "handler": "processing.handlers.ecs_handler",
+      "memory_mb": 512,
+      "owner": "processing",
+      "timeout_seconds": 60
+    },
+    "ProcessingRepair": {
+      "handler": "processing.handlers.repair_handler",
+      "memory_mb": 512,
+      "owner": "processing",
+      "timeout_seconds": 60
+    },
+    "ProcessingS3Events": {
+      "handler": "processing.handlers.s3_handler",
+      "memory_mb": 512,
+      "owner": "processing",
+      "timeout_seconds": 60
+    }
+  },
+  "working_tree_dirty": false
+}
