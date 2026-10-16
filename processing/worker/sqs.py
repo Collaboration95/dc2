@@ -13,12 +13,14 @@ import json
 import math
 import os
 import signal
+import sys
 import tempfile
 import time
 from contextlib import suppress
 from pathlib import Path
 from uuid import UUID
 
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from processing.config import get_settings
@@ -27,6 +29,7 @@ from processing.worker.source import SourceStore
 from processing.worker.storage import OutputStore
 from processing.worker.supervisor import AttemptDeadline, LeaseLost, Supervisor
 from processing.worker.tasks import pipeline
+from runtime_support.settings import credentials_rejected
 
 
 def native_sqs(region):
@@ -247,17 +250,67 @@ async def run(
     return 0
 
 
-async def async_main(args):
-    settings = get_settings()
-    settings.require_storage()
+class WorkerConfigurationError(Exception):
+    """A startup failure whose message is safe for stderr: names settings, never values."""
+
+
+def load_configuration():
+    try:
+        settings = get_settings()
+        settings.require_storage()
+    except ValidationError as error:
+        # error.errors() echoes the offending input, which may be a DSN or a secret.
+        # Only the field locations are reported.
+        names = sorted(
+            {"PROCESSING_" + str(item["loc"][0]).upper() for item in error.errors() if item["loc"]}
+        )
+        raise WorkerConfigurationError(
+            "missing or invalid setting: " + (", ".join(names) or "unknown")
+        ) from None
+    except ValueError as error:
+        # require_storage messages are fixed strings that never interpolate a value.
+        raise WorkerConfigurationError(str(error)) from None
     queue_url = os.environ.get("PROCESSING_WORK_QUEUE_URL") or os.environ.get("WORK_QUEUE_URL")
     if not queue_url:
-        raise ValueError("Processing work queue is required")
+        raise WorkerConfigurationError(
+            "missing setting: PROCESSING_WORK_QUEUE_URL (or WORK_QUEUE_URL)"
+        )
+    return settings, queue_url
+
+
+async def connect_engine(settings):
+    """Build the engine, re-reading settings once if PostgreSQL refuses the login.
+
+    The cached settings may predate a credential rotation (the Lambdas heal the same
+    way). Any other startup failure is left to the first real query, as before.
+    """
+    from sqlalchemy import text
+
     from processing.database import v1_connect_args
 
-    engine = create_async_engine(
-        settings.postgres_dsn, pool_pre_ping=True, connect_args=v1_connect_args(settings)
-    )
+    for attempt in (0, 1):
+        engine = create_async_engine(
+            settings.postgres_dsn, pool_pre_ping=True, connect_args=v1_connect_args(settings)
+        )
+        try:
+            async with engine.connect() as connection:
+                await connection.execute(text("SELECT 1"))
+            return settings, engine
+        except Exception as error:
+            if not credentials_rejected(error):
+                return settings, engine
+            await engine.dispose()
+            if attempt:
+                raise WorkerConfigurationError(
+                    "database login refused after re-reading settings"
+                ) from None
+            get_settings.cache_clear()
+            settings, _ = load_configuration()
+
+
+async def async_main(args):
+    settings, queue_url = load_configuration()
+    settings, engine = await connect_engine(settings)
     stop = asyncio.Event()
     loop = asyncio.get_running_loop()
     active = asyncio.current_task()
@@ -307,6 +360,9 @@ def main():
             return await asyncio.wait_for(async_main(args), remaining)
         except (TimeoutError, AttemptDeadline):
             return 124
+        except WorkerConfigurationError as error:
+            print(f"worker configuration error: {error}", file=sys.stderr)
+            return 1
         except Exception:
             # Do not emit SDK URLs, queue bodies, credentials or database DSNs.
             return 1
