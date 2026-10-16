@@ -130,6 +130,48 @@ def test_verifier_policy_forbids_every_distribution_the_recipes_exclude():
     assert verifier.PLATFORM == "linux/amd64"
 
 
+def _invocation(function_error, message=None, *, seconds=1.0, body=None):
+    if body is None:
+        body = {"errorType": function_error, "errorMessage": message}
+    return {"body": body, "function_error": function_error, "seconds": seconds}
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        _invocation("ConnectionRefusedError", "[Errno 111] refused"),
+        _invocation("OSError", "unreachable"),
+        _invocation("TimeoutError", "timed out"),
+        _invocation("SanitizedHandlerError", "media.repair failed (ConnectionRefusedError)"),
+        _invocation("SanitizedHandlerError", "processing.ecs failed (OSError)"),
+        _invocation("SanitizedHandlerError", "processing.s3 failed (TimeoutError)"),
+        _invocation(None, body={"batchItemFailures": [{"itemIdentifier": "m1"}]}),
+    ],
+)
+def test_database_down_accepts_a_retryable_connection_failure_raw_or_sanitized(result):
+    assert load_verifier().database_down(result)
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        _invocation("SanitizedHandlerError", "media.repair failed (KeyError)"),
+        _invocation(
+            "SanitizedHandlerError", "media.repair failed (ConnectionRefusedError) at 127.0.0.1:1"
+        ),
+        _invocation("SanitizedHandlerError", "ConnectionRefusedError"),
+        _invocation("SanitizedHandlerError", "other.repair failed (OSError)"),
+        _invocation("SanitizedHandlerError", "media.repair failed (OSError) unused"),
+        _invocation("SanitizedHandlerError", "media.repair failed (OSError)", seconds=61),
+        _invocation("ValueError", "media.repair failed (OSError)"),
+        _invocation("SanitizedHandlerError", None, body="media.repair failed (OSError)"),
+        _invocation(None, body={"statusCode": 200}),
+    ],
+)
+def test_database_down_rejects_other_failures_and_green_results(result):
+    assert not load_verifier().database_down(result)
+
+
 EVIDENCE = sorted((ROOT / "docs/execution/aws/v1/evidence").glob("local-images-*.json"))
 
 
