@@ -8,8 +8,8 @@ import argparse
 
 import pytest
 
-from scripts.aws.v1.proof import capacity, gateway, latency, sim, spend, tasks
-from scripts.aws.v1.proof.core import FAIL, NOT_RUN, PASS
+from scripts.aws.v1.proof import capacity, gateway, latency, sim, spend, tasks, workflow
+from scripts.aws.v1.proof.core import FAIL, NOT_RUN, PASS, ProofError
 
 pytestmark = pytest.mark.unmeasured
 
@@ -175,3 +175,53 @@ def test_peak_overlap_counts_tasks_alive_together_and_frees_before_it_starts():
     assert tasks.peak_overlap([task(0, 5), task(1, 6), task(2, 7)]) == 3
     assert tasks.peak_overlap([task(0, 5), task(5, 9)]) == 1
     assert tasks.peak_overlap([{"pullStartedAt": "2026-10-17T10:00:00+00:00"}]) == 0
+
+
+# ---- resuming an upload that was already finalized ---------------------------------------
+@pytest.fixture
+def uploads(monkeypatch):
+    """Counts the direct-to-storage POSTs the workflow makes."""
+    posted, real = [], workflow.direct
+
+    def counting(http, method, *args, **kwargs):
+        if method == "POST":
+            posted.append(method)
+        return real(http, method, *args, **kwargs)
+
+    monkeypatch.setattr(workflow, "direct", counting)
+    return posted
+
+
+def test_a_resume_after_finalize_replays_the_reservation_and_reuses_the_same_job(
+        tmp_path, fixture, uploads):
+    ctx = build(tmp_path, "open")
+    api, _, _ = workflow.login(ctx)
+    intent = {}
+    first = workflow.submit(ctx, api, fixture, intent, lambda: None)
+    assert len(uploads) == 1
+    again = workflow.submit(ctx, api, fixture, intent, lambda: None)  # a later step had failed
+    assert again["job_id"] == first["job_id"]
+    assert len(uploads) == 1 and len(ctx.world.jobs) == 1 and len(ctx.world.reservations) == 1
+    assert again["reserve_ms"] == first["reserve_ms"]  # the original measurement is kept
+
+
+def test_a_resume_that_lost_its_upload_and_job_records_still_finds_the_finalized_job(
+        tmp_path, fixture, uploads):
+    ctx = build(tmp_path, "open")
+    api, _, _ = workflow.login(ctx)
+    intent = {}
+    first = workflow.submit(ctx, api, fixture, intent, lambda: None)
+    survivor = {"request_id": intent["request_id"]}  # crashed before anything else was saved
+    again = workflow.submit(ctx, api, fixture, survivor, lambda: None)
+    assert again["job_id"] == first["job_id"] and survivor["uploaded"] is True
+    assert len(uploads) == 1
+
+
+def test_a_caller_that_needs_an_upload_grant_still_rejects_a_replayed_reservation(
+        tmp_path, fixture):
+    ctx = build(tmp_path, "open")
+    api, _, _ = workflow.login(ctx)
+    intent = {}
+    workflow.submit(ctx, api, fixture, intent, lambda: None)
+    with pytest.raises(ProofError, match="no upload grant"):
+        workflow.reserve(api, fixture, intent["request_id"])

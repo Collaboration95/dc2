@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -733,6 +734,67 @@ def test_a_failed_bootstrap_task_still_removes_the_temporary_input_and_a_rerun_r
     assert rig.steps()["db-bootstrap"] == "done"
 
 
+def interrupt_publication_after_the_task_succeeded(rig):
+    """The bootstrap task finishes, then the first DSN cannot be written (the second SSM put:
+    the first is the temporary bootstrap input)."""
+    rig.sim.fail[("ssm", "put-parameter")] = [
+        None, AwsError("ssm", "put-parameter", "ThrottlingException")]
+    with pytest.raises(AwsError):
+        rig.deploy(stop_after="db-bootstrap")
+    assert rig.sim.role_passwords  # the database now holds passwords the run has not published
+    rig.sim.fail.clear()
+
+
+def published_passwords(rig):
+    prefix = f"/dc2/{rig.s.env}/"
+    return {role: urlsplit(rig.sim.param_values[prefix + key]).password
+            for key, role in {"media_runtime_dsn": "media_runtime",
+                              "media_migration_dsn": "media_migrator",
+                              "processing_runtime_dsn": "processing_runtime",
+                              "processing_migration_dsn": "processing_migrator"}.items()}
+
+
+def test_a_resume_after_the_bootstrap_task_finished_publishes_the_passwords_it_applied(rig):
+    interrupt_publication_after_the_task_succeeded(rig)
+    applied = dict(rig.sim.role_passwords)
+    rig.deploy(stop_after="db-bootstrap")
+    assert len(rig.ops("run-task")) == 1  # the finished task was reused, not repeated
+    assert published_passwords(rig) == applied
+    assert rig.sim.role_passwords == applied
+    assert rig.steps()["db-bootstrap"] == "done"
+
+
+def test_when_the_saved_passwords_are_lost_a_fresh_bootstrap_applies_the_published_ones(rig):
+    interrupt_publication_after_the_task_succeeded(rig)
+    stale = dict(rig.sim.role_passwords)
+    (rig.s.state_dir / "db-bootstrap-passwords.json").unlink()
+    rig.deploy(stop_after="db-bootstrap")
+    assert len(rig.ops("run-task")) == 2  # the finished task could not be trusted
+    assert rig.sim.role_passwords != stale
+    assert published_passwords(rig) == rig.sim.role_passwords
+
+
+def test_the_saved_passwords_are_private_unjournaled_and_gone_once_published(rig):
+    interrupt_publication_after_the_task_succeeded(rig)
+    path = rig.s.state_dir / "db-bootstrap-passwords.json"
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    for password in json.loads(path.read_text()).values():
+        assert password not in (rig.s.state_dir / "deploy-journal.json").read_text()
+    pipeline = rig.deploy(stop_after="db-bootstrap")
+    assert not path.exists()
+    assert all(p not in json.dumps(pipeline.plan) for p in rig.sim.role_passwords.values())
+
+
+def test_a_failed_bootstrap_task_is_retried_with_the_same_saved_passwords(rig):
+    rig.sim.task_exit["bootstrap"] = 1
+    with pytest.raises(DeployError, match="bootstrap task failed"):
+        rig.deploy()
+    first = dict(rig.sim.role_passwords)
+    rig.sim.task_exit.clear()
+    rig.deploy(stop_after="db-bootstrap")
+    assert rig.sim.role_passwords == first == published_passwords(rig)
+
+
 def test_a_rerun_keeps_the_signing_key_stable(rig):
     rig.deploy(stop_after="db-bootstrap")
     key = f"/dc2/{rig.s.env}/jwt_secret"
@@ -1131,6 +1193,176 @@ def test_teardown_stops_running_tasks_in_the_project_cluster(deployed):
     stops = deployed.ops("stop-task")
     assert [p["task"] for _, _, p in stops] == ["arn:task/stray"]
     assert stops[0][2]["cluster"] == outputs["ClusterArn"]
+
+
+class OrderedSession(FakeSession):
+    """Remembers how many AWS calls had been made when each session action ran."""
+
+    def __init__(self, sim):
+        super().__init__()
+        self.sim, self.at = sim, []
+
+    def __call__(self, argv, **kwargs):
+        self.at.append((argv[0], len(self.sim.calls)))
+        return super().__call__(argv, **kwargs)
+
+
+def failing_session(error):
+    def run(argv, *, environ=None, stdout=None, **_):
+        print(json.dumps({"ok": False, "error": error}), file=stdout)
+        return 1
+
+    return run
+
+
+def record_failed_close_steps(rig, failures):
+    from scripts.aws.journal import Journal
+
+    directory = rig.s.state_dir / "session"
+    directory.mkdir(mode=0o700, exist_ok=True)
+    journal = Journal(directory / "journal.json", station=rig.s.station, environment=rig.s.env)
+    journal.initialize(verified_empty=True, exclusive_station=True)
+    with journal.locked() as state:
+        state["session_failures"] = failures
+        journal.save(state)
+
+
+def test_teardown_closes_the_session_then_stops_tasks_then_empties_the_buckets(deployed):
+    deployed.s.confirm_run_id = "t1"
+    deployed.session = OrderedSession(deployed.sim)
+    deployed.sim.tasks["arn:task/stray"] = {"definition": "d", "polls": 0, "stopped": False}
+    start = len(deployed.sim.calls)
+    deployed.teardown()
+    closed = [n for action, n in deployed.session.at if action == "close"]
+    assert len(closed) == 1 and closed[0] >= start
+    stop = first_index(deployed, "stop-task")
+    emptied = first_index(deployed, "delete-objects")
+    confirmed = max(i for i, (_, op, _) in enumerate(deployed.sim.calls)
+                    if op == "describe-tasks" and i < emptied)
+    assert closed[0] <= stop < confirmed < emptied
+    steps = deployed.steps()
+    td = [name for name in steps if name.startswith("td-")]
+    assert td[:4] == ["td-inventory", "td-session-close", "td-quiesce", "td-buckets-emptied"]
+    config = json.loads((deployed.s.state_dir / "operator-config-teardown.json").read_text())
+    assert config["counts_file"].endswith("attested-zero-counts.json")  # no drain wait
+
+
+def test_teardown_waits_for_a_stopping_task_to_report_stopped_before_emptying(deployed):
+    deployed.s.confirm_run_id = "t1"
+    deployed.sim.stop_lag = 4
+    deployed.sim.tasks["arn:task/stray"] = {"definition": "d", "polls": 0, "stopped": False}
+    deployed.teardown()
+    stop, emptied = first_index(deployed, "stop-task"), first_index(deployed, "delete-objects")
+    polls = [i for i, (_, op, _) in enumerate(deployed.sim.calls)
+             if op == "describe-tasks" and stop < i < emptied]
+    assert len(polls) >= 5  # four RUNNING answers, then STOPPED, then a clean re-list
+
+
+def test_a_task_that_never_stops_halts_teardown_before_any_bucket_is_touched(deployed):
+    deployed.s.confirm_run_id = "t1"
+    deployed.sim.stop_lag = 10**9
+    deployed.sim.tasks["arn:task/stuck"] = {"definition": "d", "polls": 0, "stopped": False}
+    with pytest.raises(DeployError, match="Timed out waiting for encoder tasks"):
+        deployed.teardown()
+    assert deployed.ops("delete-objects") == [] and deployed.ops("delete-bucket") == []
+    assert "td-buckets-emptied" not in deployed.steps()
+    assert deployed.steps()["td-quiesce"] == "failed"
+
+
+def test_a_session_that_cannot_be_closed_stops_teardown_before_anything_is_stopped_or_emptied(
+        deployed):
+    deployed.s.confirm_run_id = "t1"
+    deployed.session = failing_session("Partial close; retry from retained journal")
+    deployed.sim.tasks["arn:task/stray"] = {"definition": "d", "polls": 0, "stopped": False}
+    with pytest.raises(DeployError, match="session close failed"):
+        deployed.teardown()
+    assert deployed.ops("stop-task") == [] and deployed.ops("delete-objects") == []
+    assert deployed.steps()["td-session-close"] == "failed"
+
+
+def test_a_close_that_failed_on_an_edge_step_is_not_mistaken_for_a_drain_wait(deployed):
+    deployed.s.confirm_run_id = "t1"
+    record_failed_close_steps(deployed, ["edge:close", "inventory"])
+    deployed.session = failing_session("Partial close; retry from retained journal")
+    with pytest.raises(DeployError, match="session close failed"):
+        deployed.teardown()
+    assert deployed.ops("delete-objects") == []
+
+
+def test_a_close_that_failed_only_its_drain_checks_continues_to_the_task_stop(deployed):
+    deployed.s.confirm_run_id = "t1"
+    record_failed_close_steps(deployed, ["drain", "outcomes", "inventory"])
+    deployed.session = failing_session("Partial close; retry from retained journal")
+    deployed.teardown()
+    detail = deployed.journal.view()["steps"]["td-session-close"]["detail"]
+    assert detail["deferred_to_task_stop"] == ["drain", "inventory", "outcomes"]
+    assert deployed.steps()["td-buckets-emptied"] == "done"
+
+
+def test_a_teardown_before_the_applications_exist_has_no_session_to_close(tmp_path):
+    rig = Rig(tmp_path, confirm_run_id="t1")
+    rig.deploy(stop_after="foundation")
+    rig.teardown()
+    detail = rig.journal.view()["steps"]["td-session-close"]["detail"]
+    assert detail["session"] == "nothing-deployed" and rig.session.actions == []
+
+
+def shared_staging(a, b):
+    adopt(a)
+    b.sim.stacks["shared-staging"] = a.sim.stacks["shared-staging"]
+    b.sim.buckets["shared-artifacts"] = a.sim.buckets["shared-artifacts"]
+    b.s.adopt_bootstrap = "shared-staging"
+    return a.sim.buckets["shared-artifacts"]
+
+
+def test_an_adopted_bucket_keeps_another_runs_template_versions_through_teardown(tmp_path):
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    first = Rig(tmp_path / "a", run_id="ra", confirm_run_id="ra")
+    second = Rig(tmp_path / "b", run_id="rb", confirm_run_id="rb")
+    shared = shared_staging(first, second)
+    first.deploy()
+    second.deploy()
+    staged = {run: rig.journal.view()["resources"]["staged_objects"]
+              for run, rig in (("ra", first), ("rb", second))}
+    # Same bytes, same digest: only the run id tells the two sets of objects apart.
+    names = {run: {Path(o["key"]).name for o in objects} for run, objects in staged.items()}
+    assert names["ra"] == names["rb"]
+    assert all(o["key"].startswith(f"templates/{run}/") and o["version_id"]
+               for run, objects in staged.items() for o in objects)
+    mine = {o["version_id"] for o in staged["rb"]}
+    assert mine <= {v["VersionId"] for v in shared["versions"]}
+    first.teardown()
+    left = {v["VersionId"] for v in shared["versions"]}
+    assert left == mine  # run b's versions survive; none of run a's remain
+    second.teardown()
+    assert shared["versions"] == []
+
+
+def test_a_resumed_stage_keeps_every_version_it_uploaded_for_the_teardown(rig):
+    adopt(rig)
+    shared = rig.sim.buckets["shared-artifacts"]
+    rig.s.confirm_run_id = "t1"
+    rig.deploy(stop_after="foundation")
+    rig.journal.mutate(lambda d: d["steps"].pop("foundation"))
+    rig.deploy(stop_after="foundation")  # the template is staged again: a second version
+    recorded = rig.journal.view()["resources"]["staged_objects"]
+    assert len(recorded) == 2 and len(shared["versions"]) == 2
+    rig.teardown()
+    assert shared["versions"] == []
+
+
+def test_staged_objects_with_no_recorded_version_are_reported_not_guessed_at(rig):
+    adopt(rig)
+    shared = rig.sim.buckets["shared-artifacts"]
+    rig.s.confirm_run_id = "t1"
+    rig.deploy(stop_after="foundation")
+    rig.journal.mutate(lambda d: [o.update(version_id=None)
+                                  for o in d["resources"]["staged_objects"]])
+    rig.teardown()
+    detail = rig.journal.view()["steps"]["td-bootstrap-stack"]["detail"]
+    assert detail["staged_versions_removed"] == 0 and detail["staged_without_version_id_kept"]
+    assert len(shared["versions"]) == 1
 
 
 def test_teardown_needs_a_journal_to_know_what_this_run_created(tmp_path):

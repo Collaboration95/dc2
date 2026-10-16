@@ -38,31 +38,49 @@ def login(ctx, origin="frontend"):
     return api, reply, flags
 
 
-def reserve(api, path, request_id):
+def reserve(api, path, request_id, *, replay_ok=False):
+    """Reserve an upload. A replay of a finalized reservation answers `upload: null`.
+
+    Media issues no new writable grant once a reservation is finalized, so 201 with
+    `upload: null` is success for a resumed run (`replay_ok`) and a failure for a caller that
+    needs a grant to use.
+    """
     path = Path(path)
     reply = api.request("POST", "/api/media/uploads/reservations", body={
         "request_id": request_id, "filename": path.name, "content_type": CONTENT_TYPE,
         "size_bytes": path.stat().st_size, "sha256": sha256_file(path)})
     data = reply.json()
-    if reply.status != 201 or not isinstance(data, dict) or not data.get("upload"):
+    if reply.status != 201 or not isinstance(data, dict) or not data.get("reservation_id"):
         raise ProofError(f"Reservation failed with HTTP {reply.status}")
+    if not data.get("upload") and not replay_ok:
+        raise ProofError(f"Reservation returned no upload grant (HTTP {reply.status})")
     return reply, data
 
 
 def submit(ctx, api, path, intent, save):
-    """reserve -> upload -> finalize, resumable: ids are recorded before the next side effect."""
+    """reserve -> upload -> finalize, resumable: ids are recorded before the next side effect.
+
+    Every step may be repeated: the reservation is idempotent on `request_id`, the upload is
+    skipped once recorded (or once the replay shows the reservation finalized), and finalize
+    returns the same job. The first measurement of each timing is kept, so a resumed run
+    reports the original latency and not the replay's.
+    """
     path = Path(path)
     if not path.is_file():
         raise ProofError("The fixture file does not exist")
     intent.setdefault("request_id", str(uuid.uuid4()))
     save()
-    timing = {}
-    reply, data = reserve(api, path, intent["request_id"])
-    timing["reserve_ms"] = reply.ms
+    timing = intent.setdefault("timing", {})
+    reply, data = reserve(api, path, intent["request_id"], replay_ok=True)
+    timing.setdefault("reserve_ms", reply.ms)
     intent["reservation_id"] = data["reservation_id"]
     save()
-    if not intent.get("uploaded"):
-        grant = data["upload"]
+    grant = data.get("upload")
+    if grant is None:
+        # Finalized already: an earlier attempt uploaded, and Media accepted, the bytes.
+        intent["uploaded"] = True
+        save()
+    elif not intent.get("uploaded"):
         if not str(grant["url"]).startswith("https://"):
             raise ProofError("The storage upload URL is not HTTPS")
         ctype, body = multipart(grant["fields"], path.name, path.read_bytes(), CONTENT_TYPE)
@@ -82,7 +100,9 @@ def submit(ctx, api, path, intent, save):
     if final.status not in {200, 201, 202} or not isinstance(accepted, dict) or not accepted.get(
             "job_id"):
         raise ProofError(f"Finalize failed with HTTP {final.status}")
-    timing["finalize_ms"] = final.ms
+    timing.setdefault("finalize_ms", final.ms)
+    if intent.get("job_id") not in {None, accepted["job_id"]}:
+        raise ProofError("Finalize replay named a different job than the one recorded")
     intent["job_id"] = accepted["job_id"]
     save()
     return {"job_id": accepted["job_id"], "bytes": path.stat().st_size, **timing}
