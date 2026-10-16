@@ -115,10 +115,6 @@ async def cleanup_tombstones(
     return cleaned
 
 
-# A failed deletion is retried this soon, behind rows that have not failed yet.
-STAGED_RETRY_SECONDS = 60
-
-
 async def cleanup_staged_objects(
     factory, storage, bucket, *, grace_seconds, limit=100, deadline=None
 ):
@@ -129,11 +125,13 @@ async def cleanup_staged_objects(
     stored version goes, then the row. A write whose outcome is unknown (``write_uncertain``)
     keeps its row with a fresh clock: a late PUT may still land, so it is rescanned.
 
-    Unlike the tombstone scan this holds the row lock across the storage call. Adoption
-    (``accept`` and the edit commit) takes this same lock and needs the row, so the lock is
-    what stops a late adopter from pointing an Asset at bytes deleted a moment earlier;
-    there is no lease column to fence with. Each row is its own short transaction and the
-    storage call is bounded by the invocation deadline.
+    Fence against adopters. Adoption (``accept`` and the edit commit) takes this row's lock,
+    and refuses a row older than ``grace_seconds`` (``intake.assert_adoptable``), so a stale
+    row is the cleanup's alone. The lock covers the deletion while it runs, but the blocking
+    S3 thread outlives a timeout, so the lock is not the fence: staleness is. A row is only
+    made fresh again (an uncertain write, rescanned later) after a deletion has returned; a
+    failed or timed-out one is left stale, so no adopter can win while that thread runs.
+    Each row is its own short transaction and the storage call is bounded by the deadline.
     """
     stale = StagedObject.created_at < now() - timedelta(seconds=grace_seconds)
     orphaned = ~select(Asset.id).where(Asset.source_key == StagedObject.key).exists()
@@ -165,8 +163,11 @@ async def cleanup_staged_objects(
                     async with asyncio.timeout(max(0.001, deadline - time.monotonic())):
                         await remove_source_versions(storage, bucket, key)
             except Exception:
-                # The outcome is unknown, so the cleanup intent stays; due again shortly.
-                staged.created_at = now() - timedelta(seconds=grace_seconds - STAGED_RETRY_SECONDS)
+                # The outcome is unknown, so the cleanup intent stays and the row stays
+                # stale (unadoptable) while an abandoned deletion thread may still run.
+                # Moving it just past the threshold sends it behind older rows, so a few
+                # persistent failures cannot starve the batch; it is due on the next pass.
+                staged.created_at = now() - timedelta(seconds=grace_seconds + 1)
                 continue
             if staged.write_uncertain:
                 staged.created_at = now()

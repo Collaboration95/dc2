@@ -176,10 +176,34 @@ async def test_unclaimable_messages_keep_their_receipt_and_do_not_end_the_task()
     client.delete_message.assert_called_once_with(QueueUrl="local", ReceiptHandle="real")
 
 
-async def test_message_handling_is_bounded_even_if_every_receive_is_stale():
+async def test_stale_drains_are_bounded_even_if_every_receive_is_stale():
     client = Mock()
     client.receive_message.return_value = receipts("stale")[0]
     execute = AsyncMock(return_value=sqs.STALE)
+    assert (
+        await sqs.run(
+            None,
+            settings(),
+            client,
+            "local",
+            end_epoch=time.time() + 60,
+            name="task",
+            decode=lambda _: envelope(),
+            execute=execute,
+            max_messages=4,
+            max_stale=40,
+        )
+        == 0
+    )
+    # The allowance is untouched, so only the separate drain bound ends the task.
+    assert execute.await_count == 40
+    assert client.delete_message.call_count == 40
+
+
+async def test_unclaimable_messages_still_spend_the_allowance_so_poison_ends_the_task():
+    client = Mock()
+    client.receive_message.return_value = receipts("poison")[0]
+    execute = AsyncMock(return_value=sqs.SKIPPED)
     assert (
         await sqs.run(
             None,
@@ -195,6 +219,51 @@ async def test_message_handling_is_bounded_even_if_every_receive_is_stale():
         == 0
     )
     assert execute.await_count == 4
+    client.delete_message.assert_not_called()
+
+
+async def test_three_workers_facing_seventy_five_stale_duplicates_still_encode_fresh_work():
+    # Repair re-sends queued work every 45s, so duplicates pile up ahead of fresh work.
+    # Previously each of three tasks spent its 25-message allowance on stale receipts,
+    # encoded nothing and left the fresh messages queued.
+    queue = [f"stale-{n}" for n in range(75)] + ["fresh-1", "fresh-2", "fresh-3"]
+    lock = asyncio.Lock()
+
+    def receive_message(**_):
+        if not queue:
+            return {}
+        name = queue.pop(0)
+        return {"Messages": [{"Body": name, "ReceiptHandle": name}]}
+
+    client = Mock()
+    client.receive_message.side_effect = receive_message
+    deleted, encoded = [], []
+
+    async def execute(_factory, envelope, *_args, **_kwargs):
+        async with lock:
+            if envelope["body"].startswith("stale"):
+                return sqs.STALE
+            encoded.append(envelope["body"])
+            return True
+
+    client.delete_message.side_effect = lambda **kw: deleted.append(kw["ReceiptHandle"])
+
+    async def worker(name):
+        return await sqs.run(
+            None,
+            settings(),
+            client,
+            "local",
+            end_epoch=time.time() + 60,
+            name=name,
+            decode=lambda body: {**envelope(), "body": body},
+            execute=execute,
+        )
+
+    results = await asyncio.gather(*(worker(f"task-{n}") for n in range(3)))
+    assert results == [0, 0, 0]
+    assert sorted(encoded) == ["fresh-1", "fresh-2", "fresh-3"]
+    assert len([name for name in deleted if name.startswith("stale")]) == 75
 
 
 async def test_claim_value_error_is_skipped_not_fatal_and_never_acked():

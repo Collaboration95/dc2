@@ -4,6 +4,7 @@ Select Lead C's existing stack using V1_TEST_MEDIA_DSN. Each test creates and
 removes a unique schema; it never touches shared application tables.
 """
 
+import asyncio
 import os
 from datetime import timedelta
 from types import SimpleNamespace
@@ -523,6 +524,7 @@ async def test_poisoned_result_does_not_block_a_later_version(factory):
 # --- Staged source copies a failed edit or dead Lambda left behind (#117) -------------------
 
 GRACE = 3600
+ADOPTER_VIEW = SimpleNamespace(settings=SimpleNamespace(orphan_grace_seconds=GRACE))
 
 
 async def stage_rows(factory, *keys, age=timedelta(hours=2), uncertain=False):
@@ -592,21 +594,51 @@ async def test_staged_recovery_is_bounded_per_pass_and_oldest_first(factory):
     assert await staged_keys(factory) == set()
 
 
-async def test_an_uncertain_removal_keeps_the_intent_and_retries_soon(factory):
+async def test_an_uncertain_removal_keeps_the_intent_and_stays_unadoptable_until_it_returns(
+    factory,
+):
+    from media.errors import MediaError
+    from media.services.intake import assert_adoptable
+
     storage, removed, state = removals()
     state["fail"] = True
     await stage_rows(factory, "sources/o/a/source")
     assert await clean_staged(factory, storage) == 0
     assert await staged_keys(factory) == {"sources/o/a/source"}
-    # Not due again immediately (no hot loop), but due well before a full grace period.
-    assert await clean_staged(factory, storage) == 0
-    assert len(removed) == 1
-    async with factory() as session, session.begin():
+    # Still stale, so an adopter is refused while an abandoned deletion may still run,
+    # and the next pass retries it (behind any older rows).
+    async with factory() as session:
         staged = await session.get(StagedObject, "sources/o/a/source")
-        staged.created_at -= timedelta(seconds=120)
+        with pytest.raises(MediaError):
+            assert_adoptable(staged, ADOPTER_VIEW)
     state["fail"] = False
     assert await clean_staged(factory, storage) == 1
+    assert len(removed) == 2
     assert await staged_keys(factory) == set()
+
+
+async def test_a_timed_out_deletion_leaves_the_row_stale_and_the_bytes_unadoptable(factory):
+    import time
+
+    from media.errors import MediaError
+    from media.services.intake import assert_adoptable
+
+    started = []
+
+    async def slow(bucket, key):
+        started.append(key)
+        await asyncio.sleep(5)
+
+    storage = SimpleNamespace(remove_source_versions=slow)
+    await stage_rows(factory, "sources/o/a/source", uncertain=True)
+    # The invocation deadline cuts the deletion off mid-flight.
+    assert await clean_staged(factory, storage, deadline=time.monotonic() + 0.2) == 0
+    assert started == ["sources/o/a/source"]
+    async with factory() as session:
+        staged = await session.get(StagedObject, "sources/o/a/source")
+        assert staged.write_uncertain
+        with pytest.raises(MediaError):
+            assert_adoptable(staged, ADOPTER_VIEW)
 
 
 async def test_a_write_of_unknown_outcome_is_rescanned_instead_of_retired(factory):

@@ -33,7 +33,7 @@ not data to preserve:
 | DLQ | Typical cause | Why SQL already covers it |
 |---|---|---|
 | `processing-commands` | Invalid envelope, owner/source-prefix mismatch, `retry` before `submit` outlived the retry window, conflicting duplicate ID | The inbox row is rolled back with the failed transaction, so a redrive after a fix is processed once. |
-| `processing-work` | Identity/source mismatch, a task binding conflict, a message for an unknown attempt. Stale, cancelled, terminal or already-claimed work is **deleted by the encoder** and never reaches the DLQ | Repair re-sends work for a queued attempt with the same message ID every 45s while a session is open (fixed, never backing off, so a loss is found inside the 120s gate). |
+| `processing-work` | Identity/source mismatch, a task binding conflict, a message for an unknown attempt. Stale, cancelled, terminal or already-claimed work is **deleted by the encoder** and never reaches the DLQ | Repair re-sends work for a queued attempt with the same message ID every 45s while a session is open (fixed, never backing off, so a loss is found inside the 120s gate). The resulting duplicates are acknowledged and deleted by encoders without spending their per-task message allowance. |
 | `media-results` | A result Media rejects (409/422: source differs from the accepted descriptor, outputs outside the attempt prefix, attempt regression) | The rejected apply rolls back its inbox row. The projection stays at the last good version and **any later version applies**: only a poisoned *final* result can leave a stale status. |
 
 ## Inspect (read-only)
