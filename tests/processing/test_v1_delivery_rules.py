@@ -56,22 +56,32 @@ def test_work_message_id_is_stable_per_attempt_and_version():
     assert messaging.work_message_id(attempt, 3) != messaging.work_message_id(uuid4(), 3)
 
 
-def test_first_repair_resend_falls_inside_the_120_second_lost_work_gate():
-    # The grace before the first look plus one repair tick must stay within 120s.
-    assert messaging.REPAIR_BASE_SECONDS + 60 <= 120
-    assert messaging.repair_delay(0) == messaging.REPAIR_BASE_SECONDS
+def test_repair_interval_plus_tick_and_scheduling_delay_stays_inside_the_120_second_gate():
+    from scripts.aws.v1.definitions import template
+
+    # A message can be lost just after a send: the next look is one interval away, then
+    # waits for the next repair tick, then for EventBridge and Lambda to start.
+    schedule = template()["Resources"]["ProcessingRepairRule"]["Properties"]["ScheduleExpression"]
+    assert schedule == "rate(1 minute)"
+    assert messaging.REPAIR_TICK_SECONDS == 60
+    worst_case = (
+        messaging.REPAIR_INTERVAL_SECONDS
+        + messaging.REPAIR_TICK_SECONDS
+        + messaging.REPAIR_SCHEDULING_SLACK_SECONDS
+    )
+    assert worst_case <= messaging.LOST_WORK_GATE_SECONDS == 120
+    assert messaging.REPAIR_SCHEDULING_SLACK_SECONDS >= 15
 
 
-def test_repair_backoff_grows_and_is_capped_so_an_idle_attempt_does_not_flood():
-    delays = [messaging.repair_delay(count) for count in range(12)]
-    assert delays == sorted(delays)
-    assert delays[-1] == messaging.REPAIR_CAP_SECONDS
-    # An hour of idling costs well under the old one-per-minute rate.
-    elapsed, sends = 0, 0
-    while elapsed < 3600:
-        elapsed += messaging.repair_delay(sends)
-        sends += 1
-    assert sends <= 8
+def test_no_repair_path_pushes_the_next_look_past_the_recovery_bound():
+    # The old schedule doubled to 15 minutes, so a delivery lost after several repairs
+    # waited that long. Every writer of next_dispatch_at must use the one fixed interval.
+    for name in ("processing/messaging.py", "processing/recovery_v1.py"):
+        tree = ast.parse((ROOT / name).read_text())
+        names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
+        assert not names & {"repair_delay", "REPAIR_CAP_SECONDS", "REPAIR_BASE_SECONDS"}, name
+    assert not hasattr(messaging, "repair_delay")
+    assert messaging.REPAIR_INTERVAL_SECONDS <= 120 - messaging.REPAIR_TICK_SECONDS
 
 
 def test_cleanup_backoff_grows_to_an_hourly_cap():

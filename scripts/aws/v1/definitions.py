@@ -23,8 +23,16 @@ def policy(statements):
     return {"Version": "2012-10-17", "Statement": statements}
 
 
-def allow(actions, resources):
-    return {"Effect": "Allow", "Action": actions, "Resource": resources}
+def allow(actions, resources, condition=None):
+    statement = {"Effect": "Allow", "Action": actions, "Resource": resources}
+    if condition:
+        statement["Condition"] = condition
+    return statement
+
+
+def prefixes(*values):
+    """Limit a bucket-level list call to keys under the owner's own prefixes."""
+    return {"StringLike": {"s3:prefix": list(values)}}
 
 
 def db_ca_env(domain):
@@ -440,29 +448,45 @@ def template():
     def queue_arn(name):
         return attr(f"{name}Queue")
 
+    # Each grant below is the S3 surface that role's code actually reaches; the mapping
+    # from code path to action is asserted in tests/aws/v1/test_infrastructure.py. Version
+    # cleanup needs ListBucketVersions (ListObjectVersions) and DeleteObjectVersion: a plain
+    # DeleteObject only adds a delete marker and leaves the stored bytes.
+    output_jobs = sub("${OutputBucket.Arn}/jobs/*")
     source_read = allow(["s3:GetObject", "s3:GetObjectVersion"], [source_objects])
     output_write = allow(["s3:PutObject", "s3:AbortMultipartUpload"], [output_objects])
-    media_storage = [
+    source_versions = [
+        allow(
+            ["s3:ListBucketVersions"],
+            [attr("SourceBucket")],
+            prefixes("sources/*", "staging/*"),
+        ),
+        allow(["s3:DeleteObjectVersion"], [source_objects]),
+    ]
+    media_api_storage = [
         allow(
             [
                 "s3:GetObject",
                 "s3:GetObjectVersion",
                 "s3:PutObject",
-                "s3:DeleteObject",
-                "s3:DeleteObjectVersion",
+                # A failed multipart copy of an output into a source must be abortable.
+                "s3:AbortMultipartUpload",
             ],
             [source_objects],
         ),
-        allow(
-            ["s3:GetObject", "s3:GetObjectVersion", "s3:DeleteObject", "s3:DeleteObjectVersion"],
-            [output_objects],
-        ),
-        allow(
-            ["s3:ListBucket", "s3:ListBucketVersions"], [attr("SourceBucket"), attr("OutputBucket")]
-        ),
+        # Media reads outputs (playlists, signed GETs) but never writes or deletes them.
+        allow(["s3:GetObject", "s3:GetObjectVersion"], [output_objects]),
+        allow(["s3:ListBucket"], [attr("SourceBucket"), attr("OutputBucket")]),
+        *source_versions,
+    ]
+    # Processing's three cleanup entrypoints (repair, ECS stop, S3 hint) all run the same
+    # late-output cleanup, which lists and deletes versions under owned attempt prefixes.
+    output_cleanup = [
+        allow(["s3:ListBucketVersions"], [attr("OutputBucket")], prefixes("jobs/*")),
+        allow(["s3:DeleteObjectVersion"], [output_jobs]),
     ]
     privileges = {
-        "MediaApi": media_storage,
+        "MediaApi": media_api_storage,
         "MediaAuthorizer": [],
         "ProcessingApi": [],
         "ProcessingCommands": [
@@ -470,25 +494,21 @@ def template():
             allow(["sqs:SendMessage"], [queue_arn("ProcessingWork"), queue_arn("MediaResults")]),
         ],
         "MediaResults": [allow(receive, [queue_arn("MediaResults")])],
-        "MediaRepair": media_storage
+        # Repair only deletes source versions (tombstones, expired grants, staged orphans).
+        "MediaRepair": source_versions
         + [allow(["sqs:SendMessage"], [queue_arn("ProcessingCommands")])],
         "ProcessingRepair": [
             allow(["sqs:SendMessage"], [queue_arn("ProcessingWork"), queue_arn("MediaResults")]),
-            allow(["s3:DeleteObject", "s3:DeleteObjectVersion"], [output_objects]),
+            *output_cleanup,
         ],
         "ProcessingEcsEvents": [
-            allow(["sqs:SendMessage"], [queue_arn("ProcessingWork"), queue_arn("MediaResults")])
+            allow(["sqs:SendMessage"], [queue_arn("ProcessingWork"), queue_arn("MediaResults")]),
+            *output_cleanup,
         ],
+        # The S3 hint runs the same pass as repair, including the outbox publish.
         "ProcessingS3Events": [
-            allow(
-                [
-                    "s3:GetObject",
-                    "s3:GetObjectVersion",
-                    "s3:DeleteObject",
-                    "s3:DeleteObjectVersion",
-                ],
-                [output_objects],
-            )
+            allow(["sqs:SendMessage"], [queue_arn("ProcessingWork"), queue_arn("MediaResults")]),
+            *output_cleanup,
         ],
         "Worker": [
             source_read,
@@ -555,8 +575,18 @@ def template():
     # accidentally receives an identity-based SendMessage grant.
     producers = {
         "ProcessingCommands": ["MediaRepair"],
-        "ProcessingWork": ["ProcessingCommands", "ProcessingRepair", "ProcessingEcsEvents"],
-        "MediaResults": ["ProcessingCommands", "ProcessingRepair", "ProcessingEcsEvents"],
+        "ProcessingWork": [
+            "ProcessingCommands",
+            "ProcessingRepair",
+            "ProcessingEcsEvents",
+            "ProcessingS3Events",
+        ],
+        "MediaResults": [
+            "ProcessingCommands",
+            "ProcessingRepair",
+            "ProcessingEcsEvents",
+            "ProcessingS3Events",
+        ],
     }
     consumers = {
         "ProcessingCommands": ["ProcessingCommands"],
@@ -566,6 +596,7 @@ def template():
     for name in producers:
         statements = [
             {
+                "Sid": "DenyInsecureTransport",
                 "Effect": "Deny",
                 "Principal": "*",
                 "Action": "sqs:*",
@@ -573,21 +604,39 @@ def template():
                 "Condition": {"Bool": {"aws:SecureTransport": "false"}},
             }
         ]
-        for actions, roles in (
-            (["sqs:SendMessage"], producers[name]),
-            ([a for a in receive if a != "sqs:GetQueueAttributes"], consumers[name]),
+        for sid, actions, roles in (
+            ("DenyUnlistedProducers", ["sqs:SendMessage"], producers[name]),
+            (
+                "DenyUnlistedConsumers",
+                [a for a in receive if a != "sqs:GetQueueAttributes"],
+                consumers[name],
+            ),
         ):
+            condition = {
+                "ArnNotEquals": {"aws:PrincipalArn": [attr(f"{role}Role") for role in roles]}
+            }
+            if actions == ["sqs:SendMessage"]:
+                # Operator exception, SendMessage only. A native DLQ redrive
+                # (StartMessageMoveTask) and a poison-message injection both need
+                # SendMessage on the source queue, and neither principal is a handler
+                # role. Only this account's IAM users qualify (the operator's MFA
+                # session keeps the user ARN); every Lambda or task role, the public
+                # API roles included, and every foreign principal stay denied. The SQS
+                # service name covers the case where the move task presents itself
+                # instead of the caller. Receive/delete stay consumer-only.
+                account_users = sub("arn:${AWS::Partition}:iam::${AWS::AccountId}:user/*")
+                condition |= {
+                    "ArnNotLike": {"aws:PrincipalArn": account_users},
+                    "StringNotEquals": {"aws:PrincipalServiceName": "sqs.amazonaws.com"},
+                }
             statements.append(
                 {
+                    "Sid": sid,
                     "Effect": "Deny",
                     "Principal": "*",
                     "Action": actions,
                     "Resource": queue_arn(name),
-                    "Condition": {
-                        "ArnNotEquals": {
-                            "aws:PrincipalArn": [attr(f"{role}Role") for role in roles]
-                        }
-                    },
+                    "Condition": condition,
                 }
             )
         add(

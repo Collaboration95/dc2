@@ -136,6 +136,9 @@ async def edit(session, storage, owner_id, parent_id, request, key):
             staged = await session.get(StagedObject, source_key, with_for_update=True)
             size, digest_sha256 = await storage.copy_output_source(output, source_key)
             staged.created_at = now()
+            # The copy returned, so no late write can follow: recovery may now retire the
+            # row once every version is gone instead of rescanning it forever.
+            staged.write_uncertain = False
         asset = Asset(
             id=asset_id,
             owner_id=owner_id,

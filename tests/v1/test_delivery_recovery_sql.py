@@ -104,14 +104,23 @@ async def submitted(factory):
     return job, attempt, transport, sent
 
 
-async def test_repair_resends_one_stable_work_message_on_a_growing_backoff(factory):
+async def seconds_until_next_look(factory, attempt_id):
+    async with factory() as session:
+        saved = await session.get(Attempt, attempt_id)
+        return await session.scalar(
+            select(func.extract("epoch", saved.next_dispatch_at - func.clock_timestamp()))
+        )
+
+
+async def test_repair_resends_one_stable_work_message_on_a_fixed_short_interval(factory):
     job, attempt, transport, sent = await submitted(factory)
     original = next(item for item in sent if item[1] == "work")
     assert original[2] == str(messaging.work_message_id(attempt.id, 1))
     rows = await count(factory, ProcessingOutbox)
-    # The send itself was the first delivery: nothing to repair for the first minute.
+    interval = messaging.REPAIR_INTERVAL_SECONDS
+    # The send itself was the first delivery: nothing to repair for one interval.
     assert await repair_work(factory) == 0
-    await rewind(factory, 50)
+    await rewind(factory, interval - 10)
     assert await repair_work(factory) == 0
     await rewind(factory, 20)
     assert await repair_work(factory) == 1
@@ -120,22 +129,26 @@ async def test_repair_resends_one_stable_work_message_on_a_growing_backoff(facto
     assert await publish_due(factory, ProcessingOutbox, transport, limit=5) == 1
     assert sent[-1] == original
     async with factory() as session:
-        saved = await session.get(Attempt, attempt.id)
-        remaining = await session.scalar(
-            select(func.extract("epoch", saved.next_dispatch_at - func.clock_timestamp()))
-        )
-        assert saved.dispatch_count == 1
-    assert 110 <= remaining <= 121
-    await rewind(factory, 100)
-    assert await repair_work(factory) == 0
-    await rewind(factory, 30)
+        assert (await session.get(Attempt, attempt.id)).dispatch_count == 1
+    assert interval - 6 <= await seconds_until_next_look(factory, attempt.id) <= interval + 1
+
+
+async def test_repair_interval_never_grows_so_a_late_loss_is_still_found_inside_120_seconds(
+    factory,
+):
+    job, attempt, transport, sent = await submitted(factory)
+    # Many consecutive repairs of an idle queued attempt (the old schedule reached 900s).
+    for _ in range(10):
+        await rewind(factory, messaging.REPAIR_INTERVAL_SECONDS + 1)
+        assert await repair_work(factory) == 1
+        assert await publish_due(factory, ProcessingOutbox, transport, limit=5) == 1
+        remaining = await seconds_until_next_look(factory, attempt.id)
+        assert remaining <= messaging.REPAIR_INTERVAL_SECONDS + 1
+    # The latest delivery then vanishes: one interval, one 60s tick, scheduling slack.
+    worst = messaging.REPAIR_INTERVAL_SECONDS + messaging.REPAIR_TICK_SECONDS
+    assert worst + messaging.REPAIR_SCHEDULING_SLACK_SECONDS <= 120
+    await rewind(factory, int(remaining) + 1)
     assert await repair_work(factory) == 1
-    async with factory() as session:
-        saved = await session.get(Attempt, attempt.id)
-        remaining = await session.scalar(
-            select(func.extract("epoch", saved.next_dispatch_at - func.clock_timestamp()))
-        )
-    assert 230 <= remaining <= 241
 
 
 async def test_repair_skips_work_that_is_still_unsent_or_mid_publication(factory):

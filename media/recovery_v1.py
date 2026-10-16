@@ -2,17 +2,17 @@
 
 Media only deletes its source objects. Processing owns its output cleanup ledger.
 Keep successful source scan intents forever: late writes and lost delete responses
-must be retried. No storage operation runs inside a SQL transaction or row lock.
+must be retried. Tombstone and upload scans run no storage operation inside a SQL
+transaction or row lock; staged-object recovery is the one deliberate exception.
 """
 
 import asyncio
 import time
 from datetime import timedelta
-from types import SimpleNamespace
 
-from sqlalchemy import or_, select
+from sqlalchemy import delete, or_, select
 
-from media.models import Asset, CleanupIntent, now
+from media.models import Asset, CleanupIntent, StagedObject, now
 from media.projections import source_for_asset
 from media.services.direct_intake import (
     CLEANUP_HORIZON,
@@ -31,13 +31,8 @@ def unretired(horizon):
 
 
 async def remove_source_versions(storage, bucket, key):
-    # A2's primitive is the only source-version deletion authority. Compatibility
-    # with its initial export allows this commit to integrate independently.
-    remove = getattr(storage, "remove_source_versions", None)
-    if remove is not None:
-        await remove(bucket, key)
-    else:
-        await storage.delete_direct_upload(SimpleNamespace(bucket=bucket, key=key))
+    # Every version and delete marker: a bare delete would only add a marker.
+    await storage.remove_source_versions(bucket, key)
 
 
 async def cleanup_tombstones(
@@ -120,10 +115,71 @@ async def cleanup_tombstones(
     return cleaned
 
 
+# A failed deletion is retried this soon, behind rows that have not failed yet.
+STAGED_RETRY_SECONDS = 60
+
+
+async def cleanup_staged_objects(
+    factory, storage, bucket, *, grace_seconds, limit=100, deadline=None
+):
+    """Release source copies a failed edit or dead Lambda left behind, bounded per pass.
+
+    A ``StagedObject`` is the intent to clean a key until an Asset adopts it. One that is
+    older than ``grace_seconds`` and adopted by no Asset can never be used again, so every
+    stored version goes, then the row. A write whose outcome is unknown (``write_uncertain``)
+    keeps its row with a fresh clock: a late PUT may still land, so it is rescanned.
+
+    Unlike the tombstone scan this holds the row lock across the storage call. Adoption
+    (``accept`` and the edit commit) takes this same lock and needs the row, so the lock is
+    what stops a late adopter from pointing an Asset at bytes deleted a moment earlier;
+    there is no lease column to fence with. Each row is its own short transaction and the
+    storage call is bounded by the invocation deadline.
+    """
+    stale = StagedObject.created_at < now() - timedelta(seconds=grace_seconds)
+    orphaned = ~select(Asset.id).where(Asset.source_key == StagedObject.key).exists()
+    async with factory() as session:
+        keys = list(
+            await session.scalars(
+                select(StagedObject.key)
+                .where(stale, orphaned)
+                .order_by(StagedObject.created_at, StagedObject.key)
+                .limit(limit)
+            )
+        )
+    cleaned = 0
+    for key in keys:
+        if deadline is not None and time.monotonic() >= deadline:
+            break
+        async with factory() as session, session.begin():
+            staged = await session.scalar(
+                select(StagedObject)
+                .where(StagedObject.key == key, stale, orphaned)
+                .with_for_update(skip_locked=True)
+            )
+            if staged is None:
+                continue  # Adopted, refreshed or taken by another pass since the listing.
+            try:
+                if deadline is None:
+                    await remove_source_versions(storage, bucket, key)
+                else:
+                    async with asyncio.timeout(max(0.001, deadline - time.monotonic())):
+                        await remove_source_versions(storage, bucket, key)
+            except Exception:
+                # The outcome is unknown, so the cleanup intent stays; due again shortly.
+                staged.created_at = now() - timedelta(seconds=grace_seconds - STAGED_RETRY_SECONDS)
+                continue
+            if staged.write_uncertain:
+                staged.created_at = now()
+            else:
+                await session.execute(delete(StagedObject).where(StagedObject.key == key))
+            cleaned += 1
+    return cleaned
+
+
 async def run_once(factory, settings, storage, *, deadline=None):
     """B's repair handler calls this after publishing commands; no peer needed."""
     limit = min(settings.recovery_batch_size, 100)
-    result = {"cleanup": 0, "uploads": 0}
+    result = {"cleanup": 0, "uploads": 0, "staged": 0}
     if deadline is None or time.monotonic() < deadline:
         result["cleanup"] = await cleanup_tombstones(
             factory,
@@ -136,5 +192,14 @@ async def run_once(factory, settings, storage, *, deadline=None):
         # deadline itself, so a cut-off pass leaves a lease, not a half-written state.
         result["uploads"] = await cleanup_expired_uploads(
             factory, storage, limit=limit, deadline=deadline
+        )
+    if deadline is None or time.monotonic() < deadline:
+        result["staged"] = await cleanup_staged_objects(
+            factory,
+            storage,
+            settings.minio_source_bucket,
+            grace_seconds=settings.orphan_grace_seconds,
+            limit=limit,
+            deadline=deadline,
         )
     return result

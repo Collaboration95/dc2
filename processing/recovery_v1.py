@@ -10,10 +10,10 @@ from sqlalchemy import or_, select
 from delivery.sql import stage
 from processing import lifecycle
 from processing.messaging import (
+    REPAIR_INTERVAL_SECONDS,
     emit_state,
     envelope,
     publish_outbox,
-    repair_delay,
     work_message_id,
 )
 from processing.messaging_models import AttemptTask, JobMessaging, ProcessingOutbox
@@ -84,9 +84,10 @@ async def repair_work(factory, *, limit=50, deadline=None):
     """Recreate work even after an acknowledged send, retention gap or lost delete.
 
     The work message ID is stable per (attempt, state version). A repair therefore
-    never grows the outbox: it re-arms the one row for another send, skips while
-    that row is still unsent or being published, and backs off per attempt so an
-    idle queued attempt costs a handful of sends an hour instead of one a minute.
+    never grows the outbox: it re-arms the one row for another send and skips while
+    that row is still unsent or being published. The look-again interval is fixed and
+    short (see REPAIR_INTERVAL_SECONDS): backing off would let a message lost late in
+    the backoff wait far past the 120s recovery gate.
     """
     async with factory() as session:
         now = await lifecycle.db_now(session)
@@ -143,7 +144,7 @@ async def repair_work(factory, *, limit=50, deadline=None):
                 attempt.dispatch_count += 1
                 repaired += 1
             # An unsent or in-flight row is the publisher's job; look again later.
-            attempt.next_dispatch_at = now + timedelta(seconds=repair_delay(attempt.dispatch_count))
+            attempt.next_dispatch_at = now + timedelta(seconds=REPAIR_INTERVAL_SECONDS)
     return repaired
 
 
