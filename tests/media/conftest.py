@@ -30,6 +30,16 @@ def session():
     return mock
 
 
+@pytest.fixture(autouse=True)
+def pinned_version(monkeypatch):
+    """Legacy signed-URL readers consult the SQL pin; mock sessions have no pin table."""
+    from media.services import direct_intake
+
+    lookup = AsyncMock(return_value=None)
+    monkeypatch.setattr(direct_intake, "pinned_version", lookup)
+    return lookup
+
+
 @pytest.fixture
 def settings():
     return Settings(

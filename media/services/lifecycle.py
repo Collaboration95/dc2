@@ -13,6 +13,7 @@ from media.errors import MediaError, PeerError
 from media.models import Asset, CleanupIntent, RequestKey, RetryIntent, StagedObject, now
 from media.repositories.assets import fingerprint, get_asset, replay, source_descriptor
 from media.schemas.public import PublicJob
+from media.services import direct_intake
 from media.services.intake import accept, discard_stage, stage
 
 
@@ -29,7 +30,8 @@ async def dispatch(session, peer, storage, asset_id):
             return
         asset.submit_attempts += 1
         try:
-            url, expires = await storage.source_grant(asset.source_key)
+            version = await direct_intake.pinned_version(session, asset)
+            url, expires = await storage.source_grant(asset.source_key, version)
             payload = {
                 "asset_id": str(asset.id),
                 "owner_id": str(asset.owner_id),

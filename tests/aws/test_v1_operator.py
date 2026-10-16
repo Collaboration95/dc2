@@ -6,6 +6,17 @@ import pytest
 
 from scripts.aws import v1_operator as operator
 
+DUMMY_ACCOUNT = "123456789012"
+DUMMY_OPERATOR = f"arn:aws:iam::{DUMMY_ACCOUNT}:user/operator"
+
+
+@pytest.fixture(autouse=True)
+def scope(monkeypatch):
+    # Identity is operator input; the checkout contains no real account to fall back on.
+    monkeypatch.setattr(operator, "PROFILE", "test-profile")
+    monkeypatch.setattr(operator, "ACCOUNT", DUMMY_ACCOUNT)
+    monkeypatch.setattr(operator, "OPERATOR", DUMMY_OPERATOR)
+
 
 def test_inherited_aws_credentials_and_endpoints_are_removed(monkeypatch):
     for key in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
@@ -20,7 +31,7 @@ def test_inherited_aws_credentials_and_endpoints_are_removed(monkeypatch):
 
 @pytest.mark.parametrize("account,arn", [
     ("330599756236", operator.OPERATOR),
-    (operator.ACCOUNT, "arn:aws:iam::866865534361:user/other"),
+    (operator.ACCOUNT, f"arn:aws:iam::{DUMMY_ACCOUNT}:user/other"),
 ])
 def test_wrong_identity_stops_preflight(monkeypatch, account, arn):
     monkeypatch.setattr(operator, "aws", lambda args: {
@@ -53,3 +64,33 @@ def test_empty_successful_mutation_response_is_valid(monkeypatch):
     monkeypatch.setattr(operator.subprocess, "run", lambda *a, **k: type(
         "Result", (), {"returncode": 0, "stdout": "", "stderr": ""})())
     assert operator.aws(["cloudformation", "execute-change-set"])["data"] == {}
+
+
+def test_unscoped_calls_are_refused_without_running_the_cli(monkeypatch):
+    monkeypatch.setattr(operator, "PROFILE", "")
+    monkeypatch.setattr(operator.subprocess, "run", lambda *a, **k: pytest.fail("ran aws"))
+    with pytest.raises(RuntimeError, match="no default profile"):
+        operator.aws(["sts", "get-caller-identity"])
+
+
+@pytest.mark.parametrize("profile,account,arn", [
+    ("default", DUMMY_ACCOUNT, DUMMY_OPERATOR),
+    ("", DUMMY_ACCOUNT, DUMMY_OPERATOR),
+    ("p", "123", DUMMY_OPERATOR),
+    ("p", DUMMY_ACCOUNT, "arn:aws:iam::999999999999:user/operator"),
+    ("p", DUMMY_ACCOUNT, f"arn:aws:iam::{DUMMY_ACCOUNT}:role/operator"),
+])
+def test_configure_rejects_default_profile_and_identity_outside_the_account(
+    profile, account, arn
+):
+    with pytest.raises(ValueError):
+        operator.configure(profile, account, arn)
+
+
+def test_source_contains_no_concrete_account_or_operator_arn():
+    from pathlib import Path
+
+    for name in ("v1_operator.py", "v1_foundation.py", "v1/transport.py"):
+        text = (Path(operator.__file__).parent / name).read_text()
+        assert not any(ch * 12 in text for ch in "0123456789")
+        assert "arn:aws:iam::8" not in text and "dc2-project2" not in text

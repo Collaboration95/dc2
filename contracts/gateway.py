@@ -131,14 +131,31 @@ async def invoke_asgi(app, event: dict, *, service: str) -> dict:
     return result
 
 
+def is_readiness_probe(event: dict) -> bool:
+    """A direct operator invocation, which API Gateway can never construct.
+
+    Gateway always builds a payload-v2 event with `version` and `requestContext`, and it
+    cannot add top-level keys from request data. IAM `lambda:InvokeFunction` therefore
+    gates this path, so it needs no public route and no shared secret.
+    """
+    return (
+        isinstance(event, dict)
+        and event.get("dc2_operation") == "ready"
+        and "version" not in event
+        and "requestContext" not in event
+    )
+
+
 class GatewayAdapter:
-    def __init__(self, app, *, service: str):
+    def __init__(self, app, *, service: str, readiness=None):
         if service not in PREFIXES:
             raise ValueError("Unknown domain service")
-        self.app, self.service = app, service
+        self.app, self.service, self.readiness = app, service, readiness
 
     async def invoke(self, event: dict) -> dict:
         return await invoke_asgi(self.app, event, service=self.service)
 
     def __call__(self, event: dict, context=None) -> dict:
+        if self.readiness is not None and is_readiness_probe(event):
+            return asyncio.run(self.readiness())
         return asyncio.run(self.invoke(event))

@@ -9,11 +9,11 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
-from uuid import uuid4
 
 from scripts.dev.v1_gateway import server
 from scripts.dev.v1_runtime import ROOT, load
@@ -335,9 +335,9 @@ def encode_one(runtime, *, expect=0, **environment):
             "--deadline-epoch",
             str(time.time() + 60),
             "--name",
-            # attempt_tasks.task_name is unique because a real task ARN never repeats. A fixed
-            # name made every second run against the same SQL volume fail as "already bound".
-            f"local-acceptance-{uuid4().hex[:12]}",
+            # A finite task name binds one attempt for good; a reused runtime's SQL
+            # still holds earlier runs' bindings.
+            f"local-acceptance-{uuid.uuid4().hex}",
             "--max-empty-polls",
             "1",
         ],

@@ -4,6 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
+RDS_CA_BUNDLE = "/opt/rds/global-bundle.pem"
+
 
 def ref(name):
     return {"Ref": name}
@@ -25,6 +27,17 @@ def allow(actions, resources):
     return {"Effect": "Allow", "Action": actions, "Resource": resources}
 
 
+def db_ca_env(domain):
+    """Each owner's Settings class names its CA variable differently; the name is load-bearing.
+
+    A misspelled name is silently ignored (extra="ignore"), so TLS verification would fall
+    back to the system trust store and fail only inside AWS.
+    """
+    if domain.upper() == "MEDIA":
+        return {"MEDIA_POSTGRES_SSL_CA": RDS_CA_BUNDLE}
+    return {"PROCESSING_DATABASE_TLS": "true", "PROCESSING_DATABASE_CA_FILE": RDS_CA_BUNDLE}
+
+
 def template():
     """Closed-by-default two-phase stack; resources retained where data is durable."""
     parameters = {
@@ -34,7 +47,6 @@ def template():
             "Default": "false",
             "AllowedValues": ["true", "false"],
         },
-        "SessionOpen": {"Type": "String", "Default": "false", "AllowedValues": ["true", "false"]},
         "AuroraEngineVersion": {"Type": "String", "Default": "16.8"},
         "WorkerLifetimeSeconds": {
             "Type": "Number",
@@ -588,7 +600,7 @@ def template():
         "PROCESSING_WORK_QUEUE_URL": ref("ProcessingWorkQueue"),
         "MEDIA_RESULTS_QUEUE_URL": ref("MediaResultsQueue"),
         "DC2_RUNTIME": "v1",
-        "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
+        "DB_SSL_CA_FILE": RDS_CA_BUNDLE,
     }
     for name in handlers:
         domain = "Media" if name.startswith("Media") else "Processing"
@@ -597,7 +609,7 @@ def template():
             f"{prefix}_POSTGRES_DSN_PARAMETER_ARN": ref(f"{domain}RuntimeDsnParameterArn"),
             f"{prefix}_STORAGE_CREDENTIAL_MODE": "lambda",
             f"{prefix}_RUNTIME_MODE": "lambda",
-            f"{prefix}_POSTGRES_SSL_CA": "/opt/rds/global-bundle.pem",
+            **db_ca_env(domain),
             f"{prefix}_MINIO_ENDPOINT": sub("s3.${AWS::Region}.amazonaws.com"),
             f"{prefix}_MINIO_USE_SSL": "true",
             f"{prefix}_MINIO_REGION": ref("AWS::Region"),
@@ -624,9 +636,6 @@ def template():
                 "Timeout": 10 if name == "MediaAuthorizer" else 60,
                 "MemorySize": 2048 if name.endswith("Api") else 512,
                 "Architectures": ["x86_64"],
-                "ReservedConcurrentExecutions": {
-                    "Fn::If": ["Open", 2 if name.endswith("Api") else 1, 0]
-                },
                 "Environment": {"Variables": env},
                 "VpcConfig": {
                     "SubnetIds": [ref("PrivateASubnet"), ref("PrivateBSubnet")],
@@ -667,7 +676,9 @@ def template():
                 "BatchSize": 10,
                 "MaximumBatchingWindowInSeconds": 1,
                 "FunctionResponseTypes": ["ReportBatchItemFailures"],
-                "Enabled": {"Fn::If": ["Open", True, False]},
+                # Without reservations this is the consumer bound; 2 is the SQS minimum.
+                "ScalingConfig": {"MaximumConcurrency": 2},
+                "Enabled": False,
             },
             app=True,
         )
@@ -684,7 +695,9 @@ def template():
             "ApiId": ref("HttpApi"),
             "StageName": "$default",
             "AutoDeploy": True,
-            "DefaultRouteSettings": {"ThrottlingBurstLimit": 10, "ThrottlingRateLimit": 5},
+            # Closed by default (account limit 10 forbids Lambda reservations, so this and
+            # the disabled mappings/rules are the gates); the session API opens it.
+            "DefaultRouteSettings": {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0},
         },
         app=True,
     )
@@ -900,7 +913,7 @@ def template():
         )
     for name in ("MediaRepair", "ProcessingRepair", "ProcessingEcsEvents", "ProcessingS3Events"):
         props = {
-            "State": {"Fn::If": ["Open", "ENABLED", "DISABLED"]},
+            "State": "DISABLED",
             "Targets": [
                 {
                     "Arn": ref(f"{name}Alias"),
@@ -987,10 +1000,10 @@ def template():
             f"{domain.upper()}_STORAGE_CREDENTIAL_MODE": "ecs",
             f"{domain.upper()}_MINIO_OUTPUT_BUCKET": ref("OutputBucket"),
             "WORKER_LIFETIME_SECONDS": {"Fn::Sub": "${WorkerLifetimeSeconds}"},
-            f"{domain.upper()}_POSTGRES_SSL_CA": "/opt/rds/global-bundle.pem",
+            **db_ca_env(domain),
             "DC2_WORKER_CAP": "3",
             "PGSSLMODE": "verify-full",
-            "PGSSLROOTCERT": "/opt/rds/global-bundle.pem",
+            "PGSSLROOTCERT": RDS_CA_BUNDLE,
         }
         command = (
             ["python", "-m", "processing.v1_worker", "--max-empty-polls", "2"]
@@ -1168,18 +1181,13 @@ def template():
         outputs[f"{name}QueueUrl"] = ref(f"{name}Queue")
         outputs[f"{name}QueueArn"] = queue_arn(name)
         outputs[f"{name}DlqUrl"] = ref(f"{name}Dlq")
+        outputs[f"{name}DlqArn"] = attr(f"{name}Dlq")
     result = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Description": "DC2 V1 managed two-domain stack. Operator applies explicitly.",
         "Parameters": parameters,
         "Conditions": {
             "Applications": {"Fn::Equals": [ref("DeployApplications"), "true"]},
-            "Open": {
-                "Fn::And": [
-                    {"Fn::Equals": [ref("SessionOpen"), "true"]},
-                    {"Fn::Equals": [ref("DeployApplications"), "true"]},
-                ]
-            },
         },
         "Rules": {
             "ExplicitApplicationImages": {
@@ -1217,6 +1225,7 @@ def template():
             "Condition": "Applications",
             "Value": ref(f"{name}Rule"),
         }
+    result["Outputs"]["HttpApiId"] = {"Condition": "Applications", "Value": ref("HttpApi")}
     result["Outputs"]["HttpApiUrl"] = {
         "Condition": "Applications",
         "Value": attr("HttpApi", "ApiEndpoint"),

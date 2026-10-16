@@ -20,10 +20,15 @@ class Fake:
         self.calls.append((service, operation, payload))
         if operation == self.fail:
             raise RuntimeError("injected transport failure")
+        if operation == "get-account-settings":
+            return {"AccountLimit": {"ConcurrentExecutions": 1000}}
         if operation == "put-function-concurrency":
             self.functions[payload["FunctionName"]] = payload["ReservedConcurrentExecutions"]
+        if operation == "delete-function-concurrency":
+            self.functions[payload["FunctionName"]] = None
         if operation == "get-function-concurrency":
-            return {"ReservedConcurrentExecutions": self.functions[payload["FunctionName"]]}
+            value = self.functions[payload["FunctionName"]]
+            return {} if value is None else {"ReservedConcurrentExecutions": value}
         if operation == "update-event-source-mapping":
             self.mappings[payload["UUID"]] = "Enabled" if payload["Enabled"] else "Disabled"
         if operation == "get-event-source-mapping":

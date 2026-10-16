@@ -84,11 +84,11 @@ there is no automatic downgrade or duplicate migration launch with a new token.
 
 The legacy CLITransport production guard is unchanged. The new operator-only
 `OperatorTransport` accepts explicit regional SDK clients and freshly supplied STS
-identity for account 866865534361/ap-southeast-1. Only the sole AWS operator creates
+identity for an explicit 12-digit account (operator input, never source) in ap-southeast-1. Only the sole AWS operator creates
 these clients from the approved session; configure retries `total_max_attempts=1`
 and network timeouts totaling at most 15 seconds. No default session, credential
 lookup, live CLI or AWS call runs on import. Deadline budgets must cover a complete
-bounded request. Session operations use Lead C's adapter, not this release allowlist.
+bounded request. Session operations use the same bridge; its allowlist now carries per-operation argument contracts.
 
 Local protocol checks:
 

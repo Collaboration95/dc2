@@ -15,7 +15,6 @@ FIELDS = {
     "region",
     "source_cors_origin",
     "deploy_applications",
-    "session_open",
     "images",
     "parameter_arns",
     "handlers",
@@ -36,7 +35,6 @@ REQUIRED = {
     "region",
     "source_cors_origin",
     "deploy_applications",
-    "session_open",
     "parameter_arns",
 }
 
@@ -48,11 +46,10 @@ def parameters(config):
         raise ValueError("V1 configuration has missing or unsupported fields")
     if type(config["schema_version"]) is not int or config["schema_version"] != 1:
         raise ValueError("V1 configuration requires schema_version 1")
-    for key in ("deploy_applications", "session_open"):
-        if type(config[key]) is not bool:
-            raise ValueError("V1 session/application flags must be JSON booleans")
-    if config["session_open"] and not config["deploy_applications"]:
-        raise ValueError("Cannot open an infrastructure-only stack")
+    # There is deliberately no session_open: the template is always closed and the
+    # session API is the single runtime authority that opens it.
+    if type(config["deploy_applications"]) is not bool:
+        raise ValueError("V1 application flag must be a JSON boolean")
     account, region = config["account_id"], config["region"]
     if not isinstance(account, str) or not re.fullmatch(r"[0-9]{12}", account):
         raise ValueError("Explicit account_id is required")
@@ -78,7 +75,6 @@ def parameters(config):
         "EnvironmentId": config["environment_id"],
         "SourceCorsOrigin": config["source_cors_origin"],
         "DeployApplications": str(config["deploy_applications"]).lower(),
-        "SessionOpen": str(config["session_open"]).lower(),
         "AuroraEngineVersion": config.get("aurora_engine_version", "16.8"),
         "WorkerLifetimeSeconds": config.get("worker_lifetime_seconds", 1800),
     }

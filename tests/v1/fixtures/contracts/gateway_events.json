@@ -1,0 +1,576 @@
+{
+  "public_health_needs_no_actor": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/health",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        }
+      }
+    },
+    "expect": {
+      "status": 200,
+      "actor": null,
+      "app_path": "/health"
+    }
+  },
+  "public_login_needs_no_actor": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/auth/login",
+      "rawQueryString": "",
+      "headers": {
+        "content-type": "text/plain"
+      },
+      "requestContext": {
+        "http": {
+          "method": "POST"
+        }
+      }
+    },
+    "expect": {
+      "status": 200,
+      "actor": null,
+      "app_path": "/auth/login"
+    }
+  },
+  "authenticated_route_with_actor": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/jobs",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "dc2-gateway-v1",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "publisher"
+          }
+        }
+      }
+    },
+    "expect": {
+      "status": 200,
+      "actor": "00000000-0000-4000-8000-000000000001",
+      "app_path": "/jobs"
+    }
+  },
+  "processing_owned_route_with_actor": {
+    "service": "processing",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/processing/jobs/abc",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "dc2-gateway-v1",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "publisher"
+          }
+        }
+      }
+    },
+    "expect": {
+      "status": 200,
+      "actor": "00000000-0000-4000-8000-000000000001",
+      "app_path": "/jobs/abc"
+    }
+  },
+  "forged_public_identity_headers_are_stripped_and_ignored": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/jobs",
+      "rawQueryString": "",
+      "headers": {
+        "x-owner-id": "00000000-0000-4000-8000-000000000002",
+        "x-role": "operator",
+        "content-type": "application/json"
+      },
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "dc2-gateway-v1",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "publisher"
+          }
+        }
+      }
+    },
+    "expect": {
+      "status": 200,
+      "actor": "00000000-0000-4000-8000-000000000001",
+      "app_path": "/jobs",
+      "headers_absent": [
+        "x-owner-id",
+        "x-role"
+      ]
+    }
+  },
+  "forged_identity_headers_without_authorizer_context": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/jobs",
+      "rawQueryString": "",
+      "headers": {
+        "x-owner-id": "00000000-0000-4000-8000-000000000002",
+        "x-role": "operator",
+        "content-type": "application/json"
+      },
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        }
+      }
+    },
+    "expect": {
+      "status": 401
+    }
+  },
+  "forged_headers_cannot_make_a_public_route_authenticated": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/health",
+      "rawQueryString": "",
+      "headers": {
+        "x-owner-id": "00000000-0000-4000-8000-000000000002",
+        "x-role": "operator",
+        "content-type": "application/json"
+      },
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        }
+      }
+    },
+    "expect": {
+      "status": 200,
+      "actor": null,
+      "headers_absent": [
+        "x-owner-id",
+        "x-role"
+      ]
+    }
+  },
+  "authorizer_context_with_unknown_role": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/jobs",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "dc2-gateway-v1",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "admin"
+          }
+        }
+      }
+    },
+    "expect": {
+      "status": 401
+    }
+  },
+  "authorizer_context_with_operator_role_claim": {
+    "service": "processing",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/processing/jobs",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "dc2-gateway-v1",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "operator"
+          }
+        }
+      }
+    },
+    "expect": {
+      "status": 401
+    }
+  },
+  "authorizer_context_with_wrong_integration_marker": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/jobs",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "public-header",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "publisher"
+          }
+        }
+      }
+    },
+    "expect": {
+      "status": 401
+    }
+  },
+  "authorizer_context_schema_version_as_string": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/jobs",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": "1",
+            "integration": "dc2-gateway-v1",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "publisher"
+          }
+        }
+      }
+    },
+    "expect": {
+      "status": 401
+    }
+  },
+  "authorizer_context_owner_not_a_uuid": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/jobs",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "dc2-gateway-v1",
+            "owner_id": "root",
+            "role": "publisher"
+          }
+        }
+      }
+    },
+    "expect": {
+      "status": 401
+    }
+  },
+  "authorizer_context_is_not_an_object": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/jobs",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": "publisher"
+        }
+      }
+    },
+    "expect": {
+      "status": 401
+    }
+  },
+  "other_services_prefix_is_not_routed": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/processing/jobs",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "dc2-gateway-v1",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "publisher"
+          }
+        }
+      }
+    },
+    "expect": {
+      "status": 404
+    }
+  },
+  "prefix_is_stripped_exactly_once": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/api/media/health",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        }
+      }
+    },
+    "expect": {
+      "status": 401
+    },
+    "note": "the doubled prefix is not the public health route, so it needs an actor"
+  },
+  "prefix_is_stripped_exactly_once_with_actor": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/api/media/health",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "dc2-gateway-v1",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "publisher"
+          }
+        }
+      }
+    },
+    "expect": {
+      "status": 200,
+      "app_path": "/api/media/health"
+    }
+  },
+  "bare_prefix_without_slash_is_not_routed": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "dc2-gateway-v1",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "publisher"
+          }
+        }
+      }
+    },
+    "expect": {
+      "status": 404
+    }
+  },
+  "payload_format_version_1_is_refused": {
+    "service": "media",
+    "event": {
+      "version": "1.0",
+      "rawPath": "/api/media/jobs",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "dc2-gateway-v1",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "publisher"
+          }
+        }
+      }
+    },
+    "expect": {
+      "status": 401
+    }
+  },
+  "malformed_base64_body": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/auth/login",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "POST"
+        }
+      },
+      "body": "!!!not-base64!!!",
+      "isBase64Encoded": true
+    },
+    "expect": {
+      "status": 400
+    }
+  },
+  "cookie_array_is_joined_for_the_application": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/jobs",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "dc2-gateway-v1",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "publisher"
+          }
+        }
+      },
+      "cookies": [
+        "access_token=abc",
+        "theme=dark"
+      ]
+    },
+    "expect": {
+      "status": 200,
+      "cookie_header": "access_token=abc; theme=dark"
+    }
+  },
+  "client_supplied_cookie_header_is_dropped_in_favour_of_the_array": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/jobs",
+      "rawQueryString": "",
+      "headers": {
+        "cookie": "access_token=forged"
+      },
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "dc2-gateway-v1",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "publisher"
+          }
+        }
+      },
+      "cookies": [
+        "access_token=real"
+      ]
+    },
+    "expect": {
+      "status": 200,
+      "cookie_header": "access_token=real"
+    }
+  },
+  "cookies_that_are_not_strings": {
+    "service": "media",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/media/jobs",
+      "rawQueryString": "",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "dc2-gateway-v1",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "publisher"
+          }
+        }
+      },
+      "cookies": [
+        1
+      ]
+    },
+    "expect": {
+      "status": 401
+    }
+  },
+  "query_string_survives_verbatim": {
+    "service": "processing",
+    "event": {
+      "version": "2.0",
+      "rawPath": "/api/processing/jobs",
+      "rawQueryString": "asset_ids=a%2Cb&asset_ids=c",
+      "headers": {},
+      "requestContext": {
+        "http": {
+          "method": "GET"
+        },
+        "authorizer": {
+          "lambda": {
+            "schema_version": 1,
+            "integration": "dc2-gateway-v1",
+            "owner_id": "00000000-0000-4000-8000-000000000001",
+            "role": "publisher"
+          }
+        }
+      }
+    },
+    "expect": {
+      "status": 200,
+      "query": "asset_ids=a%2Cb&asset_ids=c"
+    }
+  }
+}

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import DeclarativeBase
 
 from processing.config import Settings, get_settings
+from runtime_support.settings import credentials_rejected
 
 
 class Base(DeclarativeBase):
@@ -53,5 +54,34 @@ async def get_v1_session(
         factory = async_sessionmaker(engine, expire_on_commit=False)
         async with factory() as session:
             yield session
+    except Exception as error:
+        # See media.database.invocation_session: rotated credentials self-heal on the
+        # next invocation because the cached DSN is discarded.
+        if credentials_rejected(error):
+            get_settings.cache_clear()
+        raise
+    finally:
+        await engine.dispose()
+
+
+async def database_ready(settings: Settings) -> dict:
+    """Operator readiness: the one deliberate database touch, never reachable from Gateway.
+
+    The result carries no driver text because the invocation payload is logged.
+    """
+    from sqlalchemy import text
+    from sqlalchemy.pool import NullPool
+
+    engine = create_async_engine(
+        settings.postgres_dsn, poolclass=NullPool, connect_args=v1_connect_args(settings)
+    )
+    try:
+        async with engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
+        return {"service": "processing", "ready": True}
+    except Exception as error:
+        if credentials_rejected(error):
+            get_settings.cache_clear()
+        return {"service": "processing", "ready": False, "error": "database unavailable"}
     finally:
         await engine.dispose()

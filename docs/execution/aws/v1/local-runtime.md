@@ -44,6 +44,22 @@ and messages. Session `close` below neither tears down dependencies nor purges
 queues; it preserves queued work. Local fake bootstrap credentials are fixed in
 `deploy/v1-local/compose.yml`; never use these for a reachable deployment.
 
+## Opt-in integration tests against this runtime
+
+`make test-v1` skips every `integration` test. After `make v1-up`, read the loopback ports
+from `.cache/v1-runtime/<id>/runtime.json` and run, for example:
+
+```sh
+V1_TEST_S3_ENDPOINT=http://127.0.0.1:<moto_port> \
+V1_TEST_MEDIA_DSN=postgresql+asyncpg://postgres:local_v1_admin@127.0.0.1:<postgres_port>/media_db \
+AWS_ACCESS_KEY_ID=testing AWS_SECRET_ACCESS_KEY=testing AWS_EC2_METADATA_DISABLED=true \
+  .venv/bin/python -m pytest tests/v1/test_direct_intake_s3.py tests/v1/test_credential_rotation.py -q
+```
+
+The admin DSN is for schema-per-test fixtures only; each test creates and drops its own
+schema and bucket. Docker Desktop's VM disk can fill; PostgreSQL then fails with
+`DiskFullError`, which is an environment fault, not a test failure.
+
 ## Verification and honest gates
 
 - `FLOW=a` checks both real SQL ownership boundaries, runtime DML/DDL denial,

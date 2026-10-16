@@ -11,7 +11,6 @@ from fastapi import Depends, FastAPI, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
-from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -124,8 +123,9 @@ def create_app() -> FastAPI:
         app.add_exception_handler(error, unavailable)
 
     @app.get("/health")
-    async def health(session: Session, settings: Configuration):
-        await session.execute(text("SELECT 1"))
+    async def health(settings: Configuration):
+        # Public and unauthenticated: it must never open a connection, or any caller could
+        # wake a paused Aurora cluster. Database readiness is the operator-only `ready()`.
         return {
             "status": "ok",
             "service": "processing",

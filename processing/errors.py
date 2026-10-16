@@ -3,3 +3,7 @@ class ProcessingError(Exception):
         super().__init__(message)
         self.status_code = status_code
         self.message = message
+
+
+class TaskBindingError(ValueError):
+    """The worker itself is unusable (reused or missing task name), whatever the message."""

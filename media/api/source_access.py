@@ -6,6 +6,7 @@ from media.api.deps import Session, SourceOwner
 from media.errors import MediaError
 from media.repositories.assets import get_asset, source_descriptor
 from media.schemas.public import SourceAccessRequest
+from media.services import direct_intake
 from media.services.storage import Store
 
 router = APIRouter(prefix="/internal/v1/assets", tags=["source-access"])
@@ -20,7 +21,8 @@ async def source_access(
         if asset.source_revision != body.revision:
             raise MediaError(409, "source revision does not match")
         try:
-            url, expires = await storage.source_grant(asset.source_key)
+            version = await direct_intake.pinned_version(session, asset)
+            url, expires = await storage.source_grant(asset.source_key, version)
         except Exception as exc:
             raise MediaError(503, "source access unavailable") from exc
         return {"source_url": url, "expires_at": expires, "source": source_descriptor(asset)}

@@ -34,7 +34,8 @@ def test_example_matches_schema_and_is_inert(config):
     schema = json.loads((ROOT / "deploy/aws/v1/config.schema.json").read_text())
     jsonschema.validate(config, schema)
     values = {p["ParameterKey"]: p["ParameterValue"] for p in parameters(config)}
-    assert values["SessionOpen"] == values["DeployApplications"] == "false"
+    assert values["DeployApplications"] == "false"
+    assert "SessionOpen" not in values
     assert "MediaImageUri" not in values
 
 
@@ -44,7 +45,7 @@ def test_example_matches_schema_and_is_inert(config):
         ("account_id", "123"),
         ("region", "us-east-1"),
         ("deploy_applications", "false"),
-        ("session_open", True),
+        ("session_open", False),  # removed: the session API is the only runtime authority
         ("worker_lifetime_seconds", 3601),
         ("aurora_engine_version", "16.2"),
         ("environment_id", "../../other"),
@@ -67,7 +68,7 @@ def test_activation_requires_explicit_digest_images(config):
         d: f"000000000000.dkr.ecr.ap-southeast-1.amazonaws.com/{d}@sha256:" + "a" * 64
         for d in ("media", "processing", "worker")
     }
-    assert len(parameters(config)) == 14
+    assert len(parameters(config)) == 13
     config["images"]["worker"] = "000000000000.dkr.ecr.ap-southeast-1.amazonaws.com/worker:latest"
     with pytest.raises(ValueError):
         parameters(config)
@@ -186,17 +187,17 @@ def test_closed_defaults_finite_worker_and_partial_batches():
     built = template()
     resources = built["Resources"]
     assert built["Parameters"]["DeployApplications"]["Default"] == "false"
-    assert built["Parameters"]["SessionOpen"]["Default"] == "false"
+    assert "SessionOpen" not in built["Parameters"] and "Open" not in built["Conditions"]
     assert resources["WorkerTaskDefinition"]["Properties"]["Cpu"] == "2048"
     assert resources["WorkerTaskDefinition"]["Properties"]["Memory"] == "4096"
     assert not any(r["Type"] == "AWS::ECS::Service" for r in resources.values())
     for domain in ("ProcessingCommands", "MediaResults"):
         mapping = resources[domain + "Mapping"]["Properties"]
         assert mapping["FunctionResponseTypes"] == ["ReportBatchItemFailures"]
-        assert mapping["Enabled"]["Fn::If"] == ["Open", True, False]
+        assert mapping["Enabled"] is False
     for resource in resources.values():
         if resource["Type"] == "AWS::Lambda::Function":
-            assert resource["Properties"]["ReservedConcurrentExecutions"]["Fn::If"][2] == 0
+            assert "ReservedConcurrentExecutions" not in resource["Properties"]
             assert resource["Properties"]["VpcConfig"]["Ipv6AllowedForDualStack"] is True
             assert resource["Condition"] == "Applications"
     worker = resources["WorkerTaskDefinition"]["Properties"]["ContainerDefinitions"][0]
@@ -257,3 +258,24 @@ def test_s3_gateway_allows_project_data_and_ecr_image_layers():
     ]
     # No endpoint-wide Resource=* escape hatch for S3 data.
     assert all("*" not in s["Resource"] for s in statements)
+
+
+def test_template_is_closed_safe_and_never_requires_positive_reservations():
+    """Account limit 10 leaves nothing reservable; only the session API may open the stack."""
+    built = template()
+    resources = built["Resources"]
+    functions = [r for r in resources.values() if r["Type"] == "AWS::Lambda::Function"]
+    assert functions
+    assert all("ReservedConcurrentExecutions" not in r["Properties"] for r in functions)
+    # Without per-function reservations the SQS consumers carry the explicit bound.
+    for name in ("ProcessingCommandsMapping", "MediaResultsMapping"):
+        assert resources[name]["Properties"]["ScalingConfig"] == {"MaximumConcurrency": 2}
+    rules = [r for r in resources.values() if r["Type"] == "AWS::Events::Rule"]
+    assert rules and {r["Properties"]["State"] for r in rules} == {"DISABLED"}
+    stage = resources["HttpStage"]["Properties"]["DefaultRouteSettings"]
+    assert stage == {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0}
+    assert built["Outputs"]["HttpApiId"]["Condition"] == "Applications"
+    assert all(
+        resources[n]["Properties"]["Enabled"] is False
+        for n in ("ProcessingCommandsMapping", "MediaResultsMapping")
+    )

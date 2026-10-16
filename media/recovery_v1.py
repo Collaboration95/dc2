@@ -10,11 +10,29 @@ import time
 from datetime import timedelta
 from types import SimpleNamespace
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from media.models import Asset, CleanupIntent, now
 from media.projections import source_for_asset
 from media.services.direct_intake import cleanup_expired_uploads
+
+CLEANUP_BASE_SECONDS = 60
+CLEANUP_CAP_SECONDS = 3600
+CLEANUP_HORIZON = timedelta(days=1)
+
+
+def cleanup_delay(attempts):
+    """Early rescans catch the likely late write; later ones thin out to hourly."""
+    return min(CLEANUP_CAP_SECONDS, CLEANUP_BASE_SECONDS * 2 ** min(max(attempts - 1, 0), 6))
+
+
+def unretired(horizon):
+    # No schema change: a tombstone retires once a scan succeeded at least one
+    # horizon after Processing acknowledged the cancellation. Failed scans never retire.
+    return or_(
+        CleanupIntent.source_deleted_at.is_(None),
+        CleanupIntent.source_deleted_at < CleanupIntent.processing_deleted_at + horizon,
+    )
 
 
 async def remove_source_versions(storage, bucket, key):
@@ -27,7 +45,9 @@ async def remove_source_versions(storage, bucket, key):
         await storage.delete_direct_upload(SimpleNamespace(bucket=bucket, key=key))
 
 
-async def cleanup_tombstones(factory, storage, *, limit=100, deadline=None):
+async def cleanup_tombstones(
+    factory, storage, *, limit=100, deadline=None, horizon=CLEANUP_HORIZON
+):
     """Reserve due acknowledged tombstones, scan outside locks, fence results.
 
     ``source_deleted_at`` records a successful scan, never permanent completion.
@@ -43,6 +63,7 @@ async def cleanup_tombstones(factory, storage, *, limit=100, deadline=None):
                     Asset.deleted_at.is_not(None),
                     CleanupIntent.processing_deleted_at.is_not(None),
                     CleanupIntent.next_try_at <= now(),
+                    unretired(horizon),
                 )
                 .order_by(CleanupIntent.next_try_at, CleanupIntent.asset_id)
                 .limit(limit)
@@ -64,6 +85,10 @@ async def cleanup_tombstones(factory, storage, *, limit=100, deadline=None):
                 or intent is None
                 or not intent.processing_deleted_at
                 or intent.next_try_at > now()
+                or (
+                    intent.source_deleted_at is not None
+                    and intent.source_deleted_at >= intent.processing_deleted_at + horizon
+                )
             ):
                 continue
             descriptor = await source_for_asset(session, asset)
@@ -94,7 +119,7 @@ async def cleanup_tombstones(factory, storage, *, limit=100, deadline=None):
                 and intent.processing_deleted_at
             ):
                 intent.last_error = error
-                intent.next_try_at = now() + timedelta(seconds=60)
+                intent.next_try_at = now() + timedelta(seconds=cleanup_delay(intent.attempts))
                 if error is None:
                     intent.source_deleted_at = now()
     return cleaned

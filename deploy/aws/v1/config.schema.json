@@ -10,7 +10,6 @@
     "region",
     "source_cors_origin",
     "deploy_applications",
-    "session_open",
     "parameter_arns"
   ],
   "properties": {
@@ -33,9 +32,6 @@
       "pattern": "^https://[a-zA-Z0-9.-]+$"
     },
     "deploy_applications": {
-      "type": "boolean"
-    },
-    "session_open": {
       "type": "boolean"
     },
     "aurora_engine_version": {
@@ -126,22 +122,6 @@
               "processing",
               "worker"
             ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "session_open": {
-            "const": true
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "deploy_applications": {
-            "const": true
           }
         }
       }

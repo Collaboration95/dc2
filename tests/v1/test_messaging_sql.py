@@ -105,9 +105,17 @@ async def test_cancel_before_submit_is_permanent(factory):
 async def test_cross_owner_submit_rejected_before_mutation(factory):
     submit = message()
     await handle_command(factory, submit)
-    attack = {**submit, "message_id": str(uuid4()), "owner_id": str(uuid4())}
+    intruder = str(uuid4())
+    forged = {**submit, "message_id": str(uuid4()), "owner_id": intruder}
+    # Another owner naming the victim's stored key never reaches the guard.
+    with pytest.raises(ValueError, match="owner's prefix"):
+        await handle_command(factory, forged)
+    forged["source"] = {
+        **submit["source"],
+        "key": f"sources/{intruder}/{submit['asset_id']}/source",
+    }
     with pytest.raises(ProcessingError):
-        await handle_command(factory, attack)
+        await handle_command(factory, forged)
     assert await count(factory, ProcessingInbox) == 1
 
 

@@ -9,7 +9,13 @@ from sqlalchemy import or_, select
 
 from delivery.sql import stage
 from processing import lifecycle
-from processing.messaging import emit_state, envelope, publish_outbox
+from processing.messaging import (
+    emit_state,
+    envelope,
+    publish_outbox,
+    repair_delay,
+    work_message_id,
+)
 from processing.messaging_models import JobMessaging, ProcessingOutbox
 from processing.models import Attempt, Job
 from processing.recovery import cleanup_outputs, recover_expired
@@ -75,7 +81,13 @@ class NativeCleanupStore:
 
 
 async def repair_work(factory, *, limit=50, deadline=None):
-    """Recreate work even after an acknowledged send, retention gap or lost delete."""
+    """Recreate work even after an acknowledged send, retention gap or lost delete.
+
+    The work message ID is stable per (attempt, state version). A repair therefore
+    never grows the outbox: it re-arms the one row for another send, skips while
+    that row is still unsent or being published, and backs off per attempt so an
+    idle queued attempt costs a handful of sends an hour instead of one a minute.
+    """
     async with factory() as session:
         now = await lifecycle.db_now(session)
         ids = (
@@ -89,7 +101,7 @@ async def repair_work(factory, *, limit=50, deadline=None):
                     Attempt.state == "queued",
                     or_(Attempt.next_dispatch_at.is_(None), Attempt.next_dispatch_at <= now),
                 )
-                .order_by(Attempt.queued_at, Job.id)
+                .order_by(Attempt.next_dispatch_at.nulls_first(), Attempt.queued_at, Job.id)
                 .limit(limit)
             )
         ).all()
@@ -110,15 +122,43 @@ async def repair_work(factory, *, limit=50, deadline=None):
             ):
                 continue
             saved = await session.get(JobMessaging, job.id)
-            await stage(
-                session,
+            row = await session.get(
                 ProcessingOutbox,
-                envelope(job, attempt, saved.state_version, "work"),
-                "processing-work",
+                work_message_id(attempt.id, saved.state_version),
+                with_for_update=True,
             )
-            attempt.next_dispatch_at = now + timedelta(seconds=60)
-            repaired += 1
+            if row is None:
+                await stage(
+                    session,
+                    ProcessingOutbox,
+                    envelope(job, attempt, saved.state_version, "work"),
+                    "processing-work",
+                )
+                attempt.dispatch_count += 1
+                repaired += 1
+            elif row.sent_at is not None and row.claim_token is None:
+                # The queue accepted this message earlier; it is missing or too
+                # old to trust (retention gap, purge, lost delete). Send it again.
+                row.next_try_at = now
+                attempt.dispatch_count += 1
+                repaired += 1
+            # An unsent or in-flight row is the publisher's job; look again later.
+            attempt.next_dispatch_at = now + timedelta(seconds=repair_delay(attempt.dispatch_count))
     return repaired
+
+
+async def reemit_result(factory, job_id):
+    """Operator action after Media quarantined a result: publish a fresh higher version.
+
+    Media applies by state version, so a snapshot that supersedes the poisoned one
+    unfreezes the projection without redriving the original message.
+    """
+    async with factory() as session, session.begin():
+        job = await session.scalar(select(Job).where(Job.id == job_id).with_for_update())
+        if job is None:
+            return False
+        await emit_state(session, job, await session.get(Attempt, job.current_attempt_id))
+    return True
 
 
 async def run_once(factory, settings, transport, *, store=None, limit=25, deadline=None):
