@@ -1,6 +1,7 @@
 """CLI for booked V1 sessions: python -m scripts.aws.v1.session ACTION --profile P --region R.
 
-Actions: init (one-time private journal), open, close, batch, status. Live runs need an
+Actions: init (one-time private journal), open, window (public API only, for release
+smoke tests), close, batch, status. Live runs need an
 explicit --profile, --region and --account; --dry-run prints the calls that would be
 made against an offline simulation and touches neither AWS nor the real journal.
 """
@@ -26,7 +27,7 @@ def build_hooks(data, hook_names, transport, *, dry_run):
     if dry_run:
         reader = lambda _deadline: dict(ZERO)  # noqa: E731
     elif data.get("sql"):
-        reader = sql_reader(data["sql"]["dsn_file"], data["sql"]["ca_file"])
+        reader = sql_reader(data["sql"]["processing_dsn_file"], data["sql"]["ca_file"])
     elif data.get("counts_file"):
         reader = file_reader(data["counts_file"])
     else:
@@ -36,8 +37,13 @@ def build_hooks(data, hook_names, transport, *, dry_run):
 
 def run_action(args, session, data, hook_names, transport, deadline):
     owner, counts = build_hooks(data, hook_names, transport, dry_run=args.dry_run)
-    if args.action == "open":
-        return session.open(ready=owner.ready, repair=owner.repair, deadline=deadline)
+    if args.action in {"open", "window"}:
+        return session.open(
+            ready=owner.ready,
+            repair=owner.repair,
+            deadline=deadline,
+            window=args.action == "window",
+        )
     if args.action == "close":
         if counts is None:
             raise OperationError("Close needs SQL or operator counts (config sql/counts_file)")
@@ -52,7 +58,7 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None):
     environ = os.environ if environ is None else environ
     stdout = stdout or sys.stdout
     parser = argparse.ArgumentParser(prog="scripts.aws.v1.session", description=__doc__)
-    parser.add_argument("action", choices=["init", "open", "close", "batch", "status"])
+    parser.add_argument("action", choices=["init", "open", "window", "close", "batch", "status"])
     parser.add_argument("--config", required=True)
     parser.add_argument("--count", type=int, default=1, help="batch: encoder tasks (1..3)")
     parser.add_argument("--minutes", type=int, default=60, help="batch: session end horizon")

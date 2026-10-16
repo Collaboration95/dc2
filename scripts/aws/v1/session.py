@@ -143,16 +143,27 @@ class Session:
         if result.get("State") != ("ENABLED" if enabled else "DISABLED"):
             raise OperationError("Repair schedule state was not confirmed")
 
-    def open(self, *, ready, repair, deadline):
+    def open(self, *, ready, repair, deadline, window=False):
         """Open only after owning SQL readiness and bounded recovery succeed.
 
         ready/repair are deadline-aware owner hooks. They must close their SQL
         connections. No worker starts implicitly, including when queues are full.
+
+        window=True opens only the public API functions and Gateway so a release can be
+        smoke-tested through the real contracts while every queue consumer, repair rule
+        and worker stays disabled (the owner must remain quiescent). It may run with a
+        pending release, which a full open refuses; `close` ends it like any session.
         """
         with self.journal.locked() as state:
-            if state.get("pending_release") or state.get("session") not in {"closed", "opening"}:
+            allowed = {"closed", "opening", "window"} if window else {"closed", "opening"}
+            if state.get("session") not in allowed or (
+                state.get("pending_release") and not window
+            ):
                 raise OperationError("Closed session without release intent required")
             self._preflight_quota(deadline)
+            restored = set(self.config.get("window_functions", [])) if window else None
+            if window and not restored >= set(self.config["intake_functions"]):
+                raise OperationError("Window needs the intake and readiness API functions")
             warnings = []
             state.update(session="opening", paused=True, session_completed=[])
             self.journal.save(state)
@@ -164,22 +175,27 @@ class Session:
             if self.config.get("gateway"):
                 self._step(state, "edge:close", lambda: self._edge(False, deadline))
             for name, value in self.config["functions"].items():
-                if name not in self.config["intake_functions"]:
+                if name not in self.config["intake_functions"] and (
+                    restored is None or name in restored
+                ):
                     self._step(
                         state,
                         "restore:" + name,
                         lambda n=name, v=value: self._concurrency(n, v, deadline),
                     )
             self._step(state, "sql-ready", lambda: self._require(ready(deadline=deadline)))
-            self._step(state, "repair", lambda: self._require(repair(deadline=deadline)))
-            for identity in self.config.get("mappings", []):
-                self._step(
-                    state, "enable:" + identity, lambda i=identity: self._mapping(i, True, deadline)
-                )
-            for name in self.config.get("schedules", []):
-                self._step(
-                    state, "enable:" + name, lambda n=name: self._schedule(n, True, deadline)
-                )
+            if not window:
+                self._step(state, "repair", lambda: self._require(repair(deadline=deadline)))
+                for identity in self.config.get("mappings", []):
+                    self._step(
+                        state,
+                        "enable:" + identity,
+                        lambda i=identity: self._mapping(i, True, deadline),
+                    )
+                for name in self.config.get("schedules", []):
+                    self._step(
+                        state, "enable:" + name, lambda n=name: self._schedule(n, True, deadline)
+                    )
             for name in self.config["intake_functions"]:
                 self._step(
                     state,
@@ -188,14 +204,19 @@ class Session:
                 )
             if self.config.get("gateway"):
                 self._step(state, "edge:open", lambda: self._edge(True, deadline))
+            # A window never unpauses launches: batches need a full open session.
             state.update(
-                session="open",
-                paused=False,
+                session="window" if window else "open",
+                paused=window,
                 session_step="complete",
                 session_warnings=warnings,
             )
             self.journal.save(state)
-            return {"session": "open", "worker_starts": 0, "warnings": warnings}
+            return {
+                "session": state["session"],
+                "worker_starts": 0,
+                "warnings": warnings,
+            }
 
     def status(self, *, deadline):
         """Read-only reconciliation of the journal against the live control plane.
@@ -227,10 +248,13 @@ class Session:
             recorded = state.get("session")
             failures = list(state.get("session_failures", []))
         drift = []
-        if recorded in {"open", "closed"}:
+        if recorded in {"open", "window", "closed"}:
             opened = recorded == "open"
+            api = recorded != "closed"  # open and window both serve the public API
+            live = set(self.config.get("window_functions", [])) if recorded == "window" else None
             for name, value in functions.items():
-                want = self.config["functions"][name] if opened else 0
+                serving = api and (live is None or name in live)
+                want = self.config["functions"][name] if serving else 0
                 want = "unreserved" if want is None else want
                 if value != want:
                     drift.append(f"function:{name}={value}")
@@ -241,7 +265,7 @@ class Session:
                 if value != ("ENABLED" if opened else "DISABLED"):
                     drift.append(f"rule:{name}={value}")
             if gate:
-                limits = gate["open"] if opened else {"rate": 0, "burst": 0}
+                limits = gate["open"] if api else {"rate": 0, "burst": 0}
                 if (edge.get("ThrottlingRateLimit"), edge.get("ThrottlingBurstLimit")) != (
                     limits["rate"],
                     limits["burst"],

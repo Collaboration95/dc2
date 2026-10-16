@@ -39,6 +39,7 @@ def outputs():
         "WorkerTaskDefinitionArn": "arn:aws:ecs:ap-southeast-1:123456789012:task-definition/w:1",
         "PublicTaskSubnetIds": "subnet-a,subnet-b",
         "WorkerSecurityGroupId": "sg-worker",
+        "MigrationSecurityGroupId": "sg-migration",
     }
     return values
 

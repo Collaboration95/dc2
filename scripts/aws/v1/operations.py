@@ -74,6 +74,8 @@ def config_from_outputs(
             "environment_id": environment,
             "functions": {names[h]: reservations.get(h) for h in HANDLERS},
             "intake_functions": [names[h] for h in INTAKE],
+            # A release window serves the public API only: consumers and repair stay off.
+            "window_functions": [names[h] for h in (*INTAKE, "ProcessingApi")],
             "mappings": [outputs[f"{h}MappingId"] for h in MAPPINGS],
             "schedules": [outputs[f"{h}RuleName"] for h in RULES],
             "gateway": {
@@ -89,8 +91,30 @@ def config_from_outputs(
                 "security_groups": [outputs["WorkerSecurityGroupId"]],
                 "assign_public_ip": "ENABLED",
             },
+            "alias": "live",
+            "task_networks": {
+                f"{owner}_migration": {
+                    "subnets": outputs["PublicTaskSubnetIds"].split(","),
+                    "security_groups": [outputs["MigrationSecurityGroupId"]],
+                    "assign_public_ip": "ENABLED",
+                }
+                for owner in ("media", "processing")
+            },
             "max_worker_tasks": 3,
             "worker_lifetime_seconds": worker_lifetime_seconds,
+            "owner_consumers": {
+                "media": {
+                    "mappings": [outputs["MediaResultsMappingId"]],
+                    "schedules": [outputs["MediaRepairRuleName"]],
+                },
+                "processing": {
+                    "mappings": [outputs["ProcessingCommandsMappingId"]],
+                    "schedules": [
+                        outputs[f"{h}RuleName"]
+                        for h in ("ProcessingRepair", "ProcessingEcsEvents", "ProcessingS3Events")
+                    ],
+                },
+            },
             "owner_functions": {
                 "media": {h: names[h] for h in HANDLERS if h.startswith("Media")},
                 "processing": {h: names[h] for h in HANDLERS if h.startswith("Processing")},

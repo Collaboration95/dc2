@@ -219,3 +219,99 @@ def refuse_ambient_credentials(environ=None):
     ]
     if ambient:
         raise OperationError("Unset inherited AWS_* credential/profile/endpoint variables")
+
+
+def owner_quiescence(config, transport):
+    """quiescent(owner): consumers and rules off and no ECS task outside STOPPED.
+
+    Intake may be open (a release window); only background work must be silent. Pure
+    control-plane reads, so it is safe to call inside a release's journal lock.
+    """
+    from scripts.aws.workers import inventory
+
+    def quiescent(owner, *, deadline):
+        consumers = config["owner_consumers"][owner]
+        for identity in consumers["mappings"]:
+            state = transport.call(
+                "lambda", "get-event-source-mapping", {"UUID": identity}, deadline=deadline
+            ).get("State")
+            if state != "Disabled":
+                return False
+        for name in consumers["schedules"]:
+            state = transport.call(
+                "events", "describe-rule", {"Name": name}, deadline=deadline
+            ).get("State")
+            if state != "DISABLED":
+                return False
+        if owner == "processing":
+            tasks = inventory(config, transport, deadline=deadline)
+            return all(t["lastStatus"] == "STOPPED" for t in tasks.values())
+        return True
+
+    return quiescent
+
+
+def schema_reader(dsn_files, ca_file, *, connect=None):
+    """schema_revision(owner): the owning database's Alembic head, read-only over TLS."""
+
+    def read(owner, *, deadline):
+        if owner not in dsn_files:
+            raise OperationError("No schema DSN file configured for this owner")
+        target = Path(dsn_files[owner])
+        try:
+            if target.is_symlink() or stat.S_IMODE(target.stat().st_mode) & 0o077:
+                raise OperationError("DSN file must be a private regular file")
+            dsn = target.read_text().strip()
+        except OSError:
+            raise OperationError("DSN file unreadable") from None
+        context = ssl.create_default_context(cafile=str(ca_file))
+
+        async def query():
+            opener = connect
+            if opener is None:
+                import asyncpg
+
+                opener = asyncpg.connect
+            connection = await opener(dsn, ssl=context, timeout=10, command_timeout=10)
+            try:
+                return await connection.fetch("SELECT version_num FROM alembic_version")
+            finally:
+                await connection.close()
+
+        try:
+            rows = asyncio.run(asyncio.wait_for(query(), timeout=remaining(deadline)))
+        except OperationError:
+            raise
+        except Exception:
+            raise OperationError("Owning schema revision unavailable") from None
+        if len(rows) != 1 or not isinstance(rows[0][0], str):
+            raise OperationError("Exactly one Alembic head is required")
+        return rows[0][0]
+
+    return read
+
+
+def compatibility_from_evidence(path):
+    """compatibility(...): an operator attestation bound to the exact source and revision.
+
+    Whether the prior image tolerates the additive target schema is established by the
+    owner's compatibility tests, not guessable at release time. The evidence file ties
+    that result to this bundle's source_sha, so stale evidence cannot approve a new build.
+    """
+
+    def check(owner, prior, bundle, target_revision, *, deadline):
+        try:
+            evidence = json.loads(Path(path).read_text())
+        except (OSError, ValueError):
+            raise OperationError("Compatibility evidence unreadable") from None
+        return (
+            isinstance(evidence, dict)
+            and evidence.get("owner") == owner
+            and evidence.get("source_sha") == bundle["api"]["source_sha"]
+            and evidence.get("target_revision") == target_revision
+            and evidence.get("additive_only") is True
+            and evidence.get("current_image_compatible") is True
+            and evidence.get("prior_image_compatible") is True
+        )
+
+    return check
