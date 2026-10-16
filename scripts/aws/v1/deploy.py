@@ -45,7 +45,8 @@ from scripts.aws.journal import Journal
 from scripts.aws.transport import SECRET_KEY, OperationError
 from scripts.aws.v1 import bootstrap as db_bootstrap
 from scripts.aws.v1 import config as render_config
-from scripts.aws.v1 import operations, session_cli
+from scripts.aws.v1 import credentials, operations, session_cli
+from scripts.aws.v1 import frontend as spa
 from scripts.aws.v1.definitions import template as render_template
 from scripts.aws.v1.hooks import refuse_ambient_credentials
 from scripts.aws.v1.migration import migrate
@@ -68,6 +69,7 @@ DEPLOY_STEPS = (
     "foundation",
     "images",
     "applications",
+    "frontend",
     "db-bootstrap",
     "migrations",
     "session-init",
@@ -120,13 +122,15 @@ ALLOWED = {
     "budgets": {"describe-budgets"},
     "ce": {"get-cost-and-usage", "get-cost-forecast"},
     "resourcegroupstaggingapi": {"get-resources"},
+    "cloudfront": {"create-invalidation", "get-invalidation"},
     "cloudformation": {
         "describe-stacks", "create-change-set", "describe-change-set", "execute-change-set",
         "describe-stack-events", "describe-stack-resources", "delete-stack",
     },
     "s3api": {
         "head-bucket", "put-object", "get-bucket-tagging", "list-object-versions",
-        "delete-objects", "list-multipart-uploads", "abort-multipart-upload", "delete-bucket",
+        "list-objects-v2", "delete-objects", "list-multipart-uploads", "abort-multipart-upload",
+        "delete-bucket",
     },
     "ecr": {
         "get-authorization-token", "describe-images", "describe-image-scan-findings",
@@ -143,8 +147,13 @@ ALLOWED = {
         "get-parameters-by-path",
     },
     "secretsmanager": {"get-secret-value"},
-    "logs": {"describe-log-groups", "delete-log-group", "list-tags-for-resource"},
-    "ecs": {"run-task", "describe-tasks", "list-tasks", "stop-task", "describe-task-definition"},
+    "logs": {"describe-log-groups", "delete-log-group", "list-tags-for-resource",
+             "get-log-events"},
+    "ecs": {"run-task", "describe-tasks", "list-tasks", "stop-task", "describe-task-definition",
+            "register-task-definition", "deregister-task-definition"},
+    # Read-only observations the cloud-proof harnesses make through this same transport.
+    "cloudwatch": {"get-metric-statistics"},
+    "apigatewayv2": {"get-stage"},
 }
 READ_PREFIXES = ("describe", "get", "list", "head")
 SENSITIVE_RESULT = {("secretsmanager", "get-secret-value"), ("ecr", "get-authorization-token")}
@@ -323,6 +332,10 @@ class DeployJournal(Journal):
             os.close(fd)
 
 
+def simulated_session(_profile):
+    return {"kind": "session", "expires_at": None, "remaining_seconds": None}
+
+
 def in_flight(status):
     # REVIEW_IN_PROGRESS is a stack holding only an unexecuted change set: nothing is running.
     return status.endswith("_IN_PROGRESS") and status != "REVIEW_IN_PROGRESS"
@@ -425,7 +438,7 @@ def planned_cost(hours):
 class Pipeline:
     def __init__(
         self, settings, aws, journal, *, docker=None, http=None, session_main=None,
-        clock=time.monotonic, sleep=time.sleep, stderr=None, today=None,
+        clock=time.monotonic, sleep=time.sleep, stderr=None, today=None, credential_probe=None,
     ):
         self.s, self.aws_transport, self.journal = settings, aws, journal
         self.docker, self.http = docker, http or urllib_http
@@ -436,6 +449,9 @@ class Pipeline:
         self.plan, self.step = [], "init"
         self.deferred, self.journal_held, self.receipt = [], False, None
         self.simulated = bool(getattr(aws, "simulated", False))
+        # A simulation has no credentials to classify; it answers like an MFA session.
+        self.credential_probe = credential_probe or (
+            simulated_session if self.simulated else credentials.probe)
 
     # ---- plumbing --------------------------------------------------------------
     def say(self, message):
@@ -598,6 +614,7 @@ class Pipeline:
             raise DeployError("STS account differs from --account; no further calls")
         arn = identity.get("Arn", "")
         record("identity", "pass", arn=arn, simulated=self.simulated)
+        self._credentials(record)
         user = re.fullmatch(r"arn:aws:iam::[0-9]{12}:user/(?:.*/)?([^/]+)", arn)
         if user:
             devices = self.aws("iam", "list-mfa-devices", {"UserName": user.group(1)},
@@ -670,6 +687,13 @@ class Pipeline:
         if blockers:
             raise DeployError("Preflight blockers: " + ", ".join(blockers))
         return {"checks": checks}
+
+    def _credentials(self, record):
+        """Long-term keys pass STS but fail every call CloudFormation makes for them."""
+        info = self.credential_probe(self.s.profile)
+        status, detail = credentials.assess(self.s.profile, info)
+        record("credentials", status, kind=info["kind"], expires_at=info["expires_at"],
+               simulated=self.simulated, **({"detail": detail} if detail else {}))
 
     def _collisions(self, record):
         names = [self.s.env, self.s.bootstrap_stack]
@@ -976,6 +1000,55 @@ class Pipeline:
         self.write_private(self.s.state_dir / "outputs.json", json.dumps(outputs, indent=2))
         return {"stack": self.s.env, "outputs": len(outputs), "gateway": outputs["HttpApiUrl"]}
 
+    def step_frontend(self):
+        """Build the SPA, sync it to the private frontend bucket, then invalidate CloudFront.
+
+        Runs after `applications` so the distribution already routes /api/* to the Gateway and
+        the Source bucket's CORS origin is this distribution. Reruns are no-ops for unchanged
+        bytes (the bucket is versioned; an identical upload would still add a version).
+        """
+        outputs = self.outputs()
+        bucket, distribution = outputs["FrontendBucketName"], outputs["DistributionId"]
+        manifest = spa.build(spa.SOURCE, self.s.state_dir / "frontend-dist")
+        existing, token = {}, None
+        for _ in range(100):  # a listing is bounded: this bucket holds a few dozen objects
+            request = {"Bucket": bucket, **({"ContinuationToken": token} if token else {})}
+            page = self.aws("s3api", "list-objects-v2", request) or {}
+            existing.update({o["Key"]: o["ETag"].strip('"') for o in page.get("Contents", [])})
+            token = page.get("NextContinuationToken")
+            if not token:
+                break
+        todo = spa.changed(manifest, existing)
+        for item in todo:
+            self.aws("s3api", "put-object", {
+                "Bucket": bucket, "Key": item["key"], "Body": item["path"],
+                "ContentType": item["content_type"], "CacheControl": item["cache_control"],
+                "ServerSideEncryption": "AES256",
+                "Tagging": f"{PROJECT_KEY}={PROJECT_VALUE}&{RUN_KEY}={self.s.run_id}"})
+        made = self.aws("cloudfront", "create-invalidation",
+                        spa.invalidation(distribution, manifest))
+        invalidation = made["Invalidation"]["Id"]
+        self.poll(lambda: (self.aws("cloudfront", "get-invalidation", {
+            "DistributionId": distribution, "Id": invalidation,
+        })["Invalidation"]["Status"] == "Completed", None),
+            what=f"CloudFront invalidation {invalidation}", timeout=900)
+        served = "NOT_CHECKED (dry run)"
+        if not self.s.dry_run:
+            served = self.verify_frontend(outputs["FrontendUrl"], manifest)
+        return {"bucket": bucket, "files": len(manifest["files"]), "uploaded": len(todo),
+                "manifest_sha256": manifest["sha256"], "invalidation": invalidation,
+                "served_through_cloudfront": served, "api_base": "same-origin /api/media"}
+
+    def verify_frontend(self, url, manifest):
+        """Ask the distribution, not the bucket: the page it serves must name the new assets."""
+        status, headers, body = self.http("GET", validate_base_url(url) + "/", {}, None, 15)
+        names = [name for name in manifest["hashed"].values() if name.endswith(".js")]
+        kind = (headers.get("content-type") or [""])[0]
+        if status != 200 or not kind.startswith("text/html") or not all(
+                n.encode() in body for n in names):
+            raise DeployError("CloudFront does not serve the freshly uploaded index.html")
+        return "PASS"
+
     def outputs(self):
         path = self.s.state_dir / "outputs.json"
         try:
@@ -1281,7 +1354,8 @@ class Pipeline:
         actions = {
             "preflight": self.preflight, "bootstrap-stack": self.step_bootstrap_stack,
             "foundation": self.step_foundation, "images": self.step_images,
-            "applications": self.step_applications, "db-bootstrap": self.step_db_bootstrap,
+            "applications": self.step_applications, "frontend": self.step_frontend,
+            "db-bootstrap": self.step_db_bootstrap,
             "migrations": lambda: self.step_migrations(revisions),
             "session-init": self.step_session_init, "session-window": self.step_session_window,
             "seed": self.step_seed, "public-smoke": self.step_public_smoke,
@@ -1615,6 +1689,12 @@ class Pipeline:
     def teardown(self):
         if self.s.execute and not self.s.dry_run and self.s.confirm_run_id != self.s.run_id:
             raise DeployError("Destructive teardown needs --confirm-run-id equal to --run-id")
+        if self.s.execute:  # deleting the stack is CloudFormation-driven too
+            try:
+                credentials.require_mfa_session(
+                    self.s.profile, self.credential_probe(self.s.profile))
+            except OperationError as error:
+                raise DeployError(str(error)) from None
         actions = {
             "td-inventory": self.td_inventory, "td-quiesce": self.td_quiesce,
             "td-buckets-emptied": self.td_buckets, "td-images-deleted": self.td_images,

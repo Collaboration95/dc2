@@ -17,7 +17,7 @@ The operator must decide or supply all of these. None has a default.
 
 | Item | Why it blocks |
 |---|---|
-| MFA-capable credentials in profile `dc2-project2` | On 2026-10-15 an explicit `FlickPondRequireMFA` deny stopped `s3:CreateBucket` and the user had no MFA device. Preflight blocks an IAM user with no device. The pipeline will not bypass or edit that policy. |
+| An MFA session in profile `dc2-project2-mfa` | `FlickPondRequireMFA` denies when `aws:MultiFactorAuthPresent` is `false`. Direct calls with the long-term key pass, but calls CloudFormation makes on the caller's behalf carry no MFA and are denied. So every deploy, session and evidence command uses the session profile that `make aws-mfa-session CODE=<6 digits>` writes (the helper asks `sts get-session-token` for 129600 s, the 36 h maximum, and prints the expiry). Preflight blocks a long-term key and says to run the helper. The pipeline will not bypass or edit the policy. |
 | `--run-id` (2-16 lowercase letters/digits) | Namespace `dc2-v1-<run id>` must fit CloudFormation's 24-character `EnvironmentId`. A new id per attempt; a failed stack leaves `ROLLBACK_COMPLETE` that blocks its name. |
 | `--state-dir` (private, outside the repo) | Journal, stack outputs, smoke credentials, receipt. Mode 0700, files 0600. Back it up: it is the only record of what this run owns. |
 | `--images` | The `--out` evidence file of `deploy/v1/build_and_verify.py` (accepted only if `LOCAL_ARTIFACT_PASS`; each image must still have the verified config id), or a hand-written `images.json`. See below. |
@@ -25,7 +25,7 @@ The operator must decide or supply all of these. None has a default.
 | How `session close` proves a drain | One of `--sql-config` (needs a station inside the VPC), `--counts-file`, or `--assume-empty-counts` (the operator attests no worker ever ran, true for a first deploy). Without one the pipeline refuses to open the window. |
 | Forecast | Cost Explorer may have no history for a young account; then pass `--forecast-usd` (the operator's own figure). Unavailable and unsupplied fails closed. |
 | `--budget-usd` | Default 30, matching `flickpond-monthly`. Preflight blocks if the budget does not exist, is not USD, or is below this flag. |
-| Frontend upload | Not done by this pipeline (see gaps). |
+| Frontend upload | Done by the `frontend` step after `applications`: `frontend/` is content-hashed, uploaded to the frontend bucket and CloudFront is invalidated. Unrun against AWS. |
 | Operator role | The public register endpoint creates role `user` only (see Seed). |
 
 Tools: AWS CLI v2, Docker (the `docker` CLI must reach the daemon that holds the images;
@@ -93,6 +93,7 @@ awake; a 0.25-vCPU/0.5-GiB finite task is about $0.02/hour.
 | 3 | `foundation` | Stages the 82 KB main template in that bucket (inline limit is 51,200 bytes); change set with `DeployApplications=false`: VPC, queues, Aurora cluster+instance, three buckets, CloudFront, **the three ECR repositories**, cluster. Records every physical id | 15-25 min (Aurora instance, CloudFront) | DB starts to bill |
 | 4 | `images` | Per owner: confirms linux/amd64, pushes tag `<run>-<owner>` once, reads the registry digest, optional `expected_digest`, reads scan findings, journals `repo@sha256:...` | 5-15 min (upload) | ECR storage ~$0.15/month |
 | 5 | `applications` | UPDATE change set: `DeployApplications=true`, three digest-pinned image URIs, `SourceCorsOrigin` = generated frontend URL. Lambda functions, aliases, mappings and rules are created closed; gateway throttle 0/0. Writes `outputs.json` | 5-10 min | + pennies |
+| 5b | `frontend` | Builds `frontend/` into `<state-dir>/frontend-dist` (hashed asset names, `index.html` `no-cache`, assets `immutable`), lists the bucket, uploads only changed objects with SSE and tags (`index.html` last), `cloudfront create-invalidation` `/*`, polls until `Completed`, fetches the page through CloudFront | 2-6 min (invalidation) | pennies |
 | 6 | `db-bootstrap` | Reads the RDS-managed master secret, generates four distinct 32-character role passwords (memory only), writes temporary `/dc2/<env>/bootstrap-input`, runs the finite bootstrap task, **always** deletes the input, writes the four DSN parameters and a stable `jwt_secret` as tagged SecureStrings | 3-6 min (Fargate start, Aurora resume) | task ~$0.02/h + DB |
 | 7 | `migrations` | `scripts.aws.v1.migration.migrate` for Media then Processing: run-task, poll, exit code 0, schema revision. Target revision is the Alembic head from the repo | 6-10 min | as above |
 | 8 | `session-init` | `session init` for a pipeline-owned session journal; refuses unless a close-proof is configured | < 1 min | 0 |
@@ -196,12 +197,94 @@ CloudFront cookie round trip (#63); encoder runs and recovery timing (#64); a re
 and rollback (#65); the Fargate generator and cold/warm numbers (#66); actual ACU pause and the
 invoice reconciliation (#67).
 
+## Cloud proof in order
+
+Status: **every harness here is written and exercised only against a simulated account.** None has
+touched AWS; no receipt below exists yet, so #63-#67 stay open. `S` stands for
+`--profile dc2-project2-mfa --region ap-southeast-1 --account 866865534361`, `D` for the private
+`--state-dir` the deploy used, `R` for its run id. Every harness keeps its receipt at
+`D/evidence/evidence-<issue>-R.json` (0600), skips a step that already passed (rerun is safe;
+`--only a,b` picks steps), exits 1 only when a step run just now failed, and **refuses to start**
+while the session journal says closed (and between polls, also when the Gateway throttle is 0).
+A step that cannot be observed is `NOT_RUN`, never `PASS`.
+
+```sh
+# 0. MFA session (the only interactive step), then rehearse everything offline
+make aws-mfa-session CODE=123456                      # writes profile dc2-project2-mfa, prints expiry
+make aws-proof-rehearse                               # every harness vs the simulation; proves nothing
+python -m scripts.aws.v1.deploy deploy $S --run-id R --dry-run
+
+# 1. Deploy (the ladder above, `--execute` last); it ends with the session closed
+python -m scripts.aws.v1.deploy deploy $S --run-id R --state-dir D --images images.json \
+    --seed-email ops@example.com --assume-empty-counts --forecast-usd 0 --execute
+
+# 2. Open for real work, then #63 and #64
+python -m scripts.aws.v1.session open --config D/operator-config.json $S
+python -m scripts.aws.v1.evidence gateway  $S --state-dir D --run-id R --fixture short.mp4
+python -m scripts.aws.v1.evidence capacity $S --state-dir D --run-id R --fixture long.mp4 \
+    --short-fixture short.mp4 [--poison]
+
+# 3. Derive the drain proof from the receipts and close; note the printed close time
+python -m scripts.aws.v1.evidence counts --state-dir D --run-id R
+python -m scripts.aws.v1.session close --config D/operator-config.json $S
+
+# 4. #67 closed state and the ACU pause (waits up to 30 min for capacity to reach 0)
+python -m scripts.aws.v1.evidence spend $S --state-dir D --run-id R --closed-at <close time> \
+    --only close-state,pause
+
+# 5. #66 needs the paused database: cold wake first, then the Fargate generator (it opens its own window)
+python -m scripts.aws.v1.evidence latency $S --state-dir D --run-id R
+python -m scripts.aws.v1.session close --config D/operator-config.json $S
+
+# 6. #65 release (window, not open; needs a `sql` station and a plan, see below)
+python -m scripts.aws.v1.session window --config D/operator-config.json $S
+python -m scripts.aws.v1.evidence release $S --state-dir D --run-id R --plan plan.json
+python -m scripts.aws.v1.session close --config D/operator-config.json $S
+
+# 7. Tear down, then the spend steps that need the receipt and the invoice to lag in (~1 day)
+python -m scripts.aws.v1.deploy teardown $S --run-id R --state-dir D \
+    --execute --confirm-run-id R
+python -m scripts.aws.v1.evidence spend $S --state-dir D --run-id R --only cost-explorer,teardown-receipt
+
+# 8. Redacted summary for the repository (refuses simulated receipts)
+python -m scripts.aws.v1.evidence summary --state-dir D --run-id R
+```
+
+| Step | Time | Cost | Closes (as evidence, not by itself) |
+|---|---|---|---|
+| 0 | 1 min | 0 | - |
+| 1 | 50-80 min | see Ordered steps | deploy part of #63 |
+| 2 gateway | 10-15 min | encoder task, cents | #63 anonymous and forged denial, session round trip, CORS, queue and cross-database denial, direct upload to HLS playback |
+| 2 capacity | 60-90 min (the DLQ poison adds about 35 min: visibility 420 s x 5 receives) | three encoder tasks for minutes: low dollars at the Fargate rates above | #64 1/2/3 concurrent encoders, mid-encode stop recovery inside 300 s, DLQ empty, drain |
+| 3-4 | 5 + up to 30 min | DB awake for the wait | #67 closed state, ACU pause |
+| 5 | 15-20 min | generator task cents plus DB awake | #66 cold wake kept apart from 50-user warm status p90 and 20-login p90 |
+| 6 | 20-40 min | pennies plus DB awake | #65 promote, rollback, peer owner untouched, optional failing candidate |
+| 7 | 25-45 min, plus about a day | stops the meter | #67 resources remaining and spend, the invoice itself is not proven |
+
+Release plan (`plan.json`, nonsecret): `owner` (`media` or `processing`), `migration_definition`,
+`target_revision`, `good` and `baseline` images each `{bundle, image_uri, compat_evidence}` (a
+Processing release adds `worker_definition`), and an optional `bad` image that must fail its smoke
+test. Without a `sql` block in the operator config the release steps record `NOT_RUN`.
+
+Caveats that matter when reading receipts:
+
+- `--assume-empty-counts` in step 1 is true only for the first deploy. After step 2 the close in
+  step 3 uses the counts file `evidence counts` wrote into the operator config (an attestation that
+  nothing else ran on this stack, stated in its output), or a `sql` station.
+- Cross-database denial needs a station that reaches the private database; from outside the VPC the
+  step records `NOT_RUN`. `--skip-cross-database "reason"` records a deliberate skip.
+- The generator measures from a Fargate task in the same region, with a task definition it registers
+  and deregisters itself, using an account it registers itself: no credential is put in the task
+  overrides. It reports no retries and keeps every failure in the denominator.
+- The summary holds statuses, durations and numbers only (no account, URL, ARN, address or token);
+  a value that looks like one fails the step instead of being stored.
+
 ## Known gaps
 
 - Never executed against AWS. Request fields were checked offline against the installed AWS CLI's
   `--generate-cli-skeleton` output (a test does this when `aws` is on the path), not against live
   service behaviour. Expect a first-run surprise or two, and read `status` before rerunning.
-- The SPA is not uploaded to the frontend bucket; `SourceCorsOrigin` is set to its URL.
+- The SPA upload (`frontend` step) has only run against the simulated account and a fake CloudFront; the first real run may show an S3 or invalidation surprise.
 - `schema_revision` and the drain proof need a station that can reach the private database. Without
   one, migrations are verified by exit code only and the close-proof is operator-attested.
 - ECS tasks and ECR images carry no tags (the shared task contract has no `tags` field, and images

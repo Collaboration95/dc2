@@ -48,7 +48,7 @@ class SimulatedAws:
         self.params, self.param_values, self.groups = {}, {}, {}
         self.clusters, self.instances, self.snapshots, self.tasks = {}, {}, {}, {}
         self.task_exit = {}  # task-definition substring -> exit code
-        self.pending = {}
+        self.pending, self.puts, self.invalidations = {}, [], {}
         # The previous sprint's rolled-back staging stack, so the plan shows it left alone.
         self.stacks[LEGACY] = {"status": "ROLLBACK_COMPLETE", "tags": {}, "resources": [],
                                "outputs": {}, "changesets": {}, "id": "legacy"}
@@ -313,10 +313,39 @@ class SimulatedAws:
 
     def s3api_put_object(self, payload):
         key = payload["Key"]
-        self.objects[key] = Path(payload["Body"]).read_text()
+        data = Path(payload["Body"]).read_bytes()  # frontend assets include binary files
+        self.objects[key] = data
         bucket = self.buckets[payload["Bucket"]]
-        bucket["versions"].append({"Key": key, "VersionId": short(key)})
+        etag = hashlib.md5(data, usedforsecurity=False).hexdigest()
+        bucket.setdefault("etags", {})[key] = etag
+        bucket["versions"].append({"Key": key, "VersionId": short(key, etag)})
+        self.puts.append({k: v for k, v in payload.items() if k != "Body"})
         return {}
+
+    def s3api_list_objects_v2(self, payload):
+        bucket = self.buckets.get(payload["Bucket"])
+        if bucket is None:
+            raise self.error("s3api", "list-objects-v2", "NoSuchBucket")
+        return {"Contents": [{"Key": key, "ETag": f'"{etag}"'}
+                             for key, etag in sorted(bucket.get("etags", {}).items())]}
+
+    # ---- CloudFront ---------------------------------------------------------------------------
+    def cloudfront_create_invalidation(self, payload):
+        batch = payload["InvalidationBatch"]
+        known = self.invalidations.setdefault(payload["DistributionId"], {})
+        reference = batch["CallerReference"]
+        if reference not in known:  # the same reference and batch returns the same invalidation
+            known[reference] = {"Id": "I" + short(reference), "polls": 0, "batch": batch}
+        return {"Invalidation": {"Id": known[reference]["Id"], "Status": "InProgress"}}
+
+    def cloudfront_get_invalidation(self, payload):
+        for entry in self.invalidations.get(payload["DistributionId"], {}).values():
+            if entry["Id"] == payload["Id"]:
+                entry["polls"] += 1
+                done = entry["polls"] > 1  # one polling round in progress, then complete
+                return {"Invalidation": {"Id": entry["Id"],
+                                         "Status": "Completed" if done else "InProgress"}}
+        raise self.error("cloudfront", "get-invalidation", "NoSuchInvalidation")
 
     def s3api_get_bucket_tagging(self, payload):
         bucket = self.buckets.get(payload["Bucket"])
@@ -339,6 +368,8 @@ class SimulatedAws:
         gone = {(o["Key"], o["VersionId"]) for o in payload["Delete"]["Objects"]}
         for field in ("versions", "markers"):
             bucket[field] = [o for o in bucket[field] if (o["Key"], o["VersionId"]) not in gone]
+        alive = {o["Key"] for o in bucket["versions"]}
+        bucket["etags"] = {k: v for k, v in bucket.get("etags", {}).items() if k in alive}
         return {}
 
     def s3api_list_multipart_uploads(self, payload):

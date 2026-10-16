@@ -172,7 +172,8 @@ def load_operator_config(path):
 
 
 def add_scope_arguments(parser):
-    parser.add_argument("--profile", required=True, help="explicit AWS profile; never default")
+    parser.add_argument("--profile", required=True,
+                        help="explicit AWS profile (e.g. dc2-project2-mfa); never default")
     parser.add_argument("--region", required=True, help="must be " + REGION)
     parser.add_argument("--account", help="12-digit account (or DC2_AWS_ACCOUNT)")
     parser.add_argument("--dry-run", action="store_true", help="print planned calls; no AWS")
@@ -205,7 +206,10 @@ def _verified_session(scope, boto3_module):
     try:
         identity = session.client("sts", config=quick).get_caller_identity()
     except Exception:
-        raise OperationError("STS identity verification failed") from None
+        # An expired MFA session is the commonest cause on a long cloud-proof day.
+        hint = ": an MFA session may have expired; run scripts.aws.v1.mfa_session" if (
+            scope["profile"].endswith("-mfa")) else ""
+        raise OperationError("STS identity verification failed" + hint) from None
     if identity.get("Account") != scope["account"]:
         raise OperationError("Profile resolves to a different account; no calls made")
     return session, identity, quick
