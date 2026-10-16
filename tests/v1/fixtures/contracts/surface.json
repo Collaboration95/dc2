@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "integration_marker": "dc2-gateway-v1",
+  "max_upload_bytes": 104857600,
+  "cookie_options": {
+    "path": "/",
+    "secure": true,
+    "httponly": true,
+    "samesite": "strict"
+  },
+  "producers": {
+    "submit": "media",
+    "retry": "media",
+    "cancel": "media",
+    "work": "processing-dispatch",
+    "result": "processing-completion"
+  },
+  "envelope_fields": [
+    "schema_version",
+    "message_id",
+    "kind",
+    "owner_id",
+    "asset_id",
+    "job_id",
+    "attempt_id",
+    "state_version",
+    "source",
+    "payload"
+  ],
+  "source_fields": [
+    "bucket",
+    "key",
+    "version_id",
+    "sha256",
+    "size_bytes",
+    "content_type"
+  ],
+  "actor_context_keys": [
+    "integration",
+    "owner_id",
+    "role",
+    "schema_version"
+  ],
+  "actor_roles": [
+    "publisher",
+    "viewer"
+  ],
+  "service_prefixes": {
+    "media": "/api/media",
+    "processing": "/api/processing"
+  },
+  "public_routes": [
+    {
+      "service": "media",
+      "method": "GET",
+      "path": "/health"
+    },
+    {
+      "service": "media",
+      "method": "POST",
+      "path": "/auth/register"
+    },
+    {
+      "service": "media",
+      "method": "POST",
+      "path": "/auth/login"
+    },
+    {
+      "service": "media",
+      "method": "POST",
+      "path": "/auth/logout"
+    },
+    {
+      "service": "processing",
+      "method": "GET",
+      "path": "/health"
+    }
+  ]
+}

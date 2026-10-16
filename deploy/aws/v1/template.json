@@ -3380,7 +3380,8 @@
             },
             "PROCESSING_STORAGE_CREDENTIAL_MODE": "lambda",
             "PROCESSING_RUNTIME_MODE": "lambda",
-            "PROCESSING_POSTGRES_SSL_CA": "/opt/rds/global-bundle.pem",
+            "PROCESSING_DATABASE_TLS": "true",
+            "PROCESSING_DATABASE_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_MINIO_ENDPOINT": {
               "Fn::Sub": "s3.${AWS::Region}.amazonaws.com"
             },
@@ -3504,7 +3505,8 @@
             },
             "PROCESSING_STORAGE_CREDENTIAL_MODE": "lambda",
             "PROCESSING_RUNTIME_MODE": "lambda",
-            "PROCESSING_POSTGRES_SSL_CA": "/opt/rds/global-bundle.pem",
+            "PROCESSING_DATABASE_TLS": "true",
+            "PROCESSING_DATABASE_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_MINIO_ENDPOINT": {
               "Fn::Sub": "s3.${AWS::Region}.amazonaws.com"
             },
@@ -3898,7 +3900,8 @@
             },
             "PROCESSING_STORAGE_CREDENTIAL_MODE": "lambda",
             "PROCESSING_RUNTIME_MODE": "lambda",
-            "PROCESSING_POSTGRES_SSL_CA": "/opt/rds/global-bundle.pem",
+            "PROCESSING_DATABASE_TLS": "true",
+            "PROCESSING_DATABASE_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_MINIO_ENDPOINT": {
               "Fn::Sub": "s3.${AWS::Region}.amazonaws.com"
             },
@@ -4022,7 +4025,8 @@
             },
             "PROCESSING_STORAGE_CREDENTIAL_MODE": "lambda",
             "PROCESSING_RUNTIME_MODE": "lambda",
-            "PROCESSING_POSTGRES_SSL_CA": "/opt/rds/global-bundle.pem",
+            "PROCESSING_DATABASE_TLS": "true",
+            "PROCESSING_DATABASE_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_MINIO_ENDPOINT": {
               "Fn::Sub": "s3.${AWS::Region}.amazonaws.com"
             },
@@ -4146,7 +4150,8 @@
             },
             "PROCESSING_STORAGE_CREDENTIAL_MODE": "lambda",
             "PROCESSING_RUNTIME_MODE": "lambda",
-            "PROCESSING_POSTGRES_SSL_CA": "/opt/rds/global-bundle.pem",
+            "PROCESSING_DATABASE_TLS": "true",
+            "PROCESSING_DATABASE_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_MINIO_ENDPOINT": {
               "Fn::Sub": "s3.${AWS::Region}.amazonaws.com"
             },
@@ -5279,7 +5284,11 @@
                 }
               },
               {
-                "Name": "PROCESSING_POSTGRES_SSL_CA",
+                "Name": "PROCESSING_DATABASE_TLS",
+                "Value": "true"
+              },
+              {
+                "Name": "PROCESSING_DATABASE_CA_FILE",
                 "Value": "/opt/rds/global-bundle.pem"
               },
               {
@@ -5787,7 +5796,11 @@
                 }
               },
               {
-                "Name": "PROCESSING_POSTGRES_SSL_CA",
+                "Name": "PROCESSING_DATABASE_TLS",
+                "Value": "true"
+              },
+              {
+                "Name": "PROCESSING_DATABASE_CA_FILE",
                 "Value": "/opt/rds/global-bundle.pem"
               },
               {

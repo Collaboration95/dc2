@@ -13,6 +13,22 @@ FIELDS = {
 }
 
 
+# invalid_password and invalid_authorization_specification: what a rotated or revoked
+# database credential looks like to a warm Lambda that cached the old DSN.
+AUTHENTICATION_SQLSTATES = frozenset({"28P01", "28000"})
+
+
+def credentials_rejected(error: BaseException) -> bool:
+    """True when PostgreSQL itself refused the login, however the driver wrapped it."""
+    seen, depth = error, 0
+    while seen is not None and depth < 4:
+        if getattr(seen, "sqlstate", None) in AUTHENTICATION_SQLSTATES:
+            return True
+        seen = getattr(seen, "orig", None) or getattr(seen, "__cause__", None)
+        depth += 1
+    return False
+
+
 class RuntimeConfigurationError(RuntimeError):
     """Safe to report: messages never contain parameter values or SDK errors."""
 

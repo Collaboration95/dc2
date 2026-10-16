@@ -4,6 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
+RDS_CA_BUNDLE = "/opt/rds/global-bundle.pem"
+
 
 def ref(name):
     return {"Ref": name}
@@ -23,6 +25,17 @@ def policy(statements):
 
 def allow(actions, resources):
     return {"Effect": "Allow", "Action": actions, "Resource": resources}
+
+
+def db_ca_env(domain):
+    """Each owner's Settings class names its CA variable differently; the name is load-bearing.
+
+    A misspelled name is silently ignored (extra="ignore"), so TLS verification would fall
+    back to the system trust store and fail only inside AWS.
+    """
+    if domain.upper() == "MEDIA":
+        return {"MEDIA_POSTGRES_SSL_CA": RDS_CA_BUNDLE}
+    return {"PROCESSING_DATABASE_TLS": "true", "PROCESSING_DATABASE_CA_FILE": RDS_CA_BUNDLE}
 
 
 def template():
@@ -587,7 +600,7 @@ def template():
         "PROCESSING_WORK_QUEUE_URL": ref("ProcessingWorkQueue"),
         "MEDIA_RESULTS_QUEUE_URL": ref("MediaResultsQueue"),
         "DC2_RUNTIME": "v1",
-        "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
+        "DB_SSL_CA_FILE": RDS_CA_BUNDLE,
     }
     for name in handlers:
         domain = "Media" if name.startswith("Media") else "Processing"
@@ -596,7 +609,7 @@ def template():
             f"{prefix}_POSTGRES_DSN_PARAMETER_ARN": ref(f"{domain}RuntimeDsnParameterArn"),
             f"{prefix}_STORAGE_CREDENTIAL_MODE": "lambda",
             f"{prefix}_RUNTIME_MODE": "lambda",
-            f"{prefix}_POSTGRES_SSL_CA": "/opt/rds/global-bundle.pem",
+            **db_ca_env(domain),
             f"{prefix}_MINIO_ENDPOINT": sub("s3.${AWS::Region}.amazonaws.com"),
             f"{prefix}_MINIO_USE_SSL": "true",
             f"{prefix}_MINIO_REGION": ref("AWS::Region"),
@@ -990,10 +1003,10 @@ def template():
             f"{domain.upper()}_STORAGE_CREDENTIAL_MODE": "ecs",
             f"{domain.upper()}_MINIO_OUTPUT_BUCKET": ref("OutputBucket"),
             "WORKER_LIFETIME_SECONDS": {"Fn::Sub": "${WorkerLifetimeSeconds}"},
-            f"{domain.upper()}_POSTGRES_SSL_CA": "/opt/rds/global-bundle.pem",
+            **db_ca_env(domain),
             "DC2_WORKER_CAP": "3",
             "PGSSLMODE": "verify-full",
-            "PGSSLROOTCERT": "/opt/rds/global-bundle.pem",
+            "PGSSLROOTCERT": RDS_CA_BUNDLE,
         }
         command = (
             ["python", "-m", "processing.v1_worker", "--max-empty-polls", "2"]
