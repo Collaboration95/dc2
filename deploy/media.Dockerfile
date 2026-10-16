@@ -9,6 +9,9 @@ RUN python -m pip install --no-cache-dir uv==0.8.17 \
     && rm /tmp/requirements.txt
 # Media contains no Processing metadata, worker code or inherited application DB.
 COPY media ./media
+COPY contracts ./contracts
+COPY delivery ./delivery
+COPY runtime_support ./runtime_support
 RUN python -m pip install --no-cache-dir --no-deps . \
     && useradd --system --create-home --uid 10001 flickpond
 USER flickpond

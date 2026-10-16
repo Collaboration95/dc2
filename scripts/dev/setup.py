@@ -54,7 +54,19 @@ def main() -> None:
         raise SystemExit(f"Node >=20 required; found {version}")
     python = find_python((ROOT / ".python-version").read_text().strip())
     run(
-        ["uv", "sync", "--locked", "--extra", "dev", "--extra", "browser", "--python", python],
+        [
+            "uv",
+            "sync",
+            "--locked",
+            "--extra",
+            "dev",
+            "--extra",
+            "browser",
+            "--extra",
+            "legacy",
+            "--python",
+            python,
+        ],
         label="setup-python",
         timeout=180,
     )

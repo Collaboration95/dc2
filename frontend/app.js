@@ -23,7 +23,9 @@
 // on the public port: a check like `location.port === "3000"` is false on 80 and
 // 443, which is every real deployment, and the fallback would then point the
 // browser at the *visitor's* own machine.
-const API = "/api";
+// Only frozen legacy regression pages opt in; production uses the V1 domain route.
+const LEGACY_API = globalThis.FLICKPOND_LEGACY_API === true;
+const API = LEGACY_API ? "/api" : "/api/media";
 
 // Mirrors app/api/uploads.py's ALLOWED_CONTENT_TYPES. This check is a courtesy
 // only -- it saves an obviously-wrong file a round trip -- never the source of
@@ -595,10 +597,40 @@ async function handleFile(file) {
   setStatus("Uploading...");
 
   try {
-    const body = new FormData();
-    body.append("file", file);
-
-    const res = await intentRequest(`${API}/upload`, { method: "POST", body }, intent.key);
+    let res;
+    if (LEGACY_API) {
+      const body = new FormData();
+      body.append("file", file);
+      res = await intentRequest(`${API}/upload`, { method: "POST", body }, intent.key);
+    } else {
+      const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+      const sha256 = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+      const reserved = await intentRequest(`${API}/uploads/reservations`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ request_id: intent.key, filename: file.name,
+          content_type: file.type, size_bytes: file.size, sha256 }),
+      }, intent.key);
+      if (!ownsCard()) return;
+      if (!reserved.ok) {
+        res = reserved;
+      } else {
+        const reservation = await reserved.json();
+        if (reservation.upload) {
+          const body = new FormData();
+          for (const [name, value] of Object.entries(reservation.upload.fields)) body.append(name, value);
+          body.append("file", file);
+          const uploaded = await fetch(reservation.upload.url, {
+            method: "POST", body, credentials: "omit", redirect: "error", mode: "cors",
+          });
+          if (!uploaded.ok) throw new Error("Storage upload failed; retry this upload.");
+        }
+        if (!ownsCard()) return;
+        res = await intentRequest(`${API}/uploads/reservations/${reservation.reservation_id}/finalize`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ request_id: intent.key }),
+        }, intent.key);
+      }
+    }
     const data = await res.json().catch(() => ({}));
     if (!ownsCard()) return;
 

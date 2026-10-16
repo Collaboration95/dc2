@@ -66,3 +66,20 @@ Exit codes: 0 success; 1 failed, partial or incomplete result; 2 invalid argumen
 playing media. Those links are requested output capabilities, not permanent
 identifiers. Arbitrary server error bodies, passwords and authentication tokens
 are excluded from normal output. There is no player or delete command.
+
+V1 uses `--base-url https://<frontend-host>/api/media`. `publish` hashes each file,
+reserves an owned S3 POST, sends bytes with a separate cookie-free HTTP client and
+finalizes the reservation. Keep the private intent file to replay uncertain
+responses. Storage must use normal HTTPS trust or the explicitly supplied CA;
+redirects are refused. No file body crosses the domain API.
+
+Edit and delete use the same public owner checks:
+
+```sh
+python -m publisher --base-url "$MEDIA_API" edit "$ASSET_ID" \
+  --operations '[{"operation":"clip","params":{"start":0,"end":5}}]' --wait
+python -m publisher --base-url "$MEDIA_API" delete "$ASSET_ID"
+```
+
+The old `PublicClient.legacy_upload` method exists only for frozen pre-Gateway
+regression tests. V1 publishing always uses reserve/upload/finalize.

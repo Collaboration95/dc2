@@ -94,7 +94,7 @@ async def retry_job(session, owner_id, job_id, request_id):
     return result
 
 
-async def cancel_asset(session, owner_id, asset_id):
+async def cancel_asset(session, owner_id, asset_id, *, on_change=None):
     async with session.begin():
         await session.execute(
             insert(SubmissionGuard)
@@ -123,6 +123,8 @@ async def cancel_asset(session, owner_id, asset_id):
                     attempt.state, attempt.finished_at = "cancelled", now
                     attempt.lease_expires_at = now
                 await cleanup_intent(session, job.id, attempt.id, now)
+            if on_change is not None:
+                await on_change(session, job, await session.get(Attempt, job.current_attempt_id))
 
 
 @dataclass(frozen=True)
@@ -138,8 +140,10 @@ class Claim:
     deadline_at: datetime
 
 
-async def claim(factory, job_id, attempt_id, settings):
+async def claim(factory, job_id, attempt_id, settings, *, on_change=None, before_claim=None):
     async with factory() as session, session.begin():
+        if before_claim is not None and not await before_claim(session):
+            return None
         pair = await lock_pair(session, job_id, attempt_id)
         if pair is None:
             return None
@@ -155,6 +159,8 @@ async def claim(factory, job_id, attempt_id, settings):
         attempt.lease_expires_at = min(
             attempt.deadline_at, now + timedelta(seconds=settings.lease_seconds)
         )
+        if on_change is not None:
+            await on_change(session, job, attempt)
         return Claim(
             job.id,
             attempt.id,
@@ -182,7 +188,7 @@ async def heartbeat(factory, work, settings):
         return True
 
 
-async def finish(factory, work, *, outputs=None, error=None):
+async def finish(factory, work, *, outputs=None, error=None, on_change=None):
     # Validate the acknowledged primary and attempt namespace before any DB write.
     checked = []
     if error is None:
@@ -217,4 +223,6 @@ async def finish(factory, work, *, outputs=None, error=None):
             # Caller supplies curated errors only; never persist exception URLs/tokens.
             job.status, job.error, attempt.state, attempt.error = "failed", error, "failed", error
             await cleanup_intent(session, job.id, attempt.id, now)
+        if on_change is not None:
+            await on_change(session, job, attempt)
         return True

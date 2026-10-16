@@ -32,6 +32,7 @@ async function loadApp({ signedIn = true, role = "user" } = {}) {
       ? jsonResponse({ id: "u-1", email: "maya@example.test", role })
       : jsonResponse({ error: "not authenticated" }, false, 401),
   );
+  globalThis.FLICKPOND_LEGACY_API = true; // Frozen pre-Gateway regression.
   await import("./app.js");
   await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/auth/me"));
   await vi.advanceTimersByTimeAsync(0);

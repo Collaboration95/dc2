@@ -51,7 +51,7 @@ jobs:
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
-      - run: uv sync --locked --extra dev
+      - run: uv sync --locked --extra legacy --extra dev
       - uses: actions/cache@v4
         with:
           path: .cache/minio

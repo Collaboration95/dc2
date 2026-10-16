@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="PROCESSING_", extra="ignore")
 
     postgres_dsn: str = Field(repr=False)
+    database_tls: bool = True
+    database_ca_file: str | None = None
+    database_connect_timeout_seconds: float = Field(default=10, gt=0, le=30)
+    release_version: str = "v1-dev"
     service_token: SecretStr = SecretStr("")
     migration_dsn: str | None = Field(default=None, repr=False)
 
@@ -78,4 +82,6 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    from runtime_support.settings import runtime_values
+
+    return Settings(**runtime_values("PROCESSING"))

@@ -1,0 +1,115 @@
+# V1 owner images and releases
+
+These recipes consume coordinator-owned frozen dependency groups `v1-media`,
+`v1-processing`, `v1-worker`. The common base must exclude Redis/RQ (legacy is
+an explicit extra). No Mangum is needed: the owning handlers use GatewayAdapter.
+The `.requirements.in` files describe inputs; `uv.lock` supplies versions/hashes.
+`contracts`, `delivery` and `runtime_support` must be integrated before building.
+
+The coordinator supplies the verified RDS bundle at `deploy/v1/global-bundle.pem`.
+It is copied to `/opt/rds/global-bundle.pem`. No substitute bundle is generated.
+The current recipes use the same pinned Python base as the reviewed AWS2 images;
+execute the retained exact-image scan gate before any promotion. A base pin is
+provenance, not a claim that the image currently has zero fixable findings.
+
+Lead C coordinates Docker use; do not run concurrent stacks or heavy encodes.
+From integrated frozen source (replace SOURCE_SHA with that full commit):
+
+```sh
+docker build --platform linux/amd64 --build-arg SOURCE_SHA=SOURCE_SHA -f deploy/v1/media.Dockerfile -t dc2-v1-media .
+docker build --platform linux/amd64 --build-arg SOURCE_SHA=SOURCE_SHA -f deploy/v1/processing.Dockerfile -t dc2-v1-processing .
+docker build --platform linux/amd64 --build-arg SOURCE_SHA=SOURCE_SHA -f deploy/v1/worker.Dockerfile -t dc2-v1-worker .
+docker run --rm --entrypoint python dc2-v1-media /opt/check_runtime.py lambda-api media
+docker run --rm --entrypoint python dc2-v1-processing /opt/check_runtime.py lambda-api processing
+docker run --rm --entrypoint python dc2-v1-worker /opt/check_runtime.py finite-worker worker
+```
+
+The checks execute at image build and can be rerun against its exact config ID.
+Retain source tests, runtime-content output and scan bound to that config ID;
+use `scripts.aws.artifacts.registry_receipt` to bind registry manifest bytes.
+Add `runtime_kind` and `runtime_contents` from the executed check to each proof.
+`validate_bundle` requires distinct API and worker artifacts and common source.
+Do not rebuild after scanning or equate local config IDs with registry digests.
+
+API default commands are `media.lambda_handler.handler` and
+`processing.lambda_handler.handler`. Every authorizer/control handler is another
+Lambda function with the SAME owning image and its own ImageConfig.Command.
+C1 confirms Media authorizer `media.lambda_handler.authorizer`; other handlers
+come from the integrated messaging/recovery lane. The finite worker entrypoint is
+`python -m processing.v1_worker --deadline-epoch EPOCH --name TASK --max-empty-polls 2`.
+Migration task definitions use the owning API image with ECS **entryPoint**
+`["python", "-m", "alembic"]` and command
+`["-c", "media/alembic.ini", "upgrade", "head"]` (or Processing). A command
+alone does not override the image's Lambda RIC entrypoint. Only the owning
+migration role receives its DSN via task secret injection; do not put it in
+artifacts, release input, command overrides or journals.
+
+`promote` in `scripts.aws.v1.release` takes an injected transport, private existing
+`Journal`, complete `owner_functions` maps (logical key -> physical function name),
+`alias` (default live), `cluster`, owning `task_networks`, bundle, pinned image URI,
+pinned migration task definition/revision and pinned finite worker definition.
+The first deployment must bootstrap a known-good immutable alias; this adapter
+intentionally does not invent a rollback version for an untested first install.
+Media's map includes API, authorizer, result and repair handlers. Processing's map
+includes API, command, repair, ECS and S3 handlers. The operator must supply ALL
+functions from the deployed stack, including handlers with disabled triggers.
+
+Required executable hooks:
+
+- `schema_revision(owner, deadline=...)`: observe the owner's SQL revision with
+  owner-scoped read credentials. Peer revisions are observed independently.
+- `compatibility(owner, prior_snapshot, bundle, target_revision, deadline=...)`:
+  execute/check current AND rollback image compatibility with the additive target.
+- `quiescent(owner, deadline=...)`: assert the owner's intake and consumers are
+  paused and finite tasks drained; include worker reservations in Processing.
+- `public_smoke(owner, versions, worker_definition, deadline=...)`: exercise public
+  V1 routes/client behavior, then drain any finite test workers before returning.
+
+Hooks return exactly True after checking real state. Never replace these with
+unconditional success in an AWS evidence run. The release journals migration
+RunTask tokens before sending, waits for STOPPED/exit zero and the owning revision,
+prepares immutable versions, then uses revision-checked aliases across the owner.
+Multiple aliases cannot move atomically: consumers remain quiescent until the
+whole release succeeds. Peer aliases/images/config hashes/schema/worker selection
+must remain identical. Function environment values are hashed, never persisted.
+
+A lost PublishVersion response raises `PublicationUncertain`. Call `promote` again
+with identical inputs: it reconciles a unique retained release description. If
+not yet visible, it refuses to republish; retain intent for explicit reconciliation.
+A failed candidate retains `phase=restoring`; call `restore` with a separate bounded
+rollback deadline and the same schema/quiescence/public-smoke hooks. It restores
+prior aliases and worker selection, proves unchanged peer and never downgrades
+schema. An unresolved/failed migration remains blocked for explicit reconciliation;
+there is no automatic downgrade or duplicate migration launch with a new token.
+
+The legacy CLITransport production guard is unchanged. The new operator-only
+`OperatorTransport` accepts explicit regional SDK clients and freshly supplied STS
+identity for account 866865534361/ap-southeast-1. Only the sole AWS operator creates
+these clients from the approved session; configure retries `total_max_attempts=1`
+and network timeouts totaling at most 15 seconds. No default session, credential
+lookup, live CLI or AWS call runs on import. Deadline budgets must cover a complete
+bounded request. Session operations use Lead C's adapter, not this release allowlist.
+
+Local protocol checks:
+
+```sh
+PYTHONPATH="$PWD" /path/to/shared/.venv/bin/pytest -q tests/aws/v1/test_release.py
+```
+
+These deterministic checks certify adapter behavior only. Docker builds, real SQL
+migration/compatibility/public workflow and actual AWS aliases/versions/timing are
+separate evidence; #65 remains open until executed by the authorized operator.
+
+The runtime check imports every owning API/authorizer/control or worker/native-source
+graph, checks executable exports and denies socket connections during imports. It
+rejects importable Redis/RQ modules as well as installed distributions, checks the
+opposite domain is absent and parses the actual RDS CA bundle. For workers it runs
+FFmpeg/FFprobe version checks. Final artifact checks should run by immutable config
+ID with `--platform linux/amd64 --network none --read-only --cap-drop ALL` and the
+image default non-root user. API bootstrap import and worker CLI `--help` are
+separate entrypoint checks. These are packaging checks, not service I/O acceptance.
+
+Actual local AMD64 build/import evidence at frozen source `f54943544bf96db5b1eae245d2e06927c9f93581`
+is retained in [the sanitized local manifest](../../docs/execution/aws/v1/evidence/local-images-f549435.json).
+All three builds and non-root runtime checks passed under ARM-host emulation;
+registry receipts, vulnerability scans and cloud execution remain NOT_RUN.

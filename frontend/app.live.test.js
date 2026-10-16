@@ -34,6 +34,7 @@ async function loadPage() {
   globalThis.Event = dom.window.Event;
   globalThis.HTMLElement = dom.window.HTMLElement;
 
+  globalThis.FLICKPOND_LEGACY_API = true; // Frozen pre-Gateway regression.
   await import("./app.js");
 
   el = {

@@ -108,3 +108,27 @@ evidence-status evidence-performance evidence-scaling evidence-recovery evidence
 
 release rollback: ## Promote or roll back Processing locally; RELEASE_ARGS supplies options
 	$(PYTHON) -m scripts.dev.release $@ --run-id "$(RUN_ID)" $(RELEASE_ARGS)
+
+# V1 uses no legacy runtime or Redis. Override PYTHON only to use an existing
+# read-only dependency environment; imports always resolve from this checkout.
+V1_RUN_ID ?= v1-$(shell date +%Y%m%d)-local
+FLOW ?= all
+.PHONY: v1-up v1-down v1-status verify-v1 test-v1
+v1-up: ## Start unique PostgreSQL + loopback Moto; no AWS calls
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_runtime up --run-id "$(V1_RUN_ID)"
+
+v1-down: ## Stop only this V1 namespace; retain SQL volume/logs (DELETE_DATA=1 deletes its SQL)
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_runtime down --run-id "$(V1_RUN_ID)" $(if $(filter 1,$(DELETE_DATA)),--delete-data,)
+
+v1-status: ## Show selected V1 namespace; preserve other runtimes
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_runtime status --run-id "$(V1_RUN_ID)"
+
+verify-v1: ## Real dependency/engine A, integrated clients B, lifecycle/release C; FLOW=a|b|c|all
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_runtime verify --run-id "$(V1_RUN_ID)" --flow "$(FLOW)"
+
+test-v1: ## Offline V1 operational contracts; no services/AWS credentials
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/v1 -m "not integration" -q
+
+.PHONY: v1-serve
+v1-serve: ## Foreground loopback Gateway bridge to integrated actual handlers; V1_PORT=0 allocates
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_gateway --run-id "$(V1_RUN_ID)" --port "$(or $(V1_PORT),0)"

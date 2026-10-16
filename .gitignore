@@ -20,6 +20,8 @@ zap-reports/
 # Credentials and keys. Never commit these -- a key in a public repo is
 # compromised the moment it is pushed, whether or not anyone notices.
 *.pem
+# Public AWS root certificates used to verify V1 database TLS.
+!deploy/v1/global-bundle.pem
 *.key
 *.p12
 *.pfx
