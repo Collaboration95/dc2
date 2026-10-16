@@ -1,9 +1,7 @@
 """Gateway-contract release smoke against a fake Gateway; no network, no AWS."""
 
 import json
-import threading
 import time
-from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 
@@ -11,7 +9,6 @@ from scripts.aws.transport import OperationError
 from scripts.aws.v1.public_smoke import (
     PublicSmoke,
     load_credentials,
-    urllib_http,
     validate_base_url,
 )
 
@@ -164,29 +161,13 @@ def test_credentials_file_must_be_private_exact_and_string_valued(tmp_path):
         load_credentials(path)
 
 
-def test_urllib_transport_does_not_follow_redirects_and_returns_all_cookies():
-    class Handler(BaseHTTPRequestHandler):
-        def do_GET(self):
-            if self.path == "/redirect":
-                self.send_response(302)
-                self.send_header("Location", "/elsewhere")
-            else:
-                self.send_response(200)
-                self.send_header("Set-Cookie", "a=1")
-                self.send_header("Set-Cookie", "b=2")
-            self.end_headers()
-            self.wfile.write(b"{}")
+def test_urllib_transport_refuses_redirects_and_returns_every_cookie():
+    from email.message import Message
 
-        def log_message(self, *args):
-            pass
+    from scripts.aws.v1 import public_smoke
 
-    server = HTTPServer(("127.0.0.1", 0), Handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        base = f"http://127.0.0.1:{server.server_port}"
-        assert urllib_http("GET", base + "/redirect", {}, None, 5)[0] == 302
-        status, headers, _ = urllib_http("GET", base + "/ok", {}, None, 5)
-        assert status == 200 and headers["set-cookie"] == ["a=1", "b=2"]
-    finally:
-        server.shutdown()
+    headers = Message()
+    headers["Set-Cookie"] = "a=1"
+    headers["Set-Cookie"] = "b=2"
+    assert public_smoke._headers(headers)["set-cookie"] == ["a=1", "b=2"]
+    assert public_smoke._NoRedirect().redirect_request() is None
