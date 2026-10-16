@@ -130,6 +130,17 @@ test-v1: ## Offline V1 operational contracts; no services/AWS credentials
 	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/v1 -m "not integration" -q \
 		-p scripts.dev.pytest_plugin --offline-fast
 
+# cfn-lint is a lint-only tool kept out of uv.lock. Locally a missing linter is a clean skip;
+# CI passes CFN_LINT_ARGS=--require so a missing linter fails.
+CFN_LINT_ARGS ?=
+.PHONY: lint-cfn test-aws
+lint-cfn: ## Render and lint the V1 CloudFormation template offline (no AWS calls)
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.aws.v1.lint $(CFN_LINT_ARGS)
+
+test-aws: ## Offline AWS control-plane suite (fakes only; network guarded)
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/aws -m "not integration and not e2e" -q \
+		-p scripts.dev.pytest_plugin --offline-fast
+
 .PHONY: v1-serve
 v1-serve: ## Foreground loopback Gateway bridge to integrated actual handlers; V1_PORT=0 allocates
 	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_gateway --run-id "$(V1_RUN_ID)" --port "$(or $(V1_PORT),0)"

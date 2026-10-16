@@ -260,7 +260,10 @@ def test_session_close_and_wake_keep_real_queued_work_and_run_one_finite_encode(
             recorded = journal.path.read_text()
             assert '"close_outcomes"' in recorded
             assert queued_messages() >= 1
-            assert client.status(asset)["status"] == "queued"
+            # Media has not seen a result yet, so it still reports the accepted projection;
+            # Processing's own SQL holds the queued attempt that close must not disturb.
+            assert client.request("GET", f"jobs/{asset}")["status"] in {"accepted", "queued"}
+            assert outcomes()["queued"] >= 1
             assert all(op not in {"purge-queue", "stop-db-cluster"} for _, op, _ in fake.calls)
             with pytest.raises(OperationError):
                 session.batch(count=1, deadline=deadline())

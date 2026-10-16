@@ -35,10 +35,15 @@ def test_v1_job_requires_the_browser_leg_and_collects_coverage(v1):
     assert env["V1_COVERAGE"] == "1"
 
 
-def test_v1_job_lints_the_cloudformation_template_with_a_pinned_isolated_linter(steps):
+def test_v1_job_requires_a_pinned_cfn_lint_that_stays_out_of_the_lockfile(steps):
     install = steps["Install V1 and isolated emulator tools (no legacy extra)"]["run"]
-    assert "cfn-lint==" in install and ".cache/cfn-lint" in install
-    assert "deploy/aws/v1/template.json" in steps["Lint the V1 template and control scripts"]["run"]
+    assert "uv pip install" in install and "cfn-lint==" in install
+    assert "uv sync --locked" in install
+    lint = steps["Lint the V1 template (render, snapshot freshness, cfn-lint required)"]["run"]
+    assert "make lint-cfn" in lint and "--require" in lint
+    assert "cfn-lint" not in (ROOT / "uv.lock").read_text()
+    assert "offline-fast" in (ROOT / "Makefile").read_text().split("\ntest-aws:", 1)[1]
+    assert steps["Offline AWS control-plane suite (network guarded)"]["run"] == "make test-aws"
 
 
 def test_v1_job_fails_unless_complete_acceptance_passed_for_the_all_flow(steps):
