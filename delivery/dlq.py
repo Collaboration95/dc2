@@ -1,9 +1,15 @@
 """Operator view and redrive for V1 dead-letter queues (docs/execution/aws/v1/dlq-runbook.md).
 
-python -m delivery.dlq inspect --queue-url URL [--limit 10] [--endpoint-url LOOPBACK]
+python -m delivery.dlq inspect --queue-url URL [--limit 10]
+        (--endpoint-url LOOPBACK | --profile P --region R [--account A])
 python -m delivery.dlq redrive --dlq-arn ARN [--per-second 5]
-        [--endpoint-url LOOPBACK [--source-queue-url URL]]
-python -m delivery.dlq status  --dlq-arn ARN [--endpoint-url LOOPBACK]
+        (--endpoint-url LOOPBACK [--source-queue-url URL] | --profile P --region R [--account A])
+python -m delivery.dlq status  --dlq-arn ARN
+        (--endpoint-url LOOPBACK | --profile P --region R [--account A])
+
+Without a loopback endpoint the command talks to real AWS, so it needs an explicit profile
+(never ``default``) and region, and proves through STS that the profile belongs to the
+expected account before any SQS call. The default credential chain is never consulted.
 
 Inspection peeks with a zero visibility timeout and prints identities only, never
 bodies: sources, outputs and error text stay out of terminals and tickets. Redrive
@@ -18,6 +24,8 @@ non-loopback endpoint, so a real AWS failure can not be masked by it.
 
 import argparse
 import json
+import os
+import re
 import time
 from urllib.parse import urlsplit
 
@@ -26,6 +34,10 @@ from botocore.exceptions import ClientError
 from contracts.v1 import Envelope
 
 LOOPBACK_HOSTS = {"localhost", "127.0.0.1"}
+# The one project account and region (docs/execution/aws/v1/cloud-operator-20261015.md).
+EXPECTED_ACCOUNT = "866865534361"
+EXPECTED_REGION = "ap-southeast-1"
+PROFILE_PATTERN = re.compile(r"[A-Za-z0-9_.-]{1,64}")
 
 
 def summarize(message):
@@ -225,7 +237,42 @@ def build_client(endpoint_url=None):
     )
 
 
-def main(argv=None):
+def resolve_scope(parser, args, environ):
+    """(profile, region, account) for real AWS; any gap is a usage error, never a default."""
+    account = args.account or environ.get("DC2_AWS_ACCOUNT") or EXPECTED_ACCOUNT
+    if (
+        not args.profile
+        or args.profile == "default"
+        or not PROFILE_PATTERN.fullmatch(args.profile)
+        or args.region != EXPECTED_REGION
+        or not re.fullmatch(r"[0-9]{12}", account)
+    ):
+        parser.error(
+            f"real AWS needs an explicit non-default --profile and --region {EXPECTED_REGION} "
+            "(or a loopback --endpoint-url for an emulator)"
+        )
+    return {"profile": args.profile, "region": args.region, "account": account}
+
+
+def build_verified_client(scope):
+    """SQS client for real AWS, built only after STS names the expected account.
+
+    This reuses the operator transport's identity check (explicit profile, ambient AWS_*
+    variables refused, fresh get-caller-identity) so a standalone command behaves exactly
+    like the session CLI's `dlq` action instead of falling back to whatever `default` is.
+    """
+    # Imported here: the images ship `delivery` without the operator scripts.
+    from scripts.aws.transport import OperationError
+    from scripts.aws.v1 import operations
+
+    try:
+        return operations.live_sqs_client(scope)
+    except OperationError as error:
+        raise SystemExit(f"error: {error}") from None
+
+
+def main(argv=None, *, environ=None, verified_client=None):
+    environ = os.environ if environ is None else environ
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("command", choices=("inspect", "redrive", "status"))
     parser.add_argument("--queue-url")
@@ -234,6 +281,12 @@ def main(argv=None):
     parser.add_argument("--per-second", type=int, default=5)
     parser.add_argument("--endpoint-url")
     parser.add_argument("--source-queue-url")
+    parser.add_argument("--profile", help="real AWS only: explicit profile, never 'default'")
+    parser.add_argument("--region", help=f"real AWS only: {EXPECTED_REGION}")
+    parser.add_argument(
+        "--account", help="real AWS only: 12-digit account STS must report "
+        f"(default DC2_AWS_ACCOUNT, else {EXPECTED_ACCOUNT})"
+    )
     args = parser.parse_args(argv)
     # Validate before building a client: constructing one resolves credentials, which can
     # reach the instance-metadata service, and a bad invocation should never do that.
@@ -243,7 +296,15 @@ def main(argv=None):
         parser.error(f"{args.command} needs --dlq-arn")
     if args.source_queue_url and not (args.command == "redrive" and is_loopback(args.endpoint_url)):
         parser.error("--source-queue-url applies only to redrive with a loopback --endpoint-url")
-    client = build_client(args.endpoint_url)
+    if args.endpoint_url and not is_loopback(args.endpoint_url):
+        parser.error("--endpoint-url is for a loopback emulator only")
+    if is_loopback(args.endpoint_url):
+        if args.profile or args.region or args.account:
+            parser.error("--profile, --region and --account apply to real AWS, not an emulator")
+        client = build_client(args.endpoint_url)
+    else:
+        scope = resolve_scope(parser, args, environ)
+        client = (verified_client or build_verified_client)(scope)
     if args.command == "inspect":
         result = inspect(client, args.queue_url, limit=args.limit)
     elif args.command == "redrive":

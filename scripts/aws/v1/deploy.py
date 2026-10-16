@@ -80,6 +80,7 @@ DEPLOY_STEPS = (
 )
 TEARDOWN_STEPS = (
     "td-inventory",
+    "td-session-close",
     "td-quiesce",
     "td-buckets-emptied",
     "td-images-deleted",
@@ -90,7 +91,9 @@ TEARDOWN_STEPS = (
     "td-retained",
     "td-receipt",
 )
-AURORA_VERSION = "16.8"  # the renderer's default; the observed orderable version
+# Session close checks that cannot pass while an encoder task still runs.
+DRAIN_CHECKS = {"drain", "outcomes", "inventory"}
+AURORA_VERSION = "16.8" # the renderer's default; the observed orderable version
 OWNERS = ("media", "processing")
 DEFINITIVE_MIGRATION_FAILURES = {"Migration task failed", "Owning schema revision mismatch"}
 # Prices: the receipt's cited ap-southeast-1 offer files (cloud-operator-20261015.md).
@@ -915,16 +918,19 @@ class Pipeline:
         """Oversize templates go to the private staging bucket (CloudFormation's inline limit)."""
         bucket = self.meta()["resources"]["staging_bucket"]
         digest = hashlib.sha256(body.encode()).hexdigest()
-        key = f"templates/{digest}.json"
+        # The run id is part of the key: two runs sharing an adopted bucket stage byte-identical
+        # templates, and a content-only key would make their objects indistinguishable.
+        key = f"templates/{self.s.run_id}/{digest}.json"
         with tempfile.TemporaryDirectory(prefix="dc2-template-") as directory:
             Path(directory).chmod(0o700)
             path = Path(directory) / "template.json"
             path.write_text(body)
-            self.aws("s3api", "put-object", {
+            made = self.aws("s3api", "put-object", {
                 "Bucket": bucket, "Key": key, "Body": str(path),
                 "ServerSideEncryption": "AES256",
-                "Tagging": f"{PROJECT_KEY}={PROJECT_VALUE}&{RUN_KEY}={self.s.run_id}"})
-        staged = {"bucket": bucket, "key": key}
+                "Tagging": f"{PROJECT_KEY}={PROJECT_VALUE}&{RUN_KEY}={self.s.run_id}"}) or {}
+        # Each put of a versioned bucket creates a version; teardown removes exactly these.
+        staged = {"bucket": bucket, "key": key, "version_id": made.get("VersionId")}
         self.journal.mutate(lambda d: remember(d["resources"], "staged_objects", staged))
         return {"TemplateURL": f"https://{bucket}.s3.{self.s.region}.amazonaws.com/{key}"}
 
@@ -1119,19 +1125,49 @@ class Pipeline:
             "ParameterFilters": [{"Key": "Name", "Option": "Equals", "Values": [name]}]})
         return bool(found.get("Parameters"))
 
+    def passwords_path(self):
+        return self.s.state_dir / "db-bootstrap-passwords.json"
+
+    def bootstrap_passwords(self):
+        """The role passwords the bootstrap task applies, kept across an interrupted resume.
+
+        The task is finite and its completion is journaled, so a resume reuses a finished task
+        instead of launching another. Passwords regenerated on that resume would then never be
+        applied to PostgreSQL, yet would be published to SSM. They are therefore written to a
+        private (0600) file in the state directory, never logged or journaled, before any task
+        can use them, and read back on every attempt. Without the file (first run, or the
+        operator lost the state) fresh passwords are generated and the recorded task is
+        forgotten so a new bootstrap applies exactly those.
+        """
+        path = self.passwords_path()
+        with contextlib.suppress(OSError, ValueError):
+            saved = json.loads(path.read_text())
+            if set(saved) == set(db_bootstrap.CREDENTIAL_ROLES) and all(
+                    isinstance(v, str) and v for v in saved.values()):
+                return saved
+        # Forget the task first: a crash between the two writes then costs a fresh bootstrap,
+        # never a completed task paired with passwords it did not apply.
+        label = "bootstrap"
+        self.mark(self.step, "started", **{f"{label}_token": None, f"{label}_task": None})
+        passwords = {role: secrets.token_urlsafe(32) for role in db_bootstrap.CREDENTIAL_ROLES}
+        self.write_private(path, json.dumps(passwords))
+        return passwords
+
     def step_db_bootstrap(self):
         """Privileged role/database bootstrap, then the five runtime/migration parameters.
 
-        The four role passwords are random per attempt and live only in this process. A rerun
-        re-applies the bootstrap (which resets them) and rewrites every DSN together, so an
-        interrupted attempt never leaves the roles and the parameters disagreeing.
+        The four role passwords come from `bootstrap_passwords`, so a resume that finds the
+        bootstrap task already finished publishes exactly the passwords it applied. A failed
+        task is relaunched with the same passwords (it resets the roles to them) and every DSN
+        is rewritten together, so an interrupted attempt never leaves the roles and the
+        parameters disagreeing. The file is removed once everything is published.
         """
         outputs = self.outputs()
         base = f"/dc2/{self.s.env}/"
         secret = self.aws("secretsmanager", "get-secret-value",
                           {"SecretId": outputs["BootstrapSecretArn"]})
         master = json.loads(secret["SecretString"])
-        passwords = {role: secrets.token_urlsafe(32) for role in db_bootstrap.CREDENTIAL_ROLES}
+        passwords = self.bootstrap_passwords()
         payload = {"host": outputs["DatabaseEndpoint"], "port": 5432, "user": master["username"],
                    "password": master["password"], "role_passwords": passwords}
         db_bootstrap.validate_input(payload)
@@ -1157,6 +1193,8 @@ class Pipeline:
         # The signing key is stable across reruns: rotating it would end every session.
         if not self.parameter_exists(base + "jwt_secret"):
             self.put_parameter(base + "jwt_secret", secrets.token_urlsafe(48))
+        # Only now, with every DSN in SSM, are the local copies unnecessary.
+        self.passwords_path().unlink(missing_ok=True)
         return {"bootstrap_task": result.get("task"),
                 "parameters": sorted(render_config.PARAMETERS),
                 "temporary_input_removed": True}
@@ -1242,18 +1280,24 @@ class Pipeline:
         return data
 
     # -- operator config for the session/release CLIs --------------------------------------
-    def write_ops_config(self):
-        path = self.s.state_dir / "operator-config.json"
+    def write_ops_config(self, *, teardown=False):
+        """The session CLI's config. A teardown gets its own file and attested zero counts.
+
+        Teardown deletes the data, so a drain proof gates nothing; and a real drain wait
+        would spend the close's whole deadline before the mappings and rules were disabled.
+        """
+        path = self.s.state_dir / (
+            "operator-config-teardown.json" if teardown else "operator-config.json")
         data = {"operator_station": self.s.station, "environment_id": self.s.env,
                 "journal": str(self.s.state_dir / "session" / "journal.json"),
                 "outputs_file": str(self.s.state_dir / "outputs.json")}
-        sql = self.sql_settings()
-        counts = self.s.counts_file
+        sql = {} if teardown else self.sql_settings()
+        counts = None if teardown else self.s.counts_file
         if sql:
             data["sql"] = sql
         elif counts:
             data["counts_file"] = str(counts)
-        elif self.s.assume_empty_counts:
+        elif self.s.assume_empty_counts or teardown:
             zero = self.s.state_dir / "attested-zero-counts.json"
             self.write_private(zero, json.dumps(dict.fromkeys(
                 ("queued", "processing", "succeeded", "failed", "abandoned", "cancelled"), 0)))
@@ -1261,8 +1305,8 @@ class Pipeline:
         self.write_private(path, json.dumps(data, indent=2))
         return path
 
-    def run_session(self, action, *extra):
-        ops = self.write_ops_config()
+    def run_session(self, action, *extra, teardown=False):
+        ops = self.write_ops_config(teardown=teardown)
         argv = [action, "--config", str(ops), "--profile", self.s.profile,
                 "--region", self.s.region, "--account", self.s.account, *extra]
         if self.s.dry_run:
@@ -1441,17 +1485,73 @@ class Pipeline:
     def owned_ids(self, kind):
         return self.meta().get("ownership", {}).get("owned", {}).get(kind, [])
 
+    def session_failures(self):
+        """Close steps the session journal recorded as failed by the last close attempt."""
+        journal = Journal(self.session_dir() / "journal.json", station=self.s.station,
+                          environment=self.s.env)
+        with journal.locked() as state:
+            return list(state.get("session_failures", []))
+
+    def td_session_close(self):
+        """Shut every writer's front door first: intake, queue consumers and schedules.
+
+        Anything left open could accept an upload or start a worker after the buckets were
+        emptied. This is the session close the deploy ends with (stage throttle 0/0, mappings
+        and rules disabled), run again because a session may have been opened since. Its drain
+        and inventory checks cannot pass while an encoder runs, and the next step stops those,
+        so a close that failed only on them is accepted; any other failure stops the teardown.
+        """
+        meta = self.meta()
+        if not meta["outputs"].get("HttpApiUrl") or self.s.env not in self.owned_ids("stack"):
+            return {"session": "nothing-deployed"}
+        initialised = meta["steps"].get("session-init", {}).get("status") == "done"
+        if not initialised and not self.s.dry_run:
+            return {"session": "never-initialised"}
+        outputs = self.s.state_dir / "outputs.json"
+        if not outputs.exists():  # the config reads it; the journal kept every non-secret output
+            self.write_private(outputs, json.dumps(meta["outputs"], indent=2))
+        try:
+            self.run_session("close", teardown=True)
+        except DeployError:
+            try:
+                deferred = self.session_failures()
+            except OperationError:  # no readable session journal: nothing proves a safe close
+                deferred = []
+            if not deferred or not set(deferred) <= DRAIN_CHECKS:
+                raise
+            return {"session": "closed", "deferred_to_task_stop": sorted(deferred)}
+        return {"session": "closed", "deferred_to_task_stop": []}
+
     def td_quiesce(self):
+        """Stop every task in the project cluster, then wait (bounded) until all are STOPPED.
+
+        Re-listing each round catches a task that started between the list and the stop; the
+        step finishes only on a round that found nothing new and left nothing running.
+        """
         cluster = self.meta()["outputs"].get("ClusterArn")
+        if not (cluster and self.owned_ids("stack")):
+            return {"tasks_stopped": 0, "all_stopped": True}
         stopped = []
-        if cluster and self.owned_ids("stack"):
+
+        def check():
             listed = self.aws("ecs", "list-tasks", {"cluster": cluster, "desiredStatus": "RUNNING"},
-                              tolerate=("ClusterNotFoundException",)) or {}
-            for task in listed.get("taskArns", []):
+                              tolerate=("ClusterNotFoundException",))
+            if listed is None:
+                return True, None  # the cluster is already gone
+            new = [t for t in listed.get("taskArns", []) if t not in stopped]
+            for task in new:
                 self.aws("ecs", "stop-task", {
                     "cluster": cluster, "task": task, "reason": "dc2-v1 teardown"})
                 stopped.append(task)
-        return {"tasks_stopped": len(stopped)}
+            running = []
+            for start in range(0, len(stopped), 100):
+                described = self.aws("ecs", "describe-tasks", {
+                    "cluster": cluster, "tasks": stopped[start:start + 100]})
+                running += [t for t in described.get("tasks", []) if t["lastStatus"] != "STOPPED"]
+            return not new and not running, None
+
+        self.poll(check, what="encoder tasks to reach STOPPED", timeout=900, interval=10)
+        return {"tasks_stopped": len(stopped), "all_stopped": True}
 
     def empty_bucket(self, bucket):
         """Delete every version and delete marker (the buckets are versioned) and abort uploads."""
@@ -1559,6 +1659,8 @@ class Pipeline:
                 deleted.append(param["Name"])
             else:
                 kept.append(param["Name"])
+        # An interrupted db-bootstrap leaves its local password copy; the roles are going too.
+        self.passwords_path().unlink(missing_ok=True)
         return {"parameters_deleted": len(deleted), "parameters_kept": kept}
 
     def delete_stack(self, stack):
@@ -1586,23 +1688,31 @@ class Pipeline:
     def td_bootstrap_stack(self):
         if self.s.bootstrap_stack in self.owned_ids("stack"):
             self.delete_stack(self.s.bootstrap_stack)
-        removed = 0
-        # An adopted staging bucket is kept, but the template revisions this run put there are
-        # this run's own and are removed (every version of exactly those keys).
+        removed, kept = 0, []
+        # An adopted staging bucket is kept; only the object versions this run uploaded (each
+        # VersionId was journaled by its put) are removed, never a sibling run's identical
+        # template. Without an owned bucket to empty, nothing else would remove them.
         if self.meta()["resources"].get("bootstrap_adopted"):
+            by_bucket = {}
             for staged in self.meta()["resources"].get("staged_objects", []):
-                removed += self.delete_key_versions(staged["bucket"], staged["key"])
-        return {"stack": self.s.bootstrap_stack, "staged_versions_removed": removed}
+                if staged.get("version_id"):
+                    by_bucket.setdefault(staged["bucket"], []).append(
+                        {"Key": staged["key"], "VersionId": staged["version_id"]})
+                else:
+                    kept.append(staged["key"])
+            for bucket, objects in by_bucket.items():
+                removed += self.delete_object_versions(bucket, objects)
+        return {"stack": self.s.bootstrap_stack, "staged_versions_removed": removed,
+                "staged_without_version_id_kept": sorted(set(kept))}
 
-    def delete_key_versions(self, bucket, key):
-        listing = self.aws("s3api", "list-object-versions", {"Bucket": bucket, "Prefix": key},
-                           tolerate=("NoSuchBucket",)) or {}
-        objects = [{"Key": v["Key"], "VersionId": v["VersionId"]}
-                   for v in listing.get("Versions", []) + listing.get("DeleteMarkers", [])
-                   if v["Key"] == key]
-        if objects:
-            self.aws("s3api", "delete-objects", {
-                "Bucket": bucket, "Delete": {"Objects": objects, "Quiet": True}})
+    def delete_object_versions(self, bucket, objects):
+        """Delete exactly the named (key, version) pairs; S3 treats an absent version as done."""
+        for start in range(0, len(objects), 1000):
+            result = self.aws("s3api", "delete-objects", {
+                "Bucket": bucket, "Delete": {"Objects": objects[start:start + 1000],
+                                             "Quiet": True}}, tolerate=("NoSuchBucket",))
+            if result and result.get("Errors"):
+                raise DeployError(f"Could not delete {len(result['Errors'])} staged versions")
         return len(objects)
 
     def td_retained(self):
@@ -1696,7 +1806,8 @@ class Pipeline:
             except OperationError as error:
                 raise DeployError(str(error)) from None
         actions = {
-            "td-inventory": self.td_inventory, "td-quiesce": self.td_quiesce,
+            "td-inventory": self.td_inventory, "td-session-close": self.td_session_close,
+            "td-quiesce": self.td_quiesce,
             "td-buckets-emptied": self.td_buckets, "td-images-deleted": self.td_images,
             "td-database": self.td_database, "td-parameters": self.td_parameters,
             "td-stack": self.td_stack, "td-bootstrap-stack": self.td_bootstrap_stack,

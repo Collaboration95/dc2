@@ -19,7 +19,7 @@ The operator must decide or supply all of these. None has a default.
 |---|---|
 | An MFA session in profile `dc2-project2-mfa` | `FlickPondRequireMFA` denies when `aws:MultiFactorAuthPresent` is `false`. Direct calls with the long-term key pass, but calls CloudFormation makes on the caller's behalf carry no MFA and are denied. So every deploy, session and evidence command uses the session profile that `make aws-mfa-session CODE=<6 digits>` writes (the helper asks `sts get-session-token` for 129600 s, the 36 h maximum, and prints the expiry). Preflight blocks a long-term key and says to run the helper. The pipeline will not bypass or edit the policy. |
 | `--run-id` (2-16 lowercase letters/digits) | Namespace `dc2-v1-<run id>` must fit CloudFormation's 24-character `EnvironmentId`. A new id per attempt; a failed stack leaves `ROLLBACK_COMPLETE` that blocks its name. |
-| `--state-dir` (private, outside the repo) | Journal, stack outputs, smoke credentials, receipt. Mode 0700, files 0600. Back it up: it is the only record of what this run owns. |
+| `--state-dir` (private, outside the repo) | Journal, stack outputs, smoke credentials, the transient database role passwords, receipt. Mode 0700, files 0600. Back it up: it is the only record of what this run owns. |
 | `--images` | The `--out` evidence file of `deploy/v1/build_and_verify.py` (accepted only if `LOCAL_ARTIFACT_PASS`; each image must still have the verified config id), or a hand-written `images.json`. See below. |
 | `--seed-email` | Address for the smoke account. Must pass the Media API's email validation (not `.invalid`). |
 | How `session close` proves a drain | One of `--sql-config` (needs a station inside the VPC), `--counts-file`, or `--assume-empty-counts` (the operator attests no worker ever ran, true for a first deploy). Without one the pipeline refuses to open the window. |
@@ -94,7 +94,7 @@ awake; a 0.25-vCPU/0.5-GiB finite task is about $0.02/hour.
 | 4 | `images` | Per owner: confirms linux/amd64, pushes tag `<run>-<owner>` once, reads the registry digest, optional `expected_digest`, reads scan findings, journals `repo@sha256:...` | 5-15 min (upload) | ECR storage ~$0.15/month |
 | 5 | `applications` | UPDATE change set: `DeployApplications=true`, three digest-pinned image URIs, `SourceCorsOrigin` = generated frontend URL. Lambda functions, aliases, mappings and rules are created closed; gateway throttle 0/0. Writes `outputs.json` | 5-10 min | + pennies |
 | 5b | `frontend` | Builds `frontend/` into `<state-dir>/frontend-dist` (hashed asset names, `index.html` `no-cache`, assets `immutable`), lists the bucket, uploads only changed objects with SSE and tags (`index.html` last), `cloudfront create-invalidation` `/*`, polls until `Completed`, fetches the page through CloudFront | 2-6 min (invalidation) | pennies |
-| 6 | `db-bootstrap` | Reads the RDS-managed master secret, generates four distinct 32-character role passwords (memory only), writes temporary `/dc2/<env>/bootstrap-input`, runs the finite bootstrap task, **always** deletes the input, writes the four DSN parameters and a stable `jwt_secret` as tagged SecureStrings | 3-6 min (Fargate start, Aurora resume) | task ~$0.02/h + DB |
+| 6 | `db-bootstrap` | Reads the RDS-managed master secret, generates four distinct 32-character role passwords and keeps them in `<state-dir>/db-bootstrap-passwords.json` (0600, never journaled or printed) until the DSNs are published, writes temporary `/dc2/<env>/bootstrap-input`, runs the finite bootstrap task, **always** deletes the input, writes the four DSN parameters and a stable `jwt_secret` as tagged SecureStrings, then removes the local password file | 3-6 min (Fargate start, Aurora resume) | task ~$0.02/h + DB |
 | 7 | `migrations` | `scripts.aws.v1.migration.migrate` for Media then Processing: run-task, poll, exit code 0, schema revision. Target revision is the Alembic head from the repo | 6-10 min | as above |
 | 8 | `session-init` | `session init` for a pipeline-owned session journal; refuses unless a close-proof is configured | < 1 min | 0 |
 | 9 | `session-window` | `session window`: readiness probes (wakes Aurora), public API only, consumers/rules/workers stay off | 1-3 min | DB awake |
@@ -122,7 +122,7 @@ reusable**: CloudFormation cannot update a rolled-back stack, its template pins 
 and its `Retain` bucket never existed. The pipeline leaves it alone (teardown receipts list it as
 untouched; deleting it is a free, manual, optional cleanup). It creates `<env>-bootstrap` instead.
 `--adopt-bootstrap-stack NAME` reuses a *healthy* staging stack with an `ArtifactsBucket` output;
-an adopted stack and bucket are never deleted, only this run's own template objects are.
+an adopted stack and bucket are never deleted, only the template object versions this run uploaded are (see Teardown).
 
 ### Seed: the operator account
 
@@ -144,9 +144,11 @@ numbers are journaled. It is an alert-grade guard on a lagging, estimated source
 
 Each step is `started` / `done` / `failed` / `awaiting-execute` in the journal. A rerun skips done
 steps and repeats `preflight`. Launch intent (the ECS client token) is journaled before `run-task`,
-a failed bootstrap task is forgotten so a rerun starts a new one, a failed migration is forgotten
+a failed bootstrap task is forgotten so a rerun starts a new one (with the same saved passwords), a failed migration is forgotten
 the same way while an ambiguous launch keeps its retained intent, and finished owners are not
-repeated. `status` prints the journal. A second process on the same run is refused by a lock.
+repeated. A rerun after the bootstrap task finished but before every DSN reached SSM reuses that
+task and publishes the saved passwords, so SSM and PostgreSQL agree; if the password file is lost
+the recorded task is forgotten and a fresh bootstrap applies newly generated ones. `status` prints the journal. A second process on the same run is refused by a lock.
 
 ## Teardown
 
@@ -155,18 +157,31 @@ the live `deploy-project`/`owner-run` tags. Anything failing either is skipped a
 `skipped_not_owned`; pre-existing resources are never candidates. Order, each step journaled:
 
 1. `td-inventory`: tags and presence of everything recorded; writes the ownership map.
-2. `td-quiesce`: stop any running task in the project cluster.
-3. `td-buckets-emptied`: every version and delete marker (the buckets are versioned) and any
-   incomplete multipart upload.
-4. `td-images-deleted`: every image in the owned repositories.
-5. `td-database`: remove deletion protection, delete the instance, then the cluster. A final
+2. `td-session-close`: close the front doors before anything is stopped or deleted, through the
+   same `session close` code the deploy ends with (stage throttle 0/0, event-source mappings and
+   rules disabled, functions quiesced). It uses attested zero attempt counts because the data is
+   about to be deleted, so a drain proof gates nothing. A close that failed only its `drain`,
+   `outcomes` or `inventory` checks (they cannot pass while an encoder runs) continues to the next
+   step; any other failure stops the teardown. Skipped, and journaled as such, when the
+   applications were never deployed or the session was never initialised.
+3. `td-quiesce`: stop every running task in the project cluster, then wait (up to 15 minutes) until
+   `describe-tasks` reports all of them STOPPED and a fresh listing finds none. A task that does
+   not stop fails the step and nothing has been emptied.
+4. `td-buckets-emptied`: every version and delete marker (the buckets are versioned) and any
+   incomplete multipart upload. Only reached once no writer is left.
+5. `td-images-deleted`: every image in the owned repositories.
+6. `td-database`: remove deletion protection, delete the instance, then the cluster. A final
    snapshot `<env>-final` (tagged) is taken unless `--skip-final-snapshot`. This precedes the stack
    because the retained database holds the VPC's subnets.
-6. `td-parameters`: owned SecureStrings under `/dc2/<env>/`.
-7. `td-stack`: delete the main stack and wait (CloudFront is the long pole).
-8. `td-bootstrap-stack`: delete the staging stack (or, if adopted, only this run's templates).
-9. `td-retained`: delete the `Retain` buckets, repositories and any owned log groups.
-10. `td-receipt`: observe what is left from the services, plus the tagging API.
+7. `td-parameters`: owned SecureStrings under `/dc2/<env>/` (and any leftover local password file).
+8. `td-stack`: delete the main stack and wait (CloudFront is the long pole).
+9. `td-bootstrap-stack`: delete the staging stack. If it was adopted, delete only the object
+   versions this run uploaded: template keys are `templates/<run id>/<sha256>.json`, each put's
+   `VersionId` is journaled, and exactly those `(key, version)` pairs are removed, so a second
+   run sharing the bucket keeps its identical templates. Objects journaled without a version id
+   are kept and listed as `staged_without_version_id_kept`.
+10. `td-retained`: delete the `Retain` buckets, repositories and any owned log groups.
+11. `td-receipt`: observe what is left from the services, plus the tagging API.
 
 Expected 25-45 minutes (CloudFront 10-20, Aurora 5-10, snapshot 2-5), then the meter stops.
 `teardown-receipt-<run>.json` (0600) is the "resources remaining" receipt for #67: status
@@ -291,4 +306,6 @@ Caveats that matter when reading receipts:
   are not taggable); the cluster and repositories are tagged and owned.
 - A failed run leaves the stack in `ROLLBACK_COMPLETE`; use a new run id and run `teardown` for the
   old one (it deletes the failed stack by ownership).
+- A harness rerun after `finalize` succeeded replays the reservation (Media answers `upload: null`
+  for a finalized one) and finalize, keeps the first run's timings and reuses the same job.
 - One run at a time: the 6-vCPU Fargate quota and the Lambda limit of 10 do not allow overlap.

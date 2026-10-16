@@ -56,6 +56,18 @@ def test_status_ineligible_or_missed_target(change):
     )
 
 
+@pytest.mark.parametrize(("overshoot", "eligible"), [(1e-7, True), (0.0005, True), (0.01, False)])
+def test_a_180_second_window_may_overshoot_by_float_noise_but_not_by_more(overshoot, eligible):
+    # A monotonic clock near 1e5 s has ulps around 1e-11; subtracting two such sums can leave
+    # a 1e-7 residue, which must not make an honestly booked 180 s window ineligible.
+    window = {**WINDOW, "ended_at": 180 + overshoot}
+    samples = [sample(u, at=t) for t in range(180) for u in range(50)]
+    result = summarize(
+        samples, users=50, duration_seconds=180, measurement="status", window=window
+    )
+    assert result["eligible"] is eligible
+
+
 def test_login_strict_target_hash_cost_and_invalid_samples():
     assert hash_cost(HASH) == 12
     with pytest.raises(ValueError):

@@ -5,6 +5,19 @@ Scope: the three SQS Standard queues (`processing-commands`, `processing-work`,
 emulator; the same commands work against a real queue only when an operator runs
 them with their own authorized credentials. Nothing here is AWS evidence.
 
+**Real AWS needs an explicit scope.** Without a loopback `--endpoint-url` every command
+requires `--profile` (never `default`; the MFA session profile that
+`make aws-mfa-session` writes) and `--region ap-southeast-1`. `--account` names the account
+STS must report; it defaults to `DC2_AWS_ACCOUNT`, then to the project account
+`866865534361`. The command calls STS first and makes no SQS call if the profile resolves
+to another account, if `AWS_PROFILE`/`AWS_ACCESS_KEY_ID`/`AWS_ENDPOINT_URL*` are set in the
+environment, or if the MFA session has expired. The default credential chain is never used,
+so running outside the project shell cannot fall back to an unrelated profile. A non-loopback
+`--endpoint-url` is refused. The scope flags are rejected with a loopback endpoint.
+`python -m scripts.aws.v1.session dlq` is equivalent and takes the queue from the stack
+outputs. Below, `$S` stands for
+`--profile dc2-project2-mfa --region ap-southeast-1 --account 866865534361`.
+
 **Local redrive is not AWS redrive.** Pinned Moto 5.2.4 does not implement
 `StartMessageMoveTask`, so against a loopback `--endpoint-url` the CLI falls back to a
 manual loop (below). That proves our validate-and-return logic and the SQL inbox's
@@ -30,8 +43,8 @@ Point inspection at a **DLQ only**. A peek is still a receive and raises
 DLQ.
 
 ```sh
-python -m delivery.dlq inspect --queue-url "$DLQ_URL" --limit 10
-# Local emulator only:  --endpoint-url http://127.0.0.1:<moto port>
+python -m delivery.dlq inspect $S --queue-url "$DLQ_URL" --limit 10
+# Local emulator (instead of $S):  --endpoint-url http://127.0.0.1:<moto port>
 ```
 
 Output is identities only (kind, message ID, owner, asset, job, attempt, state
@@ -61,8 +74,8 @@ aws sqs receive-message --queue-url "$DLQ_URL" --max-number-of-messages 10 \
 On real AWS, the native move task:
 
 ```sh
-python -m delivery.dlq redrive --dlq-arn "$DLQ_ARN" --per-second 5
-python -m delivery.dlq status  --dlq-arn "$DLQ_ARN"
+python -m delivery.dlq redrive $S --dlq-arn "$DLQ_ARN" --per-second 5
+python -m delivery.dlq status  $S --dlq-arn "$DLQ_ARN"
 ```
 
 This calls `StartMessageMoveTask` without a destination, returning each message

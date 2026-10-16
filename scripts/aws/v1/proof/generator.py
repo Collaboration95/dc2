@@ -94,14 +94,13 @@ def window_rounds(request, clock, sleep, pool, *, users, seconds, route, cookie,
                   label, not_before=None):
     """Whole rounds of one request per user, one round a second, until the window is spent.
 
-    The window start is snapped down to a multiple of 1/1024 s so that `end - start` is exactly
-    `seconds` in floating point (a raw monotonic value plus 180 minus itself is not always 180,
-    and the eligibility test rejects a window even a hair over). A window that must follow
-    another waits for it and never starts before it ended.
+    `end - start` may differ from `seconds` by a few float ulps; the eligibility test allows
+    for that (`latency.WINDOW_EPSILON`), so the start needs no snapping. A window that must
+    follow another waits for it and never starts before it ended.
     """
     if not_before is not None and clock() < not_before:
         sleep(not_before - clock())
-    start = max(math.floor(clock() * 1024) / 1024, not_before or 0.0)
+    start = max(clock(), not_before or 0.0)
     end = start + seconds
     while clock() + 1 <= end:
         began = clock()

@@ -205,12 +205,20 @@ class SimWorld:
         if path.startswith("/api/processing/jobs"):
             return reply(200, [])
         if path == "/api/media/uploads/reservations":
-            rid = str(uuid.uuid4())
-            self.reservations[rid] = {"owner": user["id"], "request": data, "uploaded": False}
+            # Like Media, a reservation is idempotent on (owner, request_id) and a replay of a
+            # finalized one carries no upload grant.
+            rid = next((r for r, found in self.reservations.items()
+                        if found["owner"] == user["id"]
+                        and found["request"]["request_id"] == data["request_id"]), None)
+            if rid is None:
+                rid = str(uuid.uuid4())
+                self.reservations[rid] = {"owner": user["id"], "request": data,
+                                          "uploaded": False}
+            grant = None if self.reservations[rid].get("job") else {
+                "url": f"https://{S3_HOST}/", "fields": {"key": rid, "policy": "p"}}
             return reply(201, {
                 "reservation_id": rid, "expires_at": "2026-10-17T11:00:00Z",
-                "finalize_url": f"/uploads/reservations/{rid}/finalize",
-                "upload": {"url": f"https://{S3_HOST}/", "fields": {"key": rid, "policy": "p"}}})
+                "finalize_url": f"/uploads/reservations/{rid}/finalize", "upload": grant})
         if path.startswith("/api/media/uploads/reservations/") and path.endswith("/finalize"):
             return self.finalize(path.split("/")[-2], user, reply)
         parts = path.split("/")

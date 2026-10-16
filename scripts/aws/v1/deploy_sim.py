@@ -49,6 +49,9 @@ class SimulatedAws:
         self.clusters, self.instances, self.snapshots, self.tasks = {}, {}, {}, {}
         self.task_exit = {}  # task-definition substring -> exit code
         self.pending, self.puts, self.invalidations = {}, [], {}
+        self.role_passwords = None  # the passwords the database holds after the last bootstrap
+        self.version_seq = 0
+        self.stop_lag = 0  # describe-tasks rounds a stopped task keeps reporting RUNNING
         # The previous sprint's rolled-back staging stack, so the plan shows it left alone.
         self.stacks[LEGACY] = {"status": "ROLLBACK_COMPLETE", "tags": {}, "resources": [],
                                "outputs": {}, "changesets": {}, "id": "legacy"}
@@ -318,9 +321,12 @@ class SimulatedAws:
         bucket = self.buckets[payload["Bucket"]]
         etag = hashlib.md5(data, usedforsecurity=False).hexdigest()
         bucket.setdefault("etags", {})[key] = etag
-        bucket["versions"].append({"Key": key, "VersionId": short(key, etag)})
+        # A versioned bucket mints a new id for every put, even of identical bytes.
+        self.version_seq += 1
+        version = short(key, etag, str(self.version_seq), uuid.uuid4().hex)
+        bucket["versions"].append({"Key": key, "VersionId": version})
         self.puts.append({k: v for k, v in payload.items() if k != "Body"})
-        return {}
+        return {"ETag": f'"{etag}"', "VersionId": version}
 
     def s3api_list_objects_v2(self, payload):
         bucket = self.buckets.get(payload["Bucket"])
@@ -564,6 +570,10 @@ class SimulatedAws:
     def ecs_run_task(self, payload):
         arn = f"arn:aws:ecs:{self.s.region}:{self.s.account}:task/sim/{payload['clientToken'][:12]}"
         self.tasks[arn] = {"definition": payload["taskDefinition"], "polls": 0, "stopped": False}
+        staged = self.param_values.get(f"/dc2/{self.s.env}/bootstrap-input")
+        if "bootstrap" in payload["taskDefinition"] and staged:
+            # What a real bootstrap task does: set the roles' passwords from its input.
+            self.role_passwords = json.loads(staged)["role_passwords"]
         return {"tasks": [{"taskArn": arn}], "failures": []}
 
     def ecs_describe_tasks(self, payload):
@@ -571,7 +581,11 @@ class SimulatedAws:
         for arn in payload["tasks"]:
             task = self.tasks[arn]
             task["polls"] += 1
-            stopped = task["stopped"] or task["polls"] > 1
+            if task["stopped"] and task.get("lag", 0) > 0:
+                task["lag"] -= 1  # asked to stop, still draining: ECS reports RUNNING a while
+                stopped = False
+            else:
+                stopped = task["stopped"] or task["polls"] > 1
             code = next((c for key, c in self.task_exit.items() if key in task["definition"]), 0)
             out.append({"taskArn": arn, "taskDefinitionArn": task["definition"],
                         "lastStatus": "STOPPED" if stopped else "RUNNING",
@@ -584,6 +598,7 @@ class SimulatedAws:
 
     def ecs_stop_task(self, payload):
         self.tasks[payload["task"]]["stopped"] = True
+        self.tasks[payload["task"]]["lag"] = self.stop_lag
         return {}
 
     def ecs_describe_task_definition(self, payload):
