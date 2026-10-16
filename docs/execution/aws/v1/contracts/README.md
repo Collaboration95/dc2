@@ -6,7 +6,11 @@ source creation refusal, safe errors, and invocation SQL cleanup with explicit
 fake inputs. These tests are not live PostgreSQL, Gateway/IAM or AWS evidence.
 
 The external paths are `/api/media/*` and `/api/processing/*`. Each adapter strips
-its own prefix exactly once. GET `/health` is public. Media POST `/auth/register`,
+its own prefix exactly once. GET `/health` is public and opens no database connection (a probe must not wake a
+paused Aurora cluster). Database readiness is not an HTTP route: invoke the Media or
+Processing API function directly with `{"dc2_operation": "ready"}`, which API Gateway cannot
+construct, so IAM `lambda:InvokeFunction` is the only gate. It returns
+`{"service":..., "ready": bool}` and never driver text. Media POST `/auth/register`,
 `/auth/login` and `/auth/logout` are public; all other requests require the Media
 Lambda authorizer. Disable authorizer caching (TTL zero). Media verifies JWT
 expiry and the current user/role. Existing Media user/operator roles both map to
@@ -92,3 +96,26 @@ mode, migrations require `PROCESSING_MIGRATION_DSN`, use the same verifying TLS
 and never fall back to runtime credentials. SSM runtime DSN resolution belongs to
 `runtime_support.settings.runtime_values("PROCESSING")`; no credentials are stored
 in this document or the fixtures.
+
+## Frozen fixtures and runtime decisions
+
+`tests/v1/fixtures/contracts/*.json` freeze the reviewed contract: valid envelopes with
+their canonical SHA-256, 23 invalid ones, result sequences (replay, reorder, equivocation,
+superseded attempt, cancel-before-submit), gateway events and authorizer cases (expired or
+foreign-signed JWT, forged identity headers, wrong owner, ambiguous cookies, fail-closed
+database errors) and a surface snapshot. `tests/v1/test_contract_fixtures.py` checks them
+against `contracts/v1.py` and `contracts/gateway.py`; a contract change must edit the fixtures
+in the same pull request. It also feeds real authorizer output to the Media and Processing
+adapters.
+
+Settings caching: `get_settings` is cached for the life of a Lambda environment, so the
+SSM-held DSN and JWT secret are read once. A PostgreSQL login refusal (SQLSTATE 28P01 or
+28000) clears that owner's cache, so the next invocation re-reads a rotated DSN; the failing
+invocation still fails. Rotating the JWT secret is different: warm environments keep signing
+and verifying with the old value until recycled, so rotate it by updating the parameter and
+publishing a new alias version (which also invalidates existing sessions). Only the API and
+authorizer paths (`media.database.invocation_session`, `processing.database.get_v1_session`,
+and the readiness probe) apply the self-heal today. The result, command and repair handlers
+build their own engines in `media/handlers.py` and `processing/handlers.py`; until they call
+`runtime_support.settings.credentials_rejected` too, a rotated DSN reaches them only through a
+new alias version.
