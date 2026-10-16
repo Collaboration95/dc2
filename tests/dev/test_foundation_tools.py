@@ -196,3 +196,17 @@ def test_integration_selection_tracks_service_ownership(tmp_path, monkeypatch):
         "tests/integration/test_database_ownership.py",
     ]
     assert checks.service_tests("media") == ["tests/integration/test_media_assets.py"]
+
+
+def selection_of(monkeypatch, *, coverage):
+    seen = {}
+    monkeypatch.setattr(checks, "run", lambda command, **kwargs: seen.update(command=command))
+    monkeypatch.setattr(checks, "measure", lambda command, *a: seen.update(command=command))
+    checks.fast(coverage=coverage)
+    command = seen["command"]
+    return command[len(command) - 1 - command[::-1].index("-m") + 1]
+
+
+def test_coverage_run_skips_unmeasured_tests_but_the_plain_fast_run_keeps_them(monkeypatch):
+    assert "unmeasured" in selection_of(monkeypatch, coverage=True)
+    assert "unmeasured" not in selection_of(monkeypatch, coverage=False)

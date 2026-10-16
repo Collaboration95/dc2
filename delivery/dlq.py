@@ -98,13 +98,15 @@ def main(argv=None):
     parser.add_argument("--per-second", type=int, default=5)
     parser.add_argument("--endpoint-url")
     args = parser.parse_args(argv)
+    # Validate before building a client: constructing one resolves credentials, which can
+    # reach the instance-metadata service, and a bad invocation should never do that.
+    if args.command == "inspect" and (not args.queue_url or not 1 <= args.limit <= 50):
+        parser.error("inspect needs --queue-url and a --limit of 1-50")
+    if args.command != "inspect" and not args.dlq_arn:
+        parser.error(f"{args.command} needs --dlq-arn")
     client = build_client(args.endpoint_url)
     if args.command == "inspect":
-        if not args.queue_url or not 1 <= args.limit <= 50:
-            parser.error("inspect needs --queue-url and a --limit of 1-50")
         result = inspect(client, args.queue_url, limit=args.limit)
-    elif not args.dlq_arn:
-        parser.error(f"{args.command} needs --dlq-arn")
     elif args.command == "redrive":
         result = {"task_handle": redrive(client, args.dlq_arn, per_second=args.per_second)}
     else:
