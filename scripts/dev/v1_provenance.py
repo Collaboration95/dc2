@@ -69,8 +69,42 @@ def source(runner=subprocess.run):
     return evidence
 
 
-def image(name, context, sha, runner=subprocess.run):
+EVIDENCE = ROOT / "docs/execution/aws/v1/evidence"
+
+
+def built_evidence(name, sha, folder=None):
+    """This commit's deploy/v1/build_and_verify.py receipt for one image, if there is one.
+
+    Only a receipt whose source SHA equals the verified commit counts; an older build of
+    different bytes would be a false claim about what this run covered.
+    """
+    owner = name.removeprefix("dc2-v1-")
+    path = (folder or EVIDENCE) / f"local-images-{sha[:12]}.json"
+    if not path.is_file():
+        return None
+    receipt = json.loads(path.read_text())
+    entry = receipt.get("images", {}).get(owner)
+    if receipt.get("source_sha") != sha or not entry or entry.get("build_exit_code") != 0:
+        return None
+    return {
+        "status": "BUILT",
+        "source": "deploy/v1/build_and_verify.py receipt",
+        "receipt": str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else path.name,
+        "receipt_status": receipt.get("status"),
+        "config_id": entry["config_id"],
+        "repo_digests": entry.get("repo_digests", []),
+        "revision_label": sha,
+        "matches_source_sha": True,
+        "working_tree_dirty": receipt.get("working_tree_dirty"),
+        "exercised_by_this_run": False,
+    }
+
+
+def image(name, context, sha, runner=subprocess.run, evidence_folder=None):
     """Config ID, registry digests and revision label, or NOT_BUILT when absent."""
+    recorded = built_evidence(name, sha, evidence_folder)
+    if recorded:
+        return recorded
     reference = f"{name}:latest"
     reply = runner(
         ["docker", "--context", context, "image", "inspect", reference],

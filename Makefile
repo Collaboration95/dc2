@@ -136,9 +136,12 @@ test-v1: ## Offline V1 operational contracts; no services/AWS credentials
 # cfn-lint is a lint-only tool kept out of uv.lock. Locally a missing linter is a clean skip;
 # CI passes CFN_LINT_ARGS=--require so a missing linter fails.
 CFN_LINT_ARGS ?=
-.PHONY: lint-cfn test-aws
+.PHONY: lint-cfn test-aws v1-images
 lint-cfn: ## Render and lint the V1 CloudFormation template offline (no AWS calls)
 	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.aws.v1.lint $(CFN_LINT_ARGS)
+
+v1-images: ## Build and verify the three V1 images (amd64; local evidence only, no AWS)
+	$(BOOTSTRAP_PYTHON) deploy/v1/build_and_verify.py
 
 test-aws: ## Offline AWS control-plane suite (fakes only; network guarded)
 	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/aws -m "not integration and not e2e" -q \

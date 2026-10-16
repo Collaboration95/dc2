@@ -9,6 +9,10 @@ on:
         description: a=dependencies/engine, b=clients, c=release/session, all=every flow
         type: string
         default: all
+      images:
+        description: also build and verify the three amd64 images (slow)
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       flow:
@@ -16,6 +20,10 @@ on:
         type: choice
         options: [all, a, b, c]
         default: all
+      images:
+        description: also build and verify the three amd64 images (slow)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -108,3 +116,25 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
+
+  # On demand: native amd64 builds plus handler runs under the Lambda Runtime Interface
+  # Emulator. Local evidence only; it never contacts a registry or AWS.
+  images:
+    name: V1 image build and verification
+    if: ${{ inputs.images }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - run: make v1-images
+      - name: Retain the image receipt (config IDs, checks; no secrets)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1-images-${{ github.sha }}
+          path: docs/execution/aws/v1/evidence/local-images-*.json
+          if-no-files-found: warn
+          retention-days: 14
