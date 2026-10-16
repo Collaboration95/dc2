@@ -838,6 +838,9 @@ def main():
     FUNCTION_MEMORY.update({f["handler"]: f["memory_mb"] for f in functions.values()})
     built_ok = {o for o in owners if images[o]["build_exit_code"] == 0}
     work = Path(tempfile.mkdtemp(prefix="dc2-v1-rie-"))
+    # mkdtemp is 0700. Docker Desktop's file sharing hides that, but a native Linux bind mount
+    # keeps it, so the container's unprivileged user could not stat the emulator (exit 126).
+    work.chmod(0o755)
     rie = {}
     task_results = {}
     try:
