@@ -569,7 +569,8 @@ class SimulatedAws:
     # ---- ECS ------------------------------------------------------------------------------------
     def ecs_run_task(self, payload):
         arn = f"arn:aws:ecs:{self.s.region}:{self.s.account}:task/sim/{payload['clientToken'][:12]}"
-        self.tasks[arn] = {"definition": payload["taskDefinition"], "polls": 0, "stopped": False}
+        self.tasks[arn] = {"definition": payload["taskDefinition"], "polls": 0, "stopped": False,
+                           "started_by": payload.get("startedBy")}
         staged = self.param_values.get(f"/dc2/{self.s.env}/bootstrap-input")
         if "bootstrap" in payload["taskDefinition"] and staged:
             # What a real bootstrap task does: set the roles' passwords from its input.
@@ -577,9 +578,12 @@ class SimulatedAws:
         return {"tasks": [{"taskArn": arn}], "failures": []}
 
     def ecs_describe_tasks(self, payload):
-        out = []
+        out, missing = [], []
         for arn in payload["tasks"]:
-            task = self.tasks[arn]
+            task = self.tasks.get(arn)
+            if task is None:  # ECS forgets stopped tasks after about an hour
+                missing.append({"arn": arn, "reason": "MISSING"})
+                continue
             task["polls"] += 1
             if task["stopped"] and task.get("lag", 0) > 0:
                 task["lag"] -= 1  # asked to stop, still draining: ECS reports RUNNING a while
@@ -588,9 +592,10 @@ class SimulatedAws:
                 stopped = task["stopped"] or task["polls"] > 1
             code = next((c for key, c in self.task_exit.items() if key in task["definition"]), 0)
             out.append({"taskArn": arn, "taskDefinitionArn": task["definition"],
+                        "startedBy": task.get("started_by"),
                         "lastStatus": "STOPPED" if stopped else "RUNNING",
                         "containers": [{"exitCode": code}] if stopped else []})
-        return {"tasks": out, "failures": []}
+        return {"tasks": out, "failures": missing}
 
     def ecs_list_tasks(self, payload):
         return {"taskArns": [a for a, t in self.tasks.items()
