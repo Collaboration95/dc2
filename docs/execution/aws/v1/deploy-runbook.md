@@ -72,8 +72,13 @@ python -m scripts.aws.v1.deploy teardown <scope> --run-id r1016a --state-dir D \
     --execute --confirm-run-id r1016a [--skip-final-snapshot]
 ```
 
-`--dry-run` never reads or writes a real state directory (it uses a temporary one) and never
-starts a process; `teardown --dry-run --state-dir D` only *reads* D's journal to rehearse what
+`--dry-run` never reads or writes a real state directory (it uses a temporary one) and starts
+at most one kind of process: a read-only `docker image inspect --format ... <ref>`, and only
+when `--images` is real build evidence (it carries the verified `config_id`). That is the one
+fact a dry run can check for real, so the images step sees the local daemon's id, and the
+output's `image_inspect` labels each answer `observed: local Docker daemon` or, when the daemon
+is unreachable or lacks the image, `simulated: build evidence config_id`. `login`, `tag` and
+`push` stay simulated, and `rehearse` and hand-written `--images` start no process. `teardown --dry-run --state-dir D` only *reads* D's journal to rehearse what
 that run recorded. A dry run proves ordering and request shape; its identity, quota and budget
 answers are simulated, labelled `simulated`, and prove nothing about the account.
 Exit codes: 0 done, 1 failed (message names the step, never a payload), 3 awaiting `--execute`.
