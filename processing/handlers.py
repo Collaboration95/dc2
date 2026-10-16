@@ -11,6 +11,7 @@ from delivery.sqs import SQS
 from processing.config import get_settings
 from processing.messaging import consume_commands, publish_outbox
 from processing.recovery_v1 import run_once, terminal_event
+from runtime_support.errors import sanitized_entrypoint
 from runtime_support.settings import credentials_rejected, heal_on_rejection
 
 
@@ -56,17 +57,21 @@ async def invoke(event, context, mode):
         await engine.dispose()
 
 
+@sanitized_entrypoint("processing.command")
 def command_handler(event, context):
     return asyncio.run(invoke(event, context, "command"))
 
 
+@sanitized_entrypoint("processing.repair")
 def repair_handler(event, context):
     return asyncio.run(invoke(event, context, "repair"))
 
 
+@sanitized_entrypoint("processing.ecs")
 def ecs_handler(event, context):
     return asyncio.run(invoke(event, context, "ecs"))
 
 
+@sanitized_entrypoint("processing.s3")
 def s3_handler(event, context):
     return asyncio.run(invoke(event, context, "s3"))
