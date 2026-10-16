@@ -1,6 +1,7 @@
 """The deploy/teardown pipeline against the offline simulation; no AWS, Docker or network."""
 
 import datetime as dt
+import hashlib
 import io
 import json
 import os
@@ -672,6 +673,128 @@ def test_an_image_that_is_not_the_verified_build_is_refused(rig):
     with pytest.raises(DeployError, match="not the one the build evidence verified"):
         rig.deploy()
     assert rig.steps()["images"] == "failed"
+
+
+# ---- a dry run given real build evidence --------------------------------
+OWNERS = ("media", "processing", "worker")
+REAL_IDS = {o: "sha256:" + hashlib.sha256(o.encode()).hexdigest() for o in OWNERS}
+
+
+def real_evidence(tmp_path):
+    """The shape deploy/v1/build_and_verify.py writes: real tags, real 64-hex config ids."""
+    path = tmp_path / "images-evidence.json"
+    path.write_text(json.dumps(evidence(**{
+        o: {"tag": f"dc2-v1-{o}:local-44480bbf6099", "config_id": REAL_IDS[o]} for o in OWNERS})))
+    return path
+
+
+@pytest.fixture
+def daemon(monkeypatch):
+    """A stand-in local daemon: records every argv it is asked and answers from `.images`."""
+    class Daemon:
+        def __init__(self):
+            self.asked = []
+            self.images = {f"dc2-v1-{o}:local-44480bbf6099": REAL_IDS[o] for o in OWNERS}
+
+        def __call__(self, argv):
+            self.asked.append(list(argv))
+            found = self.images.get(argv[-1])
+            return f"linux/amd64 {found}" if found else None
+
+    fake = Daemon()
+    monkeypatch.setattr(deploy_sim, "daemon_inspect", fake)
+    return fake
+
+
+def dry_run_with(images):
+    return run_main(["deploy", *ARGS, "--run-id", "r1", "--dry-run", "--images", str(images)],
+                    today=lambda: TODAY)
+
+
+def test_a_dry_run_accepts_real_build_evidence_by_observing_the_local_daemon(tmp_path, daemon):
+    code, text = dry_run_with(real_evidence(tmp_path))
+    result = json.loads(text[:text.index("\n## ")])
+    assert code == 0 and result["ok"] and result["steps"]["images"] == "done"
+    assert set(result["image_inspect"].values()) == {"observed: local Docker daemon"}
+    assert len(result["image_inspect"]) == 3
+
+
+def test_a_dry_run_only_ever_asks_the_daemon_to_inspect_a_named_image(tmp_path, daemon):
+    dry_run_with(real_evidence(tmp_path))
+    assert len(daemon.asked) == 3
+    assert all(a[:3] == ["image", "inspect", "--format"] and len(a) == 5 for a in daemon.asked)
+
+
+def test_a_dry_run_falls_back_to_the_evidence_id_when_the_daemon_cannot_answer(tmp_path, daemon):
+    daemon.images = {}  # unreachable, or the image is not in this daemon
+    code, text = dry_run_with(real_evidence(tmp_path))
+    result = json.loads(text[:text.index("\n## ")])
+    assert code == 0 and result["steps"]["images"] == "done"
+    assert all(v.startswith("simulated: build evidence config_id")
+               for v in result["image_inspect"].values())
+
+
+def test_a_dry_run_still_refuses_a_local_image_rebuilt_since_the_evidence(tmp_path, daemon):
+    daemon.images["dc2-v1-media:local-44480bbf6099"] = "sha256:" + "f" * 64
+    code, text = dry_run_with(real_evidence(tmp_path))
+    assert code == 1 and "not the one the build evidence verified" in text
+
+
+def test_a_dry_run_with_hand_written_images_never_consults_the_daemon(tmp_path, daemon):
+    path = tmp_path / "images.json"
+    path.write_text(json.dumps({o: f"dc2-v1-{o}:rehearsal" for o in OWNERS}))
+    code, text = dry_run_with(path)
+    assert code == 0 and daemon.asked == [] and "image_inspect" in text
+    assert "simulated: sha256 of the image reference" in text
+
+
+def test_the_observing_docker_simulates_login_tag_and_push_and_never_asks_the_daemon():
+    asked = []
+    docker = deploy_sim.ObservingDocker(None, {"m:1": REAL_IDS["media"]}, asked.append)
+    for argv in (["login", "--username", "AWS"], ["tag", "m:1", "r/m:1"], ["push", "r/m:1"]):
+        assert docker(argv, stdin=None) in {"Login Succeeded\n", ""}
+        assert docker.basis is None
+    assert asked == []
+
+
+@pytest.mark.parametrize("argv", [
+    ["push", "registry/x:1"], ["login", "--password-stdin", "r"], ["image", "inspect", "x"],
+    ["image", "inspect", "--format", "{{.Id}}", "--all", "x"], ["image", "rm", "x"],
+    ["image", "inspect", "--format", "{{.Id}}", "x y"], ["image", "inspect", "--format", "f", "-x"],
+    ["image", "inspect", "--format", "{{.Id}}", "x;rm"],
+])
+def test_the_daemon_helper_refuses_anything_but_a_pinned_image_inspect(monkeypatch, argv):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("no process may start for a refused command")
+
+    monkeypatch.setattr(deploy_sim.subprocess, "run", forbidden)
+    with pytest.raises(ValueError, match="Only"):
+        deploy_sim.daemon_inspect(argv)
+
+
+def test_the_daemon_helper_runs_docker_with_the_sanitized_environment_and_checks_the_answer(
+        monkeypatch):
+    calls, outcome = [], {}
+
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
+        if isinstance(outcome["value"], Exception):
+            raise outcome["value"]
+        return subprocess.CompletedProcess(command, *outcome["value"])
+
+    monkeypatch.setattr(deploy_sim.subprocess, "run", fake_run)
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "must-not-reach-docker")
+    argv = ["image", "inspect", "--format", "{{.Os}}/{{.Architecture}} {{.Id}}", "m:1"]
+    good = f"linux/amd64 {REAL_IDS['media']}\n"
+    outcome["value"] = (0, good, "")
+    assert deploy_sim.daemon_inspect(argv) == good.strip()
+    command, kwargs = calls[0]
+    assert command == ["docker", *argv] and "AWS_SECRET_ACCESS_KEY" not in kwargs["env"]
+    for bad in ((1, "", "Cannot connect to the Docker daemon"), (0, "not an answer\n", ""),
+                (0, f"windows/amd64 {REAL_IDS['media']}\n", ""), FileNotFoundError(),
+                subprocess.TimeoutExpired("docker", 20)):
+        outcome["value"] = bad
+        assert deploy_sim.daemon_inspect(argv) is None
 
 
 @pytest.mark.parametrize("content,message", [

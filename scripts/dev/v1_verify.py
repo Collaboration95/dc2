@@ -18,6 +18,7 @@ import uuid
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from scripts.dev.v1_redact import first_lines, redact
 from scripts.dev.v1_runtime import ROOT, directory, load, moto_python, run, save
 
 
@@ -47,9 +48,12 @@ def sdk(data, service):
         aws_access_key_id="testing",
         aws_secret_access_key="testing",
         aws_session_token="testing",
+        # Moto shares two CPUs with Chromium, FFmpeg and PostgreSQL on a CI runner. The old
+        # 2s/5s limits turned one slow loopback call into a failed acceptance run. No retry:
+        # a repeated SendMessage or DeleteMessage would change what the tests count.
         config=Config(
-            connect_timeout=2,
-            read_timeout=5,
+            connect_timeout=10,
+            read_timeout=30,
             retries={"max_attempts": 0},
             s3={"addressing_style": "path"},
         ),
@@ -393,12 +397,15 @@ source =
 """
 
 
-def selected_tests(patterns, output, data, *, tag="tests"):
+def selected_tests(patterns, output, data, *, tag="tests", timeout=180):
     tests = sorted({str(p.relative_to(ROOT)) for pattern in patterns for p in ROOT.glob(pattern)})
     if not tests:
         return {"status": "INCOMPLETE", "reason": "Owning acceptance tests not integrated"}
     report = output / f"{tag}.xml"
     env = local_environment(data)
+    # Tests that can capture a screenshot or page state on failure write it here. Only
+    # redacted files are meant to leave the runtime directory (see the CI artifact step).
+    env["V1_FAILURE_DIR"] = str(output / f"failure-{tag}")
     command = [sys.executable, "-m", "pytest", *tests, "-q", "--junitxml", str(report)]
     if os.environ.get("V1_COVERAGE") == "1":
         # The encoder, alembic and watchdog run as child processes, so measure those too
@@ -410,33 +417,100 @@ def selected_tests(patterns, output, data, *, tag="tests"):
         env["COVERAGE_FILE"] = str(output / f".coverage.{tag}")
         command += [f"--cov-config={rc}", "--cov-report=", "--cov-fail-under=0"]
         command += [f"--cov={name}" for name in packages()]
-    result = subprocess.run(
-        command,
-        cwd=ROOT,
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=180,
+    reason = None
+    try:
+        result = subprocess.run(
+            command, cwd=ROOT, env=env, capture_output=True, text=True, timeout=timeout
+        )
+        log, returncode = result.stdout + result.stderr, result.returncode
+    except subprocess.TimeoutExpired as expired:
+        # subprocess.run has killed the child; whatever it printed is still evidence.
+        reason = f"The test run exceeded its {timeout}s budget and was killed"
+        returncode = None
+        log = "".join(
+            part.decode(errors="replace") if isinstance(part, bytes) else part or ""
+            for part in (expired.stdout, expired.stderr)
+        )
+    (output / f"pytest-private-{tag}.log").write_text(log)
+    if not report.exists():
+        reason = reason or "Test runner did not produce an execution report"
+        # No junit to name a test, so name the run: the log must still say what died.
+        run_failure = {"id": " ".join(tests), "kind": "run", "message": reason}
+        return {"status": "FAIL", "reason": reason, "failed_tests": [run_failure]}
+    counts, failed, skipped = read_junit(report)
+    if reason:
+        failed.append({"id": " ".join(tests), "kind": "run", "message": reason})
+    # The raw report may quote request headers; only this redacted copy is published.
+    (output / f"junit-{tag}.redacted.xml").write_text(redact(report.read_text()))
+    status = (
+        "PASS"
+        if (returncode == 0 and counts["tests"] > 0 and not counts["skipped"])
+        else "INCOMPLETE"
+        if returncode == 0
+        else "FAIL"
     )
-    (output / f"pytest-private-{tag}.log").write_text(result.stdout + result.stderr)
+    return {
+        "status": status,
+        "counts": counts,
+        "junit_sha256": digest(report),
+        "tests": tests,
+        # Counts alone cannot say which test flaked, so name the failing ones.
+        "failed_tests": failed,
+        "skipped_tests": skipped,
+        **({"reason": reason} if reason else {}),
+    }
+
+
+def read_junit(report):
+    """(counts, failed, skipped) from a junit file. Messages are redacted and bounded."""
     from xml.etree import ElementTree as ET
 
-    if not report.exists():
-        return {"status": "FAIL", "reason": "Test runner did not produce an execution report"}
     root = ET.parse(report).getroot()
     suites = list(root) if root.tag == "testsuites" else [root]
     counts = {
         k: sum(int(s.attrib.get(k, 0)) for s in suites)
         for k in ("tests", "errors", "failures", "skipped")
     }
-    status = (
-        "PASS"
-        if (result.returncode == 0 and counts["tests"] > 0 and not counts["skipped"])
-        else "INCOMPLETE"
-        if result.returncode == 0
-        else "FAIL"
-    )
-    return {"status": status, "counts": counts, "junit_sha256": digest(report), "tests": tests}
+    failed, skipped = [], []
+    for case in root.iter("testcase"):
+        # classname "tests.v1.test_browser_acceptance" -> tests/v1/test_browser_acceptance.py
+        identity = f"{case.get('classname', '').replace('.', '/')}.py::{case.get('name', '')}"
+        for outcome in case:
+            if outcome.tag in {"failure", "error"}:
+                message = outcome.get("message") or outcome.text or ""
+                failed.append(
+                    {"id": identity, "kind": outcome.tag, "message": first_lines(message)}
+                )
+            elif outcome.tag == "skipped":
+                skipped.append(identity)
+    return counts, failed, skipped
+
+
+def failed_tests(flows):
+    """Every failing test in the flow results, as {flow, id, kind, message}."""
+    found = []
+
+    def walk(flow, node):
+        if not isinstance(node, dict):
+            return
+        found.extend({"flow": flow, **item} for item in node.get("failed_tests", []))
+        for value in node.values():
+            walk(flow, value)
+
+    for flow, result in flows.items():
+        walk(flow, result)
+    return found
+
+
+def report_failures(failures):
+    """Put each failing test and its assertion in the job log (an annotation on GitHub)."""
+    for item in failures:
+        line = f"{item['id']} ({item['kind']}): {item['message']}"
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            escaped = line.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+            print(f"::error title=V1 flow {item['flow']} test failed::{escaped}", file=sys.stderr)
+        else:
+            print(f"FAILED flow {item['flow']}: {line}", file=sys.stderr)
 
 
 def browser_requested():
@@ -485,8 +559,10 @@ def run_flow(name, data, phase):
                 **publisher,
                 "browser": "NOT_RUN: set V1_BROWSER=1 (make browser-install first)",
             }
+        # Two tests of up to 300s each (their pytest timeout) plus start-up; the 180s default
+        # killed the run before either test's own bounded waits could report anything.
         browser = selected_tests(
-            ["tests/v1/test_browser_acceptance.py"], phase, data, tag="browser"
+            ["tests/v1/test_browser_acceptance.py"], phase, data, tag="browser", timeout=660
         )
         statuses = {publisher["status"], browser["status"]}
         status = (
@@ -545,6 +621,13 @@ def verify(run_id, flow):
                 "status": "FAIL",
                 "error_type": type(error).__name__,
                 "reason": "Local verification failed; inspect private runtime/test logs",
+                "failed_tests": [
+                    {
+                        "id": f"flow {name} harness",
+                        "kind": "run",
+                        "message": f"{type(error).__name__} before any test result",
+                    }
+                ],
             }
         manifest["flows"][name] = result
         save(output / "manifest.json", manifest)
@@ -564,6 +647,8 @@ def verify(run_id, flow):
         else "NOT_RUN"
     )
     manifest["cloud_acceptance"] = "NOT_RUN"
+    manifest["failed_tests"] = failed_tests(manifest["flows"])
+    report_failures(manifest["failed_tests"])
     if os.environ.get("V1_COVERAGE") == "1":
         manifest["coverage"] = combine_coverage(output, run_id)
     manifest["elapsed_seconds"] = round(time.monotonic() - start, 3)
@@ -572,4 +657,5 @@ def verify(run_id, flow):
         "status": manifest["status"],
         "manifest": str(output / "manifest.json"),
         "complete_v1_acceptance": manifest["complete_v1_acceptance"],
+        "failed_tests": [f"{item['flow']}: {item['id']}" for item in manifest["failed_tests"]],
     }

@@ -128,8 +128,30 @@ Every invocation retains `.cache/v1-runtime/<id>/evidence-*/manifest.json`:
   (IAM, Aurora networking and pause, public DNS/TLS/CloudFront, registry images, billing).
 - per-flow outcomes and test counts, `browser_requested`, `complete_v1_acceptance`
   (needs every flow and the browser leg) and `cloud_acceptance`, always `NOT_RUN`.
+- `failed_tests`: every failing or erroring test as `{flow, id, kind, message}` (also nested
+  under the flow's `failed_tests`), plus `skipped_tests` per flow. `kind: run` means the
+  runner was killed at its time budget or crashed before reporting. Messages are cut to a few
+  lines and redacted.
 
 Private raw test logs are not published by CI. Keep failed manifests.
+
+Failure detail. Each failing test is printed to stderr as `FAILED flow b: <id> (<kind>):
+<assertion>`, and as a `::error` annotation in GitHub Actions. Beside the junit report the
+runner writes `junit-<tag>.redacted.xml`, and the browser leg writes `failure-browser/<hlsjs|native>/`
+with `page.png` (a screenshot) and `state.json` (visible status text, video state, the last
+responses as method/path/status, console messages, work-pump errors). On failure CI uploads those
+as `v1-local-failure-<sha>-<attempt>`. All of it passes through `scripts/dev/v1_redact.py`, which
+removes cookie values, JWTs, bearer tokens and URL query strings (a presigned URL keeps its path
+only). The raw junit and `pytest-private-*.log` stay in the private runtime directory. No
+Playwright trace is kept, because a trace embeds headers and presigned URLs verbatim.
+
+Browser-leg timing. Every wait polls observable state under a bounded deadline: the job's
+status (150s, aborted at once when the work pump is stuck), the player's `currentSrc`, the
+playlist and segment requests, and the media clock (60s each). The work pump forgives a single
+failed iteration, for example one Moto call that exceeds its timeout on a loaded runner, and
+fails the test only after six in a row or when it is still failing at the end (it gets one last
+pass first). The runner's own budget for the browser tests is 660s; an earlier 180s limit
+killed the run and left only a bare "FAIL".
 
 `V1_COVERAGE=1` additionally measures the test processes and their children (encoder,
 Alembic) and writes `artifacts/coverage/.coverage.v1-integration`, the tier that

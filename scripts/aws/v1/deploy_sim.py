@@ -16,11 +16,13 @@ import base64
 import hashlib
 import json
 import re
+import subprocess
 import uuid
 from pathlib import Path
 
 from scripts.aws.v1.deploy import PROJECT_KEY, RUN_KEY, AwsError, check_operation, redact
 from scripts.aws.v1.operations import HANDLERS, QUEUES
+from scripts.aws.v1_operator import sanitized_environment
 
 RETAINED = {"AWS::S3::Bucket", "AWS::ECR::Repository", "AWS::RDS::DBCluster",
             "AWS::RDS::DBInstance"}
@@ -659,12 +661,17 @@ class SimulatedDocker:
 
     def __init__(self, aws=None):
         self.aws, self.commands = aws, []
+        # How the last answer was produced, for the plan. None for commands with no such
+        # distinction (login, tag, push), which are always simulated.
+        self.basis = None
 
     def __call__(self, argv, *, stdin=None):
         self.commands.append(list(argv))
+        self.basis = None
         if argv[0] == "login":
             return "Login Succeeded\n"
         if argv[:2] == ["image", "inspect"]:
+            self.basis = "simulated: sha256 of the image reference"
             return f"linux/amd64 sha256:{hashlib.sha256(argv[-1].encode()).hexdigest()}\n"
         if argv[0] == "push" and self.aws is not None:
             match = re.fullmatch(r".*/(?P<repo>[^/:]+):(?P<tag>[^/:]+)", argv[1])
@@ -673,8 +680,64 @@ class SimulatedDocker:
         return ""
 
 
+_INSPECT_ANSWER = re.compile(r"linux/[a-z0-9]+ sha256:[0-9a-f]{64}")
+
+
+def daemon_inspect(argv):
+    """The local Docker daemon's answer to `image inspect`, or None when it cannot give one.
+
+    This is the only process a dry run may start, it is read-only, and the argument shape is
+    pinned: exactly `image inspect --format <template> <plain reference>`. Anything else is a
+    programming error here, never forwarded to Docker. No DOCKER_CONFIG override: inspect
+    needs no registry credentials, and the user's Docker context is what finds the daemon.
+    """
+    if (
+        len(argv) != 5
+        or argv[:3] != ["image", "inspect", "--format"]
+        or re.search(r"[\s;|&$`]", argv[4])
+        or argv[4].startswith("-")
+    ):
+        raise ValueError("Only `docker image inspect --format <template> <image>` is allowed")
+    try:
+        done = subprocess.run(
+            ["docker", *argv], env=sanitized_environment(), capture_output=True, text=True,
+            timeout=20, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    answer = done.stdout.strip()
+    return answer if done.returncode == 0 and _INSPECT_ANSWER.fullmatch(answer) else None
+
+
+class ObservingDocker(SimulatedDocker):
+    """A dry run's Docker: `image inspect` is observed, everything else stays simulated.
+
+    The build evidence's `config_id` is what a real `image inspect` returns for the image it
+    verified, so a dry run given real evidence has to see the real daemon's id or the images
+    step can never agree with it. Only references that evidence names are looked up; when the
+    daemon is unreachable or does not hold the image, the evidence's own id answers instead.
+    `login`, `tag` and `push` never leave the simulation.
+    """
+
+    def __init__(self, aws=None, known=None, inspect=None):
+        super().__init__(aws)
+        self.known = dict(known or {})
+        self._inspect = inspect
+
+    def __call__(self, argv, *, stdin=None):
+        if argv[:2] == ["image", "inspect"] and argv[-1] in self.known:
+            self.commands.append(list(argv))
+            observed = (self._inspect or daemon_inspect)(argv)
+            if observed:
+                self.basis = "observed: local Docker daemon"
+                return observed + "\n"
+            self.basis = "simulated: build evidence config_id (image not observable in the daemon)"
+            return f"linux/amd64 {self.known[argv[-1]]}\n"
+        return super().__call__(argv, stdin=stdin)
+
+
 def simulated_http(method, url, headers, body, timeout):
     raise AwsError("http", method, "DryRunNoNetwork", "a dry run performs no network I/O")
 
 
-__all__ = ["SimulatedAws", "SimulatedDocker", "simulated_http", "HANDLERS", "QUEUES"]
+__all__ = ["SimulatedAws", "SimulatedDocker", "ObservingDocker", "simulated_http",
+           "HANDLERS", "QUEUES"]

@@ -13,9 +13,11 @@ import mimetypes
 import os
 import subprocess
 import threading
+from pathlib import Path
 from urllib.parse import urlsplit
 
 from scripts.dev.v1_gateway import Gateway
+from scripts.dev.v1_redact import redact
 from scripts.dev.v1_runtime import ROOT
 
 FRONTEND = ROOT / "frontend"
@@ -88,14 +90,28 @@ def allow_origin(runtime, origin):
         )
 
 
+# This many failed iterations in a row (about 3s of retrying at the default interval, plus
+# the time each attempt took) is a fault that is not going away, not a slow moment.
+STUCK_AFTER = 6
+
+
 class WorkPump(threading.Thread):
-    """Delivers outbox/SQS batches and runs one finite encoder per queued work message."""
+    """Delivers outbox/SQS batches and runs one finite encoder per queued work message.
+
+    One iteration that fails is not a verdict. On a CI runner Moto, PostgreSQL, FFmpeg and
+    Chromium share two CPUs, so a loopback call can time out once and then succeed on the
+    next pass, and the pipeline has recovered by itself. The pump therefore keeps going and
+    judges the pipeline by whether it ended up healthy: a failure streak of `STUCK_AFTER`,
+    or an iteration that is still failing when the pump stops, is a real fault. Every error
+    is kept (redacted) either way so a recovered blip is still visible in the report.
+    """
 
     def __init__(self, runtime, interval=0.5):
         super().__init__(daemon=True)
         self.runtime, self.interval = runtime, interval
         self.stopped = threading.Event()
-        self.failures = []
+        self.errors = []
+        self.streak = self.worst_streak = 0
         self.encodes = 0
 
     def queued_work(self):
@@ -107,19 +123,42 @@ class WorkPump(threading.Thread):
         )["Attributes"]
         return int(attributes["ApproximateNumberOfMessages"])
 
-    def run(self):
+    def iterate(self):
         from scripts.dev.v1_acceptance import encode_one, pump
 
+        try:
+            pump(self.runtime)
+            if self.queued_work():
+                # A visible message means exactly one encode; an empty poll would idle 20s.
+                encode_one(self.runtime)
+                self.encodes += 1
+        except Exception as error:
+            self.streak += 1
+            self.worst_streak = max(self.worst_streak, self.streak)
+            self.errors.append(redact(f"{type(error).__name__}: {str(error)[:300]}"))
+        else:
+            self.streak = 0
+
+    def run(self):
         while not self.stopped.wait(self.interval):
-            try:
-                pump(self.runtime)
-                if self.queued_work():
-                    # A visible message means exactly one encode; an empty poll would idle 20s.
-                    encode_one(self.runtime)
-                    self.encodes += 1
-            except Exception as error:
-                # Kept for the test to assert on; the bridge must not hide a stuck pipeline.
-                self.failures.append(f"{type(error).__name__}: {str(error)[:300]}")
+            self.iterate()
+        if self.streak:
+            # The last pass failed and nothing ran after it; one more pass says whether the
+            # fault was a blip or is still there.
+            self.iterate()
+
+    @property
+    def stuck(self):
+        return self.worst_streak >= STUCK_AFTER or bool(self.streak and self.stopped.is_set())
+
+    def problem(self):
+        """Why the pipeline cannot be trusted, or None when it ended healthy."""
+        if not self.stuck:
+            return None
+        return (
+            f"The work pump failed {self.worst_streak} times in a row "
+            f"(still failing: {bool(self.streak)}): {self.errors[-5:]}"
+        )
 
     def stop(self):
         self.stopped.set()
@@ -161,3 +200,43 @@ def chromium(certificate, profile):
             yield context
         finally:
             context.close()
+
+
+def failure_dir(name):
+    """Where this test may leave screenshots and state, or None outside a verified run."""
+    base = os.environ.get("V1_FAILURE_DIR")
+    return Path(base) / name if base else None
+
+
+def capture_failure(page, directory, **context):
+    """Leave a screenshot and a redacted page-state file beside the junit report.
+
+    A Playwright trace is deliberately not used: it embeds every request's headers, cookies
+    and presigned URLs, and cannot be scrubbed afterwards. The screenshot shows only what the
+    page rendered, and the state file is passed through `redact` as a whole.
+    """
+    if directory is None:
+        return
+    directory.mkdir(parents=True, exist_ok=True)
+    state = dict(context)
+    try:
+        page.screenshot(path=str(directory / "page.png"), timeout=10000)
+    except Exception as error:
+        state["screenshot_error"] = type(error).__name__
+    probe = """() => {
+      const text = id => document.getElementById(id)?.textContent?.trim() ?? null;
+      const shown = id => { const e = document.getElementById(id); return !!e && !e.hidden; };
+      const v = document.querySelector('#player video');
+      return {
+        path: location.pathname,
+        status: text('status'), auth_status: text('auth-status'), badge: text('job-badge'),
+        auth_visible: shown('auth'), app_visible: shown('app'), player_visible: shown('player'),
+        video: v && {t: v.currentTime, ready: v.readyState, paused: v.paused, ended: v.ended,
+                     error: v.error && v.error.code, src_kind: v.currentSrc.split(':')[0]},
+      };
+    }"""
+    try:
+        state["page"] = page.evaluate(probe)
+    except Exception as error:
+        state["page_error"] = type(error).__name__
+    (directory / "state.json").write_text(redact(json.dumps(state, indent=2, default=str)))

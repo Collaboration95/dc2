@@ -110,6 +110,20 @@ jobs:
           path: .cache/v1-runtime/${{ env.V1_RUN_ID }}/evidence-*/manifest.json
           if-no-files-found: warn
           retention-days: 14
+      # A failing test is also named, with its assertion, in the job log (annotations) and in
+      # manifest.json's failed_tests. This adds what a log line cannot carry. Everything here
+      # went through scripts/dev/v1_redact.py: no cookie values, JWTs or URL query strings.
+      # Playwright traces are not kept because they embed headers and presigned URLs verbatim.
+      - name: Retain redacted failure detail (junit, screenshot, page state)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1-local-failure-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            .cache/v1-runtime/${{ env.V1_RUN_ID }}/evidence-*/*/junit-*.redacted.xml
+            .cache/v1-runtime/${{ env.V1_RUN_ID }}/evidence-*/*/failure-*/*/*
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Retain the coverage fragment for the combined gate
         uses: actions/upload-artifact@v4
         with:

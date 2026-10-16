@@ -486,9 +486,14 @@ class Pipeline:
 
     def run_docker(self, argv, *, stdin=None):
         shown = shlex.join(["docker", *argv]) + (" # password on stdin" if stdin else "")
-        self.plan.append({"step": self.step, "mutating": argv[0] in {"push", "login", "tag"},
-                          "command": shown})
-        return self.docker(argv, stdin=stdin)
+        entry = {"step": self.step, "mutating": argv[0] in {"push", "login", "tag"},
+                 "command": shown}
+        self.plan.append(entry)
+        answer = self.docker(argv, stdin=stdin)
+        # Only a simulated Docker says where an answer came from (observed vs simulated).
+        if getattr(self.docker, "basis", None):
+            entry["basis"] = self.docker.basis
+        return answer
 
     def event(self, service, operation, payload):
         keys = ("StackName", "Bucket", "repositoryName", "DBClusterIdentifier", "Name",
@@ -2147,7 +2152,6 @@ def main(argv=None, *, environ=None, transport=None, docker=None, http=None, ses
 
             seed = recorded_state(args) if args.action == "teardown" else None
             aws = transport or deploy_sim.SimulatedAws(settings, seed=seed)
-            docker = docker or deploy_sim.SimulatedDocker(aws)
             http = http or deploy_sim.simulated_http
             if sleep is time.sleep:  # the simulation completes without waiting
                 sleep = lambda _seconds: None  # noqa: E731
@@ -2156,6 +2160,9 @@ def main(argv=None, *, environ=None, transport=None, docker=None, http=None, ses
                 settings.images_file = state / "rehearsal-images.json"
                 settings.images_file.write_text(json.dumps({
                     o: f"dc2-v1-{o}:rehearsal" for o in ("media", "processing", "worker")}))
+            if not docker:
+                docker = (deploy_sim.ObservingDocker(aws, verified_ids(settings.images_file))
+                          if not rehearse else deploy_sim.SimulatedDocker(aws))
         else:
             aws = transport or CliTransport(settings.scope, environ=environ)
             docker = docker or (DockerCli() if args.action == "deploy" else None)
@@ -2172,6 +2179,20 @@ def main(argv=None, *, environ=None, transport=None, docker=None, http=None, ses
             docker.close()
         if temp:
             temp.cleanup()
+
+
+def verified_ids(path):
+    """{image reference: config id} for images that build evidence verified, else empty.
+
+    A hand-written images file carries no id to compare, so a dry run has nothing to observe
+    for it and stays entirely simulated. An unreadable file is the images step's error to
+    report, not this lookup's.
+    """
+    try:
+        return {entry["source"]: entry["local_id"]
+                for entry in load_images(path).values() if entry.get("local_id")}
+    except DeployError:
+        return {}
 
 
 def recorded_state(args):
@@ -2225,7 +2246,9 @@ def execute(settings, aws, journal, docker, http, session_main, args, seed, stdo
            "scope": settings.scope, "run_id": settings.run_id,
            "steps": ordered_steps(journal.view())}
     if settings.dry_run:
-        out["simulated"] = "offline simulation: ordering and request shape, not account facts"
+        out["simulated"] = ("offline simulation: ordering and request shape, not account facts; "
+                               "image ids may be observed from the local Docker daemon, "
+                               "see image_inspect")
         out["plan_calls"] = len(plans)
         out["mutating_calls"] = sum(1 for p in plans if p["mutating"])
         by_step = {}
@@ -2233,6 +2256,9 @@ def execute(settings, aws, journal, docker, http, session_main, args, seed, stdo
             counts = by_step.setdefault(entry["step"], {"read": 0, "mutating": 0})
             counts["mutating" if entry["mutating"] else "read"] += 1
         out["calls_by_step"] = by_step
+        inspected = {e["command"].split()[-1]: e["basis"] for e in plans if e.get("basis")}
+        if inspected:
+            out["image_inspect"] = inspected
         if args.json:
             out["plan"] = plans
     if receipt:
