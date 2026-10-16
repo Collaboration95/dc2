@@ -148,7 +148,14 @@ a failed bootstrap task is forgotten so a rerun starts a new one (with the same 
 the same way while an ambiguous launch keeps its retained intent, and finished owners are not
 repeated. A rerun after the bootstrap task finished but before every DSN reached SSM reuses that
 task and publishes the saved passwords, so SSM and PostgreSQL agree; if the password file is lost
-the recorded task is forgotten and a fresh bootstrap applies newly generated ones. `status` prints the journal. A second process on the same run is refused by a lock.
+the recorded task is retired and a fresh bootstrap applies newly generated ones. Retiring means
+stopping any unfinished earlier bootstrap task (the recorded one, and any launched under the same
+`startedBy` whose ARN was never journaled) and waiting up to 5 minutes for STOPPED; if that cannot
+be confirmed the step fails and nothing is relaunched, so a stale task cannot reset the roles after
+the new DSNs are published. The task's successful exit code is journaled before any DSN is written,
+so a resume never describes the task again (ECS shows stopped tasks for only about an hour). A task
+ECS no longer reports and that never gave a verdict is re-checked a few times, retired and
+relaunched once with the same saved passwords; a second disappearance fails the step. `status` prints the journal. A second process on the same run is refused by a lock.
 
 ## Teardown
 
@@ -168,7 +175,8 @@ the live `deploy-project`/`owner-run` tags. Anything failing either is skipped a
    `describe-tasks` reports all of them STOPPED and a fresh listing finds none. A task that does
    not stop fails the step and nothing has been emptied.
 4. `td-buckets-emptied`: every version and delete marker (the buckets are versioned) and any
-   incomplete multipart upload. Only reached once no writer is left.
+   incomplete multipart upload. Only reached once no writer is left. This sweep is not trusted to
+   be the last: upload grants issued before the session closed stay valid for 15 minutes.
 5. `td-images-deleted`: every image in the owned repositories.
 6. `td-database`: remove deletion protection, delete the instance, then the cluster. A final
    snapshot `<env>-final` (tagged) is taken unless `--skip-final-snapshot`. This precedes the stack
@@ -180,7 +188,13 @@ the live `deploy-project`/`owner-run` tags. Anything failing either is skipped a
    `VersionId` is journaled, and exactly those `(key, version)` pairs are removed, so a second
    run sharing the bucket keeps its identical templates. Objects journaled without a version id
    are kept and listed as `staged_without_version_id_kept`.
-10. `td-retained`: delete the `Retain` buckets, repositories and any owned log groups.
+10. `td-retained`: delete the `Retain` buckets, repositories and any owned log groups. Each
+    bucket is emptied again immediately before its delete, and a `BucketNotEmpty` answer triggers
+    another sweep (up to 5 attempts, 10 s apart) before the step fails; a resume repeats the sweep
+    instead of skipping it. Chosen over waiting out the 15-minute grant lifetime after the close,
+    which would add that wait to every teardown; the re-sweep costs a few list calls and covers
+    late Lambda writes as well. A bucket still written to after 5 sweeps is reported, never
+    force-deleted.
 11. `td-receipt`: observe what is left from the services, plus the tagging API.
 
 Expected 25-45 minutes (CloudFront 10-20, Aurora 5-10, snapshot 2-5), then the meter stops.

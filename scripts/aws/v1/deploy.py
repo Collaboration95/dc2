@@ -91,6 +91,8 @@ TEARDOWN_STEPS = (
     "td-retained",
     "td-receipt",
 )
+# Re-sweeps before a bucket delete gives up; a 15-minute upload grant is the longest write source.
+BUCKET_DELETE_ATTEMPTS, BUCKET_RETRY_SECONDS = 5, 10
 # Session close checks that cannot pass while an encoder task still runs.
 DRAIN_CHECKS = {"drain", "outcomes", "inventory"}
 AURORA_VERSION = "16.8" # the renderer's default; the observed orderable version
@@ -1071,10 +1073,89 @@ class Pipeline:
             handle.write(text)
 
     # -- ECS ---------------------------------------------------------------------------
-    def finite_task(self, label, definition, security_group):
-        """Run one finite task to completion. Intent (token) is journaled before launch."""
+    def started_by(self, label):
+        return f"dc2-deploy-{self.s.run_id}-{label}"[:128]
+
+    def clear_task(self, label):
+        """Forget a launch: its token, task and journaled verdict."""
+        self.mark(self.step, "started", **{
+            f"{label}_token": None, f"{label}_task": None, f"{label}_done": None})
+
+    def stop_unfinished(self, label, arn):
+        """Stop every unfinished task of this label and wait (bounded) until all are STOPPED.
+
+        Covers the recorded task and any task this pipeline launched under the label's
+        `startedBy` whose ARN was never journaled (the run-task reply was lost). A recorded
+        task ECS no longer reports (MISSING) was stopped more than an hour ago, since ECS keeps
+        stopped tasks visible for at least that long. Anything else that cannot be confirmed
+        stopped within the wait fails the step: a second launch next to a live one could
+        overwrite credentials after they were published.
+        """
+        cluster, marker, stopped = self.outputs()["ClusterArn"], self.started_by(label), []
+
+        def listed():
+            arns, token = [], None
+            for _ in range(10):  # a project cluster holds a handful of tasks
+                page = self.aws("ecs", "list-tasks", {
+                    "cluster": cluster, "desiredStatus": "RUNNING",
+                    **({"nextToken": token} if token else {})},
+                    tolerate=("ClusterNotFoundException",))
+                if page is None:
+                    return None
+                arns += page.get("taskArns", [])
+                token = page.get("nextToken")
+                if not token:
+                    return arns
+            raise DeployError("Too many running tasks to reconcile")
+
+        def check():
+            running = listed()
+            if running is None:
+                return True, None  # the cluster is gone, and every task with it
+            candidates = list(dict.fromkeys([*([arn] if arn else []), *running]))
+            live = []
+            for start in range(0, len(candidates), 100):
+                described = self.aws("ecs", "describe-tasks", {
+                    "cluster": cluster, "tasks": candidates[start:start + 100]})
+                bad = [f for f in described.get("failures", []) if f.get("reason") != "MISSING"]
+                if bad:
+                    raise DeployError(f"Cannot confirm the {label} task stopped")
+                live += [t for t in described.get("tasks", []) if t["lastStatus"] != "STOPPED"
+                         and (t["taskArn"] == arn or t.get("startedBy") == marker)]
+            for task in live:
+                if task["taskArn"] not in stopped:
+                    self.aws("ecs", "stop-task", {
+                        "cluster": cluster, "task": task["taskArn"],
+                        "reason": f"dc2-v1 deploy: replacing the {label} task"})
+                    stopped.append(task["taskArn"])
+            return not live, None
+
+        self.poll(check, what=f"the previous {label} task to reach STOPPED", timeout=300,
+                  interval=10)
+        return stopped
+
+    def retire_task(self, label):
+        """Make sure no earlier launch of this label can still run, then forget it.
+
+        A journaled verdict means the task was seen STOPPED; otherwise it is stopped first.
+        """
+        saved = self.detail(self.step)
+        if not saved.get(f"{label}_done") and (
+                saved.get(f"{label}_task") or saved.get(f"{label}_token")):
+            self.stop_unfinished(label, saved.get(f"{label}_task"))
+        self.clear_task(label)
+
+    def finite_task(self, label, definition, security_group, *, relaunched=False):
+        """Run one finite task to completion. Intent (token) is journaled before launch.
+
+        A successful verdict is journaled at once, so a resume never has to describe the task
+        again (ECS forgets stopped tasks after about an hour). A task ECS no longer knows
+        and that never reported a verdict is retired and relaunched once.
+        """
         outputs = self.outputs()
         saved = self.detail(self.step)
+        if saved.get(f"{label}_done") and saved.get(f"{label}_task"):
+            return {"task": saved[f"{label}_task"], "exit_codes": saved[f"{label}_done"]}
         token = saved.get(f"{label}_token")
         if not token:
             token = uuid.uuid4().hex
@@ -1084,7 +1165,7 @@ class Pipeline:
             result = self.aws("ecs", "run-task", {
                 "cluster": outputs["ClusterArn"], "taskDefinition": definition,
                 "launchType": "FARGATE", "count": 1, "clientToken": token,
-                "startedBy": f"dc2-deploy-{self.s.run_id}-{label}"[:128],
+                "startedBy": self.started_by(label),
                 "networkConfiguration": {"awsvpcConfiguration": {
                     "subnets": outputs["PublicTaskSubnetIds"].split(","),
                     "securityGroups": [security_group], "assignPublicIp": "ENABLED"}}})
@@ -1092,18 +1173,29 @@ class Pipeline:
                 raise DeployError(f"{label} task launch unresolved")
             arn = result["tasks"][0]["taskArn"]
             self.mark(self.step, "started", **{f"{label}_task": arn})
+        misses = []
 
         def check():
-            task = self.aws("ecs", "describe-tasks", {
-                "cluster": outputs["ClusterArn"], "tasks": [arn]})["tasks"][0]
-            return task["lastStatus"] == "STOPPED", task
+            described = self.aws("ecs", "describe-tasks", {
+                "cluster": outputs["ClusterArn"], "tasks": [arn]}).get("tasks", [])
+            if not described:  # MISSING: a few looks absorb launch-time lag, then give up
+                misses.append(1)
+                return len(misses) >= 3, None
+            misses.clear()
+            return described[0]["lastStatus"] == "STOPPED", described[0]
 
         task = self.poll(check, what=f"{label} task", timeout=900, interval=10)
+        if task is None:
+            if relaunched:
+                raise DeployError(f"{label} task vanished again after a relaunch")
+            self.retire_task(label)
+            return self.finite_task(label, definition, security_group, relaunched=True)
         codes = [c.get("exitCode") for c in task.get("containers", [])]
         if not codes or any(code != 0 for code in codes):
             # Forget the finished attempt so a rerun launches a fresh task, not this verdict.
-            self.mark(self.step, "started", **{f"{label}_token": None, f"{label}_task": None})
+            self.clear_task(label)
             raise DeployError(f"{label} task failed (exit codes {codes})")
+        self.mark(self.step, "started", **{f"{label}_done": codes})
         return {"task": arn, "exit_codes": codes}
 
     def put_parameter(self, name, value):
@@ -1145,10 +1237,11 @@ class Pipeline:
             if set(saved) == set(db_bootstrap.CREDENTIAL_ROLES) and all(
                     isinstance(v, str) and v for v in saved.values()):
                 return saved
-        # Forget the task first: a crash between the two writes then costs a fresh bootstrap,
-        # never a completed task paired with passwords it did not apply.
-        label = "bootstrap"
-        self.mark(self.step, "started", **{f"{label}_token": None, f"{label}_task": None})
+        # Retire the old launch first: a task still running could reset the roles to its own
+        # passwords after the new ones are published. Forgetting it before the file is written
+        # means a crash between the two costs a fresh bootstrap, never a finished task paired
+        # with passwords it did not apply.
+        self.retire_task("bootstrap")
         passwords = {role: secrets.token_urlsafe(32) for role in db_bootstrap.CREDENTIAL_ROLES}
         self.write_private(path, json.dumps(passwords))
         return passwords
@@ -1715,11 +1808,32 @@ class Pipeline:
                 raise DeployError(f"Could not delete {len(result['Errors'])} staged versions")
         return len(objects)
 
+    def delete_bucket(self, bucket):
+        """Empty the bucket again right before deleting it, and retry if a write slipped in.
+
+        The first sweep (`td-buckets-emptied`) ran long before this, and an upload grant issued
+        before the session closed stays valid for 15 minutes, as does any request an active
+        Lambda was serving. Re-sweeping here, on every attempt and every resume, closes that
+        window without making every teardown wait out the grant lifetime. A bucket that is
+        still being written to after the bounded attempts fails the step instead.
+        """
+        for attempt in range(1, BUCKET_DELETE_ATTEMPTS + 1):
+            self.empty_bucket(bucket)
+            try:
+                self.aws("s3api", "delete-bucket", {"Bucket": bucket}, tolerate=("NoSuchBucket",))
+                return attempt
+            except AwsError as error:
+                if error.code != "BucketNotEmpty":
+                    raise
+            self.sleep(BUCKET_RETRY_SECONDS)
+        raise DeployError(
+            f"Bucket {bucket} kept receiving writes through {BUCKET_DELETE_ATTEMPTS} sweeps")
+
     def td_retained(self):
         """Retain-policy resources the stacks deliberately left behind, deleted by ownership."""
         deleted = {"buckets": [], "repositories": [], "log_groups": []}
         for bucket in self.owned_ids("bucket"):
-            self.aws("s3api", "delete-bucket", {"Bucket": bucket}, tolerate=("NoSuchBucket",))
+            self.delete_bucket(bucket)
             deleted["buckets"].append(bucket)
         for repository in self.owned_ids("repository"):
             self.aws("ecr", "delete-repository", {"repositoryName": repository, "force": True},

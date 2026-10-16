@@ -795,6 +795,83 @@ def test_a_failed_bootstrap_task_is_retried_with_the_same_saved_passwords(rig):
     assert rig.sim.role_passwords == first == published_passwords(rig)
 
 
+def interrupt_while_waiting_for_the_bootstrap_task(rig):
+    """The task is running and recorded, but the poll dies before seeing a verdict."""
+    rig.sim.fail[("ecs", "describe-tasks")] = [AwsError("ecs", "describe-tasks", "Throttling")]
+    with pytest.raises(AwsError):
+        rig.deploy(stop_after="db-bootstrap")
+    rig.sim.fail.clear()
+    detail = rig.journal.view()["steps"]["db-bootstrap"]["detail"]
+    assert detail["bootstrap_task"] and not detail.get("bootstrap_done")
+    return detail["bootstrap_task"]
+
+
+def test_losing_the_password_file_stops_the_unfinished_task_before_a_new_bootstrap(rig):
+    old = interrupt_while_waiting_for_the_bootstrap_task(rig)
+    (rig.s.state_dir / "db-bootstrap-passwords.json").unlink()
+    rig.deploy(stop_after="db-bootstrap")
+    stop = first_index(rig, "stop-task", task=old)
+    relaunch = [i for i, (_, op, _) in enumerate(rig.sim.calls) if op == "run-task"][1]
+    confirmed = [i for i, (_, op, p) in enumerate(rig.sim.calls)
+                 if op == "describe-tasks" and old in p["tasks"] and stop < i < relaunch]
+    assert stop < confirmed[0] < relaunch  # stopped, observed STOPPED, only then relaunched
+    assert rig.sim.tasks[old]["stopped"]
+    assert published_passwords(rig) == rig.sim.role_passwords
+
+
+def test_an_old_task_that_cannot_be_confirmed_stopped_blocks_a_second_bootstrap(rig):
+    old = interrupt_while_waiting_for_the_bootstrap_task(rig)
+    (rig.s.state_dir / "db-bootstrap-passwords.json").unlink()
+    rig.sim.stop_lag = 10**9
+    with pytest.raises(DeployError, match="previous bootstrap task to reach STOPPED"):
+        rig.deploy(stop_after="db-bootstrap")
+    assert len(rig.ops("run-task")) == 1
+    assert rig.journal.view()["steps"]["db-bootstrap"]["detail"]["bootstrap_task"] == old
+    assert not (rig.s.state_dir / "db-bootstrap-passwords.json").exists()
+
+
+def test_a_finished_task_is_not_stopped_again_when_the_passwords_are_regenerated(rig):
+    interrupt_publication_after_the_task_succeeded(rig)
+    (rig.s.state_dir / "db-bootstrap-passwords.json").unlink()
+    rig.deploy(stop_after="db-bootstrap")
+    assert rig.ops("stop-task") == [] and len(rig.ops("run-task")) == 2
+
+
+def test_a_resume_after_ecs_forgot_the_finished_task_never_describes_it_again(rig):
+    interrupt_publication_after_the_task_succeeded(rig)
+    applied = dict(rig.sim.role_passwords)
+    rig.sim.tasks.clear()  # more than an hour later: the stopped task is no longer visible
+    before = len(rig.sim.calls)
+    rig.deploy(stop_after="db-bootstrap")
+    assert not [c for c in rig.sim.calls[before:] if c[1] in {"describe-tasks", "run-task"}]
+    assert published_passwords(rig) == applied
+
+
+@pytest.mark.parametrize("answer", ["missing", "empty"])
+def test_an_unfinished_task_that_ecs_no_longer_reports_is_relaunched_with_the_saved_passwords(
+        rig, answer):
+    old = interrupt_while_waiting_for_the_bootstrap_task(rig)
+    saved = json.loads((rig.s.state_dir / "db-bootstrap-passwords.json").read_text())
+    if answer == "missing":
+        rig.sim.tasks.pop(old)
+    else:
+        real = rig.sim.ecs_describe_tasks
+        rig.sim.ecs_describe_tasks = lambda p: {"tasks": [], "failures": []} if old in p[
+            "tasks"] else real(p)
+    rig.deploy(stop_after="db-bootstrap")
+    assert len(rig.ops("run-task")) == 2
+    assert rig.sim.role_passwords == published_passwords(rig) == saved
+    assert rig.steps()["db-bootstrap"] == "done"
+
+
+def test_a_task_that_keeps_vanishing_fails_instead_of_looping(rig):
+    interrupt_while_waiting_for_the_bootstrap_task(rig)
+    rig.sim.ecs_describe_tasks = lambda p: {"tasks": [], "failures": []}
+    with pytest.raises(DeployError, match="vanished again"):
+        rig.deploy(stop_after="db-bootstrap")
+    assert len(rig.ops("run-task")) == 2
+
+
 def test_a_rerun_keeps_the_signing_key_stable(rig):
     rig.deploy(stop_after="db-bootstrap")
     key = f"/dc2/{rig.s.env}/jwt_secret"
@@ -1363,6 +1440,54 @@ def test_staged_objects_with_no_recorded_version_are_reported_not_guessed_at(rig
     detail = rig.journal.view()["steps"]["td-bootstrap-stack"]["detail"]
     assert detail["staged_versions_removed"] == 0 and detail["staged_without_version_id_kept"]
     assert len(shared["versions"]) == 1
+
+
+def late_writes(rig, times):
+    """Each of the next `times` bucket deletions finds a fresh object written just before it."""
+    left, real = [times], rig.sim.s3api_delete_bucket
+
+    def hook(payload):
+        if left[0] > 0 and payload["Bucket"] in rig.sim.buckets:
+            left[0] -= 1
+            rig.sim.buckets[payload["Bucket"]]["versions"].append(
+                {"Key": "uploads/late.mp4", "VersionId": f"late-{times}-{left[0]}"})
+        return real(payload)
+
+    rig.sim.s3api_delete_bucket = hook
+    return left
+
+
+def test_a_write_that_lands_after_the_sweep_is_removed_before_the_bucket_is_deleted(deployed):
+    deployed.s.confirm_run_id = "t1"
+    late_writes(deployed, 1)
+    deployed.teardown()
+    assert deployed.sim.buckets == {}
+    removed = [o["VersionId"] for _, op, p in deployed.sim.calls if op == "delete-objects"
+               for o in p["Delete"]["Objects"]]
+    assert any(v.startswith("late-") for v in removed)
+    detail = deployed.journal.view()["steps"]["td-retained"]["detail"]
+    assert len(deployed.ops("delete-bucket")) == detail["buckets"] + 1  # one retry, one bucket
+
+
+def test_a_bucket_that_keeps_receiving_writes_fails_and_a_resume_sweeps_it_again(deployed):
+    deployed.s.confirm_run_id = "t1"
+    left = late_writes(deployed, 100)
+    with pytest.raises(DeployError, match="kept receiving writes"):
+        deployed.teardown()
+    assert deployed.steps()["td-buckets-emptied"] == "done"  # the early sweep is not trusted
+    assert deployed.steps()["td-retained"] == "failed"
+    left[0] = 0  # the grants have expired
+    deployed.teardown()
+    assert deployed.sim.buckets == {} and deployed.steps()["td-retained"] == "done"
+
+
+def test_a_non_empty_bucket_error_is_the_only_one_that_triggers_a_re_sweep(deployed):
+    deployed.s.confirm_run_id = "t1"
+    deployed.sim.fail[("s3api", "delete-bucket")] = [
+        AwsError("s3api", "delete-bucket", "AccessDenied")]
+    with pytest.raises(AwsError, match="AccessDenied"):
+        deployed.teardown()
+    assert len(deployed.ops("delete-bucket")) == 1
 
 
 def test_teardown_needs_a_journal_to_know_what_this_run_created(tmp_path):
