@@ -54,3 +54,18 @@ async def get_session(
         )
     async with async_sessionmaker(request.app.state.engine, expire_on_commit=False)() as session:
         yield session
+
+
+async def database_ready(settings: Settings) -> dict:
+    """Operator readiness: the one deliberate database touch, never reachable from Gateway.
+
+    The result carries no driver text because the invocation payload is logged.
+    """
+    from sqlalchemy import text
+
+    try:
+        async with invocation_session(settings) as session:
+            await session.execute(text("SELECT 1"))
+        return {"service": "media", "ready": True}
+    except Exception:
+        return {"service": "media", "ready": False, "error": "database unavailable"}

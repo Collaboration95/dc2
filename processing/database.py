@@ -55,3 +55,24 @@ async def get_v1_session(
             yield session
     finally:
         await engine.dispose()
+
+
+async def database_ready(settings: Settings) -> dict:
+    """Operator readiness: the one deliberate database touch, never reachable from Gateway.
+
+    The result carries no driver text because the invocation payload is logged.
+    """
+    from sqlalchemy import text
+    from sqlalchemy.pool import NullPool
+
+    engine = create_async_engine(
+        settings.postgres_dsn, poolclass=NullPool, connect_args=v1_connect_args(settings)
+    )
+    try:
+        async with engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
+        return {"service": "processing", "ready": True}
+    except Exception:
+        return {"service": "processing", "ready": False, "error": "database unavailable"}
+    finally:
+        await engine.dispose()
