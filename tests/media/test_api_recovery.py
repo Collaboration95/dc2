@@ -168,9 +168,10 @@ async def test_real_auth_dependency_separate_session_no_autobegin(
 
 
 async def test_source_internal_auth_and_grant_contract(
-    application, session, asset, storage, settings
+    application, session, asset, storage, settings, pinned_version
 ):
     session.scalar.return_value = asset
+    pinned_version.return_value = "accepted-version"
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=application), base_url="https://unit.test"
     ) as client:
@@ -184,6 +185,8 @@ async def test_source_internal_auth_and_grant_contract(
         ).status_code == 401
         grant = await client.post(path, json={"revision": 1}, headers=headers)
         assert grant.status_code == 200 and grant.json()["source"]["sha256"] == asset.source_sha256
+        # The legacy signed URL must name the pinned version, never "whatever is newest".
+        storage.source_grant.assert_awaited_with(asset.source_key, "accepted-version")
         assert (await client.post(path, json={"revision": 2}, headers=headers)).status_code == 409
         storage.source_grant.side_effect = OSError()
         assert (await client.post(path, json={"revision": 1}, headers=headers)).status_code == 503

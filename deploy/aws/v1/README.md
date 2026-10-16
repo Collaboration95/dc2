@@ -88,7 +88,11 @@ and `MEDIA_JWT_SECRET_PARAMETER_ARN` are runtime-support loader references.
 Storage uses existing `*_MINIO_ENDPOINT`, `*_MINIO_USE_SSL`, `*_MINIO_REGION`,
 `*_MINIO_OUTPUT_BUCKET`, `MEDIA_MINIO_SOURCE_BUCKET` names; credential mode is
 `lambda` for handlers and `ecs` for tasks. No access keys or peer DSNs are injected.
-SQL uses `*_POSTGRES_SSL_CA=/opt/rds/global-bundle.pem`; handlers set
+SQL trust is `MEDIA_POSTGRES_SSL_CA` for Media and `PROCESSING_DATABASE_TLS=true` plus
+`PROCESSING_DATABASE_CA_FILE` for Processing, both `/opt/rds/global-bundle.pem` (each owner's
+Settings class reads a different name and ignores unknown ones, so
+`tests/v1/test_rendered_runtime_environment.py` loads every rendered environment into its
+Settings); handlers set
 `*_RUNTIME_MODE=lambda`. The corresponding runtime loader must dispose invocation
 connections so Aurora can pause; infrastructure alone cannot establish that.
 

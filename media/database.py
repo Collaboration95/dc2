@@ -11,6 +11,7 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import NullPool
 
 from media.config import Settings, get_settings
+from runtime_support.settings import credentials_rejected
 
 
 class Base(DeclarativeBase):
@@ -34,6 +35,13 @@ async def invocation_session(settings: Settings) -> AsyncIterator[AsyncSession]:
     try:
         async with async_sessionmaker(engine, expire_on_commit=False)() as session:
             yield session
+    except Exception as error:
+        # A warm container caches the DSN it read from SSM. If the database now rejects
+        # it, drop the cache so the next invocation re-reads the rotated secret instead
+        # of failing until the environment is recycled. This invocation still fails.
+        if credentials_rejected(error):
+            get_settings.cache_clear()
+        raise
     finally:
         await engine.dispose()
 
@@ -54,3 +62,20 @@ async def get_session(
         )
     async with async_sessionmaker(request.app.state.engine, expire_on_commit=False)() as session:
         yield session
+
+
+async def database_ready(settings: Settings) -> dict:
+    """Operator readiness: the one deliberate database touch, never reachable from Gateway.
+
+    The result carries no driver text because the invocation payload is logged.
+    """
+    from sqlalchemy import text
+
+    try:
+        async with invocation_session(settings) as session:
+            await session.execute(text("SELECT 1"))
+        return {"service": "media", "ready": True}
+    except Exception as error:
+        if credentials_rejected(error):
+            get_settings.cache_clear()
+        return {"service": "media", "ready": False, "error": "database unavailable"}

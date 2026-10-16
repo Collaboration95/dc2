@@ -127,7 +127,7 @@ class Storage:
     async def delete_source(self, key):
         await run_in_threadpool(self.internal.remove_object, self.settings.minio_source_bucket, key)
 
-    def _sign(self, key, *, output=False, inline=False):
+    def _sign(self, key, *, output=False, inline=False, version_id=None):
         try:
             credential = self.provider.retrieve() if self.provider else None
             signed_at = self.clock().replace(microsecond=0)
@@ -162,13 +162,16 @@ class Storage:
                 expires=timedelta(seconds=seconds),
                 request_date=signed_at,
                 response_headers={"response-content-disposition": "inline"} if inline else None,
+                version_id=version_id,
             )
             return url, signed_at + timedelta(seconds=seconds)
         except Exception:
             raise MediaError(503, "storage signing unavailable") from None
 
-    async def source_grant(self, key):
-        return await run_in_threadpool(self._sign, key)
+    async def source_grant(self, key, version_id=None):
+        # Pass the pinned VersionId whenever one exists; an unversioned GET of a staging
+        # key returns the newest object, which a replayed upload grant could have replaced.
+        return await run_in_threadpool(self._sign, key, version_id=version_id)
 
     async def sign_output(self, key, *, inline=False):
         url, _ = await run_in_threadpool(self._sign, key, output=True, inline=inline)

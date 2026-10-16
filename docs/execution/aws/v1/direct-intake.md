@@ -23,6 +23,17 @@ visual markup/styles/player are unchanged. The default browser prefix is
 /api/media. The explicit FLICKPOND_LEGACY_API=true switch is only for isolated
 pre-Gateway regression pages. Gateway requests to deprecated /upload are denied.
 
+Replay window: the staging key stays writable by an unexpired grant after finalize, and a
+versioned bucket answers an unversioned GET with the newest object. The VersionId pinned at
+finalize (`upload_reservations.version_id`, or `asset_source_versions` for derived sources) is
+therefore the only valid way to name an adopted source. Retry, derive, result binding,
+cleanup and the worker use `source_for_asset`, which refuses a descriptor whose key differs
+from the asset; the legacy signed-URL readers now sign with the pin. Migration `media_0007`
+adds a CHECK so a finalized reservation cannot exist without a real VersionId. Cleanup keeps
+the pin and removes every other version of the key after grant expiry, repeatedly.
+`tests/v1/test_direct_intake_s3.py` exercises this against Moto and PostgreSQL; Moto does not
+enforce POST policy signatures, so real S3 policy enforcement stays a cloud check.
+
 Storage requirements: versioning enabled before intake; browser CORS permits
 POST from the actual frontend origin; native Media role permits source
 PutObject/GetObject/GetObjectVersion/ListBucketVersions/DeleteObjectVersion and
