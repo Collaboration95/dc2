@@ -54,6 +54,16 @@ def test_v1_job_fails_unless_complete_acceptance_passed_for_the_all_flow(steps):
     assert "continue-on-error" not in step
 
 
+def test_v1_job_keeps_only_redacted_failure_detail_when_it_fails(steps):
+    step = steps["Retain redacted failure detail (junit, screenshot, page state)"]
+    assert step["if"] == "failure()" and step["uses"].startswith("actions/upload-artifact@")
+    paths = step["with"]["path"].splitlines()
+    # Raw junit, private logs, traces and the SQL volume can hold cookies or presigned URLs.
+    assert any(p.endswith("junit-*.redacted.xml") for p in paths)
+    assert all("private" not in p and "trace" not in p and not p.endswith("/*.xml") for p in paths)
+    assert all("/failure-" in p or p.endswith(".redacted.xml") for p in paths)
+
+
 def test_combined_coverage_gate_waits_for_and_consumes_the_v1_tier():
     ci = load("ci.yml")
     gate = ci["jobs"]["coverage-gate"]
