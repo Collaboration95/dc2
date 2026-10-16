@@ -46,6 +46,7 @@ from scripts.aws.transport import SECRET_KEY, OperationError
 from scripts.aws.v1 import bootstrap as db_bootstrap
 from scripts.aws.v1 import config as render_config
 from scripts.aws.v1 import credentials, operations, session_cli
+from scripts.aws.v1 import frontend as spa
 from scripts.aws.v1.definitions import template as render_template
 from scripts.aws.v1.hooks import refuse_ambient_credentials
 from scripts.aws.v1.migration import migrate
@@ -68,6 +69,7 @@ DEPLOY_STEPS = (
     "foundation",
     "images",
     "applications",
+    "frontend",
     "db-bootstrap",
     "migrations",
     "session-init",
@@ -120,13 +122,15 @@ ALLOWED = {
     "budgets": {"describe-budgets"},
     "ce": {"get-cost-and-usage", "get-cost-forecast"},
     "resourcegroupstaggingapi": {"get-resources"},
+    "cloudfront": {"create-invalidation", "get-invalidation"},
     "cloudformation": {
         "describe-stacks", "create-change-set", "describe-change-set", "execute-change-set",
         "describe-stack-events", "describe-stack-resources", "delete-stack",
     },
     "s3api": {
         "head-bucket", "put-object", "get-bucket-tagging", "list-object-versions",
-        "delete-objects", "list-multipart-uploads", "abort-multipart-upload", "delete-bucket",
+        "list-objects-v2", "delete-objects", "list-multipart-uploads", "abort-multipart-upload",
+        "delete-bucket",
     },
     "ecr": {
         "get-authorization-token", "describe-images", "describe-image-scan-findings",
@@ -991,6 +995,55 @@ class Pipeline:
         self.write_private(self.s.state_dir / "outputs.json", json.dumps(outputs, indent=2))
         return {"stack": self.s.env, "outputs": len(outputs), "gateway": outputs["HttpApiUrl"]}
 
+    def step_frontend(self):
+        """Build the SPA, sync it to the private frontend bucket, then invalidate CloudFront.
+
+        Runs after `applications` so the distribution already routes /api/* to the Gateway and
+        the Source bucket's CORS origin is this distribution. Reruns are no-ops for unchanged
+        bytes (the bucket is versioned; an identical upload would still add a version).
+        """
+        outputs = self.outputs()
+        bucket, distribution = outputs["FrontendBucketName"], outputs["DistributionId"]
+        manifest = spa.build(spa.SOURCE, self.s.state_dir / "frontend-dist")
+        existing, token = {}, None
+        for _ in range(100):  # a listing is bounded: this bucket holds a few dozen objects
+            request = {"Bucket": bucket, **({"ContinuationToken": token} if token else {})}
+            page = self.aws("s3api", "list-objects-v2", request) or {}
+            existing.update({o["Key"]: o["ETag"].strip('"') for o in page.get("Contents", [])})
+            token = page.get("NextContinuationToken")
+            if not token:
+                break
+        todo = spa.changed(manifest, existing)
+        for item in todo:
+            self.aws("s3api", "put-object", {
+                "Bucket": bucket, "Key": item["key"], "Body": item["path"],
+                "ContentType": item["content_type"], "CacheControl": item["cache_control"],
+                "ServerSideEncryption": "AES256",
+                "Tagging": f"{PROJECT_KEY}={PROJECT_VALUE}&{RUN_KEY}={self.s.run_id}"})
+        made = self.aws("cloudfront", "create-invalidation",
+                        spa.invalidation(distribution, manifest))
+        invalidation = made["Invalidation"]["Id"]
+        self.poll(lambda: (self.aws("cloudfront", "get-invalidation", {
+            "DistributionId": distribution, "Id": invalidation,
+        })["Invalidation"]["Status"] == "Completed", None),
+            what=f"CloudFront invalidation {invalidation}", timeout=900)
+        served = "NOT_CHECKED (dry run)"
+        if not self.s.dry_run:
+            served = self.verify_frontend(outputs["FrontendUrl"], manifest)
+        return {"bucket": bucket, "files": len(manifest["files"]), "uploaded": len(todo),
+                "manifest_sha256": manifest["sha256"], "invalidation": invalidation,
+                "served_through_cloudfront": served, "api_base": "same-origin /api/media"}
+
+    def verify_frontend(self, url, manifest):
+        """Ask the distribution, not the bucket: the page it serves must name the new assets."""
+        status, headers, body = self.http("GET", validate_base_url(url) + "/", {}, None, 15)
+        names = [name for name in manifest["hashed"].values() if name.endswith(".js")]
+        kind = (headers.get("content-type") or [""])[0]
+        if status != 200 or not kind.startswith("text/html") or not all(
+                n.encode() in body for n in names):
+            raise DeployError("CloudFront does not serve the freshly uploaded index.html")
+        return "PASS"
+
     def outputs(self):
         path = self.s.state_dir / "outputs.json"
         try:
@@ -1296,7 +1349,8 @@ class Pipeline:
         actions = {
             "preflight": self.preflight, "bootstrap-stack": self.step_bootstrap_stack,
             "foundation": self.step_foundation, "images": self.step_images,
-            "applications": self.step_applications, "db-bootstrap": self.step_db_bootstrap,
+            "applications": self.step_applications, "frontend": self.step_frontend,
+            "db-bootstrap": self.step_db_bootstrap,
             "migrations": lambda: self.step_migrations(revisions),
             "session-init": self.step_session_init, "session-window": self.step_session_window,
             "seed": self.step_seed, "public-smoke": self.step_public_smoke,

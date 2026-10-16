@@ -7,6 +7,7 @@ import os
 import shutil
 import stat
 import subprocess
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -14,6 +15,7 @@ import pytest
 
 from scripts.aws.transport import OperationError
 from scripts.aws.v1 import deploy, deploy_sim
+from scripts.aws.v1 import frontend as spa
 from scripts.aws.v1.deploy import (
     DEPLOY_STEPS,
     TEARDOWN_STEPS,
@@ -34,10 +36,21 @@ TODAY = dt.date(2026, 10, 16)
 class FakeGateway:
     """Just enough of the public API for the seed and PublicSmoke checks."""
 
-    def __init__(self, *, login=200, register=201):
+    def __init__(self, *, login=200, register=201, index=None):
         self.login, self.register, self.requests = login, register, []
+        self.index = index  # what the distribution serves; None serves the real built page
 
     def __call__(self, method, url, headers, body, timeout):
+        if ".cloudfront.net" in url:
+            self.requests.append((method, "cloudfront"))
+            if self.index is None:
+                with tempfile.TemporaryDirectory() as directory:
+                    built = spa.build(spa.SOURCE, Path(directory) / "dist")
+                    page = next(f for f in built["files"] if f["key"] == "index.html")
+                    index = Path(page["path"]).read_bytes()
+            else:
+                index = self.index
+            return 200, {"content-type": ["text/html; charset=utf-8"]}, index
         path = url.split(".amazonaws.com", 1)[1]
         self.requests.append((method, path))
         cookie = {"set-cookie": ["session=x; HttpOnly; Secure; SameSite=Strict"]}
