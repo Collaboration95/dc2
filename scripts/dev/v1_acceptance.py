@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
+from uuid import uuid4
 
 from scripts.dev.v1_gateway import server
 from scripts.dev.v1_runtime import ROOT, load
@@ -23,7 +24,7 @@ from scripts.dev.v1_verify import local_environment, provision_local_objects, sd
 def app_runtime(run_id):
     """Real HTTPS clients, actual handlers, native SQL, Moto S3 reverse TLS leg."""
     data = load(run_id)
-    data["resources"] = provision_local_objects(data)
+    data["resources"] = provision_local_objects(data, purge=True)
     env = local_environment(data)
     tls = Path(data["root"]) / ".cache/v1-runtime" / run_id / "tls"
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -236,7 +237,9 @@ def encode_one(runtime):
             "--deadline-epoch",
             str(time.time() + 60),
             "--name",
-            "local-acceptance",
+            # attempt_tasks.task_name is unique because a real task ARN never repeats. A fixed
+            # name made every second run against the same SQL volume fail as "already bound".
+            f"local-acceptance-{uuid4().hex[:12]}",
             "--max-empty-polls",
             "1",
         ],
@@ -246,4 +249,7 @@ def encode_one(runtime):
         text=True,
         timeout=70,
     )
-    assert result.returncode == 0, f"Actual finite encoder exited {result.returncode}"
+    # The private pytest log keeps the child's tail so a failed run is diagnosable.
+    assert result.returncode == 0, (
+        f"Actual finite encoder exited {result.returncode}\n{result.stderr[-3000:]}"
+    )

@@ -56,8 +56,16 @@ def sdk(data, service):
     )
 
 
-def provision_local_objects(data):
-    """Create distinct versioned stores, three queues and DLQs in owned Moto."""
+def provision_local_objects(data, *, purge=False):
+    """Create distinct versioned stores, three queues and DLQs in owned Moto.
+
+    ``purge`` deletes and recreates every queue and DLQ. A reused runtime otherwise hands the
+    next run the previous run's undeleted work (for example a cancelled edit's message), and
+    the finite encoder, which takes exactly one message per task, then fails on a job that no
+    longer exists. Recreation rather than PurgeQueue: AWS and Moto both allow one purge per
+    queue per 60 seconds, which would make back-to-back runs fail, and a purge cannot drop
+    messages still invisible from an earlier receive. The namespace is owned by this run ID.
+    """
     s3, sqs = sdk(data, "s3"), sdk(data, "sqs")
     buckets = {owner: "dc2-v1-" + data["run_id"] + "-" + owner for owner in ("source", "output")}
     for bucket in buckets.values():
@@ -73,7 +81,7 @@ def provision_local_objects(data):
         CORSConfiguration={
             "CORSRules": [
                 {
-                    "AllowedOrigins": ["http://127.0.0.1:*"],
+                    "AllowedOrigins": ["http://127.0.0.1:*", "https://127.0.0.1:*"],
                     "AllowedMethods": ["POST", "GET", "HEAD"],
                     "AllowedHeaders": ["*"],
                     "ExposeHeaders": ["ETag", "x-amz-version-id"],
@@ -83,6 +91,13 @@ def provision_local_objects(data):
     )
     queues = {}
     for name in ("commands", "work", "results"):
+        if purge:
+            for suffix in ("", "-dlq"):
+                try:
+                    url = sqs.get_queue_url(QueueName=f"{data['project']}-{name}{suffix}")
+                except sqs.exceptions.QueueDoesNotExist:
+                    continue
+                sqs.delete_queue(QueueUrl=url["QueueUrl"])
         dlq = sqs.create_queue(QueueName=f"{data['project']}-{name}-dlq")["QueueUrl"]
         arn = sqs.get_queue_attributes(QueueUrl=dlq, AttributeNames=["QueueArn"])["Attributes"][
             "QueueArn"
@@ -94,7 +109,7 @@ def provision_local_objects(data):
                 "RedrivePolicy": json.dumps({"deadLetterTargetArn": arn, "maxReceiveCount": "3"}),
             },
         )["QueueUrl"]
-    return {"buckets": buckets, "queues": queues}
+    return {"buckets": buckets, "queues": queues, "purged_queues": bool(purge)}
 
 
 async def sql_probe(data, probe_id):
@@ -178,7 +193,7 @@ def objects_and_encode(data, output, probe_id):
     from media_engine.operations import build_edit_command
 
     s3, sqs = sdk(data, "s3"), sdk(data, "sqs")
-    resources = provision_local_objects(data)
+    resources = provision_local_objects(data, purge=True)
     bucket = resources["buckets"]["source"]
     output_bucket = resources["buckets"]["output"]
     queues = resources["queues"]
