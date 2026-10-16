@@ -21,8 +21,11 @@ from scripts.dev.v1_verify import local_environment, provision_local_objects, sd
 
 
 @contextmanager
-def app_runtime(run_id):
-    """Real HTTPS clients, actual handlers, native SQL, Moto S3 reverse TLS leg."""
+def app_runtime(run_id, *, gateway=None):
+    """Real HTTPS clients, actual handlers, native SQL, Moto S3 reverse TLS leg.
+
+    ``gateway`` substitutes a Gateway subclass, for example one that also serves the frontend.
+    """
     data = load(run_id)
     data["resources"] = provision_local_objects(data, purge=True)
     env = local_environment(data)
@@ -109,7 +112,7 @@ def app_runtime(run_id):
             importlib.reload(module)
 
         front = server(
-            Gateway(
+            (gateway or Gateway)(
                 media.lambda_handler.handler,
                 processing.lambda_handler.handler,
                 media.lambda_handler.authorizer,
@@ -202,7 +205,7 @@ def sql_fetch(runtime, owner, query, *arguments):
     return asyncio.run(read())
 
 
-def short_video(path, seconds=1):
+def short_video(path, seconds=1, size="160x90"):
     """A tiny audiovisual MP4 the inherited engine can encode in about a second."""
     subprocess.run(
         [
@@ -212,7 +215,7 @@ def short_video(path, seconds=1):
             "-f",
             "lavfi",
             "-i",
-            f"testsrc2=size=160x90:rate=10:duration={seconds}",
+            f"testsrc2=size={size}:rate=10:duration={seconds}",
             "-f",
             "lavfi",
             "-i",
