@@ -265,10 +265,11 @@ make browser-trust-smoke RUN_ID=local
 make status RUN_ID=local
 make logs RUN_ID=local
 make down RUN_ID=local      # preserve service data
-make capacity-status       # isolated capacity helper; no global Docker changes
+make capacity-status       # read-only: never starts the VM; shows size, lease and owner
 ```
 
-`images`, `capacity-install/start/stop/env` are also available. Runtime state is
+`images`, `capacity-install/start/stop/env/reap/renew` are also available. The VM defaults to
+2 CPU / 2 GiB with a 2 hour lease; `CAPACITY_ARGS=--benchmark` selects the 8 / 8 scaling profile. Runtime state is
 `.local/runs/<RUN_ID>/state.json` with `public_url`, `postgres_port`,
 `processing_port`, `ca_file`, `compose_project`, `env_file`; secrets stay in its
 private environment file. On Linux, Firefox trust uses a temporary NSS profile seeded with

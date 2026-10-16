@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "environment_id": "dc2-v1-local",
+  "account_id": "000000000000",
+  "region": "ap-southeast-1",
+  "source_cors_origin": "https://example.invalid",
+  "deploy_applications": false,
+  "parameter_arns": {
+    "media_runtime_dsn": "arn:aws:ssm:ap-southeast-1:000000000000:parameter/dc2/dc2-v1-local/media_runtime_dsn",
+    "processing_runtime_dsn": "arn:aws:ssm:ap-southeast-1:000000000000:parameter/dc2/dc2-v1-local/processing_runtime_dsn",
+    "media_migration_dsn": "arn:aws:ssm:ap-southeast-1:000000000000:parameter/dc2/dc2-v1-local/media_migration_dsn",
+    "processing_migration_dsn": "arn:aws:ssm:ap-southeast-1:000000000000:parameter/dc2/dc2-v1-local/processing_migration_dsn",
+    "jwt_secret": "arn:aws:ssm:ap-southeast-1:000000000000:parameter/dc2/dc2-v1-local/jwt_secret"
+  },
+  "images": {},
+  "handlers": {},
+  "aurora_engine_version": "16.8",
+  "worker_lifetime_seconds": 1800
+}

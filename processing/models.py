@@ -1,7 +1,15 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint, text
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -92,6 +100,10 @@ class CleanupIntent(Base):
     next_try_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     tries: Mapped[int] = mapped_column(default=0, server_default="0")
     last_error: Mapped[str | None]
+    # Retirement horizon: a late write cannot outlive the attempt deadline by days,
+    # so a successful scan past this age ends the rescans (the row is kept as audit).
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class SubmissionGuard(Base):

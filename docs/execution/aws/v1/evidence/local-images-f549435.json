@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "scope": "local exact-image packaging/import proof only",
+  "status": "LOCAL_ARTIFACT_PASS",
+  "source_sha": "f54943544bf96db5b1eae245d2e06927c9f93581",
+  "platform": "linux/amd64",
+  "host": "Linux aarch64 Docker VM on ARM; x86_64 container emulation",
+  "docker_context": "desktop-linux",
+  "input_sha256": {
+    "pyproject.toml": "3e1670e03f678e6ddcc6499081c164044782e796ab85d01c58bc999b78be5dcb",
+    "uv.lock": "0a863f6b3f4b1a240244ff8cfca069bbb28b5ca4f9c0235c03d48dbf8a6e56d2",
+    "deploy/v1/check_runtime.py": "ab648c3d537c90173c41eb0f3c30f3dbb17774847010315ee08c56b49a3a5b0f",
+    "deploy/v1/global-bundle.pem": "90a6f1a7978a1b1b096dca6c57511ca48d3b8cf052f8e704baf358f34ea2f21b",
+    "deploy/v1/media.Dockerfile": "cf293af21981ee3c35172d4557578777a3152024a1df306d77c8613978cfcd75",
+    "deploy/v1/processing.Dockerfile": "6030b91f2a6c95cdbf16a6cc74b3d1ef13f6c11c7309a1b8cb3106afd84ec167",
+    "deploy/v1/worker.Dockerfile": "9b2a304814dc1944b97ad49a3621c026fb60eb0bce519274e2d63cf6cfaecd0a"
+  },
+  "images": {
+    "media": {
+      "tag": "dc2-v1-media:c2-f54943544bf9",
+      "config_id": "sha256:3e494872c1307a180cc3acc89f66a76480205ba8ce581187f2f9de96d812eb7f",
+      "size_bytes": 258013612,
+      "build_exit_code": 0,
+      "build_elapsed_seconds": 20.135,
+      "build_command": [
+        "docker",
+        "--context",
+        "desktop-linux",
+        "build",
+        "--platform",
+        "linux/amd64",
+        "--build-arg",
+        "SOURCE_SHA=f54943544bf96db5b1eae245d2e06927c9f93581",
+        "-f",
+        "deploy/v1/media.Dockerfile",
+        "-t",
+        "dc2-v1-media:c2-f54943544bf9",
+        "."
+      ],
+      "runtime_exit_code": 0,
+      "runtime_output_sha256": "769496bc14cd018073cd65cf4024ec562c72cdec6534cc79177c9d4b40e1e66a",
+      "entrypoint_exit_code": 0,
+      "runtime_user": "flickpond",
+      "runtime_platform": {
+        "machine": "x86_64",
+        "system": "Linux"
+      },
+      "runtime_contents": {
+        "ffmpeg": false,
+        "redis": false,
+        "rq": false
+      },
+      "imported_executables": {
+        "media.handlers": {
+          "callables": [
+            "result_handler",
+            "repair_handler"
+          ],
+          "file": "/app/media/handlers.py"
+        },
+        "media.lambda_handler": {
+          "callables": [
+            "handler",
+            "authorizer"
+          ],
+          "file": "/app/media/lambda_handler.py"
+        }
+      },
+      "installed_package_count": 52,
+      "binaries": {},
+      "network": "none",
+      "root_filesystem": "read-only",
+      "rds_bundle": "parsed"
+    },
+    "processing": {
+      "tag": "dc2-v1-processing:c2-f54943544bf9",
+      "config_id": "sha256:682fb4ef5e4d2b596f5752a7904da73db68989d60c4d10d84298b7f444992cb4",
+      "size_bytes": 258018696,
+      "build_exit_code": 0,
+      "build_elapsed_seconds": 9.826,
+      "build_command": [
+        "docker",
+        "--context",
+        "desktop-linux",
+        "build",
+        "--platform",
+        "linux/amd64",
+        "--build-arg",
+        "SOURCE_SHA=f54943544bf96db5b1eae245d2e06927c9f93581",
+        "-f",
+        "deploy/v1/processing.Dockerfile",
+        "-t",
+        "dc2-v1-processing:c2-f54943544bf9",
+        "."
+      ],
+      "runtime_exit_code": 0,
+      "runtime_output_sha256": "f80d8a1875dcf9acaac50a874bab0311dbc72034b4bcb80d86b74d35e9b4892b",
+      "entrypoint_exit_code": 0,
+      "runtime_user": "flickpond",
+      "runtime_platform": {
+        "machine": "x86_64",
+        "system": "Linux"
+      },
+      "runtime_contents": {
+        "ffmpeg": false,
+        "redis": false,
+        "rq": false
+      },
+      "imported_executables": {
+        "processing.handlers": {
+          "callables": [
+            "command_handler",
+            "repair_handler",
+            "ecs_handler",
+            "s3_handler"
+          ],
+          "file": "/app/processing/handlers.py"
+        },
+        "processing.lambda_handler": {
+          "callables": [
+            "handler"
+          ],
+          "file": "/app/processing/lambda_handler.py"
+        }
+      },
+      "installed_package_count": 52,
+      "binaries": {},
+      "network": "none",
+      "root_filesystem": "read-only",
+      "rds_bundle": "parsed"
+    },
+    "worker": {
+      "tag": "dc2-v1-worker:c2-f54943544bf9",
+      "config_id": "sha256:dfbc8cd1361a9b2c3673c6df80043c4d1baa084bbf5537d775bcdac984eadf63",
+      "size_bytes": 702404771,
+      "build_exit_code": 0,
+      "build_elapsed_seconds": 61.915,
+      "build_command": [
+        "docker",
+        "--context",
+        "desktop-linux",
+        "build",
+        "--platform",
+        "linux/amd64",
+        "--build-arg",
+        "SOURCE_SHA=f54943544bf96db5b1eae245d2e06927c9f93581",
+        "-f",
+        "deploy/v1/worker.Dockerfile",
+        "-t",
+        "dc2-v1-worker:c2-f54943544bf9",
+        "."
+      ],
+      "runtime_exit_code": 0,
+      "runtime_output_sha256": "f529c5d37bbe669ff06b043dd46aa35daba48d3a3ee2692830f5ec5d3fb5bf93",
+      "entrypoint_exit_code": 0,
+      "runtime_user": "flickpond",
+      "runtime_platform": {
+        "machine": "x86_64",
+        "system": "Linux"
+      },
+      "runtime_contents": {
+        "ffmpeg": true,
+        "redis": false,
+        "rq": false
+      },
+      "imported_executables": {
+        "processing.v1_worker": {
+          "callables": [
+            "main"
+          ],
+          "file": "/app/processing/v1_worker.py"
+        },
+        "processing.worker.source": {
+          "callables": [
+            "SourceStore"
+          ],
+          "file": "/app/processing/worker/source.py"
+        },
+        "processing.worker.sqs": {
+          "callables": [
+            "main",
+            "run",
+            "execute_message"
+          ],
+          "file": "/app/processing/worker/sqs.py"
+        },
+        "processing.worker.tasks": {
+          "callables": [
+            "pipeline"
+          ],
+          "file": "/app/processing/worker/tasks.py"
+        }
+      },
+      "installed_package_count": 49,
+      "binaries": {
+        "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+        "ffprobe": "ffprobe version 7.1.5-0+deb13u1 Copyright (c) 2007-2026 the FFmpeg developers"
+      },
+      "network": "none",
+      "root_filesystem": "read-only",
+      "rds_bundle": "parsed"
+    }
+  },
+  "promotion_eligible": false,
+  "scan": "NOT_RUN",
+  "registry_manifest_receipt": "NOT_RUN",
+  "aws": "NOT_RUN",
+  "limitations": [
+    "No vulnerability scan performed",
+    "No registry manifest/publication proof",
+    "No Lambda/ECS deployment or service I/O certification",
+    "ARM host runs x86 images under emulation; no performance conclusion"
+  ],
+  "failures": []
+}

@@ -8,7 +8,8 @@ those shared files concurrently.
 ## Modules and commands
 
 - Media lane owns `media/` and `tests/media/`, plus uniquely named real integration
-  tests. Runtime entry: `uvicorn media.main:app --host 0.0.0.0 --port 8000`.
+  tests. Runtime entry: `uvicorn media.main:app --host 0.0.0.0 --port 8000`
+  (the V1 app; the inherited peer-calling app is `media.main:legacy_app`).
   Migration: `python -m alembic -c media/alembic.ini upgrade head`.
   Reconciliation: `python -m media.recovery`.
 - Processing lane owns `processing/`, optional pure `media_engine/`, and their

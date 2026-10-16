@@ -32,7 +32,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.8.17'
-      - run: uv sync --locked --extra dev
+      - run: uv sync --locked --extra legacy --extra dev
       - name: Source tests for selected owner and operational contracts
         run: |
           mkdir -p gates

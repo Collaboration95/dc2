@@ -37,7 +37,7 @@ jobs:
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
-      - run: uv sync --locked --extra dev --extra browser
+      - run: uv sync --locked --extra legacy --extra dev --extra browser
       - run: make lint
       - name: Validate staged V1/V2 planning packet
         run: python scripts/planning/validate_v1_plan.py
@@ -130,7 +130,7 @@ jobs:
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
-      - run: uv sync --locked --extra dev --extra browser
+      - run: uv sync --locked --extra legacy --extra dev --extra browser
       - uses: actions/cache@v4
         with:
           path: .cache/minio
@@ -190,7 +190,7 @@ jobs:
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
-      - run: uv sync --locked --extra dev --extra browser
+      - run: uv sync --locked --extra legacy --extra dev --extra browser
       - uses: actions/cache@v4
         with:
           path: .cache/minio
@@ -269,7 +269,7 @@ jobs:
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
-      - run: uv sync --locked --extra dev --extra browser
+      - run: uv sync --locked --extra legacy --extra dev --extra browser
       - name: Start isolated databases and apply only Media migrations
         run: |
           docker compose -f docker-compose.processing.yml up -d --wait --wait-timeout 120 postgres
@@ -304,7 +304,7 @@ jobs:
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
-      - run: uv sync --locked --extra dev --extra browser
+      - run: uv sync --locked --extra legacy --extra dev --extra browser
       - name: Require real trusted/untrusted HTTPS and persisted Secure cookie
         run: >-
           .venv/bin/python -m pytest -q -p scripts.dev.pytest_plugin
@@ -328,7 +328,7 @@ jobs:
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
-      - run: uv sync --locked --extra dev --extra browser
+      - run: uv sync --locked --extra legacy --extra dev --extra browser
       - uses: actions/cache@v4
         with:
           path: |
@@ -438,11 +438,19 @@ jobs:
         if: always()
         timeout-minutes: 2
 
+  # Real PostgreSQL + FFmpeg, every V1 flow and the real-browser leg. Its coverage
+  # fragment is the V1 tier of the combined gate below.
+  v1-local:
+    name: V1 local verification
+    uses: ./.github/workflows/v1.yml
+    with:
+      flow: all
+
   coverage-gate:
     name: Combined backend package coverage
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [lint-and-unit, legacy-integration, processing-intake, media-integration]
+    needs: [lint-and-unit, legacy-integration, processing-intake, media-integration, v1-local]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -454,7 +462,7 @@ jobs:
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
-      - run: uv sync --locked --extra dev --extra browser
+      - run: uv sync --locked --extra legacy --extra dev --extra browser
       - uses: actions/download-artifact@v4
         with:
           pattern: '*-coverage-data'
@@ -462,7 +470,7 @@ jobs:
           merge-multiple: true
       - run: >-
           make coverage-report
-          COVERAGE_INPUTS='artifacts/coverage/.coverage.fast artifacts/coverage/.coverage.legacy-integration artifacts/coverage/.coverage.processing-integration artifacts/coverage/.coverage.media-integration'
+          COVERAGE_INPUTS='artifacts/coverage/.coverage.fast artifacts/coverage/.coverage.legacy-integration artifacts/coverage/.coverage.processing-integration artifacts/coverage/.coverage.media-integration artifacts/coverage/.coverage.v1-integration'
       - uses: actions/upload-artifact@v4
         with:
           name: python-coverage
@@ -478,7 +486,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    needs: [legacy-integration, processing-intake, media-integration, publisher-https, browser-trust, coverage-gate]
+    needs: [legacy-integration, processing-intake, media-integration, publisher-https, browser-trust, v1-local, coverage-gate]
     steps:
       - name: Require successful real integration, trust and package gates
         env:
@@ -487,6 +495,7 @@ jobs:
           MEDIA_RESULT: ${{ needs.media-integration.result }}
           PUBLISHER_RESULT: ${{ needs.publisher-https.result }}
           TRUST_RESULT: ${{ needs.browser-trust.result }}
+          V1_RESULT: ${{ needs.v1-local.result }}
           COVERAGE_RESULT: ${{ needs.coverage-gate.result }}
         run: |
           test "$LEGACY_RESULT" = success
@@ -494,6 +503,7 @@ jobs:
           test "$MEDIA_RESULT" = success
           test "$PUBLISHER_RESULT" = success
           test "$TRUST_RESULT" = success
+          test "$V1_RESULT" = success
           test "$COVERAGE_RESULT" = success
 
   security:

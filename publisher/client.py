@@ -1,5 +1,7 @@
 """Cookie-authenticated Media public API with explicit trust and bounded requests."""
 
+import hashlib
+import mimetypes
 import os
 import ssl
 import tempfile
@@ -49,6 +51,13 @@ class PublicClient:
         if self.cookie_file.exists():
             self.jar.load(str(self.cookie_file), ignore_discard=True)
         trust = ssl.create_default_context(cafile=ca_file)
+        self.direct = httpx.Client(
+            verify=trust,
+            timeout=timeout,
+            transport=transport,
+            follow_redirects=False,
+            trust_env=False,
+        )
         self.http = httpx.Client(
             base_url=base_url.rstrip("/") + "/",
             verify=trust,
@@ -64,6 +73,7 @@ class PublicClient:
             private_write(self.cookie_file, lambda name: self.jar.save(name, ignore_discard=True))
         finally:
             self.http.close()
+            self.direct.close()
 
     def request(self, method, path, **kwargs):
         try:
@@ -85,6 +95,8 @@ class PublicClient:
                 503: "Service temporarily unavailable; no success confirmed.",
             }.get(status, f"HTTP request failed ({status}).")
             raise PublisherError(message, status=status, uncertain=status >= 500)
+        if response.status_code == 204:
+            return {}
         try:
             data = response.json()
             if not isinstance(data, dict):
@@ -103,23 +115,82 @@ class PublicClient:
         return self.request("GET", "auth/me")["id"]
 
     def upload(self, path, key):
-        # Reopen on every replay so the multipart stream always starts at byte zero.
-        import mimetypes
-
-        with Path(path).open("rb") as stream:
-            data = self.request(
-                "POST",
-                "upload",
-                headers={"Idempotency-Key": key},
-                files={
-                    "file": (
-                        Path(path).name,
-                        stream,
-                        mimetypes.guess_type(str(path))[0] or "application/octet-stream",
+        path = Path(path)
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            while chunk := stream.read(1024 * 1024):
+                digest.update(chunk)
+        reservation = self.request(
+            "POST",
+            "uploads/reservations",
+            json={
+                "request_id": key,
+                "filename": path.name,
+                "size_bytes": path.stat().st_size,
+                "sha256": digest.hexdigest(),
+                "content_type": mimetypes.guess_type(str(path))[0] or "application/octet-stream",
+            },
+        )
+        if reservation.get("upload"):
+            grant = reservation["upload"]
+            url = httpx.URL(grant["url"])
+            if url.scheme != "https" or url.userinfo or url.fragment:
+                raise PublisherError("Invalid storage upload URL.")
+            with path.open("rb") as stream:
+                try:
+                    # Separate jar and explicit cookie removal even after a storage Set-Cookie.
+                    request = self.direct.build_request(
+                        "POST", url, data=grant["fields"], files={"file": (path.name, stream)}
                     )
-                },
+                    request.headers.pop("cookie", None)
+                    response = self.direct.send(request)
+                except httpx.TransportError as exc:
+                    raise PublisherError(
+                        "Storage delivery uncertain; replay this intent.", uncertain=True
+                    ) from exc
+                if not response.is_success:
+                    raise PublisherError(
+                        "Storage upload failed; replay this intent.", uncertain=True
+                    )
+        return self.accepted(
+            self.request(
+                "POST",
+                f"uploads/reservations/{asset_id(reservation['reservation_id'])}/finalize",
+                json={"request_id": key},
             )
-        return self.accepted(data)
+        )
+
+    def edit(self, job_id, operations, key):
+        return self.accepted(
+            self.request(
+                "POST",
+                f"jobs/{asset_id(job_id)}/edit",
+                headers={"Idempotency-Key": key},
+                json={"operations": operations},
+            )
+        )
+
+    def delete(self, job_id):
+        self.request("DELETE", f"jobs/{asset_id(job_id)}")
+        return asset_id(job_id)
+
+    def legacy_upload(self, path, key):
+        """Frozen pre-Gateway regression only; V1 callers use upload()."""
+        with Path(path).open("rb") as stream:
+            return self.accepted(
+                self.request(
+                    "POST",
+                    "upload",
+                    headers={"Idempotency-Key": key},
+                    files={
+                        "file": (
+                            Path(path).name,
+                            stream,
+                            mimetypes.guess_type(str(path))[0] or "application/octet-stream",
+                        )
+                    },
+                )
+            )
 
     @staticmethod
     def accepted(data):

@@ -21,6 +21,11 @@ def percentile90(values):
     return sorted(values)[math.ceil(len(values) * 0.9) - 1]
 
 
+# Clock values are floats: a window booked as exactly N seconds can measure N plus a few
+# ulps (about 1e-7 s on a monotonic clock), which a strict comparison would reject.
+WINDOW_EPSILON = 0.001
+
+
 def timing_eligible(samples, *, users, duration_seconds, measurement, window):
     if not isinstance(window, dict) or not samples:
         return False
@@ -32,9 +37,9 @@ def timing_eligible(samples, *, users, duration_seconds, measurement, window):
     start, end = window["started_at"], window["ended_at"]
     if not window["warmup_started_at"] <= window["warmup_ended_at"] <= start <= end:
         return False
-    if end > window["booked_deadline"] or end - start > 180:
+    if end > window["booked_deadline"] or end - start > 180 + WINDOW_EPSILON:
         return False
-    if measurement == "status" and abs(end - start - duration_seconds) > 0.001:
+    if measurement == "status" and abs(end - start - duration_seconds) > WINDOW_EPSILON:
         return False
     for sample in samples:
         before, after = sample.get("started_at"), sample.get("ended_at")

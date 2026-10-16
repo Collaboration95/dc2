@@ -16,7 +16,9 @@ class Settings(BaseSettings):
     processing_service_token: SecretStr = SecretStr("")
     source_service_token: SecretStr = SecretStr("")
     processing_timeout_seconds: float = Field(default=5, gt=0, le=30)
-    storage_credential_mode: Literal["static", "ecs"] = "static"
+    runtime_mode: Literal["http", "lambda"] = "http"
+    postgres_ssl_ca: str | None = "/opt/rds/global-bundle.pem"
+    storage_credential_mode: Literal["static", "ecs", "lambda"] = "static"
     minio_endpoint: str = "minio:9000"
     minio_use_ssl: bool = False
     minio_region: str = "us-east-1"
@@ -49,4 +51,6 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    from runtime_support.settings import runtime_values
+
+    return Settings(**runtime_values("MEDIA"))

@@ -1,0 +1,303 @@
+{
+  "submit": {
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    },
+    "fingerprint": "5d202313dc9ab6b00e0b2222cd20fd5dfdb61c7970c933f9c18518fe86630111"
+  },
+  "submit_with_operations": {
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000102",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": [
+          {
+            "operation": "clip",
+            "params": {
+              "start": 0,
+              "end": 3
+            }
+          }
+        ]
+      }
+    },
+    "fingerprint": "516c5879ad05691f925ccbb94a369312c3b73af9b2a0aa4edcf2707e814a974e"
+  },
+  "retry": {
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000103",
+      "kind": "retry",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": null,
+      "state_version": 2,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {}
+    },
+    "fingerprint": "6145622b43f4a07d1091483cb54e1004c670861e92527cbb5f228df72773df53"
+  },
+  "cancel_before_submit": {
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000104",
+      "kind": "cancel",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": null,
+      "payload": {}
+    },
+    "fingerprint": "cfd5e0cb944af45963c05930a5a1b523ad64c5bd36d8a28d071d2856a43ed713"
+  },
+  "cancel_existing_job": {
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000105",
+      "kind": "cancel",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": null,
+      "state_version": 1,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {}
+    },
+    "fingerprint": "b3bcde23876460d6695c813af96606cde425aa9c925396b32e80c1321645aa2e"
+  },
+  "work": {
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000106",
+      "kind": "work",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": 1,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    },
+    "fingerprint": "e0ec16760cbee8668cfab456a8983780ad55257a383290d97698a5116fb1f7b9"
+  },
+  "result_queued": {
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000107",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": 1,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "status": "queued",
+        "outputs": [],
+        "error": null,
+        "attempt_number": 0
+      }
+    },
+    "fingerprint": "d0f11ef654231ef62c310d5dd4e84f14448fdc7731f5f9298f9fe8256605b27a"
+  },
+  "result_processing": {
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000108",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": 2,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "status": "processing",
+        "outputs": [],
+        "error": null,
+        "attempt_number": 1
+      }
+    },
+    "fingerprint": "43e8c03199bd28339a5eaaf3c7314a034c7fa38890f520513d26305cba600476"
+  },
+  "result_done": {
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000109",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": 3,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "status": "done",
+        "outputs": [
+          {
+            "kind": "primary",
+            "object_key": "jobs/00000000-0000-4000-8000-000000000021/00000000-0000-4000-8000-000000000031/output.mp4",
+            "media_type": "video/mp4",
+            "size_bytes": 2048,
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        "error": null,
+        "attempt_number": 1
+      }
+    },
+    "fingerprint": "f8806c2278b59f08b845baeb815699f30898bab38755aa40139651ed588c6705"
+  },
+  "result_failed": {
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000110",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": 3,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "status": "failed",
+        "outputs": [],
+        "error": "Encoding failed",
+        "attempt_number": 1
+      }
+    },
+    "fingerprint": "a6c811c4cbd5e7c6d4d5002424d59e3430cf0c4aaf3a12a1639a29735a125e54"
+  },
+  "result_cancelled_existing_job": {
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000111",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": 4,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "status": "cancelled",
+        "outputs": [],
+        "error": null,
+        "attempt_number": 1
+      }
+    },
+    "fingerprint": "cc1f6514fa1216c265e87ade68c05e1e81220699c32f28b196e2be6cf5b5dfd0"
+  },
+  "result_cancellation_ack_without_job": {
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000112",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": null,
+      "payload": {
+        "status": "cancelled",
+        "cancellation_confirmed": true,
+        "command_message_id": "00000000-0000-4000-8000-000000000104"
+      }
+    },
+    "fingerprint": "4e3516c0f646cf8e628df55a5220fad2b87293fb2816067620d321854d75b9a7"
+  }
+}

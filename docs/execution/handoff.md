@@ -66,7 +66,8 @@ cd /Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2
 make setup
 make doctor
 make browser-install RUN_ID=local
-make capacity-start                 # Start the existing project VM if stopped.
+make capacity-start                 # Start the project VM (2 CPU / 2 GiB, 2 h lease) if stopped.
+# make capacity-stop                # Stop it when finished; capacity-reap stops it after the lease lapses.
 make up RUN_ID=local
 make env RUN_ID=local
 make status RUN_ID=local

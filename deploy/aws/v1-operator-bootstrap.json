@@ -1,0 +1,34 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "DC2 V1 operator-owned private deployment template staging",
+  "Parameters": {
+    "Namespace": {"Type": "String", "AllowedValues": ["dc2-v1-20261015t1146"]}
+  },
+  "Resources": {
+    "Artifacts": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketName": {"Fn::Sub": "${Namespace}-artifacts-${AWS::AccountId}"},
+        "PublicAccessBlockConfiguration": {"BlockPublicAcls": true, "BlockPublicPolicy": true, "IgnorePublicAcls": true, "RestrictPublicBuckets": true},
+        "OwnershipControls": {"Rules": [{"ObjectOwnership": "BucketOwnerEnforced"}]},
+        "VersioningConfiguration": {"Status": "Enabled"},
+        "BucketEncryption": {"ServerSideEncryptionConfiguration": [{"ServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]},
+        "LifecycleConfiguration": {"Rules": [{"Id": "DiscardOldTemplateRevisions", "Status": "Enabled", "NoncurrentVersionExpiration": {"NoncurrentDays": 7}, "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 1}}]},
+        "Tags": [{"Key": "Project", "Value": {"Ref": "Namespace"}}]
+      }
+    },
+    "ArtifactsPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {"Ref": "Artifacts"},
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{"Sid": "RequireTLS", "Effect": "Deny", "Principal": "*", "Action": "s3:*", "Resource": [{"Fn::GetAtt": ["Artifacts", "Arn"]}, {"Fn::Sub": "${Artifacts.Arn}/*"}], "Condition": {"Bool": {"aws:SecureTransport": "false"}}}]
+        }
+      }
+    }
+  },
+  "Outputs": {"ArtifactsBucket": {"Value": {"Ref": "Artifacts"}}}
+}

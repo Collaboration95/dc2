@@ -60,7 +60,9 @@ async def test_queue_repair_backoff_and_race_decisions(monkeypatch):
 
 async def test_cleanup_only_terminal_prefix_repeats_and_protects_winner(monkeypatch):
     job, attempt, _, _ = pair("failed")
-    intent = CleanupIntent(job_id=job.id, attempt_id=attempt.id, next_try_at=NOW, tries=0)
+    intent = CleanupIntent(
+        job_id=job.id, attempt_id=attempt.id, next_try_at=NOW, tries=0, created_at=NOW
+    )
     session = Session()
     session.execute.return_value = Rows([(job.id, attempt.id)])
     session.scalar.return_value = job
@@ -91,7 +93,9 @@ async def test_cleanup_protects_live_and_succeeded_attempts(monkeypatch, state):
     job.current_attempt_id = None
     job.deleted_at = None if state == "succeeded" else NOW
     attempt.state = state
-    intent = CleanupIntent(job_id=job.id, attempt_id=attempt.id, next_try_at=NOW, tries=0)
+    intent = CleanupIntent(
+        job_id=job.id, attempt_id=attempt.id, next_try_at=NOW, tries=0, created_at=NOW
+    )
     session = Session()
     session.execute.return_value = Rows([(job.id, attempt.id)])
     session.scalar.return_value = job
@@ -106,7 +110,9 @@ async def test_cleanup_protects_live_and_succeeded_attempts(monkeypatch, state):
 @pytest.mark.parametrize("missing", ["job", "attempt", "intent", "attempt_owner", "intent_owner"])
 async def test_cleanup_requires_matching_persisted_identity(monkeypatch, missing):
     job, attempt, _, _ = pair("failed")
-    intent = CleanupIntent(job_id=job.id, attempt_id=attempt.id, next_try_at=NOW, tries=0)
+    intent = CleanupIntent(
+        job_id=job.id, attempt_id=attempt.id, next_try_at=NOW, tries=0, created_at=NOW
+    )
     session = Session()
     session.execute.return_value = Rows([(job.id, attempt.id)])
     session.scalar.return_value = None if missing == "job" else job
@@ -133,7 +139,9 @@ async def test_cleanup_io_has_no_session_and_cancellation_retains_scan(monkeypat
     import asyncio
 
     job, attempt, _, _ = pair("failed")
-    intent = CleanupIntent(job_id=job.id, attempt_id=attempt.id, next_try_at=NOW, tries=0)
+    intent = CleanupIntent(
+        job_id=job.id, attempt_id=attempt.id, next_try_at=NOW, tries=0, created_at=NOW
+    )
     session = Session()
     session.execute.return_value = Rows([(job.id, attempt.id)])
     session.scalar.return_value = job

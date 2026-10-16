@@ -42,6 +42,7 @@ VIDEO = b"\x00\x00\x00\x18ftypisom" + b"content" * 10
 
 class Objects:
     def __init__(self):
+        self.settings = SimpleNamespace(orphan_grace_seconds=3600)
         self.sources = {}
         self.outputs = {}
         self.deleted = []
@@ -61,7 +62,7 @@ class Objects:
         self.deleted.append(key)
         self.sources.pop(key, None)
 
-    async def source_grant(self, key):
+    async def source_grant(self, key, version_id=None):
         return f"http://minio:9000/test-source/{key}?signed=test", now() + timedelta(minutes=15)
 
     async def sign_output(self, key, *, inline=False):

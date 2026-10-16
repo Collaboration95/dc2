@@ -18,12 +18,16 @@ class AttemptDeadline(Exception):
 
 
 class Supervisor:
-    def __init__(self, factory, work, settings):
+    def __init__(self, factory, work, settings, *, renew=None, deadline=None):
         self.factory, self.work, self.settings = factory, work, settings
         self.lost = asyncio.Event()
         self.reason = LeaseLost
         self.deadline = time.monotonic() + settings.attempt_timeout_seconds
         self.task = None
+        self.renew = renew
+        self.renew_lock = asyncio.Lock()
+        if deadline is not None:
+            self.deadline = min(self.deadline, deadline)
 
     async def __aenter__(self):
         self.task = asyncio.create_task(self._heartbeat())
@@ -40,6 +44,20 @@ class Supervisor:
         if time.monotonic() >= self.deadline:
             raise AttemptDeadline()
 
+    async def renew_authority(self):
+        async with self.renew_lock:
+            self.check()
+            try:
+                if not await heartbeat(self.factory, self.work, self.settings):
+                    raise LeaseLost()
+                if self.renew is not None:
+                    await self.renew()
+            except Exception:
+                self.lost.set()
+                raise LeaseLost() from None
+            self.check()
+        return True
+
     async def _heartbeat(self):
         try:
             while True:
@@ -48,7 +66,7 @@ class Supervisor:
                     self.reason = AttemptDeadline
                     break
                 alive = await asyncio.wait_for(
-                    heartbeat(self.factory, self.work, self.settings),
+                    self.renew_authority(),
                     timeout=min(self.settings.heartbeat_seconds, remaining),
                 )
                 if not alive:
