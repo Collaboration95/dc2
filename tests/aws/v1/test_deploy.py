@@ -7,6 +7,7 @@ import os
 import shutil
 import stat
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -1222,6 +1223,7 @@ def test_the_format_plan_helper_groups_steps_and_filters_reads():
     assert "read" in deploy.format_plan(plan, "all")
 
 
+@pytest.mark.timeout(120)
 @pytest.mark.skipif(shutil.which("aws") is None, reason="needs the AWS CLI's offline skeletons")
 def test_every_request_field_exists_in_the_installed_cli_skeleton(deployed, tmp_path):
     """`--generate-cli-skeleton` is offline: it proves the JSON keys are real CLI parameters."""
@@ -1240,13 +1242,19 @@ def test_every_request_field_exists_in_the_installed_cli_skeleton(deployed, tmp_
     environment = {"PATH": os.environ["PATH"], "HOME": str(tmp_path),
                    "AWS_EC2_METADATA_DISABLED": "true"}
     unknown = {}
-    for (service, operation), keys in sorted(seen.items()):
+
+    def skeleton(item):
+        (service, operation), keys = item
         out = subprocess.run(
             ["aws", service, operation, "--generate-cli-skeleton", "input"], env=environment,
-            capture_output=True, text=True, check=True)
-        extra = keys - set(json.loads(out.stdout)) - {"Body"}
-        if extra:
-            unknown[f"{service} {operation}"] = sorted(extra)
+            capture_output=True, text=True, check=True, timeout=90)
+        return f"{service} {operation}", keys - set(json.loads(out.stdout)) - {"Body"}
+
+    # Each CLI start costs seconds on a CI runner; run them side by side to stay in budget.
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        for name, extra in pool.map(skeleton, sorted(seen.items())):
+            if extra:
+                unknown[name] = sorted(extra)
     assert unknown == {}
     assert {("ce", "get-cost-forecast"), ("ecs", "stop-task"),
             ("s3api", "abort-multipart-upload")} <= set(seen)
