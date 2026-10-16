@@ -34,7 +34,6 @@ def template():
             "Default": "false",
             "AllowedValues": ["true", "false"],
         },
-        "SessionOpen": {"Type": "String", "Default": "false", "AllowedValues": ["true", "false"]},
         "AuroraEngineVersion": {"Type": "String", "Default": "16.8"},
         "WorkerLifetimeSeconds": {
             "Type": "Number",
@@ -624,9 +623,10 @@ def template():
                 "Timeout": 10 if name == "MediaAuthorizer" else 60,
                 "MemorySize": 2048 if name.endswith("Api") else 512,
                 "Architectures": ["x86_64"],
-                "ReservedConcurrentExecutions": {
-                    "Fn::If": ["Open", 2 if name.endswith("Api") else 1, 0]
-                },
+                # Closed-safe default. The session API (scripts.aws.v1.session) is the only
+                # runtime authority that lifts it; the account limit may forbid positive
+                # reservations, so opening deletes the reservation rather than raising it.
+                "ReservedConcurrentExecutions": 0,
                 "Environment": {"Variables": env},
                 "VpcConfig": {
                     "SubnetIds": [ref("PrivateASubnet"), ref("PrivateBSubnet")],
@@ -667,7 +667,9 @@ def template():
                 "BatchSize": 10,
                 "MaximumBatchingWindowInSeconds": 1,
                 "FunctionResponseTypes": ["ReportBatchItemFailures"],
-                "Enabled": {"Fn::If": ["Open", True, False]},
+                # Without reservations this is the consumer bound; 2 is the SQS minimum.
+                "ScalingConfig": {"MaximumConcurrency": 2},
+                "Enabled": False,
             },
             app=True,
         )
@@ -684,7 +686,8 @@ def template():
             "ApiId": ref("HttpApi"),
             "StageName": "$default",
             "AutoDeploy": True,
-            "DefaultRouteSettings": {"ThrottlingBurstLimit": 10, "ThrottlingRateLimit": 5},
+            # Closed by default; the session API applies the open limits at runtime.
+            "DefaultRouteSettings": {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0},
         },
         app=True,
     )
@@ -900,7 +903,7 @@ def template():
         )
     for name in ("MediaRepair", "ProcessingRepair", "ProcessingEcsEvents", "ProcessingS3Events"):
         props = {
-            "State": {"Fn::If": ["Open", "ENABLED", "DISABLED"]},
+            "State": "DISABLED",
             "Targets": [
                 {
                     "Arn": ref(f"{name}Alias"),
@@ -1174,12 +1177,6 @@ def template():
         "Parameters": parameters,
         "Conditions": {
             "Applications": {"Fn::Equals": [ref("DeployApplications"), "true"]},
-            "Open": {
-                "Fn::And": [
-                    {"Fn::Equals": [ref("SessionOpen"), "true"]},
-                    {"Fn::Equals": [ref("DeployApplications"), "true"]},
-                ]
-            },
         },
         "Rules": {
             "ExplicitApplicationImages": {
@@ -1217,6 +1214,7 @@ def template():
             "Condition": "Applications",
             "Value": ref(f"{name}Rule"),
         }
+    result["Outputs"]["HttpApiId"] = {"Condition": "Applications", "Value": ref("HttpApi")}
     result["Outputs"]["HttpApiUrl"] = {
         "Condition": "Applications",
         "Value": attr("HttpApi", "ApiEndpoint"),

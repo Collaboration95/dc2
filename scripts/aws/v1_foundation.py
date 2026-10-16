@@ -38,8 +38,6 @@ def validate_foundation(template: dict[str, Any], parameters: list[dict[str, str
         raise ValueError("foundation requires explicit DeployApplications=false")
     if NAMESPACE not in values.values():
         raise ValueError("foundation parameters must bind the exact project namespace")
-    if values.get("SessionOpen", "false").lower() != "false":
-        raise ValueError("foundation requires SessionOpen=false")
 
     def evaluate(value: Any) -> Any:
         if not isinstance(value, dict):
