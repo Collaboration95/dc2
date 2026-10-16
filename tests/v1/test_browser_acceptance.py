@@ -1,7 +1,8 @@
 """The real frontend in headless Chromium against the local V1 Gateway bridge.
 
 Real: the shipped page and scripts, browser cookies and CORS enforcement, Media and
-Processing handlers, PostgreSQL, the direct S3 POST path, FFmpeg and hls.js. Emulated:
+Processing handlers, PostgreSQL, the direct S3 POST path, FFmpeg, hls.js and Chromium's
+native HLS, with the bucket CORS rules the V1 template ships. Emulated:
 API Gateway (loopback bridge), S3/SQS (Moto) and the queue-to-Lambda/Fargate triggers (a
 thread). Opt in with V1_BROWSER=1 after installing Chromium; once requested, a missing
 browser is a failure, not a skip.
@@ -25,7 +26,14 @@ HTMLMediaElement.prototype.canPlayType = function (type) {
 """
 
 
-def test_browser_signs_in_uploads_directly_waits_for_encode_plays_and_deletes(tmp_path):
+@pytest.mark.parametrize("playback", ["hlsjs", "native"])
+def test_browser_signs_in_uploads_directly_waits_for_encode_plays_and_deletes(tmp_path, playback):
+    """`native` is the path Safari and iOS always take and recent Chromium now takes too.
+
+    Its segments come from the facade's 307 to another origin, which is what failed with
+    MEDIA_ERR_SRC_NOT_SUPPORTED until the player asked for CORS. `hlsjs` hides native HLS
+    so the MSE path every other browser takes stays covered.
+    """
     if not os.environ.get("V1_RUNTIME_CONFIG"):
         pytest.skip("Explicit Lead C runtime attachment required")
     if os.environ.get("V1_BROWSER") != "1":
@@ -48,13 +56,19 @@ def test_browser_signs_in_uploads_directly_waits_for_encode_plays_and_deletes(tm
                 page.route(
                     lambda url: urlsplit(url).hostname != "127.0.0.1", lambda route: route.abort()
                 )
-                # Recent Chromium plays HLS natively, which is not the path the other browsers
-                # take. Hide it so the page uses hls.js and MSE, as every non-Safari browser does.
-                page.add_init_script(HIDE_NATIVE_HLS)
-                page.on(
-                    "response",
-                    lambda r: seen.append((r.request.method, urlsplit(r.url).path, r.status)),
-                )
+                if playback == "hlsjs":
+                    # Chromium plays HLS natively, which is not the path hls.js browsers take.
+                    page.add_init_script(HIDE_NATIVE_HLS)
+                segment_requests = []
+
+                def record(response):
+                    seen.append(
+                        (response.request.method, urlsplit(response.url).path, response.status)
+                    )
+                    if response.url.split("?")[0].endswith(".ts"):
+                        segment_requests.append(response.request)
+
+                page.on("response", record)
                 page.goto(runtime["url"], wait_until="domcontentloaded")
                 assert page.evaluate("window.isSecureContext")
 
@@ -81,8 +95,18 @@ def test_browser_signs_in_uploads_directly_waits_for_encode_plays_and_deletes(tm
                 )
                 assert job["status"] == "done" and job["output_url"] and job["hls_url"]
 
-                # blob: means hls.js attached through MSE rather than a plain URL.
-                assert video.evaluate("v => v.currentSrc.startsWith('blob:')")
+                if playback == "native":
+                    assert video.evaluate(
+                        "v => !!v.canPlayType('application/vnd.apple.mpegurl')"
+                    ), "This Chromium has no native HLS, so the native variant proves nothing"
+                    # The element itself holds the playlist URL; there is no MSE blob.
+                    assert video.evaluate("v => v.currentSrc") == page.evaluate(
+                        "u => new URL(u, location.href).href", job["hls_url"]
+                    )
+                    assert video.evaluate("v => v.crossOrigin") == "anonymous"
+                else:
+                    # blob: means hls.js attached through MSE rather than a plain URL.
+                    assert video.evaluate("v => v.currentSrc.startsWith('blob:')")
                 video.evaluate("v => { v.muted = true; return v.play().catch(() => null); }")
                 wait_for(
                     page,
@@ -100,7 +124,7 @@ def test_browser_signs_in_uploads_directly_waits_for_encode_plays_and_deletes(tm
                 playable = video.evaluate(
                     "v => v.canPlayType('video/mp4; codecs=\"avc1.42E01E, mp4a.40.2\"')"
                 )
-                if playable:
+                if playable or playback == "native":
                     state = (
                         "v => ({t: v.currentTime, e: v.error && v.error.code, r: v.readyState,"
                         " ended: v.ended, paused: v.paused, src: v.currentSrc.slice(0, 12)})"
@@ -110,6 +134,19 @@ def test_browser_signs_in_uploads_directly_waits_for_encode_plays_and_deletes(tm
                         lambda: video.evaluate("v => v.currentTime > 0 && !v.error"),
                         lambda: f"Clock stuck: {video.evaluate(state)}; recent {seen[-12:]}",
                     )
+                if playback == "native":
+                    # The player drops to the MP4 if native HLS errors; that must not pass here.
+                    assert video.evaluate("v => v.currentSrc") == page.evaluate(
+                        "u => new URL(u, location.href).href", job["hls_url"]
+                    )
+                    # The facade 307s each segment to the object store, which must have been
+                    # asked in CORS mode, from this page's origin and without the session.
+                    facade = [p for m, p, s in seen if p.endswith(".ts") and s == 307]
+                    stored = [r for r in segment_requests if "/api/" not in r.url]
+                    assert facade and stored, f"No redirected segment read: {seen[-12:]}"
+                    headers = stored[0].all_headers()
+                    assert headers.get("origin") == runtime["url"], headers
+                    assert "cookie" not in headers, "The session cookie leaked to the object store"
 
                 page.on("dialog", lambda dialog: dialog.accept())
                 with page.expect_response(
