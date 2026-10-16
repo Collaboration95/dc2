@@ -17,6 +17,10 @@ MFA-capable operator session. Nothing below is cloud evidence: the local runtime
 PostgreSQL 16, FFmpeg and Docker but Moto for S3/SQS, an in-process API Gateway bridge and
 an in-memory release transport.
 
+The actual account, billing currency (USD), quotas, MFA state and the scoped cloud
+authorization are recorded in [`account-receipt-20261017.md`](account-receipt-20261017.md);
+it does not itself authorize or evidence any cloud run.
+
 ### Run it
 
 ```sh
