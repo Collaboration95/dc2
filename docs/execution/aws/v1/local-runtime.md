@@ -74,13 +74,18 @@ schema and bucket. Docker Desktop's VM disk can fill; PostgreSQL then fails with
   file is deleted, and attempt two succeeds from the stored object). With `V1_BROWSER=1`
   it also runs `tests/v1/test_browser_acceptance.py`: the shipped frontend in headless
   Chromium over local HTTPS registers, signs out and in, uploads straight to the object
-  store, waits for a real encode, plays the HLS ladder through hls.js, reads the MP4 by
-  range under CORS and deletes. Install the browser first (`make browser-install`
+  store, waits for a real encode, plays the HLS ladder twice (hls.js with native HLS hidden, then the browser's
+  own native HLS), reads the MP4 by range under CORS and deletes. The buckets get the CORS
+  rules from `deploy/aws/v1/template.json`, not a permissive stand-in. Install the browser first (`make browser-install`
   or `playwright install chromium`). Without the flag the browser leg is recorded
   `NOT_RUN` and `complete_v1_acceptance` stays `NOT_RUN`; with the flag a missing browser
-  fails. Chromium's native HLS path is hidden in the test because it rejected the
-  bridge's cross-origin segment redirects (not root-caused); hls.js is the path every
-  non-Safari browser takes.
+  fails.
+  Native HLS: the facade 307-redirects each segment to a presigned URL on the object
+  store, a different origin. Chromium demuxes native HLS in-process and rejects such a
+  segment unless it passed CORS, failing with `MEDIA_ERR_SRC_NOT_SUPPORTED` (reproduced
+  with a plain two-origin server, so it is not a bridge artefact). The player therefore
+  sets `crossorigin="anonymous"` on the native path and the output bucket allows the site
+  origin. Safari/iOS were not available here; that path is Chromium evidence only.
 - `FLOW=c` runs the session contracts and `tests/v1/test_release_acceptance.py`: for each
   owner the schema is really stepped back one Alembic revision, a fake ECS task runs the
   owner's real migrator, promotion is checked for row preservation, peer isolation and

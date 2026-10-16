@@ -8,6 +8,7 @@ source mappings and of the one Fargate task per queued message. None of that is 
 import base64
 import contextlib
 import hashlib
+import json
 import mimetypes
 import os
 import subprocess
@@ -45,29 +46,46 @@ class FrontendGateway(Gateway):
         }
 
 
-def allow_origin(runtime, origin):
-    """Let the page's exact origin use both buckets, as the real distribution would.
+def shipped_cors(bucket, origin):
+    """The CORS rules the V1 template gives `bucket` ("Source" or "Output"), for `origin`.
 
-    Moto answers CORS only for configured buckets; the output bucket also needs it because
-    the HLS facade redirects segment reads to a cross-origin object URL.
+    Reading the shipped template keeps the browser test honest: a hand-written permissive
+    rule here hid that the output bucket must answer CORS-mode HLS segment reads.
+    """
+    template = json.loads((ROOT / "deploy/aws/v1/template.json").read_text())
+    rules = template["Resources"][f"{bucket}Bucket"]["Properties"]["CorsConfiguration"]
+    placeholder = {"Ref": "SourceCorsOrigin"}
+    # CloudFormation and the S3 API spell two of the keys differently.
+    rename = {"ExposedHeaders": "ExposeHeaders", "MaxAge": "MaxAgeSeconds"}
+    return {
+        "CORSRules": [
+            {
+                rename.get(key, key): (
+                    [origin if item == placeholder else item for item in value]
+                    if key == "AllowedOrigins"
+                    else value
+                )
+                for key, value in rule.items()
+            }
+            for rule in rules["CorsRules"]
+        ]
+    }
+
+
+def allow_origin(runtime, origin):
+    """Give the page's exact origin the CORS the shipped buckets give the site.
+
+    Moto answers CORS only for configured buckets. The output bucket matters twice: hls.js
+    and the MP4 range read use CORS, and native HLS redirects its segment reads there too.
     """
     from scripts.dev.v1_verify import sdk
 
     s3 = sdk(runtime["data"], "s3")
     buckets = runtime["data"]["resources"]["buckets"]
-    rule = {
-        "AllowedOrigins": [origin],
-        "AllowedHeaders": ["*"],
-        "ExposeHeaders": ["ETag", "Content-Range", "Accept-Ranges", "Content-Length"],
-    }
-    s3.put_bucket_cors(
-        Bucket=buckets["source"],
-        CORSConfiguration={"CORSRules": [{**rule, "AllowedMethods": ["POST", "GET", "HEAD"]}]},
-    )
-    s3.put_bucket_cors(
-        Bucket=buckets["output"],
-        CORSConfiguration={"CORSRules": [{**rule, "AllowedMethods": ["GET", "HEAD"]}]},
-    )
+    for bucket in ("source", "output"):
+        s3.put_bucket_cors(
+            Bucket=buckets[bucket], CORSConfiguration=shipped_cors(bucket.title(), origin)
+        )
 
 
 class WorkPump(threading.Thread):

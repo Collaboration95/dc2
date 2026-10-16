@@ -362,7 +362,11 @@ def template():
                     {
                         "AllowedOrigins": [ref("SourceCorsOrigin")],
                         "AllowedMethods": ["GET", "HEAD"],
-                        "AllowedHeaders": ["Range"],
+                        # Native HLS reads segments in CORS mode (the player sets
+                        # crossorigin) after the API's 307. Range is the browser's;
+                        # AVFoundation also tags its requests with X-Playback-Session-Id,
+                        # which would otherwise force a preflight that S3 rejects.
+                        "AllowedHeaders": ["Range", "X-Playback-Session-Id"],
                         "ExposedHeaders": ["Accept-Ranges", "Content-Length", "Content-Range"],
                         "MaxAge": 300,
                     }

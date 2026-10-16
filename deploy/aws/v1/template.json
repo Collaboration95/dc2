@@ -1130,7 +1130,8 @@
                 "HEAD"
               ],
               "AllowedHeaders": [
-                "Range"
+                "Range",
+                "X-Playback-Session-Id"
               ],
               "ExposedHeaders": [
                 "Accept-Ranges",

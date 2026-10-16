@@ -54,7 +54,7 @@ const LADDER = {
 let fetchMock;
 
 /** Load the real page and the real app, signed in. */
-async function loadPage({ role = "user" } = {}) {
+async function loadPage({ role = "user", legacy = true } = {}) {
   document.body.innerHTML = BODY;
   vi.resetModules();
 
@@ -73,9 +73,11 @@ async function loadPage({ role = "user" } = {}) {
   fetchMock.mockResolvedValueOnce(
     jsonResponse({ id: "u-1", email: "maya@example.test", role }),
   );
-  globalThis.FLICKPOND_LEGACY_API = true; // Frozen pre-Gateway regression.
+  globalThis.FLICKPOND_LEGACY_API = legacy; // Default: the frozen pre-Gateway regression.
   await import("./app.js");
-  await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/auth/me"));
+  await vi.waitFor(() =>
+    expect(fetchMock).toHaveBeenCalledWith(legacy ? "/api/auth/me" : "/api/media/auth/me"),
+  );
   await vi.advanceTimersByTimeAsync(0);
   fetchMock.mockClear();
 
@@ -345,6 +347,44 @@ describe("the adaptive ladder", () => {
     // No level list is forced on it: with the browser doing the adapting, its
     // own controls carry the quality menu.
     expect(video.plyr.config.quality.forced).toBe(false);
+  });
+
+  it("asks for CORS on a native ladder because its segments redirect cross-origin", async () => {
+    const el = await loadPage({ legacy: false });
+    vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockReturnValue("probably");
+    await openLibrary(el, [LADDER]);
+    const card = cardFor(el, "vertical.mp4");
+
+    play(card);
+
+    // Without this Chromium rejects the redirected segments as SRC_NOT_SUPPORTED.
+    expect(videoIn(card).crossOrigin).toBe("anonymous");
+  });
+
+  it("leaves the frozen legacy stack's native ladder without a CORS request", async () => {
+    const el = await loadPage();
+    vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockReturnValue("probably");
+    await openLibrary(el, [LADDER]);
+    const card = cardFor(el, "vertical.mp4");
+
+    play(card);
+
+    expect(videoIn(card).hasAttribute("crossorigin")).toBe(false);
+  });
+
+  it("drops back to the MP4 when the native ladder fails to load", async () => {
+    const el = await loadPage({ legacy: false });
+    vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockReturnValue("probably");
+    await openLibrary(el, [LADDER]);
+    const card = cardFor(el, "vertical.mp4");
+    play(card);
+    expect(videoIn(card).getAttribute("src")).toBe(LADDER.hls_url);
+
+    videoIn(card).dispatchEvent(new Event("error"));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(videoIn(card).getAttribute("src")).toBe(LADDER.output_url);
+    expect(videoIn(card).hasAttribute("crossorigin")).toBe(false);
   });
 
   it("falls back to the MP4 when nothing on the page can play the ladder", async () => {

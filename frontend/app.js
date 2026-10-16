@@ -834,7 +834,28 @@ function attachHls(state, source) {
   const { video } = state;
 
   if (video.canPlayType(HLS_MIME)) {
+    // Segments are 307-redirected from the API to presigned object-store URLs on
+    // another origin. Chromium demuxes native HLS in-process, so it refuses a
+    // cross-origin segment it was not granted by CORS (MEDIA_ERR_SRC_NOT_SUPPORTED);
+    // `anonymous` makes the media requests CORS-mode, which the output bucket
+    // allows for this origin. Same-origin requests, the playlists, still carry the
+    // session cookie; the presigned URL needs no credentials. The frozen legacy
+    // stack has no bucket CORS, so it keeps the old opaque behaviour.
+    if (!LEGACY_API) video.crossOrigin = "anonymous";
     video.src = source.hls;
+    // The ladder is best-effort and a native failure is otherwise a dead player, so
+    // drop to the MP4 exactly as a fatal hls.js error does.
+    video.addEventListener(
+      "error",
+      () => {
+        if (!source.fallback || players.get(state.host) !== state) return;
+        setTimeout(() => {
+          if (players.get(state.host) !== state) return;
+          mountPlayer(state.host, { output_url: source.fallback });
+        }, 0);
+      },
+      { once: true },
+    );
     // No level list to pass: Safari's own controls carry the quality menu,
     // and it switches levels in hardware where hls.js would do it in JS.
     startPlyr(state, null);

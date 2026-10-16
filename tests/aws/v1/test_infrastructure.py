@@ -183,6 +183,17 @@ def test_gateway_auth_routes_cookie_and_https_origin():
     assert api_behavior["OriginRequestPolicyId"] == "b689b0a8-53d0-40ab-baf2-68738e2966ac"
 
 
+def test_output_bucket_cors_serves_cors_mode_hls_segments_to_the_site_origin():
+    resources = template()["Resources"]
+    rule = resources["OutputBucket"]["Properties"]["CorsConfiguration"]["CorsRules"][0]
+    # Native HLS follows the API's 307 to this bucket in CORS mode; any other origin or
+    # method, or a missing Range allowance, turns the redirect into MEDIA_ERR_SRC_NOT_SUPPORTED.
+    assert rule["AllowedOrigins"] == [{"Ref": "SourceCorsOrigin"}]
+    assert rule["AllowedMethods"] == ["GET", "HEAD"]
+    assert {"Range", "X-Playback-Session-Id"} <= set(rule["AllowedHeaders"])
+    assert {"Content-Range", "Accept-Ranges", "Content-Length"} <= set(rule["ExposedHeaders"])
+
+
 def test_closed_defaults_finite_worker_and_partial_batches():
     built = template()
     resources = built["Resources"]
