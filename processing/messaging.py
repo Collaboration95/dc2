@@ -4,7 +4,8 @@ Legacy HTTP/RQ adapters keep their own entrypoints. V1 uses these exports, with
 native immutable S3 descriptors stored on the owned Job before any worker GET.
 """
 
-from uuid import UUID, uuid4
+from datetime import timedelta
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 from pydantic import TypeAdapter
 from sqlalchemy import select
@@ -13,10 +14,42 @@ from sqlalchemy.dialects.postgresql import insert
 from delivery.envelope import document, fingerprint
 from delivery.sql import accept, publish_due, stage
 from processing import lifecycle
-from processing.errors import ProcessingError
+from processing.errors import ProcessingError, TaskBindingError
 from processing.messaging_models import AttemptTask, JobMessaging, ProcessingInbox, ProcessingOutbox
 from processing.models import Attempt, Job, RetryRequest, SubmissionGuard
 from processing.schemas import EditOperation
+
+# Media writes accepted sources under one of these owner-scoped prefixes. A queue
+# message naming any other key is rejected before it can reach a native S3 GET.
+SOURCE_PREFIXES = ("sources", "staging")
+# First re-send waits one repair period (inside the 120s lost-work gate), then
+# doubles so an idle queued attempt does not flood the queue while awaiting an
+# explicit operator batch.
+REPAIR_BASE_SECONDS = 60
+REPAIR_CAP_SECONDS = 900
+TERMINAL_ATTEMPTS = {"succeeded", "failed", "abandoned", "cancelled"}
+
+
+def work_message_id(attempt_id, version):
+    """Stable per (attempt, state version): a repair re-sends rather than re-stages."""
+    return uuid5(NAMESPACE_URL, f"processing/work/{attempt_id}/{version}")
+
+
+def repair_delay(count):
+    return min(REPAIR_CAP_SECONDS, REPAIR_BASE_SECONDS * 2 ** min(count, 5))
+
+
+def assert_owned_source(body):
+    source = body.get("source")
+    if source is None:
+        return
+    key = source["key"]
+    if (
+        "\\" in key
+        or ".." in key.split("/")
+        or not any(key.startswith(f"{prefix}/{body['owner_id']}/") for prefix in SOURCE_PREFIXES)
+    ):
+        raise ValueError("Source is outside the owner's prefix")
 
 
 def snapshot(job, attempt, version):
@@ -40,7 +73,7 @@ def snapshot(job, attempt, version):
 def envelope(job, attempt, version, kind):
     return {
         "schema_version": 1,
-        "message_id": str(uuid4()),
+        "message_id": str(work_message_id(attempt.id, version) if kind == "work" else uuid4()),
         "kind": kind,
         "owner_id": str(job.owner_id),
         "asset_id": str(job.asset_id),
@@ -81,7 +114,11 @@ async def emit_state(session, job, attempt):
             envelope(job, attempt, saved.state_version, "work"),
             "processing-work",
         )
-        attempt.next_dispatch_at = await lifecycle.db_now(session)
+        # The send itself is the first delivery; repair only needs to look again
+        # after one period, not on the very next tick.
+        attempt.next_dispatch_at = await lifecycle.db_now(session) + timedelta(
+            seconds=REPAIR_BASE_SECONDS
+        )
     return saved.state_version
 
 
@@ -190,6 +227,7 @@ async def handle_command(factory, message):
     body = document(message)
     if body["kind"] not in {"submit", "retry", "cancel"}:
         raise ValueError("Processing control accepts commands only")
+    assert_owned_source(body)
     owner_id, asset_id = UUID(body["owner_id"]), UUID(body["asset_id"])
     async with factory() as session, session.begin():
         if not await accept(session, ProcessingInbox, body):
@@ -285,8 +323,10 @@ async def claim(factory, job_id, attempt_id, settings, *, envelope=None, task_na
         or len(task_name) > 256
         or any(ord(char) < 32 for char in task_name)
     ):
-        raise ValueError("A finite worker task binding is required")
+        raise TaskBindingError("A finite worker task binding is required")
     body = document(envelope) if envelope is not None else None
+    if body is not None:
+        assert_owned_source(body)
 
     async def authorize(session):
         # Resolve immutable routing columns first, then match cancel/submit's
@@ -323,12 +363,37 @@ async def claim(factory, job_id, attempt_id, settings, *, envelope=None, task_na
         if inserted is None:
             binding = await session.get(AttemptTask, attempt.id)
             if binding is None or binding.task_name != task_name:
-                raise ValueError("Finite task or attempt already bound")
+                raise TaskBindingError("Finite task or attempt already bound")
         await emit_state(session, job, attempt)
 
     return await lifecycle.claim(
         factory, job_id, attempt_id, settings, on_change=changed, before_claim=authorize
     )
+
+
+async def work_disposition(factory, job_id, attempt_id):
+    """Return "stale" only when durable state proves this attempt can never be claimed.
+
+    A claim that returned None is not proof by itself (it also covers a missing
+    guard or transient mismatch). Unknown rows are left for the redrive policy.
+    """
+    async with factory() as session:
+        job = await session.get(Job, job_id)
+        attempt = await session.get(Attempt, attempt_id)
+        if job is None or attempt is None or attempt.job_id != job.id:
+            return "unknown"
+        guard = await session.get(SubmissionGuard, job.asset_id)
+        if (
+            job.deleted_at is not None
+            or (guard is not None and guard.deleted_at is not None)
+            or job.current_attempt_id != attempt_id
+            or attempt.state != "queued"
+        ):
+            # Cancelled, superseded, terminal, or already claimed. Recovery fails an
+            # abandoned claim and a retry publishes its own work, so this receipt
+            # carries no further obligation.
+            return "stale"
+        return "pending"
 
 
 async def finish(factory, work, *, outputs=None, error=None):

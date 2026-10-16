@@ -13,18 +13,19 @@ from delivery.sqs import SQS, consume_batch
 
 
 def message(kind="submit"):
+    owner, asset = str(uuid4()), str(uuid4())
     return {
         "schema_version": 1,
         "message_id": str(uuid4()),
         "kind": kind,
-        "owner_id": str(uuid4()),
-        "asset_id": str(uuid4()),
+        "owner_id": owner,
+        "asset_id": asset,
         "job_id": str(uuid4()) if kind in {"work", "result"} else None,
         "attempt_id": str(uuid4()) if kind in {"work", "result"} else None,
         "state_version": 0,
         "source": {
             "bucket": "sources",
-            "key": "owned/source",
+            "key": f"sources/{owner}/{asset}/source",
             "version_id": "immutable-v1",
             "sha256": "a" * 64,
             "size_bytes": 123,
