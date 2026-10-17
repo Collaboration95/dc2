@@ -11,12 +11,13 @@ import httpx
 import pytest
 import test_processing_lifecycle as lane
 
+from legacy.media_peer.lifecycle import projection
+from legacy.processing_rq import tasks
 from media.config import Settings as MediaSettings
 from media.models import Asset
-from media.services.lifecycle import projection
 from processing import service
 from processing.models import Attempt, Job
-from processing.worker import tasks
+from processing.worker import tasks as pipeline_tasks
 from scripts.dev.contracts import validate_request, validate_response
 
 asset_ids = lane.asset_ids
@@ -197,7 +198,7 @@ async def test_real_worker_source_invalid_edit_has_failed_attempt_and_public_pro
     # Observe the real validator's source-specific error. A generic download or
     # ffprobe failure must not satisfy this geometry regression.
     validator_name = f"validate_{operation['operation']}"
-    validator = getattr(tasks, validator_name)
+    validator = getattr(pipeline_tasks, validator_name)
     rejected = []
 
     def observe_validation(params, probe):
@@ -209,7 +210,7 @@ async def test_real_worker_source_invalid_edit_has_failed_attempt_and_public_pro
             rejected.append(str(exc))
             raise
 
-    monkeypatch.setattr(tasks, validator_name, observe_validation)
+    monkeypatch.setattr(pipeline_tasks, validator_name, observe_validation)
     store, requests = Recorder(tmp_path / "output"), []
     async with httpx.AsyncClient(transport=peer(submission, fixture_video, requests)) as client:
         assert await tasks.execute(

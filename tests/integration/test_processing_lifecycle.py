@@ -20,8 +20,8 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
+from legacy.processing_rq.config import LegacySettings as Settings
 from processing import lifecycle, service
-from processing.config import Settings
 from processing.models import Attempt, Job
 from processing.schemas import SubmitJob
 
@@ -95,8 +95,8 @@ async def postgres(asset_ids):
 
 @pytest_asyncio.fixture
 async def application(postgres):
+    from legacy.processing_rq.main import create_app
     from processing.config import get_settings
-    from processing.main import create_app
 
     get_settings.cache_clear()
     app = create_app()

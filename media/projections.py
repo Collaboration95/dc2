@@ -14,7 +14,7 @@ from media.errors import MediaError
 from media.models import CleanupIntent, now
 from media.projection_models import ProcessingProjection
 from media.repositories.assets import fingerprint, get_asset
-from media.schemas.peer import Output
+from media.schemas.outputs import Output
 from media.schemas.public import PublicJob
 
 
@@ -67,13 +67,13 @@ def validate_transition(current, event):
 
 
 async def apply_result(session, envelope):
+    from contracts.v1 import Envelope, accepts_version
+
     event = _dict(envelope)
-    if event.get("schema_version") != 1 or event.get("kind") != "result":
+    if not accepts_version(event.get("schema_version")) or event.get("kind") != "result":
         raise MediaError(422, "invalid result envelope")
     # Canonical validation is applied here as well as by delivery; callback use
-    # cannot bypass schema validation.
-    from contracts.v1 import Envelope
-
+    # cannot bypass schema validation. It also drops fields a newer producer added.
     event = Envelope.from_dict(event).to_dict()
     asset = await get_asset(
         session,

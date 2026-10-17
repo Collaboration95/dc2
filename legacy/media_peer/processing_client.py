@@ -5,9 +5,9 @@ import httpx
 from fastapi import Depends, Request
 from pydantic import TypeAdapter, ValidationError
 
+from legacy.media_peer.errors import PeerError
+from legacy.media_peer.schemas import ProcessingJob
 from media.config import Settings, get_settings
-from media.errors import PeerError
-from media.schemas.peer import ProcessingJob
 
 
 class ProcessingClient:

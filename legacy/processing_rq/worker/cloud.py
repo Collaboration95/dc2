@@ -60,7 +60,7 @@ def run(end_epoch, *, name, burst):
     command = [
         sys.executable,
         "-m",
-        "processing.worker",
+        "legacy.processing_rq.worker",
         "--name",
         name,
         "--cloud-warm-fd",

@@ -15,6 +15,7 @@ LAUNCHER = "ProcessingLauncher"
 # the only trace in the default stack is an environment value that resolves to nothing.
 SHORT_ENCODER = "ProcessingShortEncoder"
 SHORT_QUEUE = "ProcessingShortWork"
+OPTIONAL_FUNCTIONS = (LAUNCHER, SHORT_ENCODER)
 
 
 # Opt-in V2 experiment (#94). The database layout is chosen when the template is rendered, not by
@@ -850,16 +851,34 @@ def template(database=None):
         "AWS_USE_DUALSTACK_ENDPOINT": "true",
         "AWS_RETRY_MODE": "standard",
         "AWS_MAX_ATTEMPTS": "3",
-        "PROCESSING_COMMANDS_QUEUE_URL": ref("ProcessingCommandsQueue"),
-        "PROCESSING_WORK_QUEUE_URL": ref("ProcessingWorkQueue"),
-        "MEDIA_RESULTS_QUEUE_URL": ref("MediaResultsQueue"),
         "DC2_RUNTIME": "v1",
         "DB_SSL_CA_FILE": RDS_CA_BUNDLE,
+    }
+    # A function is given the URL of a queue only if its code calls that queue: the publishers
+    # send, the launcher reads the work queue's depth. A consumer reads from its event source
+    # mapping, and the API functions and the short encoder touch no queue at all. The IAM role
+    # and the queue policy already deny the rest; this keeps the environment (and with it what a
+    # misconfigured log line or a dumped environment could reveal) to the same narrow surface,
+    # so the template reads as the service graph: Media sends commands, Processing sends work
+    # and results, nobody sends to a queue it does not own a message kind for.
+    queue_env = {
+        "ProcessingCommands": ("PROCESSING_WORK_QUEUE_URL", "MEDIA_RESULTS_QUEUE_URL"),
+        "ProcessingRepair": ("PROCESSING_WORK_QUEUE_URL", "MEDIA_RESULTS_QUEUE_URL"),
+        "ProcessingEcsEvents": ("PROCESSING_WORK_QUEUE_URL", "MEDIA_RESULTS_QUEUE_URL"),
+        "ProcessingS3Events": ("PROCESSING_WORK_QUEUE_URL", "MEDIA_RESULTS_QUEUE_URL"),
+        "MediaRepair": ("PROCESSING_COMMANDS_QUEUE_URL",),
+        LAUNCHER: ("PROCESSING_WORK_QUEUE_URL",),
+    }
+    queue_of = {
+        "PROCESSING_COMMANDS_QUEUE_URL": "ProcessingCommands",
+        "PROCESSING_WORK_QUEUE_URL": "ProcessingWork",
+        "MEDIA_RESULTS_QUEUE_URL": "MediaResults",
     }
     for name in handlers:
         domain = "Media" if name.startswith("Media") else "Processing"
         prefix = domain.upper()
-        env = common_env | {
+        queues = {v: ref(f"{queue_of[v]}Queue") for v in queue_env.get(name, ())}
+        env = common_env | queues | {
             f"{prefix}_POSTGRES_DSN_PARAMETER_ARN": ref(f"{domain}RuntimeDsnParameterArn"),
             f"{prefix}_STORAGE_CREDENTIAL_MODE": "lambda",
             f"{prefix}_RUNTIME_MODE": "lambda",
@@ -1000,6 +1019,203 @@ def template(database=None):
             # 2 is the SQS minimum. Closed until a session opens, like every other mapping.
             "ScalingConfig": {"MaximumConcurrency": short_lane.ENCODER_MAX_CONCURRENCY},
             "Enabled": False,
+        },
+        app=True,
+    )
+    # Per-service observability (#200). No SNS topic or pager: the alarms are state the operator
+    # reads on the dashboard and in the console, and they are deleted with the stack.
+    # A queue's dead-letter queue belongs to the service that consumes the queue, because
+    # that service's code is what failed to process the message.
+    dead_letter_owner = {
+        "ProcessingCommands": "Processing",
+        "ProcessingWork": "Processing",
+        "MediaResults": "Media",
+        SHORT_QUEUE: "Processing",
+    }
+    for name, owner in dead_letter_owner.items():
+        add(
+            f"{name}DlqAlarm",
+            "CloudWatch::Alarm",
+            {
+                "AlarmName": sub(f"${{EnvironmentId}}-{name}-dlq-not-empty"),
+                "AlarmDescription": (
+                    f"{owner}: a message exhausted its receives and sits in the {name} "
+                    "dead-letter queue. Inspect it, then redrive or purge "
+                    "(docs/execution/aws/v1/dlq-runbook.md)."
+                ),
+                "Namespace": "AWS/SQS",
+                "MetricName": "ApproximateNumberOfMessagesVisible",
+                "Dimensions": [{"Name": "QueueName", "Value": attr(f"{name}Dlq", "QueueName")}],
+                "Statistic": "Maximum",
+                "Period": 300,
+                "EvaluationPeriods": 1,
+                "Threshold": 0,
+                "ComparisonOperator": "GreaterThanThreshold",
+                # An idle queue publishes no datapoints, which is the healthy state.
+                "TreatMissingData": "notBreaching",
+                "Tags": [*tags, {"Key": "Service", "Value": owner.lower()}],
+            },
+            # The three standard queues exist from the foundation phase; the short lane's only
+            # with LambdaShortEncodes.
+            app=name == SHORT_QUEUE,
+        )
+    for name in handlers:
+        owner = "Media" if name.startswith("Media") else "Processing"
+        add(
+            f"{name}ErrorsAlarm",
+            "CloudWatch::Alarm",
+            {
+                "AlarmName": sub(f"${{EnvironmentId}}-{name}-errors"),
+                "AlarmDescription": (
+                    f"{owner}: the {name} function returned an error (unhandled exception, "
+                    "timeout or out-of-memory). A message batch it was reading is retried "
+                    "and, after five receives, lands in its dead-letter queue."
+                ),
+                "Namespace": "AWS/Lambda",
+                "MetricName": "Errors",
+                # The bare function name aggregates every version and alias.
+                "Dimensions": [{"Name": "FunctionName", "Value": ref(name)}],
+                "Statistic": "Sum",
+                "Period": 300,
+                "EvaluationPeriods": 1,
+                "Threshold": 0,
+                "ComparisonOperator": "GreaterThanThreshold",
+                "TreatMissingData": "notBreaching",
+                "Tags": [*tags, {"Key": "Service", "Value": owner.lower()}],
+            },
+            app=True,
+        )
+    # One dashboard, a section per service. The optional V2 functions (launcher, short encoder)
+    # exist only under their own conditions, so the dashboard shows the V1 functions; their
+    # alarms still exist whenever they do.
+    sections = {
+        "Media": {
+            "title": "Media Management",
+            "functions": [n for n in handlers if n.startswith("Media")],
+            "queues": ["MediaResults"],
+            "encoders": None,
+        },
+        "Processing": {
+            "title": "Processing",
+            "functions": [
+                n for n in handlers if n.startswith("Processing") and n not in OPTIONAL_FUNCTIONS
+            ],
+            "queues": ["ProcessingCommands", "ProcessingWork"],
+            "encoders": "ProcessingWork",
+        },
+    }
+
+    def lambda_series(metric, functions):
+        return [
+            ["AWS/Lambda", metric, "FunctionName", f"${{{function}}}", {"label": function}]
+            for function in functions
+        ]
+
+    def sqs_series(metric, queues, suffix="Queue"):
+        return [
+            [
+                "AWS/SQS",
+                metric,
+                "QueueName",
+                f"${{{queue}{suffix}.QueueName}}",
+                {"label": f"{queue}{'' if suffix == 'Queue' else ' DLQ'}"},
+            ]
+            for queue in queues
+        ]
+
+    widgets, top = [], 0
+
+    def panel(title, metrics, *, stat, x, width, y, period=300):
+        widgets.append(
+            {
+                "type": "metric",
+                "x": x,
+                "y": y,
+                "width": width,
+                "height": 6,
+                "properties": {
+                    "title": title,
+                    "region": "${AWS::Region}",
+                    "view": "timeSeries",
+                    "stat": stat,
+                    "period": period,
+                    "metrics": metrics,
+                },
+            }
+        )
+
+    for section in sections.values():
+        widgets.append(
+            {
+                "type": "text",
+                "x": 0,
+                "y": top,
+                "width": 24,
+                "height": 1,
+                "properties": {"markdown": f"# {section['title']}"},
+            }
+        )
+        top += 1
+        functions = section["functions"]
+        for column, (title, metric, stat) in enumerate(
+            (
+                ("Invocations", "Invocations", "Sum"),
+                ("Errors", "Errors", "Sum"),
+                ("Duration p90 (ms)", "Duration", "p90"),
+            )
+        ):
+            panel(
+                f"{section['title']}: {title}",
+                lambda_series(metric, functions),
+                stat=stat,
+                x=column * 8,
+                width=8,
+                y=top,
+            )
+        top += 6
+        queues = section["queues"]
+        panels = [
+            ("Queue depth", sqs_series("ApproximateNumberOfMessagesVisible", queues), "Maximum"),
+            (
+                "Oldest message age (s)",
+                sqs_series("ApproximateAgeOfOldestMessage", queues),
+                "Maximum",
+            ),
+            (
+                "Dead-letter depth (alarm above 0)",
+                sqs_series("ApproximateNumberOfMessagesVisible", queues, "Dlq"),
+                "Maximum",
+            ),
+        ]
+        if section["encoders"]:
+            # Container Insights is off (its per-task metrics cost more than the encoders), so
+            # ECS publishes no running-task count for standalone tasks. Every running encoder
+            # holds exactly one work message in flight, so that is the closest direct metric.
+            panels.append(
+                (
+                    "Encodes in flight (running encoders)",
+                    sqs_series("ApproximateNumberOfMessagesNotVisible", [section["encoders"]]),
+                    "Maximum",
+                )
+            )
+        width = 24 // len(panels)
+        for column, (title, metrics, stat) in enumerate(panels):
+            panel(
+                f"{section['title']}: {title}",
+                metrics,
+                stat=stat,
+                x=column * width,
+                width=width,
+                y=top,
+            )
+        top += 6
+    add(
+        "ServicesDashboard",
+        "CloudWatch::Dashboard",
+        {
+            "DashboardName": sub("${EnvironmentId}-v1-services"),
+            # Fn::Sub resolves the function and queue names, so the body stays one JSON text.
+            "DashboardBody": sub(json.dumps({"widgets": widgets}, separators=(",", ":"))),
         },
         app=True,
     )
@@ -1600,6 +1816,10 @@ def template(database=None):
             "Condition": "Unattended" if name == LAUNCHER else "Applications",
             "Value": ref(f"{name}Rule"),
         }
+    result["Outputs"]["ServicesDashboardName"] = {
+        "Condition": "Applications",
+        "Value": sub("${EnvironmentId}-v1-services"),
+    }
     result["Outputs"]["HttpApiId"] = {"Condition": "Applications", "Value": ref("HttpApi")}
     result["Outputs"]["HttpApiUrl"] = {
         "Condition": "Applications",

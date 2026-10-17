@@ -572,13 +572,13 @@ def environment_template():
         "ProcessingMigration": (512, 1024),
     }
     commands = {
-        "Media": ["uvicorn", "media.main:legacy_app", "--host", "0.0.0.0", "--port", "8000"],
-        "Api": ["uvicorn", "processing.main:app", "--host", "0.0.0.0", "--port", "8000"],
-        "Recovery": ["python", "-m", "processing.recovery"],
+        "Media": ["uvicorn", "legacy.media_peer.app:app", "--host", "0.0.0.0", "--port", "8000"],
+        "Api": ["uvicorn", "legacy.processing_rq.main:app", "--host", "0.0.0.0", "--port", "8000"],
+        "Recovery": ["python", "-m", "legacy.processing_rq.recovery"],
         "Worker": [
             "python",
             "-m",
-            "processing.worker",
+            "legacy.processing_rq.worker",
             "--cloud-deadline",
             "0",
             "--name",
@@ -668,7 +668,7 @@ def environment_template():
                 "Name": "media-reconciler",
                 "Cpu": 64,
                 "Memory": 512,
-                "Command": ["python", "-m", "media.recovery"],
+                "Command": ["python", "-m", "legacy.media_peer.recovery"],
             }
             reconciler.pop("PortMappings")
             reconciler.pop("HealthCheck")

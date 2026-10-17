@@ -99,7 +99,7 @@ class RejectInherited(importlib.abc.MetaPathFinder):
         if fullname.split('.')[0] in {'app', 'rq', 'redis', 'minio'}:
             raise AssertionError('Inherited dependency: ' + fullname)
 sys.meta_path.insert(0, RejectInherited())
-from processing.main import app
+from legacy.processing_rq.main import app
 from processing.models import Job, Attempt, SubmissionGuard
 assert app.title == 'FlickPond Processing private API'
 """

@@ -21,9 +21,10 @@ COPY media_engine ./media_engine
 COPY contracts ./contracts
 COPY delivery ./delivery
 COPY runtime_support ./runtime_support
+COPY legacy ./legacy
 RUN python -m pip install --no-cache-dir --no-deps . \
     && useradd --system --create-home --uid 10001 flickpond
 USER flickpond
 
 EXPOSE 8000
-CMD ["uvicorn", "processing.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "legacy.processing_rq.main:app", "--host", "0.0.0.0", "--port", "8000"]

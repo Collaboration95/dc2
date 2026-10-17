@@ -10,12 +10,12 @@ import jwt
 import pytest
 from pydantic import ValidationError
 
+from legacy.media_peer.errors import PeerError
+from legacy.media_peer.processing_client import ProcessingClient
 from media.config import Settings
-from media.errors import PeerError
 from media.schemas.edit import EditRequest
 from media.schemas.public import Credentials
 from media.services.media_type import sniff_video_type
-from media.services.processing_client import ProcessingClient
 from media.services.security import (
     BCRYPT_ROUNDS,
     DUMMY_HASH,

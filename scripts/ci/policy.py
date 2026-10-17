@@ -91,7 +91,7 @@ SERVICE_RECIPE_FILES = {
 }
 COMMON_IMAGE_INPUTS = {"pyproject.toml", "uv.lock", ".dockerignore"}
 DAST_INPUTS = (
-    "media/", "processing/", "media_engine/", "runtime_support/", "delivery/",
+    "media/", "processing/", "legacy/", "media_engine/", "runtime_support/", "delivery/",
     "contracts/", "app/", "frontend/", "tests/contracts/", "compose/local/",
     "tests/media/test_contract_security.py", "tests/processing/test_contracts.py",
     "tests/publisher/test_https.py", "scripts/dev/runtime.py", "scripts/dev/tls.py",
@@ -103,13 +103,21 @@ LEGACY_INPUTS = {
     "app": ("app/", "migrations/", "Dockerfile", "alembic.ini"),
     "processing": (
         "processing/",
+        "legacy/",
         "media_engine/",
         "contracts/",
         "delivery/",
         "runtime_support/",
         "deploy/processing.Dockerfile",
     ),
-    "media": ("media/", "contracts/", "delivery/", "runtime_support/", "deploy/media.Dockerfile"),
+    "media": (
+        "media/",
+        "legacy/",
+        "contracts/",
+        "delivery/",
+        "runtime_support/",
+        "deploy/media.Dockerfile",
+    ),
 }
 DOC_SUFFIXES = {".md", ".txt", ".pdf", ".png", ".jpg", ".jpeg", ".svg", ".tldr"}
 PLANNING_INPUTS = {
@@ -188,7 +196,11 @@ def classify(paths, *, full=False, reason="routine dev PR", source_sha="", base_
             select("planning", "lint-and-unit")
         elif path.startswith(("media/", "tests/media/")):
             select("lint-and-unit", "media-integration", "v1_offline", "v1_live")
-            # Both main:legacy_app and the Lambda facade import this package.
+            # Both legacy.media_peer.app and the Lambda facade import this package.
+            select("browser-trust", "publisher-https")
+        elif path.startswith("legacy/"):
+            # The retired local stack: ships only in the legacy images, never in a V1 image.
+            select("lint-and-unit", "media-integration", "processing-intake")
             select("browser-trust", "publisher-https")
         elif path.startswith(("processing/", "tests/processing/")):
             select("lint-and-unit", "processing-intake", "v1_offline", "v1_live", "browser-trust")

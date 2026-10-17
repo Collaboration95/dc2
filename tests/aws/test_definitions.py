@@ -148,13 +148,13 @@ def test_three_services_exact_sizes_zero_idle_and_owner_migrations():
         assert all(c["StopTimeout"] <= 120 for c in task["ContainerDefinitions"])
     media = resources["MediaTask"]["Properties"]["ContainerDefinitions"]
     assert sum(c["Cpu"] for c in media) == 1024
-    assert media[1]["Command"] == ["python", "-m", "media.recovery"]
+    assert media[1]["Command"] == ["python", "-m", "legacy.media_peer.recovery"]
     assert "HealthCheck" not in media[1]
     worker = resources["WorkerTask"]["Properties"]["ContainerDefinitions"][0]
     assert worker["Command"] == [
         "python",
         "-m",
-        "processing.worker",
+        "legacy.processing_rq.worker",
         "--cloud-deadline",
         "0",
         "--name",

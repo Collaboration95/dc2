@@ -28,13 +28,14 @@ V1_ENTRYPOINTS = [
 FORBIDDEN = [
     "redis",
     "rq",
-    "processing.queue",
-    "processing.main",
-    "processing.worker.cloud",
-    "media.api.jobs",
-    "media.api.hls",
-    "media.api.source_access",
-    "media.recovery",
+    "legacy",
+    "legacy.processing_rq.queue",
+    "legacy.processing_rq.main",
+    "legacy.processing_rq.worker.cloud",
+    "legacy.media_peer.jobs",
+    "legacy.media_peer.hls",
+    "legacy.media_peer.source_access",
+    "legacy.media_peer.recovery",
 ]
 
 
@@ -133,7 +134,7 @@ def test_source_outside_the_owner_prefix_is_rejected(key):
 def test_v1_entrypoints_never_import_redis_rq_or_legacy_peer_wiring(module):
     code = (
         f"import sys; import {module}; "
-        f"bad = [m for m in {FORBIDDEN!r} if m in sys.modules]; "
+        f"bad = [m for m in sys.modules if m in {FORBIDDEN!r} or m.startswith('legacy.')]; "
         "assert not bad, bad"
     )
     result = subprocess.run(

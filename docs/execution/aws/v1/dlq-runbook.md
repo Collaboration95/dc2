@@ -24,6 +24,18 @@ manual loop (below). That proves our validate-and-return logic and the SQL inbox
 idempotence, not SQS move-task behaviour. Native redrive evidence stays a separate,
 pending real-AWS item (#45, #63-#67).
 
+## Alarms and the dashboard
+
+Each DLQ has a CloudWatch alarm, `<env>-<Queue>-dlq-not-empty`, that is in ALARM whenever
+`ApproximateNumberOfMessagesVisible` is above 0 for five minutes. It belongs to the service
+that consumes the queue (`MediaResults` to Media, the other queues to Processing) and is
+tagged `Service`. Each Lambda has an `<env>-<Function>-errors` alarm on its `Errors` sum. There
+is no SNS topic or pager: look at the `<env>-v1-services` dashboard (stack output
+`ServicesDashboardName`), which has a section per service with invocations, errors, duration
+p90, queue depth and oldest-message age, dead-letter depth and, for Processing, encodes in
+flight. The alarms and the dashboard are deleted with the stack, so teardown needs no extra
+step. About twelve alarms cost roughly $0.10 per alarm-month, pro-rated by the hour.
+
 ## What lands in a DLQ and what is lost
 
 A message reaches a DLQ after `maxReceiveCount` receives without a delete. SQL,

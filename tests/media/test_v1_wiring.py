@@ -5,16 +5,15 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-import pytest
 from fastapi.routing import APIRoute
 
 from contracts.v1 import Actor
+from legacy.media_peer.app import create_app
+from legacy.media_peer.processing_client import get_processing_client as get_peer
 from media.api import deps, v1_hls, v1_jobs
 from media.config import get_settings
 from media.database import get_session
 from media.lambda_handler import handler
-from media.main import create_app
-from media.services.processing_client import get_processing_client as get_peer
 from media.services.security import issue_token
 from media.services.storage import get_storage
 
@@ -64,16 +63,16 @@ def test_handler_has_only_v1_domain_routes_and_no_peer_dependencies():
 
 
 def test_default_media_app_is_v1_and_legacy_peer_app_is_explicit():
+    import legacy.media_peer.app as legacy_entry
     import media.main as entry
 
     default = {route.path for route in domain_routes(entry.app)}
     assert "/upload" not in default and not any("internal" in path for path in default)
     assert "/uploads/reservations" in default
-    legacy = {route.path for route in domain_routes(entry.legacy_app)}
+    legacy = {route.path for route in domain_routes(legacy_entry.app)}
     assert "/upload" in legacy and any("internal" in path for path in legacy)
-    assert entry.legacy_app is entry.legacy_app
-    with pytest.raises(AttributeError):
-        _ = entry.no_such_app
+    # The V1 module carries no way to build the peer-calling app.
+    assert not hasattr(entry, "legacy_app") and not hasattr(entry, "create_app")
 
 
 async def test_exported_handler_reads_owned_projection_without_peer(settings, user, monkeypatch):

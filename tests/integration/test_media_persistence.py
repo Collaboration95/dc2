@@ -22,11 +22,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
+from legacy.media_peer.app import create_app
+from legacy.media_peer.processing_client import ProcessingClient
+from legacy.media_peer.recovery import reconcile
 from media.config import Settings, get_settings
-from media.main import create_app
 from media.models import Asset, CleanupIntent, RequestKey, RetryIntent, StagedObject, User, now
-from media.recovery import reconcile
-from media.services.processing_client import ProcessingClient
 from media.services.security import issue_token
 from media.services.storage import get_storage
 
@@ -802,7 +802,7 @@ async def test_inflight_stage_reservation_skips_orphan_cleanup_until_adoption(
         return response.json()["job_id"]
 
     monkeypatch.setattr(intake, "stage", old_stage)
-    from media.services import lifecycle
+    from legacy.media_peer import lifecycle
 
     monkeypatch.setattr(lifecycle, "stage", old_stage)
     lane.objects.put_source = slow_put
@@ -1157,7 +1157,8 @@ async def test_uncertain_source_write_retains_cleanup_after_late_put(lane, opera
 async def test_completed_stage_cleanup_before_adoption_cannot_accept_missing_source(
     lane, monkeypatch, operation
 ):
-    from media.services import intake, lifecycle
+    from legacy.media_peer import lifecycle
+    from media.services import intake
 
     if operation == "edit":
         parent_id = await upload(lane)

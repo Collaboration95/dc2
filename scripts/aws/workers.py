@@ -186,7 +186,7 @@ def _start_locked(
         command = [
             "python",
             "-m",
-            "processing.worker",
+            "legacy.processing_rq.worker",
             "--cloud-deadline",
             str(task_end),
             "--name",

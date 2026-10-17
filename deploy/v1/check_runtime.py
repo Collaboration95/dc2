@@ -43,6 +43,33 @@ ENTRYPOINTS = {
 }
 
 
+# The retired peer-HTTP and Redis/RQ stack. V1 services talk only through SQS and the
+# outbox/inbox, so none of this may ship in any V1 image; the top-level package holds all of it.
+LEGACY_MODULES = (
+    "legacy",
+    "legacy.media_peer.processing_client",
+    "legacy.processing_rq.queue",
+    "media.services.processing_client",
+    "media.recovery",
+    "media.services.lifecycle",
+    "media.api.jobs",
+    "media.api.hls",
+    "media.api.source_access",
+    "media.schemas.peer",
+    "processing.main",
+    "processing.queue",
+    "processing.worker.cloud",
+    "processing.worker.__main__",
+)
+
+
+def importable(name):
+    try:
+        return importlib.util.find_spec(name) is not None
+    except ModuleNotFoundError:  # The parent package is absent from this image.
+        return False
+
+
 def no_network(*args, **kwargs):
     raise RuntimeError("Artifact import proof must not perform network I/O")
 
@@ -86,6 +113,11 @@ def check(kind, owner):
     )
     peer = "processing" if owner == "media" else "media"
     assert importlib.util.find_spec(peer) is None, "Opposite domain package present"
+    present = [name for name in LEGACY_MODULES if importable(name)]
+    assert not present, f"Peer-HTTP or Redis/RQ modules importable in a V1 image: {present}"
+    assert not Path("/app/legacy").exists(), "Legacy package copied into a V1 image"
+    loaded = [n for n in sys.modules if n in LEGACY_MODULES or n.startswith("legacy.")]
+    assert not loaded, f"Executable graph imported legacy modules: {loaded}"
     binaries = {}
     if kind == "finite-worker":
         for binary in ("ffmpeg", "ffprobe"):
@@ -98,6 +130,7 @@ def check(kind, owner):
         "owner": owner,
         "platform": {"system": platform.system(), "machine": platform.machine()},
         "runtime_contents": {"redis": False, "rq": False, "ffmpeg": kind == "finite-worker"},
+        "legacy_peer_modules": "absent",
         "imports": imports,
         "network_during_import": "denied",
         "rds_bundle": "parsed",

@@ -6,8 +6,8 @@ import pytest
 from minio.credentials import Credentials
 from urllib3 import HTTPResponse
 
+from legacy.processing_rq.config import LegacySettings as Settings
 from processing import storage_credentials
-from processing.config import Settings
 from processing.recovery import CleanupStore
 from processing.worker.storage import OutputStore
 

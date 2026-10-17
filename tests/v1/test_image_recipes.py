@@ -232,3 +232,47 @@ def test_retained_local_image_evidence_never_claims_cloud_or_registry_results(pa
             image["runtime_contents"]["redis"] is False and image["runtime_contents"]["rq"] is False
         )
         assert image["runtime_contents"]["ffmpeg"] is (owner == "worker")
+
+
+def load_runtime_gate():
+    spec = importlib.util.spec_from_file_location(
+        "v1_check_runtime_legacy", ROOT / "deploy/v1/check_runtime.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def copied_directories(text):
+    return {
+        line.split()[1].removeprefix("./").rstrip("/")
+        for line in text.splitlines()
+        if line.startswith("COPY ") and "--from" not in line and len(line.split()) == 3
+    }
+
+
+@pytest.mark.parametrize("owner", RECIPES)
+def test_no_v1_image_copies_the_retired_peer_http_and_redis_stack(owner):
+    copied = copied_directories(RECIPES[owner])
+    assert "legacy" not in copied
+    for name in load_runtime_gate().LEGACY_MODULES:
+        top, _, rest = name.partition(".")
+        if top in copied and rest:
+            relative = Path(top, *rest.split("."))
+            assert not (ROOT / relative.with_suffix(".py")).exists(), name
+            assert not (ROOT / relative).exists(), name
+
+
+def test_the_runtime_gate_names_every_retired_module_and_the_legacy_package():
+    names = set(load_runtime_gate().LEGACY_MODULES)
+    assert {"legacy", "media.services.processing_client", "processing.queue"} <= names
+    assert {"media.recovery", "processing.main", "media.api.jobs"} <= names
+
+
+def test_the_runtime_gate_refuses_an_image_where_a_retired_module_is_importable(monkeypatch):
+    gate = load_runtime_gate()
+    # Run from the repository so the real, importable legacy package is visible to the gate.
+    monkeypatch.syspath_prepend(str(ROOT))
+    assert gate.importable("legacy.media_peer.processing_client")
+    assert not gate.importable("media.services.processing_client")
+    assert not gate.importable("no_such_domain.module")

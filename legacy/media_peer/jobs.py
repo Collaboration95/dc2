@@ -3,13 +3,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, Response
 
+from legacy.media_peer import lifecycle
+from legacy.media_peer.processing_client import Peer
 from media.api.deps import Config, CurrentUser, Operator, Session
 from media.api.uploads import Key
 from media.repositories.assets import get_asset, list_assets
 from media.schemas.edit import EditRequest
 from media.schemas.public import Accepted, PublicJob
-from media.services import lifecycle
-from media.services.processing_client import Peer
 from media.services.storage import Store
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
