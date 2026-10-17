@@ -42,7 +42,7 @@ SHORT_ENCODER = "ProcessingShortEncoder"
 # Default open throttle mirrors the previous template value; tune per session.
 DEFAULT_EDGE_OPEN = {"rate": 5, "burst": 10}
 QUEUES = ("ProcessingCommands", "ProcessingWork", "MediaResults")
-SERVICES = ("lambda", "events", "apigatewayv2", "ecs")
+SERVICES = ("lambda", "events", "apigatewayv2", "ecs", "logs")
 PROFILE_PATTERN = re.compile(r"[A-Za-z0-9_.-]{1,64}")
 
 
@@ -147,6 +147,16 @@ def config_from_outputs(
             # `session open` enables every mapping and `close` disables every mapping.
             config["mappings"].append(mapping)
             config["owner_consumers"]["processing"]["mappings"].append(mapping)
+        # The in-VPC schema/count reader runs each owner's own deployed migration definition,
+        # because that task already holds the owner's database role and CA. Optional: an older
+        # stack's outputs lack them and the reader then says so instead of guessing.
+        definitions = {
+            owner: outputs[f"{owner.title()}MigrationTaskDefinitionArn"]
+            for owner in ("media", "processing")
+            if f"{owner.title()}MigrationTaskDefinitionArn" in outputs
+        }
+        if definitions:
+            config["migration_definitions"] = definitions
         urls = {
             "gateway": outputs["HttpApiUrl"],
             "frontend": outputs.get("FrontendUrl"),

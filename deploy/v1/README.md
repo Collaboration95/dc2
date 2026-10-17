@@ -57,7 +57,12 @@ functions from the deployed stack, including handlers with disabled triggers.
 Required executable hooks:
 
 - `schema_revision(owner, deadline=...)`: observe the owner's SQL revision with
-  owner-scoped read credentials. Peer revisions are observed independently.
+  owner-scoped read credentials. Peer revisions are observed independently. The release
+  CLI uses a `sql` station when configured and otherwise `scripts/aws/v1/vpc_reader.py`,
+  which runs a finite task in the VPC from the owner's migration task definition (command
+  override `scripts/aws/v1/vpc_probe.py`; no secret in the override) and records
+  `schema_revision_source: in-vpc-task`. A reader may expose `prefetch(owners, deadline=...)`
+  to start several slow reads together.
 - `compatibility(owner, prior_snapshot, bundle, target_revision, deadline=...)`:
   execute/check current AND rollback image compatibility with the additive target.
 - `quiescent(owner, deadline=...)`: assert the owner's intake and consumers are

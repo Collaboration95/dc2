@@ -19,6 +19,17 @@ class PublicationUncertain(OperationError):
     """Resume preparation to reconcile a PublishVersion response loss."""
 
 
+def _prefetch(schema_revision, owners, deadline):
+    """Start slow schema reads together when the reader supports it (the in-VPC task reader).
+
+    A Fargate start dominates one read; sequential reads would count against the clocked
+    release gates. A SQL reader has no such hook and is simply called when needed.
+    """
+    start = getattr(schema_revision, "prefetch", None)
+    if start:
+        start(owners, deadline=deadline)
+
+
 def _call(transport, operation, payload, deadline):
     return transport.call("lambda", operation, payload, deadline=deadline)
 
@@ -280,6 +291,7 @@ def promote(
             if pending.get("phase") == "restoring":
                 raise OperationError("Restore pending release before another promotion")
         else:
+            _prefetch(schema_revision, (owner, peer), deadline)
             prior = snapshot(config, transport, owner, schema_revision, state, deadline=deadline)
             if compatibility(owner, prior, bundle, target_revision, deadline=deadline) is not True:
                 raise OperationError("Current/rollback artifact schema compatibility required")
@@ -424,11 +436,14 @@ def restore(config, transport, journal, *, schema_revision, quiescent, public_sm
         if public_smoke(owner, versions, worker, deadline=deadline) is not True:
             raise OperationError("Restored public smoke failed; intent retained")
         peer = "media" if owner == "processing" else "processing"
+        _prefetch(schema_revision, (peer, owner), deadline)
         if (
             snapshot(config, transport, peer, schema_revision, state, deadline=deadline)
             != pending["peer"]
         ):
             raise OperationError("Peer changed; restoration cannot be certified")
+        # Read before the quiescence check: an in-VPC read is an ECS task in the same cluster.
+        schema = schema_revision(owner, deadline=deadline)
         if quiescent(owner, deadline=deadline) is not True:
             raise OperationError("Restored smoke left active workers/consumers")
         if owner == "processing":
@@ -438,7 +453,7 @@ def restore(config, transport, journal, *, schema_revision, quiescent, public_sm
             "status": "restored",
             "versions": versions,
             "worker_definition": worker,
-            "schema": schema_revision(owner, deadline=deadline),
+            "schema": schema,
             "schema_rollback": False,
             "peer_unchanged": True,
         }

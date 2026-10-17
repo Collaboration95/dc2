@@ -11,6 +11,7 @@ simulated, its overall status is SIMULATED, and the summary writer refuses it.
 """
 
 import contextlib
+import hashlib
 import io
 import json
 import time
@@ -26,6 +27,10 @@ from scripts.aws.v1.proof.context import Context, load_state
 from scripts.aws.v1.proof.core import stamp
 from scripts.aws.v1.transport import REGION
 
+BASELINE_DIGEST = {"media": "sha256:" + "ab" * 32, "processing": "sha256:" + "ac" * 32,
+                   "worker": "sha256:" + "cd" * 32}
+LOCAL_ID = {"media": "sha256:" + "11" * 32, "processing": "sha256:" + "22" * 32,
+            "worker": "sha256:" + "33" * 32}
 EPOCH = 1_792_233_600.0  # 2026-10-17T10:40:00Z, an arbitrary fixed wall-clock origin
 ACCOUNT = "123456789012"
 FRONTEND = "https://d111111abcdef8.cloudfront.net"
@@ -117,6 +122,12 @@ class SimWorld:
         self.shared_load_slowdown = shared_load_slowdown
         self.auto_pause_seconds, self.max_acu = auto_pause_seconds, max_acu
         self.busy, self.resuming, self.loads, self.probes = {}, {}, {}, 0
+        # What the in-VPC reader (#150) finds: each owner's Alembic head and Processing's
+        # attempt counts, read by a finite task that runs the owner's migration definition.
+        self.schema = {"media": "m0007", "processing": "p0005"}
+        self.attempt_counts = {"queued": 0, "processing": 0, "succeeded": 3, "failed": 1,
+                               "abandoned": 0, "cancelled": 0}
+        self.vpc_reads = []
         if lambda_lane:  # a full `session open` has enabled every mapping
             self.plan.mappings[str(uuid.uuid5(uuid.NAMESPACE_URL, "ProcessingShortEncoder"))] = (
                 "Enabled")
@@ -235,7 +246,35 @@ class SimWorld:
                 f"arn:aws:ecs:{REGION}:{ACCOUNT}:task-definition/{self.env}-worker:1",
             "PublicTaskSubnetIds": "subnet-0a,subnet-0b", "WorkerSecurityGroupId": "sg-0w",
             "MigrationSecurityGroupId": "sg-0m",
+            **{f"{owner.title()}MigrationTaskDefinitionArn": self.migration_definition(owner)
+               for owner in ("media", "processing")},
         }
+
+    def migration_definition(self, owner):
+        return f"arn:aws:ecs:{REGION}:{ACCOUNT}:task-definition/{self.env}-{owner}migration:1"
+
+    # ---- the deployed images (#150: the release-plan helper reads them back) ---------------
+    def repository(self, owner):
+        return f"{ACCOUNT}.dkr.ecr.{REGION}.amazonaws.com/{self.env}-{owner}"
+
+    def image_digest(self, repository, tag):
+        """The registry's digest for a tag: the deployed baseline, else a stable made-up one."""
+        owner = repository.rsplit("-", 1)[-1]
+        if tag == f"{self.env}-{owner}" and owner in BASELINE_DIGEST:
+            return BASELINE_DIGEST[owner]
+        return "sha256:" + hashlib.sha256(f"{repository}:{tag}".encode()).hexdigest()
+
+    def journal_images(self):
+        """What `deploy` recorded when it pushed the three images."""
+        return {owner: {"local_id": LOCAL_ID[owner], "tag": f"{self.env}-{owner}",
+                        "digest": BASELINE_DIGEST[owner],
+                        "uri": f"{self.repository(owner)}@{BASELINE_DIGEST[owner]}",
+                        "scan_severity_counts": {"MEDIUM": 1}}
+                for owner in ("media", "processing", "worker")}
+
+    def journal_outputs(self):
+        return {f"{owner.title()}RepositoryUri": self.repository(owner)
+                for owner in ("media", "processing", "worker")}
 
     # ---- public API over HTTP -----------------------------------------------------------
     def http(self, method, url, headers, body, timeout):
@@ -456,7 +495,8 @@ class SimWorld:
                 "lastStatus": status, "cpu": task["cpu"], "memory": task["memory"],
                 "createdAt": iso(self.wall_of(task["created_at"])),
                 "pullStartedAt": iso(self.wall_of(task["created_at"] + 2)),
-                "containers": [{"exitCode": 0 if stopped else None,
+                "containers": [{"name": "migration" if task["kind"] == "vpcread" else "worker",
+                                "exitCode": task.get("exit", 0) if stopped else None,
                                 "imageDigest": "sha256:" + "ab" * 32}]}
         if status != "PROVISIONING":
             view["startedAt"] = iso(self.wall_of(task["started_at"]))
@@ -488,7 +528,9 @@ class SimWorld:
             "containerOverrides", []) for e in c.get("environment", [])}
         spec = self.definitions.get(definition, {})
         kind = "worker"
-        if "DC2_SCRIPT" in env or "DC2_SCRIPT" in json.dumps(spec):
+        if "DC2_MODE" in env:
+            kind = "vpcread"
+        elif "DC2_SCRIPT" in env or "DC2_SCRIPT" in json.dumps(spec):
             kind = "generator" if "DC2_BASE_URL" in json.dumps(spec) else "probe"
         now = self.clock.t
         task = {"arn": arn, "definition": definition, "kind": kind, "created_at": now,
@@ -503,8 +545,40 @@ class SimWorld:
         elif kind == "probe":
             self.logs[("/dc2/tasks", f"Worker/worker/{arn.rsplit('/', 1)[-1]}")] = \
                 self.probe_lines()
+        elif kind == "vpcread":
+            self.start_vpc_read(task, env, definition)
         self.tasks[arn] = task
         return {"tasks": [{"taskArn": arn}], "failures": []}
+
+    def start_vpc_read(self, task, env, definition):
+        """The probe's run, as the log line it would print and how long it would take."""
+        owner, mode = env["DC2_OWNER"], env["DC2_MODE"]
+        self.vpc_reads.append((owner, mode, definition))
+        result = {"ok": True, "mode": mode, "owner": owner, "connect_attempts": 1,
+                  "connect_seconds": 1.2,
+                  "tls": {"verified": True, "server_reports_ssl": True, "protocol": "TLSv1.3"}}
+        if mode == "schema":
+            result.update(heads=1, revision=self.schema[owner])
+        else:
+            result.update(counts=dict(self.attempt_counts), unknown_states=[])
+        task["script_seconds"] = 20
+        if "read-slow-resume" in self.faults:  # a paused Aurora: the probe retries for ~2 minutes
+            task["script_seconds"] = 140
+            result.update(connect_attempts=27, connect_seconds=135.0)
+        if "read-hang" in self.faults:  # a task that never stops on its own
+            task["script_seconds"] = 100_000
+        if "read-tls-unverified" in self.faults:
+            result["tls"] = {"verified": False, "server_reports_ssl": False, "protocol": None}
+        if "read-two-heads" in self.faults:
+            result.update(heads=2, revision=None)
+        if "read-db-unreachable" in self.faults:
+            result = {"ok": False, "mode": mode, "owner": owner, "error": "TimeoutError"}
+            task.update(script_seconds=160, exit=1)
+        prefix = f"{owner.title()}Migration"
+        lines = ["start", f"DC2-VPC-READ {json.dumps(result)}"]
+        stream = task["arn"].rsplit("/", 1)[-1]
+        self.logs[("/dc2/tasks", f"{prefix}/migration/{stream}")] = (
+            [] if "read-no-log" in self.faults else lines)
 
     def ecs_describe_tasks(self, payload):
         return {"tasks": [self.task_view(self.tasks[a]) for a in payload["tasks"]
@@ -527,21 +601,43 @@ class SimWorld:
         group = "/dc2/tasks"
         if spec:
             return {"taskDefinition": spec}
+        arn = payload["taskDefinition"]
+        if "migration" in arn:
+            owner = "media" if "mediamigration" in arn else "processing"
+            return {"taskDefinition": {
+                "taskDefinitionArn": arn, "family": f"{self.env}-{owner}migration",
+                "cpu": "256", "memory": "512",
+                "executionRoleArn": f"arn:aws:iam::{ACCOUNT}:role/{self.env}-{owner}-exec",
+                "taskRoleArn": f"arn:aws:iam::{ACCOUNT}:role/{self.env}-{owner}-migration",
+                "networkMode": "awsvpc", "requiresCompatibilities": ["FARGATE"],
+                "runtimePlatform": {"cpuArchitecture": "X86_64",
+                                    "operatingSystemFamily": "LINUX"},
+                "containerDefinitions": [{
+                    "name": "migration",
+                    "image": f"{self.repository(owner)}@{BASELINE_DIGEST[owner]}",
+                    "logConfiguration": {"logDriver": "awslogs", "options": {
+                        "awslogs-group": group, "awslogs-region": REGION,
+                        "awslogs-stream-prefix": f"{owner.title()}Migration"}}}]}}
         return {"taskDefinition": {
             "taskDefinitionArn": payload["taskDefinition"], "family": f"{self.env}-worker",
             "cpu": "2048", "memory": "4096",
             "executionRoleArn": f"arn:aws:iam::{ACCOUNT}:role/{self.env}-exec",
+            "taskRoleArn": f"arn:aws:iam::{ACCOUNT}:role/{self.env}-worker",
+            "networkMode": "awsvpc", "requiresCompatibilities": ["FARGATE"],
             "runtimePlatform": {"cpuArchitecture": "X86_64", "operatingSystemFamily": "LINUX"},
             "containerDefinitions": [{
-                "name": "worker", "image": f"{ACCOUNT}.dkr.ecr.{REGION}.amazonaws.com/w@sha256:"
-                + "cd" * 32,
+                "name": "worker",
+                "image": f"{self.repository('worker')}@{BASELINE_DIGEST['worker']}",
                 "logConfiguration": {"logDriver": "awslogs", "options": {
                     "awslogs-group": group, "awslogs-region": REGION,
                     "awslogs-stream-prefix": "Worker"}}}]}}
 
     def ecs_register_task_definition(self, payload):
         self.registered += 1
-        family = f"task-definition/{payload['family']}:{self.registered}"
+        # A deployed family already holds revision 1 (CloudFormation made it).
+        deployed = payload["family"].endswith(("migration", "-worker"))
+        revision = self.registered + (1 if deployed else 0)
+        family = f"task-definition/{payload['family']}:{revision}"
         arn = f"arn:aws:ecs:{REGION}:{ACCOUNT}:{family}"
         self.definitions[arn] = {**payload, "taskDefinitionArn": arn}
         return {"taskDefinition": {"taskDefinitionArn": arn}}
@@ -575,6 +671,22 @@ class SimWorld:
                         "seconds": call["seconds"]}
                 events.append({"message": "dc2.short_encode " + json.dumps(line)})
         return {"events": events}
+
+    def ecr_describe_images(self, payload):
+        name, tag = payload["repositoryName"], payload["imageIds"][0]["imageTag"]
+        digest = self.image_digest(self.repository_of(name), tag)
+        return {"imageDetails": [{"imageDigest": digest, "imageTags": [tag]}]}
+
+    def repository_of(self, name):
+        return f"{ACCOUNT}.dkr.ecr.{REGION}.amazonaws.com/{name}"
+
+    def ecr_describe_image_scan_findings(self, payload):
+        counts = {"MEDIUM": 2}
+        if "scan-high" in self.faults:
+            counts["HIGH"] = 1
+        status = "IN_PROGRESS" if "scan-pending" in self.faults else "COMPLETE"
+        return {"imageId": payload["imageId"], "imageScanStatus": {"status": status},
+                "imageScanFindings": {"findingSeverityCounts": counts}}
 
     def s3api_list_object_versions(self, payload):
         job = payload["Prefix"].split("/")[1]
@@ -687,8 +799,9 @@ def build(args, *, session="open", world=None, sql=True, tmp=None):
     data, cfg, hooks, urls, outputs, journal = load_state(folder)
     deploy_journal = DeployJournal(folder / "deploy-journal.json", station="sim-station",
                                    environment=world.env)
-    deploy_journal.create({"run_id": "sim", "env": world.env, "steps": {}, "outputs": {},
-                           "images": {}, "events": [],
+    deploy_journal.create({"run_id": "sim", "env": world.env, "steps": {},
+                           "outputs": world.journal_outputs(),
+                           "images": world.journal_images(), "events": [],
                            "resources": world.journal_resources()})
     journal.initialize(verified_empty=True, exclusive_station=True)
     if session != "closed":
@@ -705,3 +818,17 @@ def build(args, *, session="open", world=None, sql=True, tmp=None):
         credentials=lambda: json.loads(creds.read_text()), sqs=lambda: FakeSqs(world),
         sdk=lambda scope: world, release_main=release_cli.main, world=world)
 
+
+
+def build_evidence(path, *, source_sha, config_ids=None, failures=()):
+    """A build_and_verify evidence file for the three images, as `deploy/v1` would write it."""
+    config_ids = config_ids or LOCAL_ID
+    images = {owner: {
+        "tag": f"dc2-v1-{owner}:local-{source_sha[:12]}", "build_exit_code": 0,
+        "config_id": config_ids[owner], "source_sha": source_sha,
+        "runtime_contents": {"ffmpeg": owner == "worker", "redis": False, "rq": False}}
+        for owner in ("media", "processing", "worker")}
+    Path(path).write_text(json.dumps({
+        "status": "LOCAL_ARTIFACT_FAIL" if failures else "LOCAL_ARTIFACT_PASS",
+        "source_sha": source_sha, "images": images, "failures": list(failures)}))
+    return Path(path)

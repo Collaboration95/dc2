@@ -3,6 +3,7 @@
     python -m scripts.aws.v1.evidence gateway  ...   #63 workflow and boundaries
     python -m scripts.aws.v1.evidence capacity ...   #64 1/2/3 encoders, recovery, DLQ
     python -m scripts.aws.v1.evidence release  ...   #65 promote, roll back, peer untouched
+    python -m scripts.aws.v1.evidence release-plan   write #65's plan.json for a deployed stack
     python -m scripts.aws.v1.evidence latency  ...   #66 Fargate generator, cold wake apart
     python -m scripts.aws.v1.evidence spend    ...   #67 closed state, ACU pause, spend
     python -m scripts.aws.v1.evidence short-encode   #93 (V2) Lambda short encodes vs Fargate
@@ -33,6 +34,7 @@ from scripts.aws.v1.proof import (
     gateway,
     latency,
     release,
+    release_plan,
     short_encode,
     sim,
     spend,
@@ -44,6 +46,7 @@ REQUIRED = {"63": gateway.REQUIRED, "64": capacity.REQUIRED, "65": release.REQUI
             "66": latency.REQUIRED, "67": spend.REQUIRED}
 # The session state each harness needs when it starts (latency opens its own window).
 SESSION = {"gateway": "open", "capacity": "open", "release": "window", "latency": "closed",
+           "release-plan": "closed",
            "spend": "closed", "short-encode": "open", "db-topology": "window"}
 
 
@@ -81,6 +84,24 @@ def build_parser():
     r = sub.add_parser("release", help="#65")
     scope_arguments(r)
     r.add_argument("--plan", type=Path, required=True, help="nonsecret release plan JSON")
+    rp = sub.add_parser("release-plan", help="#65: write plan.json and its bundles")
+    scope_arguments(rp)
+    rp.add_argument("--owner", choices=("media", "processing"))
+    rp.add_argument("--baseline-evidence", type=Path,
+                    help="build_and_verify evidence of the images the stack runs now")
+    rp.add_argument("--good-run-id", help="images pushed as <id>-media/-processing/-worker")
+    rp.add_argument("--good-evidence", type=Path, help="build evidence of the good images")
+    rp.add_argument("--bad-run-id", help="optional: images that must fail the public smoke")
+    rp.add_argument("--bad-evidence", type=Path)
+    rp.add_argument("--tests-passed", type=int,
+                    help="source tests that passed for these builds (attested)")
+    rp.add_argument("--target-revision", help="the owner's schema head (default: this checkout)")
+    rp.add_argument("--attest-schema-unchanged", action="store_true",
+                    help="good/baseline/bad add no migration beyond --target-revision")
+    rp.add_argument("--out", type=Path,
+                    help="directory for plan.json (default: <state-dir>/release)")
+    rp.add_argument("--deregister", type=Path, metavar="PLAN",
+                    help="instead: retire the definition revisions that plan registered")
     lat = sub.add_parser("latency", help="#66")
     scope_arguments(lat)
     lat.add_argument("--cluster", help="Aurora cluster id (default: from the deploy journal)")
@@ -143,6 +164,29 @@ def make_context(args, command, *, world, factory):
         return factory(args)
     return context.live(args)
 
+
+
+def release_plan_command(args, *, world, factory):
+    if args.dry_run:
+        raise ProofError("release-plan reads the deploy journal and the registry and has no "
+                         "simulation; `rehearse` exercises it against the simulated account")
+    ctx = make_context(args, "release-plan", world=world, factory=factory)
+    if args.deregister:
+        return release_plan.deregister(ctx, args.deregister)
+    missing = [name for name in ("owner", "baseline_evidence", "good_run_id", "good_evidence",
+                                 "tests_passed") if getattr(args, name) is None]
+    if missing or bool(args.bad_run_id) != bool(args.bad_evidence):
+        raise ProofError("release-plan needs --owner --baseline-evidence --good-run-id "
+                         "--good-evidence --tests-passed (and --bad-run-id with --bad-evidence)")
+    bad = None
+    if args.bad_run_id:
+        bad = {"run_id": args.bad_run_id, "evidence": args.bad_evidence}
+    return release_plan.run(
+        ctx, owner=args.owner, baseline_evidence=args.baseline_evidence,
+        good={"run_id": args.good_run_id, "evidence": args.good_evidence}, bad=bad,
+        tests_passed=args.tests_passed, target_revision=args.target_revision,
+        attest_schema_unchanged=args.attest_schema_unchanged,
+        out=args.out or args.state_dir / "release")
 
 
 def execute(args, ctx):
@@ -219,6 +263,34 @@ def rehearse_db_topology(base, shared):
     return proof.report(), bool(proof.failed_now())
 
 
+def rehearse_release(base, shared, plan_path):
+    """#65: plan.json written by release-plan from simulated facts, then the harness's steps.
+
+    The stack has no SQL station, so the schema reads go through the simulated in-VPC task.
+    """
+    world = sim.SimWorld()
+    ctx = sim.build(shared, session="window", world=world, tmp=base / "release", sql=False)
+    if plan_path is None:
+        digits = {"good": "456", "bad": "789"}
+        builds = {}
+        for role, sha in (("baseline", "a"), ("good", "b"), ("bad", "c")):
+            ids = None if role == "baseline" else {
+                owner: "sha256:" + digit * 64
+                for owner, digit in zip(("media", "processing", "worker"), digits[role],
+                                        strict=True)}
+            builds[role] = sim.build_evidence(base / f"build-{role}.json", source_sha=sha * 40,
+                                              config_ids=ids)
+        release_plan.run(
+            ctx, owner="processing", baseline_evidence=builds["baseline"],
+            good={"run_id": "rehearsal-good", "evidence": builds["good"]},
+            bad={"run_id": "rehearsal-bad", "evidence": builds["bad"]}, tests_passed=1,
+            target_revision=world.schema["processing"], attest_schema_unchanged=True,
+            out=base / "release-plan")
+        plan_path = base / "release-plan" / "plan.json"
+    proof = release.run(ctx, plan_path=plan_path)
+    return proof.report(), bool(proof.failed_now())
+
+
 def rehearse(args, stdout):
     """Every harness against fresh simulated worlds; nothing leaves the temp directory."""
     base = Path(tempfile.mkdtemp(prefix="dc2-rehearsal-"))
@@ -234,14 +306,14 @@ def rehearse(args, stdout):
         "latency": lambda ctx: latency.run(ctx),
         "spend": lambda ctx: spend.run(ctx, wait_minutes=10),
     }
-    if args.release_plan:
-        runs["release"] = lambda ctx: release.run(ctx, plan_path=args.release_plan)
     for name, run in runs.items():
         world = sim.SimWorld(encode_seconds=240 if name == "capacity" else 45)
         ctx = sim.build(shared, session=SESSION[name], world=world, tmp=base / name)
         proof = run(ctx)
         reports[name] = proof.report()
         failed = failed or bool(proof.failed_now())
+    reports["release"], bad = rehearse_release(base, shared, args.release_plan)
+    failed = failed or bad
     reports["short-encode"], bad = rehearse_short_encode(base, fixture, shared)
     failed = failed or bad
     reports["db-topology"], bad = rehearse_db_topology(base, shared)
@@ -264,6 +336,10 @@ def main(argv=None, *, stdout=None, world=None, factory=None):
             return post_process(args, stdout)
         if not args.dry_run and not args.state_dir:
             raise ProofError("--state-dir is required for a live run")
+        if args.command == "release-plan":
+            result = release_plan_command(args, world=world, factory=factory)
+            print(json.dumps(result, indent=2), file=stdout)
+            return 0
         ctx = make_context(args, args.command, world=world, factory=factory)
         proof = execute(args, ctx)
     except (OperationError, OSError, ValueError, KeyError) as error:

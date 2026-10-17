@@ -1,8 +1,11 @@
 """CLI for booked V1 sessions: python -m scripts.aws.v1.session ACTION --profile P --region R.
 
 Actions: init (one-time private journal), open, window (public API only, for release
-smoke tests), close, batch, status. `open --unattended` additionally opts the session into the
-V2 unattended launcher (#68) until --minutes from now; `close` always switches it off first.
+smoke tests), close, batch, status. `close --in-vpc-counts` reads the drain proof's attempt
+counts with a finite task inside the VPC (the owner's migration definition), so it needs neither
+a SQL station nor an attested counts file; Aurora must be awake or resumable (about 150 s).
+`open --unattended` additionally opts the session into the V2 unattended launcher (#68) until
+--minutes from now; `close` always switches it off first.
 Live runs need an explicit --profile, --region and --account; --dry-run prints the calls
 that would be made against an offline simulation and touches neither AWS nor the real journal.
 """
@@ -24,15 +27,19 @@ from scripts.aws.v1.hooks import (
     sql_reader,
 )
 from scripts.aws.v1.session import Session
+from scripts.aws.v1.vpc_reader import VpcReader
 
 ZERO = dict.fromkeys(("queued", "processing", "succeeded", "failed", "abandoned", "cancelled"), 0)
 
 
-def build_hooks(data, hook_names, transport, *, dry_run):
-    """Real hooks over the transport; dry-run swaps only the SQL reader for zero counts."""
+def build_hooks(data, hook_names, transport, *, dry_run, config=None, in_vpc=False,
+                clock=time.monotonic, sleep=time.sleep):
+    """Real hooks over the transport; dry-run swaps only the counts reader for zero counts."""
     owner = OwnerHooks(transport, **hook_names)
     if dry_run:
         reader = lambda _deadline: dict(ZERO)  # noqa: E731
+    elif in_vpc:
+        reader = VpcReader(config, transport, clock=clock, sleep=sleep).attempt_counts
     elif data.get("sql"):
         reader = sql_reader(data["sql"]["processing_dsn_file"], data["sql"]["ca_file"])
     elif data.get("counts_file"):
@@ -43,7 +50,9 @@ def build_hooks(data, hook_names, transport, *, dry_run):
 
 
 def run_action(args, session, data, hook_names, transport, deadline):
-    owner, counts = build_hooks(data, hook_names, transport, dry_run=args.dry_run)
+    owner, counts = build_hooks(
+        data, hook_names, transport, dry_run=args.dry_run, config=session.config,
+        in_vpc=args.in_vpc_counts)
     if args.action in {"open", "window"}:
         unattended = args.action == "open" and args.unattended
         return session.open(
@@ -57,7 +66,8 @@ def run_action(args, session, data, hook_names, transport, deadline):
         )
     if args.action == "close":
         if counts is None:
-            raise OperationError("Close needs SQL or operator counts (config sql/counts_file)")
+            raise OperationError(
+                "Close needs SQL or operator counts (config sql/counts_file), or --in-vpc-counts")
         return session.close(
             drain=counts.drain,
             outcomes=counts.outcomes,
@@ -117,12 +127,17 @@ def main(argv=None, *, environ=None, transport_factory=None, sqs_factory=None, s
     parser.add_argument("--dlq-command", choices=["inspect", "status", "redrive"], default="status")
     parser.add_argument("--limit", type=int, default=10, help="dlq inspect: messages (1..50)")
     parser.add_argument("--confirm-redrive", action="store_true", help="dlq redrive writes")
+    parser.add_argument("--in-vpc-counts", action="store_true",
+                        help="close: read attempt counts with a finite in-VPC task, not a "
+                             "SQL station or an attested counts file")
     parser.add_argument("--confirm-empty", action="store_true", help="init: inventory is empty")
     parser.add_argument("--confirm-exclusive", action="store_true", help="init: sole station")
     operations.add_scope_arguments(parser)
     args = parser.parse_args(argv)
     if args.unattended and args.action != "open":
         parser.error("--unattended applies to `open` only")
+    if args.in_vpc_counts and args.action != "close":
+        parser.error("--in-vpc-counts applies to `close` only")
     scope = operations.resolve_scope(parser, args, environ)
     plan = holder = None
     try:

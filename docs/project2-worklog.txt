@@ -697,3 +697,18 @@ is NOT_RUN and Blocked. No issue is Ready under the current no-AWS instruction.
 - Remaining: cloud proof first (#45, #63–#67, blocked on an MFA-capable session; no AWS
   operation without it), then close epics #41–#44 and preserve the project2-v1 tag. V2
   experiments (#80, #93, #94, #68) start only after the tag.
+
+2026-10-17 — #65 release proof no longer needs an in-VPC SQL station (#150)
+- The release CLI and the #65 harness read the owning schema revision over TLS from the
+  operator machine, which only works with a station inside the VPC. V1 has none (Aurora is
+  private, no bastion), so the live proof could only record NOT_RUN. They now follow the #63
+  cross-database pattern: a finite Fargate task runs the owner's deployed migration task
+  definition with a command override (scripts/aws/v1/vpc_probe.py, no new image, no secret in
+  the override), verifies TLS inside the task, and the CLI parses its CloudWatch log line.
+  Receipts record schema_revision_source: in-vpc-task; a configured `sql` block still wins.
+- `session close --in-vpc-counts` uses the same task for the drain proof's attempt counts.
+- `evidence release-plan` writes plan.json and its bundles for an already-deployed stack from
+  the deploy journal, build evidence and the registry; plan images now carry their own
+  migration definition (one definition cannot hold both the good and the baseline digest).
+- Local only: simulator, tests and `make aws-proof-rehearse` (now includes the release
+  harness). None of the in-VPC reads or release-plan has run against AWS; #65 stays Blocked.

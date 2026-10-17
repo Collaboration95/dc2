@@ -20,6 +20,7 @@ _STAGE = re.compile(r"[A-Za-z0-9_$-]{1,128}")
 _API = re.compile(r"[a-z0-9]{6,20}")
 _RULE = re.compile(r"[A-Za-z0-9._-]{1,64}")
 _TASK = re.compile(r"[A-Za-z0-9:/_.-]{1,255}")
+_LOG_NAME = re.compile(r"[A-Za-z0-9_./#-]{1,512}")
 # Bounded replies keep a malformed function from exhausting operator memory.
 MAX_INVOKE_PAYLOAD = 1_000_000
 
@@ -170,9 +171,17 @@ OPERATIONS = {
                 "requiresCompatibilities": lambda v: v == ["FARGATE"],
                 "executionRoleArn": CLUSTER,
             },
-            {"runtimePlatform": _object, "tags": _any},
+            # taskRoleArn: a release-plan copy of a migration definition keeps its owner role.
+            {"runtimePlatform": _object, "tags": _any, "taskRoleArn": CLUSTER},
         ),
         "deregister-task-definition": ({"taskDefinition": CLUSTER}, {}),
+    },
+    # Read-only: the in-VPC reader parses the result line its own finite task printed.
+    "logs": {
+        "get-log-events": (
+            {"logGroupName": _text(_LOG_NAME), "logStreamName": _text(_LOG_NAME)},
+            {"startFromHead": _boolean, "nextToken": _any, "limit": _integer(1, 100)},
+        ),
     },
 }
 
