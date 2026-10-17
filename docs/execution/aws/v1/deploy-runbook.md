@@ -17,7 +17,9 @@ The operator must decide or supply all of these. None has a default.
 
 | Item | Why it blocks |
 |---|---|
-| An MFA session in profile `dc2-project2-mfa` | `FlickPondRequireMFA` denies when `aws:MultiFactorAuthPresent` is `false`. Direct calls with the long-term key pass, but calls CloudFormation makes on the caller's behalf carry no MFA and are denied. So every deploy, session and evidence command uses the session profile that `make aws-mfa-session CODE=<6 digits>` writes (the helper asks `sts get-session-token` for 129600 s, the 36 h maximum, and prints the expiry). Preflight blocks a long-term key and says to run the helper. The pipeline will not bypass or edit the policy. |
+| Credentials that satisfy `FlickPondRequireMFA`: an MFA session in profile `dc2-project2-mfa`, **or** the dedicated agent user in profile `dc2-agent` | `FlickPondRequireMFA` denies when `aws:MultiFactorAuthPresent` is `false`. Direct calls with the long-term key pass, but calls CloudFormation makes on the caller's behalf carry no MFA and are denied. So every deploy, session and evidence command uses the session profile that `make aws-mfa-session CODE=<6 digits>` writes (the helper asks `sts get-session-token` for 129600 s, the 36 h maximum, and prints the expiry). Preflight blocks a long-term key and says to run the helper, unless the policy simulator shows that key's principal is not subject to an MFA deny (next paragraph). The pipeline will not bypass or edit the policy.
+
+**Dedicated agent user (authorized 2026-10-17).** The IAM user `flickpond-agent` (AdministratorAccess and `FlickPondRegionLock`; not in the group that carries `FlickPondRequireMFA`, no MFA device) uses long-term keys in profile `dc2-agent`, so no MFA session exists or is needed. The pipeline does not trust the profile name: `mfa_required()` calls `iam simulate-principal-policy` for `s3:CreateBucket` and `cloudformation:CreateStack` with `aws:MultiFactorAuthPresent=false`, `aws:ViaAWSService=false` and `aws:RequestedRegion=ap-southeast-1`. Any `explicitDeny` means MFA is required (blocker, as before); all `allowed` means it is not (preflight `credentials` and `mfa` pass, detail "principal is not subject to an MFA deny (simulated)"); AccessDenied, an error or an inconclusive answer is unknown and fails closed as a blocker. Teardown `--execute` applies the same test. Sessions and assumed roles keep their old behaviour. `Guruprasath` still needs the MFA-session path. Never paste key ids or secrets into a command, file or issue; `--profile` names a profile only. |
 | `--run-id` (2-16 lowercase letters/digits) | Namespace `dc2-v1-<run id>` must fit CloudFormation's 24-character `EnvironmentId`. A new id per attempt; a failed stack leaves `ROLLBACK_COMPLETE` that blocks its name. |
 | `--state-dir` (private, outside the repo) | Journal, stack outputs, smoke credentials, the transient database role passwords, receipt. Mode 0700, files 0600. Back it up: it is the only record of what this run owns. |
 | `--images` | The `--out` evidence file of `deploy/v1/build_and_verify.py` (accepted only if `LOCAL_ARTIFACT_PASS`; each image must still have the verified config id), or a hand-written `images.json`. See below. |
@@ -240,7 +242,8 @@ invoice reconciliation (#67).
 
 Status: **every harness here is written and exercised only against a simulated account.** None has
 touched AWS; no receipt below exists yet, so #63-#67 stay open. `S` stands for
-`--profile dc2-project2-mfa --region ap-southeast-1 --account 866865534361`, `D` for the private
+`--profile dc2-agent --region ap-southeast-1 --account 866865534361` (or `--profile dc2-project2-mfa` for
+the MFA-session path), `D` for the private
 `--state-dir` the deploy used, `R` for its run id. Every harness keeps its receipt at
 `D/evidence/evidence-<issue>-R.json` (0600), skips a step that already passed (rerun is safe;
 `--only a,b` picks steps), exits 1 only when a step run just now failed, and **refuses to start**
@@ -248,8 +251,12 @@ while the session journal says closed (and between polls, also when the Gateway 
 A step that cannot be observed is `NOT_RUN`, never `PASS`.
 
 ```sh
-# 0. MFA session (the only interactive step), then rehearse everything offline
+# 0. Credentials. With profile dc2-agent there is nothing to mint; prove it read-only first:
+#      python -m scripts.aws.v1.deploy deploy $S --run-id R --state-dir D --assume-empty-counts \
+#          --forecast-usd 0 --stop-after preflight      # no --execute: preflight makes only reads
+#    With Guruprasath, mint the MFA session (the only interactive step):
 make aws-mfa-session CODE=123456                      # writes profile dc2-project2-mfa, prints expiry
+# then rehearse everything offline
 make aws-proof-rehearse                               # every harness vs the simulation; proves nothing
 python -m scripts.aws.v1.deploy deploy $S --run-id R --dry-run
 

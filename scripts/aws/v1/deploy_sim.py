@@ -44,6 +44,9 @@ class SimulatedAws:
         self.s = settings
         self.calls, self.fail = [], {}
         self.mtd, self.forecast, self.mfa, self.fargate_vcpus = 0.0, 0.0, True, 6.0
+        # Whether the simulated principal is covered by FlickPondRequireMFA; False models the
+        # dedicated agent user. None makes the policy simulator itself fail (AccessDenied).
+        self.mfa_deny = True
         self.budget_limit, self.budget_name = 30.0, settings.budget_name
         self.engine_available = True
         self.stacks, self.objects, self.buckets, self.repos = {}, {}, {}, {}
@@ -82,6 +85,15 @@ class SimulatedAws:
 
     def iam_list_mfa_devices(self, payload):
         return {"MFADevices": [{"SerialNumber": "simulated"}] if self.mfa else []}
+
+    def iam_simulate_principal_policy(self, payload):
+        if self.mfa_deny is None:
+            raise self.error("iam", "simulate-principal-policy", "AccessDenied",
+                             "not authorized to perform iam:SimulatePrincipalPolicy")
+        decision = "explicitDeny" if self.mfa_deny else "allowed"
+        return {"EvaluationResults": [
+            {"EvalActionName": action, "EvalResourceName": "*", "EvalDecision": decision}
+            for action in payload["ActionNames"]]}
 
     def lambda_get_account_settings(self, payload):
         return {"AccountLimit": {"ConcurrentExecutions": 10, "UnreservedConcurrentExecutions": 10}}

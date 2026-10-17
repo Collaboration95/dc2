@@ -173,7 +173,7 @@ def load_operator_config(path):
 
 def add_scope_arguments(parser):
     parser.add_argument("--profile", required=True,
-                        help="explicit AWS profile (e.g. dc2-project2-mfa); never default")
+                        help="explicit AWS profile, e.g. dc2-agent; never default")
     parser.add_argument("--region", required=True, help="must be " + REGION)
     parser.add_argument("--account", help="12-digit account (or DC2_AWS_ACCOUNT)")
     parser.add_argument("--dry-run", action="store_true", help="print planned calls; no AWS")

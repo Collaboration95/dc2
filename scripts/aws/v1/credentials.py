@@ -9,6 +9,10 @@ stack back. A pre-flight that only checks "can I call STS" would pass and the de
 twenty minutes in. So the pipeline refuses long-term credentials up front for every step that
 drives CloudFormation, and tells the operator how to mint an MFA-backed session instead.
 
+The refusal is principal-aware: a long-term key belonging to an IAM user the MFA deny does
+not cover (the dedicated `flickpond-agent` user) is accepted, but only when the policy simulator
+says so. A simulation that is denied or fails leaves the key refused, so the check fails closed.
+
 Nothing here reads the secret half of a key. The probe asks the AWS CLI to export the profile's
 credentials, keeps the first four characters of the access key id (its type prefix) and whether
 a session token exists, and drops the rest.
@@ -96,14 +100,24 @@ def probe(profile, *, runner=subprocess.run, environ=None, home=None, now=None):
     }
 
 
-def assess(profile, info):
-    """(status, detail) for a probe result: pass | warn | blocker."""
+def assess(profile, info, mfa_required=None):
+    """(status, detail) for a probe result: pass | warn | blocker.
+
+    `mfa_required` is the policy-simulation answer for a long-term key's principal: True (an
+    MFA deny applies), False (it does not) or None (unknown). Only False lets a long-term key
+    through, so a simulation that was never run or could not answer fails closed.
+    """
     if info["kind"] == "long-term":
+        if mfa_required is False:
+            return "pass", "principal is not subject to an MFA deny (simulated)"
+        why = ("" if mfa_required is True else
+               " (whether an MFA deny applies could not be simulated, so it is assumed to)")
         return "blocker", (
-            f"Profile {profile} holds long-term credentials (AKIA...). Calls CloudFormation makes "
-            "on your behalf carry aws:MultiFactorAuthPresent=false and FlickPondRequireMFA denies "
-            f"them (this killed s3:CreateBucket on 2026-10-15). First {FIX}, then pass "
-            f"--profile {MFA_PROFILE}"
+            f"Profile {profile} holds long-term credentials (AKIA...){why}. Calls CloudFormation "
+            "makes on your behalf carry aws:MultiFactorAuthPresent=false and FlickPondRequireMFA "
+            f"denies them (this killed s3:CreateBucket on 2026-10-15). First {FIX}, then pass "
+            f"--profile {MFA_PROFILE}; or use a dedicated IAM user that the MFA deny does not "
+            "apply to"
         )
     remaining = info["remaining_seconds"]
     if remaining is not None and remaining <= 0:
@@ -118,10 +132,11 @@ def assess(profile, info):
     return "pass", ""
 
 
-def require_mfa_session(profile, probe_result=None, **kwargs):
-    """Raise OperationError unless the profile is an unexpired session (or unclassifiable)."""
+def require_mfa_session(profile, probe_result=None, *, mfa_required=None, **kwargs):
+    """Raise OperationError unless the profile is an unexpired session, a long-term key whose
+    principal is simulated as not subject to an MFA deny, or unclassifiable."""
     info = probe_result or probe(profile, **kwargs)
-    status, detail = assess(profile, info)
+    status, detail = assess(profile, info, mfa_required)
     if status == "blocker":
         raise OperationError(detail)
     return info
