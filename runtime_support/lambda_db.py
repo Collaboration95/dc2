@@ -5,10 +5,16 @@ pre-ping (twice per API call: authorizer and API). A Lambda environment serves o
 request at a time, so a single pooled connection is enough, but asyncpg connections are
 bound to the loop that created them. `asyncio.run` builds a new loop each call, so reuse
 requires `run()` below to drive every invocation on one persistent loop.
+
+Only the main thread gets that loop: the Lambda runtime (and RIE) invokes the handler there.
+The local V1 gateway is a ThreadingHTTPServer that calls the same handlers concurrently from
+worker threads, where one shared loop would be re-entered; those calls keep the previous
+per-invocation loop and engine, disposed when the invocation ends.
 """
 
 import asyncio
 import contextlib
+import threading
 from collections.abc import Callable, Coroutine
 from typing import Any
 
@@ -28,35 +34,51 @@ POOL_RECYCLE_SECONDS = 240
 SERVER_SETTINGS = {"idle_session_timeout": "60000"}
 
 _loop: asyncio.AbstractEventLoop | None = None
-# scope -> (dsn, loop, engine)
-_engines: dict[str, tuple[str, asyncio.AbstractEventLoop, Any]] = {}
+_local = threading.local()
+
+
+def _cache() -> dict[str, tuple[str, asyncio.AbstractEventLoop, Any]]:
+    """scope -> (dsn, loop, engine), private to the calling thread."""
+    if not hasattr(_local, "engines"):
+        _local.engines = {}
+    return _local.engines
 
 
 def run(coroutine: Coroutine) -> Any:
     """Drive a coroutine on this environment's persistent loop (replaces `asyncio.run`)."""
     global _loop
+    if threading.current_thread() is not threading.main_thread():
+        return asyncio.run(_then_release(coroutine))
     if _loop is None or _loop.is_closed():
         _loop = asyncio.new_event_loop()
     return _loop.run_until_complete(coroutine)
 
 
+async def _then_release(coroutine: Coroutine) -> Any:
+    try:
+        return await coroutine
+    finally:
+        for scope in list(_cache()):
+            await discard_engine(scope)
+
+
 async def shared_engine(scope: str, dsn: str, build: Callable[[], Any]) -> Any:
     """The cached engine for `scope`, rebuilt when the DSN (a rotated secret) or loop changed."""
     loop = asyncio.get_running_loop()
-    cached = _engines.get(scope)
+    cached = _cache().get(scope)
     if cached is not None:
         cached_dsn, cached_loop, engine = cached
         if cached_dsn == dsn and cached_loop is loop:
             return engine
-        _engines.pop(scope)
+        _cache().pop(scope)
         await _dispose(engine, same_loop=cached_loop is loop)
     engine = build()
-    _engines[scope] = (dsn, loop, engine)
+    _cache()[scope] = (dsn, loop, engine)
     return engine
 
 
 async def discard_engine(scope: str) -> None:
-    cached = _engines.pop(scope, None)
+    cached = _cache().pop(scope, None)
     if cached is not None:
         await _dispose(cached[2], same_loop=cached[1] is asyncio.get_running_loop())
 
@@ -88,7 +110,7 @@ async def release_after(scope: str, error: BaseException) -> None:
 def reset() -> None:
     """Forget cached state without awaiting anything (tests only)."""
     global _loop
-    _engines.clear()
+    _cache().clear()
     if _loop is not None and not _loop.is_closed():
         _loop.close()
     _loop = None

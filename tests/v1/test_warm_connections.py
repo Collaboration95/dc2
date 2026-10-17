@@ -171,7 +171,7 @@ def test_the_authorizer_runs_on_the_persistent_loop(monkeypatch):
 
 def test_an_engine_built_on_another_loop_is_replaced_without_awaiting_it():
     engine = SimpleNamespace(dispose=AsyncMock(), sync_engine=Mock())
-    lambda_db._engines["svc"] = ("dsn", asyncio.new_event_loop(), engine)
+    lambda_db._cache()["svc"] = ("dsn", asyncio.new_event_loop(), engine)
     built = object()
 
     async def fetch():
@@ -180,3 +180,36 @@ def test_an_engine_built_on_another_loop_is_replaced_without_awaiting_it():
     assert asyncio.run(fetch()) is built
     engine.dispose.assert_not_awaited()
     engine.sync_engine.dispose.assert_called_once_with(close=False)
+
+
+def test_concurrent_worker_thread_invocations_get_their_own_loop_and_release_their_engine():
+    # The local V1 gateway is a ThreadingHTTPServer: one shared loop would be re-entered.
+    import threading
+
+    disposed, loops, errors = [], [], []
+    started = threading.Barrier(4)
+
+    async def invocation():
+        def build():
+            return SimpleNamespace(dispose=AsyncMock(side_effect=lambda: disposed.append(1)))
+
+        engine = await lambda_db.shared_engine("svc", "dsn", build)
+        loops.append(asyncio.get_running_loop())
+        await asyncio.sleep(0.05)  # all four are inside their invocation at once
+        return engine
+
+    def call():
+        try:
+            started.wait()
+            lambda_db.run(invocation())
+        except Exception as error:  # pragma: no cover - the failure being guarded against
+            errors.append(error)
+
+    threads = [threading.Thread(target=call) for _ in range(4)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert not errors
+    assert len({id(loop) for loop in loops}) == 4
+    assert len(disposed) == 4
