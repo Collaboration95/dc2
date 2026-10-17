@@ -7071,6 +7071,12 @@
               {
                 "Name": "PGSSLROOTCERT",
                 "Value": "/opt/rds/global-bundle.pem"
+              },
+              {
+                "Name": "PROCESSING_WORK_QUEUE_URL",
+                "Value": {
+                  "Ref": "ProcessingWorkQueue"
+                }
               }
             ],
             "Secrets": [

@@ -1556,6 +1556,12 @@ def template(database=None):
             "PGSSLMODE": "verify-full",
             "PGSSLROOTCERT": RDS_CA_BUNDLE,
         }
+        if is_worker:
+            # The encoder long-polls the work queue itself (processing/worker/sqs.py exits with
+            # "missing setting" without this URL). Narrowing the queue environments in #200 took
+            # it out of the shared block along with the Lambda-only URLs; r1018a's first encoder
+            # died on it. Only the work queue: the worker sends and reads nothing else.
+            env["PROCESSING_WORK_QUEUE_URL"] = ref("ProcessingWorkQueue")
         command = (
             ["python", "-m", "processing.v1_worker", "--max-empty-polls", "2"]
             if is_worker
