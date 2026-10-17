@@ -602,18 +602,31 @@ def rie_processing(tag, rie_dir, postgres_network):
         ],
     )
     control = {}
+    # The opt-in launcher (#68) is configured entirely from its environment, so the image is
+    # exercised with the variables the template gives it; the database is still unreachable.
+    launcher_env = base | {
+        "PROCESSING_LAUNCHER_CLUSTER": "arn:aws:ecs:ap-southeast-1:000000000000:cluster/local",
+        "PROCESSING_LAUNCHER_TASK_DEFINITION": (
+            "arn:aws:ecs:ap-southeast-1:000000000000:task-definition/local-worker:1"
+        ),
+        "PROCESSING_LAUNCHER_SUBNETS": "subnet-a,subnet-b",
+        "PROCESSING_LAUNCHER_SECURITY_GROUPS": "sg-local",
+        "PROCESSING_LAUNCHER_LIFETIME_SECONDS": "60",
+        "PROCESSING_WORK_QUEUE_URL": "https://sqs.ap-southeast-1.amazonaws.com/0/work",
+    }
     for name, handler, event in (
         ("command", "processing.handlers.command_handler", sqs_event("{not json")),
         ("repair", "processing.handlers.repair_handler", {"source": "aws.events"}),
         ("ecs", "processing.handlers.ecs_handler", {"source": "aws.ecs", "detail": {}}),
         ("s3", "processing.handlers.s3_handler", {"Records": []}),
+        ("launcher", "processing.handlers.launcher_handler", {"source": "aws.events"}),
     ):
         control[name] = exercise(
             "processing",
             handler,
             tag,
             rie_dir,
-            base,
+            launcher_env if name == "launcher" else base,
             [
                 (
                     "without a database: batch item failure or retryable connection error",

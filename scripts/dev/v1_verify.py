@@ -379,6 +379,11 @@ def local_environment(data):
         MEDIA_RESULTS_QUEUE_URL=resources["queues"]["results"],
         WORK_QUEUE_URL=resources["queues"]["work"],
     )
+    # Schema-per-test SQL suites (the opt-in launcher's) need an admin role to create schemas.
+    env["V1_TEST_PROCESSING_DSN"] = (
+        f"postgresql+asyncpg://postgres:local_v1_admin@127.0.0.1:{data['postgres_port']}"
+        "/processing_db"
+    )
     for owner in ("media", "processing"):
         env[owner.upper() + "_POSTGRES_DSN"] = (
             f"postgresql+asyncpg://{owner}_runtime:local_v1_{owner}"
@@ -569,7 +574,9 @@ def run_flow(name, data, phase):
             "FAIL" if "FAIL" in statuses else "INCOMPLETE" if "INCOMPLETE" in statuses else "PASS"
         )
         return {"status": status, "publisher": publisher, "browser": browser}
-    session = selected_tests(["tests/v1/test_session.py"], phase, data, tag="session")
+    session = selected_tests(
+        ["tests/v1/test_session.py", "tests/v1/test_launcher_sql.py"], phase, data, tag="session"
+    )
     release_path = ROOT / "tests/v1/test_release_acceptance.py"
     result = {
         "status": "INCOMPLETE",

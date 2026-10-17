@@ -31,6 +31,8 @@ HANDLERS = (
     "ProcessingEcsEvents",
     "ProcessingS3Events",
 )
+# Present in the stack outputs only when it was deployed with UnattendedLaunch=true (#68).
+LAUNCHER = "ProcessingLauncher"
 INTAKE = ("MediaApi", "MediaAuthorizer")
 MAPPINGS = ("ProcessingCommands", "MediaResults")
 RULES = ("MediaRepair", "ProcessingRepair", "ProcessingEcsEvents", "ProcessingS3Events")
@@ -126,6 +128,15 @@ def config_from_outputs(
             "media_api": names["MediaApi"],
             "repairs": [names["MediaRepair"], names["ProcessingRepair"]],
         }
+        if f"{LAUNCHER}FunctionName" in outputs:
+            # The launcher joins Processing's releases and quiescence, but never `schedules`:
+            # `session open` enables every schedule, and this one needs an explicit opt-in.
+            launcher, rule = outputs[f"{LAUNCHER}FunctionName"], outputs[f"{LAUNCHER}RuleName"]
+            config["launcher"] = {"function": launcher, "rule": rule}
+            config["functions"][launcher] = reservations.get(LAUNCHER)
+            config["owner_functions"]["processing"][LAUNCHER] = launcher
+            config["owner_consumers"]["processing"]["schedules"].append(rule)
+            hooks["launcher"] = launcher
         urls = {
             "gateway": outputs["HttpApiUrl"],
             "frontend": outputs.get("FrontendUrl"),
@@ -251,6 +262,7 @@ class PlanTransport:
         self.rules = dict(rules or {})
         self.stage = {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0}
         self.tasks = {}
+        self.launcher = {"enabled": False}  # simulated control row
 
     def call(self, service, operation, payload, *, deadline):
         if deadline <= time.monotonic():
@@ -281,7 +293,14 @@ class PlanTransport:
         elif operation == "get-stage":
             return {"DefaultRouteSettings": dict(self.stage)}
         elif operation == "invoke":
-            if payload["Payload"].get("dc2_operation") == "ready":
+            if payload["Payload"].get("dc2_operation") == "launcher":
+                action = payload["Payload"].get("action")
+                self.launcher = {**self.launcher, "enabled": action == "enable"} if (
+                    action in {"enable", "disable"}
+                ) else self.launcher
+                reply = {"service": "processing-launcher", "action": action, "ambiguous": 0,
+                         **self.launcher}
+            elif payload["Payload"].get("dc2_operation") == "ready":
                 service = "media" if "Media" in payload["FunctionName"] else "processing"
                 reply = {"service": service, "ready": True}
             else:

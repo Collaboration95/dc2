@@ -75,3 +75,12 @@ def ecs_handler(event, context):
 @sanitized_entrypoint("processing.s3")
 def s3_handler(event, context):
     return asyncio.run(invoke(event, context, "s3"))
+
+
+@sanitized_entrypoint("processing.launcher")
+def launcher_handler(event, context):
+    # Opt-in V2 experiment (#68): the function exists only when the stack sets
+    # UnattendedLaunch=true, and the import keeps V1 cold starts free of boto3 ECS clients.
+    from processing.launcher_aws import run
+
+    return asyncio.run(run(event, context))

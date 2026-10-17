@@ -23,7 +23,13 @@ ENTRYPOINTS = {
     },
     "processing": {
         "processing.lambda_handler": ("handler",),
-        "processing.handlers": ("command_handler", "repair_handler", "ecs_handler", "s3_handler"),
+        "processing.handlers": (
+            "command_handler",
+            "repair_handler",
+            "ecs_handler",
+            "s3_handler",
+            "launcher_handler",
+        ),
     },
     "worker": {
         "processing.v1_worker": ("main",),

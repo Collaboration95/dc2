@@ -220,7 +220,14 @@ def test_closed_defaults_finite_worker_and_partial_batches():
         if resource["Type"] == "AWS::Lambda::Function":
             assert "ReservedConcurrentExecutions" not in resource["Properties"]
             assert resource["Properties"]["VpcConfig"]["Ipv6AllowedForDualStack"] is True
-            assert resource["Condition"] == "Applications"
+            # The opt-in launcher (#68) is the only function the default stack omits.
+            assert resource["Condition"] == (
+                "Unattended"
+                if resource["Properties"]["Environment"]["Variables"].get(
+                    "PROCESSING_LAUNCHER_CLUSTER"
+                )
+                else "Applications"
+            )
     worker = resources["WorkerTaskDefinition"]["Properties"]["ContainerDefinitions"][0]
     assert "processing.v1_worker" in worker["Command"]
     assert "--max-empty-polls" in worker["Command"]
@@ -459,7 +466,9 @@ def test_every_processing_role_that_reaches_output_cleanup_can_list_and_delete_v
     reaching = {
         role
         for role, path in handlers.items()
-        if path.startswith("processing.handlers.") and reaches_cleanup(monkeypatch, path)
+        if path.startswith("processing.handlers.")
+        and role != "ProcessingLauncher"  # never touches S3; test_unattended_launch pins that
+        and reaches_cleanup(monkeypatch, path)
     }
     # The ASGI API entrypoint never imports the cleanup machinery at all.
     api = (ROOT / "processing/lambda_handler.py").read_text() + (
