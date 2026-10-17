@@ -29,9 +29,12 @@ def migrate(connection) -> None:
 
 
 async def online() -> None:
-    options = engine_options(settings, invocation=True) if cloud else {}
-    options["poolclass"] = pool.NullPool
-    engine = create_async_engine(dsn, **options)
+    # A one-shot migration task keeps the verified TLS arguments but not the warm-Lambda
+    # pool sizing, which SQLAlchemy rejects alongside NullPool.
+    options = {}
+    if cloud:
+        options["connect_args"] = engine_options(settings, invocation=True)["connect_args"]
+    engine = create_async_engine(dsn, poolclass=pool.NullPool, **options)
     try:
         async with engine.connect() as connection:
             await connection.run_sync(migrate)
