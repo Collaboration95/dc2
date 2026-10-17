@@ -125,7 +125,7 @@ output strings to booleans. Full mode passes true for all three requests.
 covers every local flow, browser and V1 coverage; `images` validates the three V1
 artifacts. The reusable V1 requested checks aggregate fails for **any requested internal job**
 that fails, cancels or skips.
-This CI change must be integrated with that interface before publication.
+The caller and reusable input contract are checked together by the workflow tests.
 
 ## Inherited assertion inventory and retention
 
@@ -237,3 +237,5 @@ time. Record end-to-end gate time including queue separately if used. Short scan
 savings can reduce runner usage without reducing the gate's critical path. Local
 offline tests cannot demonstrate hosted integration, image or browser timings.
 Agent wait behavior and measured hosted receipts are owned by #165.
+
+Measured hosted results and limitations: [results-20261017.md](results-20261017.md).
