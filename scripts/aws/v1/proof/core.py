@@ -111,9 +111,12 @@ class Proof:
     """One issue's receipt for one run id: ordered steps, resumable intents, an overall verdict."""
 
     def __init__(self, issue, *, directory, run_id, simulated, scope, required=(), guard=None,
-                 wall=time.time):
+                 wall=time.time, fresh=None):
         self.issue, self.run_id, self.simulated = issue, run_id, simulated
         self.required, self.guard, self.wall = tuple(required), guard, wall
+        # `fresh` is None (PASS and NOT_RUN stay final), True (every step) or a set of step names
+        # whose old receipt entry is archived, once per process, before the step runs again.
+        self.fresh, self.archived = fresh, set()
         self.ran = []  # steps whose action ran in this process (not skipped as already passed)
         self.path = Path(directory) / f"evidence-{issue}-{run_id}.json"
         self.doc = {"issue": f"#{issue}", "run_id": run_id, "scope": scope, "steps": {},
@@ -136,6 +139,26 @@ class Proof:
         """Mutable record for a side-effecting step; call save() after writing to it."""
         return self.doc["intents"].setdefault(name, {})
 
+    def wants_fresh(self, name):
+        return name not in self.archived and (
+            self.fresh is True or (bool(self.fresh) and name in self.fresh))
+
+    def archive(self, name):
+        """Move a step's entry and intent to `attempts` so the step reruns and mints a new intent.
+
+        `attempts` is private history: the summary and counts read `steps` only, so an archived
+        attempt can never reach (or fail the screen of) a committed file.
+        """
+        self.archived.add(name)
+        step = self.doc["steps"].pop(name, None)
+        intent = self.doc["intents"].pop(name, None)
+        if step is None and intent is None:
+            return
+        history = self.doc.setdefault("attempts", {}).setdefault(name, [])
+        history.append({"attempt": len(history) + 1, "step": step, "intent": intent,
+                        "archived_at": stamp(self.wall())})
+        self.save()
+
     def checkpoint(self, kind):
         """Re-assert the session while a long step waits: a closed window must stop the step."""
         if self.guard and kind:
@@ -152,9 +175,12 @@ class Proof:
         guard raises before anything is recorded, so a refused step leaves the receipt untouched.
         """
         known = self.doc["steps"].get(name)
-        if known and known["status"] in {PASS, NOT_RUN} and not rerun:
+        fresh = self.wants_fresh(name)
+        if known and known["status"] in {PASS, NOT_RUN} and not rerun and not fresh:
             return known
         self.checkpoint(session)
+        if fresh:  # after the guard: a refused step leaves the receipt untouched
+            self.archive(name)
         self.ran.append(name)
         started = self.wall()
         try:
@@ -207,6 +233,15 @@ class Proof:
         }
 
 
+def stage_throttle(aws, gate):
+    """The Gateway stage's live default-route throttle, as `session status` reads it
+    ({"ThrottlingRateLimit", "ThrottlingBurstLimit"}; empty when the stage reports none)."""
+    stage = aws.call("apigatewayv2", "get-stage",
+                     {"ApiId": gate["api_id"], "StageName": gate["stage"]},
+                     deadline=time.monotonic() + 30)
+    return stage.get("DefaultRouteSettings", {})
+
+
 class SessionGuard:
     """Refuses a step when the session journal (and the live Gateway throttle) disagree."""
 
@@ -228,10 +263,7 @@ class SessionGuard:
                 "--config ...` first (a closed session means a closed window)")
         gate = self.config.get("gateway")
         if gate and kind != "closed":
-            stage = self.aws.call("apigatewayv2", "get-stage",
-                                  {"ApiId": gate["api_id"], "StageName": gate["stage"]},
-                                  deadline=time.monotonic() + 30)
-            limits = stage.get("DefaultRouteSettings", {})
+            limits = stage_throttle(self.aws, gate)
             if not limits.get("ThrottlingRateLimit"):
                 raise SessionRefused(
                     f"Session is {session} but the Gateway throttle is 0: the edge is shut, "

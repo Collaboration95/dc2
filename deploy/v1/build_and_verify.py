@@ -30,6 +30,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -81,8 +82,6 @@ FORBIDDEN_EVERYWHERE = {
     "pyyaml",
     "click",
 }
-# Lambda runtime client only belongs where Lambda invokes the image.
-LAMBDA_ONLY = {"awslambdaric", "simplejson", "snapshot-restore-py"}
 # Top-level source directories each image may carry under /app (plus the two lock inputs).
 APP_ALLOWED = {
     "media": {"contracts", "delivery", "media", "runtime_support"},
@@ -234,8 +233,12 @@ def verify_contents(owner: str, tag: str, built: dict) -> dict:
             and summary.get("runtime_contents", {}).get("ffmpeg") is False,
         )
     else:
-        leaked = sorted(LAMBDA_ONLY & packages)
-        record(f"{owner}: no Lambda-only runtime client in worker", not leaked, leaked)
+        # The worker image is also the opt-in Lambda short encoder (V2, #93), so the runtime
+        # client must be here; the entrypoint stays the finite Fargate encoder.
+        record(
+            "worker: Lambda runtime client present (opt-in short encoder shares this image)",
+            "awslambdaric" in packages,
+        )
         record(
             "worker: ffmpeg and ffprobe installed",
             set(summary.get("binaries", {})) == {"ffmpeg", "ffprobe"},
@@ -425,7 +428,7 @@ CONNECTION_CLASSES = ("ConnectionRefusedError", "OSError", "TimeoutError")
 # where operation is "<owner>.<name>" (media.repair, processing.ecs, ...). Match that exact
 # shape, not a substring, so a different failure class or a leaked driver message is rejected.
 SANITIZED_CONNECTION_FAILURE = re.compile(
-    r"(media|processing)\.[a-z0-9]+ failed \((" + "|".join(CONNECTION_CLASSES) + r")\)"
+    r"(media|processing)\.[a-z0-9_]+ failed \((" + "|".join(CONNECTION_CLASSES) + r")\)"
 )
 
 
@@ -561,6 +564,83 @@ def rie_media(tag, rie_dir):
     return {"api": api, "authorizer": authorizer, "results": results, "repair": repair}
 
 
+def work_message_body():
+    owner, asset = str(uuid.uuid4()), str(uuid.uuid4())
+    return json.dumps(
+        {
+            "schema_version": 1,
+            "message_id": str(uuid.uuid4()),
+            "kind": "work",
+            "owner_id": owner,
+            "asset_id": asset,
+            "job_id": str(uuid.uuid4()),
+            "attempt_id": str(uuid.uuid4()),
+            "state_version": 1,
+            "source": {
+                "bucket": "sources",
+                "key": f"sources/{owner}/{asset}/source",
+                "version_id": "immutable-v1",
+                "sha256": "a" * 64,
+                "size_bytes": 1234,
+                "content_type": "video/mp4",
+            },
+            "payload": {"operations": []},
+        }
+    )
+
+
+def rie_worker(tag, rie_dir):
+    """The opt-in short encoder (#93) in the worker image, under the RIE, with no database."""
+    env = {
+        "PROCESSING_POSTGRES_DSN": unreachable_dsn("processing"),
+        "PROCESSING_STORAGE_CREDENTIAL_MODE": "lambda",
+        "PROCESSING_MINIO_ENDPOINT": "s3.ap-southeast-1.amazonaws.com",
+        "PROCESSING_MINIO_USE_SSL": "true",
+        "PROCESSING_SHORT_LANE": "true",
+    }
+    malformed = sqs_event("{not json")
+    failed_item = [{"itemIdentifier": malformed["Records"][0]["messageId"]}]
+    return exercise(
+        "worker",
+        "processing.handlers.short_encoder_handler",
+        tag,
+        rie_dir,
+        env,
+        [
+            (
+                "an empty batch is a no-op",
+                {"Records": []},
+                lambda r: r["body"] == {"batchItemFailures": []},
+            ),
+            (
+                "a malformed message is a batch item failure, left for the redrive policy",
+                malformed,
+                lambda r: r["body"] == {"batchItemFailures": failed_item},
+            ),
+            (
+                "a valid work message without a database is a retryable failure, not a success",
+                sqs_event(work_message_body()),
+                database_down,
+            ),
+        ],
+    )
+
+
+def worker_ffmpeg_under_lambda_constraints(tag):
+    """FFmpeg must encode with a read-only root, a tmpfs /tmp and Lambda's foreign uid."""
+    script = (
+        "ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc=duration=1:size=64x64:rate=10 "
+        "-c:v libx264 -pix_fmt yuv420p /tmp/probe.mp4 && "
+        "ffprobe -v error -show_entries format=duration -of csv=p=0 /tmp/probe.mp4"
+    )
+    result = docker_run(tag, ["-c", script], entrypoint="sh", user=LAMBDA_UID, timeout=300)
+    seconds = result.stdout.strip().splitlines()[-1:] or [""]
+    ok = result.returncode == 0 and seconds[0].startswith("1.")
+    record("worker: FFmpeg encodes and probes a clip under the Lambda constraints", ok,
+           result.stderr[-300:])
+    return {"ok": ok}
+
+
 def ready_false(result):
     return result["body"] == {
         "service": "processing",
@@ -602,18 +682,31 @@ def rie_processing(tag, rie_dir, postgres_network):
         ],
     )
     control = {}
+    # The opt-in launcher (#68) is configured entirely from its environment, so the image is
+    # exercised with the variables the template gives it; the database is still unreachable.
+    launcher_env = base | {
+        "PROCESSING_LAUNCHER_CLUSTER": "arn:aws:ecs:ap-southeast-1:000000000000:cluster/local",
+        "PROCESSING_LAUNCHER_TASK_DEFINITION": (
+            "arn:aws:ecs:ap-southeast-1:000000000000:task-definition/local-worker:1"
+        ),
+        "PROCESSING_LAUNCHER_SUBNETS": "subnet-a,subnet-b",
+        "PROCESSING_LAUNCHER_SECURITY_GROUPS": "sg-local",
+        "PROCESSING_LAUNCHER_LIFETIME_SECONDS": "60",
+        "PROCESSING_WORK_QUEUE_URL": "https://sqs.ap-southeast-1.amazonaws.com/0/work",
+    }
     for name, handler, event in (
         ("command", "processing.handlers.command_handler", sqs_event("{not json")),
         ("repair", "processing.handlers.repair_handler", {"source": "aws.events"}),
         ("ecs", "processing.handlers.ecs_handler", {"source": "aws.ecs", "detail": {}}),
         ("s3", "processing.handlers.s3_handler", {"Records": []}),
+        ("launcher", "processing.handlers.launcher_handler", {"source": "aws.events"}),
     ):
         control[name] = exercise(
             "processing",
             handler,
             tag,
             rie_dir,
-            base,
+            launcher_env if name == "launcher" else base,
             [
                 (
                     "without a database: batch item failure or retryable connection error",
@@ -845,19 +938,24 @@ def main():
     task_results = {}
     try:
         with ThrowawayPostgres(not args.no_postgres) as pg:
-            if {"media", "processing"} & built_ok:
+            if {"media", "processing", "worker"} & built_ok:
                 rie["emulator"] = extract_rie(work)
                 record("RIE binary extracted from public Lambda Python image", True)
             if "media" in built_ok:
                 images["media"]["rie"] = rie_media(images["media"]["tag"], work)
             if "processing" in built_ok:
                 images["processing"]["rie"] = rie_processing(images["processing"]["tag"], work, pg)
+            if "worker" in built_ok:
+                images["worker"]["rie"] = rie_worker(images["worker"]["tag"], work)
             task_results = task_shapes(images, tasks, pg)
         if "worker" in built_ok:
             images["worker"]["entrypoint_failfast"] = worker_failfast(images["worker"]["tag"])
+            images["worker"]["ffmpeg_under_lambda"] = worker_ffmpeg_under_lambda_constraints(
+                images["worker"]["tag"]
+            )
     finally:
         shutil.rmtree(work, ignore_errors=True)
-    for owner in sorted({"media", "processing"} & built_ok):
+    for owner in sorted({"media", "processing", "worker"} & built_ok):
         wanted = {f["handler"] for f in functions.values() if f["owner"] == owner}
         exercised = {h for o, h in EXERCISED if o == owner}
         record(

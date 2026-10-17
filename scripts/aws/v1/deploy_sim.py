@@ -44,6 +44,9 @@ class SimulatedAws:
         self.s = settings
         self.calls, self.fail = [], {}
         self.mtd, self.forecast, self.mfa, self.fargate_vcpus = 0.0, 0.0, True, 6.0
+        # Whether the simulated principal is covered by FlickPondRequireMFA; False models the
+        # dedicated agent user. None makes the policy simulator itself fail (AccessDenied).
+        self.mfa_deny = True
         self.budget_limit, self.budget_name = 30.0, settings.budget_name
         self.engine_available = True
         self.stacks, self.objects, self.buckets, self.repos = {}, {}, {}, {}
@@ -52,8 +55,13 @@ class SimulatedAws:
         self.task_exit = {}  # task-definition substring -> exit code
         self.pending, self.puts, self.invalidations = {}, [], {}
         self.role_passwords = None  # the passwords the database holds after the last bootstrap
+        self.bootstrap_input = None  # what the last bootstrap task was given (all fake values)
         self.version_seq = 0
         self.stop_lag = 0  # describe-tasks rounds a stopped task keeps reporting RUNNING
+        # The tagging API is eventually consistent: it keeps listing resources a service has
+        # already deleted. arn -> {"state": what the owning service reports, "tags": {...}}.
+        # `tag_lag` makes a stack deletion leave such entries behind, as the r1017a one did.
+        self.lingering, self.tag_lag = {}, True
         # The previous sprint's rolled-back staging stack, so the plan shows it left alone.
         self.stacks[LEGACY] = {"status": "ROLLBACK_COMPLETE", "tags": {}, "resources": [],
                                "outputs": {}, "changesets": {}, "id": "legacy"}
@@ -82,6 +90,15 @@ class SimulatedAws:
 
     def iam_list_mfa_devices(self, payload):
         return {"MFADevices": [{"SerialNumber": "simulated"}] if self.mfa else []}
+
+    def iam_simulate_principal_policy(self, payload):
+        if self.mfa_deny is None:
+            raise self.error("iam", "simulate-principal-policy", "AccessDenied",
+                             "not authorized to perform iam:SimulatePrincipalPolicy")
+        decision = "explicitDeny" if self.mfa_deny else "allowed"
+        return {"EvaluationResults": [
+            {"EvalActionName": action, "EvalResourceName": "*", "EvalDecision": decision}
+            for action in payload["ActionNames"]]}
 
     def lambda_get_account_settings(self, payload):
         return {"AccountLimit": {"ConcurrentExecutions": 10, "UnreservedConcurrentExecutions": 10}}
@@ -173,7 +190,10 @@ class SimulatedAws:
 
     def cloudformation_describe_change_set(self, payload):
         stack = self.stacks.get(payload["StackName"])
-        found = (stack or {}).get("changesets", {}).get(payload["ChangeSetName"])
+        if stack is None:  # what AWS really answers before the stack exists
+            raise self.error("cloudformation", "describe-change-set", "ValidationError",
+                             f"Stack [{payload['StackName']}] does not exist")
+        found = stack.get("changesets", {}).get(payload["ChangeSetName"])
         if found is None:
             raise self.error("cloudformation", "describe-change-set", "ChangeSetNotFound")
         return {key: found[key] for key in ("Status", "StatusReason", "ExecutionStatus", "Changes")}
@@ -231,10 +251,10 @@ class SimulatedAws:
             physical = f"{stack_name}-{logical.lower()}-{suffix}"
             self.repos[physical] = {"tags": tags, "images": {}}
         elif kind == "AWS::RDS::DBCluster":
-            physical = f"{stack_name}-databasecluster-{suffix}"
+            physical = f"{stack_name}-{logical.lower()}-{suffix}"
             self.clusters[physical] = {"status": "available", "protected": True, "tags": tags}
         elif kind == "AWS::RDS::DBInstance":
-            physical = f"{stack_name}-databaseinstance-{suffix}"
+            physical = f"{stack_name}-{logical.lower()}-{suffix}"
             self.instances[physical] = {"status": "available", "tags": tags}
         elif kind == "AWS::Logs::LogGroup":
             template = res["Properties"]["LogGroupName"]["Fn::Sub"]
@@ -260,6 +280,14 @@ class SimulatedAws:
             "WorkerSecurityGroupId": "sg-0worker", "MigrationSecurityGroupId": "sg-0migrate",
             "DatabaseEndpoint": f"{env}.cluster-sim.{region}.rds.amazonaws.com",
             "BootstrapSecretArn": f"arn:aws:secretsmanager:{region}:{account}:secret:rds!sim",
+            # The separate layout (#94): one endpoint and master secret per domain's cluster.
+            **{f"{domain}DatabaseEndpoint":
+               f"{env}-{domain.lower()}.cluster-sim.{region}.rds.amazonaws.com"
+               for domain in ("Media", "Processing")},
+            **{f"{domain}BootstrapSecretArn":
+               f"arn:aws:secretsmanager:{region}:{account}:secret:rds!sim-{domain.lower()}"
+               for domain in ("Media", "Processing")},
+            "DatabaseTopology": "separate",
             "ClusterArn": f"arn:aws:ecs:{region}:{account}:cluster/{env}",
             "HttpApiId": "abc123def4",
             "HttpApiUrl": f"https://abc123def4.execute-api.{region}.amazonaws.com",
@@ -308,7 +336,27 @@ class SimulatedAws:
         for resource in stack["resources"]:
             if resource["type"] not in RETAINED:  # Retain resources survive the stack
                 self.groups.pop(resource["physical"], None)
+            if self.tag_lag:
+                self.leave_listing(name, stack, resource)
         stack["status"] = "DELETE_COMPLETE"
+
+    def leave_listing(self, stack_name, stack, resource):
+        """What r1017a saw: deleted EC2 resources, an INACTIVE cluster and task definitions."""
+        region, account = self.s.region, self.s.account
+        ident = short(stack_name, resource["logical"])
+        arn, state = {
+            "AWS::EC2::Subnet": (f"arn:aws:ec2:{region}:{account}:subnet/subnet-{ident}",
+                                 "NotFound"),
+            "AWS::EC2::VPCEndpoint": (
+                f"arn:aws:ec2:{region}:{account}:vpc-endpoint/vpce-{ident}", "NotFound"),
+            "AWS::ECS::Cluster": (f"arn:aws:ecs:{region}:{account}:cluster/{stack_name}",
+                                  "INACTIVE"),
+            "AWS::ECS::TaskDefinition": (
+                f"arn:aws:ecs:{region}:{account}:task-definition/"
+                f"{stack_name}-{resource['logical'].lower()}:1", "INACTIVE"),
+        }.get(resource["type"], (None, None))
+        if arn:
+            self.lingering[arn] = {"state": state, "tags": dict(stack["tags"])}
 
     # ---- S3 -----------------------------------------------------------------------------------
     def s3api_head_bucket(self, payload):
@@ -465,7 +513,7 @@ class SimulatedAws:
     def rds_describe_db_instances(self, payload):
         found = self.instances.get(payload["DBInstanceIdentifier"])
         if found is None:
-            raise self.error("rds", "describe-db-instances", "DBInstanceNotFoundFault")
+            raise self.error("rds", "describe-db-instances", "DBInstanceNotFound")
         if found["status"] == "deleting":
             del self.instances[payload["DBInstanceIdentifier"]]
         return {"DBInstances": [{"DBInstanceStatus": found["status"]}]}
@@ -477,7 +525,7 @@ class SimulatedAws:
     def rds_delete_db_instance(self, payload):
         found = self.instances.get(payload["DBInstanceIdentifier"])
         if found is None:
-            raise self.error("rds", "delete-db-instance", "DBInstanceNotFoundFault")
+            raise self.error("rds", "delete-db-instance", "DBInstanceNotFound")
         found["status"] = "deleting"
         return {}
 
@@ -514,7 +562,7 @@ class SimulatedAws:
         if identifier not in table:
             raise self.error("rds", "list-tags-for-resource",
                              "DBClusterNotFoundFault" if kind == "cluster"
-                             else "DBInstanceNotFoundFault")
+                             else "DBInstanceNotFound")
         return {"TagList": [{"Key": k, "Value": v} for k, v in table[identifier]["tags"].items()]}
 
     # ---- SSM / Secrets Manager / Logs --------------------------------------------------------
@@ -547,8 +595,10 @@ class SimulatedAws:
                                if n.startswith(payload["Path"])]}
 
     def secretsmanager_get_secret_value(self, payload):
+        # One master credential per cluster, so a test can see which cluster got which.
+        suffix = short(payload["SecretId"])
         return {"SecretString": json.dumps({"username": "dc2bootstrap",
-                                            "password": "simulated-master-password"})}
+                                            "password": f"simulated-master-password-{suffix}"})}
 
     def logs_describe_log_groups(self, payload):
         region, account = self.s.region, self.s.account
@@ -576,7 +626,8 @@ class SimulatedAws:
         staged = self.param_values.get(f"/dc2/{self.s.env}/bootstrap-input")
         if "bootstrap" in payload["taskDefinition"] and staged:
             # What a real bootstrap task does: set the roles' passwords from its input.
-            self.role_passwords = json.loads(staged)["role_passwords"]
+            self.bootstrap_input = json.loads(staged)
+            self.role_passwords = self.bootstrap_input["role_passwords"]
         return {"tasks": [{"taskArn": arn}], "failures": []}
 
     def ecs_describe_tasks(self, payload):
@@ -609,7 +660,71 @@ class SimulatedAws:
         return {}
 
     def ecs_describe_task_definition(self, payload):
-        return {"taskDefinition": {"taskDefinitionArn": payload["taskDefinition"]}}
+        arn = payload["taskDefinition"]
+        entry = self.lingering.get(arn)
+        if entry is None:  # one the run registered and still has: active
+            return {"taskDefinition": {"taskDefinitionArn": arn, "status": "ACTIVE"}}
+        if entry["state"] == "NotFound":  # what ECS says once a definition is fully deleted
+            raise self.error("ecs", "describe-task-definition", "ClientException",
+                             "Unable to describe task definition.")
+        return {"taskDefinition": {"taskDefinitionArn": arn, "status": entry["state"]}}
+
+    def ecs_describe_clusters(self, payload):
+        arn = payload["clusters"][0]
+        entry = self.lingering.get(arn)
+        if entry is None or entry["state"] == "MISSING":
+            return {"clusters": [], "failures": [{"arn": arn, "reason": "MISSING"}]}
+        return {"clusters": [{"clusterArn": arn, "status": entry["state"]}], "failures": []}
+
+    def ecs_delete_task_definitions(self, payload):
+        deleted, failures = [], []
+        for arn in payload["taskDefinitions"]:
+            entry = self.lingering.get(arn)
+            if entry is not None and entry["state"] == "INACTIVE":
+                entry["state"] = "DELETE_IN_PROGRESS"  # the tagging listing still lags
+                deleted.append({"taskDefinitionArn": arn, "status": "DELETE_IN_PROGRESS"})
+            else:
+                failures.append({"arn": arn, "reason": "INVALID_STATE"})
+        return {"taskDefinitions": deleted, "failures": failures}
+
+    # ---- EC2 existence checks ----------------------------------------------------------------
+    def describe_ec2(self, operation, payload, key, plural, code):
+        """NotFound for a resource that is gone or never listed; else the state the entry holds."""
+        ident = payload[key][0]
+        entry = next((e for arn, e in self.lingering.items()
+                      if arn.startswith("arn:aws:ec2:") and arn.endswith("/" + ident)), None)
+        if entry is None or entry["state"] == "NotFound":
+            raise self.error("ec2", operation, code, f"The ID '{ident}' does not exist")
+        return {plural: [{"State": entry["state"]}]}
+
+    def ec2_describe_vpcs(self, payload):
+        return self.describe_ec2("describe-vpcs", payload, "VpcIds", "Vpcs",
+                                 "InvalidVpcID.NotFound")
+
+    def ec2_describe_subnets(self, payload):
+        return self.describe_ec2("describe-subnets", payload, "SubnetIds", "Subnets",
+                                 "InvalidSubnetID.NotFound")
+
+    def ec2_describe_security_groups(self, payload):
+        return self.describe_ec2("describe-security-groups", payload, "GroupIds",
+                                 "SecurityGroups", "InvalidGroup.NotFound")
+
+    def ec2_describe_route_tables(self, payload):
+        return self.describe_ec2("describe-route-tables", payload, "RouteTableIds",
+                                 "RouteTables", "InvalidRouteTableID.NotFound")
+
+    def ec2_describe_internet_gateways(self, payload):
+        return self.describe_ec2("describe-internet-gateways", payload, "InternetGatewayIds",
+                                 "InternetGateways", "InvalidInternetGatewayID.NotFound")
+
+    def ec2_describe_egress_only_internet_gateways(self, payload):
+        return self.describe_ec2("describe-egress-only-internet-gateways", payload,
+                                 "EgressOnlyInternetGatewayIds", "EgressOnlyInternetGateways",
+                                 "InvalidGatewayID.NotFound")
+
+    def ec2_describe_vpc_endpoints(self, payload):
+        return self.describe_ec2("describe-vpc-endpoints", payload, "VpcEndpointIds",
+                                 "VpcEndpoints", "InvalidVpcEndpointId.NotFound")
 
     # ---- tagging ------------------------------------------------------------------------
     def resourcegroupstaggingapi_get_resources(self, payload):
@@ -633,6 +748,8 @@ class SimulatedAws:
             if stack["status"] != "DELETE_COMPLETE":
                 add(f"arn:aws:cloudformation:{region}:{account}:stack/{name}/{stack['id']}",
                     stack["tags"])
+        for arn, entry in self.lingering.items():
+            add(arn, entry["tags"])
         return {"ResourceTagMappingList": found}
 
     # ---- seeding from a real run journal ---------------------------------------------------

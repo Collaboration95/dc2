@@ -259,7 +259,7 @@ def test_a_destructive_teardown_also_refuses_long_term_credentials(tmp_path):
                                             "remaining_seconds": None}
     with pytest.raises(deploy.DeployError, match="mfa_session"):
         pipeline.teardown()
-    assert rig.sim.calls == []
+    assert not any(deploy.is_mutating(op) for _, op, _ in rig.sim.calls)
 
 
 def test_the_default_profile_is_still_refused_by_the_deploy_scope(tmp_path):

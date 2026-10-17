@@ -31,13 +31,18 @@ HANDLERS = (
     "ProcessingEcsEvents",
     "ProcessingS3Events",
 )
+# Present in the stack outputs only when it was deployed with UnattendedLaunch=true (#68).
+LAUNCHER = "ProcessingLauncher"
 INTAKE = ("MediaApi", "MediaAuthorizer")
 MAPPINGS = ("ProcessingCommands", "MediaResults")
 RULES = ("MediaRepair", "ProcessingRepair", "ProcessingEcsEvents", "ProcessingS3Events")
+# Present only when the stack was deployed with LambdaShortEncodes=true (#93). It runs the
+# worker image, so it joins the session's mappings and functions but never an owner's release.
+SHORT_ENCODER = "ProcessingShortEncoder"
 # Default open throttle mirrors the previous template value; tune per session.
 DEFAULT_EDGE_OPEN = {"rate": 5, "burst": 10}
 QUEUES = ("ProcessingCommands", "ProcessingWork", "MediaResults")
-SERVICES = ("lambda", "events", "apigatewayv2", "ecs")
+SERVICES = ("lambda", "events", "apigatewayv2", "ecs", "logs")
 PROFILE_PATTERN = re.compile(r"[A-Za-z0-9_.-]{1,64}")
 
 
@@ -126,6 +131,32 @@ def config_from_outputs(
             "media_api": names["MediaApi"],
             "repairs": [names["MediaRepair"], names["ProcessingRepair"]],
         }
+        if f"{LAUNCHER}FunctionName" in outputs:
+            # The launcher joins Processing's releases and quiescence, but never `schedules`:
+            # `session open` enables every schedule, and this one needs an explicit opt-in.
+            launcher, rule = outputs[f"{LAUNCHER}FunctionName"], outputs[f"{LAUNCHER}RuleName"]
+            config["launcher"] = {"function": launcher, "rule": rule}
+            config["functions"][launcher] = reservations.get(LAUNCHER)
+            config["owner_functions"]["processing"][LAUNCHER] = launcher
+            config["owner_consumers"]["processing"]["schedules"].append(rule)
+            hooks["launcher"] = launcher
+        if f"{SHORT_ENCODER}FunctionName" in outputs:
+            encoder = outputs[f"{SHORT_ENCODER}FunctionName"]
+            mapping = outputs[f"{SHORT_ENCODER}MappingId"]
+            config["functions"][encoder] = reservations.get(SHORT_ENCODER)
+            # `session open` enables every mapping and `close` disables every mapping.
+            config["mappings"].append(mapping)
+            config["owner_consumers"]["processing"]["mappings"].append(mapping)
+        # The in-VPC schema/count reader runs each owner's own deployed migration definition,
+        # because that task already holds the owner's database role and CA. Optional: an older
+        # stack's outputs lack them and the reader then says so instead of guessing.
+        definitions = {
+            owner: outputs[f"{owner.title()}MigrationTaskDefinitionArn"]
+            for owner in ("media", "processing")
+            if f"{owner.title()}MigrationTaskDefinitionArn" in outputs
+        }
+        if definitions:
+            config["migration_definitions"] = definitions
         urls = {
             "gateway": outputs["HttpApiUrl"],
             "frontend": outputs.get("FrontendUrl"),
@@ -173,7 +204,7 @@ def load_operator_config(path):
 
 def add_scope_arguments(parser):
     parser.add_argument("--profile", required=True,
-                        help="explicit AWS profile (e.g. dc2-project2-mfa); never default")
+                        help="explicit AWS profile, e.g. dc2-agent; never default")
     parser.add_argument("--region", required=True, help="must be " + REGION)
     parser.add_argument("--account", help="12-digit account (or DC2_AWS_ACCOUNT)")
     parser.add_argument("--dry-run", action="store_true", help="print planned calls; no AWS")
@@ -251,6 +282,7 @@ class PlanTransport:
         self.rules = dict(rules or {})
         self.stage = {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0}
         self.tasks = {}
+        self.launcher = {"enabled": False}  # simulated control row
 
     def call(self, service, operation, payload, *, deadline):
         if deadline <= time.monotonic():
@@ -281,7 +313,14 @@ class PlanTransport:
         elif operation == "get-stage":
             return {"DefaultRouteSettings": dict(self.stage)}
         elif operation == "invoke":
-            if payload["Payload"].get("dc2_operation") == "ready":
+            if payload["Payload"].get("dc2_operation") == "launcher":
+                action = payload["Payload"].get("action")
+                self.launcher = {**self.launcher, "enabled": action == "enable"} if (
+                    action in {"enable", "disable"}
+                ) else self.launcher
+                reply = {"service": "processing-launcher", "action": action, "ambiguous": 0,
+                         **self.launcher}
+            elif payload["Payload"].get("dc2_operation") == "ready":
                 service = "media" if "Media" in payload["FunctionName"] else "processing"
                 reply = {"service": service, "ready": True}
             else:

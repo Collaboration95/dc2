@@ -1,3 +1,5 @@
 # Declarative input; resolved versions/hashes come exclusively from uv.lock.
 # Export: uv export --frozen --no-dev --no-emit-project --extra v1-worker
-# finite worker; boto3 and engine dependencies are in the common base
+# finite worker; boto3 and engine dependencies are in the common base.
+# The Lambda runtime client lets the opt-in short encoder (V2, #93) run this same image.
+awslambdaric>=3.1,<4

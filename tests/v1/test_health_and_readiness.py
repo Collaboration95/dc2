@@ -14,6 +14,7 @@ from processing import database as processing_database
 from processing import lambda_handler as processing_lambda
 from processing.config import Settings as ProcessingSettings
 from processing.v1_api import create_app
+from runtime_support import lambda_db
 
 
 def gateway_event(service, path):
@@ -108,6 +109,7 @@ async def test_processing_readiness_checks_the_database_and_hides_driver_text(mo
         postgres_dsn="postgresql://runtime@unused/processing_db", database_tls=False
     )
     for failure, expected in ((None, True), (OSError("password=secret"), False)):
+        lambda_db.reset()  # a cold environment per case; the warm reuse has its own tests
         connection = Connection(failure)
         engine = AsyncMock()
         engine.connect = lambda c=connection: Context(c)
@@ -116,7 +118,8 @@ async def test_processing_readiness_checks_the_database_and_hides_driver_text(mo
         assert result["ready"] is expected
         assert "secret" not in str(result)
         assert connection.statements == ["SELECT 1"]
-        engine.dispose.assert_awaited_once()
+        # A healthy engine stays warm; a failed readiness probe retires it.
+        assert engine.dispose.await_count == (0 if expected else 1)
 
 
 class Context:

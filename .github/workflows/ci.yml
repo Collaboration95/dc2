@@ -5,6 +5,14 @@ on:
     branches: [Main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact 40-character SHA of the dispatched ref (full verification)
+        required: true
+        type: string
+  schedule:
+    # Complete inherited + V1 regression on the default branch, not an unmerged candidate.
+    - cron: '0 3 * * 0'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,7 +30,70 @@ env:
   GH_TOKEN: ${{ github.token }}
 
 jobs:
+  classify:
+    name: Select verification policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      mode: ${{ steps.policy.outputs.mode }}
+      plan: ${{ steps.policy.outputs.plan }}
+      source_sha: ${{ steps.policy.outputs.source_sha }}
+      security_matrix: ${{ steps.policy.outputs.security_matrix }}
+      policy_checks: ${{ steps.policy.outputs.policy_checks }}
+      planning: ${{ steps.policy.outputs.planning }}
+      lint_and_unit: ${{ steps.policy.outputs.lint_and_unit }}
+      frontend: ${{ steps.policy.outputs.frontend }}
+      legacy_integration: ${{ steps.policy.outputs.legacy_integration }}
+      processing_intake: ${{ steps.policy.outputs.processing_intake }}
+      media_integration: ${{ steps.policy.outputs.media_integration }}
+      publisher_https: ${{ steps.policy.outputs.publisher_https }}
+      browser_trust: ${{ steps.policy.outputs.browser_trust }}
+      v1_offline: ${{ steps.policy.outputs.v1_offline }}
+      v1_live: ${{ steps.policy.outputs.v1_live }}
+      images: ${{ steps.policy.outputs.images }}
+      coverage_gate: ${{ steps.policy.outputs.coverage_gate }}
+      security: ${{ steps.policy.outputs.security }}
+      dast: ${{ steps.policy.outputs.dast }}
+      v1: ${{ steps.policy.outputs.v1 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Classify intended base and exact tested candidate
+        id: policy
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+        run: python3 scripts/ci/policy.py classify > ci-policy.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-selection-${{ github.run_attempt }}
+          path: ci-policy.json
+          if-no-files-found: error
+          retention-days: 14
+
+  policy-checks:
+    name: CI policy offline tests
+    needs: classify
+    if: needs.classify.outputs.policy_checks == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tests/ci -v
+
+  planning:
+    name: Planning packet validation
+    needs: classify
+    if: needs.classify.outputs.planning == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/planning/validate_v1_plan.py
+
   lint-and-unit:
+    needs: classify
+    if: needs.classify.outputs.lint_and_unit == 'true'
     name: Lint and Python unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -39,9 +110,16 @@ jobs:
           cache-dependency-glob: uv.lock
       - run: uv sync --locked --extra legacy --extra dev --extra browser
       - run: make lint
-      - name: Validate staged V1/V2 planning packet
-        run: python scripts/planning/validate_v1_plan.py
+      - name: Lint CI helpers (outside inherited lint path)
+        run: .venv/bin/ruff check scripts/ci tests/ci
       - run: .venv/bin/python -m scripts.dev.checks coverage-fast
+      # The no-legacy V1 offline suite deliberately excludes these AWS2 contracts;
+      # coverage-fast excludes unmeasured tooling too. Keep their owner tests here.
+      - name: Legacy-only offline operator contracts (network guarded)
+        run: >-
+          .venv/bin/python -m pytest -q -p scripts.dev.pytest_plugin --offline-fast
+          tests/aws/test_cloud_worker.py tests/aws/test_definitions.py
+          -m 'not integration and not e2e' --no-cov
       - uses: actions/upload-artifact@v4
         with:
           name: fast-coverage-data
@@ -51,6 +129,8 @@ jobs:
           retention-days: 7
 
   frontend:
+    needs: classify
+    if: needs.classify.outputs.frontend == 'true'
     name: Frontend tests
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -82,19 +162,22 @@ jobs:
           retention-days: 7
 
   fast:
-    name: Fast checks
+    name: Dev gate
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 1
-    needs: [lint-and-unit, frontend]
+    timeout-minutes: 2
+    needs: [classify, policy-checks, planning, lint-and-unit, frontend, legacy-integration, processing-intake, media-integration, publisher-https, browser-trust, v1-local]
     steps:
-      - name: Require successful fast jobs
+      - uses: actions/checkout@v4
+      - name: Require every selected dev check; validate intentional skips
         env:
-          PYTHON_RESULT: ${{ needs.lint-and-unit.result }}
-          FRONTEND_RESULT: ${{ needs.frontend.result }}
-        run: test "$PYTHON_RESULT" = success && test "$FRONTEND_RESULT" = success
+          CI_PLAN: ${{ needs.classify.outputs.plan }}
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: python3 scripts/ci/policy.py gate --scope dev
 
   legacy-integration:
+    needs: classify
+    if: needs.classify.outputs.legacy_integration == 'true'
     name: Legacy real integration
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -176,6 +259,8 @@ jobs:
         run: docker rm -f dc2-ci-minio
 
   processing-intake:
+    needs: classify
+    if: needs.classify.outputs.processing_intake == 'true'
     name: Processing worker, recovery and database ownership
     runs-on: ubuntu-latest
     timeout-minutes: 12
@@ -249,6 +334,8 @@ jobs:
         if: always()
 
   media-integration:
+    needs: classify
+    if: needs.classify.outputs.media_integration == 'true'
     name: Media owned persistence and boundary contracts
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -290,6 +377,8 @@ jobs:
         run: docker compose -f docker-compose.processing.yml down -v
 
   publisher-https:
+    needs: classify
+    if: needs.classify.outputs.publisher_https == 'true'
     name: Independent Publisher HTTPS and cookie persistence
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -313,6 +402,8 @@ jobs:
           PUBLISHER_HTTPS_TEST: '1'
 
   browser-trust:
+    needs: classify
+    if: needs.classify.outputs.browser_trust == 'true'
     name: Local HTTPS and browser trust
     runs-on: ubuntu-latest
     # Cold setup/build plus bounded full client acceptance and evidence/cleanup.
@@ -442,15 +533,22 @@ jobs:
   # fragment is the V1 tier of the combined gate below.
   v1-local:
     name: V1 local verification
+    needs: classify
+    if: needs.classify.outputs.v1 == 'true'
     uses: ./.github/workflows/v1.yml
     with:
       flow: all
+      run_offline: ${{ needs.classify.outputs.v1_offline == 'true' }}
+      run_live: ${{ needs.classify.outputs.v1_live == 'true' }}
+      auto_images: false
+      images: ${{ needs.classify.outputs.images == 'true' }}
 
   coverage-gate:
     name: Combined backend package coverage
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [lint-and-unit, legacy-integration, processing-intake, media-integration, v1-local]
+    needs: [classify, lint-and-unit, legacy-integration, processing-intake, media-integration, v1-local]
+    if: needs.classify.outputs.coverage_gate == 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -482,11 +580,11 @@ jobs:
           retention-days: 7
 
   integration:
-    name: Integration checks
-    if: always()
+    name: Full verification
+    if: always() && (needs.classify.result != 'success' || needs.classify.outputs.mode == 'full')
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    needs: [legacy-integration, processing-intake, media-integration, publisher-https, browser-trust, v1-local, coverage-gate]
+    needs: [classify, policy-checks, planning, lint-and-unit, frontend, legacy-integration, processing-intake, media-integration, publisher-https, browser-trust, v1-local, coverage-gate, security, dast]
     steps:
       - name: Require successful real integration, trust and package gates
         env:
@@ -505,22 +603,34 @@ jobs:
           test "$TRUST_RESULT" = success
           test "$V1_RESULT" = success
           test "$COVERAGE_RESULT" = success
+      - uses: actions/checkout@v4
+      - name: Require every requested full check, including images and scan execution
+        env:
+          CI_PLAN: ${{ needs.classify.outputs.plan }}
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: python3 scripts/ci/policy.py gate --scope full
+
+  dast:
+    name: Exact-candidate DAST execution (findings report-only)
+    needs: classify
+    if: needs.classify.outputs.dast == 'true'
+    uses: ./.github/workflows/dast.yml
+    with:
+      required_candidate: true
 
   security:
-    name: Scan container image (${{ matrix.image.name }})
+    needs: classify
+    if: needs.classify.outputs.security == 'true'
+    name: Scan container image (${{ matrix.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
-      matrix:
-        image:
-          - {name: app, file: Dockerfile, tag: flickpond-api:ci}
-          - {name: processing, file: deploy/processing.Dockerfile, tag: dc2-processing:ci}
-          - {name: media, file: deploy/media.Dockerfile, tag: dc2-media:ci}
+      matrix: ${{ fromJSON(needs.classify.outputs.security_matrix) }}
     steps:
       - uses: actions/checkout@v4
-      # All current distinct image digests are scanned. Processing API/worker/recovery
-      # share one image; legacy remains a regression reference, Media is the live facade.
+      # These are the inherited topology's three artifacts. V1 artifact validation
+      # runs in v1.yml; this matrix does not attest to Lambda/Fargate vulnerability scans.
       - name: Require scan selection for new live images
         run: |
           test -f deploy/media.Dockerfile
@@ -529,25 +639,78 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ matrix.image.file }}
+          file: ${{ matrix.file }}
           load: true
-          tags: ${{ matrix.image.tag }}
-          cache-from: type=gha,scope=${{ matrix.image.name }}
-          cache-to: type=gha,scope=${{ matrix.image.name }},mode=max
+          tags: ${{ matrix.tag }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }},mode=max
+      - name: Record the exact loaded candidate image and source
+        env:
+          IMAGE_REF: ${{ matrix.tag }}
+        run: |
+          python3 - <<'PYIMAGE'
+          import json, os, subprocess
+          from pathlib import Path
+          digest = subprocess.check_output(['docker', 'image', 'inspect', '--format', '{{.Id}}', os.environ['IMAGE_REF']], text=True).strip()
+          Path('image-source.json').write_text(json.dumps({'source_sha': os.environ['GITHUB_SHA'], 'image_ref': os.environ['IMAGE_REF'], 'image_id': digest}))
+          PYIMAGE
       # Scan the actual loaded candidate. Never weaken the inherited promotion policy.
       - uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ matrix.image.tag }}
-          format: table
+          image-ref: ${{ matrix.tag }}
+          format: json
+          output: trivy-findings.json
           exit-code: '1'
           ignore-unfixed: true
           severity: CRITICAL,HIGH
+      - name: Retain exact candidate scan findings and identity
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-scan-${{ matrix.name }}-${{ github.run_id }}
+          path: |
+            image-source.json
+            trivy-findings.json
+          if-no-files-found: error
+          retention-days: 14
+
+  sonar-config:
+    name: Sonar configuration (analysis is advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    outputs:
+      configured: ${{ steps.config.outputs.configured }}
+    steps:
+      - name: Report configuration without exposing secrets
+        id: config
+        env:
+          SONAR_TOKEN: ${{ secrets['SONAR_TOKEN'] }}
+          SONAR_PROJECT_KEY: ${{ vars['SONAR_PROJECT_KEY'] }}
+          SONAR_ORGANIZATION: ${{ vars['SONAR_ORGANIZATION'] }}
+        run: |
+          python3 - <<'PYSONAR'
+          import json, os
+          from pathlib import Path
+          configured = all(os.environ.get(k) for k in ('SONAR_TOKEN', 'SONAR_PROJECT_KEY', 'SONAR_ORGANIZATION'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
+              stream.write('configured=' + str(configured).lower() + '\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as stream:
+              stream.write('Sonar: ' + ('configured; analysis advisory at every tier' if configured else 'NOT_RUN / not configured; no analysis or quality-gate result') + '.\n')
+          Path('sonar-configuration.json').write_text(json.dumps({'engine': 'sonar', 'source_sha': os.environ['GITHUB_SHA'], 'configured': configured, 'disposition': 'configured; analysis pending' if configured else 'NOT_RUN / not configured'}))
+          PYSONAR
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sonar-configuration-${{ github.run_id }}
+          path: sonar-configuration.json
+          if-no-files-found: error
+          retention-days: 14
 
   sast:
-    name: SonarCloud SAST
+    name: SonarCloud SAST (advisory)
+    if: needs.sonar-config.outputs.configured == 'true' && needs.classify.outputs.mode == 'dev' && (needs.classify.outputs.lint_and_unit == 'true' || needs.classify.outputs.frontend == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 8
-    needs: [coverage-gate, frontend]
+    needs: [classify, sonar-config]
     env:
       SONAR_HOST_URL: https://sonarcloud.io
       SONAR_TOKEN: ${{ secrets['SONAR_TOKEN'] }}
@@ -557,21 +720,71 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Download Python coverage
+      - name: Run advisory source analysis; completed result remains linked in scanner metadata
+        id: sonar_analysis
+        continue-on-error: true
+        uses: SonarSource/sonarqube-scan-action@ba9859eae8dd6bd29e412f25ddbbef3d032000f4 # v8.2.2
+        with:
+          args: >-
+            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
+            -Dsonar.qualitygate.wait=false
+      - name: Record actual Sonar submission disposition
+        if: always()
+        env:
+          ANALYSIS_OUTCOME: ${{ steps.sonar_analysis.outcome }}
+        run: |
+          python3 - <<'PYSCAN'
+          import json, os
+          from pathlib import Path
+          outcome = os.environ['ANALYSIS_OUTCOME']
+          status = 'submitted' if outcome == 'success' else ('NOT_RUN' if outcome == 'skipped' else 'error')
+          report = {'engine': 'sonar', 'disposition': status, 'step_outcome': outcome,
+                    'source_sha': os.environ['GITHUB_SHA'], 'quality_gate': 'advisory; not awaited',
+                    'coverage': 'not supplied by this source-only advisory analysis',
+                    'results': 'Sonar project dashboard and scanner report-task.txt; submission is not analysis success'}
+          Path('sonar-disposition.json').write_text(json.dumps(report, indent=2))
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as stream:
+              stream.write('Sonar: ' + status + '. Submission does not imply completed analysis or a clean quality gate.\n')
+          PYSCAN
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sonar-disposition-${{ github.run_id }}
+          path: |
+            sonar-disposition.json
+            .scannerwork/report-task.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+  sast-full:
+    name: SonarCloud full coverage analysis (advisory)
+    # Configuration is reported immediately by sonar-config even if these
+    # full-only coverage dependencies take time or analysis cannot run.
+    if: needs.sonar-config.outputs.configured == 'true' && needs.classify.outputs.mode == 'full'
+    needs: [classify, sonar-config, coverage-gate, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      SONAR_HOST_URL: https://sonarcloud.io
+      SONAR_TOKEN: ${{ secrets['SONAR_TOKEN'] }}
+      SONAR_PROJECT_KEY: ${{ vars['SONAR_PROJECT_KEY'] }}
+      SONAR_ORGANIZATION: ${{ vars['SONAR_ORGANIZATION'] }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download exact-source Python coverage
         uses: actions/download-artifact@v4
         with:
           name: python-coverage
-      - name: Download frontend coverage
+      - name: Download exact-source frontend coverage
         uses: actions/download-artifact@v4
         with:
           name: frontend-coverage
           path: frontend/coverage
-      - name: Check SonarCloud configuration
-        if: env.SONAR_TOKEN == '' || env.SONAR_PROJECT_KEY == '' || env.SONAR_ORGANIZATION == ''
-        run: echo "::warning::SonarCloud scan skipped; configure SONAR_TOKEN and the SONAR_PROJECT_KEY and SONAR_ORGANIZATION repository variables."
-      - name: Run SonarCloud analysis
+      - name: Submit full coverage analysis and await advisory quality result
         id: sonar_analysis
-        if: env.SONAR_TOKEN != '' && env.SONAR_PROJECT_KEY != '' && env.SONAR_ORGANIZATION != ''
         continue-on-error: true
         uses: SonarSource/sonarqube-scan-action@ba9859eae8dd6bd29e412f25ddbbef3d032000f4 # v8.2.2
         with:
@@ -580,29 +793,26 @@ jobs:
             -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
             -Dsonar.qualitygate.wait=true
             -Dsonar.python.coverage.reportPaths=backend.xml
-      - name: Record actual extracted-service Sonar disposition
+      - name: Record actual full Sonar disposition
         if: always()
         env:
           ANALYSIS_OUTCOME: ${{ steps.sonar_analysis.outcome }}
         run: |
-          python - <<'PYSCAN'
+          python3 - <<'PYSCAN'
           import json, os
           from pathlib import Path
           outcome = os.environ['ANALYSIS_OUTCOME']
-          status = 'executed' if outcome == 'success' else ('skipped' if outcome == 'skipped' else 'error')
-          report = {'engine':'sonar','disposition':status,'step_outcome':outcome,
-                    'target':['media','processing','media_engine','app','frontend'],
-                    'quality_gate':'reported; analysis step remains continue-on-error',
-                    'configuration_missing':not all(os.environ.get(k) for k in
-                        ('SONAR_TOKEN','SONAR_PROJECT_KEY','SONAR_ORGANIZATION'))}
-          Path('sonar-disposition.json').write_text(json.dumps(report,indent=2))
-          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as stream:
-              stream.write('Sonar analysis: '+status+'. Green wrapper does not imply completed analysis.\n')
+          status = 'executed' if outcome == 'success' else ('NOT_RUN' if outcome == 'skipped' else 'error')
+          Path('sonar-disposition.json').write_text(json.dumps({'engine': 'sonar', 'disposition': status, 'step_outcome': outcome, 'source_sha': os.environ['GITHUB_SHA'], 'quality_gate': 'awaited; advisory; analysis step remains continue-on-error'}))
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as stream:
+              stream.write('Full Sonar: ' + status + '. Advisory; wrapper success alone is not a clean scan.\n')
           PYSCAN
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: sonar-disposition-${{ github.run_id }}
-          path: sonar-disposition.json
+          name: sonar-full-disposition-${{ github.run_id }}
+          path: |
+            sonar-disposition.json
+            .scannerwork/report-task.txt
           if-no-files-found: warn
           retention-days: 14

@@ -1,11 +1,11 @@
-"""ECS-only native MinIO provider; no metadata/profile/static fallback."""
+"""Native ECS and Lambda MinIO providers; no metadata/profile/static fallback."""
 
 import os
 from datetime import UTC, datetime
 from threading import Lock
 from urllib.parse import urlsplit
 
-from minio.credentials import IamAwsProvider, Provider, StaticProvider
+from minio.credentials import Credentials, IamAwsProvider, Provider, StaticProvider
 from urllib3 import PoolManager, Timeout
 
 
@@ -73,6 +73,37 @@ class ContainerProvider(Provider):
                 raise ValueError("Task storage credentials unavailable") from None
 
 
+class LambdaProvider(Provider):
+    """Read the runtime-provided temporary tuple afresh for every operation.
+
+    Used only by the opt-in short-encode executor (V2, #93), whose invocation outlives the
+    handlers that never touch MinIO. Lambda supplies execution-role credentials in the
+    environment; reading only those prevents profile or metadata fallback, and not caching the
+    tuple means a long encode never signs its final upload with a value it read minutes ago.
+    """
+
+    def retrieve(self):
+        try:
+            if not os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+                raise ValueError("not a Lambda runtime")
+            access = os.environ["AWS_ACCESS_KEY_ID"]
+            secret = os.environ["AWS_SECRET_ACCESS_KEY"]
+            token = os.environ["AWS_SESSION_TOKEN"]
+            if not all((access, secret, token)):
+                raise ValueError("incomplete temporary credentials")
+            raw_expiration = os.environ.get("AWS_CREDENTIAL_EXPIRATION")
+            expiration = None
+            if raw_expiration:
+                expiration = datetime.fromisoformat(raw_expiration.replace("Z", "+00:00"))
+                if expiration.tzinfo is None:
+                    raise ValueError("invalid credential expiration")
+                if (expiration - datetime.now(UTC)).total_seconds() < 40:
+                    raise ValueError("credentials expire too soon")
+            return Credentials(access, secret, token, expiration)
+        except Exception:
+            raise ValueError("Lambda storage credentials unavailable") from None
+
+
 def credential_provider(settings):
     def reveal(value):
         return value.get_secret_value() if hasattr(value, "get_secret_value") else value
@@ -80,8 +111,12 @@ def credential_provider(settings):
     access = reveal(settings.minio_access_key)
     secret = reveal(settings.minio_secret_key)
     mode = getattr(settings, "storage_credential_mode", "static")
-    if mode not in {"static", "ecs"}:
+    if mode not in {"static", "ecs", "lambda"}:
         raise ValueError("Invalid storage credential mode")
+    if mode == "lambda":
+        if access or secret:
+            raise ValueError("Lambda storage rejects static credential overrides")
+        return LambdaProvider()
     if mode == "ecs":
         if access or secret:
             raise ValueError("ECS storage rejects static credential overrides")

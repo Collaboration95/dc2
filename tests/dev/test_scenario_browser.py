@@ -1,9 +1,11 @@
 """Offline regressions for browser acceptance assertions, not live UI evidence."""
 
 import json
-import shutil
+import os
 import subprocess
+import sys
 from contextlib import contextmanager
+from importlib.resources import files
 from types import SimpleNamespace
 
 import pytest
@@ -224,16 +226,31 @@ def test_mp4_gate_requires_explicit_mp4_selection():
         ("blob:controlled", False, False, "other"),
     ],
 )
+@pytest.mark.parametrize("hostile_environment", [False, True], ids=["ambient", "hostile-node-env"])
 def test_actual_media_sample_javascript_classifies_source_without_returning_capabilities(
     source,
     hls_supported,
     native,
     kind,
+    hostile_environment,
+    monkeypatch,
+    tmp_path,
 ):
     # Execute the exact sampling JS against controlled plain objects, with no
     # DOM, browser or network. This is assertion logic evidence only.
-    node = shutil.which("node")
-    assert node, "Offline JS regression needs the existing frontend Node runtime"
+    # The locked browser extra ships Node; PATH's host runtime is neither pinned
+    # nor provisioned in the Python CI job. No browser installation is needed.
+    node = files("playwright") / "driver" / ("node.exe" if sys.platform == "win32" else "node")
+    assert node.is_file(), "Offline JS regression needs the locked Playwright Node runtime"
+    coverage_output = tmp_path / "unexpected-node-coverage"
+    if hostile_environment:
+        monkeypatch.setenv("PATH", str(tmp_path))
+        monkeypatch.setenv("NODE_OPTIONS", "--require=missing-offline-module")
+        monkeypatch.setenv("NODE_PATH", str(tmp_path))
+        monkeypatch.setenv("NODE_V8_COVERAGE", str(coverage_output))
+    # Ambient preloads/profilers must not alter or delay this plain-object check.
+    env = {key: value for key, value in os.environ.items()
+           if key not in {"NODE_OPTIONS", "NODE_PATH", "NODE_V8_COVERAGE"}}
     expected = {
         "hls": "/ladder.m3u8",
         "mp4": "https://storage.invalid/primary.mp4?signature=never-persist",
@@ -247,7 +264,7 @@ def test_actual_media_sample_javascript_classifies_source_without_returning_capa
         f"process.stdout.write(JSON.stringify(({MEDIA_SAMPLE})(v,{json.dumps(expected)})));"
     )
     result = subprocess.run(
-        [node, "-e", code], check=True, capture_output=True, text=True, timeout=5
+        [str(node), "-e", code], check=True, capture_output=True, text=True, timeout=5, env=env
     )
     state = json.loads(result.stdout)
     assert state["source_kind"] == kind
@@ -255,3 +272,4 @@ def test_actual_media_sample_javascript_classifies_source_without_returning_capa
     assert state["selected_mp4"] == (kind == "mp4")
     assert state["decoded_frames"] == 5
     assert "never-persist" not in result.stdout and "https://" not in result.stdout
+    assert not coverage_output.exists()

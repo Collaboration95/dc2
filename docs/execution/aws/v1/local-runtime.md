@@ -153,6 +153,12 @@ fails the test only after six in a row or when it is still failing at the end (i
 pass first). The runner's own budget for the browser tests is 660s; an earlier 180s limit
 killed the run and left only a bare "FAIL".
 
+The native leg's "redirected segment read" is judged from the two server-side logs, not from
+Playwright's request and response events: the Gateway bridge's `redirects` (paths of its 307s)
+and the storage proxy's `segment_reads` (path, `Origin`, whether a cookie arrived). Under load
+Playwright can report the redirect hop after the response that followed it, filed under the
+first request's URL (CI run 38988347791, attempt 1), so the events can lag what happened.
+
 `V1_COVERAGE=1` additionally measures the test processes and their children (encoder,
 Alembic) and writes `artifacts/coverage/.coverage.v1-integration`, the tier that
 `ci.yml`'s combined gate merges with the fast and legacy tiers.

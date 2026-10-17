@@ -89,16 +89,55 @@ def test_lambda_images_use_the_runtime_client_and_precompile_bytecode(owner):
     assert f'CMD ["{default[owner]}"]' in text
 
 
+def test_the_worker_image_doubles_as_the_lambda_short_encoder_without_changing_fargate():
+    text = RECIPES["worker"]
+    # Bytecode is precompiled for the read-only Lambda filesystem; Fargate ignores it.
+    assert "--compile-bytecode" in text and "compileall" in text
+    assert "awslambdaric" in (ROOT / "deploy/v1/worker.requirements.in").read_text()
+    # The image keeps its Fargate entrypoint: the template function overrides it, so no
+    # fourth image, repository or release-promotion path exists for the experiment.
+    assert 'ENTRYPOINT ["python", "-m", "awslambdaric"]' not in text
+    function = TEMPLATE["Resources"]["ProcessingShortEncoder"]["Properties"]
+    assert function["ImageConfig"]["EntryPoint"] == ["python", "-m", "awslambdaric"]
+    assert function["ImageConfig"]["Command"] == [{"Ref": "ProcessingShortEncoderHandler"}]
+    default = TEMPLATE["Parameters"]["ProcessingShortEncoderHandler"]["Default"]
+    assert default == "processing.handlers.short_encoder_handler"
+    assert function["Code"]["ImageUri"] == {"Ref": "WorkerImageUri"}
+    assert function["Architectures"] == ["x86_64"]
+
+
+def test_the_worker_runtime_gate_requires_the_lambda_client_and_the_short_handler():
+    spec = importlib.util.spec_from_file_location(
+        "v1_check_runtime", ROOT / "deploy/v1/check_runtime.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    entrypoints = module.ENTRYPOINTS["worker"]
+    assert "short_encoder_handler" in entrypoints["processing.handlers"]
+    assert "invoke" in entrypoints["processing.short_encoder"]
+
+
+def test_the_verifier_invokes_the_short_encoder_through_the_runtime_interface_emulator():
+    text = (ROOT / "deploy/v1/build_and_verify.py").read_text()
+    for needed in ("def rie_worker", "def worker_ffmpeg_under_lambda_constraints"):
+        assert needed in text
+    functions, _ = load_verifier().template_contract()
+    assert functions["ProcessingShortEncoder"]["owner"] == "worker"
+
+
 def test_template_handlers_resolve_to_callables_in_the_owning_source():
     functions, _ = load_verifier().template_contract()
-    assert len(functions) == 9
+    # Nine V1 handlers, the opt-in launcher (#68) and the opt-in short encoder (#93).
+    assert len(functions) == 11
     for name, function in functions.items():
         module, _, attribute = function["handler"].rpartition(".")
         path = ROOT / (module.replace(".", "/") + ".py")
         assert path.is_file(), name
-        assert path.parts[len(ROOT.parts)] == function["owner"], name
+        # The short encoder runs Processing source from the worker image, which carries FFmpeg.
+        source = "processing" if function["owner"] == "worker" else function["owner"]
+        assert path.parts[len(ROOT.parts)] == source, name
         assert re.search(rf"\b{attribute}\b", path.read_text()), name
-        assert (ROOT / function["owner"]).is_dir() and function["memory_mb"] >= 512
+        assert (ROOT / source).is_dir() and function["memory_mb"] >= 512
 
 
 def test_worker_image_carries_the_bootstrap_script_the_template_task_executes():

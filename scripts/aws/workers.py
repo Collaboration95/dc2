@@ -70,7 +70,10 @@ def inventory(config, transport, *, deadline, known=()):
 
 def worker_inventory(config, transport, state, *, deadline):
     launches = state["launches"]
-    known = [r["task"] for r in launches.values() if r.get("task")]
+    # ECS forgets a stopped task after about an hour and then reports it MISSING, which the
+    # describe treats as unresolved. A launch the journal already saw STOPPED needs no second
+    # look; re-describing it made every session longer than an hour unclosable (2026-10-17).
+    known = [r["task"] for r in launches.values() if r.get("task") and r["status"] != "stopped"]
     tasks = inventory(config, transport, deadline=deadline, known=known)
     worker_family = family(config_value(config, "task_definitions")["worker"])
     workers = {
@@ -80,7 +83,7 @@ def worker_inventory(config, transport, state, *, deadline):
     }
     for record in launches.values():
         arn = record.get("task")
-        if arn and tasks[arn]["lastStatus"] == "STOPPED":
+        if arn and record["status"] != "stopped" and tasks[arn]["lastStatus"] == "STOPPED":
             record["status"] = "stopped"
     occupied = {arn for arn, task in workers.items() if task["lastStatus"] != "STOPPED"}
     # A listed task associated with a request consumes its slot only once.
@@ -249,6 +252,17 @@ def replay(config, transport, journal, token, *, deadline, clock=time.time):
         )
 
 
+def _needs_disposition(record):
+    return bool(
+        record
+        and (
+            record.get("drain") == "interrupted"
+            or record.get("warm_sent")
+            and record.get("drain") != "complete"
+        )
+    )
+
+
 def drain(
     config,
     transport,
@@ -270,15 +284,16 @@ def drain(
     journal.check_context(config)
     workers, _ = worker_inventory(config, transport, state, deadline=deadline)
     records = {r.get("task"): r for r in state["launches"].values() if r.get("task")}
+    # worker_inventory no longer describes a launch the journal saw STOPPED (ECS forgets those
+    # after about an hour), so such a launch is absent from `workers`. Its retained drain
+    # disposition is still unresolved work and is judged here, from the journal alone.
+    if any(_needs_disposition(r) for arn, r in records.items() if arn not in workers):
+        raise OperationError("Previous interrupted/unacknowledged drain needs operator disposition")
     end = min(deadline - 10, clock() + 300)
     for arn, task in workers.items():
         record = records.get(arn)
         if task["lastStatus"] == "STOPPED":
-            if record and (
-                record.get("drain") == "interrupted"
-                or record.get("warm_sent")
-                and record.get("drain") != "complete"
-            ):
+            if _needs_disposition(record):
                 raise OperationError(
                     "Previous interrupted/unacknowledged drain needs operator disposition"
                 )

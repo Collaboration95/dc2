@@ -77,7 +77,7 @@ def test_browser_signs_in_uploads_directly_waits_for_encode_plays_and_deletes(tm
         allow_origin(runtime, runtime["url"])
         work = WorkPump(runtime)
         work.start()
-        seen, segment_requests, console = [], [], []
+        seen, console = [], []
         try:
             with chromium(runtime["ca"], tmp_path / "profile") as browser:
                 page = browser.new_page()
@@ -94,8 +94,6 @@ def test_browser_signs_in_uploads_directly_waits_for_encode_plays_and_deletes(tm
                     seen.append(
                         (response.request.method, urlsplit(response.url).path, response.status)
                     )
-                    if response.url.split("?")[0].endswith(".ts"):
-                        segment_requests.append(response.request)
 
                 page.on("response", record)
                 # Paths only: a request URL may carry a presigned signature in its query.
@@ -108,17 +106,7 @@ def test_browser_signs_in_uploads_directly_waits_for_encode_plays_and_deletes(tm
                     ),
                 )
                 try:
-                    drive(
-                        page,
-                        runtime,
-                        work,
-                        source,
-                        email,
-                        password,
-                        playback,
-                        seen,
-                        segment_requests,
-                    )
+                    drive(page, runtime, work, source, email, password, playback, seen)
                 except BaseException:
                     # Evidence while the page is still alive; the original error still wins.
                     capture_failure(
@@ -136,7 +124,9 @@ def test_browser_signs_in_uploads_directly_waits_for_encode_plays_and_deletes(tm
         assert work.encodes >= 1
 
 
-def drive(page, runtime, work, source, email, password, playback, seen, segment_requests):
+def drive(page, runtime, work, source, email, password, playback, seen):
+    from scripts.dev.v1_browser import segment_redirect_gap
+
     page.goto(runtime["url"], wait_until="domcontentloaded")
     assert page.evaluate("window.isSecureContext")
 
@@ -233,14 +223,27 @@ def drive(page, runtime, work, source, email, password, playback, seen, segment_
     if playback == "native":
         # The player drops to the MP4 if native HLS errors; that must not pass here.
         assert video.evaluate("v => v.currentSrc") == hls_url
-        # The facade 307s each segment to the object store, which must have been
-        # asked in CORS mode, from this page's origin and without the session.
-        facade = [p for m, p, s in seen if p.endswith(".ts") and s == 307]
-        stored = [r for r in segment_requests if "/api/" not in r.url]
-        assert facade and stored, f"No redirected segment read: {seen[-12:]}"
-        headers = stored[0].all_headers()
-        assert headers.get("origin") == runtime["url"], headers
-        assert "cookie" not in headers, "The session cookie leaked to the object store"
+        # The facade 307s each segment to the object store, which must have been asked in
+        # CORS mode, from this page's origin and without the session. Having a clock moving
+        # does not mean the first segment has been reported yet, and the browser's own event
+        # stream can lag or reorder under load, so wait on the bridge's redirect log and on
+        # what the object store itself received.
+        gateway, reads = runtime["gateway"], runtime["observations"]["segment_reads"]
+        wait_for(
+            page,
+            lambda: segment_redirect_gap(gateway.redirects, reads) is None,
+            lambda: (
+                f"No redirected segment read within {PLAYBACK_TIMEOUT}s: "
+                f"{segment_redirect_gap(gateway.redirects, reads)}; "
+                f"gateway 307s={len(gateway.redirects)}, store segment reads={len(reads)}; "
+                f"video {video.evaluate(VIDEO_STATE)}; recent {seen[-12:]}"
+            ),
+            timeout=PLAYBACK_TIMEOUT,
+        )
+        assert {read["origin"] for read in reads} == {runtime["url"]}, reads
+        assert not any(read["cookie"] for read in reads), (
+            "The session cookie leaked to the object store"
+        )
 
     page.on("dialog", lambda dialog: dialog.accept())
     with page.expect_response(

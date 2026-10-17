@@ -102,16 +102,23 @@ def window_rounds(request, clock, sleep, pool, *, users, seconds, route, cookie,
         sleep(not_before - clock())
     start = max(clock(), not_before or 0.0)
     end = start + seconds
-    while clock() + 1 <= end:
+    # Round k is due at start + k on a fixed grid, not one second after the previous round
+    # ended: drift-based pacing let a few slow rounds push the last one before end - 1, so no
+    # client covered the window (live r1017b, 176 of 180 rounds). A late round starts at once.
+    for k in range(int(seconds)):
+        due = start + k
+        if clock() < due:
+            sleep(due - clock())
+        # The last round is due at exactly end - 1 and a real sleep overshoots it, so only
+        # skip a round too late to finish inside the judged window (end + 0.1 s).
+        if clock() > end - 0.5:
+            break
         began = clock()
         done = list(pool.map(lambda u: (u, request(u, "GET", route, cookie)), range(users)))
         for user, (status, elapsed, _, _) in done:
             rows.append({"route": label, "phase": phase, "user": user, "started_at": began,
                          "elapsed_ms": elapsed, "ended_at": began + elapsed / 1000,
                          "status_code": status, "error": None if status else "request_failed"})
-        pause = 1 - (clock() - began)
-        if pause > 0:
-            sleep(pause)
     return start, end
 
 

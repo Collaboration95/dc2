@@ -33,7 +33,7 @@ dependencies = [
 legacy = ["redis>=5,<7", "rq>=2,<3", "uvicorn[standard]>=0.34,<1"]
 v1-media = ["awslambdaric>=3.1,<4"]
 v1-processing = ["awslambdaric>=3.1,<4"]
-v1-worker = []
+v1-worker = ["awslambdaric>=3.1,<4"]
 dev = [
   "aiosqlite>=0.21,<1",
   "fakeredis>=2.26,<3",

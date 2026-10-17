@@ -33,7 +33,9 @@ def app_runtime(run_id, *, gateway=None):
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(tls / "server.crt", tls / "server.key")
     upstream = urlsplit(data["endpoint_url"])
-    observations = {"storage_cookie_headers": 0}
+    # `segment_reads` is what the object store itself was asked for, so a test can wait on it
+    # without depending on when (or in what order) the browser reports its own requests.
+    observations = {"storage_cookie_headers": 0, "segment_reads": []}
 
     class StorageProxy(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -42,6 +44,16 @@ def app_runtime(run_id, *, gateway=None):
         def invoke(self):
             if self.headers.get("Cookie"):
                 observations["storage_cookie_headers"] += 1
+            path = urlsplit(self.path).path
+            if self.command == "GET" and path.endswith(".ts"):
+                # Path only: the query holds the presigned signature.
+                observations["segment_reads"].append(
+                    {
+                        "path": path,
+                        "origin": self.headers.get("Origin"),
+                        "cookie": bool(self.headers.get("Cookie")),
+                    }
+                )
             body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
             connection = http.client.HTTPConnection(upstream.hostname, upstream.port, timeout=20)
             try:
@@ -111,13 +123,12 @@ def app_runtime(run_id, *, gateway=None):
         for module in (media.authorizer, media.lambda_handler, processing.lambda_handler):
             importlib.reload(module)
 
-        front = server(
-            (gateway or Gateway)(
-                media.lambda_handler.handler,
-                processing.lambda_handler.handler,
-                media.lambda_handler.authorizer,
-            )
+        bridge = (gateway or Gateway)(
+            media.lambda_handler.handler,
+            processing.lambda_handler.handler,
+            media.lambda_handler.authorizer,
         )
+        front = server(bridge)
         front.socket = context.wrap_socket(front.socket, server_side=True)
         thread = threading.Thread(target=front.serve_forever, daemon=True)
         thread.start()
@@ -127,6 +138,7 @@ def app_runtime(run_id, *, gateway=None):
             "ca": str(tls / "server.crt"),
             "url": f"https://127.0.0.1:{front.server_port}",
             "observations": observations,
+            "gateway": bridge,
         }
     finally:
         if front:

@@ -72,7 +72,9 @@ async def download(client, work, settings, path):
             url = await renew_source(client, work, settings)
 
 
-async def pipeline(work, settings, supervisor, client, store, directory, *, downloader=None):
+async def pipeline(
+    work, settings, supervisor, client, store, directory, *, downloader=None, admit=None
+):
     source = directory / "source"
     await supervisor.guard((downloader or download)(client, work, settings, source))
     operations = work.operations
@@ -81,6 +83,9 @@ async def pipeline(work, settings, supervisor, client, store, directory, *, down
     primary = directory / f"primary.{extension}"
     # Probe source-dependent edits; MP3 still requires video source admission.
     probe = parse_probe(await supervisor.run(probe_command(source, settings.ffprobe_binary)))
+    if admit is not None:
+        # The opt-in Lambda lane learns the duration only here; it may refuse before encoding.
+        admit(probe)
     if "clip" in by_name:
         validate_clip(by_name["clip"]["params"], probe)
     if "crop" in by_name:

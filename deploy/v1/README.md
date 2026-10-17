@@ -57,7 +57,12 @@ functions from the deployed stack, including handlers with disabled triggers.
 Required executable hooks:
 
 - `schema_revision(owner, deadline=...)`: observe the owner's SQL revision with
-  owner-scoped read credentials. Peer revisions are observed independently.
+  owner-scoped read credentials. Peer revisions are observed independently. The release
+  CLI uses a `sql` station when configured and otherwise `scripts/aws/v1/vpc_reader.py`,
+  which runs a finite task in the VPC from the owner's migration task definition (command
+  override `scripts/aws/v1/vpc_probe.py`; no secret in the override) and records
+  `schema_revision_source: in-vpc-task`. A reader may expose `prefetch(owners, deadline=...)`
+  to start several slow reads together.
 - `compatibility(owner, prior_snapshot, bundle, target_revision, deadline=...)`:
   execute/check current AND rollback image compatibility with the additive target.
 - `quiescent(owner, deadline=...)`: assert the owner's intake and consumers are
@@ -120,7 +125,8 @@ commit, so a dirty tree is refused), then verifies, per image:
 
 - `check_runtime.py` passes under the README flags and again as a Lambda-style foreign uid;
 - installed distributions: no Redis/RQ, test/dev tooling or the legacy `uvicorn[standard]`
-  stack anywhere; `awslambdaric` only in the API images; FFmpeg only in the worker; `/app`
+  stack anywhere; `awslambdaric` in every image (the worker's is for the opt-in Lambda short encoder, V2 #93, which overrides the
+  entrypoint; Fargate keeps `processing.v1_worker`); FFmpeg only in the worker; `/app`
   carries exactly the owning source;
 - every Lambda handler in `deploy/aws/v1/template.json` is invoked inside its own image under
   the AWS Lambda Runtime Interface Emulator (RIE binary copied out of the public
@@ -128,6 +134,9 @@ commit, so a dirty tree is refused), then verifies, per image:
   payload-v2 health and protected-route events, authorizer events, SQS batches and the
   Processing `{"dc2_operation": "ready"}` direct invoke (false without a database, true against
   a throwaway PostgreSQL container the script creates and removes);
+- the short encoder handler (`processing.handlers.short_encoder_handler`) is invoked from the worker image under the RIE
+  (empty batch is a no-op, a malformed record is a `batchItemFailures` entry, valid work with no database is
+  `database_down`), and FFmpeg/FFprobe encode a clip under Lambda constraints (read-only root, `/tmp` only, a non-root uid);
 - the ECS `entryPoint`/`command` shapes of the worker, both owner migrations (run to `head`
   on the throwaway PostgreSQL) and the DB bootstrap task execute from the owning image;
 - the worker entrypoint exits fast and finitely with no configuration, with no queue and with

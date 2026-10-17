@@ -3,8 +3,11 @@
     python -m scripts.aws.v1.evidence gateway  ...   #63 workflow and boundaries
     python -m scripts.aws.v1.evidence capacity ...   #64 1/2/3 encoders, recovery, DLQ
     python -m scripts.aws.v1.evidence release  ...   #65 promote, roll back, peer untouched
+    python -m scripts.aws.v1.evidence release-plan   write #65's plan.json for a deployed stack
     python -m scripts.aws.v1.evidence latency  ...   #66 Fargate generator, cold wake apart
     python -m scripts.aws.v1.evidence spend    ...   #67 closed state, ACU pause, spend
+    python -m scripts.aws.v1.evidence short-encode   #93 (V2) Lambda short encodes vs Fargate
+    python -m scripts.aws.v1.evidence db-topology    #94 (V2) shared vs separate Aurora clusters
     python -m scripts.aws.v1.evidence rehearse       offline: every harness vs the simulation
     python -m scripts.aws.v1.evidence counts         close-proof counts derived from receipts
     python -m scripts.aws.v1.evidence summary        redacted summary for docs/.../evidence/
@@ -12,7 +15,8 @@
 Every harness writes a private JSON receipt (mode 0600) under `<state-dir>/evidence/`, skips a
 step that already passed, refuses to start while the session journal says closed, and under
 `--dry-run` runs against a simulated account whose receipts are marked SIMULATED and can never
-be summarized. Run with the profile `dc2-project2-mfa` and the same `--state-dir` the deploy used.
+be summarized. Run with the profile the deploy used (`dc2-project2-mfa`, or `dc2-agent` for the
+dedicated agent IAM user) and the same `--state-dir`.
 Exit code: 1 if a step run just now failed, else 0 (read `overall` for the full verdict).
 """
 
@@ -23,18 +27,32 @@ import tempfile
 from pathlib import Path
 
 from scripts.aws.transport import OperationError
-from scripts.aws.v1.proof import capacity, context, gateway, latency, release, sim, spend, summary
+from scripts.aws.v1.proof import (
+    capacity,
+    context,
+    db_topology,
+    gateway,
+    latency,
+    release,
+    release_plan,
+    short_encode,
+    sim,
+    spend,
+    summary,
+)
 from scripts.aws.v1.proof.core import ProofError
 
 REQUIRED = {"63": gateway.REQUIRED, "64": capacity.REQUIRED, "65": release.REQUIRED,
             "66": latency.REQUIRED, "67": spend.REQUIRED}
 # The session state each harness needs when it starts (latency opens its own window).
 SESSION = {"gateway": "open", "capacity": "open", "release": "window", "latency": "closed",
-           "spend": "closed"}
+           "release-plan": "closed",
+           "spend": "closed", "short-encode": "open", "db-topology": "window"}
 
 
 def scope_arguments(parser):
-    parser.add_argument("--profile", required=True, help="e.g. dc2-project2-mfa; never default")
+    parser.add_argument("--profile", required=True,
+                        help="e.g. dc2-agent or dc2-project2-mfa; never default")
     parser.add_argument("--region", required=True)
     parser.add_argument("--account", required=True)
     parser.add_argument("--state-dir", type=Path, help="the deploy's private state directory")
@@ -43,6 +61,12 @@ def scope_arguments(parser):
     parser.add_argument("--dry-run", action="store_true",
                         help="simulated account, throwaway receipts; proves nothing about AWS")
     parser.add_argument("--only", help="comma-separated step names to run")
+    parser.add_argument("--fresh", action="store_true",
+                        help="latency (#66) only: rerun the steps selected by --only (all steps "
+                             "without it) as new "
+                             "attempts: the old receipt entry and intent are archived under "
+                             "`attempts` and a new task or request is minted. Without it PASS "
+                             "and NOT_RUN are final")
 
 
 def build_parser():
@@ -66,15 +90,64 @@ def build_parser():
     r = sub.add_parser("release", help="#65")
     scope_arguments(r)
     r.add_argument("--plan", type=Path, required=True, help="nonsecret release plan JSON")
+    rp = sub.add_parser("release-plan", help="#65: write plan.json and its bundles")
+    scope_arguments(rp)
+    rp.add_argument("--owner", choices=("media", "processing"))
+    rp.add_argument("--baseline-evidence", type=Path,
+                    help="build_and_verify evidence of the images the stack runs now")
+    rp.add_argument("--good-run-id", help="images pushed as <id>-media/-processing/-worker")
+    rp.add_argument("--good-evidence", type=Path, help="build evidence of the good images")
+    rp.add_argument("--bad-run-id", help="optional: images that must fail the public smoke")
+    rp.add_argument("--bad-evidence", type=Path)
+    rp.add_argument("--tests-passed", type=int,
+                    help="source tests that passed for these builds (attested)")
+    rp.add_argument("--target-revision", help="the owner's schema head (default: this checkout)")
+    rp.add_argument("--attest-schema-unchanged", action="store_true",
+                    help="good/baseline/bad add no migration beyond --target-revision")
+    rp.add_argument("--accept-unfixed", type=Path, metavar="FILE",
+                    help="audited JSON list of HIGH/CRITICAL CVE ids with no fix available")
+    rp.add_argument("--out", type=Path,
+                    help="directory for plan.json (default: <state-dir>/release)")
+    rp.add_argument("--deregister", type=Path, metavar="PLAN",
+                    help="instead: retire the definition revisions that plan registered")
     lat = sub.add_parser("latency", help="#66")
     scope_arguments(lat)
     lat.add_argument("--cluster", help="Aurora cluster id (default: from the deploy journal)")
+    lat.add_argument("--pause-wait-minutes", type=int, default=latency.PAUSE_WAIT_SECONDS // 60,
+                     help="how long cold-wake waits for CloudWatch to show 0 ACU before NOT_RUN")
     s = sub.add_parser("spend", help="#67")
     scope_arguments(s)
     s.add_argument("--closed-at", help="ISO time the session closed (pause is measured from it)")
     s.add_argument("--wait-minutes", type=int, default=30)
     s.add_argument("--since", help="YYYY-MM-DD for Cost Explorer (default: first of the month)")
     s.add_argument("--cluster")
+    se = sub.add_parser("short-encode", help="#93 (V2): Lambda short encodes vs Fargate")
+    scope_arguments(se)
+    se.add_argument("--arm", choices=("fargate", "lambda", "compare"), required=True,
+                    help="fargate on a stack WITHOUT the lane, lambda WITH it, then compare")
+    se.add_argument("--fixture", type=Path, help="the one short fixed mp4, same for both arms")
+    se.add_argument("--fixture-seconds", type=float, help="that fixture's real duration")
+    se.add_argument("--jobs", type=int, default=5, help="jobs per arm: 1 cold, the rest warm")
+    se.add_argument("--idle-minutes", type=int, default=20,
+                    help="idle time before the Lambda cold job (0 = no wait; coldness unlikely)")
+    se.add_argument("--job-timeout", type=int, default=900)
+    se.add_argument("--minutes", type=int, default=60, help="session horizon for Fargate tasks")
+    db = sub.add_parser("db-topology", help="#94 (V2): shared vs separate Aurora clusters")
+    scope_arguments(db)
+    db.add_argument("--arm", choices=("shared", "separate", "compare"), required=True,
+                    help="the stack's own topology, then compare the two receipts")
+    db.add_argument("--samples", type=int, default=30, help="timed ready probes per domain")
+    db.add_argument("--pause-wait-minutes", type=int, default=30,
+                    help="how long to wait for CloudWatch to show 0 ACU (raised automatically "
+                         "for a longer auto-pause)")
+    db.add_argument("--resume-timeout", type=int, default=300, help="seconds allowed for a resume")
+    db.add_argument("--load-seconds", type=int, default=60, help="peer load held for the wake test")
+    db.add_argument("--load-concurrency", type=int, default=4, help="parallel Media probes")
+    db.add_argument("--tail-minutes", type=int, default=10,
+                    help="idle minutes kept inside the cost window so the pause tail is billed")
+    db.add_argument("--cluster", help="the shared cluster id (default: the deploy journal)")
+    db.add_argument("--media-cluster")
+    db.add_argument("--processing-cluster")
     rh = sub.add_parser("rehearse", help="every harness against the simulation")
     rh.add_argument("--run-id", default="rehearsal")
     rh.add_argument("--release-plan", type=Path)
@@ -93,11 +166,37 @@ def only(args):
 
 def make_context(args, command, *, world, factory):
     if args.dry_run:
+        if command == "db-topology" and world is None:
+            # The simulation must be the layout the arm names, or the arm refuses it.
+            world = sim.SimWorld(database="separate" if args.arm == "separate" else "shared")
         return sim.build(args, session=SESSION[command], world=world)
     if factory:
         return factory(args)
     return context.live(args)
 
+
+
+def release_plan_command(args, *, world, factory):
+    if args.dry_run:
+        raise ProofError("release-plan reads the deploy journal and the registry and has no "
+                         "simulation; `rehearse` exercises it against the simulated account")
+    ctx = make_context(args, "release-plan", world=world, factory=factory)
+    if args.deregister:
+        return release_plan.deregister(ctx, args.deregister)
+    missing = [name for name in ("owner", "baseline_evidence", "good_run_id", "good_evidence",
+                                 "tests_passed") if getattr(args, name) is None]
+    if missing or bool(args.bad_run_id) != bool(args.bad_evidence):
+        raise ProofError("release-plan needs --owner --baseline-evidence --good-run-id "
+                         "--good-evidence --tests-passed (and --bad-run-id with --bad-evidence)")
+    bad = None
+    if args.bad_run_id:
+        bad = {"run_id": args.bad_run_id, "evidence": args.bad_evidence}
+    return release_plan.run(
+        ctx, owner=args.owner, baseline_evidence=args.baseline_evidence,
+        good={"run_id": args.good_run_id, "evidence": args.good_evidence}, bad=bad,
+        tests_passed=args.tests_passed, target_revision=args.target_revision,
+        attest_schema_unchanged=args.attest_schema_unchanged,
+        accept_unfixed=args.accept_unfixed, out=args.out or args.state_dir / "release")
 
 
 def execute(args, ctx):
@@ -113,8 +212,23 @@ def execute(args, ctx):
                             job_timeout=args.job_timeout, minutes=args.minutes, only=only(args))
     if args.command == "release":
         return release.run(ctx, plan_path=args.plan)
+    if args.command == "short-encode":
+        if args.arm != "compare" and not (args.fixture and args.fixture_seconds):
+            raise ProofError("--fixture and --fixture-seconds are required for an arm")
+        return short_encode.run(
+            ctx, arm=args.arm, fixture=args.fixture, fixture_seconds=args.fixture_seconds,
+            jobs=args.jobs, minutes=args.minutes, job_timeout=args.job_timeout,
+            idle_minutes=args.idle_minutes)
+    if args.command == "db-topology":
+        return db_topology.run(
+            ctx, arm_name=args.arm, samples=args.samples, pause_minutes=args.pause_wait_minutes,
+            resume_timeout=args.resume_timeout, load_seconds=args.load_seconds,
+            concurrency=args.load_concurrency, tail_minutes=args.tail_minutes,
+            overrides={"shared": args.cluster, "media": args.media_cluster,
+                       "processing": args.processing_cluster})
     if args.command == "latency":
-        return latency.run(ctx, only=only(args), cluster=args.cluster)
+        return latency.run(ctx, only=only(args), cluster=args.cluster,
+                           pause_wait=60 * args.pause_wait_minutes)
     from datetime import date
 
     closed = None
@@ -125,6 +239,75 @@ def execute(args, ctx):
     since = date.fromisoformat(args.since) if args.since else None
     return spend.run(ctx, only=only(args), closed_at=closed, wait_minutes=args.wait_minutes,
                      cluster=args.cluster, since=since)
+
+
+def rehearse_short_encode(base, fixture, shared):
+    """#93: the arms are different stack states, so two simulated worlds share one receipt."""
+    import shutil
+
+    first = sim.build(shared, session="open", world=sim.SimWorld(encode_seconds=40),
+                      tmp=base / "short-encode-fargate")
+    short_encode.run(first, arm="fargate", fixture=fixture, fixture_seconds=24.0, jobs=3)
+    second = sim.build(shared, session="open", world=sim.SimWorld(lambda_lane=True),
+                       tmp=base / "short-encode-lambda")
+    second.evidence_dir.mkdir(mode=0o700, exist_ok=True)
+    shutil.copy(first.evidence_dir / f"evidence-93-{shared.run_id}.json", second.evidence_dir)
+    short_encode.run(second, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=3,
+                     idle_minutes=0)
+    proof = short_encode.run(second, arm="compare")
+    return proof.report(), bool(proof.failed_now())
+
+
+def rehearse_db_topology(base, shared):
+    """#94: the arms are different stacks, so two simulated worlds share one receipt."""
+    import shutil
+
+    first = sim.build(shared, session="window",
+                      world=sim.SimWorld(database="shared"), tmp=base / "db-topology-shared")
+    db_topology.run(first, arm_name="shared", samples=5, tail_minutes=0)
+    second = sim.build(shared, session="window",
+                       world=sim.SimWorld(database="separate"), tmp=base / "db-topology-separate")
+    second.evidence_dir.mkdir(mode=0o700, exist_ok=True)
+    shutil.copy(first.evidence_dir / f"evidence-94-{shared.run_id}.json", second.evidence_dir)
+    db_topology.run(second, arm_name="separate", samples=5, tail_minutes=0)
+    proof = db_topology.run(second, arm_name="compare")
+    return proof.report(), bool(proof.failed_now())
+
+
+def rehearse_release(base, shared, plan_path):
+    """#65: plan.json written by release-plan from simulated facts, then the harness's steps.
+
+    The stack has no SQL station, so the schema reads go through the simulated in-VPC task.
+    """
+    world = sim.SimWorld()
+    ctx = sim.build(shared, session="window", world=world, tmp=base / "release", sql=False)
+    if plan_path is None:
+        digits = {"good": "456", "bad": "789"}
+        builds = {}
+        for role, sha in (("baseline", "a"), ("good", "b"), ("bad", "c")):
+            ids = None if role == "baseline" else {
+                owner: "sha256:" + digit * 64
+                for owner, digit in zip(("media", "processing", "worker"), digits[role],
+                                        strict=True)}
+            builds[role] = sim.build_evidence(base / f"build-{role}.json", source_sha=sha * 40,
+                                              config_ids=ids)
+        release_plan.run(
+            ctx, owner="processing", baseline_evidence=builds["baseline"],
+            good={"run_id": "rehearsal-good", "evidence": builds["good"]},
+            bad={"run_id": "rehearsal-bad", "evidence": builds["bad"]}, tests_passed=1,
+            target_revision=world.schema["processing"], attest_schema_unchanged=True,
+            out=base / "release-plan")
+        plan_path = base / "release-plan" / "plan.json"
+    proof = release.run(ctx, plan_path=plan_path)
+    return proof.report(), bool(proof.failed_now())
+
+
+def rehearse_latency(ctx):
+    """Cold wake opens and closes its own window; the operator then opens the session for the
+    generator, as the runbook says."""
+    latency.run(ctx, only={"cold-wake"})
+    sim.reopen(ctx, "open")
+    return latency.run(ctx, only={"generator"})
 
 
 def rehearse(args, stdout):
@@ -139,17 +322,21 @@ def rehearse(args, stdout):
         "gateway": lambda ctx: gateway.run(ctx, fixture=fixture, minutes=30),
         "capacity": lambda ctx: capacity.run(ctx, fixture=fixture, short_fixture=fixture,
                                              minutes=30),
-        "latency": lambda ctx: latency.run(ctx),
+        "latency": rehearse_latency,
         "spend": lambda ctx: spend.run(ctx, wait_minutes=10),
     }
-    if args.release_plan:
-        runs["release"] = lambda ctx: release.run(ctx, plan_path=args.release_plan)
     for name, run in runs.items():
         world = sim.SimWorld(encode_seconds=240 if name == "capacity" else 45)
         ctx = sim.build(shared, session=SESSION[name], world=world, tmp=base / name)
         proof = run(ctx)
         reports[name] = proof.report()
         failed = failed or bool(proof.failed_now())
+    reports["release"], bad = rehearse_release(base, shared, args.release_plan)
+    failed = failed or bad
+    reports["short-encode"], bad = rehearse_short_encode(base, fixture, shared)
+    failed = failed or bad
+    reports["db-topology"], bad = rehearse_db_topology(base, shared)
+    failed = failed or bad
     note = ("simulated: nothing here is AWS evidence; receipts are SIMULATED and "
             "the summary writer refuses them")
     print(json.dumps({"mode": "simulated", "note": note, "harnesses": {
@@ -166,9 +353,20 @@ def main(argv=None, *, stdout=None, world=None, factory=None):
             return rehearse(args, stdout)
         if args.command in {"counts", "summary"}:
             return post_process(args, stdout)
+        if getattr(args, "fresh", False) and args.command != "latency":
+            raise ProofError(
+                f"--fresh is not supported for `{args.command}`: its drain counts and release "
+                "snapshots are cumulative across attempts, so archiving a step would undercount "
+                "or corrupt them. Only `latency` (#66) can be rerun as a fresh attempt")
         if not args.dry_run and not args.state_dir:
             raise ProofError("--state-dir is required for a live run")
+        if args.command == "release-plan":
+            result = release_plan_command(args, world=world, factory=factory)
+            print(json.dumps(result, indent=2), file=stdout)
+            return 0
         ctx = make_context(args, args.command, world=world, factory=factory)
+        if getattr(args, "fresh", False):
+            ctx.fresh = only(args) or True
         proof = execute(args, ctx)
     except (OperationError, OSError, ValueError, KeyError) as error:
         message = str(error) if isinstance(error, OperationError) else type(error).__name__

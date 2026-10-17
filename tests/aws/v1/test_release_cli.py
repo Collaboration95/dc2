@@ -140,6 +140,68 @@ def test_live_promote_wires_real_hooks_and_reports_only_check_names(files, monke
     assert CREDENTIALS["password"] not in json.dumps(out)
 
 
+def abandon_argv(files, *extra):
+    return ["abandon", "--config", files["config"], *SCOPE, "--owner", "processing",
+            "--migration-definition", MIGRATION, *extra]
+
+
+def test_abandon_dry_run_prints_the_plan_and_touches_nothing(files):
+    def forbidden(scope):
+        raise AssertionError("dry-run must not build a live transport")
+
+    code, out = run(abandon_argv(files, "--dry-run"), transport_factory=forbidden)
+    assert code == 0 and out["result"]["planned_calls"][0]["operation"] == "get-alias"
+    assert out["result"]["planned_calls"][-1]["journal"].endswith("abandoned_releases")
+
+
+def test_abandon_gets_only_the_schema_and_quiescence_hooks_and_the_reason(files, monkeypatch):
+    seen = {}
+
+    def fake_abandon(config, transport, journal, **kwargs):
+        seen.update(kwargs)
+        return {"owner": "processing", "status": "abandoned", "versions_published_unaliased": []}
+
+    monkeypatch.setattr(release_cli, "abandon", fake_abandon)
+    argv = abandon_argv(files, "--reason", "migration failed",
+                        "--smoke-url", "https://gw.example.invalid",
+                        "--smoke-credentials", files["creds"])
+    code, out = run(argv, transport_factory=lambda scope: Cloud())
+    assert code == 0 and out["result"]["status"] == "abandoned"
+    assert set(seen) == {"schema_revision", "quiescent", "deadline", "reason"}
+    assert seen["reason"] == "migration failed"
+    assert out["result"]["schema_revision_source"] == "sql-station"
+
+
+def test_abandon_without_a_journal_is_a_refusal_not_a_crash(files):
+    argv = ["abandon", "--config", files["config"], *SCOPE]
+    code, out = run(argv, transport_factory=lambda scope: Cloud())
+    assert code == 1 and "journal" in out["error"]
+
+
+def test_status_names_the_aliases_a_pending_release_already_moved(files):
+    from scripts.aws.journal import Journal
+
+    base = {"v1_request": {"owner": "processing"}, "phase": "preparing", "versions": {},
+            "moved": {"fn": {"version": "2"}}}
+    path = json.loads(open(files["config"]).read())["journal"]
+    journal = Journal(path, station="s", environment="e2e")
+    journal.initialize(verified_empty=True, exclusive_station=True)
+    with journal.locked() as state:
+        state["pending_release"] = base
+        journal.save(state)
+
+    class Aliases(Cloud):
+        def call(self, service, operation, payload, *, deadline):
+            if operation == "get-alias":
+                return {"FunctionVersion": "7", "RevisionId": "r"}
+            return super().call(service, operation, payload, deadline=deadline)
+
+    code, out = run(["status", "--config", files["config"], *SCOPE],
+                    transport_factory=lambda scope: Aliases())
+    assert code == 0 and out["result"]["pending_release"]["moved"] == ["fn"]
+    assert out["result"]["pending_release"]["migration_complete"] is False
+
+
 def test_failed_live_promotion_reports_the_failing_smoke_checks_not_secrets(files, monkeypatch):
     def fake_promote(config, transport, journal, *, public_smoke, **kwargs):
         public_smoke.receipt = {"checks": {"login": "FAIL"}, "failures": ["login:401"]}

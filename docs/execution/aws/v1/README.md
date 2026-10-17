@@ -46,7 +46,15 @@ manifest; without the browser flag it stays `NOT_RUN`. `cloud_acceptance` is alw
 
 1. Cloud proof (#45, #63-#67): needs an MFA session; follow the deploy runbook.
 2. Then close the epics (#41-#44) against that evidence and preserve the `project2-v1` tag.
-3. V2 experiments (#80, #93, #94, #68) start only after the tag.
+3. V2 experiments (#80, #93, #94, #68) start only after the tag. Exception, by owner decision:
+   the opt-in unattended launcher (#68) is developed in parallel and stays off by default; see
+   [`../v2/unattended-launch.md`](../v2/unattended-launch.md) (cloud evidence NOT_RUN).
+   The opt-in Lambda short-encode benchmark (#93) is likewise developed ahead of the tag, off by
+   default; see [`../v2/lambda-short-encodes.md`](../v2/lambda-short-encodes.md) (cloud evidence
+   NOT_RUN, merge decision pending).
+   The opt-in database layout and pause/capacity experiment (#94, one Aurora cluster per domain)
+   follows the same rule; see [`../v2/database-topology.md`](../v2/database-topology.md) (cloud
+   evidence NOT_RUN, V1's single cluster stays the default).
 
 ---
 

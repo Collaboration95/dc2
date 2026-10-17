@@ -57,3 +57,13 @@ def authenticate_as(application, user: User) -> None:
         return user
 
     application.dependency_overrides[operator_user] = _operator
+
+
+@pytest.fixture(autouse=True)
+def fresh_lambda_environment():
+    """Each test is a cold Lambda environment: no shared engine or persistent loop."""
+    from runtime_support import lambda_db
+
+    lambda_db.reset()
+    yield
+    lambda_db.reset()

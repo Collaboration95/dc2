@@ -15,7 +15,7 @@ RUN python -m pip install --no-cache-dir uv==0.8.17 \
        --no-emit-package uvicorn --no-emit-package uvloop --no-emit-package httptools \
        --no-emit-package watchfiles --no-emit-package websockets --no-emit-package pyyaml \
        --no-emit-package click --extra v1-worker -o /tmp/requirements.txt \
-    && uv pip install --system --require-hashes -r /tmp/requirements.txt \
+    && uv pip install --system --compile-bytecode --require-hashes -r /tmp/requirements.txt \
     && python -m pip uninstall -y uv && rm /tmp/requirements.txt
 COPY deploy/v1/global-bundle.pem /opt/rds/global-bundle.pem
 COPY contracts ./contracts
@@ -23,6 +23,9 @@ COPY delivery ./delivery
 COPY runtime_support ./runtime_support
 COPY processing ./processing
 COPY media_engine ./media_engine
+# The same image is the opt-in Lambda short encoder (V2, #93), whose filesystem is read-only:
+# bytecode not built here is recompiled on every cold start. Fargate is unaffected.
+RUN python -m compileall -q -j0 contracts delivery runtime_support processing media_engine
 # Referenced by the template's BootstrapTaskDefinition (ECS entryPoint python /opt/db-bootstrap.py).
 # Standalone: it imports neither domain nor an AWS SDK, only asyncpg from the common base.
 COPY scripts/aws/v1/bootstrap.py /opt/db-bootstrap.py

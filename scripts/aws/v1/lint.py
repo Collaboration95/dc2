@@ -16,7 +16,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from scripts.aws.v1.definitions import template
+from scripts.aws.v1.definitions import SEPARATE, SHARED, DatabaseOptions, template
 
 ROOT = Path(__file__).resolve().parents[3]
 SNAPSHOT = ROOT / "deploy/aws/v1/template.json"
@@ -45,20 +45,25 @@ def run(*, require=False, which=shutil.which, runner=subprocess.run, stdout=sys.
     if linter is None:
         print("cfn-lint not installed: SKIPPED (CI passes --require)", file=stdout)
         return 2 if require else 0
+    # Every layout the generator can render is linted, not only the committed one: the V2
+    # separate-cluster template (#94) has no snapshot and would otherwise never be checked.
+    layouts = {SHARED: built, SEPARATE: template(DatabaseOptions(SEPARATE))}
     with tempfile.TemporaryDirectory(prefix="dc2-cfn-lint-") as directory:
-        rendered = Path(directory) / "template.json"
-        rendered.write_text(json.dumps(built, indent=2) + "\n")
-        result = runner(
-            [linter, str(rendered), "--regions", REGION],
-            capture_output=True,
-            text=True,
-            timeout=300,
-            check=False,
-        )
-    if result.returncode:
-        print(result.stdout + result.stderr, file=stdout)
-        return 1
-    print("cfn-lint: PASS (offline; not evidence of deployability)", file=stdout)
+        for topology, body in layouts.items():
+            rendered = Path(directory) / f"template-{topology}.json"
+            rendered.write_text(json.dumps(body, indent=2) + "\n")
+            result = runner(
+                [linter, str(rendered), "--regions", REGION],
+                capture_output=True,
+                text=True,
+                timeout=300,
+                check=False,
+            )
+            if result.returncode:
+                print(f"[{topology}] " + result.stdout + result.stderr, file=stdout)
+                return 1
+    print("cfn-lint: PASS for shared and separate (offline; not evidence of deployability)",
+          file=stdout)
     return 0
 
 

@@ -151,7 +151,22 @@ class Session:
         if result.get("State") != ("ENABLED" if enabled else "DISABLED"):
             raise OperationError("Repair schedule state was not confirmed")
 
-    def open(self, *, ready, repair, deadline, window=False, intake_ready=None):
+    def _launcher_on(self, launcher, session_end_epoch, deadline):
+        """SQL flag first, then the rule: a tick can never find the rule on and the flag off."""
+        self._require(launcher.enable(session_end_epoch=session_end_epoch, deadline=deadline))
+        self._schedule(self.config["launcher"]["rule"], True, deadline)
+
+    def open(
+        self,
+        *,
+        ready,
+        repair,
+        deadline,
+        window=False,
+        intake_ready=None,
+        launcher=None,
+        launcher_session_end=None,
+    ):
         """Open only after owning SQL readiness and bounded recovery succeed.
 
         ready/repair are deadline-aware owner hooks. They must close their SQL
@@ -165,6 +180,11 @@ class Session:
         intake_ready probes the intake-side owner (Media) after its function is restored
         but before the edge opens, because a quiesced function cannot be invoked. A
         failure re-quiesces intake so a half-open session never serves the public API.
+
+        launcher (hooks with enable/disable/settle) opts this session into unattended
+        encoder starts (#68). It needs a stack deployed with UnattendedLaunch=true and a
+        launcher_session_end epoch, after which the launcher starts nothing even if the
+        operator forgets to close. Absent, V1's operator-batch behaviour is unchanged.
         """
         with self.journal.locked() as state:
             allowed = {"closed", "opening", "window"} if window else {"closed", "opening"}
@@ -172,12 +192,18 @@ class Session:
                 state.get("pending_release") and not window
             ):
                 raise OperationError("Closed session without release intent required")
+            if launcher is not None and (
+                window or not self.config.get("launcher") or not launcher_session_end
+            ):
+                raise OperationError(
+                    "Unattended launch needs a full open, an UnattendedLaunch stack and an end"
+                )
             self._preflight_quota(deadline)
             restored = set(self.config.get("window_functions", [])) if window else None
             if window and not restored >= set(self.config["intake_functions"]):
                 raise OperationError("Window needs the intake and readiness API functions")
             warnings = []
-            state.update(session="opening", paused=True, session_completed=[])
+            state.update(session="opening", paused=True, unattended=False, session_completed=[])
             self.journal.save(state)
             # Quiesce intake first even on a retry after partial failure.
             for name in self.config["intake_functions"]:
@@ -231,9 +257,16 @@ class Session:
                     raise
             if self.config.get("gateway"):
                 self._step(state, "edge:open", lambda: self._edge(True, deadline))
+            if launcher is not None:
+                self._step(
+                    state,
+                    "launcher:enable",
+                    lambda: self._launcher_on(launcher, launcher_session_end, deadline),
+                )
             # A window never unpauses launches: batches need a full open session.
             state.update(
                 session="window" if window else "open",
+                unattended=launcher is not None,
                 paused=window,
                 session_step="complete",
                 session_warnings=warnings,
@@ -264,6 +297,11 @@ class Session:
             n: self.call("events", "describe-rule", {"Name": n}, deadline).get("State")
             for n in self.config.get("schedules", [])
         }
+        launcher_rule = None
+        if self.config.get("launcher"):
+            launcher_rule = self.call(
+                "events", "describe-rule", {"Name": self.config["launcher"]["rule"]}, deadline
+            ).get("State")
         edge = None
         gate = self.config.get("gateway")
         if gate:
@@ -274,6 +312,7 @@ class Session:
         with self.journal.locked() as state:
             recorded = state.get("session")
             failures = list(state.get("session_failures", []))
+            unattended = bool(state.get("unattended"))
         drift = []
         if recorded in {"open", "window", "closed"}:
             opened = recorded == "open"
@@ -293,6 +332,10 @@ class Session:
             for name, value in rules.items():
                 if value != ("ENABLED" if opened else "DISABLED"):
                     drift.append(f"rule:{name}={value}")
+            if self.config.get("launcher"):
+                want = "ENABLED" if opened and unattended else "DISABLED"
+                if launcher_rule != want:
+                    drift.append(f"launcher-rule:{launcher_rule}")
             if gate:
                 limits = gate["open"] if api else {"rate": 0, "burst": 0}
                 if (edge.get("ThrottlingRateLimit"), edge.get("ThrottlingBurstLimit")) != (
@@ -307,6 +350,7 @@ class Session:
                 "functions": functions,
                 "mappings": mappings,
                 "schedules": rules,
+                "launcher_rule": launcher_rule,
                 "edge_throttle": edge,
             },
             "drift": drift,
@@ -319,8 +363,13 @@ class Session:
         if result is not True:
             raise OperationError("Owner readiness/repair hook did not confirm success")
 
-    def close(self, *, drain, outcomes, deadline):
+    def close(self, *, drain, outcomes, deadline, launcher=None):
         """Retain queued messages/data. Disable every wake source even if drain fails.
+
+        An unattended launcher is switched off before anything else: its rule, then its SQL
+        flag (which returns only once no send is in flight). From then on nothing can start a
+        worker, so the drain below waits on a shrinking set. Its ambiguous reservations are
+        settled before the inventory check.
 
         drain must observe ECS STOPPED and owning SQL terminal/fenced outcomes;
         a forced stop alone is not a successful drain. Unresolved reservations
@@ -339,6 +388,13 @@ class Session:
                     state["session_failures"] = list(failed)
                     self.journal.save(state)
 
+            if self.config.get("launcher"):
+                rule = self.config["launcher"]["rule"]
+                attempt("launcher:rule", lambda: self._schedule(rule, False, deadline))
+                if launcher is not None:
+                    attempt(
+                        "launcher:flag", lambda: self._require(launcher.disable(deadline=deadline))
+                    )
             for name in self.config["intake_functions"]:
                 attempt("quiesce:" + name, lambda n=name: self._zero(n, deadline, warnings))
             if self.config.get("gateway"):
@@ -346,6 +402,10 @@ class Session:
             if not failed:
                 attempt("drain", lambda: self._require(drain(deadline=deadline)))
                 attempt("outcomes", lambda: self._outcomes(state, outcomes, deadline))
+                if self.config.get("launcher") and launcher is not None:
+                    attempt(
+                        "launcher:settle", lambda: self._require(launcher.settle(deadline=deadline))
+                    )
                 attempt("inventory", lambda: self._empty(state, deadline))
             for identity in self.config.get("mappings", []):
                 attempt("disable:" + identity, lambda i=identity: self._mapping(i, False, deadline))
@@ -358,7 +418,7 @@ class Session:
             if failed:
                 self.journal.save(state)
                 raise OperationError("Partial close; retry from retained journal")
-            state.update(session="closed", session_step="complete")
+            state.update(session="closed", unattended=False, session_step="complete")
             self.journal.save(state)
             return {
                 "session": "closed",
@@ -399,6 +459,9 @@ class Session:
                 or state.get("pending_release")
             ):
                 raise OperationError("Open unpaused session required")
+            if state.get("unattended"):
+                # Two launchers sharing the cap would race each other's inventory reads.
+                raise OperationError("Unattended launcher owns worker starts this session")
             maximum = self.config.get("max_worker_tasks", 3)
             if type(count) is not int or type(maximum) is not int or not 1 <= count <= maximum <= 3:
                 raise OperationError("Batch/cap must be 1..3")

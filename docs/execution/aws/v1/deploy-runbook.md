@@ -17,12 +17,14 @@ The operator must decide or supply all of these. None has a default.
 
 | Item | Why it blocks |
 |---|---|
-| An MFA session in profile `dc2-project2-mfa` | `FlickPondRequireMFA` denies when `aws:MultiFactorAuthPresent` is `false`. Direct calls with the long-term key pass, but calls CloudFormation makes on the caller's behalf carry no MFA and are denied. So every deploy, session and evidence command uses the session profile that `make aws-mfa-session CODE=<6 digits>` writes (the helper asks `sts get-session-token` for 129600 s, the 36 h maximum, and prints the expiry). Preflight blocks a long-term key and says to run the helper. The pipeline will not bypass or edit the policy. |
+| Credentials that satisfy `FlickPondRequireMFA`: an MFA session in profile `dc2-project2-mfa`, **or** the dedicated agent user in profile `dc2-agent` | `FlickPondRequireMFA` denies when `aws:MultiFactorAuthPresent` is `false`. Direct calls with the long-term key pass, but calls CloudFormation makes on the caller's behalf carry no MFA and are denied. So every deploy, session and evidence command uses the session profile that `make aws-mfa-session CODE=<6 digits>` writes (the helper asks `sts get-session-token` for 129600 s, the 36 h maximum, and prints the expiry). Preflight blocks a long-term key and says to run the helper, unless the policy simulator shows that key's principal is not subject to an MFA deny (next paragraph). The pipeline will not bypass or edit the policy.
+
+**Dedicated agent user (authorized 2026-10-17).** The IAM user `flickpond-agent` (AdministratorAccess and `FlickPondRegionLock`; not in the group that carries `FlickPondRequireMFA`, no MFA device) uses long-term keys in profile `dc2-agent`, so no MFA session exists or is needed. The pipeline does not trust the profile name: `mfa_required()` calls `iam simulate-principal-policy` for `s3:CreateBucket` and `cloudformation:CreateStack` with `aws:MultiFactorAuthPresent=false`, `aws:ViaAWSService=false` and `aws:RequestedRegion=ap-southeast-1`. Any `explicitDeny` means MFA is required (blocker, as before); all `allowed` means it is not (preflight `credentials` and `mfa` pass, detail "principal is not subject to an MFA deny (simulated)"); AccessDenied, an error or an inconclusive answer is unknown and fails closed as a blocker. Teardown `--execute` applies the same test. Sessions and assumed roles keep their old behaviour. `Guruprasath` still needs the MFA-session path. Never paste key ids or secrets into a command, file or issue; `--profile` names a profile only. |
 | `--run-id` (2-16 lowercase letters/digits) | Namespace `dc2-v1-<run id>` must fit CloudFormation's 24-character `EnvironmentId`. A new id per attempt; a failed stack leaves `ROLLBACK_COMPLETE` that blocks its name. |
 | `--state-dir` (private, outside the repo) | Journal, stack outputs, smoke credentials, the transient database role passwords, receipt. Mode 0700, files 0600. Back it up: it is the only record of what this run owns. |
 | `--images` | The `--out` evidence file of `deploy/v1/build_and_verify.py` (accepted only if `LOCAL_ARTIFACT_PASS`; each image must still have the verified config id), or a hand-written `images.json`. See below. |
 | `--seed-email` | Address for the smoke account. Must pass the Media API's email validation (not `.invalid`). |
-| How `session close` proves a drain | One of `--sql-config` (needs a station inside the VPC), `--counts-file`, or `--assume-empty-counts` (the operator attests no worker ever ran, true for a first deploy). Without one the pipeline refuses to open the window. |
+| How `session close` proves a drain | One of `--sql-config` (needs a station inside the VPC), `--counts-file`, or `--assume-empty-counts` (the operator attests no worker ever ran, true for a first deploy). Without one the pipeline refuses to open the window. Later closes can instead pass `session close --in-vpc-counts`, which counts the attempts with a finite task inside the VPC (no station, no attestation). |
 | Forecast | Cost Explorer may have no history for a young account; then pass `--forecast-usd` (the operator's own figure). Unavailable and unsupplied fails closed. |
 | `--budget-usd` | Default 30, matching `flickpond-monthly`. Preflight blocks if the budget does not exist, is not USD, or is below this flag. |
 | Frontend upload | Done by the `frontend` step after `applications`: `frontend/` is content-hashed, uploaded to the frontend bucket and CloudFront is invalidated. Unrun against AWS. |
@@ -190,7 +192,10 @@ the live `deploy-project`/`owner-run` tags. Anything failing either is skipped a
 5. `td-images-deleted`: every image in the owned repositories.
 6. `td-database`: remove deletion protection, delete the instance, then the cluster. A final
    snapshot `<env>-final` (tagged) is taken unless `--skip-final-snapshot`. This precedes the stack
-   because the retained database holds the VPC's subnets.
+   because the retained database holds the VPC's subnets. A stack deployed with the opt-in V2
+   `--database-topology separate` (#94, `docs/execution/aws/v2/database-topology.md`) has two
+   clusters: every deletion is requested before any is waited on, and the snapshots are
+   `<env>-media-final` and `<env>-processing-final`.
 7. `td-parameters`: owned SecureStrings under `/dc2/<env>/` (and any leftover local password file).
 8. `td-stack`: delete the main stack and wait (CloudFront is the long pole).
 9. `td-bootstrap-stack`: delete the staging stack. If it was adopted, delete only the object
@@ -205,7 +210,17 @@ the live `deploy-project`/`owner-run` tags. Anything failing either is skipped a
     which would add that wait to every teardown; the re-sweep costs a few list calls and covers
     late Lambda writes as well. A bucket still written to after 5 sweeps is reported, never
     force-deleted.
-11. `td-receipt`: observe what is left from the services, plus the tagging API.
+11. `td-receipt`: observe what is left from the services, plus the tagging API. The tagging API
+    is eventually consistent and keeps listing deleted resources for a while (the `r1017a`
+    teardown reported ten that were all gone), so each hit it returns that the services have not
+    already accounted for is confirmed with its owning service before it is called remaining:
+    an EC2 `*.NotFound` (or a VPC endpoint in state `deleted`), an ECS cluster or task
+    definition that is `INACTIVE` (free) or being deleted, an RDS not-found (both the `Fault` and
+    plain spellings) and an S3 `NoSuchBucket` are gone. Anything else stays, with the state that
+    was observed, and a type with no existence check stays as `unchecked` rather than being
+    guessed. The run's `INACTIVE` task definitions are then deleted (`ecs delete-task-definitions`,
+    ten at a time, errors tolerated and recorded) so they stop being listed. The receipt's
+    `tagging_api_observed` lists every hit with the observed state, those confirmed gone included.
 
 Expected 25-45 minutes (CloudFront 10-20, Aurora 5-10, snapshot 2-5), then the meter stops.
 `teardown-receipt-<run>.json` (0600) is the "resources remaining" receipt for #67: status
@@ -225,7 +240,7 @@ until produced by a real run; local fakes are not evidence.
 | images | per-owner digest and scan severity counts (or `PENDING`) | worker image digest for task evidence | the baseline `repo@sha256` set that `release promote --bundle` compares against | - | ECR retained storage |
 | applications | Gateway URL, function/alias/mapping/rule names, closed throttle 0/0 | finite worker task definition ARN | first-install `live` aliases (the release adapter deliberately invents no rollback version) | Gateway origin to measure | - |
 | db-bootstrap | task exit codes, four roles and databases created, temporary input removed | - | - | - | task start/stop timestamps |
-| migrations | Alembic revisions and task exit codes; schema check labelled `task-exit-code-only` or `alembic_version-over-verified-tls` | - | pre-release schema revision | - | task timestamps |
+| migrations | Alembic revisions and task exit codes; schema check labelled `task-exit-code-only` or `alembic_version-over-verified-tls` | - | pre-release schema revision (read later by the release CLI, `schema_revision_source: in-vpc-task` or `sql-station`) | - | task timestamps |
 | session-window, seed, public-smoke | Gateway routes, anonymous denial, cookie flags, readiness | - | the same smoke a release repeats | warm path exists; cold wake time is **not** recorded here | window start time |
 | session-close | close result, mappings and rules disabled, throttle 0/0 | zero tasks (inventory) | - | - | `database_pause: NOT_OBSERVED` until measured separately |
 | teardown | - | - | - | - | `resources_remaining` receipt, final snapshot, untouched legacy stack |
@@ -240,7 +255,8 @@ invoice reconciliation (#67).
 
 Status: **every harness here is written and exercised only against a simulated account.** None has
 touched AWS; no receipt below exists yet, so #63-#67 stay open. `S` stands for
-`--profile dc2-project2-mfa --region ap-southeast-1 --account 866865534361`, `D` for the private
+`--profile dc2-agent --region ap-southeast-1 --account 866865534361` (or `--profile dc2-project2-mfa` for
+the MFA-session path), `D` for the private
 `--state-dir` the deploy used, `R` for its run id. Every harness keeps its receipt at
 `D/evidence/evidence-<issue>-R.json` (0600), skips a step that already passed (rerun is safe;
 `--only a,b` picks steps), exits 1 only when a step run just now failed, and **refuses to start**
@@ -248,8 +264,12 @@ while the session journal says closed (and between polls, also when the Gateway 
 A step that cannot be observed is `NOT_RUN`, never `PASS`.
 
 ```sh
-# 0. MFA session (the only interactive step), then rehearse everything offline
+# 0. Credentials. With profile dc2-agent there is nothing to mint; prove it read-only first:
+#      python -m scripts.aws.v1.deploy deploy $S --run-id R --state-dir D --assume-empty-counts \
+#          --forecast-usd 0 --stop-after preflight      # no --execute: preflight makes only reads
+#    With Guruprasath, mint the MFA session (the only interactive step):
 make aws-mfa-session CODE=123456                      # writes profile dc2-project2-mfa, prints expiry
+# then rehearse everything offline
 make aws-proof-rehearse                               # every harness vs the simulation; proves nothing
 python -m scripts.aws.v1.deploy deploy $S --run-id R --dry-run
 
@@ -266,19 +286,46 @@ python -m scripts.aws.v1.evidence capacity $S --state-dir D --run-id R --fixture
 # 3. Derive the drain proof from the receipts and close; note the printed close time
 python -m scripts.aws.v1.evidence counts --state-dir D --run-id R
 python -m scripts.aws.v1.session close --config D/operator-config.json $S
+#    or skip the attested file and count the attempts inside the VPC (one finite task per poll,
+#    about a minute each; the database is resumed first if it is paused):
+#      python -m scripts.aws.v1.session close --config D/operator-config.json $S --in-vpc-counts
 
 # 4. #67 closed state and the ACU pause (waits up to 30 min for capacity to reach 0)
 python -m scripts.aws.v1.evidence spend $S --state-dir D --run-id R --closed-at <close time> \
     --only close-state,pause
 
-# 5. #66 needs the paused database: cold wake first, then the Fargate generator (it opens its own window)
-python -m scripts.aws.v1.evidence latency $S --state-dir D --run-id R
-python -m scripts.aws.v1.session close --config D/operator-config.json $S
+# 5. #66 needs the paused database. Step 4 above already proved the pause; the cold wake still
+#    polls CloudWatch for up to 15 min (--pause-wait-minutes) before it records NOT_RUN.
+#    Run long live commands under `nohup ... &` so they survive the terminal or agent session
+#    that started them (a killed generator left the session open for 5 h on 2026-10-17). Wait
+#    for each to exit (`tail -f` its log; the JSON report is its last output) before the next.
+#    5a. Cold wake: opens its own window, waits (<= 60 s, recorded as gate_settle_seconds and
+#        gate_probes, apart from window_open_seconds) until the Gateway stops answering 429,
+#        times login and two reads, and closes the window it opened (window_closed).
+nohup python -m scripts.aws.v1.evidence latency $S --state-dir D --run-id R --only cold-wake \
+    > cold-wake.log 2>&1 &
+#    5b. The 50-user load needs a bigger gate than the default 5/s. Set in operator-config.json
+#        "edge_open": {"rate": 100, "burst": 200}, then open. The generator refuses (before
+#        registering anything) a stage below 50/s, burst 100.
+python -m scripts.aws.v1.session open --config D/operator-config.json $S
+nohup python -m scripts.aws.v1.evidence latency $S --state-dir D --run-id R --only generator \
+    > generator.log 2>&1 &
+python -m scripts.aws.v1.session close --config D/operator-config.json $S --in-vpc-counts
+#    PASS and NOT_RUN are final in a receipt, and a FAILed step resumes its recorded task. To
+#    measure again after fixing the cause, add --fresh: the selected steps' old entry and intent
+#    are archived under "attempts" in the private receipt (never in the summary) and the step
+#    mints a new task, e.g. `... --only generator --fresh`. Without --only it applies to every
+#    step of #66. `--fresh` is refused for every other proof (their drain counts and release
+#    snapshots are cumulative). Each attempt's raw samples keep their own file
+#    (latency-samples-R.csv, then -a2, -a3 ...); none is ever overwritten.
 
-# 6. #65 release (window, not open; needs a `sql` station and a plan, see below)
+# 6. #65 release (window, not open). No SQL station: the owning schema revision is read by a
+#    finite task inside the VPC. Build plan.json first ("Release proof on an existing stack").
 python -m scripts.aws.v1.session window --config D/operator-config.json $S
-python -m scripts.aws.v1.evidence release $S --state-dir D --run-id R --plan plan.json
-python -m scripts.aws.v1.session close --config D/operator-config.json $S
+python -m scripts.aws.v1.evidence release $S --state-dir D --run-id R --plan D/release/plan.json
+python -m scripts.aws.v1.session close --config D/operator-config.json $S --in-vpc-counts
+python -m scripts.aws.v1.evidence release-plan $S --state-dir D --run-id R \
+    --deregister D/release/plan.json                  # retire the definition revisions it made
 
 # 7. Tear down, then the spend steps that need the receipt and the invoice to lag in (~1 day)
 python -m scripts.aws.v1.deploy teardown $S --run-id R --state-dir D \
@@ -296,20 +343,153 @@ python -m scripts.aws.v1.evidence summary --state-dir D --run-id R
 | 2 gateway | 10-15 min | encoder task, cents | #63 anonymous and forged denial, session round trip, CORS, queue and cross-database denial, direct upload to HLS playback |
 | 2 capacity | 60-90 min (the DLQ poison adds about 35 min: visibility 420 s x 5 receives) | three encoder tasks for minutes: low dollars at the Fargate rates above | #64 1/2/3 concurrent encoders, mid-encode stop recovery inside 300 s, DLQ empty, drain |
 | 3-4 | 5 + up to 30 min | DB awake for the wait | #67 closed state, ACU pause |
-| 5 | 15-20 min | generator task cents plus DB awake | #66 cold wake kept apart from 50-user warm status p90 and 20-login p90 |
+| 5 | 15-20 min | generator task cents plus DB awake | #66 cold wake (wake, gate settle and requests kept apart) and the 50-user warm status p90 and 20-login p90, with 429s counted apart from errors |
 | 6 | 20-40 min | pennies plus DB awake | #65 promote, rollback, peer owner untouched, optional failing candidate |
 | 7 | 25-45 min, plus about a day | stops the meter | #67 resources remaining and spend, the invoice itself is not proven |
 
-Release plan (`plan.json`, nonsecret): `owner` (`media` or `processing`), `migration_definition`,
-`target_revision`, `good` and `baseline` images each `{bundle, image_uri, compat_evidence}` (a
-Processing release adds `worker_definition`), and an optional `bad` image that must fail its smoke
-test. Without a `sql` block in the operator config the release steps record `NOT_RUN`.
+### Release proof on an existing stack
+
+V1 has no bastion and Aurora is private, so the release code reads the owning schema revision
+from a finite Fargate task in the VPC: the owner's deployed migration task definition with a
+command override that runs `scripts/aws/v1/vpc_probe.py` (it needs no new image and no secret in
+the override; the task already holds the owner's migration role and the RDS CA). The probe
+connects with a required certificate chain and hostname, asks the server whether the session is
+encrypted, prints one tagged line (a revision or counts, never a DSN) and exits; a paused Aurora
+is waited out for up to 150 s inside the task. The CLI parses CloudWatch Logs, stops the task on
+any error and records `schema_revision_source: in-vpc-task` in every release result and in the
+#65 receipt. A `sql` block in the operator config still takes precedence (`sql-station`).
+
+The `baseline` step reads both owners first (it wakes a paused database before any clocked
+operation), and `owner-isolation` reads the peer again after the last release. A promotion's own
+reads (about 40-60 s each; the opening pair and restore's closing pair run side by side) count
+inside its 600 s / 300 s gate, so a slow Fargate start is visible in the receipt as
+`schema_read_seconds`.
+
+**`plan.json`** (nonsecret; `evidence release-plan` writes it):
+
+| Field | Meaning |
+|---|---|
+| `owner` | `media` or `processing` (run each owner under its own `--run-id`: a receipt covers one) |
+| `target_revision` | the owner's Alembic head every image migrates to. For this proof it must be the stack's **current** head, so the migration task is a no-op that still proves the task, the pinned definition and the schema read |
+| `baseline` | the images the stack runs now, from the deploy journal; the rollback is a second promotion of this set |
+| `good` | a new image set to promote |
+| `bad` | optional: an image that must migrate and then fail the public smoke, so the real restore path runs (one that fails its migration is cleared by `release abandon` and the step is a FAIL); omitted, that step is `NOT_RUN` |
+| each image set | `bundle` (path to `{api[, worker]}` artifact receipts), `image_uri` (`repo@sha256:...` of the API image), `compat_evidence` (path), `migration_definition` (pinned ARN with revision whose container holds exactly that digest), `worker_definition` (Processing only, same rule) |
+| `migration_definition` | optional plan-level default for plans whose images share a definition (they rarely can: the release checks the digest) |
+| `registered_definitions` | the task definition revisions `release-plan` registered, for `--deregister` |
+
+```sh
+# a. What the stack is, read from the VPC (also proves the reader): current heads and their source
+python -m scripts.aws.v1.release schema --config D/operator-config.json $S
+jq '.deploy.images | map_values({tag, digest, local_id})' D/deploy-journal.json
+BASE=$(grep -l "$(jq -r .deploy.images.media.local_id D/deploy-journal.json)" \
+       docs/execution/aws/v1/evidence/local-images-*.json)  # build evidence of the deployed images
+
+# b. A different, locally verified image set. Commit first: the image label is the commit, so a
+#    new commit is a new config id. Each build must end LOCAL_ARTIFACT_PASS.
+git switch -c release-proof-good && git commit --allow-empty -m "release proof: good image"
+python deploy/v1/build_and_verify.py --out D/release/build-good.json        # media, processing, worker
+T=$(make test-v1 | grep -Eo '[0-9]+ passed' | head -1 | cut -d' ' -f1)       # attested in the bundles
+
+# c. Optional bad image. It must pass every local gate, MIGRATE, and fail only in the Lambda's
+#    own database TLS, so login and the job calls fail the smoke and the restore path runs.
+#    Do NOT replace deploy/v1/global-bundle.pem: the owner's migration task reads the same image,
+#    its TLS fails, the release stops before any alias moves and restore refuses the intent
+#    (#65 live run, 2026-10-17). Point only the Lambda handler at a valid non-RDS CA bundle.
+#    Never merge or push this branch.
+git switch -c release-proof-bad
+#   processing: first lines of processing/lambda_handler.py, BEFORE `import processing.config`
+#   (the migration task runs alembic via processing/migrations/env.py, not this module):
+#       import os, certifi; os.environ["PROCESSING_DATABASE_CA_FILE"] = certifi.where()
+#   media: the same at the top of media/lambda_handler.py, before any `media.*` import
+#   (media/config.py reads `postgres_ssl_ca` with env prefix MEDIA_):
+#       import os, certifi; os.environ["MEDIA_POSTGRES_SSL_CA"] = certifi.where()
+#   certifi must be importable in the image; if not, use "/etc/ssl/certs/ca-certificates.crt"
+#   (installed by the Dockerfiles) instead of certifi.where().
+git commit -am "release proof: Lambda-only non-RDS CA bundle (migrates, must fail the smoke)"
+python deploy/v1/build_and_verify.py --out D/release/build-bad.json
+#   If a candidate still fails in its migration task, `release abandon` clears the intent once
+#   it is proven that nothing moved (see "Release CLI actions"); the proof records that step as
+#   FAIL with failed_stage "migration", because the restore path was not exercised.
+
+# d. Push both sets with the deploy's immutable tag convention <id>-<owner> (a private docker
+#    config, as the deploy uses); ECR scans on push. Use a new id per attempt.
+export DOCKER_CONFIG=$(mktemp -d)
+MEDIA=$(jq -r .deploy.outputs.MediaRepositoryUri D/deploy-journal.json)
+PROC=$(jq -r .deploy.outputs.ProcessingRepositoryUri D/deploy-journal.json)
+WORK=$(jq -r .deploy.outputs.WorkerRepositoryUri D/deploy-journal.json)
+aws ecr get-login-password --profile dc2-agent --region ap-southeast-1 \
+    | docker login --username AWS --password-stdin "${MEDIA%%/*}"
+for pair in "g1:good" "b1:bad"; do                      # <tag id>:<build>, the sha is its commit
+  id=${pair%%:*}; sha=$(jq -r .source_sha D/release/build-${pair##*:}.json | cut -c1-12)
+  for target in "media:$MEDIA" "processing:$PROC" "worker:$WORK"; do
+    docker tag "dc2-v1-${target%%:*}:local-$sha" "${target#*:}:$id-${target%%:*}"
+    docker push "${target#*:}:$id-${target%%:*}"
+  done
+done
+
+# e. plan.json. It asks the registry for each digest and a COMPLETE scan with no HIGH/CRITICAL
+#    finding beyond the audited unfixed list (rerun in a minute if the scan is pending),
+#    registers one definition revision per good/bad image (the deployed definition with only the
+#    image swapped), builds the bundles and runs the release CLI's own offline gates on every
+#    image set.
+python -m scripts.aws.v1.evidence release-plan $S --state-dir D --run-id R --owner processing \
+    --baseline-evidence "$BASE" --good-run-id g1 --good-evidence D/release/build-good.json \
+    --bad-run-id b1 --bad-evidence D/release/build-bad.json \
+    --tests-passed "$T" --attest-schema-unchanged \
+    --accept-unfixed docs/execution/aws/v1/scan-accepted-unfixed-20261017.json \
+    --target-revision <processing revision printed by step a>   # default: this checkout's head
+```
+
+`--accept-unfixed` is legitimate only for findings with no fixed version available (the pinned
+base's Debian packages, confirmed by an empty `apt list --upgradable`); re-check each id before
+every release and drop any that now has a fix. A fixable finding must be fixed by rebuilding, not
+accepted. Any HIGH/CRITICAL id not on the list still blocks, and the receipt records the accepted
+ids and the list's sha256 per image.
+
+What `release-plan` checks and what it only records. Checked: the baseline evidence is the build of
+the images the deploy journal recorded; the registry digest of every baseline tag equals the digest
+the deploy recorded; the stack's own migration/worker definitions still hold those digests; no good
+or bad image equals a baseline image; every scan is COMPLETE with zero HIGH/CRITICAL beyond the
+accept list; the release gates (`validate_bundle`, digest pin, Processing worker) pass. Recorded as the operator's word:
+`--tests-passed` (the source tests behind the images) and `--attest-schema-unchanged` (no image adds
+a migration beyond `--target-revision`, and both directions are compatible with it). The bundle's
+`manifest_config_id` is the local config id, because `docker push` of a local image keeps it.
+Everything it writes is mode 0600 under `D/release/`.
+
+### Release CLI actions
+
+`python -m scripts.aws.v1.release ACTION --config D/operator-config.json $S`:
+
+| Action | Does |
+|---|---|
+| `promote` | migrate the owner, publish immutable Lambda versions, move `live`, smoke through the Gateway, keep the intent if it fails |
+| `restore` | put the prior aliases back after a failed promote; never downgrades a schema; refuses until the migration completed |
+| `abandon` | clear a pending release that provably changed nothing (see below) |
+| `status` | read-only: the journal's intent (`migration_complete`, `moved`, `versions`) and each live alias |
+| `schema` | read-only: both owners' Alembic revisions and the read's source |
+
+A pending intent blocks `session open` and any other promote. A candidate that fails in its migration
+task leaves `{phase: preparing, migration_complete: false, moved: {}}`, which `restore` refuses by
+design. `release abandon [--reason TEXT]` clears it only when all of these are read live: there is
+a pending release; no alias moved; every function's `live` alias still equals its prior receipt (version and revision id, so an alias moved away and back is refused); the owner's migration task is stopped (any exit code), was never started, or its lost launch is found stopped by `startedBy` (a launch that left no trace is refused until the one-hour RunTask replay window has passed; a task ECS no longer lists is unknown and refused, so abandon within about an hour of the failure); no
+published version is aliased (published-but-unaliased versions are immutable, harmless, and listed
+in the result as `versions_published_unaliased`); the owner's schema revision (read in the VPC, or
+by the SQL station) equals the revision recorded before the release began; the owner is quiescent.
+Any failed check is a refusal that keeps the intent. On success the intent moves to
+`abandoned_releases` in the journal. After a migration that did apply, abandon refuses (schema
+changed) and restore is the path.
+
+Run Media the same way with `--owner media` and its own `--run-id`; each owner is promoted,
+rolled back and checked against the other independently, and `evidence summary` takes one run id
+at a time.
 
 Caveats that matter when reading receipts:
 
 - `--assume-empty-counts` in step 1 is true only for the first deploy. After step 2 the close in
   step 3 uses the counts file `evidence counts` wrote into the operator config (an attestation that
-  nothing else ran on this stack, stated in its output), or a `sql` station.
+  nothing else ran on this stack, stated in its output), a `sql` station, or `--in-vpc-counts`,
+  which reads the real attempt counts from Aurora with a finite task and needs no attestation.
 - Cross-database denial needs a station that reaches the private database; from outside the VPC the
   step records `NOT_RUN`. `--skip-cross-database "reason"` records a deliberate skip.
 - The generator measures from a Fargate task in the same region, with a task definition it registers
@@ -324,8 +504,10 @@ Caveats that matter when reading receipts:
   `--generate-cli-skeleton` output (a test does this when `aws` is on the path), not against live
   service behaviour. Expect a first-run surprise or two, and read `status` before rerunning.
 - The SPA upload (`frontend` step) has only run against the simulated account and a fake CloudFront; the first real run may show an S3 or invalidation surprise.
-- `schema_revision` and the drain proof need a station that can reach the private database. Without
-  one, migrations are verified by exit code only and the close-proof is operator-attested.
+- The release code and `session close --in-vpc-counts` read the private database with a finite task
+  in the VPC; the `deploy` pipeline's own migration step still has no such reader, so without a
+  `--sql-config` station it verifies migrations by task exit code only (`task-exit-code-only`), and
+  the deploy-time close-proof is operator-attested. None of the in-VPC reads has run against AWS yet.
 - ECS tasks and ECR images carry no tags (the shared task contract has no `tags` field, and images
   are not taggable); the cluster and repositories are tagged and owned.
 - A failed run leaves the stack in `ROLLBACK_COMPLETE`; use a new run id and run `teardown` for the

@@ -1,6 +1,5 @@
 """Media's result consumer and bounded command outbox repair Lambdas."""
 
-import asyncio
 import os
 import time
 
@@ -10,6 +9,7 @@ from delivery.runtime import deadline_for, queue_urls
 from delivery.sqs import SQS, consume_batch
 from media.config import get_settings
 from media.messaging import consume_result, publish_commands
+from runtime_support import lambda_db
 from runtime_support.errors import sanitized_entrypoint
 from runtime_support.settings import heal_on_rejection
 
@@ -34,7 +34,13 @@ async def invoke(event, context, mode):
     from media.database import engine_options
 
     settings = get_settings()
-    engine = create_async_engine(settings.postgres_dsn, **engine_options(settings, invocation=True))
+    engine = await lambda_db.shared_engine(
+        "media",
+        settings.postgres_dsn,
+        lambda: create_async_engine(
+            settings.postgres_dsn, **engine_options(settings, invocation=True)
+        ),
+    )
     factory = async_sessionmaker(engine, expire_on_commit=False)
     deadline = deadline_for(context)
     try:
@@ -57,15 +63,16 @@ async def invoke(event, context, mode):
             )
             cleanup = await run_once(factory, settings, Storage(settings), deadline=deadline)
         return {"published": published, **cleanup}
-    finally:
-        await engine.dispose()
+    except Exception as error:
+        await lambda_db.release_after("media", error)
+        raise
 
 
 @sanitized_entrypoint("media.result")
 def result_handler(event, context):
-    return asyncio.run(invoke(event, context, "result"))
+    return lambda_db.run(invoke(event, context, "result"))
 
 
 @sanitized_entrypoint("media.repair")
 def repair_handler(event, context):
-    return asyncio.run(invoke(event, context, "repair"))
+    return lambda_db.run(invoke(event, context, "repair"))

@@ -229,3 +229,76 @@ def test_percentiles_use_nearest_rank():
     values = list(range(1, 101))
     assert [core.percentile(values, f) for f in (0.5, 0.9, 0.95, 0.99)] == [50, 90, 95, 99]
     assert core.percentile([], 0.5) is None
+
+
+# ---- --fresh ----------------------------------------------------------------------------
+def fresh_proof(tmp_path, fresh, guard=None):
+    return Proof(63, directory=tmp_path / "evidence", run_id="r1", simulated=False,
+                 scope={"profile": "p"}, required=("a", "b"), guard=guard, fresh=fresh)
+
+
+def test_fresh_archives_the_old_entry_and_intent_and_runs_the_step_again(tmp_path):
+    first = fresh_proof(tmp_path, None)
+    first.step("a", lambda i: i.update(task="one") or {"public": {"n": 1}}, session=None)
+    again = fresh_proof(tmp_path, {"a"})
+    seen = []
+    again.step("a", lambda i: seen.append(dict(i)) or i.update(task="two") or {"public": {"n": 2}},
+               session=None)
+    assert seen == [{}]  # a new intent: nothing of the old task is reused
+    assert again.doc["steps"]["a"]["public"] == {"n": 2}
+    (attempt,) = again.doc["attempts"]["a"]
+    assert attempt["attempt"] == 1 and attempt["step"]["public"] == {"n": 1}
+    assert attempt["intent"] == {"task": "one"} and attempt["archived_at"].endswith("Z")
+    assert json.loads(again.path.read_text())["attempts"]["a"][0]["attempt"] == 1  # saved first
+
+
+def test_fresh_leaves_steps_it_was_not_asked_about_final(tmp_path):
+    first = fresh_proof(tmp_path, None)
+    first.step("a", ok(), session=None)
+    first.step("b", ok(), session=None)
+    again = fresh_proof(tmp_path, {"a"})
+    again.step("a", ok(), session=None)
+    again.step("b", lambda i: pytest.fail("b is final"), session=None)
+    assert again.ran == ["a"] and set(again.doc["attempts"]) == {"a"}
+
+
+def test_fresh_true_means_every_step_and_each_is_archived_once_per_process(tmp_path):
+    first = fresh_proof(tmp_path, None)
+    first.step("a", ok(), session=None)
+    first.step("b", ok(), session=None)
+    again = fresh_proof(tmp_path, True)
+    for name in ("a", "b", "a"):  # a second request for `a` in this process is a plain rerun
+        again.step(name, ok(), session=None)
+    assert {n: len(v) for n, v in again.doc["attempts"].items()} == {"a": 1, "b": 1}
+
+
+def test_fresh_on_a_step_that_never_ran_archives_nothing(tmp_path):
+    proof = fresh_proof(tmp_path, True)
+    proof.step("a", ok(), session=None)
+    assert "attempts" not in proof.doc
+
+
+def test_a_refused_fresh_step_leaves_the_receipt_untouched(tmp_path):
+    ctx, guarded_proof = guarded(tmp_path, "open")
+    guarded_proof.step("a", ok(), session="open")
+    before = guarded_proof.path.read_text()
+    ctx.world.plan.stage = {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0}
+    again = ctx.proof(63, ("a",))
+    again.fresh = True
+    with pytest.raises(SessionRefused):
+        again.step("a", ok(), session="active")
+    assert again.path.read_text() == before
+
+
+def test_the_overall_verdict_ignores_archived_attempts(tmp_path):
+    first = fresh_proof(tmp_path, None)
+    first.step("a", lambda i: {"status": FAIL, "public": {}}, session=None)
+    first.step("b", ok(), session=None)
+    again = fresh_proof(tmp_path, {"a"})
+    again.step("a", ok(), session=None)
+    assert again.overall() == PASS
+
+
+def test_the_stage_throttle_reader_returns_the_live_default_route_settings(tmp_path):
+    ctx, _ = guarded(tmp_path, "open")
+    assert core.stage_throttle(ctx.aws, ctx.config["gateway"]) == sim.OPEN_EDGE
