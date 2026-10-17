@@ -2,6 +2,7 @@
 
     python -m scripts.aws.v1.evidence gateway  ...   #63 workflow and boundaries
     python -m scripts.aws.v1.evidence capacity ...   #64 1/2/3 encoders, recovery, DLQ
+    python -m scripts.aws.v1.evidence capacity --backlog N ...   #185 backlog jobs/min at cap 1/2/3
     python -m scripts.aws.v1.evidence release  ...   #65 promote, roll back, peer untouched
     python -m scripts.aws.v1.evidence release-plan   write #65's plan.json for a deployed stack
     python -m scripts.aws.v1.evidence latency  ...   #66 Fargate generator, cold wake apart
@@ -43,10 +44,10 @@ from scripts.aws.v1.proof import (
 from scripts.aws.v1.proof.core import ProofError
 
 REQUIRED = {"63": gateway.REQUIRED, "64": capacity.REQUIRED, "65": release.REQUIRED,
-            "66": latency.REQUIRED, "67": spend.REQUIRED}
+            "66": latency.REQUIRED, "67": spend.REQUIRED, "185": capacity.BACKLOG_REQUIRED}
 # The session state each harness needs when it starts (latency opens its own window).
-SESSION = {"gateway": "open", "capacity": "open", "release": "window", "latency": "closed",
-           "release-plan": "closed",
+SESSION = {"gateway": "open", "capacity": "open", "capacity-backlog": "open",
+           "release": "window", "latency": "closed", "release-plan": "closed",
            "spend": "closed", "short-encode": "open", "db-topology": "window"}
 
 
@@ -87,6 +88,14 @@ def build_parser():
     c.add_argument("--poison", action="store_true", help="provoke one DLQ message (about 35 min)")
     c.add_argument("--job-timeout", type=int, default=1500)
     c.add_argument("--minutes", type=int, default=60)
+    c.add_argument("--backlog", type=int, metavar="N", nargs="?", const=capacity.DEFAULT_BACKLOG,
+                   help="#185 instead of the 1/2/3 runs: submit N identical clips per cap and "
+                        "drain them at encoder cap 1, 2 and 3 (bare flag: "
+                        f"{capacity.DEFAULT_BACKLOG}); --fixture is the clip, receipt "
+                        "evidence-185")
+    c.add_argument("--drain-timeout", type=int, default=capacity.DRAIN_TIMEOUT,
+                   help="--backlog only: seconds allowed per cap before the step stops its "
+                        "encoders and fails")
     r = sub.add_parser("release", help="#65")
     scope_arguments(r)
     r.add_argument("--plan", type=Path, required=True, help="nonsecret release plan JSON")
@@ -207,6 +216,12 @@ def execute(args, ctx):
         workers = {int(n) for n in args.workers.split(",")} if args.workers else None
         if workers and not workers <= {1, 2, 3}:
             raise ProofError("--workers takes 1, 2 and/or 3")
+        if args.backlog is not None:
+            if args.short_fixture or args.poison:
+                raise ProofError("--backlog does not combine with --short-fixture or --poison")
+            return capacity.run_backlog(
+                ctx, fixture=args.fixture, backlog=args.backlog, workers=workers,
+                minutes=args.minutes, drain_timeout=args.drain_timeout, only=only(args))
         return capacity.run(ctx, fixture=args.fixture, workers=workers,
                             short_fixture=args.short_fixture, poison=args.poison,
                             job_timeout=args.job_timeout, minutes=args.minutes, only=only(args))
@@ -322,11 +337,12 @@ def rehearse(args, stdout):
         "gateway": lambda ctx: gateway.run(ctx, fixture=fixture, minutes=30),
         "capacity": lambda ctx: capacity.run(ctx, fixture=fixture, short_fixture=fixture,
                                              minutes=30),
+        "capacity-backlog": lambda ctx: capacity.run_backlog(ctx, fixture=fixture, minutes=30),
         "latency": rehearse_latency,
         "spend": lambda ctx: spend.run(ctx, wait_minutes=10),
     }
     for name, run in runs.items():
-        world = sim.SimWorld(encode_seconds=240 if name == "capacity" else 45)
+        world = sim.SimWorld(encode_seconds=240 if name.startswith("capacity") else 45)
         ctx = sim.build(shared, session=SESSION[name], world=world, tmp=base / name)
         proof = run(ctx)
         reports[name] = proof.report()

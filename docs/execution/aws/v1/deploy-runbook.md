@@ -282,6 +282,11 @@ python -m scripts.aws.v1.session open --config D/operator-config.json $S
 python -m scripts.aws.v1.evidence gateway  $S --state-dir D --run-id R --fixture short.mp4
 python -m scripts.aws.v1.evidence capacity $S --state-dir D --run-id R --fixture long.mp4 \
     --short-fixture short.mp4 [--poison]
+#    #185 backlog throughput (needs a plain `session open`, not `--unattended`): six identical
+#    clips per cap, drained at encoder cap 1, then 2, then 3. About 35-40 min and about 0.11 USD of
+#    Fargate with the 36 MB fixture (18 encoders of roughly 165 s billed each).
+python -m scripts.aws.v1.evidence capacity $S --state-dir D --run-id R --fixture long.mp4 \
+    --backlog 6
 
 # 3. Derive the drain proof from the receipts and close; note the printed close time
 python -m scripts.aws.v1.evidence counts --state-dir D --run-id R
@@ -342,10 +347,62 @@ python -m scripts.aws.v1.evidence summary --state-dir D --run-id R
 | 1 | 50-80 min | see Ordered steps | deploy part of #63 |
 | 2 gateway | 10-15 min | encoder task, cents | #63 anonymous and forged denial, session round trip, CORS, queue and cross-database denial, direct upload to HLS playback |
 | 2 capacity | 60-90 min (the DLQ poison adds about 35 min: visibility 420 s x 5 receives) | three encoder tasks for minutes: low dollars at the Fargate rates above | #64 1/2/3 concurrent encoders, mid-encode stop recovery inside 300 s, DLQ empty, drain |
+| 2 capacity `--backlog 6` | 35-40 min (18 encodes; `--drain-timeout` 2400 s per cap) | about 0.11 USD of Fargate: 18 encoders, roughly 165 s billed each | #185 jobs/min, median and p90 queue wait, failures and billed seconds per cap, speedup at cap 2 and 3 against 1.6x and 2.1x |
 | 3-4 | 5 + up to 30 min | DB awake for the wait | #67 closed state, ACU pause |
 | 5 | 15-20 min | generator task cents plus DB awake | #66 cold wake (wake, gate settle and requests kept apart) and the 50-user warm status p90 and 20-login p90, with 429s counted apart from errors |
 | 6 | 20-40 min | pennies plus DB awake | #65 promote, rollback, peer owner untouched, optional failing candidate |
 | 7 | 25-45 min, plus about a day | stops the meter | #67 resources remaining and spend, the invoice itself is not proven |
+
+### Backlog throughput (`capacity --backlog N`, #185)
+
+The 1/2/3 runs above put one job on each encoder, so they show independence but never leave work
+waiting. `--backlog N` is the proposal's scalability scenario (section 3.4): a fixed backlog drained
+at a fixed encoder cap, judged on jobs per minute and queue wait. It replaces that invocation's
+1/2/3 runs (it cannot be combined with `--short-fixture` or `--poison`) and writes its own receipt,
+`D/evidence/evidence-185-R.json`, with the steps `backlog-1`, `backlog-2`, `backlog-3` and
+`backlog-compare`. Re-running skips a step that passed; `--only backlog-2` picks one; `--workers 2,3`
+picks caps (the comparison needs all three).
+
+How the cap is kept: a V1 encoder is a finite task that claims **one** attempt, encodes it and
+exits, so "cap 2" cannot mean two encoders that each work through the backlog. For each cap the
+harness uploads N identical clips with no encoder running (a fixed backlog, a fresh one per cap),
+then acts as the operator: it starts `min(queued jobs - encoders that have not claimed yet,
+cap - encoders alive)` through `Session.batch` and repeats every 5 s, so a replacement starts as soon
+as an encoder reaches STOPPED while jobs are still queued. Alive encoders therefore never exceed
+the cap, and every refill pays a Fargate start (about 20 s) that cap 1 pays six times in series.
+Starts are bounded at 2 per job; a refused start ("cap reached", e.g. a task still STOPPING) is
+retried on the next poll. Do not open the session with `--unattended`: the launcher owns starts
+then and `Session.batch` refuses.
+
+Per cap the receipt records, all of it redacted (numbers and verdicts only):
+
+| Field | Source |
+|---|---|
+| `jobs_per_minute` | jobs done / (first upload started to last job seen terminal); `drain_jobs_per_minute` starts at the first encoder launch instead, which leaves out the upload time every cap pays equally |
+| `queue_wait_*`, `processing_*` | `queued_at`, `started_at`, `finished_at` of the current attempt from `GET /api/processing/jobs/<id>`: server-side stamps, so no client clock skew. A missing stamp is counted in `missing_queue_wait`, not guessed, and fails the step. p90 is nearest-rank (with 6 jobs it is the slowest) |
+| `jobs_failed`, `outcomes`, `retried_jobs` | final job status; an attempt number above 1 counts as retried |
+| `encoder_billed_seconds(_total)`, `encoders_started`, `launch_waves` | pull-start to stop of each task |
+| `peak_concurrent_from_task_stamps`, `peak_concurrent_polled` | must not exceed the cap |
+| `encoders_left_running` | live tasks after the step; must be 0 |
+| `max_poll_gap_seconds` | a silence over 60 s between control polls means encoders were not being refilled (a suspended laptop), and fails the step |
+
+`backlog-compare` reads only the three recorded steps and reports speedup over cap 1 as measured,
+unrounded for the verdict: PASS needs every cap step PASS, one backlog size and fixture, speedup
+at least 1.6 at cap 2 and at least 2.1 at cap 3 on the `jobs_per_minute` basis. The drain-basis
+ratios, the zero-overhead `ideal_speedup` for the chosen N, and whether the median queue wait fell
+at each step are reported beside it and do not change the verdict. A miss is recorded as FAIL with
+the numbers. Re-running a FAILed cap step resumes its recorded jobs and recomputes the same
+verdict (and `--fresh` is refused), so a new measurement needs a new run id.
+Cap 3 is the ceiling because the account's Fargate quota is 6 vCPU and an encoder is 2 vCPU; the
+receipt says so in every step.
+
+A step that times out (`--drain-timeout`, default 2400 s) or is interrupted stops its own
+encoders, records what it saw and fails; the jobs it left queued block the next cap, so they
+cannot join its backlog. `counts` includes the backlog jobs for the close proof (a job left
+unfinished is counted as queued). N must be 3 to 12 and large enough that the targets are
+reachable with zero overhead (a multiple of 6 is best: 6 and 12 give ideal 2.0x and 3.0x). The
+fixture is whatever `--fixture` names; the measured 36 MB clip fits the budget, and a much shorter
+clip lets the fixed task start dominate and flatters nothing.
 
 ### Release proof on an existing stack
 

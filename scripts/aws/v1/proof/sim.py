@@ -11,6 +11,7 @@ simulated, its overall status is SIMULATED, and the summary writer refuses it.
 """
 
 import contextlib
+import datetime as dt
 import hashlib
 import io
 import json
@@ -63,6 +64,11 @@ def iso(epoch):
     return stamp(epoch)
 
 
+def iso_precise(epoch):
+    """Sub-second ISO stamps, like the Processing API's timestamptz columns."""
+    return dt.datetime.fromtimestamp(epoch, dt.UTC).isoformat()
+
+
 def crc(*parts):
     return zlib.crc32("|".join(map(str, parts)).encode())
 
@@ -99,8 +105,13 @@ class SimWorld:
                  repair_seconds=90.0, requeue=True, awake=False, slow=1.0, faults=(),
                  poison_seconds=300.0, lambda_lane=False, lambda_cold_seconds=9.0,
                  lambda_warm_seconds=4.0, database=None, resume_seconds=30.0, probe_ms=45.0,
-                 shared_load_slowdown=1.8, auto_pause_seconds=300, max_acu=2.0):
+                 shared_load_slowdown=1.8, auto_pause_seconds=300, max_acu=2.0,
+                 one_job_per_task=True, fail_claims=()):
         self.env, self.faults = env, set(faults)
+        # V1 encoders are finite: a task claims one attempt, encodes it and exits (processing/
+        # worker/sqs.py). `False` keeps the older model where a task keeps taking queued jobs.
+        # `fail_claims` lists the 1-based claim numbers whose encode ends `failed`.
+        self.one_job_per_task, self.fail_claims, self.claims = one_job_per_task, set(fail_claims), 0
         self.clock = VirtualClock()
         self.plan = operations.PlanTransport()
         self.encode, self.start, self.repair = encode_seconds, start_seconds, repair_seconds
@@ -345,8 +356,13 @@ class SimWorld:
             self.clock.sleep(0.04 * self.slow + (crc(path, self.clock.t // 1) % 30) / 1000)
             mine = [self.job_view(j) for j in self.jobs.values() if j["owner"] == user["id"]]
             return reply(200, mine)
-        if path.startswith("/api/processing/jobs"):
+        if path == "/api/processing/jobs":
             return reply(200, [])
+        if path.startswith("/api/processing/jobs/"):
+            job = next((j for j in self.jobs.values()
+                        if j["pid"] == path.rsplit("/", 1)[-1] and j["owner"] == user["id"]), None)
+            return reply(200, self.processing_view(job)) if job else reply(
+                404, {"error": "not found"})
         if path == "/api/media/uploads/reservations":
             # Like Media, a reservation is idempotent on (owner, request_id) and a replay of a
             # finalized one carries no upload grant.
@@ -380,6 +396,21 @@ class SimWorld:
             "filename": found["request"]["filename"],
             "status": "queued", "queued_at": self.clock.t, "task": None})
         return reply(202, {"job_id": job_id})
+
+    def processing_view(self, job):
+        """Processing's public job: the current attempt's server-side queue and run stamps."""
+        done = job["status"] in {"done", "failed"}
+        state = {"queued": "queued", "processing": "processing", "done": "succeeded",
+                 "failed": "failed"}[job["status"]]
+        started, finished = job.get("started_t"), job.get("finished_t")
+        return {"job_id": job["pid"], "processing_job_id": job["pid"], "status": job["status"],
+                "current_attempt": {
+                    "attempt_id": str(uuid.uuid5(uuid.NAMESPACE_URL, job["pid"])), "number": 1,
+                    "state": state, "queued_at": iso_precise(self.wall_of(job["queued_at"])),
+                    "started_at": iso_precise(self.wall_of(started)) if started else None,
+                    "finished_at": iso_precise(self.wall_of(finished)) if done and finished
+                    else None,
+                    "error": None}}
 
     def job_view(self, job):
         view = {"id": job["id"], "filename": job["filename"], "status": job["status"],
@@ -445,8 +476,11 @@ class SimWorld:
                     if now >= task["stopped_at"] + self.repair:
                         job["status"], job["task"] = ("queued" if self.requeue else "failed"), None
                 elif task and now >= job["finish_at"]:
-                    job["status"] = "done"
+                    job["status"] = "failed" if job["claim_no"] in self.fail_claims else "done"
+                    job["finished_t"] = job["finish_at"]
                     task["busy"], task["idle_since"] = None, job["finish_at"]
+                    if self.one_job_per_task:
+                        task["stopped_at"] = job["finish_at"] + 3.0  # the process exit lag
         for task in self.tasks.values():
             if task["kind"] != "worker" or task["stopped_at"] is not None:
                 continue
@@ -455,8 +489,14 @@ class SimWorld:
                                 key=lambda j: j["queued_at"])
                 if queued:
                     job = queued[0]
-                    job.update(status="processing", task=task["arn"],
-                               finish_at=max(now, task["started_at"]) + self.encode)
+                    # The attempt starts when the worker is up and the job is queued, not when
+                    # this lazy tick happens to notice it: the API's timestamps are server-side.
+                    begin = max(task["idle_since"], job["queued_at"])
+                    self.claims += 1
+                    job.update(status="processing", task=task["arn"], claim_no=self.claims,
+                               started_t=begin, finished_t=None,
+                               finish_at=(begin if self.one_job_per_task
+                                          else max(now, task["started_at"])) + self.encode)
                     task["busy"] = job["id"]
                 elif now >= task["idle_since"] + 40:
                     task["stopped_at"] = task["idle_since"] + 40
