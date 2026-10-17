@@ -47,6 +47,7 @@ class AWS:
         self.calls = []
         self.peer_drift = False
         self.migration_exit = 0
+        self.tasks = {}
         for name in ("media-api", "media-result", "processing-api", "processing-command"):
             self.functions[name] = {
                 "1": self.function(name, "1", OLD),
@@ -88,17 +89,29 @@ class AWS:
                     }
                 }
             if op == "run-task":
+                self.tasks["migration-task"] = {
+                    "taskArn": "migration-task",
+                    "taskDefinitionArn": MIGRATION,
+                    "startedBy": payload["startedBy"],
+                    "lastStatus": "STOPPED",
+                    "containers": [{"exitCode": self.migration_exit}],
+                }
                 result = {"tasks": [{"taskArn": "migration-task"}]}
-            else:
+            elif op == "list-tasks":
                 return {
-                    "tasks": [
-                        {
-                            "taskArn": "migration-task",
-                            "taskDefinitionArn": MIGRATION,
-                            "lastStatus": "STOPPED",
-                            "containers": [{"exitCode": self.migration_exit}],
-                        }
+                    "taskArns": [
+                        a
+                        for a, t in self.tasks.items()
+                        if (t["lastStatus"] == "STOPPED") == (payload["desiredStatus"] == "STOPPED")
                     ]
+                }
+            else:
+                wanted = payload["tasks"]
+                return {
+                    "tasks": [copy.deepcopy(self.tasks[a]) for a in wanted if a in self.tasks],
+                    "failures": [
+                        {"arn": a, "reason": "MISSING"} for a in wanted if a not in self.tasks
+                    ],
                 }
         else:
             name = payload["FunctionName"]
@@ -644,5 +657,121 @@ def test_abandon_reads_the_schema_before_it_checks_quiescence(setup):
 def test_abandon_takes_the_operator_station_lock(setup):
     config, aws, journal, options = failed_migration(setup)
     with journal._lock(), pytest.raises(OperationError, match="already busy"):
+        abandon(config, aws, journal, **abandon_args(options))
+    assert pending_of(journal) is not None
+
+
+# ---- abandon: the migration task must be settled, and the alias receipt complete --------------
+def edit_intent(journal, **changes):
+    with journal.locked() as state:
+        for key, value in changes.items():
+            if value is None:
+                state["pending_release"].pop(key, None)
+            else:
+                state["pending_release"][key] = value
+        journal.save(state)
+
+
+def test_abandon_refuses_while_the_migration_task_is_still_running(setup):
+    def mutate(aws, journal):
+        aws.tasks["migration-task"]["lastStatus"] = "RUNNING"
+
+    refused(setup, "not stopped", mutate=mutate)
+
+
+def test_abandon_refuses_a_migration_task_the_cluster_no_longer_knows(setup):
+    def mutate(aws, journal):
+        aws.tasks.clear()
+
+    refused(setup, "unresolved identities", mutate=mutate)
+
+
+def test_abandon_refuses_a_migration_task_of_another_definition(setup):
+    def mutate(aws, journal):
+        aws.tasks["migration-task"]["taskDefinitionArn"] = WORKER
+
+    refused(setup, "definition mismatch", mutate=mutate)
+
+
+def test_abandon_accepts_a_stopped_task_with_a_nonzero_exit(setup):
+    config, aws, journal, options = failed_migration(setup)
+    assert aws.tasks["migration-task"]["containers"][0]["exitCode"] == 1
+    assert abandon(config, aws, journal, **abandon_args(options))["status"] == "abandoned"
+
+
+def test_abandon_accepts_a_release_whose_migration_never_started(setup):
+    config, aws, journal, options = failed_migration(setup)
+    edit_intent(journal, migration_request=None, migration_task=None)
+    aws.tasks.clear()
+    assert abandon(config, aws, journal, **abandon_args(options))["status"] == "abandoned"
+
+
+def lost_launch(aws, journal):
+    """RunTask response lost: the request is journaled, the task ARN never was."""
+    edit_intent(journal, migration_task=None)
+
+
+def test_abandon_after_a_lost_runtask_response_finds_the_task_by_its_started_by(setup):
+    config, aws, journal, options = failed_migration(setup)
+    lost_launch(aws, journal)
+    assert abandon(config, aws, journal, **abandon_args(options))["status"] == "abandoned"
+
+
+def test_abandon_after_a_lost_runtask_response_refuses_a_task_still_running(setup):
+    def mutate(aws, journal):
+        lost_launch(aws, journal)
+        aws.tasks["migration-task"]["lastStatus"] = "RUNNING"
+
+    refused(setup, "not stopped", mutate=mutate)
+
+
+def test_abandon_refuses_an_unresolved_launch_until_the_replay_window_has_passed(setup):
+    def mutate(aws, journal):
+        lost_launch(aws, journal)
+        aws.tasks.clear()
+        edit_intent(journal, migration_replay_before_epoch=time.time() + 3600)
+
+    refused(setup, "launch unresolved", mutate=mutate)
+
+
+def test_abandon_after_the_replay_window_accepts_a_launch_that_left_no_task(setup):
+    config, aws, journal, options = failed_migration(setup)
+    lost_launch(aws, journal)
+    aws.tasks.clear()
+    edit_intent(journal, migration_replay_before_epoch=time.time() - 1)
+    assert abandon(config, aws, journal, **abandon_args(options))["status"] == "abandoned"
+
+
+def test_the_live_intent_shape_records_a_full_alias_receipt_and_is_accepted(setup):
+    config, aws, journal, options = failed_migration(setup)
+    for prior in pending_of(journal)["prior"]["functions"].values():
+        assert set(prior["alias"]) == {"version", "revision"}
+    assert abandon(config, aws, journal, **abandon_args(options))["status"] == "abandoned"
+
+
+def test_abandon_refuses_an_alias_that_moved_away_and_back_with_its_record_lost(setup):
+    def mutate(aws, journal):
+        # update-alias to the candidate succeeded, the crash lost `moved`, then it was moved
+        # back to version 1: the version matches again but the revision id does not.
+        aws.aliases["processing-api"] = {"FunctionVersion": "1", "RevisionId": "r1xx"}
+
+    refused(setup, "revision differs", mutate=mutate)
+
+
+def test_abandon_refuses_an_intent_whose_prior_alias_has_no_revision_recorded(setup):
+    def mutate(aws, journal):
+        with journal.locked() as state:
+            for prior in state["pending_release"]["prior"]["functions"].values():
+                del prior["alias"]["revision"]
+            journal.save(state)
+
+    refused(setup, "revision differs", mutate=mutate)
+
+
+def test_abandon_refuses_a_running_media_migration_even_though_media_quiescence_ignores_ecs(
+        setup):
+    config, aws, journal, options = failed_migration(setup, "media")
+    aws.tasks["migration-task"]["lastStatus"] = "RUNNING"
+    with pytest.raises(OperationError, match="not stopped"):
         abandon(config, aws, journal, **abandon_args(options))
     assert pending_of(journal) is not None

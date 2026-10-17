@@ -451,7 +451,7 @@ Everything it writes is mode 0600 under `D/release/`.
 A pending intent blocks `session open` and any other promote. A candidate that fails in its migration
 task leaves `{phase: preparing, migration_complete: false, moved: {}}`, which `restore` refuses by
 design. `release abandon [--reason TEXT]` clears it only when all of these are read live: there is
-a pending release; no alias moved; every function's `live` alias is still on its prior version; no
+a pending release; no alias moved; every function's `live` alias still equals its prior receipt (version and revision id, so an alias moved away and back is refused); the owner's migration task is stopped (any exit code), was never started, or its lost launch is found stopped by `startedBy` (a launch that left no trace is refused until the one-hour RunTask replay window has passed; a task ECS no longer lists is unknown and refused, so abandon within about an hour of the failure); no
 published version is aliased (published-but-unaliased versions are immutable, harmless, and listed
 in the result as `versions_published_unaliased`); the owner's schema revision (read in the VPC, or
 by the SQL station) equals the revision recorded before the release began; the owner is quiescent.

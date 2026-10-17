@@ -4,7 +4,8 @@ promote  Migrate the owner, publish its immutable Lambda versions, move the `liv
          smoke-test through the public Gateway, and restore on failure (retained intent).
 restore  Resume a failed promotion's alias restoration; never downgrades a schema.
 abandon  Clear a pending release that provably changed nothing (e.g. its migration task failed,
-         so restore refuses it): no alias moved, every `live` alias still on its prior version,
+         so restore refuses it): no alias moved, every `live` alias still equal to its prior receipt
+         (version and revision id), the migration task stopped or never started,
          the owner's schema still at the revision recorded before the release, owner quiescent.
          Published-but-unaliased versions are reported. Any failed check refuses and keeps the
          intent. The intent moves to `abandoned_releases` in the journal; --reason is recorded.
