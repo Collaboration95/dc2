@@ -3,6 +3,8 @@
     python -m scripts.aws.v1.evidence gateway  ...   #63 workflow and boundaries
     python -m scripts.aws.v1.evidence capacity ...   #64 1/2/3 encoders, recovery, DLQ
     python -m scripts.aws.v1.evidence capacity --backlog N ...   #185 backlog jobs/min at cap 1/2/3
+    python -m scripts.aws.v1.evidence isolation ...  #196 Media accepts uploads, Processing down
+    python -m scripts.aws.v1.evidence unattended ... #68 (V2) launcher vs operator batches
     python -m scripts.aws.v1.evidence release  ...   #65 promote, roll back, peer untouched
     python -m scripts.aws.v1.evidence release-plan   write #65's plan.json for a deployed stack
     python -m scripts.aws.v1.evidence latency  ...   #66 Fargate generator, cold wake apart
@@ -33,6 +35,7 @@ from scripts.aws.v1.proof import (
     context,
     db_topology,
     gateway,
+    isolation,
     latency,
     release,
     release_plan,
@@ -40,13 +43,16 @@ from scripts.aws.v1.proof import (
     sim,
     spend,
     summary,
+    unattended,
 )
 from scripts.aws.v1.proof.core import ProofError
 
 REQUIRED = {"63": gateway.REQUIRED, "64": capacity.REQUIRED, "65": release.REQUIRED,
-            "66": latency.REQUIRED, "67": spend.REQUIRED, "185": capacity.BACKLOG_REQUIRED}
+            "66": latency.REQUIRED, "67": spend.REQUIRED, "185": capacity.BACKLOG_REQUIRED,
+            "196": isolation.REQUIRED, "68": unattended.REQUIRED}
 # The session state each harness needs when it starts (latency opens its own window).
 SESSION = {"gateway": "open", "capacity": "open", "capacity-backlog": "open",
+           "isolation": "open", "unattended": "open",
            "release": "window", "latency": "closed", "release-plan": "closed",
            "spend": "closed", "short-encode": "open", "db-topology": "window"}
 
@@ -96,6 +102,27 @@ def build_parser():
     c.add_argument("--drain-timeout", type=int, default=capacity.DRAIN_TIMEOUT,
                    help="--backlog only: seconds allowed per cap before the step stops its "
                         "encoders and fails")
+    iso = sub.add_parser("isolation", help="#196: Media accepts uploads while Processing is down")
+    scope_arguments(iso)
+    iso.add_argument("--fixture", type=Path, required=True, help="a short mp4 for the one upload")
+    iso.add_argument("--job-timeout", type=int, default=900,
+                     help="the gate: seconds from re-enabling the consumer to the job being done")
+    iso.add_argument("--hold-seconds", type=int, default=isolation.HOLD_SECONDS,
+                     help="longest the consumer stays off waiting for the command to reach the "
+                          "queue")
+    iso.add_argument("--minutes", type=int, default=60, help="session horizon for the encoder")
+    un = sub.add_parser("unattended", help="#68 (V2): the launcher against operator batches")
+    scope_arguments(un)
+    un.add_argument("--fixture", type=Path, required=True, help="the same clip as the baseline")
+    un.add_argument("--backlog", type=int, metavar="N",
+                    help="clips to upload (default: the #185 baseline's N, which it must equal)")
+    un.add_argument("--drain-timeout", type=int, default=capacity.DRAIN_TIMEOUT,
+                    help="seconds allowed for every job to finish")
+    un.add_argument("--settle-seconds", type=int, default=unattended.SETTLE_SECONDS,
+                    help="how long to watch for a start after the backlog emptied")
+    un.add_argument("--iam-simulated", action="store_true",
+                    help="attest that `aws iam simulate-principal-policy` passed for the "
+                         "launcher role (runbook, 'Unattended launcher')")
     r = sub.add_parser("release", help="#65")
     scope_arguments(r)
     r.add_argument("--plan", type=Path, required=True, help="nonsecret release plan JSON")
@@ -225,6 +252,13 @@ def execute(args, ctx):
         return capacity.run(ctx, fixture=args.fixture, workers=workers,
                             short_fixture=args.short_fixture, poison=args.poison,
                             job_timeout=args.job_timeout, minutes=args.minutes, only=only(args))
+    if args.command == "isolation":
+        return isolation.run(ctx, fixture=args.fixture, job_timeout=args.job_timeout,
+                             minutes=args.minutes, hold=args.hold_seconds)
+    if args.command == "unattended":
+        return unattended.run(
+            ctx, fixture=args.fixture, backlog=args.backlog, drain_timeout=args.drain_timeout,
+            settle=args.settle_seconds, iam_simulated=args.iam_simulated, only=only(args))
     if args.command == "release":
         return release.run(ctx, plan_path=args.plan)
     if args.command == "short-encode":
@@ -289,6 +323,16 @@ def rehearse_db_topology(base, shared):
     return proof.report(), bool(proof.failed_now())
 
 
+def rehearse_unattended(base, fixture, shared):
+    """#68: the operator-batch baseline and then the launcher, on one simulated stack."""
+    world = sim.SimWorld(encode_seconds=240, launcher=True)
+    ctx = sim.build(shared, session="open", world=world, tmp=base / "unattended")
+    capacity.run_backlog(ctx, fixture=fixture, minutes=30)
+    sim.opt_in_launcher(ctx)  # close, then `session open --unattended`
+    proof = unattended.run(ctx, fixture=fixture, iam_simulated=True)
+    return proof.report(), bool(proof.failed_now())
+
+
 def rehearse_release(base, shared, plan_path):
     """#65: plan.json written by release-plan from simulated facts, then the harness's steps.
 
@@ -338,6 +382,7 @@ def rehearse(args, stdout):
         "capacity": lambda ctx: capacity.run(ctx, fixture=fixture, short_fixture=fixture,
                                              minutes=30),
         "capacity-backlog": lambda ctx: capacity.run_backlog(ctx, fixture=fixture, minutes=30),
+        "isolation": lambda ctx: isolation.run(ctx, fixture=fixture, minutes=30),
         "latency": rehearse_latency,
         "spend": lambda ctx: spend.run(ctx, wait_minutes=10),
     }
@@ -348,6 +393,8 @@ def rehearse(args, stdout):
         reports[name] = proof.report()
         failed = failed or bool(proof.failed_now())
     reports["release"], bad = rehearse_release(base, shared, args.release_plan)
+    failed = failed or bad
+    reports["unattended"], bad = rehearse_unattended(base, fixture, shared)
     failed = failed or bad
     reports["short-encode"], bad = rehearse_short_encode(base, fixture, shared)
     failed = failed or bad

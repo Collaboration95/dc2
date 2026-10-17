@@ -570,6 +570,24 @@ def test_foundation_creates_closed_infrastructure_and_records_what_it_made(rig):
     assert parameters["DeployApplications"] == "false"
 
 
+def applications_parameters(rig):
+    rig.deploy(stop_after="applications")
+    update = [c for c in rig.ops("create-change-set") if c[2]["ChangeSetType"] == "UPDATE"][0][2]
+    return {p["ParameterKey"]: p["ParameterValue"] for p in update["Parameters"]}
+
+
+def test_the_unattended_launcher_is_off_unless_the_deploy_asks_for_it(tmp_path):
+    assert "UnattendedLaunch" not in applications_parameters(Rig(tmp_path))
+
+
+def test_unattended_launch_flag_renders_the_stack_parameter(tmp_path):
+    rig = Rig(tmp_path, unattended_launch=True)
+    assert applications_parameters(rig)["UnattendedLaunch"] == "true"
+    parsed = deploy.build_parser().parse_args(["deploy", *ARGS, "--run-id", "t1",
+                                               "--unattended-launch"])
+    assert parsed.unattended_launch is True
+
+
 # ---- images ----------------------
 def test_images_are_pushed_once_and_the_stack_receives_digest_pinned_references(rig):
     rig.deploy(stop_after="applications")

@@ -79,6 +79,13 @@ class FakeSqs:
 
     def get_queue_attributes(self, QueueUrl, AttributeNames):
         name = self.world.queue_of(QueueUrl)
+        if not QueueUrl.endswith("Dlq"):
+            # A main queue: the commands queue holds what Media published and Processing has
+            # not consumed; the others are not modelled and read empty.
+            depth = self.world.commands_waiting() if name == "ProcessingCommands" else 0
+            return {"Attributes": {"ApproximateNumberOfMessages": str(depth),
+                                   "ApproximateNumberOfMessagesNotVisible": "0",
+                                   "ApproximateNumberOfMessagesDelayed": "0"}}
         return {"Attributes": {
             "ApproximateNumberOfMessages": str(len(self.world.dlq.get(name, []))),
             "ApproximateNumberOfMessagesNotVisible": "0"}}
@@ -106,12 +113,20 @@ class SimWorld:
                  poison_seconds=300.0, lambda_lane=False, lambda_cold_seconds=9.0,
                  lambda_warm_seconds=4.0, database=None, resume_seconds=30.0, probe_ms=45.0,
                  shared_load_slowdown=1.8, auto_pause_seconds=300, max_acu=2.0,
-                 one_job_per_task=True, fail_claims=()):
+                 one_job_per_task=True, fail_claims=(), outbox_seconds=0.0, launcher=False,
+                 launcher_tick_seconds=60.0):
         self.env, self.faults = env, set(faults)
         # V1 encoders are finite: a task claims one attempt, encodes it and exits (processing/
         # worker/sqs.py). `False` keeps the older model where a task keeps taking queued jobs.
         # `fail_claims` lists the 1-based claim numbers whose encode ends `failed`.
         self.one_job_per_task, self.fail_claims, self.claims = one_job_per_task, set(fail_claims), 0
+        # Media publishes a finalized upload's command `outbox_seconds` later (its repair rule);
+        # the ProcessingCommands mapping then delivers it to Processing only while Enabled.
+        self.outbox_seconds = outbox_seconds
+        self.commands_mapping = str(uuid.uuid5(uuid.NAMESPACE_URL, "ProcessingCommands"))
+        # A stack deployed with UnattendedLaunch=true; it starts encoders only while the rule is
+        # ENABLED, which `build(..., unattended=True)` does like `session open --unattended`.
+        self.launcher, self.launcher_tick, self.next_launch = launcher, launcher_tick_seconds, None
         self.clock = VirtualClock()
         self.plan = operations.PlanTransport()
         self.encode, self.start, self.repair = encode_seconds, start_seconds, repair_seconds
@@ -246,6 +261,9 @@ class SimWorld:
                 "ProcessingShortWorkDlqUrl":
                     f"https://sqs.{REGION}.amazonaws.com/{ACCOUNT}/ProcessingShortWorkDlq",
             }
+        if self.launcher:
+            names |= {"ProcessingLauncherFunctionName": f"{self.env}-ProcessingLauncher",
+                      "ProcessingLauncherRuleName": f"{self.env}-ProcessingLauncher-rule"}
         if self.database == "separate":
             names |= {"DatabaseTopology": "separate",
                       "MediaDatabaseEndpoint": "media.cluster-sim.invalid",
@@ -360,7 +378,8 @@ class SimWorld:
             return reply(200, [])
         if path.startswith("/api/processing/jobs/"):
             job = next((j for j in self.jobs.values()
-                        if j["pid"] == path.rsplit("/", 1)[-1] and j["owner"] == user["id"]), None)
+                        if j["pid"] == path.rsplit("/", 1)[-1] and j["owner"] == user["id"]
+                        and j.get("delivered", True)), None)
             return reply(200, self.processing_view(job)) if job else reply(
                 404, {"error": "not found"})
         if path == "/api/media/uploads/reservations":
@@ -389,12 +408,16 @@ class SimWorld:
         found = self.reservations.get(rid)
         if not found or not found["uploaded"]:
             return reply(409, {"error": "no upload"})
+        if "finalize-needs-processing" in self.faults and not self.commands_enabled():
+            return reply(503, {"error": "processing unavailable"})
         job_id = found.get("job") or str(uuid.uuid4())
         found["job"] = job_id
         self.jobs.setdefault(job_id, {
             "id": job_id, "pid": str(uuid.uuid4()), "owner": user["id"],
             "filename": found["request"]["filename"],
-            "status": "queued", "queued_at": self.clock.t, "task": None})
+            "status": "queued", "queued_at": self.clock.t, "task": None,
+            "submit_t": self.clock.t + self.outbox_seconds, "delivered": False})
+        self.deliver(self.clock.t)
         return reply(202, {"job_id": job_id})
 
     def processing_view(self, job):
@@ -413,8 +436,13 @@ class SimWorld:
                     "error": None}}
 
     def job_view(self, job):
-        view = {"id": job["id"], "filename": job["filename"], "status": job["status"],
-                "submission_status": "submitted", "processing_job_id": job.get("pid")}
+        published = self.clock.t >= job.get("submit_t", 0)
+        status = job["status"]
+        if not job.get("delivered", True) and not published:
+            status = "accepted"  # still in Media's outbox
+        view = {"id": job["id"], "filename": job["filename"], "status": status,
+                "submission_status": "submitted" if published else "pending",
+                "processing_job_id": job.get("pid") if job.get("delivered", True) else None}
         if job["status"] == "done":
             view["output_url"] = f"https://{S3_HOST}/out.mp4?X-Amz-Signature=sim"
             if "no-hls" not in self.faults:
@@ -465,6 +493,8 @@ class SimWorld:
     def tick(self):
         """Advance every task and job to the current virtual time."""
         now = self.clock.t
+        self.deliver(now)
+        self.tick_launcher(now)
         if self.lambda_lane:
             self.tick_lambda(now)
         for job in self.jobs.values():
@@ -485,7 +515,8 @@ class SimWorld:
             if task["kind"] != "worker" or task["stopped_at"] is not None:
                 continue
             if task["busy"] is None and now >= task["started_at"]:
-                queued = sorted((j for j in self.jobs.values() if j["status"] == "queued"),
+                queued = sorted((j for j in self.jobs.values()
+                                 if j["status"] == "queued" and j.get("delivered", True)),
                                 key=lambda j: j["queued_at"])
                 if queued:
                     job = queued[0]
@@ -507,6 +538,56 @@ class SimWorld:
                     and now >= task["started_at"] + task["script_seconds"]:
                 task["stopped_at"] = task["started_at"] + task["script_seconds"]
 
+    def commands_enabled(self):
+        return "mapping-ignored" in self.faults or (
+            self.plan.mappings.get(self.commands_mapping) == "Enabled")
+
+    def commands_waiting(self):
+        """Commands Media has published that Processing's consumer has not taken yet."""
+        return sum(1 for j in self.jobs.values()
+                   if not j.get("delivered", True) and self.clock.t >= j["submit_t"])
+
+    def deliver(self, now):
+        """The ProcessingCommands mapping hands published commands to Processing, if Enabled."""
+        if "stuck-consumer" in self.faults or not self.commands_enabled():
+            return
+        for job in self.jobs.values():
+            if not job.get("delivered", True) and now >= job["submit_t"]:
+                job["delivered"] = True
+                # Delivered on the spot, or late (the consumer was off): then the attempt is
+                # queued when this tick notices the mapping, not when Media published.
+                job["queued_at"] = now if now - job["submit_t"] > 1.0 else job["submit_t"]
+
+    def tick_launcher(self, now):
+        """The opt-in launcher (#68): once a minute, start encoders for unclaimed queued work."""
+        rule = f"{self.env}-ProcessingLauncher-rule"
+        if not self.launcher or self.plan.rules.get(rule) != "ENABLED":
+            self.next_launch = None
+            return
+        if "launcher-dead" in self.faults:  # enabled but never starts anything
+            return
+        if self.next_launch is None:
+            self.next_launch = now + self.launcher_tick
+        while now >= self.next_launch:
+            at, self.next_launch = self.next_launch, self.next_launch + self.launcher_tick
+            workers = [t for t in self.tasks.values() if t["kind"] == "worker"
+                       and (t["stopped_at"] is None or t["stopped_at"] > at)]
+            unclaimed = sum(1 for t in workers if t["busy"] is None)
+            queued = sum(1 for j in self.jobs.values()
+                         if j["status"] == "queued" and j.get("delivered", True))
+            limit = 4 if "launcher-overshoot" in self.faults else 3
+            starts = min(queued - unclaimed, limit - len(workers))
+            if "launcher-respawn" in self.faults:  # an idle respawn: starts with nothing queued
+                starts = max(starts, 1 if len(workers) < limit else 0)
+            for _ in range(max(0, starts)):
+                arn = f"arn:aws:ecs:{REGION}:{ACCOUNT}:task/{self.env}/{uuid.uuid4().hex[:16]}"
+                self.tasks[arn] = {
+                    "arn": arn, "kind": "worker", "created_at": at, "started_at": at + self.start,
+                    "stopped_at": None, "busy": None, "idle_since": at + self.start,
+                    "interrupted": False, "script_seconds": 30, "cpu": "2048", "memory": "4096",
+                    "definition": f"arn:aws:ecs:{REGION}:{ACCOUNT}:task-definition/"
+                                  f"{self.env}-worker:1"}
+
     def tick_lambda(self, now):
         """Complete running invocations, then start queued jobs while the mapping is enabled."""
         uuid_ = str(uuid.uuid5(uuid.NAMESPACE_URL, "ProcessingShortEncoder"))
@@ -517,7 +598,8 @@ class SimWorld:
             return
         running = sum(1 for j in self.jobs.values()
                       if j.get("lambda") and j["status"] == "processing")
-        for job in sorted((j for j in self.jobs.values() if j["status"] == "queued"),
+        for job in sorted((j for j in self.jobs.values()
+                           if j["status"] == "queued" and j.get("delivered", True)),
                           key=lambda j: j["queued_at"]):
             if running >= 2:
                 break
@@ -836,7 +918,7 @@ def parse_epoch(text):
     return parse_time(text).timestamp()
 
 
-def build(args, *, session="open", world=None, sql=True, tmp=None):
+def build(args, *, session="open", world=None, sql=True, tmp=None, unattended=False):
     """A simulated Context over real private files in a throwaway state directory."""
     import tempfile
 
@@ -868,9 +950,14 @@ def build(args, *, session="open", world=None, sql=True, tmp=None):
     journal.initialize(verified_empty=True, exclusive_station=True)
     if session != "closed":
         with journal.locked() as state:
-            state.update(session=session, paused=False)
+            state.update(session=session, paused=False, unattended=unattended)
             journal.save(state)
         world.plan.stage = dict(OPEN_EDGE)
+    if session == "open":  # what a full `session open` leaves enabled
+        for handler in operations.MAPPINGS:
+            world.plan.mappings[str(uuid.uuid5(uuid.NAMESPACE_URL, handler))] = "Enabled"
+        if unattended:
+            world.plan.rules[f"{world.env}-ProcessingLauncher-rule"] = "ENABLED"
     return Context(
         scope={"profile": "dc2-project2-mfa", "region": REGION, "account": ACCOUNT},
         state_dir=folder, run_id=getattr(args, "run_id", "sim"), simulated=True,
@@ -888,6 +975,15 @@ def reopen(ctx, session):
         state.update(session=session, paused=False)
         ctx.journal.save(state)
     ctx.world.plan.stage = dict(OPEN_EDGE)
+
+
+def opt_in_launcher(ctx):
+    """What `session close` then `session open --unattended` leave behind on a stack that has
+    the launcher: the SQL flag on and the rule enabled."""
+    with ctx.journal.locked() as state:
+        state.update(unattended=True)
+        ctx.journal.save(state)
+    ctx.world.plan.rules[f"{ctx.world.env}-ProcessingLauncher-rule"] = "ENABLED"
 
 
 def build_evidence(path, *, source_sha, config_ids=None, failures=()):
