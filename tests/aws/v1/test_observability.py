@@ -278,3 +278,21 @@ def test_the_environments_are_what_each_service_actually_calls():
 
 def test_no_function_is_handed_all_three_queues():
     assert not [n for n in FUNCTIONS if len(queue_environment(n)) == 3]
+
+
+def test_the_encoder_task_is_told_its_work_queue_and_no_other_task_is_told_any_queue():
+    # r1018a: the narrowed environments dropped the URL the encoder reads, and its first task
+    # exited with "missing setting: PROCESSING_WORK_QUEUE_URL".
+    tasks = {k: v for k, v in RESOURCES.items() if v["Type"] == "AWS::ECS::TaskDefinition"}
+    seen = {
+        name: {
+            e["Name"]: e["Value"]
+            for e in properties(name)["ContainerDefinitions"][0].get("Environment", [])
+            if e["Name"].endswith("_QUEUE_URL")
+        }
+        for name in tasks
+    }
+    assert seen["WorkerTaskDefinition"] == {
+        "PROCESSING_WORK_QUEUE_URL": {"Ref": "ProcessingWorkQueue"}
+    }
+    assert all(not urls for name, urls in seen.items() if name != "WorkerTaskDefinition")
