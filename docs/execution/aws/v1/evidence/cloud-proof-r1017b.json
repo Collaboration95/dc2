@@ -1,7 +1,7 @@
 {
   "closes": "nothing by itself: an issue closes only when its acceptance list is met by the receipts and a reviewer accepts them",
   "document_kind": "V1_CLOUD_PROOF_SUMMARY_REDACTED",
-  "generated_at": "2026-10-17T16:23:56Z",
+  "generated_at": "2026-10-17T16:56:47Z",
   "issues": {
     "#63": {
       "overall": "PASS",
@@ -562,7 +562,7 @@
       }
     },
     "#67": {
-      "overall": "INCOMPLETE",
+      "overall": "PASS",
       "steps": {
         "close-state": {
           "public": {
@@ -583,6 +583,41 @@
           "seconds": 1.939,
           "status": "PASS"
         },
+        "cost-explorer": {
+          "public": {
+            "by_model_line": {
+              "api_gateway": 0.0,
+              "aurora": 0.0,
+              "cloudfront": -0.0,
+              "ecr": -0.0,
+              "fargate": -0.0,
+              "ipv4_and_network": 0.0,
+              "kms": 0.0,
+              "lambda": 0.0,
+              "logs_and_metrics": 0.0,
+              "managed_credentials": -0.0,
+              "other": 0.0,
+              "s3": 0.0,
+              "sqs": 0.0
+            },
+            "complete_through": "2026-10-16",
+            "cost_explorer_flagged_estimated": true,
+            "currency": "USD",
+            "estimated": true,
+            "final": false,
+            "from": "2026-10-01",
+            "invoice": "NOT_RUN: Cost Explorer lags ~24 h; attach invoice lines by hand",
+            "planned_deploy_window_model": 1.97,
+            "services": 18,
+            "through_inclusive": "2026-10-17",
+            "total": -0.0,
+            "within_monthly_alert": true,
+            "within_planning_envelope": true,
+            "within_trial_allowance": true
+          },
+          "seconds": 1.241,
+          "status": "PASS"
+        },
         "pause": {
           "public": {
             "configured_max_acu": 2.0,
@@ -596,6 +631,21 @@
             "wakeups_in_window": 0
           },
           "seconds": 362.243,
+          "status": "PASS"
+        },
+        "teardown-receipt": {
+          "public": {
+            "all_remaining_explained": true,
+            "final_snapshot_kept": true,
+            "from_simulation": false,
+            "pre_existing_untouched": 1,
+            "receipt_status": "ITEMS_REMAIN",
+            "remaining_by_kind": {
+              "aurora-snapshot": 1
+            },
+            "skipped_not_owned": 0
+          },
+          "seconds": 0.0,
           "status": "PASS"
         }
       }
