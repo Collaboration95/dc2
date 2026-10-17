@@ -35,7 +35,7 @@ ZERO = dict.fromkeys(("queued", "processing", "succeeded", "failed", "abandoned"
 def build_hooks(data, hook_names, transport, *, dry_run, config=None, in_vpc=False,
                 clock=time.monotonic, sleep=time.sleep):
     """Real hooks over the transport; dry-run swaps only the counts reader for zero counts."""
-    owner = OwnerHooks(transport, **hook_names)
+    owner = OwnerHooks(transport, **hook_names, clock=clock, sleep=sleep)
     if dry_run:
         reader = lambda _deadline: dict(ZERO)  # noqa: E731
     elif in_vpc:
@@ -46,13 +46,14 @@ def build_hooks(data, hook_names, transport, *, dry_run, config=None, in_vpc=Fal
         reader = file_reader(data["counts_file"])
     else:
         reader = None
-    return owner, AttemptCounts(reader) if reader else None
+    return owner, AttemptCounts(reader, clock=clock, sleep=sleep) if reader else None
 
 
-def run_action(args, session, data, hook_names, transport, deadline):
+def run_action(args, session, data, hook_names, transport, deadline, *, clock=time.monotonic,
+               sleep=time.sleep):
     owner, counts = build_hooks(
         data, hook_names, transport, dry_run=args.dry_run, config=session.config,
-        in_vpc=args.in_vpc_counts)
+        in_vpc=args.in_vpc_counts, clock=clock, sleep=sleep)
     if args.action in {"open", "window"}:
         unattended = args.action == "open" and args.unattended
         return session.open(
@@ -61,7 +62,7 @@ def run_action(args, session, data, hook_names, transport, deadline):
             intake_ready=owner.intake_ready,
             deadline=deadline,
             window=args.action == "window",
-            launcher=LauncherHooks(owner) if unattended else None,
+            launcher=LauncherHooks(owner, clock=clock, sleep=sleep) if unattended else None,
             launcher_session_end=time.time() + 60 * args.minutes if unattended else None,
         )
     if args.action == "close":
@@ -73,7 +74,8 @@ def run_action(args, session, data, hook_names, transport, deadline):
             outcomes=counts.outcomes,
             deadline=deadline,
             # Whenever the stack has a launcher, close disables its flag, not only its rule.
-            launcher=LauncherHooks(owner) if session.config.get("launcher") else None,
+            launcher=(LauncherHooks(owner, clock=clock, sleep=sleep)
+                      if session.config.get("launcher") else None),
         )
     if args.action == "status":
         return session.status(deadline=deadline)
@@ -109,7 +111,8 @@ def run_dlq(args, urls, sqs_factory, scope):
     return dlq.status(client, target["arn"])
 
 
-def main(argv=None, *, environ=None, transport_factory=None, sqs_factory=None, stdout=None):
+def main(argv=None, *, environ=None, transport_factory=None, sqs_factory=None, stdout=None,
+         clock=time.monotonic, sleep=time.sleep):
     environ = os.environ if environ is None else environ
     stdout = stdout or sys.stdout
     parser = argparse.ArgumentParser(prog="scripts.aws.v1.session", description=__doc__)
@@ -164,9 +167,10 @@ def main(argv=None, *, environ=None, transport_factory=None, sqs_factory=None, s
                 )
             result = {"journal": "planned" if args.dry_run else "initialized"}
         else:
-            session = Session(config, transport, journal)
-            deadline = time.monotonic() + args.deadline_seconds
-            result = run_action(args, session, data, hook_names, transport, deadline)
+            session = Session(config, transport, journal, clock=clock, sleep=sleep)
+            deadline = clock() + args.deadline_seconds
+            result = run_action(args, session, data, hook_names, transport, deadline, clock=clock,
+                                sleep=sleep)
     except OperationError as error:
         print(json.dumps({"ok": False, "error": str(error)}), file=stdout)
         return 1

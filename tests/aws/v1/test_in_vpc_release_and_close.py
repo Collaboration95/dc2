@@ -13,6 +13,7 @@ from test_v1_release import proof
 
 from scripts.aws.transport import OperationError
 from scripts.aws.v1 import release_cli, session_cli
+from scripts.aws.v1.hooks import LauncherHooks
 from scripts.aws.v1.proof import sim
 from scripts.aws.v1.vpc_reader import VpcReader
 
@@ -187,3 +188,53 @@ def test_in_vpc_counts_only_apply_to_close(tmp_path):
     with pytest.raises(SystemExit):
         session_cli.main(["open", "--config", str(ctx.state_dir / "operator-config.json"),
                           *SCOPE, "--in-vpc-counts"])
+
+
+# ---- injected clocks reach every hook --------------------------------------------------
+class ZeroClock:
+    """A clock that starts at zero and moves only when slept on: the real monotonic clock is
+    far ahead of it, so any hook still using real time expires its deadline at once."""
+
+    def __init__(self):
+        self.now = 0.0
+
+    def __call__(self):
+        return self.now
+
+    def sleep(self, seconds):
+        self.now += seconds
+
+
+def test_every_hook_uses_the_injected_clock_and_sleep(tmp_path, monkeypatch):
+    world, ctx = stack(tmp_path)
+    clock = ZeroClock()
+    readings = iter([{"processing": 2}, {"processing": 1}, {"processing": 0}])
+    monkeypatch.setattr(session_cli, "file_reader", lambda path: lambda deadline: next(readings))
+    data = {**ctx.data, "sql": None, "counts_file": "unused"}
+    owner, counts = session_cli.build_hooks(
+        data, ctx.hooks, world, dry_run=False, config=ctx.config, clock=clock,
+        sleep=clock.sleep)
+    assert (owner.clock, owner.sleep) == (clock, clock.sleep)
+    assert (counts.clock, counts.sleep) == (clock, clock.sleep)
+    assert counts.drain(deadline=clock() + 60) is True  # retried twice on the fake clock
+    assert clock.now == 2 * counts.poll_seconds
+    assert owner.launcher is None or LauncherHooks(owner, clock=clock).clock is clock
+
+
+def test_the_launcher_hooks_built_by_the_cli_use_the_injected_clock(tmp_path, monkeypatch):
+    world, ctx = stack(tmp_path)
+    clock = ZeroClock()
+    built = []
+    real = session_cli.LauncherHooks
+
+    def spy(owner, **kwargs):
+        built.append(kwargs)
+        return real(owner, **kwargs)
+
+    monkeypatch.setattr(session_cli, "LauncherHooks", spy)
+    ctx.config["launcher"] = {"rule": "r"}
+    owner, _ = session_cli.build_hooks(
+        ctx.data, {**ctx.hooks, "launcher": "fn"}, world, dry_run=True, config=ctx.config,
+        clock=clock, sleep=clock.sleep)
+    session_cli.LauncherHooks(owner, clock=clock, sleep=clock.sleep)
+    assert built[0]["clock"] is clock

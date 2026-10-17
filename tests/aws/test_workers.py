@@ -111,6 +111,19 @@ def test_acknowledged_but_missing_describe_is_not_free_slot(config, fake, journa
             worker_inventory(config, fake, state, deadline=1000)
 
 
+def test_a_stopped_launch_that_ecs_has_forgotten_does_not_block_closing(
+    config, fake, journal, clock
+):
+    arn = launch(config, fake, journal, clock)[0]
+    fake.tasks[arn]["lastStatus"] = "STOPPED"
+    with journal.locked() as state:
+        assert worker_inventory(config, fake, state, deadline=1000)[1] == 0
+        journal.save(state)
+    del fake.tasks[arn]  # ECS drops stopped tasks after about an hour
+    with journal.locked() as state:
+        assert worker_inventory(config, fake, state, deadline=1000)[1] == 0
+
+
 def test_drain_collects_current_last_racing_claims(config, fake, journal, clock):
     arn = launch(config, fake, journal, clock)[0]
     sent = []
@@ -207,6 +220,53 @@ def test_timeout_is_forced_interruption_not_success(config, fake, journal, clock
         assert next(iter(state["launches"].values()))["drain"] == "interrupted"
     assert clock.now == 400
     assert any(c[1] == "stop-task" for c in fake.calls)
+
+
+@pytest.mark.parametrize(
+    "flags",
+    [{"drain": "interrupted"}, {"warm_sent": True}, {"warm_sent": True, "drain": "interrupted"}],
+)
+def test_a_forgotten_stopped_launch_still_needs_its_drain_disposition(
+    config, fake, journal, clock, flags
+):
+    arn = launch(config, fake, journal, clock)[0]
+    fake.tasks[arn]["lastStatus"] = "STOPPED"
+    with journal.locked() as state:
+        worker_inventory(config, fake, state, deadline=1000)  # journals it as stopped
+        next(iter(state["launches"].values())).update(flags)
+        journal.save(state)
+    del fake.tasks[arn]  # ECS forgot it: it is no longer in the inventory
+    with journal.locked() as state:
+        with pytest.raises(OperationError, match="operator disposition"):
+            drain(
+                config,
+                fake,
+                journal,
+                state,
+                observe=lambda *a, **kw: {},
+                warm_shutdown=lambda *a, **kw: True,
+                deadline=1000,
+                clock=clock,
+                sleep=clock.sleep,
+            )
+
+
+def test_a_forgotten_stopped_launch_with_a_complete_drain_lets_close_proceed(
+    config, fake, journal, clock
+):
+    arn = launch(config, fake, journal, clock)[0]
+    fake.tasks[arn]["lastStatus"] = "STOPPED"
+    with journal.locked() as state:
+        worker_inventory(config, fake, state, deadline=1000)
+        next(iter(state["launches"].values())).update(warm_sent=True, drain="complete")
+        journal.save(state)
+    del fake.tasks[arn]
+    with journal.locked() as state:
+        receipt = drain(
+            config, fake, journal, state, observe=lambda *a, **kw: {},
+            warm_shutdown=lambda *a, **kw: True, deadline=1000, clock=clock, sleep=clock.sleep,
+        )
+    assert receipt == {"status": "complete", "tasks": []}
 
 
 def test_unknown_or_stale_worker_registration(config, fake, journal, clock):
