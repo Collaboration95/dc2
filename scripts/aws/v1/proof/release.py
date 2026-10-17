@@ -55,6 +55,10 @@ def load_plan(path):
             raise ProofError(f"The release plan's {name} image is incomplete")
         if (plan["owner"] == "processing") != bool(item.get("worker_definition")):
             raise ProofError("Only a Processing release carries a worker definition")
+        for key in ("bundle", "compat_evidence"):  # relative to the plan; absolute stays as is
+            if not isinstance(item[key], str):
+                raise ProofError(f"The release plan's {name} {key} must be a path")
+            item[key] = str(Path(path).resolve().parent / item[key])
         if not item.get("migration_definition") and not plan.get("migration_definition"):
             raise ProofError(f"The release plan's {name} image has no migration definition")
     return plan

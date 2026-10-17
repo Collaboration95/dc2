@@ -245,6 +245,17 @@ def test_a_simulated_release_reads_the_schema_through_the_simulated_in_vpc_task(
     assert proof.overall() == "SIMULATED"
 
 
+def test_a_plan_with_relative_files_resolves_them_beside_the_plan(tmp_path):
+    """The plan is synced between machines; its bundle files are named relative to it."""
+    folder = tmp_path / "release"
+    folder.mkdir()
+    relative = {**IMAGE, "bundle": "bundle-good.json", "compat_evidence": "compat-good.json"}
+    path = plan_file(folder, good={**relative, "image_uri": "good"})
+    plan = release.load_plan(path)
+    assert plan["good"]["bundle"] == str(folder.resolve() / "bundle-good.json")
+    assert plan["good"]["compat_evidence"] == str(folder.resolve() / "compat-good.json")
+
+
 @pytest.mark.parametrize("change", [
     {"owner": "everyone"}, {"extra": 1}, {"good": {"bundle": "b"}},
     {"owner": "processing"},  # a Processing release needs a worker definition
@@ -379,7 +390,8 @@ def test_writing_counts_points_the_operator_config_at_a_private_file(tmp_path):
                     tmp=state)
     path = summary.write_counts(state, live_receipts(tmp_path))
     config = json.loads((state / "operator-config.json").read_text())
-    assert config["counts_file"] == str(path) and stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert config["counts_file"] == path.name  # relative to the config, so the state can move
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
     assert ctx.state_dir == state
 
 

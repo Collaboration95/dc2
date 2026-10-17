@@ -63,6 +63,7 @@ def test_dispatch_offers_the_four_operations_and_nothing_applies_by_default(work
     assert inputs["operation"]["options"] == ["preflight", "deploy", "release", "teardown"]
     assert inputs["owner"]["options"] == ["none", "media", "processing"]
     assert inputs["execute"]["default"] is False
+    assert inputs["unattended_launch"]["default"] is False
     assert inputs["run_id"]["required"] is True
     assert inputs["budget_usd"]["default"] == "30"
     assert inputs["planned_hours"]["default"] == "3"
@@ -87,6 +88,12 @@ def test_the_wrapped_entry_points_are_the_existing_ones():
         "deploy/v1/build_and_verify.py",
     ):
         assert entry in script
+
+
+def test_unattended_launch_reaches_deploy_only_when_asked():
+    script = CD_SCRIPT.read_text()
+    assert script.count("--unattended-launch") == 1  # one definition, used by both deploy calls
+    assert script.count('${LAUNCH[@]+"${LAUNCH[@]}"}') == 2
 
 
 def test_script_is_executable_and_parses():

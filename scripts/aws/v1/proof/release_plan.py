@@ -313,8 +313,9 @@ def write_image(out, role, image, definitions, owner, target):
         "owner": owner, "source_sha": image["bundle"]["api"]["source_sha"],
         "target_revision": target, "additive_only": True, "current_image_compatible": True,
         "prior_image_compatible": True}, indent=2, sort_keys=True) + "\n")
-    return {"bundle": str(bundle_path), "image_uri": image["image_uri"],
-            "compat_evidence": str(compat_path), **definitions}
+    # Relative to plan.json, so a plan synced to another machine still finds its files.
+    return {"bundle": bundle_path.name, "image_uri": image["image_uri"],
+            "compat_evidence": compat_path.name, **definitions}
 
 
 def run(ctx, *, owner, baseline_evidence, good, bad=None, tests_passed, target_revision=None,

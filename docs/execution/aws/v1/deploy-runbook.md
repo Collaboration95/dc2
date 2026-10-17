@@ -674,6 +674,7 @@ logic. It is the recorded, repeatable form of steps 0, 1, 6 and 7 plus an upload
 ```sh
 gh workflow run cd.yml -f operation=preflight -f run_id=r1018a            # reads only
 gh workflow run cd.yml -f operation=deploy    -f run_id=r1018a -f execute=true
+gh workflow run cd.yml -f operation=deploy    -f run_id=r1018b -f execute=true -f unattended_launch=true   # optional #68 launcher
 gh workflow run cd.yml -f operation=release   -f run_id=r1018a -f owner=media -f execute=true -f attest_additive=true
 gh workflow run cd.yml -f operation=teardown  -f run_id=r1018a -f execute=true
 ```
@@ -714,6 +715,56 @@ gh workflow run cd.yml -f operation=teardown  -f run_id=r1018a -f execute=true
   step reuses the recorded build evidence (`build-baseline.json`); a failure before it rebuilds.
 - **Artifacts** hold only reduced files: step statuses, preflight check names, the redacted
   `cloud-proof-*.json` of the smoke, the release outcome. 14 days.
+
+### Operator handoff: CD deploy, then session and evidence from a laptop
+
+The cloud proof steps 2-6 (`session`, `evidence`, `release`) need the run's state directory `D`.
+After a CD `deploy` it is in the state bucket, so a laptop with profile `dc2-agent` can take over
+and hand back. `unattended_launch=true` on the `deploy` dispatch passes `--unattended-launch`
+(the optional #68 launcher; fixed for the run, so repeat it on a resume).
+
+```sh
+R=r1018a                                   # the CD run id
+D=$HOME/dc2-state/$R                       # any private directory outside the repository
+B=dc2-cd-state-866865534361-ap-southeast-1
+S="--profile dc2-agent --region ap-southeast-1 --account 866865534361"
+mkdir -p -m 700 "$D"
+
+# 1. Take over. Do it only when no CD run for this id is active (the workflow runs one at a time,
+#    but nothing stops a laptop writing at the same time).
+aws s3 sync "s3://$B/runs/$R/" "$D/" --profile dc2-agent --region ap-southeast-1 --only-show-errors
+chmod -R go-rwx "$D"        # S3 keeps no modes; the tooling insists on 0700 / 0600
+
+# 2. Work, exactly as in "Cloud proof in order" (profile dc2-agent, this D, this R)
+python -m scripts.aws.v1.session open --config "$D/operator-config.json" $S
+python -m scripts.aws.v1.evidence gateway $S --state-dir "$D" --run-id "$R" --fixture short.mp4
+python -m scripts.aws.v1.session close --config "$D/operator-config.json" $S --in-vpc-counts
+
+# 3. Hand back, so a later CD teardown or release sees the same journal and receipts. Close the
+#    session first: teardown closes it anyway, but a journal that says "open" while the window is
+#    closed (or the reverse) is the one inconsistency worth avoiding.
+aws s3 sync "$D/" "s3://$B/runs/$R/" --delete --exclude "frontend-dist/*" --exclude "*.run" \
+    --exclude "*.lock" --profile dc2-agent --region ap-southeast-1 --only-show-errors
+```
+
+What the commands read, all inside `D`:
+
+| File | Used by |
+|---|---|
+| `operator-config.json` | every `session`, `release` and `evidence` command (`--config`, or `<state-dir>/operator-config.json`) |
+| `outputs.json` | named by the config: Gateway and CloudFront URLs, function, queue and task-definition names |
+| `session/journal.json` | named by the config: whether the window is open, closed or a release is pending |
+| `deploy-journal.json` | `evidence` (images, definitions, repositories), `deploy status` and teardown; the only record of what the run owns |
+| `smoke-credentials.json` | the smoke login (`evidence`, `release`); 0600 |
+| `build-baseline.json`, `release/` | `evidence release-plan` and the CD `release` (baseline build evidence, plans and bundles) |
+| `evidence/` | the receipts; `evidence summary` reads them |
+
+Paths in this state are relative (to `operator-config.json` and to `plan.json`), so the same files
+work on the runner and on a laptop; an older absolute path still loads. The commands refuse
+ambient `AWS_*` credentials, so run them with the profile only. `db-bootstrap-passwords.json`
+exists only between `db-bootstrap` and the DSNs being published; if a deploy failed in that window,
+do not delete it. Never run the laptop and a CD dispatch for the same run id at once: the journal
+has a lock on one machine, not across two.
 
 ## Known gaps
 
