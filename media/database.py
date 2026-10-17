@@ -1,4 +1,4 @@
-"""Owned Media SQL sessions; Lambda connections never survive an invocation."""
+"""Owned Media SQL sessions; a warm Lambda environment reuses one pooled connection."""
 
 import ssl
 from collections.abc import AsyncIterator
@@ -8,9 +8,9 @@ from typing import Annotated
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.pool import NullPool
 
 from media.config import Settings, get_settings
+from runtime_support import lambda_db
 from runtime_support.settings import credentials_rejected
 
 
@@ -25,13 +25,25 @@ def engine_options(settings: Settings, *, invocation: bool = False) -> dict:
             raise ValueError("Lambda Media SQL requires a trusted PostgreSQL CA file")
         # create_default_context enables CERT_REQUIRED and hostname verification.
         tls = ssl.create_default_context(cafile=settings.postgres_ssl_ca)
-        options.update(poolclass=NullPool, connect_args={"ssl": tls, "timeout": 10})
+        options.update(
+            **lambda_db.POOL_OPTIONS,
+            pool_recycle=lambda_db.POOL_RECYCLE_SECONDS,
+            connect_args={"ssl": tls, "timeout": 10},
+        )
     return options
 
 
 @asynccontextmanager
 async def invocation_session(settings: Settings) -> AsyncIterator[AsyncSession]:
-    engine = create_async_engine(settings.postgres_dsn, **engine_options(settings, invocation=True))
+    # Keyed by DSN: a rotated secret yields a new engine. The engine outlives the
+    # invocation on purpose (see runtime_support.lambda_db); only the session closes.
+    engine = await lambda_db.shared_engine(
+        "media",
+        settings.postgres_dsn,
+        lambda: create_async_engine(
+            settings.postgres_dsn, **engine_options(settings, invocation=True)
+        ),
+    )
     try:
         async with async_sessionmaker(engine, expire_on_commit=False)() as session:
             yield session
@@ -41,9 +53,10 @@ async def invocation_session(settings: Settings) -> AsyncIterator[AsyncSession]:
         # of failing until the environment is recycled. This invocation still fails.
         if credentials_rejected(error):
             get_settings.cache_clear()
+        # A refused login or a dead connection also retires the pooled engine, so the
+        # next invocation reconnects instead of reusing a poisoned pool.
+        await lambda_db.release_after("media", error)
         raise
-    finally:
-        await engine.dispose()
 
 
 async def get_session(

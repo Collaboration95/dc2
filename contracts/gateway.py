@@ -13,6 +13,7 @@ import json
 from urllib.parse import unquote
 
 from contracts.v1 import Actor, ContractError
+from runtime_support import lambda_db
 
 PREFIXES = {"media": "/api/media", "processing": "/api/processing"}
 
@@ -157,5 +158,5 @@ class GatewayAdapter:
 
     def __call__(self, event: dict, context=None) -> dict:
         if self.readiness is not None and is_readiness_probe(event):
-            return asyncio.run(self.readiness())
-        return asyncio.run(self.invoke(event))
+            return lambda_db.run(self.readiness())
+        return lambda_db.run(self.invoke(event))
