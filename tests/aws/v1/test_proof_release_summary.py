@@ -252,7 +252,8 @@ def test_rehearse_runs_every_harness_offline_and_fails_nothing(tmp_path):
     code, out = cli("rehearse")
     report = json.loads(out)
     assert code == 0 and report["mode"] == "simulated"
-    assert set(report["harnesses"]) == {"gateway", "capacity", "latency", "spend", "short-encode"}
+    assert set(report["harnesses"]) == {
+        "gateway", "capacity", "latency", "spend", "short-encode", "db-topology"}
     assert all(h["overall"] == "SIMULATED" for h in report["harnesses"].values())
 
 

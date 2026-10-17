@@ -91,7 +91,8 @@ class SimWorld:
     def __init__(self, *, env="dc2-v1-sim", encode_seconds=45.0, start_seconds=20.0,
                  repair_seconds=90.0, requeue=True, awake=False, slow=1.0, faults=(),
                  poison_seconds=300.0, lambda_lane=False, lambda_cold_seconds=9.0,
-                 lambda_warm_seconds=4.0):
+                 lambda_warm_seconds=4.0, database=None, resume_seconds=30.0, probe_ms=45.0,
+                 shared_load_slowdown=1.8, auto_pause_seconds=300, max_acu=2.0):
         self.env, self.faults = env, set(faults)
         self.clock = VirtualClock()
         self.plan = operations.PlanTransport()
@@ -109,6 +110,13 @@ class SimWorld:
         self.lambda_lane, self.lambda_seconds = lambda_lane, (lambda_cold_seconds,
                                                               lambda_warm_seconds)
         self.invocations, self.last_invocation = [], None
+        # The opt-in database layout (#94). None keeps the older harnesses' single always-on
+        # cluster model; "shared" or "separate" gives each cluster its own pause, resume and
+        # load history, and a shared cluster slows its other domain while one is under load.
+        self.database, self.resume_seconds, self.probe_ms = database, resume_seconds, probe_ms
+        self.shared_load_slowdown = shared_load_slowdown
+        self.auto_pause_seconds, self.max_acu = auto_pause_seconds, max_acu
+        self.busy, self.resuming, self.loads, self.probes = {}, {}, {}, 0
         if lambda_lane:  # a full `session open` has enabled every mapping
             self.plan.mappings[str(uuid.uuid5(uuid.NAMESPACE_URL, "ProcessingShortEncoder"))] = (
                 "Enabled")
@@ -121,6 +129,69 @@ class SimWorld:
 
     def use_database(self):
         self.last_use = self.clock.t
+
+    # ---- clusters (database mode) ---------------------------------------------------------
+    def cluster_ids(self):
+        if self.database == "separate":
+            return {"media": "sim-media-cluster", "processing": "sim-processing-cluster"}
+        return {"cluster": "sim-cluster"}
+
+    def cluster_of(self, domain):
+        ids = self.cluster_ids()
+        return ids.get(domain, ids.get("cluster"))
+
+    def touch(self, cluster, start=None, end=None):
+        now = self.clock.t
+        self.busy.setdefault(cluster, []).append((now if start is None else start,
+                                                  now if end is None else end))
+
+    def awake(self, cluster, moment):
+        """In use now or inside the pause timer after the last use (loads are open intervals)."""
+        if any(self.cluster_of(domain) == cluster for domain in self.loads):
+            return True
+        return any(start <= moment < end + self.auto_pause_seconds + 30
+                   for start, end in self.busy.get(cluster, []))
+
+    def begin_load(self, domain, concurrency):
+        self.loads[domain] = (concurrency, self.clock.t)
+        self.touch(self.cluster_of(domain))
+
+    def end_load(self, domain):
+        _, started = self.loads.pop(domain)
+        self.touch(self.cluster_of(domain), start=started, end=self.clock.t)
+
+    def lambda_invoke(self, payload):
+        """The owner's ready probe against a modelled cluster; anything else is the plan's."""
+        event = payload["Payload"]
+        if self.database is None or event.get("dc2_operation") != "ready":
+            return self.plan.call("lambda", "invoke", payload, deadline=time.monotonic() + 600)
+        domain = "media" if "Media" in payload["FunctionName"] else "processing"
+        cluster, now = self.cluster_of(domain), self.clock.t
+        if cluster not in self.resuming and not self.awake(cluster, now):
+            self.resuming[cluster] = now + self.resume_seconds
+        if cluster in self.resuming:
+            self.touch(cluster)
+            if now < self.resuming[cluster]:
+                self.clock.sleep(8)  # a probe that rides a resume waits, then reports not ready
+                return {"StatusCode": 200, "FunctionError": False,
+                        "Payload": {"service": domain, "ready": False}}
+            del self.resuming[cluster]
+        self.touch(cluster)
+        self.probes += 1
+        jitter = 1 + (crc("probe", self.probes) % 21) / 100
+        peer = "processing" if domain == "media" else "media"
+        coupled = self.database == "shared" and peer in self.loads
+        self.clock.sleep(self.probe_ms / 1000 * jitter * (self.shared_load_slowdown
+                                                          if coupled else 1.0))
+        return {"StatusCode": 200, "FunctionError": False,
+                "Payload": {"service": domain, "ready": True}}
+
+    def journal_resources(self):
+        ids = self.cluster_ids() if self.database else {"cluster": "sim-cluster"}
+        logical = {"cluster": "DatabaseCluster", "media": "MediaDatabaseCluster",
+                   "processing": "ProcessingDatabaseCluster"}
+        return {"db_clusters": list(ids.values()),
+                "db_logical": {cid: logical[label] for label, cid in ids.items()}}
 
     def move_poison(self):
         for sent, body in list(self.poison):
@@ -148,6 +219,12 @@ class SimWorld:
                 "ProcessingShortWorkDlqUrl":
                     f"https://sqs.{REGION}.amazonaws.com/{ACCOUNT}/ProcessingShortWorkDlq",
             }
+        if self.database == "separate":
+            names |= {"DatabaseTopology": "separate",
+                      "MediaDatabaseEndpoint": "media.cluster-sim.invalid",
+                      "ProcessingDatabaseEndpoint": "processing.cluster-sim.invalid"}
+        elif self.database == "shared":
+            names["DatabaseEndpoint"] = "shared.cluster-sim.invalid"
         return {
             **queues, **names, "OutputBucketName": "dc2-sim-output",
             "HttpApiId": "abc123def4", "HttpApiUrl": GATEWAY,
@@ -541,11 +618,13 @@ class SimWorld:
                 request, clock.monotonic, clock.sleep, generator.emit)
         return sink.getvalue().splitlines()
 
-    def capacity_at(self, minute):
+    def capacity_at(self, minute, cluster=None):
         """0.5 ACU for 5.5 minutes after the database was last used, otherwise paused at 0."""
         if "never-pauses" in self.faults:
             return 0.5
         moment = self.clock.t0 + (minute - EPOCH)
+        if self.database and cluster:
+            return 0.5 if self.awake(cluster, moment) else 0.0
         used = self.last_use
         return 0.5 if used is not None and used <= moment < used + 330 else 0.0
 
@@ -553,15 +632,19 @@ class SimWorld:
         start, end = int(parse_epoch(payload["StartTime"])), int(parse_epoch(payload["EndTime"]))
         now = self.clock.wall()
         points = []
+        dimensions = payload.get("Dimensions") or [{}]
+        cluster = dimensions[0].get("Value")
         for minute in range(start - start % 60 + 60, end, 60):
             if minute <= now:
-                value = self.capacity_at(minute)
-                points.append({"Timestamp": iso(minute), "Minimum": value, "Maximum": value})
+                value = self.capacity_at(minute, cluster)
+                points.append({"Timestamp": iso(minute), "Minimum": value, "Maximum": value,
+                               "Average": value})
         return {"Datapoints": points, "Label": "ServerlessDatabaseCapacity"}
 
     def rds_describe_db_clusters(self, payload):
         return {"DBClusters": [{"ServerlessV2ScalingConfiguration": {
-            "MinCapacity": 0.0, "MaxCapacity": 2.0, "SecondsUntilAutoPause": 300}}]}
+            "MinCapacity": 0.0, "MaxCapacity": self.max_acu,
+            "SecondsUntilAutoPause": self.auto_pause_seconds}}]}
 
     def ce_get_cost_and_usage(self, payload):
         groups = {"Amazon Relational Database Service": "1.62", "Amazon Elastic Container Service":
@@ -606,7 +689,7 @@ def build(args, *, session="open", world=None, sql=True, tmp=None):
                                    environment=world.env)
     deploy_journal.create({"run_id": "sim", "env": world.env, "steps": {}, "outputs": {},
                            "images": {}, "events": [],
-                           "resources": {"db_clusters": ["sim-cluster"]}})
+                           "resources": world.journal_resources()})
     journal.initialize(verified_empty=True, exclusive_station=True)
     if session != "closed":
         with journal.locked() as state:

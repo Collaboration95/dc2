@@ -6,9 +6,12 @@ import re
 from pathlib import Path
 
 from scripts.aws.config import validate_nonsecret
-from scripts.aws.v1.definitions import template
+from scripts.aws.v1.definitions import DatabaseOptions, template
 
 FIELDS = {
+    "database_topology",
+    "database_auto_pause_seconds",
+    "database_max_capacity",
     "schema_version",
     "environment_id",
     "account_id",
@@ -41,11 +44,29 @@ REQUIRED = {
 }
 
 
+def database_options(config):
+    """The opt-in V2 database layout (#94); absent keys are V1's single cluster, 300 s, 2 ACU.
+
+    These are render-time choices, not CloudFormation parameters, so they never appear in the
+    list `parameters` returns: a different layout is a different template.
+    """
+    defaults = DatabaseOptions()
+    try:
+        return DatabaseOptions(
+            config.get("database_topology", defaults.topology),
+            config.get("database_auto_pause_seconds", defaults.auto_pause_seconds),
+            config.get("database_max_capacity", defaults.max_capacity),
+        )
+    except ValueError as error:
+        raise ValueError(f"V1 database configuration rejected: {error}") from None
+
+
 def parameters(config):
     """Return safe CFN parameters, rejecting missing activation artifacts up front."""
     validate_nonsecret(config)
     if not isinstance(config, dict) or config.keys() - FIELDS or REQUIRED - config.keys():
         raise ValueError("V1 configuration has missing or unsupported fields")
+    database_options(config)
     if type(config["schema_version"]) is not int or config["schema_version"] != 1:
         raise ValueError("V1 configuration requires schema_version 1")
     # There is deliberately no session_open: the template is always closed and the
@@ -130,11 +151,13 @@ def main():
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
     try:
-        params = parameters(json.loads(args.config.read_text()))
+        config = json.loads(args.config.read_text())
+        params = parameters(config)
+        database = database_options(config)
     except (ValueError, TypeError):
         parser.exit(2, "V1 config rejected; check nonsecret fields against config.schema.json\n")
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    (args.output_dir / "template.json").write_text(json.dumps(template(), indent=2) + "\n")
+    (args.output_dir / "template.json").write_text(json.dumps(template(database), indent=2) + "\n")
     (args.output_dir / "parameters.json").write_text(json.dumps(params, indent=2) + "\n")
     print("Rendered inert V1 template and nonsecret parameter references; no AWS calls")
 

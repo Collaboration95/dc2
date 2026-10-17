@@ -6,6 +6,7 @@
     python -m scripts.aws.v1.evidence latency  ...   #66 Fargate generator, cold wake apart
     python -m scripts.aws.v1.evidence spend    ...   #67 closed state, ACU pause, spend
     python -m scripts.aws.v1.evidence short-encode   #93 (V2) Lambda short encodes vs Fargate
+    python -m scripts.aws.v1.evidence db-topology    #94 (V2) shared vs separate Aurora clusters
     python -m scripts.aws.v1.evidence rehearse       offline: every harness vs the simulation
     python -m scripts.aws.v1.evidence counts         close-proof counts derived from receipts
     python -m scripts.aws.v1.evidence summary        redacted summary for docs/.../evidence/
@@ -28,6 +29,7 @@ from scripts.aws.transport import OperationError
 from scripts.aws.v1.proof import (
     capacity,
     context,
+    db_topology,
     gateway,
     latency,
     release,
@@ -42,7 +44,7 @@ REQUIRED = {"63": gateway.REQUIRED, "64": capacity.REQUIRED, "65": release.REQUI
             "66": latency.REQUIRED, "67": spend.REQUIRED}
 # The session state each harness needs when it starts (latency opens its own window).
 SESSION = {"gateway": "open", "capacity": "open", "release": "window", "latency": "closed",
-           "spend": "closed", "short-encode": "open"}
+           "spend": "closed", "short-encode": "open", "db-topology": "window"}
 
 
 def scope_arguments(parser):
@@ -99,6 +101,22 @@ def build_parser():
                     help="idle time before the Lambda cold job (0 = no wait; coldness unlikely)")
     se.add_argument("--job-timeout", type=int, default=900)
     se.add_argument("--minutes", type=int, default=60, help="session horizon for Fargate tasks")
+    db = sub.add_parser("db-topology", help="#94 (V2): shared vs separate Aurora clusters")
+    scope_arguments(db)
+    db.add_argument("--arm", choices=("shared", "separate", "compare"), required=True,
+                    help="the stack's own topology, then compare the two receipts")
+    db.add_argument("--samples", type=int, default=30, help="timed ready probes per domain")
+    db.add_argument("--pause-wait-minutes", type=int, default=30,
+                    help="how long to wait for CloudWatch to show 0 ACU (raised automatically "
+                         "for a longer auto-pause)")
+    db.add_argument("--resume-timeout", type=int, default=300, help="seconds allowed for a resume")
+    db.add_argument("--load-seconds", type=int, default=60, help="peer load held for the wake test")
+    db.add_argument("--load-concurrency", type=int, default=4, help="parallel Media probes")
+    db.add_argument("--tail-minutes", type=int, default=10,
+                    help="idle minutes kept inside the cost window so the pause tail is billed")
+    db.add_argument("--cluster", help="the shared cluster id (default: the deploy journal)")
+    db.add_argument("--media-cluster")
+    db.add_argument("--processing-cluster")
     rh = sub.add_parser("rehearse", help="every harness against the simulation")
     rh.add_argument("--run-id", default="rehearsal")
     rh.add_argument("--release-plan", type=Path)
@@ -117,6 +135,9 @@ def only(args):
 
 def make_context(args, command, *, world, factory):
     if args.dry_run:
+        if command == "db-topology" and world is None:
+            # The simulation must be the layout the arm names, or the arm refuses it.
+            world = sim.SimWorld(database="separate" if args.arm == "separate" else "shared")
         return sim.build(args, session=SESSION[command], world=world)
     if factory:
         return factory(args)
@@ -144,6 +165,13 @@ def execute(args, ctx):
             ctx, arm=args.arm, fixture=args.fixture, fixture_seconds=args.fixture_seconds,
             jobs=args.jobs, minutes=args.minutes, job_timeout=args.job_timeout,
             idle_minutes=args.idle_minutes)
+    if args.command == "db-topology":
+        return db_topology.run(
+            ctx, arm_name=args.arm, samples=args.samples, pause_minutes=args.pause_wait_minutes,
+            resume_timeout=args.resume_timeout, load_seconds=args.load_seconds,
+            concurrency=args.load_concurrency, tail_minutes=args.tail_minutes,
+            overrides={"shared": args.cluster, "media": args.media_cluster,
+                       "processing": args.processing_cluster})
     if args.command == "latency":
         return latency.run(ctx, only=only(args), cluster=args.cluster)
     from datetime import date
@@ -175,6 +203,22 @@ def rehearse_short_encode(base, fixture, shared):
     return proof.report(), bool(proof.failed_now())
 
 
+def rehearse_db_topology(base, shared):
+    """#94: the arms are different stacks, so two simulated worlds share one receipt."""
+    import shutil
+
+    first = sim.build(shared, session="window",
+                      world=sim.SimWorld(database="shared"), tmp=base / "db-topology-shared")
+    db_topology.run(first, arm_name="shared", samples=5, tail_minutes=0)
+    second = sim.build(shared, session="window",
+                       world=sim.SimWorld(database="separate"), tmp=base / "db-topology-separate")
+    second.evidence_dir.mkdir(mode=0o700, exist_ok=True)
+    shutil.copy(first.evidence_dir / f"evidence-94-{shared.run_id}.json", second.evidence_dir)
+    db_topology.run(second, arm_name="separate", samples=5, tail_minutes=0)
+    proof = db_topology.run(second, arm_name="compare")
+    return proof.report(), bool(proof.failed_now())
+
+
 def rehearse(args, stdout):
     """Every harness against fresh simulated worlds; nothing leaves the temp directory."""
     base = Path(tempfile.mkdtemp(prefix="dc2-rehearsal-"))
@@ -199,6 +243,8 @@ def rehearse(args, stdout):
         reports[name] = proof.report()
         failed = failed or bool(proof.failed_now())
     reports["short-encode"], bad = rehearse_short_encode(base, fixture, shared)
+    failed = failed or bad
+    reports["db-topology"], bad = rehearse_db_topology(base, shared)
     failed = failed or bad
     note = ("simulated: nothing here is AWS evidence; receipts are SIMULATED and "
             "the summary writer refuses them")

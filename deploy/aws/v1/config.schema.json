@@ -46,6 +46,23 @@
       "type": "boolean",
       "description": "Opt in to the V2 Lambda short-encode lane (#93); absent or false keeps V1"
     },
+    "database_topology": {
+      "enum": ["shared", "separate"],
+      "description": "V2 experiment (#94): one Aurora cluster holding both databases (default, V1) or one cluster per domain. Chosen when the template is rendered; never change it on a live stack"
+    },
+    "database_auto_pause_seconds": {
+      "type": "integer",
+      "minimum": 300,
+      "maximum": 86400,
+      "description": "V2 experiment (#94): idle seconds before Aurora pauses; default 300, which is also the minimum Aurora accepts"
+    },
+    "database_max_capacity": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 256,
+      "multipleOf": 0.5,
+      "description": "V2 experiment (#94): ACU ceiling of each cluster; default 2"
+    },
     "worker_lifetime_seconds": {
       "type": "integer",
       "minimum": 60,

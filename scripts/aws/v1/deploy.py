@@ -47,6 +47,7 @@ from scripts.aws.v1 import bootstrap as db_bootstrap
 from scripts.aws.v1 import config as render_config
 from scripts.aws.v1 import credentials, operations, session_cli
 from scripts.aws.v1 import frontend as spa
+from scripts.aws.v1.definitions import SEPARATE, DatabaseOptions
 from scripts.aws.v1.definitions import template as render_template
 from scripts.aws.v1.hooks import refuse_ambient_credentials
 from scripts.aws.v1.migration import migrate
@@ -104,6 +105,8 @@ DEFINITIVE_MIGRATION_FAILURES = {"Migration task failed", "Owning schema revisio
 ACU_HOUR, FARGATE_VCPU_HOUR, FARGATE_GIB_HOUR, IPV4_HOUR = 0.20, 0.05056, 0.00553, 0.005
 # Retained per month with the stack idle: master secret, ECR layers, Aurora storage, logs.
 RETAINED_MONTH_USD = 0.40 + 0.15 + 0.11 + 0.10
+# What one more cluster retains per month: its managed master secret and its Aurora storage.
+EXTRA_CLUSTER_MONTH_USD = 0.40 + 0.11
 
 
 # What FlickPondRequireMFA keys on, asked of the policy simulator with MFA absent: one action
@@ -146,6 +149,12 @@ ALLOWED = {
     "budgets": {"describe-budgets"},
     "ce": {"get-cost-and-usage", "get-cost-forecast"},
     "resourcegroupstaggingapi": {"get-resources"},
+    # Read-only existence checks the teardown receipt makes on tagging-API hits (#147).
+    "ec2": {
+        "describe-vpcs", "describe-subnets", "describe-security-groups", "describe-route-tables",
+        "describe-internet-gateways", "describe-egress-only-internet-gateways",
+        "describe-vpc-endpoints",
+    },
     "cloudfront": {"create-invalidation", "get-invalidation"},
     "cloudformation": {
         "describe-stacks", "create-change-set", "describe-change-set", "execute-change-set",
@@ -174,7 +183,8 @@ ALLOWED = {
     "logs": {"describe-log-groups", "delete-log-group", "list-tags-for-resource",
              "get-log-events", "filter-log-events"},
     "ecs": {"run-task", "describe-tasks", "list-tasks", "stop-task", "describe-task-definition",
-            "register-task-definition", "deregister-task-definition"},
+            "register-task-definition", "deregister-task-definition",
+            "describe-clusters", "delete-task-definitions"},
     # Read-only observations the cloud-proof harnesses make through this same transport.
     "cloudwatch": {"get-metric-statistics"},
     "apigatewayv2": {"get-stage"},
@@ -182,6 +192,28 @@ ALLOWED = {
 # RDS answers a missing instance with the wire code DBInstanceNotFound; only the SDK exception
 # carries the Fault suffix (clusters do use DBClusterNotFoundFault). Seen on 2026-10-17.
 INSTANCE_NOT_FOUND = ("DBInstanceNotFound", "DBInstanceNotFoundFault")
+CLUSTER_NOT_FOUND = ("DBClusterNotFoundFault", "DBClusterNotFound")
+SNAPSHOT_NOT_FOUND = ("DBClusterSnapshotNotFound", "DBClusterSnapshotNotFoundFault")
+# The tagging API keeps listing a deleted resource for a while (the 2026-10-17 r1017a teardown
+# reported ten that were all gone). Each hit is therefore asked of the service that owns it:
+# ARN resource type -> (EC2 describe operation, request key). An unlisted type is never guessed.
+EC2_CHECKS = {
+    "vpc": ("describe-vpcs", "VpcIds"),
+    "subnet": ("describe-subnets", "SubnetIds"),
+    "security-group": ("describe-security-groups", "GroupIds"),
+    "route-table": ("describe-route-tables", "RouteTableIds"),
+    "internet-gateway": ("describe-internet-gateways", "InternetGatewayIds"),
+    "egress-only-internet-gateway": (
+        "describe-egress-only-internet-gateways", "EgressOnlyInternetGatewayIds"),
+    "vpc-endpoint": ("describe-vpc-endpoints", "VpcEndpointIds"),
+}
+# A deregistered task definition stays listed as INACTIVE, costs nothing, and goes away once
+# deleted (DELETE_IN_PROGRESS first). A cluster whose tasks and services are gone is INACTIVE.
+ECS_GONE = {"INACTIVE", "DELETE_IN_PROGRESS"}
+# `delete-task-definitions` accepts at most ten per call.
+TASK_DEFINITION_DELETE_BATCH = 10
+_ARN_RESOURCE = re.compile(r"([^/:]+)[/:](.+)", re.S)
+_RESOURCE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,299}")
 READ_PREFIXES = ("describe", "get", "list", "head", "filter", "simulate-principal-policy")
 SENSITIVE_RESULT = {("secretsmanager", "get-secret-value"), ("ecr", "get-authorization-token")}
 
@@ -190,10 +222,33 @@ def is_mutating(operation):
     return not operation.startswith(READ_PREFIXES)
 
 
+def _id_list(low, high):
+    return lambda v: (isinstance(v, list) and low <= len(v) <= high
+                      and all(isinstance(i, str) and _RESOURCE_ID.fullmatch(i) for i in v))
+
+
+# Operations only the teardown receipt makes. They are checked here and deliberately not added to
+# the shared operator contract (scripts/aws/v1/transport.py), which the session and release
+# transports also use and which must not gain a deletion it has no need for.
+RECEIPT_CONTRACT = {
+    ("ec2", op): ({key: _id_list(1, 1)}, {}) for op, key in EC2_CHECKS.values()
+} | {
+    ("ecs", "describe-clusters"): ({"clusters": _id_list(1, 100)}, {}),
+    ("ecs", "delete-task-definitions"): (
+        {"taskDefinitions": _id_list(1, TASK_DEFINITION_DELETE_BATCH)}, {}),
+}
+
+
 def check_operation(service, operation, payload):
     if operation not in ALLOWED.get(service, ()) or not isinstance(payload, dict):
         raise DeployError("Operation is outside the deploy pipeline's allowlist")
-    if service == "ecs":  # reuse the session/release argument contract for task operations
+    contract = RECEIPT_CONTRACT.get((service, operation))
+    if contract:
+        required, _ = contract
+        if payload.keys() != required.keys() or not all(
+                required[k](v) for k, v in payload.items()):
+            raise DeployError("Operation arguments do not match the deploy pipeline's contract")
+    elif service == "ecs":  # reuse the session/release argument contract for task operations
         validate_arguments(service, operation, payload)
 
 
@@ -407,6 +462,8 @@ class Settings:
     assume_empty_counts: bool = False
     sql_config: Path | None = None
     station: str = "dc2-deploy-station"
+    # The opt-in V2 database layout (#94); the defaults are V1's one cluster.
+    database: DatabaseOptions = dataclasses.field(default_factory=DatabaseOptions)
 
     def __post_init__(self):
         if self.profile == "default" or not operations.PROFILE_PATTERN.fullmatch(self.profile):
@@ -451,14 +508,27 @@ def owned(tags, run_id):
     return tags.get(PROJECT_KEY) == PROJECT_VALUE and tags.get(RUN_KEY) == run_id
 
 
-def planned_cost(hours):
-    """Worst-case spend of one deploy window: the database at its 2 ACU ceiling throughout.
+def remember_snapshot(deploy_state, name):
+    """Add a final snapshot to the journal. `final_snapshot` stays the first, as in V1."""
+    known = deploy_state.get("final_snapshots") or (
+        [deploy_state["final_snapshot"]] if deploy_state.get("final_snapshot") else [])
+    if name not in known:
+        known.append(name)
+    deploy_state["final_snapshots"], deploy_state["final_snapshot"] = known, known[0]
+
+
+def planned_cost(hours, database=None):
+    """Worst-case spend of one deploy window: every cluster at its ACU ceiling throughout.
 
     Finite 0.25 vCPU / 0.5 GiB bootstrap and migration tasks (about six minutes each, three
     of them) and a month of retained storage are added. Encoders do not run in a first deploy.
+    A separate layout (#94) adds a second cluster's ceiling and its retained secret and storage.
     """
+    database = database or DatabaseOptions()
     task_hour = 0.25 * FARGATE_VCPU_HOUR + 0.5 * FARGATE_GIB_HOUR + IPV4_HOUR
-    return round(2 * ACU_HOUR * hours + 3 * 0.1 * task_hour + RETAINED_MONTH_USD, 2)
+    retained = RETAINED_MONTH_USD + (database.clusters - 1) * EXTRA_CLUSTER_MONTH_USD
+    compute = database.clusters * database.max_capacity * ACU_HOUR * hours
+    return round(compute + 3 * 0.1 * task_hour + retained, 2)
 
 
 # ---------------------------------------------------------------------------- pipeline
@@ -620,7 +690,7 @@ class Pipeline:
                     "with the operator's own estimate if Cost Explorer has too little history"
                 )
             forecast = float(result["Total"]["Amount"])
-        planned = planned_cost(self.s.planned_hours)
+        planned = planned_cost(self.s.planned_hours, self.s.database)
         total = round(mtd + forecast + planned, 2)
         report = {
             "month_to_date_usd": round(mtd, 2), "forecast_usd": round(forecast, 2),
@@ -936,11 +1006,15 @@ class Pipeline:
         }
 
         def change(d):
-            for resource_type, physical, _ in rows:
+            for resource_type, physical, logical in rows:
                 if resource_type in kinds:
                     bucket = d["resources"].setdefault(kinds[resource_type], [])
                     if physical not in bucket:
                         bucket.append(physical)
+                if resource_type == "AWS::RDS::DBCluster":
+                    # The physical id carries no domain; teardown names a final snapshot per
+                    # cluster and the harnesses pick a cluster by domain from this.
+                    d["resources"].setdefault("db_logical", {})[physical] = logical
             stacks = d["resources"].setdefault("stacks", [])
             if stack not in stacks:
                 stacks.append(stack)
@@ -983,7 +1057,8 @@ class Pipeline:
             "region": self.s.region, "source_cors_origin": cors, "deploy_applications": apps,
             "parameter_arns": arns, "images": images or {},
         })
-        body = json.dumps(render_template(), sort_keys=True, separators=(",", ":"))
+        body = json.dumps(render_template(self.s.database), sort_keys=True,
+                          separators=(",", ":"))
         return body, parameters
 
     def stage_template(self, body):
@@ -1348,6 +1423,20 @@ class Pipeline:
         self.write_private(path, json.dumps(passwords))
         return passwords
 
+    def database_endpoints(self, outputs):
+        """{domain: (endpoint host, master secret ARN)} from the stack outputs."""
+        try:
+            if self.s.database.topology == SEPARATE:
+                return {domain: (outputs[f"{domain.title()}DatabaseEndpoint"],
+                                 outputs[f"{domain.title()}BootstrapSecretArn"])
+                        for domain in OWNERS}
+            pair = (outputs["DatabaseEndpoint"], outputs["BootstrapSecretArn"])
+        except KeyError as error:
+            raise DeployError(
+                f"The stack outputs lack {error.args[0]}: the stack was not rendered with "
+                f"database topology {self.s.database.topology}") from None
+        return dict.fromkeys(OWNERS, pair)
+
     def step_db_bootstrap(self):
         """Privileged role/database bootstrap, then the five runtime/migration parameters.
 
@@ -1359,12 +1448,20 @@ class Pipeline:
         """
         outputs = self.outputs()
         base = f"/dc2/{self.s.env}/"
-        secret = self.aws("secretsmanager", "get-secret-value",
-                          {"SecretId": outputs["BootstrapSecretArn"]})
-        master = json.loads(secret["SecretString"])
+        endpoints = self.database_endpoints(outputs)
+        masters = {}
+        for secret_arn in dict.fromkeys(arn for _, arn in endpoints.values()):
+            secret = self.aws("secretsmanager", "get-secret-value", {"SecretId": secret_arn})
+            masters[secret_arn] = json.loads(secret["SecretString"])
         passwords = self.bootstrap_passwords()
-        payload = {"host": outputs["DatabaseEndpoint"], "port": 5432, "user": master["username"],
-                   "password": master["password"], "role_passwords": passwords}
+        connections = {
+            domain: {"host": host, "port": 5432, "user": masters[arn]["username"],
+                     "password": masters[arn]["password"]}
+            for domain, (host, arn) in endpoints.items()}
+        if self.s.database.topology == SEPARATE:
+            payload = {"databases": connections, "role_passwords": passwords}
+        else:  # V1's input, unchanged: one connection serves both domains
+            payload = {**connections["media"], "role_passwords": passwords}
         db_bootstrap.validate_input(payload)
         self.put_parameter(base + "bootstrap-input", json.dumps(payload))
         result = {}
@@ -1375,13 +1472,15 @@ class Pipeline:
         finally:
             self.aws("ssm", "delete-parameter", {"Name": base + "bootstrap-input"},
                      tolerate=("ParameterNotFound",))
-        host = outputs["DatabaseEndpoint"]
         for key, (role, database) in {
             "media_runtime_dsn": ("media_runtime", "media_db"),
             "media_migration_dsn": ("media_migrator", "media_db"),
             "processing_runtime_dsn": ("processing_runtime", "processing_db"),
             "processing_migration_dsn": ("processing_migrator", "processing_db"),
         }.items():
+            # Each DSN names its own domain's cluster, so the migration tasks and the
+            # runtime handlers that read these parameters need no topology knowledge.
+            host = endpoints[database.removesuffix("_db")][0]
             dsn = f"postgresql://{quote(role, safe='')}:{quote(passwords[role], safe='')}" \
                   f"@{host}:5432/{database}"
             self.put_parameter(base + key, dsn)
@@ -1790,23 +1889,34 @@ class Pipeline:
             deleted += len(ids)
         return {"images_deleted": deleted}
 
+    def snapshot_name(self, cluster):
+        """The final snapshot's id. V1's single cluster keeps `<env>-final`; each cluster of a
+        separate layout needs its own, since a snapshot identifier is unique in the account."""
+        logical = self.meta()["resources"].get("db_logical", {}).get(cluster, "")
+        domain = {"MediaDatabaseCluster": "media", "ProcessingDatabaseCluster": "processing"}
+        return (f"{self.s.env}-{domain[logical]}-final" if logical in domain
+                else f"{self.s.env}-final")
+
     def td_database(self):
-        """Instances first, then the cluster with deletion protection lifted.
+        """Instances first, then the clusters with deletion protection lifted.
 
         The cluster and instance are Retain resources and live in the VPC the stack deletes, so
         they must be gone before the stack is. A final snapshot is the default; skipping it is
-        an explicit, journaled decision.
+        an explicit, journaled decision. With two clusters (#94) every deletion is requested
+        before any is waited on, so the second does not queue behind the first.
         """
-        snapshot = None
-        for instance in self.owned_ids("db_instance"):
+        instances = self.owned_ids("db_instance")
+        for instance in instances:
             self.aws("rds", "delete-db-instance", {"DBInstanceIdentifier": instance},
                      tolerate=INSTANCE_NOT_FOUND)
+        for instance in instances:
             self.poll(lambda i=instance: self._gone(
                 "rds", "describe-db-instances", {"DBInstanceIdentifier": i},
                 *INSTANCE_NOT_FOUND), what=f"instance {instance} deletion", timeout=1800)
+        deleting = []
         for cluster in self.owned_ids("db_cluster"):
             found = self.aws("rds", "describe-db-clusters", {"DBClusterIdentifier": cluster},
-                             tolerate=("DBClusterNotFoundFault",))
+                             tolerate=CLUSTER_NOT_FOUND)
             if found is None:
                 continue
             if found["DBClusters"][0].get("Status") != "deleting":
@@ -1816,25 +1926,34 @@ class Pipeline:
                 request = {"DBClusterIdentifier": cluster,
                            "SkipFinalSnapshot": self.s.skip_final_snapshot}
                 if not self.s.skip_final_snapshot:
-                    snapshot = f"{self.s.env}-final"
-                    request["FinalDBSnapshotIdentifier"] = snapshot
+                    request["FinalDBSnapshotIdentifier"] = self.snapshot_name(cluster)
                 self.aws("rds", "delete-db-cluster", request)
+                if not self.s.skip_final_snapshot:
+                    # At once, so a failure while the other cluster is handled loses no name.
+                    name = request["FinalDBSnapshotIdentifier"]
+                    self.journal.mutate(lambda d, n=name: remember_snapshot(d, n))
+            deleting.append(cluster)
+        for cluster in deleting:
             self.poll(lambda c=cluster: self._gone(
                 "rds", "describe-db-clusters", {"DBClusterIdentifier": c},
-                "DBClusterNotFoundFault"), what=f"cluster {cluster} deletion", timeout=3600)
-        if snapshot:
+                *CLUSTER_NOT_FOUND), what=f"cluster {cluster} deletion", timeout=3600)
+        # Every snapshot any attempt requested, so a resume tags the earlier attempt's too.
+        snapshots = self.meta().get("final_snapshots") or []
+        for snapshot in snapshots:
             self.tag_snapshot(snapshot)
-        self.journal.mutate(
-            lambda d: d.update(final_snapshot=snapshot or d.get("final_snapshot")))
-        return {"final_snapshot": snapshot, "skip_final_snapshot": self.s.skip_final_snapshot}
+        return {"final_snapshot": snapshots[0] if snapshots else None,
+                "final_snapshots": snapshots, "skip_final_snapshot": self.s.skip_final_snapshot}
 
     def tag_snapshot(self, snapshot):
         def available():
             found = self.aws("rds", "describe-db-cluster-snapshots", {
-                "DBClusterSnapshotIdentifier": snapshot})
+                "DBClusterSnapshotIdentifier": snapshot}, tolerate=SNAPSHOT_NOT_FOUND)
+            if found is None:  # the operator already deleted it; a resume has nothing to tag
+                return True, "gone"
             return found["DBClusterSnapshots"][0]["Status"] == "available", None
 
-        self.poll(available, what="final snapshot", timeout=1800)
+        if self.poll(available, what="final snapshot", timeout=1800) == "gone":
+            return
         arn = f"arn:aws:rds:{self.s.region}:{self.s.account}:cluster-snapshot:{snapshot}"
         self.aws("rds", "add-tags-to-resource", {"ResourceName": arn, "Tags": self.s.tags})
 
@@ -1979,17 +2098,29 @@ class Pipeline:
             "logGroupNamePrefix": f"/dc2/{self.s.env}/"})
         for group in groups.get("logGroups", []):
             left("log-group", group["logGroupName"], "still exists")
-        snapshot = meta.get("final_snapshot")
-        if snapshot:
+        # One final snapshot per cluster; journals written before the separate topology hold one.
+        snapshots = meta.get("final_snapshots") or (
+            [meta["final_snapshot"]] if meta.get("final_snapshot") else [])
+        for snapshot in snapshots:
             left("aurora-snapshot", snapshot,
                  "final snapshot kept by default; delete it once the data is not needed")
         tagged = self.aws("resourcegroupstaggingapi", "get-resources", {
             "TagFilters": [{"Key": RUN_KEY, "Values": [self.s.run_id]}]})
         known = {item["id"] for item in found}
+        # The tagging API is eventually consistent, so a hit is a question for the owning
+        # service and not a verdict: only what that service still reports is "remaining".
+        observed = []
         for mapping in tagged.get("ResourceTagMappingList", []):
             arn = mapping["ResourceARN"]
-            if not any(name in arn for name in known):
-                left("tagged-resource", arn, "found by the tagging API; investigate")
+            if any(name in arn for name in known):
+                continue
+            row = self.confirm_tagged(arn)
+            observed.append(row)
+            if not row["gone"]:
+                left("tagged-resource", arn,
+                     f"listed by the tagging API and not confirmed gone: {row['observed']}")
+                found[-1].update(resource_type=row["resource_type"], observed=row["observed"])
+        self.delete_inactive_task_definitions(observed)
         legacy = self.stack(LEGACY_BOOTSTRAP_STACK)
         untouched = [{"kind": "cloudformation-stack", "id": LEGACY_BOOTSTRAP_STACK,
                       "status": legacy["StackStatus"]}] if legacy else []
@@ -1999,10 +2130,15 @@ class Pipeline:
             "simulated": self.simulated,
             "status": "CLEAN" if not found else "ITEMS_REMAIN",
             "resources_remaining": found,
+            # Every tagging-API hit with the state its owning service reported, the ones
+            # confirmed gone included: the evidence that a lagging listing was not ignored.
+            "tagging_api_observed": observed,
             "skipped_not_owned": meta.get("ownership", {}).get("skipped", []),
             "pre_existing_untouched": untouched,
-            "final_snapshot": snapshot or ("skipped by operator" if self.s.skip_final_snapshot
-                                           else None),
+            # `final_snapshot` keeps its single-cluster meaning (the first snapshot).
+            "final_snapshot": (snapshots[0] if snapshots else (
+                "skipped by operator" if self.s.skip_final_snapshot else None)),
+            "final_snapshots": snapshots,
             "billing_note": "Deleting stops new charges only; reconcile actual usage against "
                             "Cost Explorer before closing #67.",
             "journal_steps": {k: v["status"] for k, v in meta["steps"].items()},
@@ -2011,6 +2147,115 @@ class Pipeline:
                            json.dumps(receipt, indent=2))
         self.receipt = receipt
         return {"status": receipt["status"], "remaining": len(found)}
+
+    @staticmethod
+    def arn_parts(arn):
+        """(service, resource type, resource id). A bucket ARN has no type; its id is the name."""
+        parts = arn.split(":", 5)
+        if len(parts) < 6:
+            return "", "", arn
+        found = _ARN_RESOURCE.fullmatch(parts[5])
+        if parts[2] == "s3" and "/" not in parts[5]:
+            return "s3", "bucket", parts[5]
+        return (parts[2], found[1], found[2]) if found else (parts[2], "", parts[5])
+
+    def confirm_tagged(self, arn):
+        """Ask the owning service whether one tagging-API hit still exists.
+
+        Returns {resource_type, id, observed, gone}. Gone means the service itself said so:
+        EC2 `*.NotFound`, an ECS cluster or task definition that is INACTIVE (free, and listed
+        until deleted), an RDS or S3 not-found. Anything else, including a check that could not
+        be made, stays reported with what was observed, so a wrong guess can only add a line to
+        the receipt and never hide a resource that costs money.
+        """
+        service, kind, ident = self.arn_parts(arn)
+        row = {"resource_type": f"{service}:{kind}", "id": arn, "observed": "unchecked",
+               "gone": False}
+
+        def gone(state):
+            row.update(observed=state, gone=True)
+            return row
+
+        def seen(state):
+            row.update(observed=str(state or "exists"))
+            return row
+
+        def first_item(described):
+            return next((v[0] for v in described.values()
+                         if isinstance(v, list) and v and isinstance(v[0], dict)), {})
+
+        try:
+            if service == "ec2" and kind in EC2_CHECKS:
+                operation, key = EC2_CHECKS[kind]
+                try:
+                    described = self.aws("ec2", operation, {key: [ident]})
+                except AwsError as error:
+                    if error.code.endswith(".NotFound"):
+                        return gone(error.code)
+                    raise
+                state = first_item(described).get("State")
+                # A deleted endpoint is listed as `deleted` before its NotFound arrives.
+                if kind == "vpc-endpoint" and state == "deleted":
+                    return gone("deleted")
+                return seen(state)
+            if service == "ecs" and kind == "cluster":
+                described = self.aws("ecs", "describe-clusters", {"clusters": [arn]})
+                clusters = described.get("clusters", [])
+                if not clusters:
+                    return gone("MISSING")
+                state = clusters[0].get("status")
+                return gone(state) if state in ECS_GONE else seen(state)
+            if service == "ecs" and kind == "task-definition":
+                try:
+                    described = self.aws("ecs", "describe-task-definition", {"taskDefinition": arn})
+                except AwsError as error:
+                    if "Unable to describe task definition" in error.hint:
+                        return gone("NotFound")
+                    raise
+                state = described["taskDefinition"].get("status")
+                return gone(state) if state in ECS_GONE else seen(state)
+            if service == "rds" and kind in {"cluster", "db", "cluster-snapshot"}:
+                operation, request, codes = {
+                    "cluster": ("describe-db-clusters", "DBClusterIdentifier", CLUSTER_NOT_FOUND),
+                    "db": ("describe-db-instances", "DBInstanceIdentifier", INSTANCE_NOT_FOUND),
+                    "cluster-snapshot": ("describe-db-cluster-snapshots",
+                                         "DBClusterSnapshotIdentifier", SNAPSHOT_NOT_FOUND),
+                }[kind]
+                try:
+                    described = self.aws("rds", operation, {request: ident})
+                except AwsError as error:
+                    if error.code in codes:
+                        return gone(error.code)
+                    raise
+                item = first_item(described)
+                return seen(item.get("Status") or item.get("DBInstanceStatus"))
+            if service == "s3" and kind == "bucket":
+                state = self.bucket_state(ident)
+                return gone("NoSuchBucket") if state == "absent" else seen(state)
+        except AwsError as error:
+            return seen(f"unconfirmed ({error.code})")
+        return row
+
+    def delete_inactive_task_definitions(self, observed):
+        """Delete this run's INACTIVE task definitions so they stop being listed at all.
+
+        Only revisions the tagging API attributed to this run and ECS itself reports INACTIVE.
+        Errors are tolerated and recorded: an INACTIVE definition is free, and a failed delete
+        must not turn a clean teardown into a failed one.
+        """
+        wanted = [row for row in observed if row["resource_type"] == "ecs:task-definition"
+                  and row["observed"] == "INACTIVE"]
+        for start in range(0, len(wanted), TASK_DEFINITION_DELETE_BATCH):
+            batch = wanted[start:start + TASK_DEFINITION_DELETE_BATCH]
+            try:
+                reply = self.aws("ecs", "delete-task-definitions",
+                                 {"taskDefinitions": [row["id"] for row in batch]}) or {}
+            except AwsError as error:
+                reply = {"failures": [{"arn": row["id"], "reason": error.code} for row in batch]}
+            failed = {f.get("arn"): f.get("reason", "failed") for f in reply.get("failures", [])}
+            for row in batch:
+                row["deletion"] = (f"requested but failed: {failed[row['id']]}"
+                                   if row["id"] in failed else "requested")
 
     def teardown(self):
         if self.s.execute and not self.s.dry_run and self.s.confirm_run_id != self.s.run_id:
@@ -2150,6 +2395,13 @@ def build_parser():
     p.add_argument("--media-revision")
     p.add_argument("--processing-revision")
     p.add_argument("--stop-after", choices=DEPLOY_STEPS)
+    p.add_argument("--database-topology", choices=("shared", "separate"), default="shared",
+                   help="V2 experiment (#94): one Aurora cluster for both databases (V1, default) "
+                        "or one per domain. Fixed for the run: a resume must repeat it")
+    p.add_argument("--database-auto-pause-seconds", type=int, default=300,
+                   help="idle seconds before Aurora pauses (300 to 86400; V1 uses 300)")
+    p.add_argument("--database-max-capacity", type=float, default=2,
+                   help="ACU ceiling of each cluster (1 to 256 in steps of 0.5; V1 uses 2)")
     p.add_argument("--station", default="dc2-deploy-station")
     p.add_argument("--plan-detail", choices=["mutating", "all"], default="mutating")
     p.add_argument("--json", action="store_true", help="include the full plan in JSON")
@@ -2199,6 +2451,11 @@ def main(argv=None, *, environ=None, transport=None, docker=None, http=None, ses
         rehearse = args.action == "rehearse"
         dry = args.dry_run or rehearse
         state, temp = prepare_state(args, dry)
+        try:
+            database = DatabaseOptions(args.database_topology, args.database_auto_pause_seconds,
+                                       args.database_max_capacity)
+        except ValueError as error:
+            raise DeployError(str(error)) from None
         settings = Settings(
             profile=args.profile, region=args.region, account=args.account, run_id=args.run_id,
             state_dir=state, budget_usd=args.budget_usd, budget_name=args.budget_name,
@@ -2208,7 +2465,7 @@ def main(argv=None, *, environ=None, transport=None, docker=None, http=None, ses
             skip_final_snapshot=args.skip_final_snapshot, confirm_run_id=args.confirm_run_id,
             seed_email=args.seed_email, counts_file=args.counts_file,
             assume_empty_counts=args.assume_empty_counts or dry, sql_config=args.sql_config,
-            station=args.station)
+            station=args.station, database=database)
         journal = DeployJournal(state / "deploy-journal.json", station=settings.station,
                                 environment=settings.env)
         if args.action == "status":
@@ -2275,19 +2532,39 @@ def recorded_state(args):
     return journal.view()
 
 
+def check_database_layout(journal, wanted):
+    """A run's database topology is fixed when it is created.
+
+    The topology decides which resources and outputs exist; flipping it on a live stack would
+    add a cluster without moving data, or ask CloudFormation to remove a database. Auto-pause
+    and the ACU ceiling are in-place cluster settings and may be changed on a resume. A
+    journal written before this option existed is V1's layout.
+    """
+    created = DatabaseOptions(**journal.view().get("database", {}))
+    if created.topology != wanted.topology:
+        raise DeployError(
+            f"This run was created with database topology {created.topology}; use a new "
+            "--run-id for another layout (a live stack's topology cannot be changed)")
+    if created != wanted:
+        journal.mutate(lambda d: d.update(database=wanted.as_dict()))
+
+
 def execute(settings, aws, journal, docker, http, session_main, args, seed, stdout, stderr,
             clock, sleep, today):
     meta = {"run_id": settings.run_id, "env": settings.env, "account": settings.account,
             "region": settings.region, "created_at": now(), "steps": {}, "resources": {},
-            "outputs": {}, "images": {}, "events": []}
+            "outputs": {}, "images": {}, "events": [], "database": settings.database.as_dict()}
     if seed:  # rehearsing a real run's teardown: start from what that run recorded
-        meta.update({k: copy.deepcopy(seed[k]) for k in ("resources", "outputs", "images")})
+        meta.update({k: copy.deepcopy(seed[k])
+                     for k in ("resources", "outputs", "images", "database") if k in seed})
     if not journal.exists():
         if args.action == "teardown" and not settings.dry_run:
             raise DeployError("No journal for this run; nothing recorded to tear down")
         journal.create(meta)
     elif journal.view()["account"] != settings.account:
         raise DeployError("Journal belongs to a different account")
+    elif args.action in {"deploy", "rehearse"}:
+        check_database_layout(journal, settings.database)
     revisions = {"media": args.media_revision, "processing": args.processing_revision}
     plans, receipt = [], None
 
