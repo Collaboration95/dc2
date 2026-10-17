@@ -14,7 +14,7 @@ from media.errors import MediaError
 from media.models import CleanupIntent, now
 from media.projection_models import ProcessingProjection
 from media.repositories.assets import fingerprint, get_asset
-from media.schemas.peer import Output
+from media.schemas.outputs import Output
 from media.schemas.public import PublicJob
 
 

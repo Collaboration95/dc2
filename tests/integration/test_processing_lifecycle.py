@@ -95,8 +95,8 @@ async def postgres(asset_ids):
 
 @pytest_asyncio.fixture
 async def application(postgres):
+    from legacy.processing_rq.main import create_app
     from processing.config import get_settings
-    from processing.main import create_app
 
     get_settings.cache_clear()
     app = create_app()

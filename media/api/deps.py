@@ -1,8 +1,6 @@
-import secrets
 from typing import Annotated
-from uuid import UUID
 
-from fastapi import Depends, Header, Request
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from media.config import Settings, get_settings
@@ -52,18 +50,3 @@ async def operator_user(user: CurrentUser) -> User:
 
 Operator = Annotated[User, Depends(operator_user)]
 
-
-async def source_owner(
-    settings: Config,
-    authorization: Annotated[str | None, Header()] = None,
-    x_owner_id: Annotated[UUID | None, Header()] = None,
-) -> UUID:
-    expected = settings.source_service_token.get_secret_value()
-    if not expected or not secrets.compare_digest(authorization or "", "Bearer " + expected):
-        raise MediaError(401, "invalid service token")
-    if x_owner_id is None:
-        raise MediaError(401, "owner header required")
-    return x_owner_id
-
-
-SourceOwner = Annotated[UUID, Depends(source_owner)]

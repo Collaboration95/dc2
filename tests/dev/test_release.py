@@ -836,7 +836,7 @@ def test_generated_bad_image_code_imports_but_fails_uvicorn_startup(runner, monk
     generated = json.loads(instruction[4:])[2]
     main = tmp_path / "main.py"
     main.write_text("from __future__ import annotations\napp = 'original-app'\n")
-    exec(generated.replace("/app/processing/main.py", str(main)), {})
+    exec(generated.replace("/app/legacy/processing_rq/main.py", str(main)), {})
     content = compile(main.read_text(), str(main), "exec")
     monkeypatch.setattr(sys, "argv", ["python"])
     globals_ = {}

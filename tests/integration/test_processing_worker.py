@@ -11,9 +11,9 @@ import httpx
 import pytest
 import test_processing_lifecycle as lane
 
+from legacy.media_peer.lifecycle import projection
 from media.config import Settings as MediaSettings
 from media.models import Asset
-from media.services.lifecycle import projection
 from processing import service
 from processing.models import Attempt, Job
 from processing.worker import tasks

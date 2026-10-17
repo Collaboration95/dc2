@@ -1,13 +1,13 @@
-"""Media-owned wire DTOs matching the authored Processing OpenAPI."""
+"""Peer-HTTP wire DTOs matching the retired Processing OpenAPI (legacy local stack only)."""
 
 from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
+from media.schemas.outputs import Digest, Output
+
 PositiveInt = Annotated[int, Field(strict=True, ge=1)]
-NonnegativeInt = Annotated[int, Field(strict=True, ge=0)]
-Digest = Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")]
 
 
 class StrictObject(BaseModel):
@@ -30,14 +30,6 @@ class AttemptResponse(BaseModel):
     started_at: AwareDatetime | None = None
     finished_at: AwareDatetime | None = None
     error: str | None = None
-
-
-class Output(BaseModel):
-    kind: Literal["primary", "hls_manifest"]
-    object_key: str = Field(min_length=1)
-    media_type: str
-    size_bytes: NonnegativeInt | None = None
-    sha256: Digest | None = None
 
 
 class ProcessingJob(BaseModel):

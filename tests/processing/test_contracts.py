@@ -10,10 +10,10 @@ import pytest
 from _processing_doubles import pair
 from pydantic import ValidationError
 
+from legacy.processing_rq.main import create_app
 from processing import lifecycle, service
 from processing.config import Settings, get_settings
 from processing.database import get_session
-from processing.main import create_app
 from processing.schemas import RetryJob, SourceAccess, SubmitJob
 
 CONTRACTS = Path(__file__).resolve().parents[2] / "project-roadmap/design/05-contracts"
@@ -71,7 +71,7 @@ async def test_http_retry_submit_batch_single_cancel_shapes(monkeypatch, submiss
     monkeypatch.setattr(lifecycle, "retry_job", AsyncMock(return_value=response))
     monkeypatch.setattr(lifecycle, "cancel_asset", AsyncMock())
     publish = AsyncMock()
-    monkeypatch.setattr("processing.main.publish", publish)
+    monkeypatch.setattr("legacy.processing_rq.main.publish", publish)
     headers = {"Authorization": "Bearer test-forward", "X-Owner-Id": submission["owner_id"]}
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://test", headers=headers

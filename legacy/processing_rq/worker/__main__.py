@@ -1,12 +1,12 @@
-"""python -m processing.worker [--burst]."""
+"""python -m legacy.processing_rq.worker [--burst]."""
 
 import argparse
 import logging
 import os
 import stat
 
-from processing.config import get_settings
-from processing.queue import get_queue
+from legacy.processing_rq.config import get_settings
+from legacy.processing_rq.queue import get_queue
 
 
 def main():
@@ -19,7 +19,7 @@ def main():
     parser.add_argument("--cloud-warm-fd", type=int, default=None, help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.cloud_deadline is not None:
-        from processing.worker.cloud import run
+        from legacy.processing_rq.worker.cloud import run
 
         if not args.name:
             parser.error("Cloud worker requires a correlated name")
@@ -45,7 +45,7 @@ def main():
     queue = get_queue()
     worker_class = Worker
     if args.cloud_warm_fd is not None:
-        from processing.worker.cloud import finite_worker_class
+        from legacy.processing_rq.worker.cloud import finite_worker_class
 
         worker_class = finite_worker_class(args.cloud_warm_fd)
     kwargs = {"connection": queue.connection}

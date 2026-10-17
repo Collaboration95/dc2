@@ -12,12 +12,12 @@ import pytest
 from fastapi import Request
 
 from contracts.v1 import Actor
+from legacy.media_peer.app import create_app
 from media import authorizer, database
 from media.api import deps
 from media.config import get_settings
 from media.errors import MediaError
 from media.lambda_handler import handler
-from media.main import create_app
 from media.services.security import issue_token
 from media.storage_credentials import LambdaProvider, credential_provider
 

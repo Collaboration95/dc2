@@ -11,9 +11,10 @@ from redis import Redis
 from rq import Queue
 from sqlalchemy import text
 
+from legacy.processing_rq import recovery as rq_recovery
+from legacy.processing_rq.queue import enqueue_attempt
 from processing import lifecycle, recovery, service
 from processing.models import Attempt, CleanupIntent
-from processing.queue import enqueue_attempt
 from processing.worker import supervisor as supervision
 
 asset_ids = lane.asset_ids
@@ -58,12 +59,12 @@ async def test_lost_queue_list_entry_with_surviving_rq_hash(factory, submission,
     redis_queue.connection.lrem(redis_queue.key, 0, identifier)
     assert redis_queue.connection.exists("rq:job:" + identifier)
     started = time.monotonic()
-    assert await recovery.repair_queued(factory, settings(), queue=redis_queue) == 1
+    assert await rq_recovery.repair_queued(factory, settings(), queue=redis_queue) == 1
     assert time.monotonic() - started < 2
     assert redis_queue.get_job_ids() == [identifier]
     payload = redis_queue.fetch_job(identifier)
     assert payload.args == (str(job.job_id), identifier)
-    assert await recovery.repair_queued(factory, settings(), queue=redis_queue) == 0
+    assert await rq_recovery.repair_queued(factory, settings(), queue=redis_queue) == 0
     async with factory() as session:
         attempt = await session.get(Attempt, job.current_attempt.attempt_id)
         assert attempt.dispatch_count == 1 and attempt.dispatch_error is None
@@ -77,7 +78,7 @@ async def test_queue_failure_has_durable_bounded_backoff(factory, submission):
 
     broken = Mock()
     broken.connection.lock.side_effect = OSError("redacted")
-    assert await recovery.repair_queued(factory, settings(), queue=broken) == 0
+    assert await rq_recovery.repair_queued(factory, settings(), queue=broken) == 0
     async with factory() as session:
         attempt = await session.get(Attempt, job.current_attempt.attempt_id)
         assert (

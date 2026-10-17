@@ -1,12 +1,11 @@
 import os
 from contextlib import asynccontextmanager
-from functools import cache
 
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 
-from media.api import auth, uploads
+from media.api import auth, uploads, v1_hls, v1_jobs
 from media.errors import MediaError
 
 
@@ -19,13 +18,10 @@ async def lifespan(app):
         if engine is not None:
             await engine.dispose()
             app.state.engine = None
-        client = getattr(app.state, "http_client", None)
-        if client is not None:
-            await client.aclose()
-            app.state.http_client = None
 
 
-def create_app(*, v1: bool = False):
+def build_app(routers, *, lifespan=lifespan):
+    """Shared shell: error mapping and /health. The router set decides which API this is."""
     app = FastAPI(title="FlickPond Media Management", version="1.0.0", lifespan=lifespan)
 
     @app.exception_handler(MediaError)
@@ -48,51 +44,16 @@ def create_app(*, v1: bool = False):
             }
         return {"status": "ok"}
 
-    if v1:
-        from media.api import v1_hls, v1_jobs
-
-        # Reuse the direct-intake endpoints and their authored response metadata.
-        # The deprecated multipart route carries a Peer dependency and stays out.
-        reservations = APIRouter()
-        reservations.routes.extend(
-            route
-            for route in uploads.router.routes
-            if route.endpoint in (uploads.reserve_upload, uploads.finalize_upload)
-        )
-        routers = (auth.router, reservations, v1_jobs.router, v1_jobs.admin_router, v1_hls.router)
-    else:
-        from media.api import hls, jobs, source_access
-
-        routers = (
-            auth.router,
-            uploads.router,
-            jobs.router,
-            jobs.admin_router,
-            hls.router,
-            source_access.router,
-        )
     for router in routers:
         app.include_router(router)
     return app
 
 
 def create_v1_app():
-    return create_app(v1=True)
+    """Projections and durable commands only: Media never calls Processing."""
+    return build_app(
+        (auth.router, uploads.router, v1_jobs.router, v1_jobs.admin_router, v1_hls.router)
+    )
 
 
-# The default entry is the V1 app: projections and durable commands, no Processing
-# HTTP peer. The inherited peer-calling app is built only when its isolated legacy
-# stack asks for it (``media.main:legacy_app``), so importing this module never
-# wires the Peer routes into a V1 process.
 app = create_v1_app()
-
-
-@cache
-def _legacy_app():
-    return create_app()
-
-
-def __getattr__(name):
-    if name == "legacy_app":
-        return _legacy_app()
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -9,15 +9,16 @@ import pytest
 from fastapi import Request
 from sqlalchemy.exc import SQLAlchemyError
 
-from media.api import auth, deps, hls, jobs, uploads
+from legacy.media_peer import hls, jobs, lifecycle
+from legacy.media_peer import uploads as multipart
+from legacy.media_peer.app import create_app
+from legacy.media_peer.processing_client import get_processing_client
+from media.api import auth, deps
 from media.config import get_settings
 from media.database import get_session
 from media.errors import MediaError
-from media.main import create_app
 from media.models import StagedObject, now
 from media.schemas.public import PublicJob
-from media.services import lifecycle
-from media.services.processing_client import get_processing_client
 from media.services.security import issue_token
 from media.services.storage import get_storage
 
@@ -41,7 +42,7 @@ async def test_public_upload_retry_edit_list_and_read_routes(
     application, monkeypatch, asset, user, job, storage
 ):
     uploaded = AsyncMock(return_value=asset)
-    monkeypatch.setattr(uploads.intake, "upload", uploaded)
+    monkeypatch.setattr(multipart.intake, "upload", uploaded)
     monkeypatch.setattr(lifecycle, "dispatch", AsyncMock())
     monkeypatch.setattr(lifecycle, "reserve_retry", AsyncMock(return_value=uuid4()))
     monkeypatch.setattr(lifecycle, "dispatch_retry", AsyncMock(return_value=asset.id))
@@ -195,7 +196,7 @@ async def test_source_internal_auth_and_grant_contract(
 async def test_hls_route_ownership_paths_playlist_and_segments(
     application, session, asset, job, storage, monkeypatch
 ):
-    from media.schemas.peer import Output
+    from legacy.media_peer.schemas import Output
 
     session.scalar.return_value = asset
     monkeypatch.setattr(hls, "live_job", AsyncMock(return_value=job))
@@ -269,7 +270,7 @@ async def test_database_dependency_allocates_app_local_pool_without_connecting(s
 async def test_reconcile_due_intents_and_orphan_grace(
     session, settings, peer, storage, monkeypatch, uncertain
 ):
-    from media import recovery
+    from legacy.media_peer import recovery
 
     ids = [uuid4() for _ in range(3)]
     stamp = now() - timedelta(hours=2)
@@ -300,7 +301,7 @@ async def test_reconcile_due_intents_and_orphan_grace(
 async def test_reconcile_intent_error_is_bounded_and_orphan_failure_retained(
     session, settings, peer, storage, monkeypatch, error
 ):
-    from media import recovery
+    from legacy.media_peer import recovery
 
     session.scalars.side_effect = [[uuid4()], [], [], [StagedObject(key="retained")]]
 
@@ -316,7 +317,7 @@ async def test_reconcile_intent_error_is_bounded_and_orphan_failure_retained(
 
 
 async def test_recovery_once_is_explicit_and_resources_close(monkeypatch, settings):
-    from media import recovery
+    from legacy.media_peer import recovery
 
     engine = SimpleNamespace(dispose=AsyncMock())
     monkeypatch.setattr(recovery, "get_settings", lambda: settings)

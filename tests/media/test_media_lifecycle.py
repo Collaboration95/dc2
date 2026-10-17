@@ -4,11 +4,12 @@ from uuid import uuid4
 
 import pytest
 
-from media.errors import MediaError, PeerError
+from legacy.media_peer import lifecycle
+from legacy.media_peer.errors import PeerError
+from legacy.media_peer.schemas import Output
+from media.errors import MediaError
 from media.models import CleanupIntent, RetryIntent, StagedObject, now
 from media.schemas.edit import EditRequest
-from media.schemas.peer import Output
-from media.services import lifecycle
 
 
 @pytest.mark.parametrize("failure", [None, 503, 409, 410, "storage"])

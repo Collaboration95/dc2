@@ -6,8 +6,8 @@ import fakeredis
 from rq import Queue
 from rq.registry import StartedJobRegistry
 
-from processing import queue
-from processing.config import Settings
+from legacy.processing_rq import queue
+from legacy.processing_rq.config import LegacySettings as Settings
 
 
 def cfg(redis="redis://unused"):

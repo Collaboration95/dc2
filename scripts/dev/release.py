@@ -538,7 +538,8 @@ asyncio.run(main())
         code = (
             "import importlib,shutil; "
             "[importlib.import_module(x) for x in "
-            "('processing.main','processing.worker','processing.recovery')]; "
+            "('legacy.processing_rq.main','legacy.processing_rq.worker',"
+            "'legacy.processing_rq.recovery')]; "
             "assert shutil.which('ffmpeg') and shutil.which('ffprobe')"
         )
         self.command(
@@ -605,7 +606,7 @@ asyncio.run(main())
                     [
                         "python",
                         "-c",
-                        "from pathlib import Path; p=Path('/app/processing/main.py'); "
+                        "from pathlib import Path; p=Path('/app/legacy/processing_rq/main.py'); "
                         f"p.write_text(p.read_text()+'\\n'+{injection!r})",
                     ]
                 )

@@ -6,11 +6,11 @@ from uuid import UUID
 from fastapi import APIRouter
 from fastapi.responses import RedirectResponse, Response
 
+from legacy.media_peer.lifecycle import live_job
+from legacy.media_peer.processing_client import Peer
 from media.api.deps import CurrentUser, Session
 from media.errors import MediaError
 from media.repositories.assets import get_asset
-from media.services.lifecycle import live_job
-from media.services.processing_client import Peer
 from media.services.storage import Store
 
 router = APIRouter(prefix="/jobs", tags=["hls"])

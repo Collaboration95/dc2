@@ -193,7 +193,7 @@ def run(args):
             "python",
             media_image,
             "-c",
-            "import media.main,media.recovery",
+            "import legacy.media_peer.app,legacy.media_peer.recovery",
         ]
     )
     db = cache / "db/trivy.db"
@@ -305,7 +305,7 @@ def redis_loss(scenario, source):
         assert all(j["current_attempt"]["state"] == "queued" for j in before)
         # This Redis instance/database belongs only to the experiment namespace.
         code = (
-            "from processing.queue import get_queue; q=get_queue(); "
+            "from legacy.processing_rq.queue import get_queue; q=get_queue(); "
             "q.connection.flushdb(); assert q.connection.dbsize()==0; print('flushed')"
         )
         assert (
@@ -317,7 +317,7 @@ def redis_loss(scenario, source):
         started = time.monotonic()
         guard.start("processing-recovery")
         probe = (
-            "import json; from processing.queue import get_queue; q=get_queue(); "
+            "import json; from legacy.processing_rq.queue import get_queue; q=get_queue(); "
             "print(json.dumps(q.get_job_ids()))"
         )
         while time.monotonic() - started < 120:

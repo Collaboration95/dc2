@@ -6,6 +6,11 @@ an explicit extra). No Mangum is needed: the owning handlers use GatewayAdapter.
 The `.requirements.in` files describe inputs; `uv.lock` supplies versions/hashes.
 `contracts`, `delivery` and `runtime_support` must be integrated before building.
 
+The retired peer-HTTP Media client, the Redis/RQ Processing worker and their settings live
+in the top-level `legacy/` package, which no V1 recipe copies. `check_runtime.py` fails the
+build if `legacy` or any of its former `media`/`processing` module paths is importable in an
+image, so the two services' only coupling in V1 is SQS plus the outbox/inbox.
+
 The coordinator supplies the verified RDS bundle at `deploy/v1/global-bundle.pem`.
 It is copied to `/opt/rds/global-bundle.pem`. No substitute bundle is generated.
 The current recipes use the same pinned Python base as the reviewed AWS2 images;

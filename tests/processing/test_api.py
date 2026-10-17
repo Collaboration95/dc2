@@ -5,9 +5,9 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.exc import OperationalError
 
+from legacy.processing_rq.main import create_app
 from processing.config import Settings, get_settings
 from processing.database import get_session
-from processing.main import create_app
 
 
 @pytest.fixture
