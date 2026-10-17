@@ -186,3 +186,5 @@ def test_a_dry_run_plans_the_upload_and_the_invalidation_without_a_network_check
     frontend = plan[plan.index("## frontend"):plan.index("## db-bootstrap")]
     assert "s3api put-object" in frontend and "cloudfront create-invalidation" in frontend
     assert "--body" in frontend and "no-cache" in frontend
+
+# Controlled CI selection sample for #165; no test behavior changes.
