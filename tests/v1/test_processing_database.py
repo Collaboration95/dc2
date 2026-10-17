@@ -21,6 +21,11 @@ def test_database_tls_verifies_chain_and_hostname_by_default():
     assert args["timeout"] == 10
 
 
+def test_pooled_sessions_end_when_idle_so_aurora_can_still_auto_pause():
+    args = database.v1_connect_args(settings())
+    assert int(args["server_settings"]["idle_session_timeout"]) < 300_000
+
+
 def test_invalid_ca_never_downgrades_tls():
     with pytest.raises(FileNotFoundError):
         database.v1_connect_args(settings(database_ca_file="/missing/rds-ca.pem"))

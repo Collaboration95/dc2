@@ -39,7 +39,11 @@ def v1_connect_args(settings: Settings) -> dict:
         if settings.database_tls
         else False
     )
-    return {"ssl": context, "timeout": settings.database_connect_timeout_seconds}
+    return {
+        "ssl": context,
+        "timeout": settings.database_connect_timeout_seconds,
+        "server_settings": lambda_db.SERVER_SETTINGS,
+    }
 
 
 def v1_engine_options(settings: Settings) -> dict:

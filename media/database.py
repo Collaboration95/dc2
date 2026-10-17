@@ -28,7 +28,11 @@ def engine_options(settings: Settings, *, invocation: bool = False) -> dict:
         options.update(
             **lambda_db.POOL_OPTIONS,
             pool_recycle=lambda_db.POOL_RECYCLE_SECONDS,
-            connect_args={"ssl": tls, "timeout": 10},
+            connect_args={
+                "ssl": tls,
+                "timeout": 10,
+                "server_settings": lambda_db.SERVER_SETTINGS,
+            },
         )
     return options
 

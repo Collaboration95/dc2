@@ -22,6 +22,10 @@ POOL_OPTIONS = {"pool_size": 1, "max_overflow": 0, "pool_timeout": 10}
 # Recycle before idle NAT/ENI tracking (350 s on NAT gateway) can silently drop a
 # connection that sat frozen between invocations. Pre-ping still catches the rest.
 POOL_RECYCLE_SECONDS = 240
+# Aurora Serverless v2 only auto-pauses (300 s default) with zero user connections, and a
+# frozen warm environment would otherwise hold its pooled one open indefinitely. The server
+# ends sessions idle this long; pre-ping then reconnects on the next invocation.
+SERVER_SETTINGS = {"idle_session_timeout": "60000"}
 
 _loop: asyncio.AbstractEventLoop | None = None
 # scope -> (dsn, loop, engine)
