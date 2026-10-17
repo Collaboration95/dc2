@@ -101,7 +101,7 @@ def parse_ids(asset_ids: Annotated[str, Query()]) -> list[UUID]:
 def create_app() -> FastAPI:
     app = FastAPI(
         title="FlickPond Processing V1 API",
-        version="1.0.0",
+        version="1.0.1",
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
