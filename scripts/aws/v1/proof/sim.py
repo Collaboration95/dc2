@@ -726,6 +726,7 @@ class SimWorld:
     def generator_lines(self):
         """Run the real generator against a latency model on its own virtual clock."""
         clock, world = VirtualClock(), self
+        seen = {}
 
         def request(user, method, path, cookie=None, body=None):
             base = 40 if "health" not in path else 20
@@ -738,7 +739,9 @@ class SimWorld:
             status = 201 if path.endswith("register") else 200
             if "errors" in world.faults and crc(user, int(clock.t)) % 20 == 0:
                 status = 500
-            if "throttled" in world.faults and crc(user, int(clock.t)) % 20 == 0:
+            seen[path] = seen.get(path, 0) + 1
+            # every 10th call per path, not a hash of the random user: 20 logins always see two
+            if "throttled" in world.faults and seen[path] % 10 == 0:
                 status = 429  # the Gateway's own throttle, not the application
             return status, ms, cookies, b""
 

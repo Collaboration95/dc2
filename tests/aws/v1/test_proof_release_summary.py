@@ -424,7 +424,7 @@ def test_a_live_run_with_the_default_profile_is_refused_before_any_call(tmp_path
 def test_rehearse_runs_every_harness_offline_and_fails_nothing(tmp_path):
     code, out = cli("rehearse")
     report = json.loads(out)
-    assert code == 0 and report["mode"] == "simulated"
+    assert code == 0 and report["mode"] == "simulated", out
     assert set(report["harnesses"]) == {
         "gateway", "capacity", "latency", "spend", "release", "short-encode", "db-topology"}
     # No SQL station is simulated: the release harness reads schemas through the in-VPC task.
