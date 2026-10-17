@@ -12,7 +12,8 @@
 Every harness writes a private JSON receipt (mode 0600) under `<state-dir>/evidence/`, skips a
 step that already passed, refuses to start while the session journal says closed, and under
 `--dry-run` runs against a simulated account whose receipts are marked SIMULATED and can never
-be summarized. Run with the profile `dc2-project2-mfa` and the same `--state-dir` the deploy used.
+be summarized. Run with the profile the deploy used (`dc2-project2-mfa`, or `dc2-agent` for the
+dedicated agent IAM user) and the same `--state-dir`.
 Exit code: 1 if a step run just now failed, else 0 (read `overall` for the full verdict).
 """
 
@@ -34,7 +35,8 @@ SESSION = {"gateway": "open", "capacity": "open", "release": "window", "latency"
 
 
 def scope_arguments(parser):
-    parser.add_argument("--profile", required=True, help="e.g. dc2-project2-mfa; never default")
+    parser.add_argument("--profile", required=True,
+                        help="e.g. dc2-agent or dc2-project2-mfa; never default")
     parser.add_argument("--region", required=True)
     parser.add_argument("--account", required=True)
     parser.add_argument("--state-dir", type=Path, help="the deploy's private state directory")

@@ -71,8 +71,25 @@ device now exists (section 1).
   profile `dc2-project2-mfa` (36 hour token). Preflight refuses a long-term key and tells the
   operator to run it.
 - The policy is deliberately **not** bypassed or edited, and no service role is used to dodge
-  it. Having a device is necessary, not sufficient: **execution still requires the user to
-  mint the MFA session**; an agent cannot.
+  it. Having a device is necessary, not sufficient: **for `Guruprasath`, execution still requires
+  the user to mint the MFA session**; an agent cannot. The dedicated principal in section 2a is
+  the user-authorized alternative.
+
+### 2a. Dedicated agent principal (authorized 2026-10-17)
+
+On 2026-10-17 the user authorized the dedicated IAM user `flickpond-agent` for the cloud proof,
+through local profile `dc2-agent` (long-term keys held only in the user's local AWS
+configuration; no key id or secret appears in this repository). The user verified that it has
+`AdministratorAccess` and `FlickPondRegionLock` attached directly, belongs to group
+`flickpond-agents` (`PowerUserAccess`), is not subject to `FlickPondRequireMFA` and has no MFA
+device. The MFA-session path above remains the route for `Guruprasath`.
+
+The deploy pipeline distinguishes the two principals with `iam simulate-principal-policy`
+(`s3:CreateBucket`, `cloudformation:CreateStack`; `aws:MultiFactorAuthPresent=false`,
+`aws:ViaAWSService=false`, `aws:RequestedRegion=ap-southeast-1`): for `Guruprasath` both actions
+are `explicitDeny`, for `flickpond-agent` both are `allowed`. A long-term key is accepted only
+when every decision is `allowed`; a denied or failed simulation keeps the refusal. The policy
+itself is not edited or bypassed, and the `default` profile stays refused.
 
 ## 3. Envelope and limits (USD)
 
@@ -133,7 +150,8 @@ exactly this scope, and nothing wider:
   (untouched), account-wide billing or security changes (including the IAM policies above), and
   quota-increase requests.
 
-Execution still requires the user to mint an MFA session. Until a real run produces real
+Execution requires either an MFA session minted by the user (`Guruprasath`) or the authorized
+`dc2-agent` profile (section 2a). Until a real run produces real
 receipts, #63-#67 stay open and Blocked; a simulated or local run is not an AWS PASS.
 
 ## 5. Ownership

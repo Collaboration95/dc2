@@ -281,7 +281,8 @@ def main(argv=None, *, environ=None, verified_client=None):
     parser.add_argument("--per-second", type=int, default=5)
     parser.add_argument("--endpoint-url")
     parser.add_argument("--source-queue-url")
-    parser.add_argument("--profile", help="real AWS only: explicit profile, never 'default'")
+    parser.add_argument(
+        "--profile", help="real AWS only: explicit profile (e.g. dc2-agent), never 'default'")
     parser.add_argument("--region", help=f"real AWS only: {EXPECTED_REGION}")
     parser.add_argument(
         "--account", help="real AWS only: 12-digit account STS must report "

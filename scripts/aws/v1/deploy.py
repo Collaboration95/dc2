@@ -106,6 +106,22 @@ ACU_HOUR, FARGATE_VCPU_HOUR, FARGATE_GIB_HOUR, IPV4_HOUR = 0.20, 0.05056, 0.0055
 RETAINED_MONTH_USD = 0.40 + 0.15 + 0.11 + 0.10
 
 
+# What FlickPondRequireMFA keys on, asked of the policy simulator with MFA absent: one action
+# CloudFormation makes for the caller (s3:CreateBucket killed the 2026-10-15 bootstrap) and one
+# direct call. A principal the deny does not cover is allowed both; one it covers is explicitly
+# denied both.
+MFA_PROBE_ACTIONS = ["s3:CreateBucket", "cloudformation:CreateStack"]
+MFA_PROBE_CONTEXT = [
+    {"ContextKeyName": "aws:MultiFactorAuthPresent", "ContextKeyValues": ["false"],
+     "ContextKeyType": "boolean"},
+    {"ContextKeyName": "aws:ViaAWSService", "ContextKeyValues": ["false"],
+     "ContextKeyType": "boolean"},
+    {"ContextKeyName": "aws:RequestedRegion", "ContextKeyValues": [REGION],
+     "ContextKeyType": "string"},
+]
+IAM_USER_ARN = re.compile(r"arn:aws:iam::[0-9]{12}:user/(?:.*/)?([^/]+)")
+
+
 class DeployError(OperationError):
     """Safe-to-print failure. Never carries a payload, DSN, credential or raw stderr."""
 
@@ -123,7 +139,8 @@ class AwsError(DeployError):
 # --------------------------------------------------------------------------- transport
 ALLOWED = {
     "sts": {"get-caller-identity"},
-    "iam": {"list-mfa-devices"},
+    # simulate-principal-policy only evaluates policy text; it changes nothing in the account.
+    "iam": {"list-mfa-devices", "simulate-principal-policy"},
     "lambda": {"get-account-settings"},
     "service-quotas": {"get-service-quota"},
     "budgets": {"describe-budgets"},
@@ -162,7 +179,7 @@ ALLOWED = {
     "cloudwatch": {"get-metric-statistics"},
     "apigatewayv2": {"get-stage"},
 }
-READ_PREFIXES = ("describe", "get", "list", "head")
+READ_PREFIXES = ("describe", "get", "list", "head", "simulate-principal-policy")
 SENSITIVE_RESULT = {("secretsmanager", "get-secret-value"), ("ecr", "get-authorization-token")}
 
 
@@ -454,6 +471,7 @@ class Pipeline:
         self.stderr = stderr or sys.stderr
         self.today = today or (lambda: dt.datetime.now(dt.UTC).date())
         self.plan, self.step = [], "init"
+        self.mfa_answers = {}  # principal ARN -> mfa_required() answer, simulated once per run
         self.deferred, self.journal_held, self.receipt = [], False, None
         self.simulated = bool(getattr(aws, "simulated", False))
         # A simulation has no credentials to classify; it answers like an MFA session.
@@ -626,14 +644,22 @@ class Pipeline:
             raise DeployError("STS account differs from --account; no further calls")
         arn = identity.get("Arn", "")
         record("identity", "pass", arn=arn, simulated=self.simulated)
-        self._credentials(record)
-        user = re.fullmatch(r"arn:aws:iam::[0-9]{12}:user/(?:.*/)?([^/]+)", arn)
+        self._credentials(record, arn)
+        user = IAM_USER_ARN.fullmatch(arn)
         if user:
             devices = self.aws("iam", "list-mfa-devices", {"UserName": user.group(1)},
                                tolerate=("AccessDenied", "AccessDeniedException"))
             if devices is not None and not devices.get("MFADevices"):
-                record("mfa", "blocker", detail="no MFA device: FlickPondRequireMFA denied "
-                       "s3:CreateBucket on 2026-10-15; use a profile that carries an MFA session")
+                # No device is only a problem for a principal the MFA deny applies to.
+                required = self.mfa_required(arn)
+                if required is False:
+                    record("mfa", "pass", detail="no MFA device, and the principal is not "
+                           "subject to an MFA deny (simulated)")
+                else:
+                    record("mfa", "blocker", detail="no MFA device: FlickPondRequireMFA denied "
+                           "s3:CreateBucket on 2026-10-15; use a profile that carries an MFA "
+                           "session" + ("" if required else " (whether a deny applies could not "
+                                        "be simulated, so it is assumed to)"))
             else:
                 record("mfa", "pass" if devices else "warn")
         else:
@@ -700,10 +726,42 @@ class Pipeline:
             raise DeployError("Preflight blockers: " + ", ".join(blockers))
         return {"checks": checks}
 
-    def _credentials(self, record):
+    def mfa_required(self, principal_arn):
+        """True if an MFA deny applies to the IAM user, False if not, None if unknown.
+
+        Asks the policy simulator what the principal may do with no MFA in the request, through
+        the same transport as every other call. Anything but a clear answer is None, which every
+        caller treats as 'required': AccessDenied, an error, a non-user ARN, no results, or a
+        mix of allowed and implicitDeny that no MFA condition explains.
+        """
+        if principal_arn in self.mfa_answers:
+            return self.mfa_answers[principal_arn]
+        answer = None
+        if IAM_USER_ARN.fullmatch(principal_arn or ""):
+            try:
+                result = self.aws("iam", "simulate-principal-policy", {
+                    "PolicySourceArn": principal_arn, "ActionNames": MFA_PROBE_ACTIONS,
+                    "ContextEntries": MFA_PROBE_CONTEXT})
+            except AwsError:
+                result = None
+            decisions = [r.get("EvalDecision") for r in (result or {}).get("EvaluationResults", [])
+                         if isinstance(r, dict)]
+            if "explicitDeny" in decisions:
+                answer = True
+            elif decisions and all(d == "allowed" for d in decisions):
+                answer = False
+        self.mfa_answers[principal_arn] = answer
+        return answer
+
+    def _mfa_answer_for(self, info, principal_arn):
+        """The simulation matters only to a long-term key; sessions keep their own rules."""
+        return self.mfa_required(principal_arn) if info["kind"] == "long-term" else None
+
+    def _credentials(self, record, principal_arn):
         """Long-term keys pass STS but fail every call CloudFormation makes for them."""
         info = self.credential_probe(self.s.profile)
-        status, detail = credentials.assess(self.s.profile, info)
+        status, detail = credentials.assess(
+            self.s.profile, info, self._mfa_answer_for(info, principal_arn))
         record("credentials", status, kind=info["kind"], expires_at=info["expires_at"],
                simulated=self.simulated, **({"detail": detail} if detail else {}))
 
@@ -1954,8 +2012,12 @@ class Pipeline:
             raise DeployError("Destructive teardown needs --confirm-run-id equal to --run-id")
         if self.s.execute:  # deleting the stack is CloudFormation-driven too
             try:
+                info = self.credential_probe(self.s.profile)
+                arn = None
+                if info["kind"] == "long-term":  # only then does the simulation matter
+                    arn = self.aws("sts", "get-caller-identity").get("Arn", "")
                 credentials.require_mfa_session(
-                    self.s.profile, self.credential_probe(self.s.profile))
+                    self.s.profile, info, mfa_required=self._mfa_answer_for(info, arn))
             except OperationError as error:
                 raise DeployError(str(error)) from None
         actions = {
@@ -2055,7 +2117,8 @@ def build_parser():
     p = argparse.ArgumentParser(prog="scripts.aws.v1.deploy", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("action", choices=["deploy", "teardown", "rehearse", "status"])
-    p.add_argument("--profile", required=True, help="explicit AWS profile; never 'default'")
+    p.add_argument("--profile", required=True,
+                   help="explicit AWS profile, e.g. dc2-agent or dc2-project2-mfa; never 'default'")
     p.add_argument("--region", required=True, help="must be " + REGION)
     p.add_argument("--account", required=True, help="12-digit account; STS must agree")
     p.add_argument("--run-id", required=True, help="2-16 lowercase alphanumerics")
