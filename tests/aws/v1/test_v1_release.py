@@ -679,11 +679,57 @@ def test_abandon_refuses_while_the_migration_task_is_still_running(setup):
     refused(setup, "not stopped", mutate=mutate)
 
 
-def test_abandon_refuses_a_migration_task_the_cluster_no_longer_knows(setup):
-    def mutate(aws, journal):
-        aws.tasks.clear()
+def test_abandon_accepts_a_migration_task_absent_from_running_and_missing_from_describe(setup):
+    config, aws, journal, options = failed_migration(setup)
+    aws.tasks.clear()
+    result = abandon(config, aws, journal, **abandon_args(options))
+    assert result["status"] == "abandoned"
+    with journal.locked() as state:
+        assert state["abandoned_releases"][-1]["migration_settled_by"] == "absent-from-running"
 
-    refused(setup, "unresolved identities", mutate=mutate)
+
+def test_abandon_refuses_a_forgotten_task_that_is_still_listed_as_running(setup):
+    config, aws, journal, options = failed_migration(setup)
+    arn = pending_of(journal)["migration_task"]
+    real_call = aws.call
+
+    def call(service, op, payload, **kwargs):
+        if op == "list-tasks" and payload.get("desiredStatus") == "RUNNING":
+            return {"taskArns": [arn]}
+        if op == "describe-tasks":
+            return {"tasks": [], "failures": [{"arn": arn, "reason": "MISSING"}]}
+        return real_call(service, op, payload, **kwargs)
+
+    aws.call = call
+    with pytest.raises(OperationError, match="unresolved identities"):
+        abandon(config, aws, journal, **abandon_args(options))
+    assert pending_of(journal) is not None
+
+
+def test_abandon_refuses_a_task_that_describe_fails_for_a_reason_other_than_missing(setup):
+    config, aws, journal, options = failed_migration(setup)
+    arn = pending_of(journal)["migration_task"]
+    real_call = aws.call
+
+    def call(service, op, payload, **kwargs):
+        if op == "describe-tasks":
+            return {"tasks": [], "failures": [{"arn": arn, "reason": "ACCESS_DENIED"}]}
+        return real_call(service, op, payload, **kwargs)
+
+    aws.call = call
+    with pytest.raises(OperationError, match="unresolved identities"):
+        abandon(config, aws, journal, **abandon_args(options))
+
+
+def test_abandon_still_refuses_a_lost_runtask_inside_its_replay_window_when_ecs_lists_nothing(
+        setup):
+    config, aws, journal, options = failed_migration(setup)
+    lost_launch(aws, journal)
+    aws.tasks.clear()
+    edit_intent(journal, migration_replay_before_epoch=time.time() + 3600)
+    with pytest.raises(OperationError, match="launch unresolved"):
+        abandon(config, aws, journal, **abandon_args(options))
+    assert pending_of(journal) is not None
 
 
 def test_abandon_refuses_a_migration_task_of_another_definition(setup):

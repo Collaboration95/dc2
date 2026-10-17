@@ -167,7 +167,7 @@ async def test_authorizer_does_not_reuse_positive_decisions(settings, user, monk
 
 
 @pytest.mark.parametrize("fail", [False, True])
-async def test_invocation_sql_closes_session_and_disposes_engine(settings, monkeypatch, fail):
+async def test_invocation_sql_closes_session_but_keeps_the_warm_engine(settings, monkeypatch, fail):
     events = []
     engine = SimpleNamespace(dispose=AsyncMock(side_effect=lambda: events.append("dispose")))
 
@@ -188,12 +188,10 @@ async def test_invocation_sql_closes_session_and_disposes_engine(settings, monke
                 raise RuntimeError("route failed")
     except RuntimeError:
         assert fail
-    assert events == ["close", "dispose"]
+    assert events == ["close"]  # the pooled engine outlives the invocation (#66)
 
 
-def test_lambda_sql_requires_verified_tls_and_null_pool(settings, monkeypatch):
-    from sqlalchemy.pool import NullPool
-
+def test_lambda_sql_requires_verified_tls_and_a_single_connection_pool(settings, monkeypatch):
     with pytest.raises(ValueError, match="trusted PostgreSQL CA"):
         database.engine_options(
             settings.model_copy(update={"postgres_ssl_ca": None}), invocation=True
@@ -206,7 +204,9 @@ def test_lambda_sql_requires_verified_tls_and_null_pool(settings, monkeypatch):
     options = database.engine_options(
         settings.model_copy(update={"postgres_ssl_ca": "rds-ca.pem"}), invocation=True
     )
-    assert options["poolclass"] is NullPool
+    assert "poolclass" not in options
+    assert (options["pool_size"], options["max_overflow"]) == (1, 0)
+    assert options["pool_pre_ping"] and 0 < options["pool_recycle"] < 300
     assert seen == [{"cafile": "rds-ca.pem"}]
     assert options["connect_args"]["ssl"].check_hostname
     assert options["connect_args"]["ssl"].verify_mode == ssl.CERT_REQUIRED
