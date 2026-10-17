@@ -70,6 +70,13 @@ class Context:
         return self.clock() + seconds
 
 
+# The operator transport gives Lambda calls a 70 s network allowance (connect 5 + read 65, see
+# operations.py) and refuses to start one with less budget left, so a Lambda call's deadline must
+# exceed that. 60 s, right for the quick services, made the first live isolation run fail with
+# "Insufficient request deadline" before it sent anything (r1018b).
+LAMBDA_CALL_SECONDS = 90
+
+
 def check_scope(profile, region, account):
     if (not profile or profile == "default" or not operations.PROFILE_PATTERN.fullmatch(profile)
             or region != REGION or not re.fullmatch(r"[0-9]{12}", account or "")):
