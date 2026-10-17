@@ -46,6 +46,8 @@ jobs:
       legacy_integration: ${{ steps.policy.outputs.legacy_integration }}
       processing_intake: ${{ steps.policy.outputs.processing_intake }}
       media_integration: ${{ steps.policy.outputs.media_integration }}
+      media_service: ${{ steps.policy.outputs.media_service }}
+      processing_service: ${{ steps.policy.outputs.processing_service }}
       publisher_https: ${{ steps.policy.outputs.publisher_https }}
       browser_trust: ${{ steps.policy.outputs.browser_trust }}
       v1_offline: ${{ steps.policy.outputs.v1_offline }}
@@ -166,7 +168,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    needs: [classify, policy-checks, planning, lint-and-unit, frontend, legacy-integration, processing-intake, media-integration, publisher-https, browser-trust, v1-local]
+    needs: [classify, policy-checks, planning, lint-and-unit, frontend, legacy-integration, processing-intake, media-integration, media-service, processing-service, publisher-https, browser-trust, v1-local, secret-scan]
     steps:
       - uses: actions/checkout@v4
       - name: Require every selected dev check; validate intentional skips
@@ -376,6 +378,83 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.processing.yml down -v
 
+  # Per-service lanes (#199). Each owner's tests, then only that owner's V1 image(s) built and
+  # verified, then deploy/v1/check_runtime.py run in the built image. Selected by owner paths in
+  # scripts/ci/policy.py (SERVICE_INPUTS); contracts, delivery, runtime_support and the shared
+  # build tooling select both. The all-three build in v1-local stays: it proves the images are
+  # also isolated from each other.
+  media-service:
+    needs: classify
+    if: needs.classify.outputs.media_service == 'true'
+    name: Media service (tests, image, runtime check)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.17'
+          enable-cache: true
+          cache-local-path: .cache/uv
+          cache-dependency-glob: uv.lock
+      - run: uv sync --locked --extra legacy --extra dev
+      - run: make test-media
+      - name: Build and verify only Media's V1 image
+        run: python3 deploy/v1/build_and_verify.py --only media --out "$RUNNER_TEMP/media-image.json"
+      - name: Run check_runtime in the built image
+        run: |
+          tag="dc2-v1-media:local-$(git rev-parse HEAD | cut -c1-12)"
+          docker run --rm --entrypoint python "$tag" /opt/check_runtime.py lambda-api media
+      - name: Retain the image receipt (config ID, checks; no secrets)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: media-service-image-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/media-image.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  processing-service:
+    needs: classify
+    if: needs.classify.outputs.processing_service == 'true'
+    name: Processing service (tests, images, runtime check)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.17'
+          enable-cache: true
+          cache-local-path: .cache/uv
+          cache-dependency-glob: uv.lock
+      - run: uv sync --locked --extra legacy --extra dev
+      - run: make test-processing test-media-engine
+      # The API image and the finite worker image are both Processing's release unit.
+      - name: Build and verify only Processing's V1 images
+        run: >-
+          python3 deploy/v1/build_and_verify.py --only processing --only worker
+          --out "$RUNNER_TEMP/processing-images.json"
+      - name: Run check_runtime in the built images
+        run: |
+          short="$(git rev-parse HEAD | cut -c1-12)"
+          docker run --rm --entrypoint python "dc2-v1-processing:local-$short" /opt/check_runtime.py lambda-api processing
+          docker run --rm --entrypoint python "dc2-v1-worker:local-$short" /opt/check_runtime.py finite-worker worker
+      - name: Retain the image receipt (config IDs, checks; no secrets)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: processing-service-images-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/processing-images.json
+          if-no-files-found: warn
+          retention-days: 14
+
   publisher-https:
     needs: classify
     if: needs.classify.outputs.publisher_https == 'true'
@@ -584,7 +663,7 @@ jobs:
     if: always() && (needs.classify.result != 'success' || needs.classify.outputs.mode == 'full')
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    needs: [classify, policy-checks, planning, lint-and-unit, frontend, legacy-integration, processing-intake, media-integration, publisher-https, browser-trust, v1-local, coverage-gate, security, dast]
+    needs: [classify, policy-checks, planning, lint-and-unit, frontend, legacy-integration, processing-intake, media-integration, media-service, processing-service, publisher-https, browser-trust, v1-local, secret-scan, coverage-gate, security, dast]
     steps:
       - name: Require successful real integration, trust and package gates
         env:
@@ -675,8 +754,9 @@ jobs:
           retention-days: 14
 
   # Unconditional on purpose: no lane selection may skip the one check that stops a leaked
-  # credential. It scans the whole history, not just the diff, because a key removed in a later
-  # commit is still published. Findings fail the job; the allowlist is .gitleaks.toml.
+  # credential, and both aggregates require it (scripts/ci/policy.py ALWAYS_JOBS). It scans the
+  # whole history, not just the diff, because a key removed in a later commit is still
+  # published. Findings fail the job; the allowlist is .gitleaks.toml.
   secret-scan:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest

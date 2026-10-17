@@ -1,0 +1,36 @@
+# Service ownership. The only repository collaborator today is the owner, so every line names
+# @Collaboration95; give each service its own team or handle here when more people get access.
+# The last matching pattern wins, so keep the shared and pipeline rules at the end. The path
+# groups mirror the per-service CI lanes in scripts/ci/policy.py (SERVICE_INPUTS).
+
+# Media service: Lambda API, its image and tests.
+/media/                              @Collaboration95
+/tests/media/                        @Collaboration95
+/deploy/v1/media.Dockerfile          @Collaboration95
+/deploy/v1/media.requirements.in     @Collaboration95
+
+# Processing service: Lambda API, finite worker, encoder engine, their images and tests.
+/processing/                         @Collaboration95
+/tests/processing/                   @Collaboration95
+/media_engine/                       @Collaboration95
+/tests/media_engine/                 @Collaboration95
+/deploy/v1/processing.Dockerfile     @Collaboration95
+/deploy/v1/processing.requirements.in @Collaboration95
+/deploy/v1/worker.Dockerfile         @Collaboration95
+/deploy/v1/worker.requirements.in    @Collaboration95
+
+# Shared by both services: a change here is a change to both release units.
+/contracts/                          @Collaboration95
+/delivery/                           @Collaboration95
+/runtime_support/                    @Collaboration95
+/tests/contracts/                    @Collaboration95
+/deploy/v1/check_runtime.py          @Collaboration95
+/deploy/v1/build_and_verify.py       @Collaboration95
+
+# Client surfaces, infrastructure and the pipeline itself.
+/frontend/                           @Collaboration95
+/publisher/                          @Collaboration95
+/deploy/aws/                         @Collaboration95
+/scripts/aws/                        @Collaboration95
+/.github/                            @Collaboration95
+/scripts/ci/                         @Collaboration95
