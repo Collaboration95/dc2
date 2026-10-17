@@ -109,7 +109,9 @@ def window_rounds(request, clock, sleep, pool, *, users, seconds, route, cookie,
         due = start + k
         if clock() < due:
             sleep(due - clock())
-        if clock() + 1 > end:
+        # The last round is due at exactly end - 1 and a real sleep overshoots it, so only
+        # skip a round too late to finish inside the judged window (end + 0.1 s).
+        if clock() > end - 0.5:
             break
         began = clock()
         done = list(pool.map(lambda u: (u, request(u, "GET", route, cookie)), range(users)))

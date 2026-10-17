@@ -481,14 +481,14 @@ def test_slow_status_rounds_do_not_push_the_last_round_out_of_the_judged_window(
         return 200, elapsed, [], b""
 
     def sleep(seconds):
-        now[0] += seconds
+        now[0] += seconds + 0.0001  # a real sleep overshoots; live r1017b lost the last round
 
     rows = []
     with ThreadPoolExecutor(max_workers=1) as pool:  # serial: the fake clock is not shared-safe
         start, end = generator.window_rounds(
             request, lambda: now[0], sleep, pool, users=50, seconds=180, route="/s",
             cookie=None, phase="timed", rows=rows, label="status")
-    assert len(rounds) >= 178
+    assert len(rounds) == 180
     window = {"started_at": start, "ended_at": end, "warmup_started_at": start,
               "warmup_ended_at": start, "booked_deadline": end + 600}
     assert timing_eligible(rows, users=50, duration_seconds=180, measurement="status",
