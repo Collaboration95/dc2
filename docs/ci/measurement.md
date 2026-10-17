@@ -1,10 +1,10 @@
 # CI timing and verification receipts (#159, #162, #165)
 
-This is the local tooling and baseline portion of #165. **After evidence is NOT_RUN.**
-The coordinator must integrate the sibling changes, confirm the final dev/full gate names,
-and collect hosted evidence before closing #162/#165. No speedup is claimed here. The
-2–3 minute warm dev feedback goal excludes initial runner/start delay; it is a target.
-Local PostgreSQL/Moto/FFmpeg/browser success is not real AWS acceptance.
+The implementation and hosted evidence are complete for the measured scenarios.
+See [results-20261017.md](results-20261017.md) and its durable receipts. The 2–3 minute
+warm dev target was met by the Media/Processing samples but missed by AWS tooling;
+controlled samples do not establish a natural workload distribution. Local acceptance
+is distinct from real AWS acceptance.
 
 ## V1 reusable workflow contract
 
@@ -127,7 +127,7 @@ and modifies no GitHub objects. JSON fixtures need neither network nor `gh`.
 ```sh
 python -m scripts.dev.ci_timings \
   --baseline-run 39023128839 --baseline-run 39023908155 --baseline-run 39022470853 \
-  --gate 'Integration checks' --tier pending-after \
+  --gate 'Integration checks' --tier full-baseline \
   --save-receipts .cache/ci-baseline \
   --output .cache/ci-baseline-report.json
 ```
@@ -136,7 +136,7 @@ A receipt has `{"run": <REST workflow run>, "jobs": [<REST job>, ...], "selectio
 The reader downloads only the current attempt's `ci-selection-N` artifact through `gh`.
 It validates run, attempt, event and head identity before accepting the tested source. Repeat
 `--fixture` / `--baseline-fixture` to compare saved receipts offline. For example, after
-the coordinator confirms the final name and obtains a natural successful dev run:
+a natural successful dev run is available (DEV_GATE_NAME is Dev gate):
 
 ```sh
 : "${DEV_GATE_NAME:?set the exact integrated dev aggregate job name}"
@@ -169,10 +169,9 @@ credited zero-duration successes; incomplete sums are labelled partial. Rerun ti
 at that attempt's `run_started_at`, with the original `created_at` and attempt retained.
 Comparison medians use only complete successful receipts with successful required gates.
 
-## Coordinator evidence and agent wait policy (pending integration)
+## Agent wait policy
 
-The coordinator must publish the final stable **dev aggregate** and **full aggregate**
-check names: **Dev gate** and **Full verification**. Both are now wired by #160. Discover the exact
+The stable checks are **Dev gate** and **Full verification**, wired by #160. Discover the exact
 names and classifier decisions with read-only commands:
 
 ```sh
@@ -187,7 +186,7 @@ only its selected tier. Use full candidate verification before Main promotion/re
 at explicit integration checkpoints. A scheduled default-branch run cannot attest to an
 unmerged candidate. Read the exact source SHA and both aggregate/artifact outcomes.
 
-Proposed coordinator-only dispatch commands (documented here, not executed):
+Manual checkpoint commands:
 
 ```sh
 # Standalone complete V1 local acceptance including optional images:
@@ -202,7 +201,7 @@ gh workflow run ci.yml --repo Collaboration95/dc2 --ref "$CANDIDATE_REF" \
 The standalone V1 run does not replace retained legacy acceptance, combined package
 coverage, browser/CLI requirements and candidate-image/security checks in full CI.
 
-Remaining evidence for #162/#165:
+Evidence checklist for future comparisons (the current sample is in results-20261017.md):
 
 - At least three representative successful natural routine dev runs when available,
   plus docs-only and shared/workflow cases; identify component changes and cache/cold effects.

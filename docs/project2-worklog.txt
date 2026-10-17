@@ -712,3 +712,19 @@ is NOT_RUN and Blocked. No issue is Ready under the current no-AWS instruction.
   migration definition (one definition cannot hold both the good and the baseline digest).
 - Local only: simulator, tests and `make aws-proof-rehearse` (now includes the release
   harness). None of the in-VPC reads or release-plan has run against AWS; #65 stays Blocked.
+
+
+2026-10-17 — Independent CI improvements #159–#165 integrated
+- GPT-6.1 Sol implemented and reviewed the isolated CI work. PR158 restored green
+  development CI without excluding the expensive template test from coverage.
+- PR166 merged into dev/v1-integration as1be086b after code review PASS and complete
+  hosted verification at99e4a7b (tested merge a6ed96d). Dev gate selects relevant
+  checks; Full verification preserves coverage/browser/CLI/image/scan requirements.
+  V1 offline/live checks now run concurrently; DAST has one candidate invocation.
+- Controlled unmerged PRs167–171 measured docs22s, Media140s, Processing168s,
+  AWS232s; deliberately invalid planning failed its validator and gate in23s.
+  These are selected-policy samples, not natural traffic or paired benchmarks.
+  AWS exceeds the2–3minute target; its203s offline lane remains the bottleneck.
+  Full verification gate462s; no all-workload speedup claim. Evidence in docs/ci.
+- No branch protection/ruleset change, Main merge, release tag, cloud/account action,
+  scheduler change or modification of the other agent's worktrees/private state.
