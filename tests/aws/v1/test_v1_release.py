@@ -453,3 +453,57 @@ def test_alias_revision_aba_is_not_overwritten(setup):
             deadline=options["deadline"],
         )
     assert aws.aliases["processing-api"]["FunctionVersion"] == "2"
+
+
+class Prefetching:
+    """A schema reader with the in-VPC reader's prefetch hook, recording the call order."""
+
+    def __init__(self, aws, owner, log):
+        self.aws, self.owner, self.log = aws, owner, log
+
+    def prefetch(self, owners, *, deadline):
+        self.log.append(("prefetch", tuple(owners)))
+
+    def __call__(self, owner, **kwargs):
+        self.log.append(("read", owner))
+        if owner != self.owner:
+            return "peer"
+        return "target" if any(c[1] == "run-task" for c in self.aws.calls) else "prior"
+
+
+def test_promote_starts_the_owner_and_peer_schema_reads_together_before_the_first_snapshot(setup):
+    config, aws, journal, args = setup
+    options = args("media")
+    log = []
+    options["schema_revision"] = Prefetching(aws, "media", log)
+    assert promote(config, aws, journal, **options)["status"] == "promoted"
+    assert log[0] == ("prefetch", ("media", "processing"))
+    assert log[1:3] == [("read", "media"), ("read", "processing")]
+
+
+def test_restore_reads_the_schema_before_it_checks_quiescence(setup):
+    config, aws, journal, args = setup
+    options = args("processing")
+    log = []
+    options["schema_revision"] = Prefetching(aws, "processing", log)
+    options["public_smoke"] = lambda *a, **k: False
+    with pytest.raises(OperationError, match="private intent retained"):
+        promote(config, aws, journal, **options)
+    log.clear()
+
+    def quiescent(owner, **kwargs):
+        log.append(("quiescent", owner))
+        return True
+
+    receipt = restore(
+        config, aws, journal, schema_revision=options["schema_revision"], quiescent=quiescent,
+        public_smoke=lambda *a, **k: True, deadline=options["deadline"])
+    assert receipt["status"] == "restored"
+    # An in-VPC read is an ECS task in the same cluster, so it must finish before the check.
+    assert log == [("quiescent", "processing"), ("prefetch", ("media", "processing")),
+                   ("read", "media"), ("read", "processing"), ("quiescent", "processing")]
+
+
+def test_a_plain_schema_reader_without_prefetch_is_still_accepted(setup):
+    config, aws, journal, args = setup
+    assert promote(config, aws, journal, **args("media"))["status"] == "promoted"

@@ -46,6 +46,8 @@ VALID = [
     ("ecs", "list-tasks", {"cluster": "c", "desiredStatus": "RUNNING"}),
     ("ecs", "describe-tasks", {"cluster": "c", "tasks": ["arn:aws:ecs:r:1:task/c/abc"]}),
     ("ecs", "stop-task", {"cluster": "c", "task": "abc", "reason": "session close"}),
+    ("logs", "get-log-events", {"logGroupName": "/dc2/tasks", "logStreamName": "Media/m/abc",
+                                "startFromHead": True, "nextToken": "f/1"}),
     (
         "apigatewayv2",
         "update-stage",
@@ -75,6 +77,10 @@ def test_every_session_operation_accepts_its_documented_arguments(service, opera
         ("events", "put-rule", {"Name": "r"}),
         ("ecs", "list-tasks", {"cluster": "c", "desiredStatus": "PENDING"}),
         ("ecs", "stop-task", {"cluster": "c"}),
+        ("logs", "get-log-events", {"logGroupName": "g"}),
+        ("logs", "get-log-events", {"logGroupName": "g", "logStreamName": "s", "limit": 0}),
+        ("logs", "filter-log-events", {"logGroupName": "g"}),
+        ("logs", "delete-log-group", {"logGroupName": "g"}),
         ("ecs", "run-task", {"cluster": "c", "taskDefinition": "d", "launchType": "EC2"}),
         (
             "apigatewayv2",
@@ -143,3 +149,13 @@ def test_account_must_be_an_explicit_twelve_digit_input(account):
         OperatorTransport(
             {}, identity={"Account": account}, account=account, region="ap-southeast-1"
         )
+
+
+def test_a_copied_task_definition_may_keep_its_task_role_but_gains_no_other_field():
+    base = {"family": "f", "containerDefinitions": [{}], "cpu": "256", "memory": "512",
+            "networkMode": "awsvpc", "requiresCompatibilities": ["FARGATE"],
+            "executionRoleArn": "arn:aws:iam::123456789012:role/e"}
+    validate_arguments("ecs", "register-task-definition", {
+        **base, "taskRoleArn": "arn:aws:iam::123456789012:role/t"})
+    with pytest.raises(OperationError):
+        validate_arguments("ecs", "register-task-definition", {**base, "volumes": []})
