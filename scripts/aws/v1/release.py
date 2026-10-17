@@ -9,6 +9,7 @@ import hashlib
 import json
 import time
 import uuid
+from datetime import UTC, datetime
 
 from scripts.aws.transport import OperationError, remaining
 from scripts.aws.v1.artifacts import validate_bundle
@@ -461,6 +462,70 @@ def restore(config, transport, journal, *, schema_revision, quiescent, public_sm
         state["pending_release"] = None
         journal.save(state)
         return receipt
+
+
+def abandon(
+    config, transport, journal, *, schema_revision, quiescent, deadline, reason=None
+):
+    """Clear a pending release that provably changed nothing; restore would refuse it.
+
+    A candidate whose migration task fails leaves `migration_complete` false and no alias
+    moved, and `restore` refuses that state on purpose (the schema is unreconciled). Nothing
+    else clears it, and any pending intent blocks `session open` and a new promote. Every
+    precondition is re-read live rather than trusted from the journal, because the journal's
+    `moved` record is written after the alias update and could miss a lost step.
+
+    Published-but-unaliased versions are immutable and harmless, so they are reported, not
+    refused. The schema must still be the revision `snapshot()` recorded as `prior` before the
+    release started (that is always recorded; if it is missing the intent is refused), so a
+    migration that applied is never abandoned over: restore, which never downgrades, owns it.
+    """
+    journal.check_context(config)
+    with journal.locked() as state:
+        pending = state.get("pending_release")
+        if not pending or "v1_request" not in pending:
+            raise OperationError("No V1 release to abandon")
+        owner = pending["v1_request"]["owner"]
+        if pending.get("moved"):
+            raise OperationError("An alias already moved; restore the release instead")
+        alias_name = config.get("alias", "live")
+        versions = pending.get("versions") or {}
+        for name, prior in pending["prior"]["functions"].items():
+            current = _alias(transport, name, alias_name, deadline)
+            if current["version"] != prior["alias"]["version"]:
+                raise OperationError(
+                    "Live alias no longer points at its prior version; restore or reconcile"
+                )
+            if versions.get(name) == current["version"]:
+                raise OperationError("A published version is aliased; restore the release instead")
+        recorded = pending["prior"].get("schema")
+        if not isinstance(recorded, str) or not recorded:
+            raise OperationError("Prior schema revision was not recorded; cannot prove no change")
+        # Read before the quiescence check: an in-VPC read is an ECS task in the same cluster.
+        live_schema = schema_revision(owner, deadline=deadline)
+        if live_schema != recorded:
+            raise OperationError("Owner schema changed since the release began; restore instead")
+        if quiescent(owner, deadline=deadline) is not True:
+            raise OperationError("Abandon requires quiescent owner")
+        unaliased = sorted(versions.values())
+        state.setdefault("abandoned_releases", []).append(
+            {
+                "id": pending.get("id"),
+                "owner": owner,
+                "phase": pending.get("phase"),
+                "reason": reason or "operator abandoned a release that changed nothing",
+                "versions_published_unaliased": unaliased,
+                "abandoned_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            }
+        )
+        state["pending_release"] = None
+        journal.save(state)
+        return {
+            "owner": owner,
+            "status": "abandoned",
+            "versions_published_unaliased": unaliased,
+            "schema": live_schema,
+        }
 
 
 if __name__ == "__main__":

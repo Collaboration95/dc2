@@ -6,7 +6,9 @@ move, public smoke, peer-unchanged check) and clocks it; it adds no release logi
 Rollback of a *good* promotion is a second promotion of the known-good baseline image: the V1
 release code only restores the aliases of a promotion that failed its smoke, and it never
 reverses a schema. The optional bad-candidate step exercises that real restore path with an
-image the operator expects to fail the smoke. An image rollback is not evidence that a
+image the operator expects to fail the smoke. A candidate that fails earlier, in its migration
+task, never reaches the restore path: the step then clears the intent with `release abandon` and
+records a FAIL. An image rollback is not evidence that a
 destructive migration can be undone, and the receipt says so.
 
 Needs `session window` (public API open, consumers and workers off) because the release code
@@ -193,6 +195,48 @@ def isolation(ctx, proof, plan):
         "schema_read_seconds": seconds}, {"error": error})
 
 
+def failed_stage(code, intent):
+    """Where a failed candidate stopped, from the journal's intent as the status action shows it.
+
+    A migration that did not complete with no alias moved can never reach the smoke, so the
+    restore path would not be exercised at all: restore refuses it by design.
+    """
+    if code == 0 or not intent:
+        return "unknown"
+    if not intent.get("migration_complete") and not intent.get("moved"):
+        return "migration"
+    return "smoke"
+
+
+MIGRATION_STAGE_REASON = (
+    "the failing candidate failed in its migration task, so the restore path was not exercised; "
+    "use a candidate that migrates and fails only the Lambda smoke")
+
+
+def abandoned_candidate(ctx, plan, snaps, before_own, failed_after):
+    """The candidate never migrated: clear its intent with `abandon` and report a FAIL.
+
+    The step stays a FAIL, because the restore path it exists to prove did not run; clearing the
+    intent only keeps the orphan from blocking the session close and every later release.
+    """
+    code, out, abandon_seconds = call(ctx, [
+        *base_args(ctx, "abandon"), "--reason",
+        "bad-candidate proof: the candidate failed in its migration task"])
+    table, pending = aliases(ctx)
+    own, peer = split(table, plan["owner"])
+    return verdict(False, {
+        "candidate_failed_as_expected": True, "failed_stage": "migration",
+        "failed_after_seconds": failed_after, "abandon_seconds": abandon_seconds,
+        "abandoned": bool(code == 0 and out.get("ok")
+                          and out.get("result", {}).get("status") == "abandoned"
+                          and pending is None),
+        "aliases_restored": own == before_own,
+        "peer_unchanged": peer == snaps["baseline"]["peer"],
+        "pending_release_after": pending is not None, "schema_rollback_attempted": False,
+        "reason": MIGRATION_STAGE_REASON,
+    }, {"error": out.get("error")})
+
+
 def bad_candidate(ctx, proof, plan):
     if not plan.get("bad"):
         return {"status": NOT_RUN, "public": {
@@ -201,6 +245,10 @@ def bad_candidate(ctx, proof, plan):
     before_table, _ = aliases(ctx)
     before_own, _ = split(before_table, plan["owner"])
     code, out, failed_after = call(ctx, promote_args(ctx, plan, plan["bad"]))
+    _, intent = aliases(ctx)
+    stage = failed_stage(code, intent)
+    if stage == "migration":
+        return abandoned_candidate(ctx, plan, snaps, before_own, failed_after)
     restored_code, restored, restore_seconds = call(ctx, [
         *base_args(ctx, "restore"), "--smoke-url", ctx.gateway_url, "--smoke-credentials",
         str(ctx.state_dir / "smoke-credentials.json")])
@@ -214,6 +262,7 @@ def bad_candidate(ctx, proof, plan):
         "aliases_restored": own == before_own, "peer_unchanged": peer == snaps["baseline"]["peer"],
         "pending_release_after": pending is not None, "schema_rollback_attempted": False,
         "restored_smoke": smoke_summary(restored.get("result", {}).get("smoke")),
+        "failed_stage": stage,
     }
     ok = (code != 0 and restored_code == 0 and public["within_gate"]
           and public["aliases_restored"] and public["peer_unchanged"] and not pending

@@ -9,7 +9,7 @@ import pytest
 from scripts.aws.journal import Journal
 from scripts.aws.transport import CLITransport, OperationError
 from scripts.aws.v1.artifacts import validate_bundle
-from scripts.aws.v1.release import PublicationUncertain, promote, restore
+from scripts.aws.v1.release import PublicationUncertain, abandon, promote, restore
 from scripts.aws.v1.transport import OperatorTransport
 
 OLD = "repo@sha256:" + "a" * 64
@@ -46,6 +46,7 @@ class AWS:
         self.lost = set()
         self.calls = []
         self.peer_drift = False
+        self.migration_exit = 0
         for name in ("media-api", "media-result", "processing-api", "processing-command"):
             self.functions[name] = {
                 "1": self.function(name, "1", OLD),
@@ -95,7 +96,7 @@ class AWS:
                             "taskArn": "migration-task",
                             "taskDefinitionArn": MIGRATION,
                             "lastStatus": "STOPPED",
-                            "containers": [{"exitCode": 0}],
+                            "containers": [{"exitCode": self.migration_exit}],
                         }
                     ]
                 }
@@ -167,7 +168,8 @@ def setup(tmp_path):
     aws = AWS()
 
     def schema(owner, **kwargs):
-        return "target" if any(c[1] == "run-task" for c in aws.calls) else "prior"
+        migrated = any(c[1] == "run-task" for c in aws.calls) and not aws.migration_exit
+        return "target" if migrated else "prior"
 
     # Peer schemas have independent ownership: the peer never follows owner migrations.
     def args(owner="processing"):
@@ -507,3 +509,140 @@ def test_restore_reads_the_schema_before_it_checks_quiescence(setup):
 def test_a_plain_schema_reader_without_prefetch_is_still_accepted(setup):
     config, aws, journal, args = setup
     assert promote(config, aws, journal, **args("media"))["status"] == "promoted"
+
+
+# ---- abandon: an intent that provably changed nothing ----------------------------------------
+def failed_migration(setup, owner="processing"):
+    """The live 2026-10-17 state: the migration task failed before any version or alias."""
+    config, aws, journal, args = setup
+    aws.migration_exit = 1
+    options = args(owner)
+    with pytest.raises(OperationError, match="Migration task failed"):
+        promote(config, aws, journal, **options)
+    return config, aws, journal, options
+
+
+def abandon_args(options, **changes):
+    return {
+        "schema_revision": options["schema_revision"],
+        "quiescent": options["quiescent"],
+        "deadline": options["deadline"],
+        **changes,
+    }
+
+
+def pending_of(journal):
+    with journal.locked() as state:
+        return state["pending_release"]
+
+
+def test_restore_refuses_a_failed_migration_and_abandon_clears_it(setup):
+    config, aws, journal, options = failed_migration(setup)
+    intent = pending_of(journal)
+    assert intent["phase"] == "preparing" and not intent.get("migration_complete")
+    assert intent["versions"] == {} and intent["moved"] == {}
+    with pytest.raises(OperationError, match="Reconcile/finish migration"):
+        restore(config, aws, journal, public_smoke=lambda *a, **k: True,
+                **abandon_args(options))
+    writes = [op for _, op, _ in aws.calls if op in {"update-alias", "publish-version"}]
+    receipt = abandon(config, aws, journal, reason="migration failed",
+                      **abandon_args(options))
+    assert receipt == {"owner": "processing", "status": "abandoned",
+                       "versions_published_unaliased": [], "schema": "prior"}
+    with journal.locked() as state:
+        assert state["pending_release"] is None
+        (record,) = state["abandoned_releases"]
+    assert record["id"] == intent["id"] and record["owner"] == "processing"
+    assert record["phase"] == "preparing" and record["reason"] == "migration failed"
+    assert record["abandoned_at"]
+    assert writes == [op for _, op, _ in aws.calls if op in {"update-alias", "publish-version"}]
+    # The released journal lets the next promotion start again.
+    aws.migration_exit = 0
+    assert promote(config, aws, journal, **options)["status"] == "promoted"
+
+
+def test_abandon_lists_published_but_unaliased_versions(setup):
+    config, aws, journal, options = failed_migration(setup)
+    with journal.locked() as state:
+        state["pending_release"]["versions"] = {"processing-api": "2", "processing-command": "3"}
+        journal.save(state)
+    receipt = abandon(config, aws, journal, **abandon_args(options))
+    assert receipt["versions_published_unaliased"] == ["2", "3"]
+    with journal.locked() as state:
+        assert state["abandoned_releases"][0]["versions_published_unaliased"] == ["2", "3"]
+
+
+def refused(setup, match, *, mutate=None, **changes):
+    config, aws, journal, options = failed_migration(setup)
+    if mutate:
+        mutate(aws, journal)
+    before = pending_of(journal)
+    with pytest.raises(OperationError, match=match):
+        abandon(config, aws, journal, **abandon_args(options, **changes))
+    assert pending_of(journal) == before  # a refusal keeps the intent
+    with journal.locked() as state:
+        assert "abandoned_releases" not in state
+
+
+def test_abandon_refuses_when_the_journal_recorded_a_moved_alias(setup):
+    def mutate(aws, journal):
+        with journal.locked() as state:
+            state["pending_release"]["moved"] = {"processing-api": {"version": "2"}}
+            journal.save(state)
+
+    refused(setup, "alias already moved", mutate=mutate)
+
+
+def test_abandon_refuses_when_a_live_alias_left_its_prior_version(setup):
+    def mutate(aws, journal):  # an update-alias whose journal record was lost
+        aws.aliases["processing-command"] = {"FunctionVersion": "2", "RevisionId": "r2"}
+
+    refused(setup, "no longer points at its prior version", mutate=mutate)
+
+
+def test_abandon_refuses_when_the_owner_schema_changed(setup):
+    refused(setup, "schema changed", schema_revision=lambda *a, **k: "target")
+
+
+def test_abandon_refuses_when_the_prior_schema_was_never_recorded(setup):
+    def mutate(aws, journal):
+        with journal.locked() as state:
+            del state["pending_release"]["prior"]["schema"]
+            journal.save(state)
+
+    refused(setup, "Prior schema revision was not recorded", mutate=mutate)
+
+
+def test_abandon_refuses_when_the_owner_is_not_quiescent(setup):
+    refused(setup, "quiescent owner", quiescent=lambda *a, **k: False)
+
+
+def test_abandon_refuses_without_a_pending_release(setup):
+    config, aws, journal, args = setup
+    options = args()
+    with pytest.raises(OperationError, match="No V1 release to abandon"):
+        abandon(config, aws, journal, **abandon_args(options))
+    assert not aws.calls
+
+
+def test_abandon_reads_the_schema_before_it_checks_quiescence(setup):
+    order = []
+    config, aws, journal, options = failed_migration(setup)
+
+    def read(owner, **kwargs):
+        order.append("schema")
+        return "prior"
+
+    def quiet(owner, **kwargs):
+        order.append("quiescent")
+        return True
+
+    abandon(config, aws, journal, **abandon_args(options, schema_revision=read, quiescent=quiet))
+    assert order == ["schema", "quiescent"]
+
+
+def test_abandon_takes_the_operator_station_lock(setup):
+    config, aws, journal, options = failed_migration(setup)
+    with journal._lock(), pytest.raises(OperationError, match="already busy"):
+        abandon(config, aws, journal, **abandon_args(options))
+    assert pending_of(journal) is not None

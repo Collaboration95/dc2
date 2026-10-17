@@ -30,9 +30,11 @@ class ScriptedRelease:
     """A release CLI stand-in that keeps an alias table and takes virtual time per action."""
 
     def __init__(self, clock, *, peer_moves=False, slow=0, bad_restores=True,
-                 peer_schema_moves=False, schema_fails=False, source="in-vpc-task"):
+                 peer_schema_moves=False, schema_fails=False, source="in-vpc-task",
+                 bad_stage="smoke", abandon_ok=True):
         self.clock, self.peer_moves, self.slow = clock, peer_moves, slow
-        self.bad_restores = bad_restores
+        self.bad_restores, self.bad_stage, self.abandon_ok = bad_restores, bad_stage, abandon_ok
+        self.pending = None
         self.peer_schema_moves, self.schema_fails, self.source = (
             peer_schema_moves, schema_fails, source)
         self.table = {"media-a": {"owner": "media", "version": "1"},
@@ -49,7 +51,7 @@ class ScriptedRelease:
         source = {"schema_revision_source": self.source, "schema_reads": [{"seconds": 40.0}]}
         if action == "status":
             body = {"ok": True, "result": {"aliases": json.loads(json.dumps(self.table)),
-                                           "pending_release": None}}
+                                           "pending_release": self.pending}}
         elif action == "schema":
             if self.schema_fails:
                 print(json.dumps({"ok": False, "error": "In-VPC read failed: TimeoutError"}),
@@ -61,6 +63,12 @@ class ScriptedRelease:
         elif action == "promote":
             image = argv[argv.index("--image-uri") + 1]
             if image == "bad":
+                # Like the real status summary: a migration failure leaves nothing moved, a
+                # smoke failure leaves a migrated, moved intent in the restoring phase.
+                self.pending = ({"phase": "preparing", "migration_complete": False, "moved": []}
+                                if self.bad_stage == "migration" else
+                                {"phase": "restoring", "migration_complete": True,
+                                 "moved": ["media-a"]})
                 body, code = {"ok": False, "error": "smoke failed"}, 1
                 print(json.dumps(body), file=stdout)
                 return code
@@ -68,7 +76,18 @@ class ScriptedRelease:
             if self.peer_moves:
                 self.table["proc-a"]["version"] = "8"
             body = {"ok": True, "result": {"status": "promoted", "smoke": smoke, **source}}
+        elif action == "abandon":
+            if not self.abandon_ok or not self.pending:
+                print(json.dumps({"ok": False, "error": "Live alias moved"}), file=stdout)
+                return 1
+            self.pending = None
+            body = {"ok": True, "result": {"status": "abandoned", **source}}
         else:  # restore
+            if self.pending and not self.pending["migration_complete"]:
+                print(json.dumps({"ok": False, "error": "Reconcile/finish migration before "
+                                  "restoration"}), file=stdout)
+                return 1
+            self.pending = None
             body = {"ok": True, "result": {"status": "restored", "smoke": smoke, **source}}
         print(json.dumps(body), file=stdout)
         return 0
@@ -116,7 +135,32 @@ def test_a_failing_candidate_is_restored_inside_the_gate_and_counts_as_proof(tmp
     public = proof.doc["steps"]["bad-candidate-restore"]["public"]
     assert statuses(proof)["bad-candidate-restore"] == PASS
     assert public["candidate_failed_as_expected"] and public["aliases_restored"]
-    assert "restore" in scripted.calls
+    assert public["failed_stage"] == "smoke"
+    assert "restore" in scripted.calls and "abandon" not in scripted.calls
+
+
+def test_a_candidate_that_fails_its_migration_is_abandoned_and_the_step_fails(tmp_path):
+    ctx, scripted = live_ctx(tmp_path, bad_stage="migration")
+    plan = plan_file(tmp_path, bad={**IMAGE, "image_uri": "bad"})
+    proof = release.run(ctx, plan_path=plan)
+    step = proof.doc["steps"]["bad-candidate-restore"]
+    public = step["public"]
+    assert step["status"] == FAIL
+    assert public["failed_stage"] == "migration" and public["abandoned"] is True
+    assert public["reason"] == release.MIGRATION_STAGE_REASON
+    assert public["pending_release_after"] is False and public["aliases_restored"]
+    assert "abandon" in scripted.calls and "restore" not in scripted.calls
+    assert proof.overall() == "FAIL"
+
+
+def test_a_migration_failure_that_abandon_refuses_is_recorded_as_not_abandoned(tmp_path):
+    ctx, scripted = live_ctx(tmp_path, bad_stage="migration", abandon_ok=False)
+    plan = plan_file(tmp_path, bad={**IMAGE, "image_uri": "bad"})
+    proof = release.run(ctx, plan_path=plan)
+    public = proof.doc["steps"]["bad-candidate-restore"]["public"]
+    assert proof.doc["steps"]["bad-candidate-restore"]["status"] == FAIL
+    assert public["failed_stage"] == "migration" and public["abandoned"] is False
+    assert public["pending_release_after"] is True
 
 
 def test_the_release_steps_run_without_a_sql_station_and_record_the_in_vpc_source(tmp_path):
