@@ -103,6 +103,8 @@ def test_the_reference_scan_catches_an_unguarded_reference_and_skips_a_guarded_o
     assert reference_names({"Fn::If": ["ShortEncodes", {"Ref": queue}, "x"]}) == set()
 
 
+# Template-only (scripts/aws is unmeasured) and about 80x slower under the coverage tracer.
+@pytest.mark.unmeasured
 def test_a_default_stack_has_no_resource_that_refers_to_the_lane_unconditionally():
     lane = set(lane_resources())
     for name, resource in resources().items():
