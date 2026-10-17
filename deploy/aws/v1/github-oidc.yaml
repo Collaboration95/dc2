@@ -10,9 +10,14 @@ Description: >-
 Parameters:
   GitHubRepository:
     Type: String
-    Default: Collaboration95/dc2
-    AllowedPattern: "[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+"
-    Description: owner/name allowed to assume the role.
+    Default: Collaboration95@68595032/dc2@1391679981
+    AllowedPattern: "[A-Za-z0-9_.@-]+/[A-Za-z0-9_.@-]+"
+    Description: >-
+      The repository as it appears in the OIDC `sub` claim. This repository uses immutable
+      subjects (`owner@<owner id>/name@<repo id>`, see `gh api
+      repos/Collaboration95/dc2/actions/oidc/customization/sub`), so a renamed or recreated
+      repository of the same name cannot assume the role. Without that setting the value is
+      plain owner/name.
   GitHubEnvironment:
     Type: String
     Default: aws

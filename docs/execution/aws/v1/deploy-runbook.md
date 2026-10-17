@@ -533,7 +533,8 @@ gh workflow run cd.yml -f operation=teardown  -f run_id=r1018a -f execute=true
   stored in GitHub). The role and the state bucket come from
   [`deploy/aws/v1/github-oidc.yaml`](../../../../deploy/aws/v1/github-oidc.yaml); the repository
   variables `AWS_DEPLOY_ROLE_ARN` and `AWS_STATE_BUCKET` carry their names. The role's trust is
-  `repo:Collaboration95/dc2:environment:aws`, and the environment only admits `Main`, `dev/closeout`
+  `repo:Collaboration95@68595032/dc2@1391679981:environment:aws` (this repository uses immutable OIDC
+  subjects, i.e. owner and repository ids, not the plain `Collaboration95/dc2`), and the environment only admits `Main`, `dev/closeout`
   (and the temporary `closeout/pipeline`) so a branch of someone else cannot reach it. Its
   permissions equal the `flickpond-agent` user's: `AdministratorAccess` plus `FlickPondRegionLock`.
   Session length 4 h. It is written to the named profile `dc2-gha` because the tooling refuses
