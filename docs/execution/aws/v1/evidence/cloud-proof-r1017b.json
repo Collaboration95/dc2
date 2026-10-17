@@ -1,7 +1,7 @@
 {
   "closes": "nothing by itself: an issue closes only when its acceptance list is met by the receipts and a reviewer accepts them",
   "document_kind": "V1_CLOUD_PROOF_SUMMARY_REDACTED",
-  "generated_at": "2026-10-17T12:07:56Z",
+  "generated_at": "2026-10-17T16:23:56Z",
   "issues": {
     "#63": {
       "overall": "PASS",
@@ -428,7 +428,7 @@
       }
     },
     "#66": {
-      "overall": "FAIL",
+      "overall": "PASS",
       "steps": {
         "cold-wake": {
           "public": {
@@ -456,7 +456,7 @@
         "generator": {
           "public": {
             "generator": {
-              "billed_seconds": 300.069,
+              "billed_seconds": 294.973,
               "cpu": "512",
               "image_digests": [
                 "sha256:b5c462fa16fadbc0d3151c14461ce5a366bdca4825e1ac2529fe6a6f34740e54"
@@ -467,97 +467,97 @@
             },
             "login_cycle": {
               "eligible": true,
-              "error_rate": 0.5,
+              "error_rate": 0.0,
               "hash_cost": 10,
               "hash_cost_source": "configured in source, not read back",
               "p90_gate_ms": 2000,
-              "p90_ms": 163.458,
+              "p90_ms": 177.976,
               "sample_count": 20,
-              "status": "FAIL",
+              "status": "PASS",
               "throttled": 0,
               "users": 20
             },
             "retries": 0,
             "routes": {
               "/api/media/auth/me": {
-                "count": 190,
-                "errors": 4,
-                "max_ms": 287.68462700003283,
-                "p50_ms": 183.94997399997237,
-                "p90_ms": 201.56976500004475,
-                "p95_ms": 218.64600699996117,
-                "p99_ms": 286.74104300000636,
+                "count": 200,
+                "errors": 0,
+                "max_ms": 97.87418999997044,
+                "p50_ms": 48.3456019999835,
+                "p90_ms": 54.966941000031966,
+                "p95_ms": 58.50278799999842,
+                "p99_ms": 75.94139600001881,
                 "throttled": 0
               },
               "/api/media/health": {
-                "count": 190,
+                "count": 200,
                 "errors": 0,
-                "max_ms": 39.35917899997321,
-                "p50_ms": 16.73642599996583,
-                "p90_ms": 19.85056500001292,
-                "p95_ms": 22.929348000047867,
-                "p99_ms": 39.041423000014674,
+                "max_ms": 22.711179999987507,
+                "p50_ms": 13.881728999990628,
+                "p90_ms": 16.51601200001096,
+                "p95_ms": 17.77488400000493,
+                "p99_ms": 20.474828999965666,
                 "throttled": 0
               },
               "/api/processing/health": {
-                "count": 190,
+                "count": 200,
                 "errors": 0,
-                "max_ms": 1804.8160779999876,
-                "p50_ms": 17.970050999963405,
-                "p90_ms": 26.126962999967418,
-                "p95_ms": 122.39197600001717,
-                "p99_ms": 1621.6339089999678,
+                "max_ms": 1559.9823530000094,
+                "p50_ms": 16.843977000007726,
+                "p90_ms": 43.59230599999364,
+                "p95_ms": 83.84730100004845,
+                "p99_ms": 1493.1736519999959,
                 "throttled": 0
               },
               "/api/processing/jobs": {
-                "count": 190,
-                "errors": 1,
-                "max_ms": 265.1605609999592,
-                "p50_ms": 192.3653110000032,
-                "p90_ms": 233.22778700003255,
-                "p95_ms": 243.34934000000885,
-                "p99_ms": 261.4441570000281,
+                "count": 200,
+                "errors": 0,
+                "max_ms": 170.53828999996767,
+                "p50_ms": 46.178862999965986,
+                "p90_ms": 74.47317899999462,
+                "p95_ms": 106.13719699995272,
+                "p99_ms": 166.6717499999777,
                 "throttled": 0
               },
               "login": {
                 "count": 20,
-                "errors": 10,
-                "max_ms": 742.5999559999923,
-                "p50_ms": 18.30824799998254,
-                "p90_ms": 163.45772700003636,
-                "p95_ms": 168.75605299998142,
-                "p99_ms": 742.5999559999923,
+                "errors": 0,
+                "max_ms": 181.90985000001092,
+                "p50_ms": 146.4739820000318,
+                "p90_ms": 177.97568299999966,
+                "p95_ms": 179.9174559999983,
+                "p99_ms": 181.90985000001092,
                 "throttled": 0
               },
               "status": {
-                "count": 8850,
-                "errors": 7707,
-                "max_ms": 2008.8178599999935,
-                "p50_ms": 9.742198999958873,
-                "p90_ms": 238.97776600000498,
-                "p95_ms": 286.6854980000255,
-                "p99_ms": 347.05112299999996,
-                "throttled": 1
+                "count": 9000,
+                "errors": 0,
+                "max_ms": 2786.3825780000016,
+                "p50_ms": 51.11684299998842,
+                "p90_ms": 58.17548500004932,
+                "p95_ms": 63.04600899994739,
+                "p99_ms": 91.61019499998702,
+                "throttled": 0
               }
             },
-            "samples_length": 566379,
-            "samples_sha256": "b4dd78926e87f191ae0582776030f225ebe139ca6661e36ab6915648bf4b0772",
+            "samples_length": 583668,
+            "samples_sha256": "ae27ec37f4496b67bdfc00f30d8e63ecce4768c82f8e516791e7d10bbcc69b9c",
             "status_cycle": {
               "duration_seconds": 180,
-              "eligible": false,
-              "error_rate": 0.8708474576271187,
+              "eligible": true,
+              "error_rate": 0.0,
               "p90_gate_ms": 700,
-              "p90_ms": 238.978,
-              "sample_count": 8850,
-              "status": "FAIL",
-              "throttled": 1,
+              "p90_ms": 58.175,
+              "sample_count": 9000,
+              "status": "PASS",
+              "throttled": 0,
               "users": 50
             },
             "target": "gateway",
             "task_definition_deregistered": true
           },
-          "seconds": 334.181,
-          "status": "FAIL"
+          "seconds": 320.653,
+          "status": "PASS"
         }
       }
     },
