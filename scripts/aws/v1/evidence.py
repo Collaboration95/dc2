@@ -98,6 +98,8 @@ def build_parser():
     rp.add_argument("--target-revision", help="the owner's schema head (default: this checkout)")
     rp.add_argument("--attest-schema-unchanged", action="store_true",
                     help="good/baseline/bad add no migration beyond --target-revision")
+    rp.add_argument("--accept-unfixed", type=Path, metavar="FILE",
+                    help="audited JSON list of HIGH/CRITICAL CVE ids with no fix available")
     rp.add_argument("--out", type=Path,
                     help="directory for plan.json (default: <state-dir>/release)")
     rp.add_argument("--deregister", type=Path, metavar="PLAN",
@@ -186,7 +188,7 @@ def release_plan_command(args, *, world, factory):
         good={"run_id": args.good_run_id, "evidence": args.good_evidence}, bad=bad,
         tests_passed=args.tests_passed, target_revision=args.target_revision,
         attest_schema_unchanged=args.attest_schema_unchanged,
-        out=args.out or args.state_dir / "release")
+        accept_unfixed=args.accept_unfixed, out=args.out or args.state_dir / "release")
 
 
 def execute(args, ctx):

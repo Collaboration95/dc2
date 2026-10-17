@@ -2,6 +2,7 @@
 registry, against the simulated account. Nothing here reaches AWS."""
 
 import argparse
+import hashlib
 import io
 import json
 import stat
@@ -147,6 +148,217 @@ def test_a_scan_with_a_high_finding_blocks_the_plan(tmp_path):
     with pytest.raises(ProofError, match="HIGH/CRITICAL"):
         make(ctx, builds, tmp_path)
     assert not (tmp_path / "plan" / "plan.json").exists()
+
+
+def accept_file(tmp_path, *ids, **changes):
+    entry = {"package": "glibc", "reason": "no fixed version in Debian 13",
+             "reviewed_on": "2026-10-17"}
+    body = {"accepted": [{"id": i, **entry} for i in ids], "verified_by": "apt list --upgradable"}
+    body.update(changes)
+    path = tmp_path / "accepted.json"
+    path.write_text(json.dumps(body))
+    return path
+
+
+def scanned(world, *pairs, page=100):
+    world.scan_findings, world.scan_page = list(pairs), page
+
+
+def test_every_high_finding_accepted_passes_and_is_recorded_per_image(tmp_path):
+    world, ctx, builds = stack(tmp_path)
+    scanned(world, ("CVE-2026-1", "HIGH"), ("CVE-2026-2", "MEDIUM"))
+    accept = accept_file(tmp_path, "CVE-2026-1", "CVE-2026-9")
+    summary = make(ctx, builds, tmp_path, accept_unfixed=accept)
+    scan = json.loads((tmp_path / "plan" / "bundle-good.json").read_text())["api"]["scan"]
+    assert scan["blocking_high_critical"] == scan["fixable_high_critical"] == 0
+    assert scan["accepted_high_critical"] == ["CVE-2026-1"]
+    assert scan["accept_file_sha256"] == hashlib.sha256(accept.read_bytes()).hexdigest()
+    assert scan["report_sha256"].startswith("sha256:")
+    assert summary["accepted_unused"] == ["CVE-2026-9"]
+
+
+def test_a_critical_finding_on_the_accept_list_passes(tmp_path):
+    world, ctx, builds = stack(tmp_path)
+    scanned(world, ("CVE-2026-7", "CRITICAL"))
+    make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-7"))
+    scan = json.loads((tmp_path / "plan" / "bundle-baseline.json").read_text())["api"]["scan"]
+    assert scan["accepted_high_critical"] == ["CVE-2026-7"]
+
+
+def test_a_high_finding_missing_from_the_accept_list_still_blocks(tmp_path):
+    world, ctx, builds = stack(tmp_path)
+    scanned(world, ("CVE-2026-1", "HIGH"), ("CVE-2026-3", "HIGH"))
+    with pytest.raises(ProofError, match="not on the accept list: CVE-2026-3"):
+        make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
+    assert not (tmp_path / "plan" / "plan.json").exists()
+
+
+def test_without_an_accept_list_any_high_finding_blocks_and_nothing_is_accepted(tmp_path):
+    world, ctx, builds = stack(tmp_path)
+    scanned(world, ("CVE-2026-1", "HIGH"))
+    with pytest.raises(ProofError, match="1 HIGH/CRITICAL scan findings; the release gate"):
+        make(ctx, builds, tmp_path)
+    scanned(world, ("CVE-2026-2", "LOW"))
+    make(ctx, builds, tmp_path)
+    scan = json.loads((tmp_path / "plan" / "bundle-good.json").read_text())["api"]["scan"]
+    assert scan["accepted_high_critical"] == [] and scan["accept_file_sha256"] is None
+
+
+def test_accepted_findings_on_a_later_page_are_still_matched_and_unaccepted_ones_found(tmp_path):
+    world, ctx, builds = stack(tmp_path)
+    pairs = [(f"CVE-2026-{n}", "LOW") for n in range(5)] + [("CVE-2026-70", "HIGH")]
+    scanned(world, *pairs, page=2)
+    make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-70"))
+    scanned(world, *pairs, ("CVE-2026-71", "HIGH"), page=2)
+    with pytest.raises(ProofError, match="CVE-2026-71"):
+        make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-70"))
+
+
+def test_findings_that_cannot_be_matched_to_the_counts_are_refused(tmp_path):
+    world, ctx, builds = stack(tmp_path, "scan-high")  # counts say HIGH, no findings listed
+    with pytest.raises(ProofError, match="cannot be matched"):
+        make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
+
+
+def serve_findings(world, findings, counts, *, pages=1):
+    """Make the simulated registry answer with these raw findings and counts (None: no counts)."""
+    def reply(payload):
+        start = int(payload.get("nextToken") or 0)
+        size = max(1, -(-len(findings) // pages))
+        body = {"imageId": payload["imageId"], "imageScanStatus": {"status": "COMPLETE"},
+                "imageScanFindings": {"findings": findings[start:start + size]}}
+        if counts is not None:
+            body["imageScanFindings"]["findingSeverityCounts"] = counts
+        if start + size < len(findings):
+            body["nextToken"] = str(start + size)
+        return body
+    world.ecr_describe_image_scan_findings = reply
+
+
+HIGH = {"name": "CVE-2026-99", "severity": "HIGH"}
+
+
+@pytest.mark.parametrize("counts", [{"HIGH": 0}, {}, None])
+def test_zero_or_missing_counts_cannot_hide_an_unlisted_high_finding(tmp_path, counts):
+    world, ctx, builds = stack(tmp_path)
+    serve_findings(world, [HIGH], counts)
+    with pytest.raises(ProofError, match="cannot be matched"):
+        make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
+    assert not (tmp_path / "plan" / "plan.json").exists()
+
+
+def test_a_high_finding_on_a_later_page_is_found_although_the_counts_are_zero(tmp_path):
+    world, ctx, builds = stack(tmp_path)
+    low = [{"name": f"CVE-2026-{n}", "severity": "LOW"} for n in range(3)]
+    serve_findings(world, [*low, HIGH], {"LOW": 3}, pages=2)
+    with pytest.raises(ProofError, match="cannot be matched"):
+        make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
+
+
+def test_counts_above_the_listed_findings_are_refused_too(tmp_path):
+    world, ctx, builds = stack(tmp_path)
+    serve_findings(world, [], {"HIGH": 2})
+    with pytest.raises(ProofError, match="counts 2 .* lists 0"):
+        make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
+
+
+def test_enhanced_findings_are_not_matchable_so_they_are_refused(tmp_path):
+    world, ctx, builds = stack(tmp_path)
+    serve_findings(world, [], {})
+    plain = world.ecr_describe_image_scan_findings
+
+    def enhanced(payload):
+        body = plain(payload)
+        body["imageScanFindings"]["enhancedFindings"] = [{"severity": "HIGH"}]
+        return body
+    world.ecr_describe_image_scan_findings = enhanced
+    with pytest.raises(ProofError, match="enhanced findings"):
+        make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
+
+
+def test_the_worker_image_is_reconciled_like_the_api_image(tmp_path):
+    world, ctx, builds = stack(tmp_path)
+    plain = world.ecr_describe_image_scan_findings
+    serve_findings(world, [HIGH], {"HIGH": 0})
+    hiding = world.ecr_describe_image_scan_findings
+
+    def per_repository(payload):
+        return hiding(payload) if "worker" in payload["repositoryName"] else plain(payload)
+    world.ecr_describe_image_scan_findings = per_repository
+    with pytest.raises(ProofError, match="cannot be matched"):
+        make(ctx, builds, tmp_path, "processing", target_revision="p0005",
+             accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
+
+
+@pytest.mark.parametrize("where", ["top", "entry"])
+def test_repeated_keys_in_the_accept_file_are_refused_before_the_registry_is_asked(
+        tmp_path, where):
+    world, ctx, builds = stack(tmp_path)
+    entry = ('{"id": "CVE-2026-1", "package": "p", "reason": "r", "reviewed_on": "2026-10-17"')
+    text = {
+        "top": '{"accepted": [' + entry + '}], "accepted": [' + entry.replace("-1", "-2")
+               + '}], "verified_by": "v"}',
+        "entry": '{"accepted": [' + entry + ', "reason": "other"}], "verified_by": "v"}',
+    }[where]
+    path = tmp_path / "accepted.json"
+    path.write_text(text)
+    calls = len(world.calls)
+    with pytest.raises(ProofError, match="accept-unfixed"):
+        make(ctx, builds, tmp_path, accept_unfixed=path)
+    assert len(world.calls) == calls
+
+
+@pytest.mark.parametrize("change", ["not-json", "list", "no-entries", "extra-key", "bad-id",
+                                    "duplicate", "missing-field", "bad-date", "unknown-entry-key",
+                                    "no-verified-by"])
+def test_a_malformed_accept_file_is_refused_before_the_registry_is_asked(tmp_path, change):
+    world, ctx, builds = stack(tmp_path)
+    path = accept_file(tmp_path, "CVE-2026-1")
+    body = json.loads(path.read_text())
+    entry = body["accepted"][0]
+    if change == "not-json":
+        path.write_text("{")
+    elif change == "list":
+        path.write_text("[]")
+    elif change == "no-entries":
+        body["accepted"] = []
+    elif change == "extra-key":
+        body["note"] = "x"
+    elif change == "bad-id":
+        entry["id"] = "GHSA-1234"
+    elif change == "duplicate":
+        body["accepted"].append(dict(entry))
+    elif change == "missing-field":
+        del entry["reason"]
+    elif change == "bad-date":
+        entry["reviewed_on"] = "17/10/2026"
+    elif change == "unknown-entry-key":
+        entry["severity"] = "HIGH"
+    elif change == "no-verified-by":
+        del body["verified_by"]
+    if change not in ("not-json", "list"):
+        path.write_text(json.dumps(body))
+    calls = len(world.calls)
+    with pytest.raises(ProofError, match="accept-unfixed"):
+        make(ctx, builds, tmp_path, accept_unfixed=path)
+    assert len(world.calls) == calls
+
+
+def test_the_committed_accept_file_is_valid_and_names_each_cve_once():
+    ids, _ = release_plan.load_accept(
+        "docs/execution/aws/v1/scan-accepted-unfixed-20261017.json")
+    assert len(ids) == 14 and "CVE-2026-52490" in ids
+
+
+def test_the_command_passes_the_accept_file_through(tmp_path):
+    world, ctx, builds = stack(tmp_path)
+    scanned(world, ("CVE-2026-1", "HIGH"))
+    code, out = cli(ctx, "--owner", "media", "--baseline-evidence", str(builds["baseline"]),
+                    "--good-run-id", "g1", "--good-evidence", str(builds["good"]),
+                    "--tests-passed", "12", "--target-revision", "m0007",
+                    "--attest-schema-unchanged",
+                    "--accept-unfixed", str(accept_file(tmp_path, "CVE-2026-1")))
+    assert code == 0 and out["accepted_unused"] == []
 
 
 def test_a_scan_that_is_not_complete_blocks_the_plan(tmp_path):

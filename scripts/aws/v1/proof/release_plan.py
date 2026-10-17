@@ -10,7 +10,8 @@ from facts it can check:
   * the deploy journal and stack outputs (baseline digests, repositories, definitions);
   * `deploy/v1/build_and_verify.py` evidence for each image set (config ids, source commit,
     runtime contents; it must be LOCAL_ARTIFACT_PASS with no failures);
-  * the registry, asked by tag (digest, and a COMPLETE scan with no HIGH/CRITICAL finding).
+  * the registry, asked by tag (digest, and a COMPLETE scan with no HIGH/CRITICAL finding, bar
+    the CVE ids named in an audited `--accept-unfixed` file; see `load_accept`).
 
 What it cannot check it states: the unit tests behind each image (`--tests-passed` is an
 operator attestation, as in the bundle gate), and that good/bad add no migration beyond
@@ -31,6 +32,10 @@ from scripts.aws.v1.proof.core import ProofError, private_write
 from scripts.aws.v1.release import validate_inputs
 
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
+CVE = re.compile(r"CVE-\d{4}-\d+")
+ACCEPT_KEYS = {"accepted", "verified_by"}
+ACCEPT_ENTRY_KEYS = {"id", "package", "reason", "reviewed_on"}
+DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 SOURCE = re.compile(r"[0-9a-f]{40}")
 # owner -> ((kind, build-evidence image, repository output), ...)
 IMAGES = {
@@ -81,9 +86,51 @@ def local_head(owner):
     return heads[0]
 
 
+def unique_pairs(pairs):
+    """json.loads keeps the last of a repeated key, so a reviewer and this gate could read
+    different policies from one file; refuse the ambiguity at every nesting level."""
+    keys = [k for k, _ in pairs]
+    if len(keys) != len(set(keys)):
+        raise ValueError("duplicate key")
+    return dict(pairs)
+
+
+def load_accept(path):
+    """(accepted ids, sha256 of the file's bytes) for an audited list of unfixed CVEs.
+
+    The list exists because the pinned base image can carry HIGH findings Debian has not fixed
+    yet; rebuilding cannot clear them, and the rollback target carries them too. It is strict on
+    purpose: an entry without a reviewer's reason and date, a duplicate or an unknown key means
+    nobody looked, so the whole file is refused rather than partly honoured.
+    """
+    try:
+        raw = Path(path).read_bytes()
+        data = json.loads(raw, object_pairs_hook=unique_pairs)
+    except (OSError, ValueError):
+        raise ProofError("--accept-unfixed is not readable JSON without repeated keys") from None
+    if (not isinstance(data, dict) or set(data) != ACCEPT_KEYS
+            or not isinstance(data["verified_by"], str) or not data["verified_by"].strip()
+            or not isinstance(data["accepted"], list) or not data["accepted"]):
+        raise ProofError("--accept-unfixed must be {\"accepted\": [...], \"verified_by\": text} "
+                         "with at least one entry")
+    ids = set()
+    for entry in data["accepted"]:
+        if (not isinstance(entry, dict) or set(entry) != ACCEPT_ENTRY_KEYS
+                or not all(isinstance(v, str) and v.strip() for v in entry.values())
+                or not CVE.fullmatch(entry["id"]) or not DATE.fullmatch(entry["reviewed_on"])):
+            raise ProofError("Every --accept-unfixed entry needs exactly id (CVE-YYYY-N), "
+                             "package, reason and reviewed_on (YYYY-MM-DD)")
+        if entry["id"] in ids:
+            raise ProofError(f"--accept-unfixed lists {entry['id']} twice")
+        ids.add(entry["id"])
+    return ids, hashlib.sha256(raw).hexdigest()
+
+
 class Planner:
-    def __init__(self, ctx, owner):
+    def __init__(self, ctx, owner, accept=None):
         self.ctx, self.owner = ctx, owner
+        self.accept_ids, self.accept_sha = accept if accept else (set(), None)
+        self.matched = set()  # accepted ids some scanned image actually carries
         journal = deploy.DeployJournal(
             ctx.state_dir / "deploy-journal.json", station=ctx.data["operator_station"],
             environment=ctx.data["environment_id"])
@@ -116,18 +163,61 @@ class Planner:
         return found[0]["imageDigest"]
 
     def scan(self, repository, digest, tag):
-        """(report hash, fixable HIGH/CRITICAL). A pending or blocking scan is a refusal."""
-        reply = self.aws("ecr", "describe-image-scan-findings", {
-            "repositoryName": repository.split("/", 1)[1], "imageId": {"imageDigest": digest}})
+        """(report hash, blocking count, accepted ids). A pending or blocking scan is a refusal.
+
+        Without an accept list any HIGH/CRITICAL blocks, from the severity counts alone. With
+        one, the individual findings are always read (every page, whatever the counts say) and
+        only an id on the list is waved through."""
+        request = {"repositoryName": repository.split("/", 1)[1],
+                   "imageId": {"imageDigest": digest}}
+        reply = self.aws("ecr", "describe-image-scan-findings", request)
         if reply.get("imageScanStatus", {}).get("status") != "COMPLETE":
             raise ProofError(f"The scan of {tag} is not COMPLETE yet")
-        counts = reply.get("imageScanFindings", {}).get("findingSeverityCounts", {})
-        blocking = counts.get("HIGH", 0) + counts.get("CRITICAL", 0)
-        if blocking:
-            raise ProofError(f"{tag} has {blocking} HIGH/CRITICAL scan findings; the release "
-                             "gate blocks it")
+        counts = reply.get("imageScanFindings", {}).get("findingSeverityCounts") or {}
+        total = counts.get("HIGH", 0) + counts.get("CRITICAL", 0)
+        accepted = []
+        if not self.accept_ids:
+            if total:
+                raise ProofError(f"{tag} has {total} HIGH/CRITICAL scan findings; the release "
+                                 "gate blocks it")
+        else:
+            # The counts are never trusted to be complete: with an accept list the findings
+            # themselves are read, every page, and must agree with the counts both ways.
+            reply = self.all_findings(request, reply, tag)
+            if reply["imageScanFindings"].get("enhancedFindings"):
+                raise ProofError(f"The scan of {tag} uses enhanced findings, which the accept "
+                                 "list cannot be matched against")
+            serious = [f for f in reply["imageScanFindings"]["findings"]
+                       if f.get("severity") in ("HIGH", "CRITICAL")]
+            if len(serious) != total:
+                raise ProofError(f"The scan of {tag} counts {total} HIGH/CRITICAL findings but "
+                                 f"lists {len(serious)}, so they cannot be matched to the "
+                                 "accept list")
+            names = {str(f.get("name")) for f in serious}
+            blocked = sorted(names - self.accept_ids)
+            if blocked:
+                shown = ", ".join(blocked[:10]) + (" ..." if len(blocked) > 10 else "")
+                raise ProofError(f"{tag} has {len(blocked)} HIGH/CRITICAL scan finding(s) not "
+                                 f"on the accept list: {shown}")
+            accepted = sorted(names)
+            self.matched.update(accepted)
         canonical = json.dumps(reply, sort_keys=True, default=str)
-        return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest(), blocking
+        return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest(), 0, accepted
+
+    def all_findings(self, request, reply, tag):
+        """The first reply with every page's findings merged in (one page is returned as is)."""
+        merged = json.loads(json.dumps(reply, default=str))
+        merged.setdefault("imageScanFindings", {}).setdefault("findings", [])
+        token, pages = merged.pop("nextToken", None), 1
+        while token:
+            pages += 1
+            if pages > 200:
+                raise ProofError(f"The scan findings of {tag} do not end")
+            page = self.aws("ecr", "describe-image-scan-findings", {**request, "nextToken": token})
+            merged["imageScanFindings"]["findings"] += page.get(
+                "imageScanFindings", {}).get("findings", [])
+            token = page.get("nextToken")
+        return merged
 
     def image_set(self, role, tags, evidence, tests_passed):
         """{bundle, image_uri, digests}: one registry-verified image set and its bundle."""
@@ -136,7 +226,7 @@ class Planner:
             image = evidence_image(evidence, name)
             repository = self.repository(output)
             digest = self.digest_of(repository, tags[name])
-            report, blocking = self.scan(repository, digest, tags[name])
+            report, blocking, accepted = self.scan(repository, digest, tags[name])
             gate = {"status": "PASS", "config_id": image["config_id"],
                     "source_sha": image["source_sha"]}
             bundle[kind] = {
@@ -146,7 +236,11 @@ class Planner:
                 "manifest_config_id": image["config_id"], "manifest_digest": digest,
                 "tests": {**gate, "passed": tests_passed},
                 "artifact_test": {**gate, "kind": "local-exact-image-checks"},
-                "scan": {**gate, "fixable_high_critical": blocking, "report_sha256": report},
+                "scan": {**gate, "blocking_high_critical": blocking,
+                         # The release CLI's validator reads this older name; it means the same.
+                         "fixable_high_critical": blocking,
+                         "accepted_high_critical": accepted,
+                         "accept_file_sha256": self.accept_sha, "report_sha256": report},
                 "runtime_kind": RUNTIME[kind],
                 "runtime_contents": image["runtime_contents"],
             }
@@ -224,7 +318,7 @@ def write_image(out, role, image, definitions, owner, target):
 
 
 def run(ctx, *, owner, baseline_evidence, good, bad=None, tests_passed, target_revision=None,
-        attest_schema_unchanged=False, out):
+        attest_schema_unchanged=False, accept_unfixed=None, out):
     """Write `out/plan.json`. `good`/`bad` are {"run_id", "evidence"}; the tags are
     `<run_id>-media|processing|worker`, the convention `deploy` pushes with."""
     if not attest_schema_unchanged:
@@ -233,7 +327,7 @@ def run(ctx, *, owner, baseline_evidence, good, bad=None, tests_passed, target_r
     if type(tests_passed) is not int or tests_passed < 1:
         raise ProofError("--tests-passed must be the number of source tests that passed")
     target = target_revision or local_head(owner)
-    planner = Planner(ctx, owner)
+    planner = Planner(ctx, owner, load_accept(accept_unfixed) if accept_unfixed else None)
     try:
         return assemble(ctx, planner, owner, baseline_evidence, good, bad, tests_passed, target,
                         Path(out))
@@ -280,7 +374,9 @@ def assemble(ctx, planner, owner, baseline_evidence, good, bad, tests_passed, ta
                         worker_definition=item.get("worker_definition"))
     return {"plan": str(plan_path), "owner": owner, "target_revision": target,
             "images": {role: image["digests"] for role, (image, _) in sets.items()},
-            "registered_definitions": len(planner.registered)}
+            "registered_definitions": len(planner.registered),
+            "accept_file_sha256": planner.accept_sha,
+            "accepted_unused": sorted(planner.accept_ids - planner.matched)}
 
 
 def deregister(ctx, plan_path):
