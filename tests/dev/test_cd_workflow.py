@@ -173,6 +173,6 @@ def test_gate_validates_inputs_before_trusting_ci(gate):
     assert gate([ci_run("success")], CD_BUDGET_USD="lots").returncode == 1
 
 
-def test_a_push_may_only_run_the_read_only_preflight(gate):
+def test_a_non_dispatch_trigger_may_only_run_the_read_only_preflight(gate):
     assert gate([], CD_EVENT="push", CD_OPERATION="preflight").returncode == 0
     assert gate([], CD_EVENT="push", CD_OPERATION="deploy").returncode == 1

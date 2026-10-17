@@ -77,9 +77,9 @@ cmd_gate() {
   [[ -z ${CD_FORECAST_USD:-} || $CD_FORECAST_USD =~ ^[0-9]+(\.[0-9]+)?$ ]] ||
     fail "forecast_usd must be a number or empty"
   if [ "$CD_EVENT" != workflow_dispatch ]; then
-    # The temporary push trigger that proves OIDC before this file reaches the default branch.
+    # Only a dispatch is expected; anything else is held to the read-only preflight.
     [ "$CD_OPERATION" = preflight ] || fail "Only a dispatch may run '$CD_OPERATION'"
-    echo "Push-triggered preflight (read-only): the CI gate applies to dispatched operations."
+    echo "Non-dispatch trigger, read-only preflight: the CI gate applies to dispatched operations."
     return 0
   fi
   local runs total running latest

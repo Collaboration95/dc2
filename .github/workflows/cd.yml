@@ -16,11 +16,6 @@ name: CD
 # repository is public, so a workflow artifact would publish it).
 
 on:
-  # TEMPORARY, removed before the pull request is ready: workflow_dispatch only exists once this
-  # file is on the default branch, so a push to the feature branch proves the OIDC role with a
-  # read-only preflight (cd.sh refuses every other operation on a push).
-  push:
-    branches: [closeout/pipeline]
   workflow_dispatch:
     inputs:
       operation:
