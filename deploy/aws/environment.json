@@ -1868,7 +1868,7 @@
             "Memory": 1536,
             "Command": [
               "uvicorn",
-              "media.main:legacy_app",
+              "legacy.media_peer.app:app",
               "--host",
               "0.0.0.0",
               "--port",
@@ -2001,7 +2001,7 @@
             "Command": [
               "python",
               "-m",
-              "media.recovery"
+              "legacy.media_peer.recovery"
             ],
             "StopTimeout": 120,
             "Environment": [
@@ -2229,7 +2229,7 @@
             "Memory": 1024,
             "Command": [
               "uvicorn",
-              "processing.main:app",
+              "legacy.processing_rq.main:app",
               "--host",
               "0.0.0.0",
               "--port",
@@ -2421,7 +2421,7 @@
             "Command": [
               "python",
               "-m",
-              "processing.recovery"
+              "legacy.processing_rq.recovery"
             ],
             "StopTimeout": 120,
             "Environment": [
@@ -2626,7 +2626,7 @@
             "Command": [
               "python",
               "-m",
-              "processing.worker",
+              "legacy.processing_rq.worker",
               "--cloud-deadline",
               "0",
               "--name",

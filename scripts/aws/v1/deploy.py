@@ -464,6 +464,8 @@ class Settings:
     station: str = "dc2-deploy-station"
     # The opt-in V2 database layout (#94); the defaults are V1's one cluster.
     database: DatabaseOptions = dataclasses.field(default_factory=DatabaseOptions)
+    # The opt-in V2 launcher (#68): renders UnattendedLaunch=true; off keeps the V1 template.
+    unattended_launch: bool = False
 
     def __post_init__(self):
         if self.profile == "default" or not operations.PROFILE_PATTERN.fullmatch(self.profile):
@@ -1056,6 +1058,7 @@ class Pipeline:
             "schema_version": 1, "environment_id": self.s.env, "account_id": self.s.account,
             "region": self.s.region, "source_cors_origin": cors, "deploy_applications": apps,
             "parameter_arns": arns, "images": images or {},
+            **({"unattended_launch": True} if self.s.unattended_launch else {}),
         })
         body = json.dumps(render_template(self.s.database), sort_keys=True,
                           separators=(",", ":"))
@@ -1583,21 +1586,26 @@ class Pipeline:
         path = self.s.state_dir / (
             "operator-config-teardown.json" if teardown else "operator-config.json")
         data = {"operator_station": self.s.station, "environment_id": self.s.env,
-                "journal": str(self.s.state_dir / "session" / "journal.json"),
-                "outputs_file": str(self.s.state_dir / "outputs.json")}
+                "journal": "session/journal.json", "outputs_file": "outputs.json"}
         sql = {} if teardown else self.sql_settings()
         counts = None if teardown else self.s.counts_file
         if sql:
             data["sql"] = sql
         elif counts:
-            data["counts_file"] = str(counts)
+            data["counts_file"] = self.state_relative(counts)
         elif self.s.assume_empty_counts or teardown:
             zero = self.s.state_dir / "attested-zero-counts.json"
             self.write_private(zero, json.dumps(dict.fromkeys(
                 ("queued", "processing", "succeeded", "failed", "abandoned", "cancelled"), 0)))
-            data["counts_file"] = str(zero)
+            data["counts_file"] = self.state_relative(zero)
         self.write_private(path, json.dumps(data, indent=2))
         return path
+
+    def state_relative(self, path):
+        """Relative to the state directory when inside it: the state is read on other machines."""
+        path = Path(path)
+        return str(path.relative_to(self.s.state_dir)) if path.is_relative_to(
+            self.s.state_dir) else str(path)
 
     def run_session(self, action, *extra, teardown=False):
         ops = self.write_ops_config(teardown=teardown)
@@ -2402,6 +2410,9 @@ def build_parser():
                    help="idle seconds before Aurora pauses (300 to 86400; V1 uses 300)")
     p.add_argument("--database-max-capacity", type=float, default=2,
                    help="ACU ceiling of each cluster (1 to 256 in steps of 0.5; V1 uses 2)")
+    p.add_argument("--unattended-launch", action="store_true",
+                   help="V2 (#68): deploy the opt-in launcher (UnattendedLaunch=true); it stays "
+                        "off until `session open --unattended`")
     p.add_argument("--station", default="dc2-deploy-station")
     p.add_argument("--plan-detail", choices=["mutating", "all"], default="mutating")
     p.add_argument("--json", action="store_true", help="include the full plan in JSON")
@@ -2465,7 +2476,7 @@ def main(argv=None, *, environ=None, transport=None, docker=None, http=None, ses
             skip_final_snapshot=args.skip_final_snapshot, confirm_run_id=args.confirm_run_id,
             seed_email=args.seed_email, counts_file=args.counts_file,
             assume_empty_counts=args.assume_empty_counts or dry, sql_config=args.sql_config,
-            station=args.station, database=database)
+            station=args.station, database=database, unattended_launch=args.unattended_launch)
         journal = DeployJournal(state / "deploy-journal.json", station=settings.station,
                                 environment=settings.env)
         if args.action == "status":

@@ -1,0 +1,91 @@
+{
+  "extra_top_level_field": {
+    "why": "a newer producer may add an envelope field; the consumer ignores it",
+    "equivalent_to": "submit",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      },
+      "media_bytes": "AAAA"
+    }
+  },
+  "extra_source_field": {
+    "why": "a newer producer may add a source field; the consumer ignores it, even one that looks like a URL",
+    "equivalent_to": "submit",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4",
+        "url": "x"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "extra_envelope_field_on_a_result": {
+    "why": "the same tolerance applies to results, which Media consumes",
+    "equivalent_to": "result_done",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000109",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": 3,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "status": "done",
+        "outputs": [
+          {
+            "kind": "primary",
+            "object_key": "jobs/00000000-0000-4000-8000-000000000021/00000000-0000-4000-8000-000000000031/output.mp4",
+            "media_type": "video/mp4",
+            "size_bytes": 2048,
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        "error": null,
+        "attempt_number": 1
+      },
+      "trace_id": "0af7651916cd43dd8448eb211c80319c"
+    }
+  }
+}

@@ -15,13 +15,13 @@ from media.services.intake import assert_adoptable, discard_stage, stage
 
 
 async def command(session, asset, kind, *, message_id=None, source=None):
-    from contracts.v1 import Envelope
+    from contracts.v1 import EMIT_VERSION, Envelope
     from media.messaging import stage_command
 
     current = await session.get(ProcessingProjection, asset.id)
     envelope = Envelope.from_dict(
         {
-            "schema_version": 1,
+            "schema_version": EMIT_VERSION,
             "message_id": str(message_id or uuid4()),
             "kind": kind,
             "owner_id": str(asset.owner_id),

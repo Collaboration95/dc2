@@ -4,9 +4,9 @@ import asyncio
 import logging
 from uuid import UUID
 
-from processing.config import get_settings
+from legacy.processing_rq.config import get_settings
 
-TASK = "processing.worker.tasks.process_attempt"
+TASK = "legacy.processing_rq.tasks.process_attempt"
 logger = logging.getLogger(__name__)
 
 

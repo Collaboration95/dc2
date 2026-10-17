@@ -7,9 +7,9 @@ from uuid import uuid4
 import pytest
 from starlette.datastructures import UploadFile
 
+from legacy.media_peer.schemas import ProcessingJob
 from media.config import Settings
 from media.models import Asset, User, now
-from media.schemas.peer import ProcessingJob
 
 
 @asynccontextmanager

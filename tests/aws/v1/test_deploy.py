@@ -16,7 +16,7 @@ from urllib.parse import urlsplit
 import pytest
 
 from scripts.aws.transport import OperationError
-from scripts.aws.v1 import deploy, deploy_sim
+from scripts.aws.v1 import deploy, deploy_sim, operations
 from scripts.aws.v1 import frontend as spa
 from scripts.aws.v1.deploy import (
     DEPLOY_STEPS,
@@ -568,6 +568,24 @@ def test_foundation_creates_closed_infrastructure_and_records_what_it_made(rig):
     request = [c for c in rig.ops("create-change-set") if c[2]["StackName"] == rig.s.env][0][2]
     parameters = {p["ParameterKey"]: p["ParameterValue"] for p in request["Parameters"]}
     assert parameters["DeployApplications"] == "false"
+
+
+def applications_parameters(rig):
+    rig.deploy(stop_after="applications")
+    update = [c for c in rig.ops("create-change-set") if c[2]["ChangeSetType"] == "UPDATE"][0][2]
+    return {p["ParameterKey"]: p["ParameterValue"] for p in update["Parameters"]}
+
+
+def test_the_unattended_launcher_is_off_unless_the_deploy_asks_for_it(tmp_path):
+    assert "UnattendedLaunch" not in applications_parameters(Rig(tmp_path))
+
+
+def test_unattended_launch_flag_renders_the_stack_parameter(tmp_path):
+    rig = Rig(tmp_path, unattended_launch=True)
+    assert applications_parameters(rig)["UnattendedLaunch"] == "true"
+    parsed = deploy.build_parser().parse_args(["deploy", *ARGS, "--run-id", "t1",
+                                               "--unattended-launch"])
+    assert parsed.unattended_launch is True
 
 
 # ---- images ----------------------
@@ -1145,7 +1163,26 @@ def test_the_operator_config_for_the_session_cli_is_private_and_nonsecret(rig):
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
     assert set(data) == {"operator_station", "environment_id", "journal", "outputs_file",
                          "counts_file"}
-    assert stat.S_IMODE(Path(data["counts_file"]).stat().st_mode) == 0o600
+    # Relative to the config, so the state works wherever it is synced (CD runner, laptop).
+    assert not any(Path(data[key]).is_absolute() for key in ("journal", "outputs_file",
+                                                              "counts_file"))
+    loaded = operations.load_operator_config(path)[0]
+    assert stat.S_IMODE(Path(loaded["counts_file"]).stat().st_mode) == 0o600
+
+
+def test_a_state_directory_copied_elsewhere_loads_its_operator_config_from_there(rig, tmp_path):
+    """The operator handoff: runner state synced to a laptop must not point back at the runner."""
+    rig.deploy(stop_after="migrations")
+    rig.pipeline().write_ops_config()
+    here = str(rig.s.state_dir).encode()
+    leaked = [p.name for p in rig.s.state_dir.rglob("*") if p.is_file() and here in p.read_bytes()]
+    assert leaked == [], f"files that name the runner's state path: {leaked}"
+    moved = tmp_path / "laptop" / "state"
+    shutil.copytree(rig.s.state_dir, moved)
+    data = operations.load_operator_config(moved / "operator-config.json")[0]
+    for key in ("journal", "outputs_file", "counts_file"):
+        assert Path(data[key]).resolve().is_relative_to(moved.resolve()), key
+        assert str(rig.s.state_dir) not in data[key]
 
 
 def test_seed_registers_through_the_public_endpoint_and_keeps_the_password_private(rig):

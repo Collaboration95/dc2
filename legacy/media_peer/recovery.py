@@ -9,11 +9,11 @@ import httpx
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from legacy.media_peer import lifecycle
+from legacy.media_peer.processing_client import ProcessingClient
 from media.config import get_settings
 from media.errors import MediaError
 from media.models import Asset, CleanupIntent, RetryIntent, StagedObject, now
-from media.services import lifecycle
-from media.services.processing_client import ProcessingClient
 from media.services.storage import Storage
 
 logger = logging.getLogger(__name__)

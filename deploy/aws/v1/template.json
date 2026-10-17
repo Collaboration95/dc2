@@ -3848,15 +3848,6 @@
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
             "AWS_RETRY_MODE": "standard",
             "AWS_MAX_ATTEMPTS": "3",
-            "PROCESSING_COMMANDS_QUEUE_URL": {
-              "Ref": "ProcessingCommandsQueue"
-            },
-            "PROCESSING_WORK_QUEUE_URL": {
-              "Ref": "ProcessingWorkQueue"
-            },
-            "MEDIA_RESULTS_QUEUE_URL": {
-              "Ref": "MediaResultsQueue"
-            },
             "DC2_RUNTIME": "v1",
             "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "MEDIA_POSTGRES_DSN_PARAMETER_ARN": {
@@ -3985,15 +3976,6 @@
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
             "AWS_RETRY_MODE": "standard",
             "AWS_MAX_ATTEMPTS": "3",
-            "PROCESSING_COMMANDS_QUEUE_URL": {
-              "Ref": "ProcessingCommandsQueue"
-            },
-            "PROCESSING_WORK_QUEUE_URL": {
-              "Ref": "ProcessingWorkQueue"
-            },
-            "MEDIA_RESULTS_QUEUE_URL": {
-              "Ref": "MediaResultsQueue"
-            },
             "DC2_RUNTIME": "v1",
             "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "MEDIA_POSTGRES_DSN_PARAMETER_ARN": {
@@ -4122,15 +4104,6 @@
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
             "AWS_RETRY_MODE": "standard",
             "AWS_MAX_ATTEMPTS": "3",
-            "PROCESSING_COMMANDS_QUEUE_URL": {
-              "Ref": "ProcessingCommandsQueue"
-            },
-            "PROCESSING_WORK_QUEUE_URL": {
-              "Ref": "ProcessingWorkQueue"
-            },
-            "MEDIA_RESULTS_QUEUE_URL": {
-              "Ref": "MediaResultsQueue"
-            },
             "DC2_RUNTIME": "v1",
             "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_POSTGRES_DSN_PARAMETER_ARN": {
@@ -4266,17 +4239,14 @@
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
             "AWS_RETRY_MODE": "standard",
             "AWS_MAX_ATTEMPTS": "3",
-            "PROCESSING_COMMANDS_QUEUE_URL": {
-              "Ref": "ProcessingCommandsQueue"
-            },
+            "DC2_RUNTIME": "v1",
+            "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_WORK_QUEUE_URL": {
               "Ref": "ProcessingWorkQueue"
             },
             "MEDIA_RESULTS_QUEUE_URL": {
               "Ref": "MediaResultsQueue"
             },
-            "DC2_RUNTIME": "v1",
-            "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_POSTGRES_DSN_PARAMETER_ARN": {
               "Ref": "ProcessingRuntimeDsnParameterArn"
             },
@@ -4410,15 +4380,6 @@
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
             "AWS_RETRY_MODE": "standard",
             "AWS_MAX_ATTEMPTS": "3",
-            "PROCESSING_COMMANDS_QUEUE_URL": {
-              "Ref": "ProcessingCommandsQueue"
-            },
-            "PROCESSING_WORK_QUEUE_URL": {
-              "Ref": "ProcessingWorkQueue"
-            },
-            "MEDIA_RESULTS_QUEUE_URL": {
-              "Ref": "MediaResultsQueue"
-            },
             "DC2_RUNTIME": "v1",
             "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "MEDIA_POSTGRES_DSN_PARAMETER_ARN": {
@@ -4544,17 +4505,11 @@
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
             "AWS_RETRY_MODE": "standard",
             "AWS_MAX_ATTEMPTS": "3",
+            "DC2_RUNTIME": "v1",
+            "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_COMMANDS_QUEUE_URL": {
               "Ref": "ProcessingCommandsQueue"
             },
-            "PROCESSING_WORK_QUEUE_URL": {
-              "Ref": "ProcessingWorkQueue"
-            },
-            "MEDIA_RESULTS_QUEUE_URL": {
-              "Ref": "MediaResultsQueue"
-            },
-            "DC2_RUNTIME": "v1",
-            "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "MEDIA_POSTGRES_DSN_PARAMETER_ARN": {
               "Ref": "MediaRuntimeDsnParameterArn"
             },
@@ -4678,17 +4633,14 @@
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
             "AWS_RETRY_MODE": "standard",
             "AWS_MAX_ATTEMPTS": "3",
-            "PROCESSING_COMMANDS_QUEUE_URL": {
-              "Ref": "ProcessingCommandsQueue"
-            },
+            "DC2_RUNTIME": "v1",
+            "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_WORK_QUEUE_URL": {
               "Ref": "ProcessingWorkQueue"
             },
             "MEDIA_RESULTS_QUEUE_URL": {
               "Ref": "MediaResultsQueue"
             },
-            "DC2_RUNTIME": "v1",
-            "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_POSTGRES_DSN_PARAMETER_ARN": {
               "Ref": "ProcessingRuntimeDsnParameterArn"
             },
@@ -4822,17 +4774,14 @@
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
             "AWS_RETRY_MODE": "standard",
             "AWS_MAX_ATTEMPTS": "3",
-            "PROCESSING_COMMANDS_QUEUE_URL": {
-              "Ref": "ProcessingCommandsQueue"
-            },
+            "DC2_RUNTIME": "v1",
+            "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_WORK_QUEUE_URL": {
               "Ref": "ProcessingWorkQueue"
             },
             "MEDIA_RESULTS_QUEUE_URL": {
               "Ref": "MediaResultsQueue"
             },
-            "DC2_RUNTIME": "v1",
-            "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_POSTGRES_DSN_PARAMETER_ARN": {
               "Ref": "ProcessingRuntimeDsnParameterArn"
             },
@@ -4966,17 +4915,14 @@
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
             "AWS_RETRY_MODE": "standard",
             "AWS_MAX_ATTEMPTS": "3",
-            "PROCESSING_COMMANDS_QUEUE_URL": {
-              "Ref": "ProcessingCommandsQueue"
-            },
+            "DC2_RUNTIME": "v1",
+            "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_WORK_QUEUE_URL": {
               "Ref": "ProcessingWorkQueue"
             },
             "MEDIA_RESULTS_QUEUE_URL": {
               "Ref": "MediaResultsQueue"
             },
-            "DC2_RUNTIME": "v1",
-            "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_POSTGRES_DSN_PARAMETER_ARN": {
               "Ref": "ProcessingRuntimeDsnParameterArn"
             },
@@ -5110,17 +5056,11 @@
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
             "AWS_RETRY_MODE": "standard",
             "AWS_MAX_ATTEMPTS": "3",
-            "PROCESSING_COMMANDS_QUEUE_URL": {
-              "Ref": "ProcessingCommandsQueue"
-            },
+            "DC2_RUNTIME": "v1",
+            "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_WORK_QUEUE_URL": {
               "Ref": "ProcessingWorkQueue"
             },
-            "MEDIA_RESULTS_QUEUE_URL": {
-              "Ref": "MediaResultsQueue"
-            },
-            "DC2_RUNTIME": "v1",
-            "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_POSTGRES_DSN_PARAMETER_ARN": {
               "Ref": "ProcessingRuntimeDsnParameterArn"
             },
@@ -5271,15 +5211,6 @@
             "AWS_USE_DUALSTACK_ENDPOINT": "true",
             "AWS_RETRY_MODE": "standard",
             "AWS_MAX_ATTEMPTS": "3",
-            "PROCESSING_COMMANDS_QUEUE_URL": {
-              "Ref": "ProcessingCommandsQueue"
-            },
-            "PROCESSING_WORK_QUEUE_URL": {
-              "Ref": "ProcessingWorkQueue"
-            },
-            "MEDIA_RESULTS_QUEUE_URL": {
-              "Ref": "MediaResultsQueue"
-            },
             "DC2_RUNTIME": "v1",
             "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
             "PROCESSING_POSTGRES_DSN_PARAMETER_ARN": {
@@ -5438,6 +5369,657 @@
         "Enabled": false
       },
       "Condition": "ShortEncodes"
+    },
+    "ProcessingCommandsDlqAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-ProcessingCommands-dlq-not-empty"
+        },
+        "AlarmDescription": "Processing: a message exhausted its receives and sits in the ProcessingCommands dead-letter queue. Inspect it, then redrive or purge (docs/execution/aws/v1/dlq-runbook.md).",
+        "Namespace": "AWS/SQS",
+        "MetricName": "ApproximateNumberOfMessagesVisible",
+        "Dimensions": [
+          {
+            "Name": "QueueName",
+            "Value": {
+              "Fn::GetAtt": [
+                "ProcessingCommandsDlq",
+                "QueueName"
+              ]
+            }
+          }
+        ],
+        "Statistic": "Maximum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "processing"
+          }
+        ]
+      }
+    },
+    "ProcessingWorkDlqAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-ProcessingWork-dlq-not-empty"
+        },
+        "AlarmDescription": "Processing: a message exhausted its receives and sits in the ProcessingWork dead-letter queue. Inspect it, then redrive or purge (docs/execution/aws/v1/dlq-runbook.md).",
+        "Namespace": "AWS/SQS",
+        "MetricName": "ApproximateNumberOfMessagesVisible",
+        "Dimensions": [
+          {
+            "Name": "QueueName",
+            "Value": {
+              "Fn::GetAtt": [
+                "ProcessingWorkDlq",
+                "QueueName"
+              ]
+            }
+          }
+        ],
+        "Statistic": "Maximum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "processing"
+          }
+        ]
+      }
+    },
+    "MediaResultsDlqAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-MediaResults-dlq-not-empty"
+        },
+        "AlarmDescription": "Media: a message exhausted its receives and sits in the MediaResults dead-letter queue. Inspect it, then redrive or purge (docs/execution/aws/v1/dlq-runbook.md).",
+        "Namespace": "AWS/SQS",
+        "MetricName": "ApproximateNumberOfMessagesVisible",
+        "Dimensions": [
+          {
+            "Name": "QueueName",
+            "Value": {
+              "Fn::GetAtt": [
+                "MediaResultsDlq",
+                "QueueName"
+              ]
+            }
+          }
+        ],
+        "Statistic": "Maximum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "media"
+          }
+        ]
+      }
+    },
+    "ProcessingShortWorkDlqAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-ProcessingShortWork-dlq-not-empty"
+        },
+        "AlarmDescription": "Processing: a message exhausted its receives and sits in the ProcessingShortWork dead-letter queue. Inspect it, then redrive or purge (docs/execution/aws/v1/dlq-runbook.md).",
+        "Namespace": "AWS/SQS",
+        "MetricName": "ApproximateNumberOfMessagesVisible",
+        "Dimensions": [
+          {
+            "Name": "QueueName",
+            "Value": {
+              "Fn::GetAtt": [
+                "ProcessingShortWorkDlq",
+                "QueueName"
+              ]
+            }
+          }
+        ],
+        "Statistic": "Maximum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "processing"
+          }
+        ]
+      },
+      "Condition": "ShortEncodes"
+    },
+    "MediaApiErrorsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-MediaApi-errors"
+        },
+        "AlarmDescription": "Media: the MediaApi function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Errors",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "MediaApi"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "media"
+          }
+        ]
+      },
+      "Condition": "Applications"
+    },
+    "MediaAuthorizerErrorsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-MediaAuthorizer-errors"
+        },
+        "AlarmDescription": "Media: the MediaAuthorizer function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Errors",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "MediaAuthorizer"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "media"
+          }
+        ]
+      },
+      "Condition": "Applications"
+    },
+    "ProcessingApiErrorsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-ProcessingApi-errors"
+        },
+        "AlarmDescription": "Processing: the ProcessingApi function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Errors",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "ProcessingApi"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "processing"
+          }
+        ]
+      },
+      "Condition": "Applications"
+    },
+    "ProcessingCommandsErrorsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-ProcessingCommands-errors"
+        },
+        "AlarmDescription": "Processing: the ProcessingCommands function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Errors",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "ProcessingCommands"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "processing"
+          }
+        ]
+      },
+      "Condition": "Applications"
+    },
+    "MediaResultsErrorsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-MediaResults-errors"
+        },
+        "AlarmDescription": "Media: the MediaResults function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Errors",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "MediaResults"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "media"
+          }
+        ]
+      },
+      "Condition": "Applications"
+    },
+    "MediaRepairErrorsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-MediaRepair-errors"
+        },
+        "AlarmDescription": "Media: the MediaRepair function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Errors",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "MediaRepair"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "media"
+          }
+        ]
+      },
+      "Condition": "Applications"
+    },
+    "ProcessingRepairErrorsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-ProcessingRepair-errors"
+        },
+        "AlarmDescription": "Processing: the ProcessingRepair function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Errors",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "ProcessingRepair"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "processing"
+          }
+        ]
+      },
+      "Condition": "Applications"
+    },
+    "ProcessingEcsEventsErrorsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-ProcessingEcsEvents-errors"
+        },
+        "AlarmDescription": "Processing: the ProcessingEcsEvents function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Errors",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "ProcessingEcsEvents"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "processing"
+          }
+        ]
+      },
+      "Condition": "Applications"
+    },
+    "ProcessingS3EventsErrorsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-ProcessingS3Events-errors"
+        },
+        "AlarmDescription": "Processing: the ProcessingS3Events function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Errors",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "ProcessingS3Events"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "processing"
+          }
+        ]
+      },
+      "Condition": "Applications"
+    },
+    "ProcessingLauncherErrorsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-ProcessingLauncher-errors"
+        },
+        "AlarmDescription": "Processing: the ProcessingLauncher function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Errors",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "ProcessingLauncher"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "processing"
+          }
+        ]
+      },
+      "Condition": "Unattended"
+    },
+    "ProcessingShortEncoderErrorsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": {
+          "Fn::Sub": "${EnvironmentId}-ProcessingShortEncoder-errors"
+        },
+        "AlarmDescription": "Processing: the ProcessingShortEncoder function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Errors",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "ProcessingShortEncoder"
+            }
+          }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          },
+          {
+            "Key": "Service",
+            "Value": "processing"
+          }
+        ]
+      },
+      "Condition": "ShortEncodes"
+    },
+    "ServicesDashboard": {
+      "Type": "AWS::CloudWatch::Dashboard",
+      "Properties": {
+        "DashboardName": {
+          "Fn::Sub": "${EnvironmentId}-v1-services"
+        },
+        "DashboardBody": {
+          "Fn::Sub": "{\"widgets\":[{\"type\":\"text\",\"x\":0,\"y\":0,\"width\":24,\"height\":1,\"properties\":{\"markdown\":\"# Media Management\"}},{\"type\":\"metric\",\"x\":0,\"y\":1,\"width\":8,\"height\":6,\"properties\":{\"title\":\"Media Management: Invocations\",\"region\":\"${AWS::Region}\",\"view\":\"timeSeries\",\"stat\":\"Sum\",\"period\":300,\"metrics\":[[\"AWS/Lambda\",\"Invocations\",\"FunctionName\",\"${MediaApi}\",{\"label\":\"MediaApi\"}],[\"AWS/Lambda\",\"Invocations\",\"FunctionName\",\"${MediaAuthorizer}\",{\"label\":\"MediaAuthorizer\"}],[\"AWS/Lambda\",\"Invocations\",\"FunctionName\",\"${MediaResults}\",{\"label\":\"MediaResults\"}],[\"AWS/Lambda\",\"Invocations\",\"FunctionName\",\"${MediaRepair}\",{\"label\":\"MediaRepair\"}]]}},{\"type\":\"metric\",\"x\":8,\"y\":1,\"width\":8,\"height\":6,\"properties\":{\"title\":\"Media Management: Errors\",\"region\":\"${AWS::Region}\",\"view\":\"timeSeries\",\"stat\":\"Sum\",\"period\":300,\"metrics\":[[\"AWS/Lambda\",\"Errors\",\"FunctionName\",\"${MediaApi}\",{\"label\":\"MediaApi\"}],[\"AWS/Lambda\",\"Errors\",\"FunctionName\",\"${MediaAuthorizer}\",{\"label\":\"MediaAuthorizer\"}],[\"AWS/Lambda\",\"Errors\",\"FunctionName\",\"${MediaResults}\",{\"label\":\"MediaResults\"}],[\"AWS/Lambda\",\"Errors\",\"FunctionName\",\"${MediaRepair}\",{\"label\":\"MediaRepair\"}]]}},{\"type\":\"metric\",\"x\":16,\"y\":1,\"width\":8,\"height\":6,\"properties\":{\"title\":\"Media Management: Duration p90 (ms)\",\"region\":\"${AWS::Region}\",\"view\":\"timeSeries\",\"stat\":\"p90\",\"period\":300,\"metrics\":[[\"AWS/Lambda\",\"Duration\",\"FunctionName\",\"${MediaApi}\",{\"label\":\"MediaApi\"}],[\"AWS/Lambda\",\"Duration\",\"FunctionName\",\"${MediaAuthorizer}\",{\"label\":\"MediaAuthorizer\"}],[\"AWS/Lambda\",\"Duration\",\"FunctionName\",\"${MediaResults}\",{\"label\":\"MediaResults\"}],[\"AWS/Lambda\",\"Duration\",\"FunctionName\",\"${MediaRepair}\",{\"label\":\"MediaRepair\"}]]}},{\"type\":\"metric\",\"x\":0,\"y\":7,\"width\":8,\"height\":6,\"properties\":{\"title\":\"Media Management: Queue depth\",\"region\":\"${AWS::Region}\",\"view\":\"timeSeries\",\"stat\":\"Maximum\",\"period\":300,\"metrics\":[[\"AWS/SQS\",\"ApproximateNumberOfMessagesVisible\",\"QueueName\",\"${MediaResultsQueue.QueueName}\",{\"label\":\"MediaResults\"}]]}},{\"type\":\"metric\",\"x\":8,\"y\":7,\"width\":8,\"height\":6,\"properties\":{\"title\":\"Media Management: Oldest message age (s)\",\"region\":\"${AWS::Region}\",\"view\":\"timeSeries\",\"stat\":\"Maximum\",\"period\":300,\"metrics\":[[\"AWS/SQS\",\"ApproximateAgeOfOldestMessage\",\"QueueName\",\"${MediaResultsQueue.QueueName}\",{\"label\":\"MediaResults\"}]]}},{\"type\":\"metric\",\"x\":16,\"y\":7,\"width\":8,\"height\":6,\"properties\":{\"title\":\"Media Management: Dead-letter depth (alarm above 0)\",\"region\":\"${AWS::Region}\",\"view\":\"timeSeries\",\"stat\":\"Maximum\",\"period\":300,\"metrics\":[[\"AWS/SQS\",\"ApproximateNumberOfMessagesVisible\",\"QueueName\",\"${MediaResultsDlq.QueueName}\",{\"label\":\"MediaResults DLQ\"}]]}},{\"type\":\"text\",\"x\":0,\"y\":13,\"width\":24,\"height\":1,\"properties\":{\"markdown\":\"# Processing\"}},{\"type\":\"metric\",\"x\":0,\"y\":14,\"width\":8,\"height\":6,\"properties\":{\"title\":\"Processing: Invocations\",\"region\":\"${AWS::Region}\",\"view\":\"timeSeries\",\"stat\":\"Sum\",\"period\":300,\"metrics\":[[\"AWS/Lambda\",\"Invocations\",\"FunctionName\",\"${ProcessingApi}\",{\"label\":\"ProcessingApi\"}],[\"AWS/Lambda\",\"Invocations\",\"FunctionName\",\"${ProcessingCommands}\",{\"label\":\"ProcessingCommands\"}],[\"AWS/Lambda\",\"Invocations\",\"FunctionName\",\"${ProcessingRepair}\",{\"label\":\"ProcessingRepair\"}],[\"AWS/Lambda\",\"Invocations\",\"FunctionName\",\"${ProcessingEcsEvents}\",{\"label\":\"ProcessingEcsEvents\"}],[\"AWS/Lambda\",\"Invocations\",\"FunctionName\",\"${ProcessingS3Events}\",{\"label\":\"ProcessingS3Events\"}]]}},{\"type\":\"metric\",\"x\":8,\"y\":14,\"width\":8,\"height\":6,\"properties\":{\"title\":\"Processing: Errors\",\"region\":\"${AWS::Region}\",\"view\":\"timeSeries\",\"stat\":\"Sum\",\"period\":300,\"metrics\":[[\"AWS/Lambda\",\"Errors\",\"FunctionName\",\"${ProcessingApi}\",{\"label\":\"ProcessingApi\"}],[\"AWS/Lambda\",\"Errors\",\"FunctionName\",\"${ProcessingCommands}\",{\"label\":\"ProcessingCommands\"}],[\"AWS/Lambda\",\"Errors\",\"FunctionName\",\"${ProcessingRepair}\",{\"label\":\"ProcessingRepair\"}],[\"AWS/Lambda\",\"Errors\",\"FunctionName\",\"${ProcessingEcsEvents}\",{\"label\":\"ProcessingEcsEvents\"}],[\"AWS/Lambda\",\"Errors\",\"FunctionName\",\"${ProcessingS3Events}\",{\"label\":\"ProcessingS3Events\"}]]}},{\"type\":\"metric\",\"x\":16,\"y\":14,\"width\":8,\"height\":6,\"properties\":{\"title\":\"Processing: Duration p90 (ms)\",\"region\":\"${AWS::Region}\",\"view\":\"timeSeries\",\"stat\":\"p90\",\"period\":300,\"metrics\":[[\"AWS/Lambda\",\"Duration\",\"FunctionName\",\"${ProcessingApi}\",{\"label\":\"ProcessingApi\"}],[\"AWS/Lambda\",\"Duration\",\"FunctionName\",\"${ProcessingCommands}\",{\"label\":\"ProcessingCommands\"}],[\"AWS/Lambda\",\"Duration\",\"FunctionName\",\"${ProcessingRepair}\",{\"label\":\"ProcessingRepair\"}],[\"AWS/Lambda\",\"Duration\",\"FunctionName\",\"${ProcessingEcsEvents}\",{\"label\":\"ProcessingEcsEvents\"}],[\"AWS/Lambda\",\"Duration\",\"FunctionName\",\"${ProcessingS3Events}\",{\"label\":\"ProcessingS3Events\"}]]}},{\"type\":\"metric\",\"x\":0,\"y\":20,\"width\":6,\"height\":6,\"properties\":{\"title\":\"Processing: Queue depth\",\"region\":\"${AWS::Region}\",\"view\":\"timeSeries\",\"stat\":\"Maximum\",\"period\":300,\"metrics\":[[\"AWS/SQS\",\"ApproximateNumberOfMessagesVisible\",\"QueueName\",\"${ProcessingCommandsQueue.QueueName}\",{\"label\":\"ProcessingCommands\"}],[\"AWS/SQS\",\"ApproximateNumberOfMessagesVisible\",\"QueueName\",\"${ProcessingWorkQueue.QueueName}\",{\"label\":\"ProcessingWork\"}]]}},{\"type\":\"metric\",\"x\":6,\"y\":20,\"width\":6,\"height\":6,\"properties\":{\"title\":\"Processing: Oldest message age (s)\",\"region\":\"${AWS::Region}\",\"view\":\"timeSeries\",\"stat\":\"Maximum\",\"period\":300,\"metrics\":[[\"AWS/SQS\",\"ApproximateAgeOfOldestMessage\",\"QueueName\",\"${ProcessingCommandsQueue.QueueName}\",{\"label\":\"ProcessingCommands\"}],[\"AWS/SQS\",\"ApproximateAgeOfOldestMessage\",\"QueueName\",\"${ProcessingWorkQueue.QueueName}\",{\"label\":\"ProcessingWork\"}]]}},{\"type\":\"metric\",\"x\":12,\"y\":20,\"width\":6,\"height\":6,\"properties\":{\"title\":\"Processing: Dead-letter depth (alarm above 0)\",\"region\":\"${AWS::Region}\",\"view\":\"timeSeries\",\"stat\":\"Maximum\",\"period\":300,\"metrics\":[[\"AWS/SQS\",\"ApproximateNumberOfMessagesVisible\",\"QueueName\",\"${ProcessingCommandsDlq.QueueName}\",{\"label\":\"ProcessingCommands DLQ\"}],[\"AWS/SQS\",\"ApproximateNumberOfMessagesVisible\",\"QueueName\",\"${ProcessingWorkDlq.QueueName}\",{\"label\":\"ProcessingWork DLQ\"}]]}},{\"type\":\"metric\",\"x\":18,\"y\":20,\"width\":6,\"height\":6,\"properties\":{\"title\":\"Processing: Encodes in flight (running encoders)\",\"region\":\"${AWS::Region}\",\"view\":\"timeSeries\",\"stat\":\"Maximum\",\"period\":300,\"metrics\":[[\"AWS/SQS\",\"ApproximateNumberOfMessagesNotVisible\",\"QueueName\",\"${ProcessingWorkQueue.QueueName}\",{\"label\":\"ProcessingWork\"}]]}}]}"
+        }
+      },
+      "Condition": "Applications"
     },
     "HttpApi": {
       "Type": "AWS::ApiGatewayV2::Api",
@@ -6431,24 +7013,6 @@
                 "Value": "3"
               },
               {
-                "Name": "PROCESSING_COMMANDS_QUEUE_URL",
-                "Value": {
-                  "Ref": "ProcessingCommandsQueue"
-                }
-              },
-              {
-                "Name": "PROCESSING_WORK_QUEUE_URL",
-                "Value": {
-                  "Ref": "ProcessingWorkQueue"
-                }
-              },
-              {
-                "Name": "MEDIA_RESULTS_QUEUE_URL",
-                "Value": {
-                  "Ref": "MediaResultsQueue"
-                }
-              },
-              {
                 "Name": "DC2_RUNTIME",
                 "Value": "v1"
               },
@@ -6684,24 +7248,6 @@
               {
                 "Name": "AWS_MAX_ATTEMPTS",
                 "Value": "3"
-              },
-              {
-                "Name": "PROCESSING_COMMANDS_QUEUE_URL",
-                "Value": {
-                  "Ref": "ProcessingCommandsQueue"
-                }
-              },
-              {
-                "Name": "PROCESSING_WORK_QUEUE_URL",
-                "Value": {
-                  "Ref": "ProcessingWorkQueue"
-                }
-              },
-              {
-                "Name": "MEDIA_RESULTS_QUEUE_URL",
-                "Value": {
-                  "Ref": "MediaResultsQueue"
-                }
               },
               {
                 "Name": "DC2_RUNTIME",
@@ -6941,24 +7487,6 @@
               {
                 "Name": "AWS_MAX_ATTEMPTS",
                 "Value": "3"
-              },
-              {
-                "Name": "PROCESSING_COMMANDS_QUEUE_URL",
-                "Value": {
-                  "Ref": "ProcessingCommandsQueue"
-                }
-              },
-              {
-                "Name": "PROCESSING_WORK_QUEUE_URL",
-                "Value": {
-                  "Ref": "ProcessingWorkQueue"
-                }
-              },
-              {
-                "Name": "MEDIA_RESULTS_QUEUE_URL",
-                "Value": {
-                  "Ref": "MediaResultsQueue"
-                }
               },
               {
                 "Name": "DC2_RUNTIME",
@@ -7680,6 +8208,12 @@
       "Condition": "Unattended",
       "Value": {
         "Ref": "ProcessingLauncherRule"
+      }
+    },
+    "ServicesDashboardName": {
+      "Condition": "Applications",
+      "Value": {
+        "Fn::Sub": "${EnvironmentId}-v1-services"
       }
     },
     "HttpApiId": {

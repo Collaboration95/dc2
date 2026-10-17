@@ -87,8 +87,8 @@ async def postgres(asset_ids):
 
 @pytest_asyncio.fixture
 async def application(postgres):
+    from legacy.processing_rq.main import create_app
     from processing.config import get_settings
-    from processing.main import create_app
 
     get_settings.cache_clear()
     app = create_app()
@@ -288,8 +288,8 @@ async def test_source_asset_must_match_submission_asset(client, postgres, submis
 async def test_new_app_and_session_pool_read_and_replay_durable_job(
     client, application, postgres, headers, submission
 ):
+    from legacy.processing_rq.main import create_app
     from processing.config import get_settings
-    from processing.main import create_app
 
     created = await client.post(JOBS, json=submission)
     assert created.status_code == 201, created.text

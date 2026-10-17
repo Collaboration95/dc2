@@ -49,7 +49,7 @@ browser = ["playwright==1.63.0"]
 [tool.setuptools.packages.find]
 include = [
   "app*", "processing*", "media*", "media_engine*", "publisher*",
-  "contracts*", "delivery*", "runtime_support*",
+  "contracts*", "delivery*", "runtime_support*", "legacy*",
 ]
 
 [tool.pytest.ini_options]

@@ -101,6 +101,7 @@ def submit(ctx, api, path, intent, save):
             "job_id"):
         raise ProofError(f"Finalize failed with HTTP {final.status}")
     timing.setdefault("finalize_ms", final.ms)
+    timing.setdefault("finalize_status", final.status)
     if intent.get("job_id") not in {None, accepted["job_id"]}:
         raise ProofError("Finalize replay named a different job than the one recorded")
     intent["job_id"] = accepted["job_id"]

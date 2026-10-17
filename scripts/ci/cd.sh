@@ -21,7 +21,8 @@ CD_PROFILE=dc2-gha
 # for a principal nobody named), so the OIDC session lives in a named profile and the
 # environment is cleaned in every step.
 unset AWS_PROFILE AWS_DEFAULT_PROFILE AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
-# Constant across runs: operator-config.json records absolute paths into the state directory.
+# Any path works for the tooling (operator-config.json names its files relative to itself); a
+# fixed one keeps the runner and the laptop handoff in the runbook easy to compare.
 CD_STATE="$HOME/dc2-state/$CD_RUN_ID"
 CD_OUT="${RUNNER_TEMP:-/tmp}/cd-out"
 PUBLIC="$CD_OUT/public"
@@ -37,6 +38,11 @@ fail() {
 
 summary() { # append a markdown line to the run summary
   if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then echo "$*" >>"$GITHUB_STEP_SUMMARY"; fi
+}
+
+launch_flags() { # deploy-only options that change the stack's shape
+  LAUNCH=()
+  if [ "${CD_UNATTENDED_LAUNCH:-false}" = true ]; then LAUNCH+=(--unattended-launch); fi
 }
 
 cost_flags() {
@@ -142,10 +148,11 @@ cmd_preflight() {
 # ---------------------------------------------------------------------------------- deploy
 cmd_deploy() {
   cost_flags
+  launch_flags
   cmd_preflight
   if [ "$CD_EXECUTE" != true ]; then
     # Review only: an offline rehearsal of the exact commands, no images, nothing mutated.
-    deploy_cli deploy --dry-run --seed-email "$CD_SEED_EMAIL" "${COST[@]}" \
+    deploy_cli deploy --dry-run --seed-email "$CD_SEED_EMAIL" "${COST[@]}" ${LAUNCH[@]+"${LAUNCH[@]}"} \
       >"$PUBLIC/deploy-plan.txt"
     summary "Deploy was a review only (execute=false). Plan: deploy-plan.txt in the artifact."
     return 0
@@ -164,7 +171,7 @@ cmd_deploy() {
   fi
   local code=0
   deploy_cli deploy --state-dir "$CD_STATE" --images "$baseline" --seed-email "$CD_SEED_EMAIL" \
-    --assume-empty-counts "${COST[@]}" --execute | tee "$CD_OUT/deploy-raw.json" || code=$?
+    --assume-empty-counts "${COST[@]}" ${LAUNCH[@]+"${LAUNCH[@]}"} --execute | tee "$CD_OUT/deploy-raw.json" || code=$?
   jq '{ok, mode, run_id, steps}' "$CD_OUT/deploy-raw.json" >"$PUBLIC/deploy.json" || true
   return "$code"
 }
@@ -273,10 +280,10 @@ cmd_release() {
   config=$(operator_config)
   gateway=$(output_value HttpApiUrl)
   local promote=(--config "$config" "${SCOPE[@]}" --deadline-seconds 1800 --owner "$owner"
-    --bundle "$(jq -r .good.bundle "$plan")" --image-uri "$(jq -r .good.image_uri "$plan")"
+    --bundle "$CD_STATE/release/$(jq -r .good.bundle "$plan")" --image-uri "$(jq -r .good.image_uri "$plan")"
     --migration-definition "$(jq -r '.good.migration_definition // .migration_definition' "$plan")"
     --target-revision "$(jq -r .target_revision "$plan")"
-    --compat-evidence "$(jq -r .good.compat_evidence "$plan")"
+    --compat-evidence "$CD_STATE/release/$(jq -r .good.compat_evidence "$plan")"
     --smoke-url "$gateway" --smoke-credentials "$CD_STATE/smoke-credentials.json")
   if [ "$owner" = processing ]; then
     promote+=(--worker-definition "$(jq -r .good.worker_definition "$plan")")

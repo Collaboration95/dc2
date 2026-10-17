@@ -47,6 +47,7 @@ def load(name):
 
 VALID = load("envelopes_valid.json")
 INVALID = load("envelopes_invalid.json")
+ADDITIVE = load("envelopes_additive.json")
 SEQUENCES = load("sequences.json")
 EVENTS = load("gateway_events.json")
 AUTHORIZER = load("authorizer_cases.json")
@@ -70,6 +71,8 @@ def current_surface():
     ]
     return {
         "schema_version": v1.SCHEMA_VERSION,
+        "accepted_schema_versions": sorted(v1.accepted_versions()),
+        "emit_schema_version": v1.EMIT_VERSION,
         "integration_marker": v1.INTEGRATION_MARKER,
         "max_upload_bytes": v1.MAX_UPLOAD_BYTES,
         "cookie_options": v1.COOKIE_OPTIONS,
@@ -132,6 +135,25 @@ def test_invalid_envelope_fixture_is_refused_without_echoing_its_input(name):
         assert secret not in str(refusal.value)
 
 
+@pytest.mark.parametrize("name", sorted(ADDITIVE))
+def test_additive_field_fixture_reads_exactly_like_its_baseline(name):
+    entry = ADDITIVE[name]
+    baseline = VALID[entry["equivalent_to"]]["message"]
+    assert has_unknown_field(entry["message"])
+    parsed = Envelope.from_dict(entry["message"])
+    assert parsed.to_dict() == Envelope.from_dict(baseline).to_dict()
+    # A replay hash that moved with the producer's extras would turn one message into two.
+    assert parsed.fingerprint() == Envelope.from_dict(baseline).fingerprint()
+    assert not hasattr(parsed, "trace_id")
+
+
+def has_unknown_field(message):
+    return bool(
+        set(message) - set(Envelope.__dataclass_fields__)
+        or set(message["source"] or {}) - set(v1.Source.__dataclass_fields__)
+    )
+
+
 def test_fixtures_cover_the_documented_negative_classes():
     wanted = {
         "submit_without_source",
@@ -143,6 +165,8 @@ def test_fixtures_cover_the_documented_negative_classes():
         "schema_version_two",
     }
     assert wanted <= set(INVALID)
+    # Extra fields are a tolerated, additive change; the closed payload of the ack is not.
+    assert "extra_top_level_field" not in INVALID and "source_extra_field" not in INVALID
 
 
 # --- replay, reorder, cancel-before-submit ------------------------------------------------

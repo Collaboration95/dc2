@@ -1,8 +1,10 @@
+import secrets
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Header
 
-from media.api.deps import Session, SourceOwner
+from media.api.deps import Config, Session
 from media.errors import MediaError
 from media.repositories.assets import get_asset, source_descriptor
 from media.schemas.public import SourceAccessRequest
@@ -10,6 +12,22 @@ from media.services import direct_intake
 from media.services.storage import Store
 
 router = APIRouter(prefix="/internal/v1/assets", tags=["source-access"])
+
+
+async def source_owner(
+    settings: Config,
+    authorization: Annotated[str | None, Header()] = None,
+    x_owner_id: Annotated[UUID | None, Header()] = None,
+) -> UUID:
+    expected = settings.source_service_token.get_secret_value()
+    if not expected or not secrets.compare_digest(authorization or "", "Bearer " + expected):
+        raise MediaError(401, "invalid service token")
+    if x_owner_id is None:
+        raise MediaError(401, "owner header required")
+    return x_owner_id
+
+
+SourceOwner = Annotated[UUID, Depends(source_owner)]
 
 
 @router.post("/{asset_id}/source-access")

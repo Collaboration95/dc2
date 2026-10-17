@@ -15,6 +15,8 @@ LANES = (
     "legacy-integration",
     "processing-intake",
     "media-integration",
+    "media-service",
+    "processing-service",
     "publisher-https",
     "browser-trust",
     "v1_offline",
@@ -25,6 +27,9 @@ LANES = (
     "dast",
 )
 V1_LANES = {"v1_offline", "v1_live", "images"}
+# Jobs with no lane: they run on every event and are required by both aggregates, so no path
+# selection (and no classifier mistake) can skip them.
+ALWAYS_JOBS = ("secret-scan",)
 IMAGE_RECIPES = {
     "app": ("Dockerfile", "flickpond-api:ci"),
     "processing": ("deploy/processing.Dockerfile", "dc2-processing:ci"),
@@ -43,9 +48,50 @@ V1_INPUTS = (
     "deploy/aws/v1/template.json",
     "scripts/aws/v1/bootstrap.py",
 )
+# Per-service lanes (#199): the owner's tests plus its own V1 image(s) and check_runtime. The
+# inputs are the owner's actual Dockerfile COPY sources (tests/ci checks them against the recipes),
+# so a Media-only change never rebuilds Processing's images and vice versa. Anything shared by
+# both owners selects both.
+SERVICE_INPUTS = {
+    "media-service": (
+        "media/",
+        "tests/media/",
+        "deploy/v1/media.Dockerfile",
+        "deploy/v1/media.requirements.in",
+    ),
+    # The finite worker is part of Processing's release unit: it copies processing/ and
+    # media_engine/ and carries the database bootstrap.
+    "processing-service": (
+        "processing/",
+        "tests/processing/",
+        "media_engine/",
+        "tests/media_engine/",
+        "deploy/v1/processing.Dockerfile",
+        "deploy/v1/processing.requirements.in",
+        "deploy/v1/worker.Dockerfile",
+        "deploy/v1/worker.requirements.in",
+        "scripts/aws/v1/bootstrap.py",
+    ),
+}
+SHARED_SERVICE_INPUTS = (
+    "contracts/",
+    "delivery/",
+    "runtime_support/",
+    "tests/contracts/",
+    "tests/delivery/",
+    "tests/runtime_support/",
+    # Copied into every image, or the verifier/contract every image is built against.
+    "deploy/v1/check_runtime.py",
+    "deploy/v1/build_and_verify.py",
+    "deploy/v1/global-bundle.pem",
+    "deploy/aws/v1/template.json",
+)
+SERVICE_RECIPE_FILES = {
+    path for inputs in SERVICE_INPUTS.values() for path in inputs if path.startswith("deploy/v1/")
+}
 COMMON_IMAGE_INPUTS = {"pyproject.toml", "uv.lock", ".dockerignore"}
 DAST_INPUTS = (
-    "media/", "processing/", "media_engine/", "runtime_support/", "delivery/",
+    "media/", "processing/", "legacy/", "media_engine/", "runtime_support/", "delivery/",
     "contracts/", "app/", "frontend/", "tests/contracts/", "compose/local/",
     "tests/media/test_contract_security.py", "tests/processing/test_contracts.py",
     "tests/publisher/test_https.py", "scripts/dev/runtime.py", "scripts/dev/tls.py",
@@ -57,13 +103,21 @@ LEGACY_INPUTS = {
     "app": ("app/", "migrations/", "Dockerfile", "alembic.ini"),
     "processing": (
         "processing/",
+        "legacy/",
         "media_engine/",
         "contracts/",
         "delivery/",
         "runtime_support/",
         "deploy/processing.Dockerfile",
     ),
-    "media": ("media/", "contracts/", "delivery/", "runtime_support/", "deploy/media.Dockerfile"),
+    "media": (
+        "media/",
+        "legacy/",
+        "contracts/",
+        "delivery/",
+        "runtime_support/",
+        "deploy/media.Dockerfile",
+    ),
 }
 DOC_SUFFIXES = {".md", ".txt", ".pdf", ".png", ".jpg", ".jpeg", ".svg", ".tldr"}
 PLANNING_INPUTS = {
@@ -85,6 +139,18 @@ def image_inputs(path):
         common or matches(path, V1_INPUTS),
         {name for name, inputs in LEGACY_INPUTS.items() if common or matches(path, inputs)},
     )
+
+
+def service_lanes(path):
+    """Per-service lanes for a path. Unrecognised files under deploy/v1 select both owners."""
+    shared = matches(path, SHARED_SERVICE_INPUTS) or (
+        path.startswith("deploy/v1/") and path not in SERVICE_RECIPE_FILES
+    )
+    return {
+        lane
+        for lane, inputs in SERVICE_INPUTS.items()
+        if shared or matches(path, inputs)
+    }
 
 
 def classify(paths, *, full=False, reason="routine dev PR", source_sha="", base_sha=""):
@@ -118,6 +184,7 @@ def classify(paths, *, full=False, reason="routine dev PR", source_sha="", base_
         v1_images, legacy_images = image_inputs(path)
         if matches(path, DAST_INPUTS):
             select("dast")
+        select(*service_lanes(path))
         if v1_images:
             select("images")
         images.update(legacy_images)
@@ -129,7 +196,11 @@ def classify(paths, *, full=False, reason="routine dev PR", source_sha="", base_
             select("planning", "lint-and-unit")
         elif path.startswith(("media/", "tests/media/")):
             select("lint-and-unit", "media-integration", "v1_offline", "v1_live")
-            # Both main:legacy_app and the Lambda facade import this package.
+            # Both legacy.media_peer.app and the Lambda facade import this package.
+            select("browser-trust", "publisher-https")
+        elif path.startswith("legacy/"):
+            # The retired local stack: ships only in the legacy images, never in a V1 image.
+            select("lint-and-unit", "media-integration", "processing-intake")
             select("browser-trust", "publisher-https")
         elif path.startswith(("processing/", "tests/processing/")):
             select("lint-and-unit", "processing-intake", "v1_offline", "v1_live", "browser-trust")
@@ -305,6 +376,7 @@ def expected_jobs(plan, scope):
     selected = plan["selected"]
     result = {job: selected[job] for job in LANES if job not in V1_LANES}
     result["v1-local"] = any(selected[lane] for lane in V1_LANES)
+    result.update(dict.fromkeys(ALWAYS_JOBS, True))
     if scope == "dev":
         for advisory in ("security", "dast", "coverage-gate"):
             result.pop(advisory)

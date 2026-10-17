@@ -6,7 +6,7 @@ from test_transport_fixtures import config as config
 from test_transport_fixtures import fake as fake
 from test_transport_fixtures import journal as journal
 
-from processing.worker.cloud import supervise
+from legacy.processing_rq.worker.cloud import supervise
 
 
 class Process:
@@ -149,7 +149,7 @@ def test_rq_cold_second_handler_is_suppressed(monkeypatch):
 
     from rq import Worker
 
-    from processing.worker.cloud import finite_worker_class
+    from legacy.processing_rq.worker.cloud import finite_worker_class
 
     read_fd, write_fd = os.pipe()
     called = []
@@ -172,7 +172,7 @@ def test_local_constructor_original_signature(monkeypatch):
     from types import SimpleNamespace
     from unittest.mock import Mock
 
-    from processing.worker import __main__ as entry
+    from legacy.processing_rq.worker import __main__ as entry
 
     worker = Mock()
     constructor = Mock(return_value=worker)
@@ -182,7 +182,7 @@ def test_local_constructor_original_signature(monkeypatch):
     monkeypatch.setattr("rq.Worker", constructor)
     monkeypatch.setattr(entry, "get_settings", lambda: SimpleNamespace(require_worker=lambda: None))
     monkeypatch.setattr(entry, "get_queue", lambda: target)
-    monkeypatch.setattr("sys.argv", ["processing.worker"])
+    monkeypatch.setattr("sys.argv", ["legacy.processing_rq.worker"])
     entry.main()
     constructor.assert_called_once_with([target], connection=target.connection)
     worker.work.assert_called_once_with(burst=False)
@@ -190,12 +190,12 @@ def test_local_constructor_original_signature(monkeypatch):
 
 @pytest.mark.parametrize("indicator", ["PROCESSING_STORAGE_CREDENTIAL_MODE", "AWS_EXECUTION_ENV"])
 def test_cloud_direct_unbounded_command_refused(monkeypatch, indicator):
-    from processing.worker import __main__ as entry
+    from legacy.processing_rq.worker import __main__ as entry
 
     monkeypatch.setenv(
         indicator, "ecs" if indicator.startswith("PROCESSING") else "AWS_ECS_FARGATE"
     )
-    monkeypatch.setattr("sys.argv", ["processing.worker"])
+    monkeypatch.setattr("sys.argv", ["legacy.processing_rq.worker"])
     monkeypatch.setattr(entry, "get_settings", lambda: pytest.fail("unbounded cloud settings used"))
     with pytest.raises(SystemExit) as result:
         entry.main()

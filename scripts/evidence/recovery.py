@@ -67,7 +67,7 @@ def queue_loss(scenario, source):
         # Diagnostic fault injection uses Processing's own queue configuration.
         # Preserve the RQ hash deliberately: existence must not mean runnable.
         code = (
-            "import json; from processing.queue import get_queue; q=get_queue(); "
+            "import json; from legacy.processing_rq.queue import get_queue; q=get_queue(); "
             f"a={json.dumps(attempt)}; "
             "removed=q.connection.lrem(q.key,0,a); "
             "assert removed==1, 'expected queued payload'; "
@@ -80,7 +80,7 @@ def queue_loss(scenario, source):
         guard.start("processing-recovery")
         deadline = started + 120
         probe = (
-            "from processing.queue import get_queue; q=get_queue(); "
+            "from legacy.processing_rq.queue import get_queue; q=get_queue(); "
             f"print(int(q.connection.lpos(q.key,{json.dumps(attempt)}) is not None))"
         )
         while time.monotonic() < deadline:

@@ -3,6 +3,10 @@
 Only the Media authorizer emits actors. Queue policies establish producer authority;
 validation alone does not authenticate a message. Consumers commit inbox/domain/outbox
 before ACK and bind work to their persisted accepted source before S3 GET.
+
+Versioning (see contracts/README.md): producers emit SCHEMA_VERSION; consumers accept it and
+the one before it, and ignore fields they do not know, so either service can be released
+first when a change is additive.
 """
 
 import hashlib
@@ -12,7 +16,12 @@ from dataclasses import asdict, dataclass
 from typing import Any
 from uuid import UUID
 
+# N: the newest version this copy of the contract can read. Consumers accept N and N-1.
 SCHEMA_VERSION = 1
+# The version producers stamp on what they send. It may trail SCHEMA_VERSION by one: raise
+# SCHEMA_VERSION first and release every service, and only in a later release raise this, so
+# no producer emits a version a deployed consumer would refuse (contracts/README.md).
+EMIT_VERSION = 1
 INTEGRATION_MARKER = "dc2-gateway-v1"
 MAX_UPLOAD_BYTES = 100 * 1024 * 1024
 COOKIE_OPTIONS = {"path": "/", "secure": True, "httponly": True, "samesite": "strict"}
@@ -23,6 +32,25 @@ PRODUCERS = {
     "work": "processing-dispatch",
     "result": "processing-completion",
 }
+
+
+def accepted_versions() -> frozenset[int]:
+    """Versions a consumer reads: the one it emits and its predecessor, never a newer one."""
+    return frozenset(v for v in (SCHEMA_VERSION, SCHEMA_VERSION - 1) if v >= 1)
+
+
+def accepts_version(value: Any) -> bool:
+    # bool is an int subclass in Python, but the wire says integer.
+    return type(value) is int and value in accepted_versions()
+
+
+def _known(value: dict, fields) -> dict:
+    """The fields this version defines. A newer producer may add more; they are not ours to read.
+
+    Dropping them (rather than carrying them) keeps the replay fingerprint stable across
+    producer versions and keeps unreviewed data out of the inbox and the domain.
+    """
+    return {name: value[name] for name in fields}
 
 
 class ContractError(ValueError):
@@ -48,8 +76,7 @@ class Actor:
         if not isinstance(context, dict):
             raise ContractError("Missing trusted actor")
         if (
-            type(context.get("schema_version")) is not int
-            or context["schema_version"] != SCHEMA_VERSION
+            not accepts_version(context.get("schema_version"))
             or context.get("integration") != INTEGRATION_MARKER
             or context.get("role") not in ("publisher", "viewer")
         ):
@@ -58,7 +85,7 @@ class Actor:
 
     def to_context(self) -> dict:
         context = {
-            "schema_version": SCHEMA_VERSION,
+            "schema_version": EMIT_VERSION,
             "integration": INTEGRATION_MARKER,
             "owner_id": self.owner_id,
             "role": self.role,
@@ -78,8 +105,9 @@ class Source:
 
     @classmethod
     def from_dict(cls, value: Any) -> "Source":
-        if not isinstance(value, dict) or set(value) != set(cls.__dataclass_fields__):
+        if not isinstance(value, dict) or not set(cls.__dataclass_fields__) <= set(value):
             raise ContractError("Invalid immutable source")
+        value = _known(value, cls.__dataclass_fields__)
         for key in ("bucket", "key", "version_id", "content_type"):
             if (
                 not isinstance(value[key], str)
@@ -139,11 +167,11 @@ class Envelope:
 
     @classmethod
     def from_dict(cls, value: Any) -> "Envelope":
-        if not isinstance(value, dict) or set(value) != set(cls.__dataclass_fields__):
+        if not isinstance(value, dict) or not set(cls.__dataclass_fields__) <= set(value):
             raise ContractError("Invalid message fields")
+        value = _known(value, cls.__dataclass_fields__)
         if (
-            type(value["schema_version"]) is not int
-            or value["schema_version"] != 1
+            not accepts_version(value["schema_version"])
             or value["kind"] not in PRODUCERS
             or type(value["state_version"]) is not int
             or value["state_version"] < 0

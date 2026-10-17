@@ -11,6 +11,7 @@ from pydantic import TypeAdapter
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
+from contracts.v1 import EMIT_VERSION
 from delivery.envelope import document, fingerprint
 from delivery.sql import accept, publish_due, stage
 from processing import lifecycle, short_lane
@@ -76,7 +77,7 @@ def snapshot(job, attempt, version):
 
 def envelope(job, attempt, version, kind):
     return {
-        "schema_version": 1,
+        "schema_version": EMIT_VERSION,
         "message_id": str(work_message_id(attempt.id, version) if kind == "work" else uuid4()),
         "kind": kind,
         "owner_id": str(job.owner_id),
@@ -192,7 +193,7 @@ async def _cancel_locked(session, guard, *, command_message_id=None):
                 session,
                 ProcessingOutbox,
                 {
-                    "schema_version": 1,
+                    "schema_version": EMIT_VERSION,
                     "message_id": str(uuid4()),
                     "kind": "result",
                     "owner_id": str(guard.owner_id),

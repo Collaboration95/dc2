@@ -44,6 +44,12 @@ on:
           schema head (additive migrations only); the release plan records it as your word.
         type: boolean
         default: false
+      unattended_launch:
+        description: >-
+          deploy only. Pass --unattended-launch (the optional V2 launcher, #68). Fixed for the
+          run: a resume must use the same value
+        type: boolean
+        default: false
       seed_email:
         description: deploy only, address of the smoke account
         type: string
@@ -82,6 +88,7 @@ env:
   CD_EXECUTE: ${{ inputs.execute && 'true' || 'false' }}
   CD_OWNER: ${{ inputs.owner }}
   CD_ATTEST_ADDITIVE: ${{ inputs.attest_additive && 'true' || 'false' }}
+  CD_UNATTENDED_LAUNCH: ${{ inputs.unattended_launch && 'true' || 'false' }}
   CD_SEED_EMAIL: ${{ inputs.seed_email || 'ops@example.com' }}
   CD_BUDGET_USD: ${{ inputs.budget_usd || '30' }}
   CD_PLANNED_HOURS: ${{ inputs.planned_hours || '3' }}

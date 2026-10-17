@@ -266,31 +266,6 @@
       }
     }
   },
-  "source_extra_field": {
-    "why": "source fields are exact",
-    "message": {
-      "schema_version": 1,
-      "message_id": "00000000-0000-4000-8000-000000000101",
-      "kind": "submit",
-      "owner_id": "00000000-0000-4000-8000-000000000001",
-      "asset_id": "00000000-0000-4000-8000-000000000011",
-      "job_id": null,
-      "attempt_id": null,
-      "state_version": 0,
-      "source": {
-        "bucket": "dc2-source",
-        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
-        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
-        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "size_bytes": 1048576,
-        "content_type": "video/mp4",
-        "url": "x"
-      },
-      "payload": {
-        "operations": []
-      }
-    }
-  },
   "payload_contains_signed_url": {
     "why": "no expiring URLs in queues",
     "message": {
@@ -486,31 +461,6 @@
       "payload": {
         "operations": []
       }
-    }
-  },
-  "extra_top_level_field": {
-    "why": "envelope fields are exact",
-    "message": {
-      "schema_version": 1,
-      "message_id": "00000000-0000-4000-8000-000000000101",
-      "kind": "submit",
-      "owner_id": "00000000-0000-4000-8000-000000000001",
-      "asset_id": "00000000-0000-4000-8000-000000000011",
-      "job_id": null,
-      "attempt_id": null,
-      "state_version": 0,
-      "source": {
-        "bucket": "dc2-source",
-        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
-        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
-        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "size_bytes": 1048576,
-        "content_type": "video/mp4"
-      },
-      "payload": {
-        "operations": []
-      },
-      "media_bytes": "AAAA"
     }
   },
   "missing_asset_id": {

@@ -1,5 +1,6 @@
 """Media's owned command outbox and result inbox boundary."""
 
+from contracts.v1 import EMIT_VERSION
 from delivery.envelope import document
 from delivery.sql import accept, publish_due, stage
 from media.messaging_models import MediaInbox, MediaOutbox
@@ -34,7 +35,7 @@ async def enqueue_submit(session, asset, source):
     return await stage_command(
         session,
         {
-            "schema_version": 1,
+            "schema_version": EMIT_VERSION,
             "message_id": str(uuid4()),
             "kind": "submit",
             "owner_id": str(asset.owner_id),

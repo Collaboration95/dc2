@@ -9,7 +9,8 @@ from uuid import NAMESPACE_URL, uuid4, uuid5
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
-from media.errors import MediaError, PeerError
+from legacy.media_peer.errors import PeerError
+from media.errors import MediaError
 from media.models import Asset, CleanupIntent, RequestKey, RetryIntent, StagedObject, now
 from media.repositories.assets import fingerprint, get_asset, replay, source_descriptor
 from media.schemas.public import PublicJob

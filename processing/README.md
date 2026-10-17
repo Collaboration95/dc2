@@ -9,15 +9,15 @@ Run from the repository/worktree root using the configured Python environment:
 
 ```sh
 python -m alembic -c processing/alembic.ini upgrade head
-python -m uvicorn processing.main:app --host 0.0.0.0 --port 8000
-python -m processing.worker
-python -m processing.recovery
+python -m uvicorn legacy.processing_rq.main:app --host 0.0.0.0 --port 8000
+python -m legacy.processing_rq.worker
+python -m legacy.processing_rq.recovery
 ```
 
 The migration command receives the Processing migration role through
 `PROCESSING_MIGRATION_DSN` (or its own `PROCESSING_POSTGRES_DSN`). API, worker and
-recovery receive the runtime role. `python -m processing.worker --burst` drains
-available deliveries; `python -m processing.recovery --once` runs one recovery
+recovery receive the runtime role. `python -m legacy.processing_rq.worker --burst` drains
+available deliveries; `python -m legacy.processing_rq.recovery --once` runs one recovery
 pass. FFmpeg and ffprobe must be installed in the worker image. Keep the API on
 the private network. `/health` checks PostgreSQL and identifies the attempt-aware
 stage; it is not proof that Redis, storage or a worker is healthy.

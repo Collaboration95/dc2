@@ -276,6 +276,7 @@ python -m scripts.aws.v1.deploy deploy $S --run-id R --dry-run
 # 1. Deploy (the ladder above, `--execute` last); it ends with the session closed
 python -m scripts.aws.v1.deploy deploy $S --run-id R --state-dir D --images images.json \
     --seed-email ops@example.com --assume-empty-counts --forecast-usd 0 --execute
+#    (add --unattended-launch to the line above only for the optional #68 measurement)
 
 # 2. Open for real work, then #63 and #64
 python -m scripts.aws.v1.session open --config D/operator-config.json $S
@@ -287,6 +288,19 @@ python -m scripts.aws.v1.evidence capacity $S --state-dir D --run-id R --fixture
 #    Fargate with the 36 MB fixture (18 encoders of roughly 165 s billed each).
 python -m scripts.aws.v1.evidence capacity $S --state-dir D --run-id R --fixture long.mp4 \
     --backlog 6
+#    #196 failure isolation (plain `session open`): switch off Processing's command consumer, upload
+#    through the public API, check Media accepted it and holds the command, switch the consumer
+#    back on, and require `done` within the gate. About 6-8 min, one short encode.
+python -m scripts.aws.v1.evidence isolation $S --state-dir D --run-id R --fixture short.mp4
+
+#    #68 (V2, optional): only on a stack deployed with `deploy ... --unattended-launch` (step 1),
+#    and only after the #185 sweep above, which is its baseline. Close the plain session, reopen
+#    it unattended, run the IAM check ("Unattended launcher" below), then the observe-only harness:
+python -m scripts.aws.v1.evidence counts --state-dir D --run-id R
+python -m scripts.aws.v1.session close --config D/operator-config.json $S
+python -m scripts.aws.v1.session open --config D/operator-config.json $S --unattended --minutes 90
+python -m scripts.aws.v1.evidence unattended $S --state-dir D --run-id R --fixture long.mp4 \
+    --iam-simulated
 
 # 3. Derive the drain proof from the receipts and close; note the printed close time
 python -m scripts.aws.v1.evidence counts --state-dir D --run-id R
@@ -348,6 +362,8 @@ python -m scripts.aws.v1.evidence summary --state-dir D --run-id R
 | 2 gateway | 10-15 min | encoder task, cents | #63 anonymous and forged denial, session round trip, CORS, queue and cross-database denial, direct upload to HLS playback |
 | 2 capacity | 60-90 min (the DLQ poison adds about 35 min: visibility 420 s x 5 receives) | three encoder tasks for minutes: low dollars at the Fargate rates above | #64 1/2/3 concurrent encoders, mid-encode stop recovery inside 300 s, DLQ empty, drain |
 | 2 capacity `--backlog 6` | 35-40 min (18 encodes; `--drain-timeout` 2400 s per cap) | about 0.11 USD of Fargate: 18 encoders, roughly 165 s billed each | #185 jobs/min, median and p90 queue wait, failures and billed seconds per cap, speedup at cap 2 and 3 against 1.6x and 2.1x |
+| 2 isolation | 6-8 min (consumer off 30-150 s, then one encode) | one short encoder, cents | #196 Media accepts and holds an upload while the ProcessingCommands consumer is off; it reaches `done` after re-enabling |
+| 2 unattended | 15-20 min plus the 3 min settle | about 0.11 USD of Fargate plus an awake database | #68 launcher cap, starts per job, idle starts, queue wait against the operator-batch step |
 | 3-4 | 5 + up to 30 min | DB awake for the wait | #67 closed state, ACU pause |
 | 5 | 15-20 min | generator task cents plus DB awake | #66 cold wake (wake, gate settle and requests kept apart) and the 50-user warm status p90 and 20-login p90, with 429s counted apart from errors |
 | 6 | 20-40 min | pennies plus DB awake | #65 promote, rollback, peer owner untouched, optional failing candidate |
@@ -403,6 +419,100 @@ unfinished is counted as queued). N must be 3 to 12 and large enough that the ta
 reachable with zero overhead (a multiple of 6 is best: 6 and 12 give ideal 2.0x and 3.0x). The
 fixture is whatever `--fixture` names; the measured 36 MB clip fits the budget, and a much shorter
 clip lets the fixed task start dominate and flatters nothing.
+
+### Failure isolation (`isolation`, #196)
+
+Media's finalize writes a command to its own outbox and never calls Processing. This step proves
+it on the deployed stack. It needs a plain `session open` (the ProcessingCommands mapping must be
+Enabled) and writes `D/evidence/evidence-196-R.json`, one step, `processing-down`:
+
+1. record that the mapping is Enabled, disable it and wait for Lambda to report `Disabled`;
+2. reserve, upload and finalize one clip through the public API (finalize must answer 2xx);
+3. for 30 to 150 s, poll the job: it must stay visible (by id and in the job list), show `accepted`
+   or `queued`, carry no Processing job id, and the command must be held in Media's outbox
+   (`submission_status` pending) or in the ProcessingCommands queue (depth read from SQS);
+4. re-enable the mapping and wait for `Enabled`, wait for Processing's job id to reach Media
+   (up to 120 s), start one finite encoder (another if it exits without claiming) and require `done`
+   within `--job-timeout` (default 900 s) of the re-enable.
+
+"Processing down" means its command consumer is off. The Processing API stays up: under this
+stack's `zero_reservation: off` policy a function cannot be quiesced without writing reserved
+concurrency that `session status` would then report as drift, and the mapping is the one switch
+the session already owns.
+
+The mapping is restored on every exit path. The intent is journaled before the mapping is touched;
+an error or an interrupt re-enables it before the command exits. If the session was closed meanwhile
+`session close` has already disabled every mapping, so the step leaves it disabled and says so
+(`mapping_restore`); it never reopens a consumer inside a closed window. If the process is killed
+outright, rerun the same command: it resumes the same upload, re-enables the mapping and finishes.
+Check `session status` afterwards: no drift is expected.
+
+### Unattended launcher (`unattended`, #68, V2 experiment)
+
+Optional, after the V1 evidence, on the same stack and in the same session as the #185 sweep so the
+two are comparable. Every step below is outside the V1 critical path.
+
+1. **Deploy with the launcher.** Add `--unattended-launch` to the step 1 `deploy` command. It
+   renders `UnattendedLaunch=true`: a `ProcessingLauncher` Lambda and a `rate(1 minute)` rule that
+   stays `DISABLED`, with outputs the operator config picks up. Without the flag nothing changes
+   from V1. The migrations step applies `processing_0007` (two additive tables).
+2. **Operator-batch baseline first.** Run `capacity --backlog` under a plain `session open`: the
+   launcher is off, and that cap-3 step is what the launcher is compared with.
+3. **Check the launcher role's IAM before its first tick** (its conditions have never been
+   evaluated). With `P` standing for the profile and region flags, `O` for `D/outputs.json`:
+
+   ```sh
+   ROLE=$(aws $P lambda get-function-configuration --query Role --output text \
+       --function-name "$(jq -r .ProcessingLauncherFunctionName $O)")
+   CLUSTER=$(jq -r .ClusterArn $O); TD=$(jq -r .WorkerTaskDefinitionArn $O)
+   WORKER=$(aws $P ecs describe-task-definition --task-definition "$TD" \
+       --query 'taskDefinition.[taskRoleArn,executionRoleArn]' --output text)
+   QUEUE=$(jq -r .ProcessingWorkQueueUrl $O | awk -F/ '{print "arn:aws:sqs:ap-southeast-1:"$4":"$5}')
+   sim() { aws $P iam simulate-principal-policy --policy-source-arn "$ROLE" "$@" \
+       --query 'EvaluationResults[].[EvalActionName,EvalDecision]' --output text; }
+   CTX="ContextKeyName=ecs:cluster,ContextKeyValues=$CLUSTER,ContextKeyType=string"
+   sim --action-names ecs:RunTask --resource-arns "$TD" --context-entries "$CTX"
+   sim --action-names ecs:ListTasks --resource-arns '*' --context-entries "$CTX"
+   sim --action-names ecs:DescribeTasks --context-entries "$CTX" \
+       --resource-arns "arn:aws:ecs:ap-southeast-1:$(jq -r .ClusterArn $O | cut -d: -f5):task/${CLUSTER##*/}/x"
+   for r in $WORKER; do sim --action-names iam:PassRole --resource-arns "$r" --context-entries \
+       ContextKeyName=iam:PassedToService,ContextKeyValues=ecs-tasks.amazonaws.com,ContextKeyType=string; done
+   sim --action-names sqs:GetQueueAttributes --resource-arns "$QUEUE"
+   sim --action-names ecs:StopTask sqs:ReceiveMessage s3:GetObject --resource-arns '*'  # must be denied
+   ```
+
+   Every first group must print `allowed` and the last must print `implicitDeny`. If the profile
+   may not call `iam:SimulatePrincipalPolicy`, stop: the check is the point, and an unchecked
+   launcher is not run. Pass `--iam-simulated` to the harness only after this; the harness records
+   the attestation as such and cannot verify it.
+4. **Close, then reopen unattended.** `session close` (with `--in-vpc-counts` or after `evidence
+   counts`), then `session open ... --unattended --minutes 90`. The minutes bound the launcher: it
+   starts nothing after that session end. `session status` should show the launcher rule ENABLED
+   and no drift. `session batch` and the backlog driver are refused for the rest of the session.
+5. **Measure.** `evidence unattended ... --fixture long.mp4 --iam-simulated` (the clip and N of the
+   baseline; `--backlog` defaults to the baseline's N). It writes `D/evidence/evidence-68-R.json`:
+   - `launcher-preflight`: launcher in the stack, session opted in, rule ENABLED, nothing running,
+     a passing `backlog-3` baseline in the #185 receipt. A failure stops the command before any
+     upload.
+   - `launcher-backlog`: uploads N clips, starts no encoder, and watches every worker-family task.
+     It records queue wait and processing time (server stamps), jobs/min on the baseline's basis,
+     peak concurrency from task stamps and from polling (cap 3), `encoders_started` and
+     `starts_per_job`, `unclaimed_encoders` (started without claiming a job), the start offsets
+     from the first queued job, and `starts_after_backlog_empty` over a 180 s settle window (the
+     launcher's idle-respawn pause is 120 s). PASS needs every job done, peak at most 3, no start
+     after the backlog emptied, at most 3 unclaimed encoders (the launcher's idle breaker) and
+     nothing left running.
+   - `launcher-compare`: the same numbers beside the operator-batch `backlog-3` step, with deltas.
+     There is no speed target; ratios are as measured. It is FAIL if the backlog size or the
+     fixture differs, or if the launcher step failed.
+6. **Close.** `session close` disables the launcher rule and its SQL flag first. Afterwards
+   confirm no encoder is running, the rule is DISABLED and `session status` shows no drift. The
+   Lambda invocation count and the Aurora awake minutes for the cost comparison come from
+   `evidence spend` and CloudWatch, not from this harness. The launcher's lost-response replay
+   needs a forced client timeout and is not exercised here.
+
+An interrupt stops the encoders the launcher started but cannot stop the launcher: close the
+session to do that.
 
 ### Release proof on an existing stack
 
@@ -564,6 +674,7 @@ logic. It is the recorded, repeatable form of steps 0, 1, 6 and 7 plus an upload
 ```sh
 gh workflow run cd.yml -f operation=preflight -f run_id=r1018a            # reads only
 gh workflow run cd.yml -f operation=deploy    -f run_id=r1018a -f execute=true
+gh workflow run cd.yml -f operation=deploy    -f run_id=r1018b -f execute=true -f unattended_launch=true   # optional #68 launcher
 gh workflow run cd.yml -f operation=release   -f run_id=r1018a -f owner=media -f execute=true -f attest_additive=true
 gh workflow run cd.yml -f operation=teardown  -f run_id=r1018a -f execute=true
 ```
@@ -604,6 +715,56 @@ gh workflow run cd.yml -f operation=teardown  -f run_id=r1018a -f execute=true
   step reuses the recorded build evidence (`build-baseline.json`); a failure before it rebuilds.
 - **Artifacts** hold only reduced files: step statuses, preflight check names, the redacted
   `cloud-proof-*.json` of the smoke, the release outcome. 14 days.
+
+### Operator handoff: CD deploy, then session and evidence from a laptop
+
+The cloud proof steps 2-6 (`session`, `evidence`, `release`) need the run's state directory `D`.
+After a CD `deploy` it is in the state bucket, so a laptop with profile `dc2-agent` can take over
+and hand back. `unattended_launch=true` on the `deploy` dispatch passes `--unattended-launch`
+(the optional #68 launcher; fixed for the run, so repeat it on a resume).
+
+```sh
+R=r1018a                                   # the CD run id
+D=$HOME/dc2-state/$R                       # any private directory outside the repository
+B=dc2-cd-state-866865534361-ap-southeast-1
+S="--profile dc2-agent --region ap-southeast-1 --account 866865534361"
+mkdir -p -m 700 "$D"
+
+# 1. Take over. Do it only when no CD run for this id is active (the workflow runs one at a time,
+#    but nothing stops a laptop writing at the same time).
+aws s3 sync "s3://$B/runs/$R/" "$D/" --profile dc2-agent --region ap-southeast-1 --only-show-errors
+chmod -R go-rwx "$D"        # S3 keeps no modes; the tooling insists on 0700 / 0600
+
+# 2. Work, exactly as in "Cloud proof in order" (profile dc2-agent, this D, this R)
+python -m scripts.aws.v1.session open --config "$D/operator-config.json" $S
+python -m scripts.aws.v1.evidence gateway $S --state-dir "$D" --run-id "$R" --fixture short.mp4
+python -m scripts.aws.v1.session close --config "$D/operator-config.json" $S --in-vpc-counts
+
+# 3. Hand back, so a later CD teardown or release sees the same journal and receipts. Close the
+#    session first: teardown closes it anyway, but a journal that says "open" while the window is
+#    closed (or the reverse) is the one inconsistency worth avoiding.
+aws s3 sync "$D/" "s3://$B/runs/$R/" --delete --exclude "frontend-dist/*" --exclude "*.run" \
+    --exclude "*.lock" --profile dc2-agent --region ap-southeast-1 --only-show-errors
+```
+
+What the commands read, all inside `D`:
+
+| File | Used by |
+|---|---|
+| `operator-config.json` | every `session`, `release` and `evidence` command (`--config`, or `<state-dir>/operator-config.json`) |
+| `outputs.json` | named by the config: Gateway and CloudFront URLs, function, queue and task-definition names |
+| `session/journal.json` | named by the config: whether the window is open, closed or a release is pending |
+| `deploy-journal.json` | `evidence` (images, definitions, repositories), `deploy status` and teardown; the only record of what the run owns |
+| `smoke-credentials.json` | the smoke login (`evidence`, `release`); 0600 |
+| `build-baseline.json`, `release/` | `evidence release-plan` and the CD `release` (baseline build evidence, plans and bundles) |
+| `evidence/` | the receipts; `evidence summary` reads them |
+
+Paths in this state are relative (to `operator-config.json` and to `plan.json`), so the same files
+work on the runner and on a laptop; an older absolute path still loads. The commands refuse
+ambient `AWS_*` credentials, so run them with the profile only. `db-bootstrap-passwords.json`
+exists only between `db-bootstrap` and the DSNs being published; if a deploy failed in that window,
+do not delete it. Never run the laptop and a CD dispatch for the same run id at once: the journal
+has a lock on one machine, not across two.
 
 ## Known gaps
 

@@ -173,7 +173,7 @@ def integration(*, coverage: bool = False) -> list[Path]:
 def lint() -> None:
     paths = packages() + [
         str(p)
-        for p in ("tests", "migrations", "scripts/dev", "scripts/evidence", "scripts/aws")
+        for p in ("legacy", "tests", "migrations", "scripts/dev", "scripts/evidence", "scripts/aws")
         if (ROOT / p).exists()
     ]
     run([str(PYTHON), "-m", "ruff", "check", *paths], label="lint", timeout=60)

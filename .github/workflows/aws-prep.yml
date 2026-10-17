@@ -52,9 +52,9 @@ jobs:
       - name: Execute the exact artifact without network or production secrets
         run: |
           if [ "$OWNER" = processing ]; then
-            code="import importlib,shutil; [importlib.import_module(x) for x in ('processing.main','processing.worker','processing.recovery')]; assert shutil.which('ffmpeg') and shutil.which('ffprobe'); import subprocess,tempfile,pathlib; d=tempfile.TemporaryDirectory(); p=str(pathlib.Path(d.name)/'test.mp4'); subprocess.run(['ffmpeg','-v','error','-f','lavfi','-i','testsrc2=size=160x90:rate=10:duration=1','-c:v','libx264','-threads','1',p],check=True,timeout=15); subprocess.run(['ffprobe','-v','error','-show_entries','stream=codec_name',p],check=True,timeout=5); d.cleanup()"
+            code="import importlib,shutil; [importlib.import_module(x) for x in ('legacy.processing_rq.main','legacy.processing_rq.worker','legacy.processing_rq.recovery')]; assert shutil.which('ffmpeg') and shutil.which('ffprobe'); import subprocess,tempfile,pathlib; d=tempfile.TemporaryDirectory(); p=str(pathlib.Path(d.name)/'test.mp4'); subprocess.run(['ffmpeg','-v','error','-f','lavfi','-i','testsrc2=size=160x90:rate=10:duration=1','-c:v','libx264','-threads','1',p],check=True,timeout=15); subprocess.run(['ffprobe','-v','error','-show_entries','stream=codec_name',p],check=True,timeout=5); d.cleanup()"
           else
-            code="import importlib; [importlib.import_module(x) for x in ('media.main','media.recovery')]"
+            code="import importlib; [importlib.import_module(x) for x in ('legacy.media_peer.app','legacy.media_peer.recovery')]"
           fi
           timeout 30 docker run --rm --network none --entrypoint python "$CONFIG_ID" -c "$code"
       - name: Hard exact-image gate (zero fixable HIGH/CRITICAL)

@@ -84,7 +84,7 @@ services:
 
   media-recovery:
     <<: *media
-    command: [python, -m, media.recovery]
+    command: [python, -m, legacy.media_peer.recovery]
     cpus: 0.0625
     mem_limit: 192m
     environment: *media-env
@@ -124,7 +124,7 @@ services:
 
   worker:
     <<: *processing
-    command: [python, -m, processing.worker]
+    command: [python, -m, legacy.processing_rq.worker]
     cpus: 2.0
     mem_limit: 1536m
     stop_grace_period: 60s
@@ -147,7 +147,7 @@ services:
 
   processing-recovery:
     <<: *processing
-    command: [python, -m, processing.recovery]
+    command: [python, -m, legacy.processing_rq.recovery]
     cpus: 0.0625
     mem_limit: 192m
     environment:

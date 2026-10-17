@@ -245,6 +245,17 @@ def test_a_simulated_release_reads_the_schema_through_the_simulated_in_vpc_task(
     assert proof.overall() == "SIMULATED"
 
 
+def test_a_plan_with_relative_files_resolves_them_beside_the_plan(tmp_path):
+    """The plan is synced between machines; its bundle files are named relative to it."""
+    folder = tmp_path / "release"
+    folder.mkdir()
+    relative = {**IMAGE, "bundle": "bundle-good.json", "compat_evidence": "compat-good.json"}
+    path = plan_file(folder, good={**relative, "image_uri": "good"})
+    plan = release.load_plan(path)
+    assert plan["good"]["bundle"] == str(folder.resolve() / "bundle-good.json")
+    assert plan["good"]["compat_evidence"] == str(folder.resolve() / "compat-good.json")
+
+
 @pytest.mark.parametrize("change", [
     {"owner": "everyone"}, {"extra": 1}, {"good": {"bundle": "b"}},
     {"owner": "processing"},  # a Processing release needs a worker definition
@@ -316,6 +327,7 @@ def test_the_fresh_flag_applies_to_the_steps_named_by_only_or_to_all(tmp_path):
     ["gateway", "--fixture", "f.mp4"], ["capacity", "--fixture", "f.mp4"],
     ["release", "--plan", "p.json"], ["release-plan"], ["spend"],
     ["short-encode", "--arm", "compare"], ["db-topology", "--arm", "compare"],
+    ["isolation", "--fixture", "f.mp4"], ["unattended", "--fixture", "f.mp4"],
 ])
 def test_fresh_is_refused_for_every_proof_but_latency_before_anything_is_built(command):
     out = io.StringIO()
@@ -378,7 +390,8 @@ def test_writing_counts_points_the_operator_config_at_a_private_file(tmp_path):
                     tmp=state)
     path = summary.write_counts(state, live_receipts(tmp_path))
     config = json.loads((state / "operator-config.json").read_text())
-    assert config["counts_file"] == str(path) and stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert config["counts_file"] == path.name  # relative to the config, so the state can move
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
     assert ctx.state_dir == state
 
 
@@ -426,8 +439,8 @@ def test_rehearse_runs_every_harness_offline_and_fails_nothing(tmp_path):
     report = json.loads(out)
     assert code == 0 and report["mode"] == "simulated", out
     assert set(report["harnesses"]) == {
-        "gateway", "capacity", "capacity-backlog", "latency", "spend", "release", "short-encode",
-        "db-topology"}
+        "gateway", "capacity", "capacity-backlog", "isolation", "unattended", "latency", "spend",
+        "release", "short-encode", "db-topology"}
     # No SQL station is simulated: the release harness reads schemas through the in-VPC task.
     assert report["harnesses"]["release"]["steps"]["baseline"] == "PASS"
     assert all(h["overall"] == "SIMULATED" for h in report["harnesses"].values())
