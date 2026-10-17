@@ -79,8 +79,10 @@ def test_every_resource_and_output_of_the_lane_is_conditional():
     assert names and {template()["Outputs"][n]["Condition"] for n in names} == {"ShortEncodes"}
 
 
-def reference_names(node, *, inside_lane_condition=False):
+def reference_names(node, *, resource_names=None):
     """Every resource name referenced outside an Fn::If that guards on ShortEncodes."""
+    if resource_names is None:
+        resource_names = resources().keys()
     found = set()
     if isinstance(node, dict):
         for key, value in node.items():
@@ -88,11 +90,11 @@ def reference_names(node, *, inside_lane_condition=False):
                 continue  # the guarded branches only exist when the lane does
             if key in {"Ref", "Fn::GetAtt", "Fn::Sub"}:
                 text = json.dumps(value)
-                found |= {n for n in resources() if n in text}
-            found |= reference_names(value)
+                found |= {n for n in resource_names if n in text}
+            found |= reference_names(value, resource_names=resource_names)
     elif isinstance(node, list):
         for item in node:
-            found |= reference_names(item)
+            found |= reference_names(item, resource_names=resource_names)
     return found
 
 
@@ -103,14 +105,16 @@ def test_the_reference_scan_catches_an_unguarded_reference_and_skips_a_guarded_o
     assert reference_names({"Fn::If": ["ShortEncodes", {"Ref": queue}, "x"]}) == set()
 
 
-# Template-only (scripts/aws is unmeasured) and about 80x slower under the coverage tracer.
-@pytest.mark.unmeasured
 def test_a_default_stack_has_no_resource_that_refers_to_the_lane_unconditionally():
-    lane = set(lane_resources())
-    for name, resource in resources().items():
+    # Reuse one template and name set throughout the recursive scan. Rebuilding
+    # the entire template at every reference dominated coverage-fast's budget.
+    built = resources()
+    names = set(built)
+    lane = {name for name, resource in built.items() if resource.get("Condition") == "ShortEncodes"}
+    for name, resource in built.items():
         if name in lane:
             continue
-        assert not (reference_names(resource) & lane), name
+        assert not (reference_names(resource, resource_names=names) & lane), name
 
 
 def test_the_default_config_renders_no_lane_parameter_and_true_opts_in():
