@@ -49,8 +49,8 @@ are honored even when that caller is itself manually dispatched.
 The independent child jobs are `v1-offline` (display name
 `V1 offline control-plane and operational checks`) and `v1-local` (display name
 `V1 local flows, browser leg and coverage`). They have no dependency on one another.
-GitHub propagates either selected child's failure through the reusable workflow to its
-caller; the full aggregate must require that caller and all other selected full suites.
+The V1 requested checks aggregate rejects failures, cancellations and unexpected skips
+inside the reusable workflow; the full aggregate must require that caller and all other selected full suites.
 Keep missing/cancelled/unexpectedly skipped selected results as failures in the caller.
 
 Offline setup uses locked `dev` dependencies without the legacy or browser extras;
@@ -167,7 +167,7 @@ Comparison medians use only complete successful receipts with successful require
 ## Coordinator evidence and agent wait policy (pending integration)
 
 The coordinator must publish the final stable **dev aggregate** and **full aggregate**
-check names from #160 here; neither name is invented by this subagent. Discover the exact
+check names: **Dev gate** and **Full verification**. Both are now wired by #160. Discover the exact
 names and classifier decisions with read-only commands:
 
 ```sh
@@ -188,10 +188,10 @@ Proposed coordinator-only dispatch commands (documented here, not executed):
 # Standalone complete V1 local acceptance including optional images:
 gh workflow run v1.yml --repo Collaboration95/dc2 --ref "$CANDIDATE_REF" \
   -f flow=all -F images=true
-# Complete CI, once #160's integrated manual tier input name is confirmed:
-: "${FULL_MODE_INPUT:?read the final ci.yml input name before dispatch}"
+# Complete CI on the exact candidate commit:
+: "${CANDIDATE_SHA:?set the full 40-character commit of CANDIDATE_REF}"
 gh workflow run ci.yml --repo Collaboration95/dc2 --ref "$CANDIDATE_REF" \
-  -f "$FULL_MODE_INPUT=full"
+  -f "candidate_sha=$CANDIDATE_SHA"
 ```
 
 The standalone V1 run does not replace retained legacy acceptance, combined package

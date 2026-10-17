@@ -63,7 +63,13 @@ jobs:
         id: policy
         env:
           CANDIDATE_SHA: ${{ inputs.candidate_sha }}
-        run: python3 scripts/ci/policy.py classify
+        run: python3 scripts/ci/policy.py classify > ci-policy.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-selection
+          path: ci-policy.json
+          if-no-files-found: error
+          retention-days: 14
 
   policy-checks:
     name: CI policy offline tests

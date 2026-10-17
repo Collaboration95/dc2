@@ -202,35 +202,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PUSH_BEFORE: ${{ github.event.before }}
-        run: |
-          set -euo pipefail
-          case "$EVENT" in
-            pull_request*) base="$PR_BASE" ;;
-            push) base="$PUSH_BEFORE" ;;
-            *) base="" ;;
-          esac
-          changed=true
-          diff_file=$(mktemp)
-          trap 'rm -f "$diff_file"' EXIT
-          if [ -n "$base" ] && [ -n "${base//0/}" ] && git cat-file -e "$base^{commit}" 2>/dev/null; then
-            # PRs use the common ancestor, including when tested at a merge candidate.
-            if [[ "$EVENT" == pull_request* ]]; then
-              base=$(git merge-base "$base" HEAD) || base=""
-            fi
-            if [ -n "$base" ] && git diff --no-renames --name-only -z "$base" HEAD > "$diff_file"; then
-              changed=false
-              while IFS= read -r -d '' file; do
-                case "$file" in
-                  # All Dockerfile COPY trees and verifier/bootstrap/template inputs.
-                  contracts/*|delivery/*|media/*|processing/*|media_engine/*|runtime_support/*) changed=true ;;
-                  deploy/v1/*|deploy/aws/v1/*|scripts/aws/v1/*) changed=true ;;
-                  pyproject.toml|uv.lock|.dockerignore|.github/workflows/*|Makefile) changed=true ;;
-                esac
-              done < "$diff_file"
-            fi
-          fi
-          echo "changed=$changed" >> "$GITHUB_OUTPUT"
-          echo "image-affecting paths changed: $changed" >> "$GITHUB_STEP_SUMMARY"
+        run: python3 -m scripts.ci.v1 images
 
   # Native amd64 builds plus handler runs under the Lambda Runtime Interface Emulator.
   # Local evidence only; it never contacts a registry or AWS.
@@ -254,3 +226,20 @@ jobs:
           path: docs/execution/aws/v1/evidence/local-images-*.json
           if-no-files-found: warn
           retention-days: 14
+
+  v1-result:
+    name: V1 requested checks
+    if: always()
+    needs: [v1-offline, v1-local, image-paths, images]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject failures and unexpected skips in requested V1 jobs
+        env:
+          RUN_OFFLINE: ${{ inputs.run_offline }}
+          RUN_LIVE: ${{ inputs.run_live }}
+          IMAGES: ${{ inputs.images }}
+          AUTO_IMAGES: ${{ inputs.auto_images }}
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: python3 -m scripts.ci.v1 gate

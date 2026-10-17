@@ -115,7 +115,8 @@ def classify(workflow, tmp_path, repository, *, event='pull_request', base=None,
     output.write_text('')
     env = {**os.environ, 'EVENT': event, 'PR_BASE': original_base if base is None else base,
            'PUSH_BEFORE': original_base if base is None else base,
-           'GITHUB_OUTPUT': str(output), 'GITHUB_STEP_SUMMARY': str(tmp_path / 'summary')}
+           'PYTHONPATH': str(ROOT), 'GITHUB_OUTPUT': str(output),
+           'GITHUB_STEP_SUMMARY': str(tmp_path / 'summary')}
     if fail_diff:
         tool = tmp_path / 'tools'
         tool.mkdir()

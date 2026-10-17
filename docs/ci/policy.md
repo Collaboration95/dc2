@@ -122,8 +122,8 @@ The `v1-local` reusable call always passes `flow: all`, `auto_images: false`,
 output strings to booleans. Full mode passes true for all three requests.
 `run_offline` covers control-plane, template and offline contracts; `run_live`
 covers every local flow, browser and V1 coverage; `images` validates the three V1
-artifacts. The separate #162 implementation owns these inputs and must fail its
-own aggregate for **any requested internal job** that fails, cancels or skips.
+artifacts. The reusable V1 requested checks aggregate fails for **any requested internal job**
+that fails, cancels or skips.
 This CI change must be integrated with that interface before publication.
 
 ## Inherited assertion inventory and retention
@@ -153,9 +153,9 @@ failed Full verification; they are never attributed to an unmerged candidate.
 
 ## Security execution and evidence
 
-DAST remains Monday 03:00 UTC and manually runnable. Its relevant dev PR path
-filter includes API/auth/shared runtime/contracts and edge/stack inputs; those
-standalone scan results are advisory to Dev gate. Every full CI run calls the
+DAST remains Monday 03:00 UTC and manually runnable. CI selects relevant dev
+API/auth/shared runtime/contracts and edge/stack inputs and calls the scanner once;
+there is no duplicate standalone PR trigger. Dev scan results are advisory to Dev gate. Every full CI run calls the
 reusable DAST workflow at the **same tested source**, including Main promotion,
 Main regression, explicit checkpoints and conservative full fallbacks. Full
 verification requires successful DAST execution. ZAP findings remain report-only
@@ -191,9 +191,9 @@ Image selection follows audited Dockerfile inputs:
 
 Tests enumerate every actual Dockerfile COPY source and reject selection gaps.
 Routine CI disables V1's automatic path guessing and passes this authoritative
-image decision. The reusable standalone `auto_images` implementation should use
-`scripts.ci.policy.image_inputs(path)[0]` for the same audited input predicate;
-keep no second path allowlist. V1 image validation builds all three as one
+image decision. The reusable standalone `auto_images` implementation uses `scripts.ci.v1 images`
+and the same classifier, including conservative unknown-path fallback. There is no
+second path allowlist. The template snapshot is an image-verifier input too. V1 image validation builds all three as one
 isolation contract.
 The legacy matrix **does not scan V1 Lambda/Fargate images**. The current V1 build
 receipt explicitly says vulnerability scan `NOT_RUN`; successful artifact builds

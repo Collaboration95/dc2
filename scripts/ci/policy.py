@@ -40,9 +40,19 @@ V1_INPUTS = (
     "delivery/",
     "runtime_support/",
     "deploy/v1/",
+    "deploy/aws/v1/template.json",
     "scripts/aws/v1/bootstrap.py",
 )
 COMMON_IMAGE_INPUTS = {"pyproject.toml", "uv.lock", ".dockerignore"}
+DAST_INPUTS = (
+    "media/", "processing/", "media_engine/", "runtime_support/", "delivery/",
+    "contracts/", "app/", "frontend/", "tests/contracts/", "compose/local/",
+    "tests/media/test_contract_security.py", "tests/processing/test_contracts.py",
+    "tests/publisher/test_https.py", "scripts/dev/runtime.py", "scripts/dev/tls.py",
+    "docker-compose.yml", "docker-compose.processing.yml", "nginx.conf",
+    "deploy/media.Dockerfile", "deploy/processing.Dockerfile", "deploy/nginx/",
+    "deploy/nginx-tls/", "deploy/dast/", "deploy/minio/", "deploy/postgres/",
+)
 LEGACY_INPUTS = {
     "app": ("app/", "migrations/", "Dockerfile", "alembic.ini"),
     "processing": (
@@ -106,6 +116,8 @@ def classify(paths, *, full=False, reason="routine dev PR", source_sha="", base_
             reasons.append(f"workflow/dependency/policy input: {path}")
             continue
         v1_images, legacy_images = image_inputs(path)
+        if matches(path, DAST_INPUTS):
+            select("dast")
         if v1_images:
             select("images")
         images.update(legacy_images)

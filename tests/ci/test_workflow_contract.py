@@ -68,7 +68,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("uses: ./.github/workflows/dast.yml", self.jobs["dast"])
         self.assertIn("schedule:", dast)
         self.assertIn("workflow_dispatch:", dast)
-        self.assertIn("branches: [dev/v1-integration]", dast)
+        self.assertNotIn("  pull_request:", dast)  # CI owns the single candidate scan.
         self.assertIn("group: dast-${{ github.workflow }}-${{ github.ref }}", dast)
         self.assertIn("scan execution is not proven", dast)
         self.assertIn("source_sha=os.environ['GITHUB_SHA']", dast)

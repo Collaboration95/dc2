@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       required_candidate:
-        description: Called by full CI for the exact tested candidate
+        description: Called by CI for the exact tested candidate
         type: boolean
         default: false
   workflow_dispatch:
@@ -15,38 +15,7 @@ on:
         type: string
   schedule:
     - cron: "0 3 * * 1"
-  pull_request:
-    # Relevant dev scans are advisory to Dev gate. Full CI calls this workflow
-    # for every Main-promotion candidate, unknown target, and full checkpoint.
-    branches: [dev/v1-integration]
-    paths:
-      - ".github/workflows/dast.yml"
-      - "media/**"
-      - "processing/**"
-      - "media_engine/**"
-      - "runtime_support/**"
-      - "delivery/**"
-      - "contracts/**"
-      - "app/**"
-      - "tests/media/test_contract_security.py"
-      - "tests/processing/test_contracts.py"
-      - "tests/publisher/test_https.py"
-      - "frontend/**"
-      - "tests/contracts/**"
-      - "compose/local/**"
-      - "docker-compose*.yml"
-      - "nginx.conf"
-      - "scripts/dev/runtime.py"
-      - "scripts/dev/tls.py"
-      - "deploy/media.Dockerfile"
-      - "deploy/processing.Dockerfile"
-      - "deploy/nginx/**"
-      - "deploy/nginx-tls/**"
-      - "deploy/dast/**"
-      - "deploy/minio/**"
-      - "deploy/postgres/**"
-      - "pyproject.toml"
-      - "uv.lock"
+  # CI owns PR selection and calls this workflow once per candidate.
 
 concurrency:
   # A reusable workflow inherits github.workflow from its caller. Prefixing the
