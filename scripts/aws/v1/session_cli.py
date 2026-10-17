@@ -35,7 +35,7 @@ ZERO = dict.fromkeys(("queued", "processing", "succeeded", "failed", "abandoned"
 def build_hooks(data, hook_names, transport, *, dry_run, config=None, in_vpc=False,
                 clock=time.monotonic, sleep=time.sleep):
     """Real hooks over the transport; dry-run swaps only the counts reader for zero counts."""
-    owner = OwnerHooks(transport, **hook_names)
+    owner = OwnerHooks(transport, **hook_names, clock=clock, sleep=sleep)
     if dry_run:
         reader = lambda _deadline: dict(ZERO)  # noqa: E731
     elif in_vpc:
@@ -46,7 +46,7 @@ def build_hooks(data, hook_names, transport, *, dry_run, config=None, in_vpc=Fal
         reader = file_reader(data["counts_file"])
     else:
         reader = None
-    return owner, AttemptCounts(reader) if reader else None
+    return owner, AttemptCounts(reader, clock=clock, sleep=sleep) if reader else None
 
 
 def run_action(args, session, data, hook_names, transport, deadline, *, clock=time.monotonic,
@@ -62,7 +62,7 @@ def run_action(args, session, data, hook_names, transport, deadline, *, clock=ti
             intake_ready=owner.intake_ready,
             deadline=deadline,
             window=args.action == "window",
-            launcher=LauncherHooks(owner) if unattended else None,
+            launcher=LauncherHooks(owner, clock=clock, sleep=sleep) if unattended else None,
             launcher_session_end=time.time() + 60 * args.minutes if unattended else None,
         )
     if args.action == "close":
@@ -74,7 +74,8 @@ def run_action(args, session, data, hook_names, transport, deadline, *, clock=ti
             outcomes=counts.outcomes,
             deadline=deadline,
             # Whenever the stack has a launcher, close disables its flag, not only its rule.
-            launcher=LauncherHooks(owner) if session.config.get("launcher") else None,
+            launcher=(LauncherHooks(owner, clock=clock, sleep=sleep)
+                      if session.config.get("launcher") else None),
         )
     if args.action == "status":
         return session.status(deadline=deadline)

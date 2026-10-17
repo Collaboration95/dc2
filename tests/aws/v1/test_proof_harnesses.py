@@ -5,11 +5,12 @@ harnesses detect the failures they exist to detect and never claim anything abou
 """
 
 import argparse
+import json
 
 import pytest
 
 from scripts.aws.v1.proof import capacity, gateway, latency, sim, spend, tasks, workflow
-from scripts.aws.v1.proof.core import FAIL, NOT_RUN, PASS, ProofError
+from scripts.aws.v1.proof.core import FAIL, NOT_RUN, PASS, ProofError, sha256_text
 
 pytestmark = pytest.mark.unmeasured
 
@@ -189,9 +190,33 @@ def test_cold_wake_closes_the_window_it_opened_even_when_a_measurement_raises(
         tmp_path, monkeypatch):
     ctx = build(tmp_path, "closed")
     monkeypatch.setattr(latency, "wait_for_gate", lambda *a: 1 / 0)
-    proof = latency.run(ctx, only={"cold-wake"})
-    assert proof.doc["steps"]["cold-wake"]["status"] == FAIL
-    assert journal_session(ctx) == "closed"
+    status, public = wake(ctx)
+    assert status == FAIL and "ZeroDivisionError" in public["reason"]
+    assert public["window_closed"] is True and journal_session(ctx) == "closed"
+
+
+def test_a_raising_probe_and_a_failed_close_keep_the_timings_and_say_how_to_recover(
+        tmp_path, monkeypatch):
+    ctx = build(tmp_path, "closed")
+    answered = limited(ctx, answers=2)
+    real_http = ctx.http
+
+    def http(method, url, headers, body, timeout):
+        if url.endswith(latency.GATE_PROBE_PATH) and len(answered) >= 2:
+            raise TimeoutError("probe timed out at https://example.invalid")
+        return real_http(method, url, headers, body, timeout)
+
+    ctx.http = http
+    real = latency.session_cli.main
+    monkeypatch.setattr(latency.session_cli, "main", lambda argv, **kw: (
+        1 if argv[0] == "close" else real(argv, **kw)))
+    status, public = wake(ctx)
+    assert status == FAIL and "TimeoutError" in public["reason"]
+    assert "example.invalid" not in json.dumps(public)  # the class, never the text
+    assert public["gate_probes"] == 3 and public["gate_settle_seconds"] >= 2 * (
+        latency.GATE_POLL_SECONDS)
+    assert "window_open_seconds" in public and "login_ms" not in public
+    assert public["window_closed"] is False and "session close" in public["recovery"]
 
 
 def test_cold_wake_does_not_pass_when_its_window_could_not_be_closed(tmp_path, monkeypatch):
@@ -201,7 +226,7 @@ def test_cold_wake_does_not_pass_when_its_window_could_not_be_closed(tmp_path, m
         1 if argv[0] == "close" else real(argv, **kw)))
     status, public = wake(ctx)
     assert status == FAIL and public["window_closed"] is False
-    assert "session close" in public["reason"] and public["statuses"] == [200, 200, 200]
+    assert "session close" in public["recovery"] and public["statuses"] == [200, 200, 200]
 
 
 @pytest.mark.parametrize("fault", ["slow-tail", "errors"])
@@ -272,6 +297,41 @@ def test_a_fresh_generator_rerun_mints_a_new_task_and_archives_the_old_attempt(t
 
     third = latency.run(ctx, only={"generator"})  # same process settings: archived once per Proof
     assert [a["attempt"] for a in third.doc["attempts"]["generator"]] == [1, 2]
+
+
+def test_each_attempt_keeps_its_own_raw_samples_and_the_archive_names_the_file(tmp_path):
+    ctx = build(tmp_path, "open")
+    first = latency.run(ctx, only={"generator"})
+    one = ctx.evidence_dir / "latency-samples-t.csv"  # the first attempt keeps the old name
+    kept = one.read_text()
+    assert first.doc["steps"]["generator"]["private"]["samples_file"] == one.name
+
+    ctx.fresh = {"generator"}
+    ctx.world.generated = None
+    ctx.world.faults.add("slow-tail")  # a different sample stream
+    second = latency.run(ctx, only={"generator"})
+    two = ctx.evidence_dir / "latency-samples-t-a2.csv"
+    assert two.exists() and two.read_text() != kept and one.read_text() == kept
+    (archived,) = second.doc["attempts"]["generator"]
+    assert archived["step"]["private"]["samples_file"] == one.name
+    assert archived["step"]["public"]["samples_sha256"] == sha256_text(kept)
+    assert second.doc["steps"]["generator"]["private"]["samples_file"] == two.name
+
+    ctx.world.generated = None
+    ctx.world.faults.discard("slow-tail")
+    third = latency.run(ctx, only={"generator"})  # same process settings: attempt 3 is fresh too
+    assert third.doc["steps"]["generator"]["private"]["samples_file"] == (
+        "latency-samples-t-a3.csv")
+
+
+def test_a_samples_file_that_holds_other_samples_is_never_overwritten(tmp_path):
+    ctx = build(tmp_path, "open")
+    ctx.evidence_dir.mkdir(parents=True, exist_ok=True)
+    taken = ctx.evidence_dir / "latency-samples-t.csv"
+    taken.write_text("someone else's evidence\n")
+    step = latency.run(ctx, only={"generator"}).doc["steps"]["generator"]
+    assert step["status"] == FAIL and "never overwritten" in step["public"]["error"]
+    assert taken.read_text() == "someone else's evidence\n"
 
 
 def test_without_fresh_a_failed_generator_rerun_resumes_the_same_task(tmp_path):

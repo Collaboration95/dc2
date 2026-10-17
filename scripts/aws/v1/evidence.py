@@ -62,7 +62,8 @@ def scope_arguments(parser):
                         help="simulated account, throwaway receipts; proves nothing about AWS")
     parser.add_argument("--only", help="comma-separated step names to run")
     parser.add_argument("--fresh", action="store_true",
-                        help="rerun the steps selected by --only (all steps without it) as new "
+                        help="latency (#66) only: rerun the steps selected by --only (all steps "
+                             "without it) as new "
                              "attempts: the old receipt entry and intent are archived under "
                              "`attempts` and a new task or request is minted. Without it PASS "
                              "and NOT_RUN are final")
@@ -350,6 +351,11 @@ def main(argv=None, *, stdout=None, world=None, factory=None):
             return rehearse(args, stdout)
         if args.command in {"counts", "summary"}:
             return post_process(args, stdout)
+        if getattr(args, "fresh", False) and args.command != "latency":
+            raise ProofError(
+                f"--fresh is not supported for `{args.command}`: its drain counts and release "
+                "snapshots are cumulative across attempts, so archiving a step would undercount "
+                "or corrupt them. Only `latency` (#66) can be rerun as a fresh attempt")
         if not args.dry_run and not args.state_dir:
             raise ProofError("--state-dir is required for a live run")
         if args.command == "release-plan":

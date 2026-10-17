@@ -147,6 +147,23 @@ def throttled(rows, route=None):
     return sum(1 for r in rows if r["status_code"] == 429 and route in (None, r["route"]))
 
 
+def write_samples(ctx, proof, text):
+    """Keep each attempt's raw samples under its own name: the first attempt's is
+    `latency-samples-<run>.csv`, attempt N's `...-a<N>.csv`. The archived attempt's private
+    entry names its file, so a --fresh rerun can never replace the evidence behind an archived
+    hash. A file already there is accepted only when it holds exactly these samples (a resumed,
+    not fresh, rerun of the same task); otherwise it is refused, never overwritten."""
+    number = len(proof.doc.get("attempts", {}).get("generator", [])) + 1
+    name = f"latency-samples-{ctx.run_id}" + (f"-a{number}" if number > 1 else "") + ".csv"
+    path = ctx.evidence_dir / name
+    if path.exists():
+        if sha256_text(path.read_text()) != sha256_text(text):
+            raise ProofError(f"{name} already holds different samples; it is never overwritten")
+        return name
+    private_write(path, text)
+    return name
+
+
 def generator(ctx, proof, intent):
     require_load_edge(ctx)
     worker = ctx.outputs["WorkerTaskDefinitionArn"]
@@ -185,7 +202,7 @@ def generator(ctx, proof, intent):
     text = collect_samples(lines)
     if sha256_text(text) != result["samples_sha256"] or len(text) != result["samples_length"]:
         raise ProofError("The sample stream does not match its recorded hash and length")
-    private_write(ctx.evidence_dir / f"latency-samples-{ctx.run_id}.csv", text)
+    samples_file = write_samples(ctx, proof, text)
     rows = parse_samples(text)
     status, login = judge(result, rows)
     summary = tasks.summary(task)
@@ -209,7 +226,8 @@ def generator(ctx, proof, intent):
         "task_definition_deregistered": intent.get("deregistered", False),
     }
     return verdict(status["status"] == "PASS" and login["status"] == "PASS"
-                   and intent.get("deregistered"), public, {"task": summary})
+                   and intent.get("deregistered"), public,
+                   {"task": summary, "samples_file": samples_file})
 
 
 def wait_for_pause(ctx, cluster, limit):
@@ -227,21 +245,27 @@ def wait_for_pause(ctx, cluster, limit):
         ctx.sleep(PAUSE_POLL_SECONDS)
 
 
-def wait_for_gate(ctx, api):
+def wait_for_gate(ctx, api, public):
     """Probe a cheap unauthenticated route until it stops answering 429 (bounded).
 
     `get-stage` confirms the new throttle before the data plane applies it, so the first
-    request after a window can still meet the closed 0/0 gate. Returns (settled, seconds, probes).
+    request after a window can still meet the closed 0/0 gate. `public` is updated after every
+    probe, so a probe that raises still leaves its count and elapsed time in the receipt.
+    Returns whether the gate settled.
     """
-    began, probes = ctx.clock(), 0
+    began = ctx.clock()
+    public["gate_probes"] = 0
     while True:
-        probes += 1
-        reply = api.request("GET", GATE_PROBE_PATH, auth=False, timeout=20)
+        public["gate_probes"] += 1
+        try:
+            reply = api.request("GET", GATE_PROBE_PATH, auth=False, timeout=20)
+        finally:
+            public["gate_settle_seconds"] = round(ctx.clock() - began, 1)
         waited = ctx.clock() - began
         if reply.status != 429:
-            return True, round(waited, 1), probes
+            return True
         if waited + GATE_POLL_SECONDS > GATE_SETTLE_SECONDS:
-            return False, round(waited, 1), probes
+            return False
         ctx.sleep(GATE_POLL_SECONDS)
 
 
@@ -275,11 +299,15 @@ def cold_wake(ctx, proof, override=None, pause_wait=PAUSE_WAIT_SECONDS):
     public = {"database_paused_before": True, "pause_wait_seconds": pause_waited}
     try:
         ok = measure_wake(ctx, public)
+    except Exception as error:  # keep what was gathered; the class only, never the text
+        ok = False
+        public["reason"] = f"The measurement raised {type(error).__name__} after the window opened"
     finally:  # even a failed or interrupted measurement must not leave the session in `window`
         public["window_closed"] = close_window(ctx)
     if not public["window_closed"]:
-        public.setdefault("reason", "The window this step opened could not be closed: run "
-                                    "`session close` before the next step")
+        public["recovery"] = ("The window this step opened could not be closed: run "
+                              "`python -m scripts.aws.v1.session close --config <operator-config> "
+                              "--in-vpc-counts` (with the deploy's scope) before any other step")
     return verdict(ok and public["window_closed"], public)
 
 
@@ -292,8 +320,7 @@ def measure_wake(ctx, public):
         public["reason"] = "The session window did not open"
         return False
     api = ctx.api("gateway")
-    settled, public["gate_settle_seconds"], public["gate_probes"] = wait_for_gate(ctx, api)
-    if not settled:
+    if not wait_for_gate(ctx, api, public):
         public["reason"] = (f"The gateway still answered 429 {GATE_SETTLE_SECONDS} s after "
                             "the window was confirmed open")
         return False

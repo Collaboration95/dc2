@@ -268,6 +268,25 @@ def test_the_fresh_flag_applies_to_the_steps_named_by_only_or_to_all(tmp_path):
     assert plain.fresh is False and plain.pause_wait_minutes == 15
 
 
+@pytest.mark.parametrize("command", [
+    ["gateway", "--fixture", "f.mp4"], ["capacity", "--fixture", "f.mp4"],
+    ["release", "--plan", "p.json"], ["release-plan"], ["spend"],
+    ["short-encode", "--arm", "compare"], ["db-topology", "--arm", "compare"],
+])
+def test_fresh_is_refused_for_every_proof_but_latency_before_anything_is_built(command):
+    out = io.StringIO()
+
+    def factory(args):
+        raise AssertionError("no context may be built for a refused --fresh")
+
+    code = evidence.main([*command, "--profile", "p", "--region", "r", "--account", "1",
+                          "--run-id", "x", "--state-dir", "/nonexistent", "--fresh"],
+                         stdout=out, factory=factory)
+    body = json.loads(out.getvalue())
+    assert code == 1 and body["ok"] is False
+    assert "--fresh is not supported" in body["error"] and "cumulative" in body["error"]
+
+
 def test_a_simulated_command_with_fresh_archives_through_the_cli(tmp_path):
     out = io.StringIO()
     factory = None

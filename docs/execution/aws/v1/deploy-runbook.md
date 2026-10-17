@@ -315,7 +315,9 @@ python -m scripts.aws.v1.session close --config D/operator-config.json $S --in-v
 #    measure again after fixing the cause, add --fresh: the selected steps' old entry and intent
 #    are archived under "attempts" in the private receipt (never in the summary) and the step
 #    mints a new task, e.g. `... --only generator --fresh`. Without --only it applies to every
-#    step of that harness.
+#    step of #66. `--fresh` is refused for every other proof (their drain counts and release
+#    snapshots are cumulative). Each attempt's raw samples keep their own file
+#    (latency-samples-R.csv, then -a2, -a3 ...); none is ever overwritten.
 
 # 6. #65 release (window, not open). No SQL station: the owning schema revision is read by a
 #    finite task inside the VPC. Build plan.json first ("Release proof on an existing stack").
