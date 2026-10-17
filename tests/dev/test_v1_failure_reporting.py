@@ -188,3 +188,18 @@ def test_work_pump_that_is_still_failing_at_stop_is_a_problem(pump_module, monke
     work.stopped.set()
     work.run()
     assert "still failing: True" in work.problem()
+
+
+def test_a_redirected_segment_read_needs_both_the_gateway_307_and_an_object_store_read():
+    from scripts.dev.v1_browser import segment_redirect_gap
+
+    read = {"path": "/out/seg00000.ts", "origin": "https://127.0.0.1:1", "cookie": False}
+    seg = "/api/media/jobs/j/hls/v0/seg00000.ts"
+    assert segment_redirect_gap([], []) == (
+        "the Gateway has not answered a segment request with a 307; "
+        "the object store has not been asked for a segment"
+    )
+    assert segment_redirect_gap([seg], []) == "the object store has not been asked for a segment"
+    # A playlist redirect is not a segment redirect.
+    assert "307" in segment_redirect_gap(["/api/media/jobs/j/hls/master.m3u8"], [read])
+    assert segment_redirect_gap([seg], [read]) is None
