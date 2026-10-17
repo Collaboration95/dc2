@@ -41,10 +41,13 @@ def test_concrete_capacity_drain_receipts_compose_across_all_three_batches(confi
     )
     assert [b["count"] for b in batches] == [1, 2, 3]
     assert len([c for c in fake.calls if c[1] == "run-task"]) == 6
-    # Missing acknowledged describe is uncertainty, never a complete empty receipt.
+    # A missing describe for a launch never seen STOPPED is uncertainty, never a complete
+    # empty receipt. (One the journal already saw STOPPED may vanish: ECS forgets it.)
     del fake.tasks[next(iter(fake.tasks))]
     with journal.locked() as state:
         record = next(iter(state["launches"].values()))
-        del fake.tasks[record["task"]]
+        record["status"] = "acknowledged"
+        journal.save(state)
+        fake.tasks.pop(record["task"], None)
     with pytest.raises(OperationError):
         binding.drain(deadline=time.monotonic() + 30)
