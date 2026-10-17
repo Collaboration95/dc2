@@ -83,3 +83,14 @@ python -m publisher --base-url "$MEDIA_API" delete "$ASSET_ID"
 
 The old `PublicClient.legacy_upload` method exists only for frozen pre-Gateway
 regression tests. V1 publishing always uses reserve/upload/finalize.
+
+## Integrator contract
+
+The HTTP contract this client speaks is published as generated OpenAPI 3.1 documents:
+[`docs/api/media.openapi.json`](../docs/api/media.openapi.json) (base `/api/media`) and
+[`docs/api/processing.openapi.json`](../docs/api/processing.openapi.json) (base `/api/processing`).
+They are built from the V1 applications under the Gateway's own path prefixes and mark which
+routes need the `access_token` session cookie. A fast test fails when they drift, and
+`python -m scripts.dev.openapi` regenerates them. The documents under
+`project-roadmap/design/05-contracts/` describe the pre-V1 routes and are not the integrator
+contract.

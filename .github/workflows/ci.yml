@@ -674,6 +674,32 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  # Unconditional on purpose: no lane selection may skip the one check that stops a leaked
+  # credential. It scans the whole history, not just the diff, because a key removed in a later
+  # commit is still published. Findings fail the job; the allowlist is .gitleaks.toml.
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # The binary rather than gitleaks-action: the action needs a licence key for
+      # organisation repositories. Version and checksum are pinned together.
+      - name: Install pinned gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl -fsSL -o gitleaks.tgz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tgz" | sha256sum -c -
+          tar -xzf gitleaks.tgz gitleaks
+          rm gitleaks.tgz
+      - name: Scan history (secrets are redacted in the log)
+        run: ./gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --verbose
+
   sonar-config:
     name: Sonar configuration (analysis is advisory)
     runs-on: ubuntu-latest

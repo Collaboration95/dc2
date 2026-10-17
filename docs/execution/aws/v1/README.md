@@ -39,6 +39,8 @@ manifest; without the browser flag it stays `NOT_RUN`. `cloud_acceptance` is alw
 - [`local-runtime.md`](local-runtime.md): runtime commands, honest gates, CI tiers and what is emulated.
 - [`contracts/README.md`](contracts/README.md): the executable gateway, identity and message contracts.
 - [`deploy-runbook.md`](deploy-runbook.md): the first real deploy and teardown, written and verified offline only.
+  Its "CD workflow" section covers `.github/workflows/cd.yml`, which runs the same commands from GitHub Actions over an OIDC role.
+- [`../../../api/`](../../../api/): the generated OpenAPI documents of the Media and Processing public APIs.
 - [`dlq-runbook.md`](dlq-runbook.md): inspect and redrive the three DLQs. Local redrive uses a
   manual fallback because Moto lacks the move-task API; native redrive evidence is separate.
 
