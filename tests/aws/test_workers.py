@@ -111,6 +111,19 @@ def test_acknowledged_but_missing_describe_is_not_free_slot(config, fake, journa
             worker_inventory(config, fake, state, deadline=1000)
 
 
+def test_a_stopped_launch_that_ecs_has_forgotten_does_not_block_closing(
+    config, fake, journal, clock
+):
+    arn = launch(config, fake, journal, clock)[0]
+    fake.tasks[arn]["lastStatus"] = "STOPPED"
+    with journal.locked() as state:
+        assert worker_inventory(config, fake, state, deadline=1000)[1] == 0
+        journal.save(state)
+    del fake.tasks[arn]  # ECS drops stopped tasks after about an hour
+    with journal.locked() as state:
+        assert worker_inventory(config, fake, state, deadline=1000)[1] == 0
+
+
 def test_drain_collects_current_last_racing_claims(config, fake, journal, clock):
     arn = launch(config, fake, journal, clock)[0]
     sent = []

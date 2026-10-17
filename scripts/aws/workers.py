@@ -70,7 +70,10 @@ def inventory(config, transport, *, deadline, known=()):
 
 def worker_inventory(config, transport, state, *, deadline):
     launches = state["launches"]
-    known = [r["task"] for r in launches.values() if r.get("task")]
+    # ECS forgets a stopped task after about an hour and then reports it MISSING, which the
+    # describe treats as unresolved. A launch the journal already saw STOPPED needs no second
+    # look; re-describing it made every session longer than an hour unclosable (2026-10-17).
+    known = [r["task"] for r in launches.values() if r.get("task") and r["status"] != "stopped"]
     tasks = inventory(config, transport, deadline=deadline, known=known)
     worker_family = family(config_value(config, "task_definitions")["worker"])
     workers = {
@@ -80,7 +83,7 @@ def worker_inventory(config, transport, state, *, deadline):
     }
     for record in launches.values():
         arn = record.get("task")
-        if arn and tasks[arn]["lastStatus"] == "STOPPED":
+        if arn and record["status"] != "stopped" and tasks[arn]["lastStatus"] == "STOPPED":
             record["status"] = "stopped"
     occupied = {arn for arn, task in workers.items() if task["lastStatus"] != "STOPPED"}
     # A listed task associated with a request consumes its slot only once.
