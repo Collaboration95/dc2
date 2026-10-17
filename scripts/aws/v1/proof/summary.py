@@ -19,7 +19,7 @@ from scripts.aws.v1.proof.core import (
 
 ROOT = Path(__file__).resolve().parents[4]
 EVIDENCE_DIR = ROOT / "docs/execution/aws/v1/evidence"
-ISSUES = ("63", "64", "65", "66", "67", "185")
+ISSUES = ("63", "64", "65", "66", "67", "68", "185", "196")
 NOT_PROVEN = (
     "Invoice lines: Cost Explorer lags about a day and is an estimate, not a bill.",
     "A rollback of a good promotion is an image rollback; no schema is reversed.",
@@ -104,7 +104,8 @@ def counts(docs):
                 result["succeeded"] += public.get("outcomes", {}).get("done", 0)
                 result["failed"] += public.get("outcomes", {}).get("failed", 0)
                 result["cancelled"] += public.get("outcomes", {}).get("cancelled", 0)
-            if issue == "185" and name.startswith("backlog-") and name != "backlog-compare":
+            if (issue == "185" and name.startswith("backlog-") and name != "backlog-compare") or (
+                    issue == "68" and name == "launcher-backlog"):
                 outcomes = public.get("outcomes", {})
                 result["succeeded"] += outcomes.get("done", 0)
                 result["failed"] += outcomes.get("failed", 0)
@@ -112,6 +113,8 @@ def counts(docs):
                 # A timed-out step stops its encoders: any job still queued or processing is a
                 # real leftover, so it is counted and the close proof stays honest.
                 result["queued"] += public.get("jobs_not_terminal", 0)
+            if issue == "196" and name == "processing-down":
+                result["succeeded" if public.get("job_status") == "done" else "failed"] += 1
             if issue == "64" and name == "recovery":
                 result["abandoned"] += public.get("interrupted_attempts", 0)
                 result["succeeded" if public.get("final_status") == "done" else "failed"] += 1

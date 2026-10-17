@@ -316,6 +316,7 @@ def test_the_fresh_flag_applies_to_the_steps_named_by_only_or_to_all(tmp_path):
     ["gateway", "--fixture", "f.mp4"], ["capacity", "--fixture", "f.mp4"],
     ["release", "--plan", "p.json"], ["release-plan"], ["spend"],
     ["short-encode", "--arm", "compare"], ["db-topology", "--arm", "compare"],
+    ["isolation", "--fixture", "f.mp4"], ["unattended", "--fixture", "f.mp4"],
 ])
 def test_fresh_is_refused_for_every_proof_but_latency_before_anything_is_built(command):
     out = io.StringIO()
@@ -426,8 +427,8 @@ def test_rehearse_runs_every_harness_offline_and_fails_nothing(tmp_path):
     report = json.loads(out)
     assert code == 0 and report["mode"] == "simulated", out
     assert set(report["harnesses"]) == {
-        "gateway", "capacity", "capacity-backlog", "latency", "spend", "release", "short-encode",
-        "db-topology"}
+        "gateway", "capacity", "capacity-backlog", "isolation", "unattended", "latency", "spend",
+        "release", "short-encode", "db-topology"}
     # No SQL station is simulated: the release harness reads schemas through the in-VPC task.
     assert report["harnesses"]["release"]["steps"]["baseline"] == "PASS"
     assert all(h["overall"] == "SIMULATED" for h in report["harnesses"].values())
