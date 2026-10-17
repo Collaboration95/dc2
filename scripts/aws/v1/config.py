@@ -21,6 +21,7 @@ FIELDS = {
     "aurora_engine_version",
     "worker_lifetime_seconds",
     "unattended_launch",
+    "lambda_short_encodes",
 }
 PARAMETERS = {
     "media_runtime_dsn": "MediaRuntimeDsnParameterArn",
@@ -84,6 +85,11 @@ def parameters(config):
         if type(config["unattended_launch"]) is not bool:
             raise ValueError("Unattended launch flag must be a JSON boolean")
         result["UnattendedLaunch"] = str(config["unattended_launch"]).lower()
+    if "lambda_short_encodes" in config:
+        # Absent means the template default (false): no short queue, function or mapping.
+        if type(config["lambda_short_encodes"]) is not bool:
+            raise ValueError("Lambda short-encode flag must be a JSON boolean")
+        result["LambdaShortEncodes"] = str(config["lambda_short_encodes"]).lower()
     result.update({name: arns[key] for key, name in PARAMETERS.items()})
     result.update({f"{key.title()}ImageUri": uri for key, uri in images.items()})
     handler_config = config.get("handlers", {})

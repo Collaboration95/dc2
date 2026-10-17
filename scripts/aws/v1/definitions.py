@@ -4,10 +4,25 @@ import argparse
 import json
 from pathlib import Path
 
+from processing import short_lane
+
 RDS_CA_BUNDLE = "/opt/rds/global-bundle.pem"
 # Opt-in V2 experiment (#68). Every resource whose name starts with this exists only when the
 # stack is deployed with UnattendedLaunch=true, so the default V1 stack gains nothing.
 LAUNCHER = "ProcessingLauncher"
+# Opt-in V2 experiment (#93). Same rule: with LambdaShortEncodes=false none of these exist, and
+# the only trace in the default stack is an environment value that resolves to nothing.
+SHORT_ENCODER = "ProcessingShortEncoder"
+SHORT_QUEUE = "ProcessingShortWork"
+
+
+def gate_of(name):
+    """The stack condition a resource named `name` lives under."""
+    if name.startswith(LAUNCHER):
+        return "Unattended"
+    if name.startswith((SHORT_ENCODER, SHORT_QUEUE)):
+        return "ShortEncodes"
+    return "Applications"
 
 
 def ref(name):
@@ -71,6 +86,11 @@ def template():
             "Default": "false",
             "AllowedValues": ["true", "false"],
         },
+        "LambdaShortEncodes": {
+            "Type": "String",
+            "Default": "false",
+            "AllowedValues": ["true", "false"],
+        },
     }
     for domain in ("Media", "Processing", "Worker"):
         parameters[f"{domain}ImageUri"] = {
@@ -103,15 +123,18 @@ def template():
         "ProcessingEcsEvents": "processing.handlers.ecs_handler",
         "ProcessingS3Events": "processing.handlers.s3_handler",
         LAUNCHER: "processing.handlers.launcher_handler",
+        SHORT_ENCODER: "processing.handlers.short_encoder_handler",
     }
     for name, handler in handlers.items():
         parameters[f"{name}Handler"] = {"Type": "String", "Default": handler}
     resources = {}
 
-    def add(name, kind, properties, *, app=False, retain=False, depends=None):
+    def add(name, kind, properties, *, app=False, retain=False, depends=None, gate=None):
         resource = {"Type": f"AWS::{kind}", "Properties": properties}
-        if app:
-            resource["Condition"] = "Unattended" if name.startswith(LAUNCHER) else "Applications"
+        if gate:
+            resource["Condition"] = gate
+        elif app:
+            resource["Condition"] = gate_of(name)
         if retain:
             resource.update(DeletionPolicy="Retain", UpdateReplacePolicy="Retain")
         if depends:
@@ -426,6 +449,50 @@ def template():
                 ),
             },
         )
+    # The short lane's own queue and dead-letter queue (V2, #93). Its visibility timeout is
+    # the function timeout plus a minute: SQS refuses a mapping below the timeout, and the
+    # message must not reappear while its invocation could still be running.
+    add(
+        f"{SHORT_QUEUE}Dlq",
+        "SQS::Queue",
+        {"MessageRetentionPeriod": 1209600, "SqsManagedSseEnabled": True, "Tags": tags},
+        gate="ShortEncodes",
+    )
+    add(
+        f"{SHORT_QUEUE}Queue",
+        "SQS::Queue",
+        {
+            "MessageRetentionPeriod": 604800,
+            "ReceiveMessageWaitTimeSeconds": 20,
+            "VisibilityTimeout": short_lane.QUEUE_VISIBILITY_SECONDS,
+            "SqsManagedSseEnabled": True,
+            "RedrivePolicy": {
+                "deadLetterTargetArn": attr(f"{SHORT_QUEUE}Dlq"),
+                "maxReceiveCount": 5,
+            },
+            "Tags": tags,
+        },
+        gate="ShortEncodes",
+    )
+    add(
+        f"{SHORT_QUEUE}DlqPolicy",
+        "SQS::QueuePolicy",
+        {
+            "Queues": [ref(f"{SHORT_QUEUE}Dlq")],
+            "PolicyDocument": policy(
+                [
+                    {
+                        "Effect": "Deny",
+                        "Principal": "*",
+                        "Action": "sqs:*",
+                        "Resource": attr(f"{SHORT_QUEUE}Dlq"),
+                        "Condition": {"Bool": {"aws:SecureTransport": "false"}},
+                    }
+                ]
+            ),
+        },
+        gate="ShortEncodes",
+    )
     for domain in ("Media", "Processing", "Worker"):
         add(
             f"{domain}Repository",
@@ -557,6 +624,14 @@ def template():
             output_write,
             allow(receive, [queue_arn("ProcessingWork")]),
         ],
+        # The Lambda twin of "Worker": the same two S3 grants and the same queue verbs, on the
+        # short queue instead. It cannot send, list, delete outputs, or reach any other queue,
+        # and its DSN parameter is the Processing runtime one added below like every handler's.
+        SHORT_ENCODER: [
+            source_read,
+            output_write,
+            allow(receive, [queue_arn(SHORT_QUEUE)]),
+        ],
         "MediaMigration": [],
         "ProcessingMigration": [],
     }
@@ -629,11 +704,19 @@ def template():
             "ProcessingEcsEvents",
             "ProcessingS3Events",
         ],
+        # Same four publishers as the standard work lane, and only the Lambda executor reads it.
+        SHORT_QUEUE: [
+            "ProcessingCommands",
+            "ProcessingRepair",
+            "ProcessingEcsEvents",
+            "ProcessingS3Events",
+        ],
     }
     consumers = {
         "ProcessingCommands": ["ProcessingCommands"],
         "ProcessingWork": ["Worker"],
         "MediaResults": ["MediaResults"],
+        SHORT_QUEUE: [SHORT_ENCODER],
     }
     for name in producers:
         statements = [
@@ -685,8 +768,20 @@ def template():
             f"{name}QueuePolicy",
             "SQS::QueuePolicy",
             {"Queues": [ref(f"{name}Queue")], "PolicyDocument": policy(statements)},
-            app=True,
+            gate=gate_of(name),
         )
+    # The four publishers may send to the short queue only when it exists. A separate policy
+    # resource keeps their default roles byte-for-byte what V1 reviewed.
+    add(
+        f"{SHORT_QUEUE}Senders",
+        "IAM::Policy",
+        {
+            "PolicyName": "short-lane-send",
+            "Roles": [ref(f"{role}Role") for role in producers[SHORT_QUEUE]],
+            "PolicyDocument": policy([allow(["sqs:SendMessage"], [queue_arn(SHORT_QUEUE)])]),
+        },
+        gate="ShortEncodes",
+    )
     common_env = {
         "AWS_USE_DUALSTACK_ENDPOINT": "true",
         "AWS_RETRY_MODE": "standard",
@@ -721,6 +816,23 @@ def template():
                 "PROCESSING_LAUNCHER_LIFETIME_SECONDS": {"Fn::Sub": "${WorkerLifetimeSeconds}"},
                 "PROCESSING_LAUNCHER_CAP": "3",
             }
+        if domain == "Processing" and name not in (LAUNCHER, SHORT_ENCODER):
+            # Every publisher routes work by lane. The values resolve to nothing, so the
+            # variables are absent, unless LambdaShortEncodes=true.
+            none = ref("AWS::NoValue")
+            env |= {
+                "PROCESSING_SHORT_LANE": {"Fn::If": ["ShortEncodes", "true", none]},
+                "PROCESSING_WORK_SHORT_QUEUE_URL": {
+                    "Fn::If": ["ShortEncodes", ref(f"{SHORT_QUEUE}Queue"), none]
+                },
+            }
+        if name == SHORT_ENCODER:
+            env |= {
+                "PROCESSING_SHORT_LANE": "true",
+                "PROCESSING_WORK_SHORT_QUEUE_URL": ref(f"{SHORT_QUEUE}Queue"),
+                # The durable attempt deadline; the handler also bounds it by what is left.
+                "PROCESSING_ATTEMPT_TIMEOUT_SECONDS": str(short_lane.PIPELINE_DEADLINE_SECONDS),
+            }
         if domain == "Media":
             env |= {
                 "MEDIA_MINIO_SOURCE_BUCKET": ref("SourceBucket"),
@@ -731,18 +843,39 @@ def template():
             }
         if name in ("MediaApi", "MediaAuthorizer"):
             env["MEDIA_JWT_SECRET_PARAMETER_ARN"] = ref("JwtSecretParameterArn")
+        image = "Worker" if name == SHORT_ENCODER else domain
+        image_config = {"Command": [ref(f"{name}Handler")]}
+        if name == SHORT_ENCODER:
+            # The worker image's own ENTRYPOINT is the finite Fargate encoder; Lambda needs the
+            # runtime client instead. One artifact therefore serves both executors.
+            image_config["EntryPoint"] = ["python", "-m", "awslambdaric"]
         add(
             name,
             "Lambda::Function",
             {
                 "PackageType": "Image",
-                "Code": {"ImageUri": ref(f"{domain}ImageUri")},
-                "ImageConfig": {"Command": [ref(f"{name}Handler")]},
+                "Code": {"ImageUri": ref(f"{image}ImageUri")},
+                "ImageConfig": image_config,
                 "Role": attr(f"{name}Role"),
                 # The launcher fires every minute; a timeout below that means a tick can never
                 # overlap itself, so it adds at most one to the shared Lambda concurrency.
-                "Timeout": {"MediaAuthorizer": 10, LAUNCHER: 30}.get(name, 60),
-                "MemorySize": 2048 if name.endswith("Api") else 512,
+                "Timeout": {
+                    "MediaAuthorizer": 10,
+                    LAUNCHER: 30,
+                    SHORT_ENCODER: short_lane.LAMBDA_TIMEOUT_SECONDS,
+                }.get(name, 60),
+                "MemorySize": (
+                    short_lane.MEMORY_MB
+                    if name == SHORT_ENCODER
+                    else 2048
+                    if name.endswith("Api")
+                    else 512
+                ),
+                **(
+                    {"EphemeralStorage": {"Size": short_lane.EPHEMERAL_STORAGE_MB}}
+                    if name == SHORT_ENCODER
+                    else {}
+                ),
                 "Architectures": ["x86_64"],
                 "Environment": {"Variables": env},
                 "VpcConfig": {
@@ -790,6 +923,22 @@ def template():
             },
             app=True,
         )
+    add(
+        f"{SHORT_ENCODER}Mapping",
+        "Lambda::EventSourceMapping",
+        {
+            "EventSourceArn": queue_arn(SHORT_QUEUE),
+            "FunctionName": ref(f"{SHORT_ENCODER}Alias"),
+            # One encode per invocation: a second message would share the first one's deadline.
+            "BatchSize": 1,
+            "FunctionResponseTypes": ["ReportBatchItemFailures"],
+            # Nothing is reservable at an account limit of 10, so this is the executor bound.
+            # 2 is the SQS minimum. Closed until a session opens, like every other mapping.
+            "ScalingConfig": {"MaximumConcurrency": short_lane.ENCODER_MAX_CONCURRENCY},
+            "Enabled": False,
+        },
+        app=True,
+    )
     add(
         "HttpApi",
         "ApiGatewayV2::Api",
@@ -1316,6 +1465,12 @@ def template():
                     {"Fn::Equals": [ref("UnattendedLaunch"), "true"]},
                 ]
             },
+            "ShortEncodes": {
+                "Fn::And": [
+                    {"Condition": "Applications"},
+                    {"Fn::Equals": [ref("LambdaShortEncodes"), "true"]},
+                ]
+            },
         },
         "Rules": {
             "ExplicitApplicationImages": {
@@ -1333,7 +1488,7 @@ def template():
         "Outputs": {name: {"Value": value} for name, value in outputs.items()},
     }
     for name in handlers:
-        gate = "Unattended" if name == LAUNCHER else "Applications"
+        gate = gate_of(name)
         result["Outputs"][f"{name}FunctionName"] = {"Condition": gate, "Value": ref(name)}
         result["Outputs"][f"{name}AliasArn"] = {
             "Condition": gate,
@@ -1349,6 +1504,17 @@ def template():
             "Condition": "Applications",
             "Value": ref(f"{name}Mapping"),
         }
+    result["Outputs"][f"{SHORT_ENCODER}MappingId"] = {
+        "Condition": "ShortEncodes",
+        "Value": ref(f"{SHORT_ENCODER}Mapping"),
+    }
+    for kind, value in (
+        ("QueueUrl", ref(f"{SHORT_QUEUE}Queue")),
+        ("QueueArn", attr(f"{SHORT_QUEUE}Queue")),
+        ("DlqUrl", ref(f"{SHORT_QUEUE}Dlq")),
+        ("DlqArn", attr(f"{SHORT_QUEUE}Dlq")),
+    ):
+        result["Outputs"][f"{SHORT_QUEUE}{kind}"] = {"Condition": "ShortEncodes", "Value": value}
     for name in (
         "MediaRepair",
         "ProcessingRepair",

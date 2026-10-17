@@ -20,6 +20,7 @@ from media.storage_credentials import LambdaProvider
 from media.storage_credentials import credential_provider as media_credentials
 from processing.config import Settings as ProcessingSettings
 from processing.database import v1_connect_args
+from processing.storage_credentials import LambdaProvider as ProcessingLambdaProvider
 from processing.storage_credentials import credential_provider as processing_credentials
 from runtime_support.settings import runtime_values
 
@@ -45,6 +46,11 @@ def resolve(value):
     if isinstance(value, str):
         return value
     ((function, argument),) = value.items()
+    if function == "Fn::If":
+        # Opt-in stack features (V2) are off in the default deployment: take the false branch.
+        return resolve(argument[2])
+    if function == "Ref" and argument == "AWS::NoValue":
+        return None
     if function == "Ref":
         # Parameter ARNs must stay well formed: the real loader validates them.
         return ACCOUNT_ARN + argument if argument.endswith("ParameterArn") else f"<{argument}>"
@@ -60,7 +66,8 @@ def rendered_environments():
         properties = resource.get("Properties", {})
         if resource["Type"] == "AWS::Lambda::Function":
             variables = properties["Environment"]["Variables"]
-            found.append((name, "lambda", {k: resolve(v) for k, v in variables.items()}, {}))
+            env = {k: resolve(v) for k, v in variables.items()}
+            found.append((name, "lambda", {k: v for k, v in env.items() if v is not None}, {}))
         elif resource["Type"] == "AWS::ECS::TaskDefinition":
             container = properties["ContainerDefinitions"][0]
             listed = container.get("Environment", [])
@@ -155,9 +162,9 @@ def test_every_lambda_selects_a_storage_mode_its_settings_accept(
         assert isinstance(media_credentials(settings), LambdaProvider)
         assert settings.runtime_mode == "lambda"
     else:
-        # Processing Lambdas use boto3's native chain; the MinIO provider is never built there.
-        with pytest.raises(ValueError):
-            processing_credentials(settings)
+        # Only the opt-in short encoder (V2, #93) builds the MinIO provider; every other
+        # Processing Lambda uses boto3's native chain. Selecting the mode is harmless for them.
+        assert isinstance(processing_credentials(settings), ProcessingLambdaProvider)
 
 
 @pytest.mark.parametrize("name,kind,env,secrets", TASKS, ids=[entry[0] for entry in TASKS])

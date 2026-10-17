@@ -84,3 +84,12 @@ def launcher_handler(event, context):
     from processing.launcher_aws import run
 
     return asyncio.run(run(event, context))
+
+
+@sanitized_entrypoint("processing.short_encoder")
+def short_encoder_handler(event, context):
+    # Opt-in V2 experiment (#93): the function exists only when the stack sets
+    # LambdaShortEncodes=true. The import keeps every other Processing cold start free of it.
+    from processing.short_encoder import invoke
+
+    return asyncio.run(invoke(event, context))

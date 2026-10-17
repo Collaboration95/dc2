@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from processing.config import get_settings
 from processing.errors import TaskBindingError
+from processing.short_lane import NotAdmitted
 from processing.worker.source import SourceStore
 from processing.worker.storage import OutputStore
 from processing.worker.supervisor import AttemptDeadline, LeaseLost, Supervisor
@@ -110,7 +111,14 @@ async def execute_message(
     store=None,
     task_name="local",
     disposition=None,
+    admit=None,
+    redirect=None,
 ):
+    """``admit``/``redirect`` are the opt-in short lane's hooks (both None for Fargate).
+
+    ``admit(probe)`` may raise NotAdmitted before any encoding; ``redirect(factory, work)`` then
+    applies the fenced hand-back to the standard lane and the message is acknowledged.
+    """
     if claim is None or finish is None or disposition is None:
         from processing import messaging
 
@@ -148,6 +156,7 @@ async def execute_message(
                     store or OutputStore(settings),
                     Path(temporary),
                     downloader=(source or SourceStore(settings)).download,
+                    admit=admit,
                 )
             # Visibility uncertainty revokes authority before durable completion.
             await supervisor.renew_authority()
@@ -158,6 +167,10 @@ async def execute_message(
         except AttemptDeadline:
             # An absolute task deadline cannot authorize another database write.
             return False
+        except NotAdmitted:
+            if redirect is None:
+                raise
+            return await redirect(factory, work)
         except Exception:
             try:
                 await supervisor.renew_authority()

@@ -188,10 +188,12 @@ def test_concurrency_accounting_includes_the_launcher_and_stays_inside_the_accou
     built = resources_of()
 
     def footprint(include):
+        # The opt-in short encoder's mapping (#93) is counted in test_short_encodes.
         mapped = sum(
             r["Properties"]["ScalingConfig"]["MaximumConcurrency"]
             for r in built.values()
             if r["Type"] == "AWS::Lambda::EventSourceMapping"
+            and r.get("Condition") != "ShortEncodes"
         )
         scheduled = [
             r["Properties"]["Targets"][0]["Arn"]["Ref"].removesuffix("Alias")

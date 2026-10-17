@@ -36,6 +36,14 @@
         "false"
       ]
     },
+    "LambdaShortEncodes": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ]
+    },
     "MediaImageUri": {
       "Type": "String",
       "Default": "",
@@ -110,6 +118,10 @@
     "ProcessingLauncherHandler": {
       "Type": "String",
       "Default": "processing.handlers.launcher_handler"
+    },
+    "ProcessingShortEncoderHandler": {
+      "Type": "String",
+      "Default": "processing.handlers.short_encoder_handler"
     }
   },
   "Conditions": {
@@ -130,6 +142,21 @@
           "Fn::Equals": [
             {
               "Ref": "UnattendedLaunch"
+            },
+            "true"
+          ]
+        }
+      ]
+    },
+    "ShortEncodes": {
+      "Fn::And": [
+        {
+          "Condition": "Applications"
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "LambdaShortEncodes"
             },
             "true"
           ]
@@ -1449,6 +1476,89 @@
           ]
         }
       }
+    },
+    "ProcessingShortWorkDlq": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "MessageRetentionPeriod": 1209600,
+        "SqsManagedSseEnabled": true,
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          }
+        ]
+      },
+      "Condition": "ShortEncodes"
+    },
+    "ProcessingShortWorkQueue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "MessageRetentionPeriod": 604800,
+        "ReceiveMessageWaitTimeSeconds": 20,
+        "VisibilityTimeout": 960,
+        "SqsManagedSseEnabled": true,
+        "RedrivePolicy": {
+          "deadLetterTargetArn": {
+            "Fn::GetAtt": [
+              "ProcessingShortWorkDlq",
+              "Arn"
+            ]
+          },
+          "maxReceiveCount": 5
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          }
+        ]
+      },
+      "Condition": "ShortEncodes"
+    },
+    "ProcessingShortWorkDlqPolicy": {
+      "Type": "AWS::SQS::QueuePolicy",
+      "Properties": {
+        "Queues": [
+          {
+            "Ref": "ProcessingShortWorkDlq"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "sqs:*",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "ProcessingShortWorkDlq",
+                  "Arn"
+                ]
+              },
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "Condition": "ShortEncodes"
     },
     "MediaRepository": {
       "Type": "AWS::ECR::Repository",
@@ -2996,6 +3106,138 @@
       },
       "Condition": "Applications"
     },
+    "ProcessingShortEncoderLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/dc2/${EnvironmentId}/ProcessingShortEncoder"
+        },
+        "RetentionInDays": 7
+      },
+      "Condition": "ShortEncodes"
+    },
+    "ProcessingShortEncoderRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "owned-runtime",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject",
+                    "s3:GetObjectVersion"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "${SourceBucket.Arn}/*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:PutObject",
+                    "s3:AbortMultipartUpload"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "${OutputBucket.Arn}/*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sqs:ReceiveMessage",
+                    "sqs:DeleteMessage",
+                    "sqs:GetQueueAttributes",
+                    "sqs:ChangeMessageVisibility"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingShortWorkQueue",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssm:GetParameter",
+                    "ssm:GetParameters"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "ProcessingRuntimeDsnParameterArn"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingShortEncoderLogGroup",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:CreateNetworkInterface",
+                    "ec2:DescribeNetworkInterfaces",
+                    "ec2:DescribeSubnets",
+                    "ec2:DeleteNetworkInterface",
+                    "ec2:AssignPrivateIpAddresses",
+                    "ec2:UnassignPrivateIpAddresses"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          }
+        ]
+      },
+      "Condition": "ShortEncodes"
+    },
     "MediaMigrationRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -3421,6 +3663,159 @@
       },
       "Condition": "Applications"
     },
+    "ProcessingShortWorkQueuePolicy": {
+      "Type": "AWS::SQS::QueuePolicy",
+      "Properties": {
+        "Queues": [
+          {
+            "Ref": "ProcessingShortWorkQueue"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyInsecureTransport",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "sqs:*",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "ProcessingShortWorkQueue",
+                  "Arn"
+                ]
+              },
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            },
+            {
+              "Sid": "DenyUnlistedProducers",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": [
+                "sqs:SendMessage"
+              ],
+              "Resource": {
+                "Fn::GetAtt": [
+                  "ProcessingShortWorkQueue",
+                  "Arn"
+                ]
+              },
+              "Condition": {
+                "ArnNotEquals": {
+                  "aws:PrincipalArn": [
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingCommandsRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingRepairRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingEcsEventsRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingS3EventsRole",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                "ArnNotLike": {
+                  "aws:PrincipalArn": {
+                    "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:user/*"
+                  }
+                },
+                "StringNotEquals": {
+                  "aws:PrincipalServiceName": "sqs.amazonaws.com"
+                }
+              }
+            },
+            {
+              "Sid": "DenyUnlistedConsumers",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": [
+                "sqs:ReceiveMessage",
+                "sqs:DeleteMessage",
+                "sqs:ChangeMessageVisibility"
+              ],
+              "Resource": {
+                "Fn::GetAtt": [
+                  "ProcessingShortWorkQueue",
+                  "Arn"
+                ]
+              },
+              "Condition": {
+                "ArnNotEquals": {
+                  "aws:PrincipalArn": [
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingShortEncoderRole",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "Condition": "ShortEncodes"
+    },
+    "ProcessingShortWorkSenders": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "short-lane-send",
+        "Roles": [
+          {
+            "Ref": "ProcessingCommandsRole"
+          },
+          {
+            "Ref": "ProcessingRepairRole"
+          },
+          {
+            "Ref": "ProcessingEcsEventsRole"
+          },
+          {
+            "Ref": "ProcessingS3EventsRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "sqs:SendMessage"
+              ],
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "ProcessingShortWorkQueue",
+                    "Arn"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "Condition": "ShortEncodes"
+    },
     "MediaApi": {
       "Type": "AWS::Lambda::Function",
       "Properties": {
@@ -3754,6 +4149,26 @@
             },
             "PROCESSING_MINIO_OUTPUT_BUCKET": {
               "Ref": "OutputBucket"
+            },
+            "PROCESSING_SHORT_LANE": {
+              "Fn::If": [
+                "ShortEncodes",
+                "true",
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "PROCESSING_WORK_SHORT_QUEUE_URL": {
+              "Fn::If": [
+                "ShortEncodes",
+                {
+                  "Ref": "ProcessingShortWorkQueue"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             }
           }
         },
@@ -3878,6 +4293,26 @@
             },
             "PROCESSING_MINIO_OUTPUT_BUCKET": {
               "Ref": "OutputBucket"
+            },
+            "PROCESSING_SHORT_LANE": {
+              "Fn::If": [
+                "ShortEncodes",
+                "true",
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "PROCESSING_WORK_SHORT_QUEUE_URL": {
+              "Fn::If": [
+                "ShortEncodes",
+                {
+                  "Ref": "ProcessingShortWorkQueue"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             }
           }
         },
@@ -4270,6 +4705,26 @@
             },
             "PROCESSING_MINIO_OUTPUT_BUCKET": {
               "Ref": "OutputBucket"
+            },
+            "PROCESSING_SHORT_LANE": {
+              "Fn::If": [
+                "ShortEncodes",
+                "true",
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "PROCESSING_WORK_SHORT_QUEUE_URL": {
+              "Fn::If": [
+                "ShortEncodes",
+                {
+                  "Ref": "ProcessingShortWorkQueue"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             }
           }
         },
@@ -4394,6 +4849,26 @@
             },
             "PROCESSING_MINIO_OUTPUT_BUCKET": {
               "Ref": "OutputBucket"
+            },
+            "PROCESSING_SHORT_LANE": {
+              "Fn::If": [
+                "ShortEncodes",
+                "true",
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "PROCESSING_WORK_SHORT_QUEUE_URL": {
+              "Fn::If": [
+                "ShortEncodes",
+                {
+                  "Ref": "ProcessingShortWorkQueue"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             }
           }
         },
@@ -4518,6 +4993,26 @@
             },
             "PROCESSING_MINIO_OUTPUT_BUCKET": {
               "Ref": "OutputBucket"
+            },
+            "PROCESSING_SHORT_LANE": {
+              "Fn::If": [
+                "ShortEncodes",
+                "true",
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "PROCESSING_WORK_SHORT_QUEUE_URL": {
+              "Fn::If": [
+                "ShortEncodes",
+                {
+                  "Ref": "ProcessingShortWorkQueue"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
             }
           }
         },
@@ -4736,6 +5231,143 @@
       },
       "Condition": "Unattended"
     },
+    "ProcessingShortEncoder": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "PackageType": "Image",
+        "Code": {
+          "ImageUri": {
+            "Ref": "WorkerImageUri"
+          }
+        },
+        "ImageConfig": {
+          "Command": [
+            {
+              "Ref": "ProcessingShortEncoderHandler"
+            }
+          ],
+          "EntryPoint": [
+            "python",
+            "-m",
+            "awslambdaric"
+          ]
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "ProcessingShortEncoderRole",
+            "Arn"
+          ]
+        },
+        "Timeout": 900,
+        "MemorySize": 3584,
+        "EphemeralStorage": {
+          "Size": 2048
+        },
+        "Architectures": [
+          "x86_64"
+        ],
+        "Environment": {
+          "Variables": {
+            "AWS_USE_DUALSTACK_ENDPOINT": "true",
+            "AWS_RETRY_MODE": "standard",
+            "AWS_MAX_ATTEMPTS": "3",
+            "PROCESSING_COMMANDS_QUEUE_URL": {
+              "Ref": "ProcessingCommandsQueue"
+            },
+            "PROCESSING_WORK_QUEUE_URL": {
+              "Ref": "ProcessingWorkQueue"
+            },
+            "MEDIA_RESULTS_QUEUE_URL": {
+              "Ref": "MediaResultsQueue"
+            },
+            "DC2_RUNTIME": "v1",
+            "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
+            "PROCESSING_POSTGRES_DSN_PARAMETER_ARN": {
+              "Ref": "ProcessingRuntimeDsnParameterArn"
+            },
+            "PROCESSING_STORAGE_CREDENTIAL_MODE": "lambda",
+            "PROCESSING_RUNTIME_MODE": "lambda",
+            "PROCESSING_DATABASE_TLS": "true",
+            "PROCESSING_DATABASE_CA_FILE": "/opt/rds/global-bundle.pem",
+            "PROCESSING_MINIO_ENDPOINT": {
+              "Fn::Sub": "s3.${AWS::Region}.amazonaws.com"
+            },
+            "PROCESSING_MINIO_USE_SSL": "true",
+            "PROCESSING_MINIO_REGION": {
+              "Ref": "AWS::Region"
+            },
+            "PROCESSING_MINIO_OUTPUT_BUCKET": {
+              "Ref": "OutputBucket"
+            },
+            "PROCESSING_SHORT_LANE": "true",
+            "PROCESSING_WORK_SHORT_QUEUE_URL": {
+              "Ref": "ProcessingShortWorkQueue"
+            },
+            "PROCESSING_ATTEMPT_TIMEOUT_SECONDS": "720"
+          }
+        },
+        "VpcConfig": {
+          "SubnetIds": [
+            {
+              "Ref": "PrivateASubnet"
+            },
+            {
+              "Ref": "PrivateBSubnet"
+            }
+          ],
+          "SecurityGroupIds": [
+            {
+              "Ref": "LambdaSecurityGroup"
+            }
+          ],
+          "Ipv6AllowedForDualStack": true
+        },
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "ProcessingShortEncoderLogGroup"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          }
+        ]
+      },
+      "Condition": "ShortEncodes"
+    },
+    "ProcessingShortEncoderVersion": {
+      "Type": "AWS::Lambda::Version",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ProcessingShortEncoder"
+        },
+        "Description": "V1 initial Processing artifact"
+      },
+      "Condition": "ShortEncodes"
+    },
+    "ProcessingShortEncoderAlias": {
+      "Type": "AWS::Lambda::Alias",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ProcessingShortEncoder"
+        },
+        "FunctionVersion": {
+          "Fn::GetAtt": [
+            "ProcessingShortEncoderVersion",
+            "Version"
+          ]
+        },
+        "Name": "live"
+      },
+      "Condition": "ShortEncodes"
+    },
     "ProcessingCommandsMapping": {
       "Type": "AWS::Lambda::EventSourceMapping",
       "Properties": {
@@ -4783,6 +5415,29 @@
         "Enabled": false
       },
       "Condition": "Applications"
+    },
+    "ProcessingShortEncoderMapping": {
+      "Type": "AWS::Lambda::EventSourceMapping",
+      "Properties": {
+        "EventSourceArn": {
+          "Fn::GetAtt": [
+            "ProcessingShortWorkQueue",
+            "Arn"
+          ]
+        },
+        "FunctionName": {
+          "Ref": "ProcessingShortEncoderAlias"
+        },
+        "BatchSize": 1,
+        "FunctionResponseTypes": [
+          "ReportBatchItemFailures"
+        ],
+        "ScalingConfig": {
+          "MaximumConcurrency": 2
+        },
+        "Enabled": false
+      },
+      "Condition": "ShortEncodes"
     },
     "HttpApi": {
       "Type": "AWS::ApiGatewayV2::Api",
@@ -6913,6 +7568,18 @@
         "Ref": "ProcessingLauncherAlias"
       }
     },
+    "ProcessingShortEncoderFunctionName": {
+      "Condition": "ShortEncodes",
+      "Value": {
+        "Ref": "ProcessingShortEncoder"
+      }
+    },
+    "ProcessingShortEncoderAliasArn": {
+      "Condition": "ShortEncodes",
+      "Value": {
+        "Ref": "ProcessingShortEncoderAlias"
+      }
+    },
     "WorkerTaskDefinitionArn": {
       "Condition": "Applications",
       "Value": {
@@ -6947,6 +7614,42 @@
       "Condition": "Applications",
       "Value": {
         "Ref": "MediaResultsMapping"
+      }
+    },
+    "ProcessingShortEncoderMappingId": {
+      "Condition": "ShortEncodes",
+      "Value": {
+        "Ref": "ProcessingShortEncoderMapping"
+      }
+    },
+    "ProcessingShortWorkQueueUrl": {
+      "Condition": "ShortEncodes",
+      "Value": {
+        "Ref": "ProcessingShortWorkQueue"
+      }
+    },
+    "ProcessingShortWorkQueueArn": {
+      "Condition": "ShortEncodes",
+      "Value": {
+        "Fn::GetAtt": [
+          "ProcessingShortWorkQueue",
+          "Arn"
+        ]
+      }
+    },
+    "ProcessingShortWorkDlqUrl": {
+      "Condition": "ShortEncodes",
+      "Value": {
+        "Ref": "ProcessingShortWorkDlq"
+      }
+    },
+    "ProcessingShortWorkDlqArn": {
+      "Condition": "ShortEncodes",
+      "Value": {
+        "Fn::GetAtt": [
+          "ProcessingShortWorkDlq",
+          "Arn"
+        ]
       }
     },
     "MediaRepairRuleName": {

@@ -8,7 +8,7 @@ from datetime import timedelta
 from sqlalchemy import or_, select
 
 from delivery.sql import stage
-from processing import lifecycle
+from processing import lifecycle, short_lane
 from processing.messaging import (
     REPAIR_INTERVAL_SECONDS,
     emit_state,
@@ -133,7 +133,7 @@ async def repair_work(factory, *, limit=50, deadline=None):
                     session,
                     ProcessingOutbox,
                     envelope(job, attempt, saved.state_version, "work"),
-                    "processing-work",
+                    await short_lane.work_lane(session, job),
                 )
                 attempt.dispatch_count += 1
                 repaired += 1

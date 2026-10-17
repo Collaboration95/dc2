@@ -172,7 +172,7 @@ ALLOWED = {
     },
     "secretsmanager": {"get-secret-value"},
     "logs": {"describe-log-groups", "delete-log-group", "list-tags-for-resource",
-             "get-log-events"},
+             "get-log-events", "filter-log-events"},
     "ecs": {"run-task", "describe-tasks", "list-tasks", "stop-task", "describe-task-definition",
             "register-task-definition", "deregister-task-definition"},
     # Read-only observations the cloud-proof harnesses make through this same transport.
@@ -182,7 +182,7 @@ ALLOWED = {
 # RDS answers a missing instance with the wire code DBInstanceNotFound; only the SDK exception
 # carries the Fault suffix (clusters do use DBClusterNotFoundFault). Seen on 2026-10-17.
 INSTANCE_NOT_FOUND = ("DBInstanceNotFound", "DBInstanceNotFoundFault")
-READ_PREFIXES = ("describe", "get", "list", "head", "simulate-principal-policy")
+READ_PREFIXES = ("describe", "get", "list", "head", "filter", "simulate-principal-policy")
 SENSITIVE_RESULT = {("secretsmanager", "get-secret-value"), ("ecr", "get-authorization-token")}
 
 

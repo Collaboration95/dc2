@@ -5,6 +5,7 @@
     python -m scripts.aws.v1.evidence release  ...   #65 promote, roll back, peer untouched
     python -m scripts.aws.v1.evidence latency  ...   #66 Fargate generator, cold wake apart
     python -m scripts.aws.v1.evidence spend    ...   #67 closed state, ACU pause, spend
+    python -m scripts.aws.v1.evidence short-encode   #93 (V2) Lambda short encodes vs Fargate
     python -m scripts.aws.v1.evidence rehearse       offline: every harness vs the simulation
     python -m scripts.aws.v1.evidence counts         close-proof counts derived from receipts
     python -m scripts.aws.v1.evidence summary        redacted summary for docs/.../evidence/
@@ -24,14 +25,24 @@ import tempfile
 from pathlib import Path
 
 from scripts.aws.transport import OperationError
-from scripts.aws.v1.proof import capacity, context, gateway, latency, release, sim, spend, summary
+from scripts.aws.v1.proof import (
+    capacity,
+    context,
+    gateway,
+    latency,
+    release,
+    short_encode,
+    sim,
+    spend,
+    summary,
+)
 from scripts.aws.v1.proof.core import ProofError
 
 REQUIRED = {"63": gateway.REQUIRED, "64": capacity.REQUIRED, "65": release.REQUIRED,
             "66": latency.REQUIRED, "67": spend.REQUIRED}
 # The session state each harness needs when it starts (latency opens its own window).
 SESSION = {"gateway": "open", "capacity": "open", "release": "window", "latency": "closed",
-           "spend": "closed"}
+           "spend": "closed", "short-encode": "open"}
 
 
 def scope_arguments(parser):
@@ -77,6 +88,17 @@ def build_parser():
     s.add_argument("--wait-minutes", type=int, default=30)
     s.add_argument("--since", help="YYYY-MM-DD for Cost Explorer (default: first of the month)")
     s.add_argument("--cluster")
+    se = sub.add_parser("short-encode", help="#93 (V2): Lambda short encodes vs Fargate")
+    scope_arguments(se)
+    se.add_argument("--arm", choices=("fargate", "lambda", "compare"), required=True,
+                    help="fargate on a stack WITHOUT the lane, lambda WITH it, then compare")
+    se.add_argument("--fixture", type=Path, help="the one short fixed mp4, same for both arms")
+    se.add_argument("--fixture-seconds", type=float, help="that fixture's real duration")
+    se.add_argument("--jobs", type=int, default=5, help="jobs per arm: 1 cold, the rest warm")
+    se.add_argument("--idle-minutes", type=int, default=20,
+                    help="idle time before the Lambda cold job (0 = no wait; coldness unlikely)")
+    se.add_argument("--job-timeout", type=int, default=900)
+    se.add_argument("--minutes", type=int, default=60, help="session horizon for Fargate tasks")
     rh = sub.add_parser("rehearse", help="every harness against the simulation")
     rh.add_argument("--run-id", default="rehearsal")
     rh.add_argument("--release-plan", type=Path)
@@ -115,6 +137,13 @@ def execute(args, ctx):
                             job_timeout=args.job_timeout, minutes=args.minutes, only=only(args))
     if args.command == "release":
         return release.run(ctx, plan_path=args.plan)
+    if args.command == "short-encode":
+        if args.arm != "compare" and not (args.fixture and args.fixture_seconds):
+            raise ProofError("--fixture and --fixture-seconds are required for an arm")
+        return short_encode.run(
+            ctx, arm=args.arm, fixture=args.fixture, fixture_seconds=args.fixture_seconds,
+            jobs=args.jobs, minutes=args.minutes, job_timeout=args.job_timeout,
+            idle_minutes=args.idle_minutes)
     if args.command == "latency":
         return latency.run(ctx, only=only(args), cluster=args.cluster)
     from datetime import date
@@ -127,6 +156,23 @@ def execute(args, ctx):
     since = date.fromisoformat(args.since) if args.since else None
     return spend.run(ctx, only=only(args), closed_at=closed, wait_minutes=args.wait_minutes,
                      cluster=args.cluster, since=since)
+
+
+def rehearse_short_encode(base, fixture, shared):
+    """#93: the arms are different stack states, so two simulated worlds share one receipt."""
+    import shutil
+
+    first = sim.build(shared, session="open", world=sim.SimWorld(encode_seconds=40),
+                      tmp=base / "short-encode-fargate")
+    short_encode.run(first, arm="fargate", fixture=fixture, fixture_seconds=24.0, jobs=3)
+    second = sim.build(shared, session="open", world=sim.SimWorld(lambda_lane=True),
+                       tmp=base / "short-encode-lambda")
+    second.evidence_dir.mkdir(mode=0o700, exist_ok=True)
+    shutil.copy(first.evidence_dir / f"evidence-93-{shared.run_id}.json", second.evidence_dir)
+    short_encode.run(second, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=3,
+                     idle_minutes=0)
+    proof = short_encode.run(second, arm="compare")
+    return proof.report(), bool(proof.failed_now())
 
 
 def rehearse(args, stdout):
@@ -152,6 +198,8 @@ def rehearse(args, stdout):
         proof = run(ctx)
         reports[name] = proof.report()
         failed = failed or bool(proof.failed_now())
+    reports["short-encode"], bad = rehearse_short_encode(base, fixture, shared)
+    failed = failed or bad
     note = ("simulated: nothing here is AWS evidence; receipts are SIMULATED and "
             "the summary writer refuses them")
     print(json.dumps({"mode": "simulated", "note": note, "harnesses": {
