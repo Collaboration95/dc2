@@ -1,3 +1,5 @@
+> **Historical (14 October shared-host plan), superseded by [`architecture-plan.md`](architecture-plan.md) and the [V1 handoff](v1/README.md).** Kept unchanged below for provenance.
+
 # dc2 AWS architecture and preparation plan
 
 Prepared 14 October 2026 (Singapore). **Planning only; no resources, account access or live workload performed.** Read-only repository inspection plus unauthenticated public AWS documentation/price-list downloads. Astra produced the original design and cost worksheet; the coordinator is reviewing and integrating them. This plan is not a deployment approval.

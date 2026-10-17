@@ -419,6 +419,8 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
 Places where documents and code disagree, or where the code is easy to misread. Listed so the
 report does not repeat either side blindly. Re-check before quoting; some will be fixed.
 
+Status on 18 October: rows 1, 2 and 3 were corrected in the source documents, and row 6 is now explained in [views.md](views.md) section 4.2. The code-level rows are tracked in #210.
+
 | # | Statement or expectation | What the code or evidence shows |
 |---|---|---|
 | 1 | `docs/execution/aws/v1/README.md` ("Real AWS acceptance is still pending") and `deploy-runbook.md` ("never run against AWS") | `evidence/cloud-proof-r1017b.json` records a live run with PASS on #63 to #67 |

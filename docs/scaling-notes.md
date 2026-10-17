@@ -1,3 +1,5 @@
+> **Historical (Project 1 capacity analysis, 5 September 2026), superseded.** V1 measurements are in [`docs/execution/aws/v1/evidence/`](execution/aws/v1/evidence/) and [architecture](architecture/README.md).
+
 # Scaling Notes — what it takes to serve 50 concurrent users
 
 **Written:** 5 September 2026 · against `main` @ `0e85e5c`

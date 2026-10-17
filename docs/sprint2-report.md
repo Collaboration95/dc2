@@ -1,3 +1,5 @@
+> **Historical (Project 1, September 2026), superseded by the as-built V1 ([architecture](architecture/README.md), [start here](../README.md)).** Kept for reasoning and provenance. It describes the inherited single-API system on one host.
+
 # Sprint 2 — Team Record
 
 **Written:** 11 September 2026 · figures measured over `86c944e..a6fea7b`,

@@ -1,3 +1,5 @@
+> **Historical (Project 1 sprint 1 contract), superseded.** The V1 contracts are [`contracts/README.md`](../contracts/README.md), the OpenAPI documents in [`docs/api/`](api/) and the [DDD model](architecture/ddd.md). Kept for provenance.
+
 # Sprint 1 Integration Contract
 
 This document is the shared boundary for the API, worker, database, storage, and frontend during Sprint 1.

@@ -1,3 +1,5 @@
+HISTORICAL (early Project 2 milestone, local stack). Superseded by the as-built V1: see docs/architecture/README.md.
+
 PROCESSING INTAKE MILESTONE
 
 This is the first implemented part of the Project 2 extraction. Processing can

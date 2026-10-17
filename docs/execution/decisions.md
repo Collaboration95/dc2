@@ -1,3 +1,5 @@
+> **Historical record of the pre-AWS local delivery (12 to 14 October).** Current target: [`aws/architecture-plan.md`](aws/architecture-plan.md) and [`aws/v1/README.md`](aws/v1/README.md).
+
 # Execution decisions
 
 - 2026-10-12: User authorizes autonomous local/GitHub implementation, reviews,

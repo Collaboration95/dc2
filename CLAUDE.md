@@ -1,3 +1,5 @@
+> **Mostly historical (Project 1 working notes).** The as-built V1 starts at [README.md](README.md) and [docs/architecture/](docs/architecture/README.md). The commands, ownership table and deployment section below describe the inherited single-API system and its Alibaba deployment, which this project does not operate. No credentials are stored here (the SSH key is a placeholder).
+
 # Flickpond — working notes
 
 Project 2: work from the dc2 repository root and read `AGENTS.md` and

@@ -1,7 +1,7 @@
 # V1 live operator receipt — 15 October 2026
 
 Status: account preflight observed; bootstrap attempted and rolled back.
-V1 application deployment and #63–#67 acceptance NOT_RUN.
+V1 application deployment and #63–#67 acceptance NOT_RUN. *(Superseded: run `r1017b` on 17 October recorded PASS receipts, see [`evidence/cloud-proof-r1017b.json`](evidence/cloud-proof-r1017b.json).)*
 This receipt does not close #45 or any genuine cloud acceptance issue.
 
 The user's current execution instruction authorizes scoped DC2 V1 setup,

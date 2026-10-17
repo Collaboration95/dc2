@@ -2,7 +2,7 @@
 
 Status: **account facts observed read-only; cloud authorization recorded.** No AWS resource was
 created, changed or deleted to produce this receipt. V1 deployment and the evidence issues
-#63-#67 remain NOT_RUN. This receipt supplies the account, currency, quota and scope inputs
+#63-#67 remain NOT_RUN. *(Superseded: run `r1017b` (17 October) recorded PASS receipts, see [`evidence/cloud-proof-r1017b.json`](evidence/cloud-proof-r1017b.json).)* This receipt supplies the account, currency, quota and scope inputs
 that #45 asks for; the coordinator closes #45, not this file.
 
 It contains no credentials, access key ids, secret ARNs, cookies or signed URLs. Account id,

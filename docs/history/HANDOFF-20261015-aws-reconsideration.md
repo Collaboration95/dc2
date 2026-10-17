@@ -1,5 +1,7 @@
-> **Current execution authority, 15 October:** [Staged V1/V2 plan](docs/execution/aws/architecture-plan.md)
-> and [V1 issue handoff](docs/execution/aws/v1/README.md). API Gateway, two domain
+> **Historical, superseded by the as-built V1 ([start here](../../README.md), [architecture](../architecture/README.md)).** Moved here from the repository root on 18 October 2026 (it asked a planner to reconsider the AWS topology; that was done and V1 shipped). Links below were rewritten for the new location; the text is unchanged. It holds no credentials.
+
+> **Current execution authority, 15 October:** [Staged V1/V2 plan](../execution/aws/architecture-plan.md)
+> and [V1 issue handoff](../execution/aws/v1/README.md). API Gateway, two domain
 > Lambda API applications, SQS replacing Redis/RQ, owned PostgreSQL/S3 and one
 > Fargate encoder backend. Current code remains the reviewed AWS2 baseline;
 > these migrations are not implemented by the plan publication. V2 is optional
@@ -7,7 +9,7 @@
 > to be recorded. Commit/push/Main merge is authorized; AWS operations are not.
 >
 > Historical AWS2 planning notice below is preserved, including superseded prices.
-> Its [lean Fargate plan](docs/execution/aws/architecture-plan-aws2-prep-20261015.md)
+> Its [lean Fargate plan](../execution/aws/architecture-plan-aws2-prep-20261015.md)
 > is no longer the active execution target.
 > User clarified **14 days maximum**, minimal cloud fixtures, and cost levers with
 > zero running compute during downtime. Expected allowance **$13.03 USD**, larger
@@ -45,7 +47,7 @@ Do not launch another agent fleet or repeat the completed local experiments.
 ## 2. What the original proposal actually commits to
 
 The authoritative team proposal is
-[Team17-Proposal.docx](project-documentation/Team17-Proposal.docx).
+[Team17-Proposal.docx](../../project-documentation/Team17-Proposal.docx).
 Read its sections 1.3, 1.4, 2.2–2.5, and 3.3–3.5.
 
 Its explicit commitments include:
@@ -81,7 +83,7 @@ It does not specify 128 GiB, 32 GiB root, or 96 GiB data volumes.
 
 The general course briefing allows different technologies.
 That flexibility does not remove this team's specific service-extraction commitments.
-Use [briefing-requirements.txt](project-documentation/briefing-requirements.txt) for course context.
+Use [briefing-requirements.txt](../../project-documentation/briefing-requirements.txt) for course context.
 Use the Team 17 proposal for this team's scope.
 The legacy `docs/proposal.md` and Project 1 sprint documents are not the current proposal.
 
@@ -97,7 +99,7 @@ Explain that distinction without dismissing the user's deployment objective.
 Evaluate separate service placements and separate processing capacity as the preferred direction.
 State exactly which dependencies and failures remain shared in each option.
 
-Earlier [AD-07](project-roadmap/design/04-architecture/AD-07.md) describes a shared-host logical reference deployment.
+Earlier [AD-07](../../project-roadmap/design/04-architecture/AD-07.md) describes a shared-host logical reference deployment.
 The October deployment design later recommended a consolidated EC2/Compose host.
 The previous AWS planner also received that topology as a selected default.
 These assumptions influenced its recommendation.
@@ -136,19 +138,19 @@ The legacy `app/` package and root Dockerfile remain regression references.
 They are not a third live business service.
 Do not deploy the inherited root Compose application as the new platform.
 
-The integrated local topology is [compose/local/docker-compose.yml](compose/local/docker-compose.yml).
+The integrated local topology is [compose/local/docker-compose.yml](../../compose/local/docker-compose.yml).
 Local Compose is a development and evidence environment.
 It does not settle the correct AWS placement.
 Its loopback URLs, local TLS, MinIO configuration, and internal networks require cloud adapters.
 
 Read:
 
-- [Logical architecture](project-roadmap/design/04-architecture/logical-architecture.md)
-- [Service-boundary decision](project-roadmap/design/04-architecture/AD-01.md)
-- [Data ownership decision](project-roadmap/design/04-architecture/AD-02.md)
-- [Integration interfaces](docs/execution/interfaces.md)
-- [Execution plan](docs/execution/plan.md)
-- [Current local handoff](docs/execution/handoff.md)
+- [Logical architecture](../../project-roadmap/design/04-architecture/logical-architecture.md)
+- [Service-boundary decision](../../project-roadmap/design/04-architecture/AD-01.md)
+- [Data ownership decision](../../project-roadmap/design/04-architecture/AD-02.md)
+- [Integration interfaces](../execution/interfaces.md)
+- [Execution plan](../execution/plan.md)
+- [Current local handoff](../execution/handoff.md)
 
 ## 4. What the evidence establishes
 
@@ -217,7 +219,7 @@ The original demo was restored at `https://localhost:54440` on saved `f10bf04` i
 Its images were not rebuilt to the latest Main.
 Experiment namespaces stopped. Historical volumes and evidence were preserved.
 
-Read [the experiment reports](docs/execution/experiments-20261014/README.md) and their raw indexes.
+Read [the experiment reports](../execution/experiments-20261014/README.md) and their raw indexes.
 Preserve `.worktrees/final-measurements` and earlier failed evidence.
 Do not repeat hours of local trials merely to plan AWS placement.
 
@@ -288,7 +290,7 @@ A temporary load generator was another allowance.
 These quantities were conservative ceilings, not a forecast from actual demo demand.
 Verified rates do not validate those quantities or the selected architecture.
 
-Read the [old worksheet](docs/execution/aws/cost-worksheet.json) as a historical input.
+Read the [old worksheet](../execution/aws/cost-worksheet.json) as a historical input.
 Build the replacement estimate from justified quantities.
 Separate expected usage, optional resources, uncertainty, tax, and contingency.
 The USD denomination and Singapore region were assumptions requiring confirmation.
@@ -359,15 +361,15 @@ It is not a production disaster-recovery programme or a plan to consume the budg
 Read these sources in order:
 
 1. This handoff and the latest user instruction.
-2. [Team 17 proposal](project-documentation/Team17-Proposal.docx).
-3. [Course briefing](project-documentation/briefing-requirements.txt) and
-   [requirements/scope analysis](project-documentation/project-2-requirements-and-scope.txt).
-4. [Root instructions](AGENTS.md) and [dated worklog](docs/project2-worklog.txt).
+2. [Team 17 proposal](../../project-documentation/Team17-Proposal.docx).
+3. [Course briefing](../../project-documentation/briefing-requirements.txt) and
+   [requirements/scope analysis](../../project-documentation/project-2-requirements-and-scope.txt).
+4. [Root instructions](../../AGENTS.md) and [dated worklog](../project2-worklog.txt).
    Their older shared-host defaults are subject to the current replanning request.
-5. [Architecture decisions](project-roadmap/design/04-architecture/README.md), contracts, current code, and local Compose.
-6. [Local handoff](docs/execution/handoff.md), original acceptance packs, and the rejected experiment reports.
-7. [Previous AWS plan](docs/execution/aws/architecture-plan.md),
-   [preparation pack](docs/execution/aws/README.md), and old cost worksheet.
+5. [Architecture decisions](../../project-roadmap/design/04-architecture/README.md), contracts, current code, and local Compose.
+6. [Local handoff](../execution/handoff.md), original acceptance packs, and the rejected experiment reports.
+7. [Previous AWS plan](../execution/aws/architecture-plan.md),
+   [preparation pack](../execution/aws/README.md), and old cost worksheet.
    Treat their hosting, storage, snapshot, hour, and blanket product choices as disputed assumptions.
 
 Technical references:

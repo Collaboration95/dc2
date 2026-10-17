@@ -1,3 +1,5 @@
+> **Historical (Project 1 track A worker, Redis/RQ), superseded by the V1 finite encoder: see [`processing/worker/V1.md`](../processing/worker/V1.md) and [architecture](architecture/README.md).** Kept for provenance.
+
 # A — Worker + state machine
 
 What track A owes the rest of the team, plus how to run and test the worker.
