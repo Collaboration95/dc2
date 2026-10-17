@@ -198,7 +198,12 @@ migration task nor any runtime role can read that path or Aurora's master secret
 The operator privately constructs a JSON object with exactly `host`, `port`,
 `user`, `password`, and `role_passwords`. `host` is `DatabaseEndpoint`; `port` is
 5432; `user` is `dc2bootstrap`; the password comes from the generated managed
-`BootstrapSecretArn`. `role_passwords` has exactly four distinct, randomly
+`BootstrapSecretArn`. (A stack rendered with the opt-in V2 `separate` database layout has
+one cluster per domain, so the object instead has exactly `databases` and `role_passwords`;
+`databases` names `media` and `processing`, each with its own `host`, `port`, `user` and
+`password` from `MediaDatabaseEndpoint`/`MediaBootstrapSecretArn` and the Processing pair. Each
+cluster is then reconciled for its own domain only. See
+`docs/execution/aws/v2/database-topology.md`.) `role_passwords` has exactly four distinct, randomly
 generated values of at least 24 characters, keyed by `media_migrator`,
 `media_runtime`, `processing_migrator`, `processing_runtime`. No example credential
 value is supplied. Store the complete object as a temporary SecureString at the

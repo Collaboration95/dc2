@@ -192,7 +192,10 @@ the live `deploy-project`/`owner-run` tags. Anything failing either is skipped a
 5. `td-images-deleted`: every image in the owned repositories.
 6. `td-database`: remove deletion protection, delete the instance, then the cluster. A final
    snapshot `<env>-final` (tagged) is taken unless `--skip-final-snapshot`. This precedes the stack
-   because the retained database holds the VPC's subnets.
+   because the retained database holds the VPC's subnets. A stack deployed with the opt-in V2
+   `--database-topology separate` (#94, `docs/execution/aws/v2/database-topology.md`) has two
+   clusters: every deletion is requested before any is waited on, and the snapshots are
+   `<env>-media-final` and `<env>-processing-final`.
 7. `td-parameters`: owned SecureStrings under `/dc2/<env>/` (and any leftover local password file).
 8. `td-stack`: delete the main stack and wait (CloudFront is the long pole).
 9. `td-bootstrap-stack`: delete the staging stack. If it was adopted, delete only the object
@@ -207,7 +210,17 @@ the live `deploy-project`/`owner-run` tags. Anything failing either is skipped a
     which would add that wait to every teardown; the re-sweep costs a few list calls and covers
     late Lambda writes as well. A bucket still written to after 5 sweeps is reported, never
     force-deleted.
-11. `td-receipt`: observe what is left from the services, plus the tagging API.
+11. `td-receipt`: observe what is left from the services, plus the tagging API. The tagging API
+    is eventually consistent and keeps listing deleted resources for a while (the `r1017a`
+    teardown reported ten that were all gone), so each hit it returns that the services have not
+    already accounted for is confirmed with its owning service before it is called remaining:
+    an EC2 `*.NotFound` (or a VPC endpoint in state `deleted`), an ECS cluster or task
+    definition that is `INACTIVE` (free) or being deleted, an RDS not-found (both the `Fault` and
+    plain spellings) and an S3 `NoSuchBucket` are gone. Anything else stays, with the state that
+    was observed, and a type with no existence check stays as `unchecked` rather than being
+    guessed. The run's `INACTIVE` task definitions are then deleted (`ecs delete-task-definitions`,
+    ten at a time, errors tolerated and recorded) so they stop being listed. The receipt's
+    `tagging_api_observed` lists every hit with the observed state, those confirmed gone included.
 
 Expected 25-45 minutes (CloudFront 10-20, Aurora 5-10, snapshot 2-5), then the meter stops.
 `teardown-receipt-<run>.json` (0600) is the "resources remaining" receipt for #67: status

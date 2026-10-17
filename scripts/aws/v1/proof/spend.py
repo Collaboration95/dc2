@@ -50,7 +50,9 @@ def cluster_id(ctx, override=None):
         raise ProofError("No deploy journal in the state directory; pass --cluster")
     found = journal.view()["resources"].get("db_clusters", [])
     if len(found) != 1:
-        raise ProofError("Expected exactly one Aurora cluster in the deploy journal")
+        # A separate-topology stack (#94) has two; the pause of either is for --cluster to name.
+        raise ProofError("Expected exactly one Aurora cluster in the deploy journal; "
+                         "a separate-topology stack has two, so pass --cluster")
     return found[0]
 
 

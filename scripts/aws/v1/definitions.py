@@ -1,6 +1,7 @@
 """V1 CloudFormation builder. Pure data only: never imports an AWS SDK."""
 
 import argparse
+import dataclasses
 import json
 from pathlib import Path
 
@@ -14,6 +15,58 @@ LAUNCHER = "ProcessingLauncher"
 # the only trace in the default stack is an environment value that resolves to nothing.
 SHORT_ENCODER = "ProcessingShortEncoder"
 SHORT_QUEUE = "ProcessingShortWork"
+
+
+# Opt-in V2 experiment (#94). The database layout is chosen when the template is rendered, not by
+# a CloudFormation parameter: CloudFormation cannot make one resource set appear and another
+# disappear under a single name without conditions on every output, rule and reference, and a
+# parameter would change the bytes of every V1 template. Rendered with the defaults below, the
+# template is byte-for-byte the one V1 shipped (`tests/aws/v1/test_database_topology.py`).
+SHARED, SEPARATE = "shared", "separate"
+DOMAINS = ("Media", "Processing")
+# Aurora Serverless v2 accepts auto-pause after 300 s to 24 h, and a maximum of 1 to 256 ACU in
+# half steps (with a minimum of 0 the maximum must be at least 1).
+AUTO_PAUSE_SECONDS_RANGE = (300, 86_400)
+MAX_CAPACITY_RANGE = (1, 256)
+DEFAULT_AUTO_PAUSE_SECONDS, DEFAULT_MAX_CAPACITY = 300, 2
+# Who may open a connection to each cluster. A Fargate encoder belongs to Processing only, so
+# in the separate layout Media's cluster does not admit it. Lambda and the migration task are
+# shared by both domains today, so both clusters admit them.
+SHARED_DATABASE_SOURCES = ("Lambda", "Worker", "Migration")
+SEPARATE_DATABASE_SOURCES = {
+    "Media": ("Lambda", "Migration"),
+    "Processing": ("Lambda", "Worker", "Migration"),
+}
+
+
+@dataclasses.dataclass(frozen=True)
+class DatabaseOptions:
+    """How Aurora is laid out and when it pauses. The defaults are V1."""
+
+    topology: str = SHARED
+    auto_pause_seconds: int = DEFAULT_AUTO_PAUSE_SECONDS
+    max_capacity: float = DEFAULT_MAX_CAPACITY
+
+    def __post_init__(self):
+        if self.topology not in (SHARED, SEPARATE):
+            raise ValueError("Database topology is shared or separate")
+        low, high = AUTO_PAUSE_SECONDS_RANGE
+        if type(self.auto_pause_seconds) is not int or not low <= self.auto_pause_seconds <= high:
+            raise ValueError(f"Auto-pause is {low} to {high} seconds")
+        low, high = MAX_CAPACITY_RANGE
+        capacity = self.max_capacity
+        if (type(capacity) not in (int, float) or not low <= capacity <= high
+                or capacity * 2 != int(capacity * 2)):
+            raise ValueError(f"Maximum capacity is {low} to {high} ACU in steps of 0.5")
+        if type(capacity) is float and capacity == int(capacity):
+            object.__setattr__(self, "max_capacity", int(capacity))  # 2.0 renders as 2
+
+    @property
+    def clusters(self):
+        return 1 if self.topology == SHARED else len(DOMAINS)
+
+    def as_dict(self):
+        return dataclasses.asdict(self)
 
 
 def gate_of(name):
@@ -64,8 +117,15 @@ def db_ca_env(domain):
     return {"PROCESSING_DATABASE_TLS": "true", "PROCESSING_DATABASE_CA_FILE": RDS_CA_BUNDLE}
 
 
-def template():
+def template(database=None):
     """Closed-by-default two-phase stack; resources retained where data is durable."""
+    database = database or DatabaseOptions()
+    # Logical stem of each cluster -> the domains whose database it holds. The shared layout
+    # keeps V1's names so that nothing about it changes.
+    if database.topology == SHARED:
+        stems = {"Database": SHARED_DATABASE_SOURCES}
+    else:
+        stems = {f"{domain}Database": SEPARATE_DATABASE_SOURCES[domain] for domain in DOMAINS}
     parameters = {
         "EnvironmentId": {"Type": "String", "AllowedPattern": "[a-z][a-z0-9-]{2,23}"},
         "DeployApplications": {
@@ -264,22 +324,24 @@ def template():
             ),
         },
     )
-    for name in ("Lambda", "Worker", "Migration", "Database"):
+    for name in ("Lambda", "Worker", "Migration", *stems):
         egress = (
             [{"IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "CidrIpv6": "::/0"}]
             if name == "Lambda"
             else [{"IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "CidrIp": "0.0.0.0/0"}]
         )
-        if name == "Database":
+        if name in stems:
             egress = [{"IpProtocol": "tcp", "FromPort": 1, "ToPort": 1, "CidrIp": "127.0.0.1/32"}]
         else:
-            egress.append(
+            egress.extend(
                 {
                     "IpProtocol": "tcp",
                     "FromPort": 5432,
                     "ToPort": 5432,
-                    "DestinationSecurityGroupId": ref("DatabaseSecurityGroup"),
+                    "DestinationSecurityGroupId": ref(f"{stem}SecurityGroup"),
                 }
+                for stem, sources in stems.items()
+                if name in sources
             )
         if name == "Lambda":
             # S3 gateway routes are IPv4. PrefixList ID is not exposed by CFN;
@@ -297,18 +359,19 @@ def template():
                 "Tags": tags,
             },
         )
-    for name in ("Lambda", "Worker", "Migration"):
-        add(
-            f"DatabaseFrom{name}",
-            "EC2::SecurityGroupIngress",
-            {
-                "GroupId": ref("DatabaseSecurityGroup"),
-                "IpProtocol": "tcp",
-                "FromPort": 5432,
-                "ToPort": 5432,
-                "SourceSecurityGroupId": ref(f"{name}SecurityGroup"),
-            },
-        )
+    for stem, sources in stems.items():
+        for name in sources:
+            add(
+                f"{stem}From{name}",
+                "EC2::SecurityGroupIngress",
+                {
+                    "GroupId": ref(f"{stem}SecurityGroup"),
+                    "IpProtocol": "tcp",
+                    "FromPort": 5432,
+                    "ToPort": 5432,
+                    "SourceSecurityGroupId": ref(f"{name}SecurityGroup"),
+                },
+            )
     add(
         "DbSubnets",
         "RDS::DBSubnetGroup",
@@ -327,44 +390,45 @@ def template():
             "Parameters": {"rds.force_ssl": "1"},
         },
     )
-    add(
-        "DatabaseCluster",
-        "RDS::DBCluster",
-        {
-            "Engine": "aurora-postgresql",
-            "EngineVersion": ref("AuroraEngineVersion"),
-            "EngineMode": "provisioned",
-            "MasterUsername": "dc2bootstrap",
-            "ManageMasterUserPassword": True,
-            "DBSubnetGroupName": ref("DbSubnets"),
-            "DBClusterParameterGroupName": ref("DbParameters"),
-            "VpcSecurityGroupIds": [ref("DatabaseSecurityGroup")],
-            "StorageEncrypted": True,
-            "BackupRetentionPeriod": 1,
-            "DeletionProtection": True,
-            "NetworkType": "DUAL",
-            "ServerlessV2ScalingConfiguration": {
-                "MinCapacity": 0,
-                "MaxCapacity": 2,
-                "SecondsUntilAutoPause": 300,
+    for stem in stems:
+        add(
+            f"{stem}Cluster",
+            "RDS::DBCluster",
+            {
+                "Engine": "aurora-postgresql",
+                "EngineVersion": ref("AuroraEngineVersion"),
+                "EngineMode": "provisioned",
+                "MasterUsername": "dc2bootstrap",
+                "ManageMasterUserPassword": True,
+                "DBSubnetGroupName": ref("DbSubnets"),
+                "DBClusterParameterGroupName": ref("DbParameters"),
+                "VpcSecurityGroupIds": [ref(f"{stem}SecurityGroup")],
+                "StorageEncrypted": True,
+                "BackupRetentionPeriod": 1,
+                "DeletionProtection": True,
+                "NetworkType": "DUAL",
+                "ServerlessV2ScalingConfiguration": {
+                    "MinCapacity": 0,
+                    "MaxCapacity": database.max_capacity,
+                    "SecondsUntilAutoPause": database.auto_pause_seconds,
+                },
+                "Tags": tags,
             },
-            "Tags": tags,
-        },
-        retain=True,
-    )
-    add(
-        "DatabaseInstance",
-        "RDS::DBInstance",
-        {
-            "DBClusterIdentifier": ref("DatabaseCluster"),
-            "DBInstanceClass": "db.serverless",
-            "Engine": "aurora-postgresql",
-            "PubliclyAccessible": False,
-            "DBSubnetGroupName": ref("DbSubnets"),
-            "Tags": tags,
-        },
-        retain=True,
-    )
+            retain=True,
+        )
+        add(
+            f"{stem}Instance",
+            "RDS::DBInstance",
+            {
+                "DBClusterIdentifier": ref(f"{stem}Cluster"),
+                "DBInstanceClass": "db.serverless",
+                "Engine": "aurora-postgresql",
+                "PubliclyAccessible": False,
+                "DBSubnetGroupName": ref("DbSubnets"),
+                "Tags": tags,
+            },
+            retain=True,
+        )
     for name in ("Source", "Output", "Frontend"):
         props = {
             "BucketEncryption": {
@@ -1432,14 +1496,24 @@ def template():
         },
         app=True,
     )
+    # The shared layout keeps V1's output names. A separate layout names each domain's endpoint
+    # and master secret, so nothing can read the wrong cluster through a name that fits both.
+    database_outputs = {}
+    for stem in stems:
+        prefix = "" if database.topology == SHARED else stem.removesuffix("Database")
+        database_outputs[f"{prefix}DatabaseEndpoint"] = attr(f"{stem}Cluster", "Endpoint.Address")
+        database_outputs[f"{prefix}BootstrapSecretArn"] = attr(
+            f"{stem}Cluster", "MasterUserSecret.SecretArn"
+        )
+    if database.topology == SEPARATE:
+        database_outputs["DatabaseTopology"] = SEPARATE
     outputs = {
         "VpcId": ref("Vpc"),
         "PrivateSubnetIds": {"Fn::Join": [",", [ref("PrivateASubnet"), ref("PrivateBSubnet")]]},
         "PublicTaskSubnetIds": {"Fn::Join": [",", [ref("PublicASubnet"), ref("PublicBSubnet")]]},
         "WorkerSecurityGroupId": ref("WorkerSecurityGroup"),
         "MigrationSecurityGroupId": ref("MigrationSecurityGroup"),
-        "DatabaseEndpoint": attr("DatabaseCluster", "Endpoint.Address"),
-        "BootstrapSecretArn": attr("DatabaseCluster", "MasterUserSecret.SecretArn"),
+        **database_outputs,
         "FrontendUrl": sub("https://${Distribution.DomainName}"),
         "DistributionId": ref("Distribution"),
         "ClusterArn": attr("Cluster"),
@@ -1537,9 +1611,18 @@ def template():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--database-topology", choices=(SHARED, SEPARATE), default=SHARED)
+    parser.add_argument("--database-auto-pause-seconds", type=int,
+                        default=DEFAULT_AUTO_PAUSE_SECONDS)
+    parser.add_argument("--database-max-capacity", type=float, default=DEFAULT_MAX_CAPACITY)
     args = parser.parse_args()
+    try:
+        database = DatabaseOptions(args.database_topology, args.database_auto_pause_seconds,
+                                   args.database_max_capacity)
+    except ValueError as error:
+        parser.error(str(error))
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(template(), indent=2) + "\n")
+    args.output.write_text(json.dumps(template(database), indent=2) + "\n")
 
 
 if __name__ == "__main__":
