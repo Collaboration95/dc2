@@ -11,10 +11,10 @@ import time
 import uuid
 from datetime import UTC, datetime
 
-from scripts.aws.transport import OperationError, remaining
+from scripts.aws.transport import OperationError, config_value, remaining
 from scripts.aws.v1.artifacts import validate_bundle
 from scripts.aws.v1.migration import migrate
-from scripts.aws.workers import inventory
+from scripts.aws.workers import describe_tasks, inventory
 
 
 class PublicationUncertain(OperationError):
@@ -470,21 +470,28 @@ def _migration_settled(config, transport, pending, deadline):
 
     A migration still running can commit after abandon read the old revision, and quiescence
     does not cover it (Media's checks ECS nothing). With the persisted task ARN the task is
-    described; a task the cluster no longer knows is unknown, not stopped. With only the
-    persisted request (RunTask response lost, or launch refused) the cluster inventory is
-    searched for its `startedBy`; finding nothing proves nothing until the RunTask client-token
-    replay window has passed, so the intent is kept until then. No request means no launch.
+    described. A task ECS has forgotten (it forgets STOPPED tasks about an hour after they
+    stop) is accepted as settled only when it is both absent from the cluster's RUNNING list
+    and MISSING from describe-tasks: ECS lists a task as RUNNING for as long as it runs, so
+    that combination means it stopped. Anything else about a forgotten task stays refused.
+    With only the persisted request (RunTask response lost, or launch refused) the cluster
+    inventory is searched for its `startedBy`; finding nothing proves nothing until the
+    RunTask client-token replay window has passed, so the intent is kept until then. No
+    request means no launch.
     """
     request = pending.get("migration_request")
     if not request:
-        return
+        return None
     arn = pending.get("migration_task")
-    tasks = inventory(config, transport, deadline=deadline, known=[arn] if arn else ())
     if arn:
+        tasks = _describe_or_forgotten(config, transport, arn, deadline)
+        if tasks is None:
+            return "absent-from-running"
         mine = [tasks[arn]]
         if mine[0].get("taskDefinitionArn") != request["taskDefinition"]:
             raise OperationError("Migration task definition mismatch; cannot prove it stopped")
     else:
+        tasks = inventory(config, transport, deadline=deadline)
         mine = [t for t in tasks.values() if t.get("startedBy") == request["startedBy"]]
         if not mine and time.time() < pending.get("migration_replay_before_epoch", float("inf")):
             raise OperationError(
@@ -492,6 +499,45 @@ def _migration_settled(config, transport, pending, deadline):
             )
     if any(t["lastStatus"] != "STOPPED" for t in mine):
         raise OperationError("Migration task is not stopped; wait for it before abandoning")
+    return None
+
+
+def _running_arns(config, transport, deadline):
+    arns, token, seen = set(), None, set()
+    while True:
+        payload = {"cluster": config_value(config, "cluster"), "desiredStatus": "RUNNING"}
+        if token:
+            payload["nextToken"] = token
+        result = transport.call("ecs", "list-tasks", payload, deadline=deadline)
+        arns.update(result.get("taskArns", []))
+        token = result.get("nextToken")
+        if not token:
+            return arns
+        if token in seen:
+            raise OperationError("Repeated inventory pagination token")
+        seen.add(token)
+
+
+def _describe_or_forgotten(config, transport, arn, deadline):
+    """Describe the recorded task, or return None when ECS has provably forgotten it.
+
+    Forgotten means absent from the RUNNING list *and* reported MISSING by describe-tasks.
+    Any other failure reason, or a MISSING task that is still listed, stays unresolved.
+    """
+    listed = arn in _running_arns(config, transport, deadline)
+    result = transport.call(
+        "ecs",
+        "describe-tasks",
+        {"cluster": config_value(config, "cluster"), "tasks": [arn]},
+        deadline=deadline,
+    )
+    failures = result.get("failures") or []
+    if failures and not listed and all(f.get("reason") == "MISSING" for f in failures):
+        if not result.get("tasks"):
+            return None
+    if failures:
+        raise OperationError("Task inventory contains unresolved identities")
+    return describe_tasks(config, transport, [arn], deadline=deadline)
 
 
 def abandon(
@@ -539,7 +585,7 @@ def abandon(
                 )
             if versions.get(name) == current["version"]:
                 raise OperationError("A published version is aliased; restore the release instead")
-        _migration_settled(config, transport, pending, deadline)
+        settled_by = _migration_settled(config, transport, pending, deadline)
         recorded = pending["prior"].get("schema")
         if not isinstance(recorded, str) or not recorded:
             raise OperationError("Prior schema revision was not recorded; cannot prove no change")
@@ -558,6 +604,7 @@ def abandon(
                 "reason": reason or "operator abandoned a release that changed nothing",
                 "versions_published_unaliased": unaliased,
                 "abandoned_at": datetime.now(UTC).isoformat(timespec="seconds"),
+                **({"migration_settled_by": settled_by} if settled_by else {}),
             }
         )
         state["pending_release"] = None
