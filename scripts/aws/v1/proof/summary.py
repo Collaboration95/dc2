@@ -130,7 +130,7 @@ def write_counts(state_dir, docs):
         raise ProofError("The operator config reads attempt counts from SQL; no file is needed")
     path = state / "evidence-counts.json"
     private_write(path, json.dumps(counts(docs)))
-    config["counts_file"] = str(path)
+    config["counts_file"] = path.name  # relative to the config: see operations.STATE_PATH_KEYS
     private_write(config_path, json.dumps(config, indent=2))
     return path
 

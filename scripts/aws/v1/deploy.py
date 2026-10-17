@@ -1586,21 +1586,26 @@ class Pipeline:
         path = self.s.state_dir / (
             "operator-config-teardown.json" if teardown else "operator-config.json")
         data = {"operator_station": self.s.station, "environment_id": self.s.env,
-                "journal": str(self.s.state_dir / "session" / "journal.json"),
-                "outputs_file": str(self.s.state_dir / "outputs.json")}
+                "journal": "session/journal.json", "outputs_file": "outputs.json"}
         sql = {} if teardown else self.sql_settings()
         counts = None if teardown else self.s.counts_file
         if sql:
             data["sql"] = sql
         elif counts:
-            data["counts_file"] = str(counts)
+            data["counts_file"] = self.state_relative(counts)
         elif self.s.assume_empty_counts or teardown:
             zero = self.s.state_dir / "attested-zero-counts.json"
             self.write_private(zero, json.dumps(dict.fromkeys(
                 ("queued", "processing", "succeeded", "failed", "abandoned", "cancelled"), 0)))
-            data["counts_file"] = str(zero)
+            data["counts_file"] = self.state_relative(zero)
         self.write_private(path, json.dumps(data, indent=2))
         return path
+
+    def state_relative(self, path):
+        """Relative to the state directory when inside it: the state is read on other machines."""
+        path = Path(path)
+        return str(path.relative_to(self.s.state_dir)) if path.is_relative_to(
+            self.s.state_dir) else str(path)
 
     def run_session(self, action, *extra, teardown=False):
         ops = self.write_ops_config(teardown=teardown)

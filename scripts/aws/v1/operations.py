@@ -170,12 +170,21 @@ def config_from_outputs(
     return config, hooks, urls
 
 
+# Paths in the operator config that name files of the run's state directory. They are written
+# relative to the config file so the same state works on the CD runner and on an operator's laptop
+# (docs/execution/aws/v1/deploy-runbook.md, "Operator handoff"); an absolute path still works.
+STATE_PATH_KEYS = ("journal", "outputs_file", "counts_file")
+
+
 def load_operator_config(path):
     """Nonsecret operator file: station, environment, journal path and outputs file."""
     try:
         data = json.loads(Path(path).read_text())
+        for key in STATE_PATH_KEYS:
+            if isinstance(data.get(key), str):
+                data[key] = str(Path(path).resolve().parent / data[key])  # absolute stays as is
         outputs = json.loads(Path(data["outputs_file"]).read_text())
-    except (OSError, ValueError, KeyError, TypeError):
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
         raise OperationError("Operator config or stack outputs unreadable") from None
     allowed = {
         "operator_station",
