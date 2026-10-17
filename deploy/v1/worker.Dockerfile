@@ -4,7 +4,7 @@ LABEL org.opencontainers.image.revision=$SOURCE_SHA
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_ROOT_USER_ACTION=ignore \
     PIP_DISABLE_PIP_VERSION_CHECK=1 SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certificates libexpat1 \
     && rm -rf /var/lib/apt/lists/*
 COPY pyproject.toml uv.lock ./
 # uvicorn[standard] is a base dependency for the legacy compose stack only; no V1 entrypoint
