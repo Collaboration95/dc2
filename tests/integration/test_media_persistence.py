@@ -1199,3 +1199,5 @@ async def test_completed_stage_cleanup_before_adoption_cannot_accept_missing_sou
         assert await session.get(StagedObject, source) is None
         assert await session.scalar(select(Asset.id).where(Asset.source_key == source)) is None
         assert await session.get(RequestKey, (lane.users[0].id, operation, key)) is None
+
+# Controlled CI selection sample for #165; no test behavior changes.
