@@ -32,6 +32,7 @@ from pathlib import Path
 
 from processing import short_lane
 from scripts.aws.v1.proof import tasks, workflow
+from scripts.aws.v1.proof.context import LAMBDA_CALL_SECONDS
 from scripts.aws.v1.proof.core import FAIL, PASS, ProofError, percentile
 from scripts.aws.workers import describe_tasks
 
@@ -346,7 +347,8 @@ def lambda_arm(ctx, proof, intent, *, fixture, jobs, timeout, idle_minutes):
     if not name or not mapping:
         raise ProofError("This stack has no Lambda lane; deploy with LambdaShortEncodes=true")
     state = ctx.aws.call(
-        "lambda", "get-event-source-mapping", {"UUID": mapping}, deadline=ctx.deadline(60)
+        "lambda", "get-event-source-mapping", {"UUID": mapping},
+        deadline=ctx.deadline(LAMBDA_CALL_SECONDS),
     ).get("State")
     if state != "Enabled":
         raise ProofError("The short-encoder mapping is not enabled; open a session first")

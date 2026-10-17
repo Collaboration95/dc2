@@ -27,6 +27,7 @@ killed process resumes from the receipt and a rerun finishes the job.
 """
 
 from scripts.aws.v1.proof import capacity, tasks, workflow
+from scripts.aws.v1.proof.context import LAMBDA_CALL_SECONDS
 from scripts.aws.v1.proof.core import FAIL, PASS, ProofError
 
 ISSUE = 196
@@ -50,14 +51,15 @@ def mapping_id(ctx):
 
 def mapping_state(ctx, transport, identity):
     reply = transport.call("lambda", "get-event-source-mapping", {"UUID": identity},
-                           deadline=ctx.deadline(60))
+                           deadline=ctx.deadline(LAMBDA_CALL_SECONDS))
     return reply.get("State")
 
 
 def set_mapping(ctx, transport, identity, enabled):
     """Enable or disable the mapping and wait until Lambda reports that state."""
     transport.call("lambda", "update-event-source-mapping",
-                   {"UUID": identity, "Enabled": enabled}, deadline=ctx.deadline(60))
+                   {"UUID": identity, "Enabled": enabled},
+                   deadline=ctx.deadline(LAMBDA_CALL_SECONDS))
     want = "Enabled" if enabled else "Disabled"
 
     def reached():
