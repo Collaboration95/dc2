@@ -41,6 +41,7 @@ class Context:
     sdk: object = None  # scope -> OperatorTransport (lambda/events/gateway/ecs), for Session reads
     release_main: object = None
     world: object = None
+    fresh: object = None  # None | True | set of step names: archive and rerun (see Proof)
 
     @property
     def evidence_dir(self):
@@ -63,7 +64,7 @@ class Context:
         # The scope (including the account id) stays in the private receipt only.
         return Proof(issue, directory=self.evidence_dir, run_id=self.run_id,
                      simulated=self.simulated, scope=dict(self.scope), required=required,
-                     guard=guard, wall=self.wall)
+                     guard=guard, wall=self.wall, fresh=self.fresh)
 
     def deadline(self, seconds):
         return self.clock() + seconds

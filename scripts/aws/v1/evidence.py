@@ -61,6 +61,11 @@ def scope_arguments(parser):
     parser.add_argument("--dry-run", action="store_true",
                         help="simulated account, throwaway receipts; proves nothing about AWS")
     parser.add_argument("--only", help="comma-separated step names to run")
+    parser.add_argument("--fresh", action="store_true",
+                        help="rerun the steps selected by --only (all steps without it) as new "
+                             "attempts: the old receipt entry and intent are archived under "
+                             "`attempts` and a new task or request is minted. Without it PASS "
+                             "and NOT_RUN are final")
 
 
 def build_parser():
@@ -105,6 +110,8 @@ def build_parser():
     lat = sub.add_parser("latency", help="#66")
     scope_arguments(lat)
     lat.add_argument("--cluster", help="Aurora cluster id (default: from the deploy journal)")
+    lat.add_argument("--pause-wait-minutes", type=int, default=latency.PAUSE_WAIT_SECONDS // 60,
+                     help="how long cold-wake waits for CloudWatch to show 0 ACU before NOT_RUN")
     s = sub.add_parser("spend", help="#67")
     scope_arguments(s)
     s.add_argument("--closed-at", help="ISO time the session closed (pause is measured from it)")
@@ -217,7 +224,8 @@ def execute(args, ctx):
             overrides={"shared": args.cluster, "media": args.media_cluster,
                        "processing": args.processing_cluster})
     if args.command == "latency":
-        return latency.run(ctx, only=only(args), cluster=args.cluster)
+        return latency.run(ctx, only=only(args), cluster=args.cluster,
+                           pause_wait=60 * args.pause_wait_minutes)
     from datetime import date
 
     closed = None
@@ -291,6 +299,14 @@ def rehearse_release(base, shared, plan_path):
     return proof.report(), bool(proof.failed_now())
 
 
+def rehearse_latency(ctx):
+    """Cold wake opens and closes its own window; the operator then opens the session for the
+    generator, as the runbook says."""
+    latency.run(ctx, only={"cold-wake"})
+    sim.reopen(ctx, "open")
+    return latency.run(ctx, only={"generator"})
+
+
 def rehearse(args, stdout):
     """Every harness against fresh simulated worlds; nothing leaves the temp directory."""
     base = Path(tempfile.mkdtemp(prefix="dc2-rehearsal-"))
@@ -303,7 +319,7 @@ def rehearse(args, stdout):
         "gateway": lambda ctx: gateway.run(ctx, fixture=fixture, minutes=30),
         "capacity": lambda ctx: capacity.run(ctx, fixture=fixture, short_fixture=fixture,
                                              minutes=30),
-        "latency": lambda ctx: latency.run(ctx),
+        "latency": rehearse_latency,
         "spend": lambda ctx: spend.run(ctx, wait_minutes=10),
     }
     for name, run in runs.items():
@@ -341,6 +357,8 @@ def main(argv=None, *, stdout=None, world=None, factory=None):
             print(json.dumps(result, indent=2), file=stdout)
             return 0
         ctx = make_context(args, args.command, world=world, factory=factory)
+        if getattr(args, "fresh", False):
+            ctx.fresh = only(args) or True
         proof = execute(args, ctx)
     except (OperationError, OSError, ValueError, KeyError) as error:
         message = str(error) if isinstance(error, OperationError) else type(error).__name__

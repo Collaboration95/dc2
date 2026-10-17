@@ -36,7 +36,9 @@ ACCOUNT = "123456789012"
 FRONTEND = "https://d111111abcdef8.cloudfront.net"
 GATEWAY = "https://abc123def4.execute-api.ap-southeast-1.amazonaws.com"
 S3_HOST = "dc2-sim-source.s3.ap-southeast-1.amazonaws.com"
-OPEN_EDGE = {"ThrottlingBurstLimit": 10, "ThrottlingRateLimit": 5}
+# The throttle an operator sets (`edge_open` in operator-config.json) for the 50-user latency load.
+EDGE_OPEN = {"rate": 100, "burst": 200}
+OPEN_EDGE = {"ThrottlingBurstLimit": EDGE_OPEN["burst"], "ThrottlingRateLimit": EDGE_OPEN["rate"]}
 COOKIE = "session=sim-token; HttpOnly; Secure; SameSite=Strict; Path=/"
 
 
@@ -721,6 +723,8 @@ class SimWorld:
             status = 201 if path.endswith("register") else 200
             if "errors" in world.faults and crc(user, int(clock.t)) % 20 == 0:
                 status = 500
+            if "throttled" in world.faults and crc(user, int(clock.t)) % 20 == 0:
+                status = 429  # the Gateway's own throttle, not the application
             return status, ms, cookies, b""
 
         sink = io.StringIO()
@@ -787,7 +791,7 @@ def build(args, *, session="open", world=None, sql=True, tmp=None):
     (folder / "outputs.json").write_text(json.dumps(outputs))
     config = {"operator_station": "sim-station", "environment_id": world.env,
               "journal": str(folder / "session" / "journal.json"),
-              "outputs_file": str(folder / "outputs.json")}
+              "outputs_file": str(folder / "outputs.json"), "edge_open": dict(EDGE_OPEN)}
     if sql:
         config["sql"] = {"ca_file": "/dev/null", "media_dsn_file": "/dev/null",
                          "processing_dsn_file": "/dev/null"}
@@ -818,6 +822,14 @@ def build(args, *, session="open", world=None, sql=True, tmp=None):
         credentials=lambda: json.loads(creds.read_text()), sqs=lambda: FakeSqs(world),
         sdk=lambda scope: world, release_main=release_cli.main, world=world)
 
+
+
+def reopen(ctx, session):
+    """What `session open` leaves behind in the simulated account, between two harness runs."""
+    with ctx.journal.locked() as state:
+        state.update(session=session, paused=False)
+        ctx.journal.save(state)
+    ctx.world.plan.stage = dict(OPEN_EDGE)
 
 
 def build_evidence(path, *, source_sha, config_ids=None, failures=()):

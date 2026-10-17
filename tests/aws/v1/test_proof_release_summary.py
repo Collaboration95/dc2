@@ -244,6 +244,42 @@ def test_the_summary_names_only_statuses_and_public_numbers_and_is_world_readabl
     assert built["issues"]["#66"]["overall"] == "NOT_RUN"
 
 
+def test_archived_attempts_never_reach_the_summary_or_the_counts(tmp_path):
+    docs = live_receipts(tmp_path)
+    docs["63"]["attempts"] = {"direct-upload-e2e": [{
+        "attempt": 1, "archived_at": "2026-10-17T00:00:00Z",
+        "step": {"status": "FAIL", "seconds": 1, "public": {}, "private": {
+            "task": "arn:aws:ecs:ap-southeast-1:123456789012:task/c/abc"}},
+        "intent": {"task": "arn:aws:ecs:ap-southeast-1:123456789012:task/c/abc"}}]}
+    built = summary.build(docs, evidence.REQUIRED, "r", wall=lambda: 0)  # screens the whole file
+    text = json.dumps(built)
+    assert "archived_at" not in text and "arn:aws" not in text
+    assert built["issues"]["#63"]["overall"] != FAIL  # an archived FAIL does not count
+    assert summary.counts(docs)["succeeded"] == 3 and summary.counts(docs)["failed"] == 0
+
+
+def test_the_fresh_flag_applies_to_the_steps_named_by_only_or_to_all(tmp_path):
+    parsed = evidence.build_parser().parse_args(
+        ["latency", "--profile", "p", "--region", "r", "--account", "1", "--run-id", "x",
+         "--only", "generator", "--fresh"])
+    assert parsed.fresh and evidence.only(parsed) == {"generator"}
+    plain = evidence.build_parser().parse_args(
+        ["latency", "--profile", "p", "--region", "r", "--account", "1", "--run-id", "x"])
+    assert plain.fresh is False and plain.pause_wait_minutes == 15
+
+
+def test_a_simulated_command_with_fresh_archives_through_the_cli(tmp_path):
+    out = io.StringIO()
+    factory = None
+    args = ["latency", "--dry-run", "--profile", "p", "--region", "r", "--account", "1",
+            "--run-id", "cli", "--only", "cold-wake"]
+    world = sim.SimWorld()
+    assert evidence.main(args, stdout=out, world=world, factory=factory) == 0
+    again = io.StringIO()
+    assert evidence.main([*args, "--fresh"], stdout=again, world=sim.SimWorld()) == 0
+    assert json.loads(again.getvalue())["steps"]["cold-wake"]["status"] == "PASS"
+
+
 def test_a_summary_cannot_be_built_from_a_simulated_receipt(tmp_path):
     docs = live_receipts(tmp_path, simulated=True)
     with pytest.raises(ProofError, match="never be summarized"):

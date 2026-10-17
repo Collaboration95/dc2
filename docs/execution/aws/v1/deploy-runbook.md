@@ -294,9 +294,28 @@ python -m scripts.aws.v1.session close --config D/operator-config.json $S
 python -m scripts.aws.v1.evidence spend $S --state-dir D --run-id R --closed-at <close time> \
     --only close-state,pause
 
-# 5. #66 needs the paused database: cold wake first, then the Fargate generator (it opens its own window)
-python -m scripts.aws.v1.evidence latency $S --state-dir D --run-id R
-python -m scripts.aws.v1.session close --config D/operator-config.json $S
+# 5. #66 needs the paused database. Step 4 above already proved the pause; the cold wake still
+#    polls CloudWatch for up to 15 min (--pause-wait-minutes) before it records NOT_RUN.
+#    Run long live commands under `nohup ... &` so they survive the terminal or agent session
+#    that started them (a killed generator left the session open for 5 h on 2026-10-17). Wait
+#    for each to exit (`tail -f` its log; the JSON report is its last output) before the next.
+#    5a. Cold wake: opens its own window, waits (<= 60 s, recorded as gate_settle_seconds and
+#        gate_probes, apart from window_open_seconds) until the Gateway stops answering 429,
+#        times login and two reads, and closes the window it opened (window_closed).
+nohup python -m scripts.aws.v1.evidence latency $S --state-dir D --run-id R --only cold-wake \
+    > cold-wake.log 2>&1 &
+#    5b. The 50-user load needs a bigger gate than the default 5/s. Set in operator-config.json
+#        "edge_open": {"rate": 100, "burst": 200}, then open. The generator refuses (before
+#        registering anything) a stage below 50/s, burst 100.
+python -m scripts.aws.v1.session open --config D/operator-config.json $S
+nohup python -m scripts.aws.v1.evidence latency $S --state-dir D --run-id R --only generator \
+    > generator.log 2>&1 &
+python -m scripts.aws.v1.session close --config D/operator-config.json $S --in-vpc-counts
+#    PASS and NOT_RUN are final in a receipt, and a FAILed step resumes its recorded task. To
+#    measure again after fixing the cause, add --fresh: the selected steps' old entry and intent
+#    are archived under "attempts" in the private receipt (never in the summary) and the step
+#    mints a new task, e.g. `... --only generator --fresh`. Without --only it applies to every
+#    step of that harness.
 
 # 6. #65 release (window, not open). No SQL station: the owning schema revision is read by a
 #    finite task inside the VPC. Build plan.json first ("Release proof on an existing stack").
@@ -322,7 +341,7 @@ python -m scripts.aws.v1.evidence summary --state-dir D --run-id R
 | 2 gateway | 10-15 min | encoder task, cents | #63 anonymous and forged denial, session round trip, CORS, queue and cross-database denial, direct upload to HLS playback |
 | 2 capacity | 60-90 min (the DLQ poison adds about 35 min: visibility 420 s x 5 receives) | three encoder tasks for minutes: low dollars at the Fargate rates above | #64 1/2/3 concurrent encoders, mid-encode stop recovery inside 300 s, DLQ empty, drain |
 | 3-4 | 5 + up to 30 min | DB awake for the wait | #67 closed state, ACU pause |
-| 5 | 15-20 min | generator task cents plus DB awake | #66 cold wake kept apart from 50-user warm status p90 and 20-login p90 |
+| 5 | 15-20 min | generator task cents plus DB awake | #66 cold wake (wake, gate settle and requests kept apart) and the 50-user warm status p90 and 20-login p90, with 429s counted apart from errors |
 | 6 | 20-40 min | pennies plus DB awake | #65 promote, rollback, peer owner untouched, optional failing candidate |
 | 7 | 25-45 min, plus about a day | stops the meter | #67 resources remaining and spend, the invoice itself is not proven |
 

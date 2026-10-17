@@ -7,10 +7,17 @@ so no credential is placed in the task overrides (CloudTrail records those). The
 cycle and the 20-login cycle are judged by `scripts.aws.latency.summarize`, the same arithmetic
 the original local gates used; every failure stays in the denominator and nothing is retried.
 
-Cold: only measurable when Aurora has actually paused. The harness checks CloudWatch first and
-records NOT_RUN if the database is awake, then opens the session window (whose readiness probes
-wake Aurora) and times that plus the first public requests. It is measured from the operator's
-station, so it includes the network path to the Gateway; the receipt says so.
+Cold: only measurable when Aurora has actually paused. The harness polls CloudWatch for up to
+15 minutes (Aurora pauses minutes after the last use) and records NOT_RUN only if no pause
+shows, then opens the session window (whose readiness probes wake Aurora) and times that. The
+data plane applies the new stage throttle a few seconds after `get-stage` confirms it, so it
+polls a cheap unauthenticated route until the gate stops answering 429 (bounded, recorded apart
+from the wake) before timing the first public requests. The window it opened is closed again
+in a `finally`. It is measured from the operator's station, so it includes the network path to
+the Gateway; the receipt says so.
+
+The generator refuses a gate too small for 50 users (the default 5 req/s would make the run
+measure the throttle, not the API) before it registers anything.
 """
 
 import base64
@@ -29,6 +36,7 @@ from scripts.aws.v1.proof.core import (
     ProofError,
     private_write,
     sha256_text,
+    stage_throttle,
 )
 
 REQUIRED = ("cold-wake", "generator")
@@ -36,6 +44,11 @@ GENERATOR = Path(__file__).with_name("generator.py")
 ROOT = Path(__file__).resolve().parents[4]
 CPU, MEMORY = "512", "1024"
 MARKER, SAMPLES = "DC2-RESULT", "DC2-SAMPLES"
+# 50 users each reading once a second need 50 req/s steady, with headroom for the login burst.
+LOAD_EDGE_MIN_RATE, LOAD_EDGE_MIN_BURST = 50, 100
+PAUSE_WAIT_SECONDS, PAUSE_POLL_SECONDS = 15 * 60, 60  # Aurora pauses minutes after last use
+GATE_SETTLE_SECONDS, GATE_POLL_SECONDS = 60, 2
+GATE_PROBE_PATH = "/api/media/health"  # unauthenticated and cheap
 
 
 def verdict(ok, public, private=None):
@@ -113,7 +126,29 @@ def judge(result, rows):
     )
 
 
+def require_load_edge(ctx):
+    """Refuse a gate that would throttle the load, before any side effect."""
+    gate = ctx.config.get("gateway")
+    if not gate:
+        raise ProofError("The operator config has no Gateway stage; cannot read the throttle")
+    limits = stage_throttle(ctx.aws, gate)
+    rate, burst = limits.get("ThrottlingRateLimit") or 0, limits.get("ThrottlingBurstLimit") or 0
+    if rate < LOAD_EDGE_MIN_RATE or burst < LOAD_EDGE_MIN_BURST:
+        raise ProofError(
+            f"The Gateway throttle is {rate:g}/s (burst {burst:g}); the 50-user load needs at "
+            f"least {LOAD_EDGE_MIN_RATE}/s (burst {LOAD_EDGE_MIN_BURST}). Set "
+            '"edge_open": {"rate": 100, "burst": 200} in operator-config.json and run '
+            "`session open` again, then rerun with --fresh")
+
+
+def throttled(rows, route=None):
+    """Requests the Gateway answered 429: reported apart from application errors, which still
+    count them in the denominator."""
+    return sum(1 for r in rows if r["status_code"] == 429 and route in (None, r["route"]))
+
+
 def generator(ctx, proof, intent):
+    require_load_edge(ctx)
     worker = ctx.outputs["WorkerTaskDefinitionArn"]
     base = ctx.aws.call("ecs", "describe-task-definition", {"taskDefinition": worker},
                         deadline=ctx.deadline(60))["taskDefinition"]
@@ -151,16 +186,21 @@ def generator(ctx, proof, intent):
     if sha256_text(text) != result["samples_sha256"] or len(text) != result["samples_length"]:
         raise ProofError("The sample stream does not match its recorded hash and length")
     private_write(ctx.evidence_dir / f"latency-samples-{ctx.run_id}.csv", text)
-    status, login = judge(result, parse_samples(text))
+    rows = parse_samples(text)
+    status, login = judge(result, rows)
     summary = tasks.summary(task)
+    timed_status = [r for r in rows if r["route"] == "status" and r["phase"] == "timed"]
     public = {
         "status_cycle": {k: status[k] for k in (
             "users", "duration_seconds", "sample_count", "p90_ms", "error_rate", "eligible",
-            "status")} | {"p90_gate_ms": 700},
+            "status")} | {"p90_gate_ms": 700, "throttled": throttled(timed_status)},
         "login_cycle": {k: login[k] for k in (
             "users", "sample_count", "p90_ms", "error_rate", "eligible", "hash_cost", "status")}
-        | {"p90_gate_ms": 2000, "hash_cost_source": "configured in source, not read back"},
-        "routes": result["routes"],
+        | {"p90_gate_ms": 2000, "hash_cost_source": "configured in source, not read back",
+           "throttled": throttled(rows, "login")},
+        "routes": {label: {**described, "throttled": throttled(
+            [r for r in rows if r["phase"] == "timed"], label)}
+            for label, described in result["routes"].items()},
         "generator": {"cpu": summary["cpu"], "memory": summary["memory"],
                       "billed_seconds": summary["billed_seconds"], "separate_task_definition":
                       True, "task_role": "none", "image_digests": summary["image_digests"]},
@@ -172,42 +212,106 @@ def generator(ctx, proof, intent):
                    and intent.get("deregistered"), public, {"task": summary})
 
 
-def cold_wake(ctx, proof, override=None):
+def wait_for_pause(ctx, cluster, limit):
+    """Poll CloudWatch until the newest datapoint says capacity 0, for at most `limit` seconds.
+
+    Returns (last observation, seconds waited). The last observation is True (paused), False
+    (awake) or None (no datapoints), so the NOT_RUN reason can still tell the two apart.
+    """
+    began = ctx.clock()
+    while True:
+        asleep = spend.paused_now(ctx, cluster)
+        waited = ctx.clock() - began
+        if asleep or waited + PAUSE_POLL_SECONDS > limit:
+            return asleep, round(waited, 1)
+        ctx.sleep(PAUSE_POLL_SECONDS)
+
+
+def wait_for_gate(ctx, api):
+    """Probe a cheap unauthenticated route until it stops answering 429 (bounded).
+
+    `get-stage` confirms the new throttle before the data plane applies it, so the first
+    request after a window can still meet the closed 0/0 gate. Returns (settled, seconds, probes).
+    """
+    began, probes = ctx.clock(), 0
+    while True:
+        probes += 1
+        reply = api.request("GET", GATE_PROBE_PATH, auth=False, timeout=20)
+        waited = ctx.clock() - began
+        if reply.status != 429:
+            return True, round(waited, 1), probes
+        if waited + GATE_POLL_SECONDS > GATE_SETTLE_SECONDS:
+            return False, round(waited, 1), probes
+        ctx.sleep(GATE_POLL_SECONDS)
+
+
+def session_command(ctx, action, out, *, extra=()):
+    scope = ctx.scope
+    return session_cli.main(
+        [action, "--config", str(ctx.state_dir / "operator-config.json"),
+         "--profile", scope["profile"], "--region", scope["region"], "--account",
+         scope["account"], "--deadline-seconds", "600", *extra],
+        environ={}, transport_factory=ctx.sdk, stdout=out, clock=ctx.clock, sleep=ctx.sleep)
+
+
+def close_window(ctx):
+    """Close the window cold-wake opened, so the next `session open` is not refused. The drain
+    proof reads its counts with the in-VPC task: Aurora was just woken and nothing ran in it."""
+    try:
+        return session_command(ctx, "close", io.StringIO(), extra=("--in-vpc-counts",)) == 0
+    except Exception:
+        return False
+
+
+def cold_wake(ctx, proof, override=None, pause_wait=PAUSE_WAIT_SECONDS):
     cluster = spend.cluster_id(ctx, override)
-    asleep = spend.paused_now(ctx, cluster)
+    asleep, pause_waited = wait_for_pause(ctx, cluster, pause_wait)
     if not asleep:
         why = ("no ServerlessDatabaseCapacity datapoints" if asleep is None
                else "the database was awake (capacity above 0)")
         return {"status": NOT_RUN, "public": {
-            "reason": f"A cold wake cannot be observed: {why}"}}
-    out = io.StringIO()
+            "reason": f"A cold wake cannot be observed: {why}",
+            "pause_wait_seconds": pause_waited}}
+    public = {"database_paused_before": True, "pause_wait_seconds": pause_waited}
+    try:
+        ok = measure_wake(ctx, public)
+    finally:  # even a failed or interrupted measurement must not leave the session in `window`
+        public["window_closed"] = close_window(ctx)
+    if not public["window_closed"]:
+        public.setdefault("reason", "The window this step opened could not be closed: run "
+                                    "`session close` before the next step")
+    return verdict(ok and public["window_closed"], public)
+
+
+def measure_wake(ctx, public):
+    """Open the window, wait for the gate, then time login and two reads; fills `public`."""
     started = ctx.clock()
-    scope = ctx.scope
-    code = session_cli.main(
-        ["window", "--config", str(ctx.state_dir / "operator-config.json"),
-         "--profile", scope["profile"], "--region", scope["region"], "--account",
-         scope["account"], "--deadline-seconds", "600"],
-        environ={}, transport_factory=ctx.sdk, stdout=out)
-    window_seconds = round(ctx.clock() - started, 1)
+    code = session_command(ctx, "window", io.StringIO())
+    public["window_open_seconds"] = round(ctx.clock() - started, 1)
     if code:
-        raise ProofError("The session window did not open")
+        public["reason"] = "The session window did not open"
+        return False
     api = ctx.api("gateway")
+    settled, public["gate_settle_seconds"], public["gate_probes"] = wait_for_gate(ctx, api)
+    if not settled:
+        public["reason"] = (f"The gateway still answered 429 {GATE_SETTLE_SECONDS} s after "
+                            "the window was confirmed open")
+        return False
     reply, _ = api.login(ctx.credentials())
     first = api.request("GET", "/api/media/jobs", timeout=70)
     second = api.request("GET", "/api/media/jobs", timeout=70)
-    public = {
-        "database_paused_before": True, "window_open_seconds": window_seconds,
+    public |= {
         "login_ms": reply.ms, "first_read_ms": first.ms, "second_read_ms": second.ms,
         "statuses": [reply.status, first.status, second.status], "retries": 0,
         "measured_from": "operator station (includes the network path to the Gateway)",
         "wake_observed_through": "readiness probes during session window",
     }
-    return verdict(reply.status == 200 and first.status == 200 and second.status == 200, public)
+    return reply.status == 200 and first.status == 200 and second.status == 200
 
 
-def run(ctx, *, only=None, cluster=None):
+def run(ctx, *, only=None, cluster=None, pause_wait=PAUSE_WAIT_SECONDS):
     proof = ctx.proof(66, REQUIRED)
-    steps = (("cold-wake", "closed", lambda i: cold_wake(ctx, proof, cluster)),
+    steps = (("cold-wake", "closed", lambda i: cold_wake(ctx, proof, cluster, pause_wait)),
              ("generator", "active", lambda i: generator(ctx, proof, i)))
     for name, kind, action in steps:
         if only and name not in only:
