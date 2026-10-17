@@ -833,7 +833,9 @@ class Pipeline:
             "Description": f"dc2-v1 {label} {digest[:12]}",
         }
         request.update(files or {"TemplateBody": body})
-        existing = self.aws(
+        # With no stack there is no change set to find, and AWS answers that describe with a
+        # ValidationError ("Stack ... does not exist"), not ChangeSetNotFound (2026-10-17 run).
+        existing = None if current is None else self.aws(
             "cloudformation", "describe-change-set",
             {"StackName": stack, "ChangeSetName": change_set},
             tolerate=("ChangeSetNotFound", "ChangeSetNotFoundException"))

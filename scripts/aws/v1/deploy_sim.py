@@ -185,7 +185,10 @@ class SimulatedAws:
 
     def cloudformation_describe_change_set(self, payload):
         stack = self.stacks.get(payload["StackName"])
-        found = (stack or {}).get("changesets", {}).get(payload["ChangeSetName"])
+        if stack is None:  # what AWS really answers before the stack exists
+            raise self.error("cloudformation", "describe-change-set", "ValidationError",
+                             f"Stack [{payload['StackName']}] does not exist")
+        found = stack.get("changesets", {}).get(payload["ChangeSetName"])
         if found is None:
             raise self.error("cloudformation", "describe-change-set", "ChangeSetNotFound")
         return {key: found[key] for key in ("Status", "StatusReason", "ExecutionStatus", "Changes")}
