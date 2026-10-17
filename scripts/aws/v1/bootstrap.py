@@ -13,6 +13,31 @@ from pathlib import Path
 
 DOMAINS = ("media", "processing")
 CREDENTIAL_ROLES = tuple(f"{d}_{suffix}" for d in DOMAINS for suffix in ("migrator", "runtime"))
+# Aurora Serverless v2 at 0 ACU pauses after five idle minutes, and the first connection only
+# starts the resume: it can time out or be refused while the instance warms. The 2026-10-17
+# run lost its bootstrap to exactly that, so connecting retries for longer than a resume takes.
+WAKE_DEADLINE_SECONDS = 150
+
+
+async def connect_waking(connect, *, deadline=WAKE_DEADLINE_SECONDS, sleep=asyncio.sleep,
+                         clock=None, **options):
+    """connect(**options), retrying connection-class failures until the deadline."""
+    clock = clock or asyncio.get_running_loop().time
+    give_up = clock() + deadline
+    delay = 2.0
+    while True:
+        try:
+            return await connect(**options)
+        except (OSError, TimeoutError) as error:
+            retry = error
+        except Exception as error:  # asyncpg's "starting up" refusal has no stable base class
+            if type(error).__name__ not in {"CannotConnectNowError", "ConnectionDoesNotExistError"}:
+                raise
+            retry = error
+        if clock() + delay > give_up:
+            raise retry
+        await sleep(delay)
+        delay = min(delay * 2, 15.0)
 
 
 def validate_input(data):
@@ -51,7 +76,7 @@ async def bootstrap(data, ca_file, *, connect=None):
         connect = asyncpg.connect
     options = {k: data[k] for k in ("host", "port", "user", "password")}
     options |= {"ssl": tls, "timeout": 15, "command_timeout": 30}
-    admin = await connect(**options, database="postgres")
+    admin = await connect_waking(connect, **options, database="postgres")
     try:
         # Refuse unrelated databases before changing any role/password.
         for domain in DOMAINS:
@@ -67,10 +92,18 @@ async def bootstrap(data, ca_file, *, connect=None):
                 exists = await admin.fetchval("SELECT 1 FROM pg_roles WHERE rolname=$1", role)
                 if not exists:
                     await admin.execute(f"CREATE ROLE {role} NOLOGIN")
-                await admin.execute(
-                    f"ALTER ROLE {role} NOSUPERUSER NOCREATEDB NOCREATEROLE "
-                    "NOREPLICATION NOBYPASSRLS"
+                # Aurora's master is rds_superuser, not SUPERUSER, and PostgreSQL refuses it any
+                # ALTER that names SUPERUSER, REPLICATION or BYPASSRLS, even to the current value
+                # (the 2026-10-17 run failed here). New roles never have them, so verify instead
+                # and refuse to adopt an existing role that does.
+                elevated = await admin.fetchval(
+                    "SELECT rolsuper OR rolreplication OR rolbypassrls FROM pg_roles "
+                    "WHERE rolname=$1",
+                    role,
                 )
+                if elevated:
+                    raise ValueError("Existing project role is elevated; refusing adoption")
+                await admin.execute(f"ALTER ROLE {role} NOCREATEDB NOCREATEROLE")
             await admin.execute(f"ALTER ROLE {owner} NOLOGIN NOINHERIT")
             for role in (migrator, runtime):
                 # Role identifiers are fixed constants; PostgreSQL quotes secrets.
@@ -108,7 +141,7 @@ async def bootstrap(data, ca_file, *, connect=None):
         await asyncio.wait_for(admin.close(), timeout=5)
     for domain in DOMAINS:
         owner, migrator, runtime = (f"{domain}_{s}" for s in ("owner", "migrator", "runtime"))
-        connection = await connect(**options, database=f"{domain}_db")
+        connection = await connect_waking(connect, **options, database=f"{domain}_db")
         try:
             await connection.execute("REVOKE ALL ON SCHEMA public FROM PUBLIC")
             await connection.execute(f"GRANT USAGE, CREATE ON SCHEMA public TO {owner}, {migrator}")
@@ -152,10 +185,14 @@ def main():
             if path.stat().st_mode & 0o077:
                 raise ValueError("Bootstrap input file must be private")
             data = json.loads(path.read_text())
-        asyncio.run(asyncio.wait_for(bootstrap(data, args.ca_file), timeout=180))
-    except Exception:
+        asyncio.run(asyncio.wait_for(bootstrap(data, args.ca_file), timeout=330))
+    except Exception as error:
+        # The class name carries no SQL, host or secret, and separates "Aurora never woke"
+        # (TimeoutError) from a rejected credential or grant without exposing either.
         parser.exit(
-            1, "DB bootstrap failed; inspect private operator diagnostics, not public SQL logs\n"
+            1,
+            f"DB bootstrap failed ({type(error).__name__}); inspect private operator "
+            "diagnostics, not public SQL logs\n",
         )
     print("Created/reconciled two owned DBs and restricted runtime/migration identities")
 
