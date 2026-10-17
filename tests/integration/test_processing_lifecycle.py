@@ -20,8 +20,8 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
+from legacy.processing_rq.config import LegacySettings as Settings
 from processing import lifecycle, service
-from processing.config import Settings
 from processing.models import Attempt, Job
 from processing.schemas import SubmitJob
 

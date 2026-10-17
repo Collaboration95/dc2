@@ -12,9 +12,9 @@ import test_processing_lifecycle as lane
 import test_processing_worker as worker_tests
 from sqlalchemy import select
 
+from legacy.processing_rq import tasks
 from processing import lifecycle, recovery, service
 from processing.models import Attempt, Job
-from processing.worker import tasks
 
 asset_ids = lane.asset_ids
 factory = lane.factory
@@ -38,8 +38,8 @@ async def test_killed_worker_expires_and_stored_source_retry_encodes(
 import asyncio, httpx, sys
 from uuid import UUID
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from processing.config import get_settings
-from processing.worker.tasks import execute
+from legacy.processing_rq.config import get_settings
+from legacy.processing_rq.tasks import execute
 async def run():
     settings = get_settings().model_copy(update={'lease_seconds': 2, 'heartbeat_seconds': .2})
     engine = create_async_engine(settings.postgres_dsn)
