@@ -373,7 +373,7 @@ inside its 600 s / 300 s gate, so a slow Fargate start is visible in the receipt
 | `target_revision` | the owner's Alembic head every image migrates to. For this proof it must be the stack's **current** head, so the migration task is a no-op that still proves the task, the pinned definition and the schema read |
 | `baseline` | the images the stack runs now, from the deploy journal; the rollback is a second promotion of this set |
 | `good` | a new image set to promote |
-| `bad` | optional: an image that must fail the public smoke, so the real restore path runs; omitted, that step is `NOT_RUN` |
+| `bad` | optional: an image that must migrate and then fail the public smoke, so the real restore path runs (one that fails its migration is cleared by `release abandon` and the step is a FAIL); omitted, that step is `NOT_RUN` |
 | each image set | `bundle` (path to `{api[, worker]}` artifact receipts), `image_uri` (`repo@sha256:...` of the API image), `compat_evidence` (path), `migration_definition` (pinned ARN with revision whose container holds exactly that digest), `worker_definition` (Processing only, same rule) |
 | `migration_definition` | optional plan-level default for plans whose images share a definition (they rarely can: the release checks the digest) |
 | `registered_definitions` | the task definition revisions `release-plan` registered, for `--deregister` |
@@ -391,13 +391,26 @@ git switch -c release-proof-good && git commit --allow-empty -m "release proof: 
 python deploy/v1/build_and_verify.py --out D/release/build-good.json        # media, processing, worker
 T=$(make test-v1 | grep -Eo '[0-9]+ passed' | head -1 | cut -d' ' -f1)       # attested in the bundles
 
-# c. Optional bad image. It must pass every local gate and still fail in the cloud. A valid CA
-#    bundle that is not RDS's parses in check_runtime but fails every database TLS handshake in
-#    Lambda, so login and the job calls fail the smoke. Never merge or push this branch.
+# c. Optional bad image. It must pass every local gate, MIGRATE, and fail only in the Lambda's
+#    own database TLS, so login and the job calls fail the smoke and the restore path runs.
+#    Do NOT replace deploy/v1/global-bundle.pem: the owner's migration task reads the same image,
+#    its TLS fails, the release stops before any alias moves and restore refuses the intent
+#    (#65 live run, 2026-10-17). Point only the Lambda handler at a valid non-RDS CA bundle.
+#    Never merge or push this branch.
 git switch -c release-proof-bad
-cp "$(.venv/bin/python -c 'import certifi; print(certifi.where())')" deploy/v1/global-bundle.pem
-git commit -am "release proof: candidate with a non-RDS CA bundle (must fail the smoke)"
+#   processing: first lines of processing/lambda_handler.py, BEFORE `import processing.config`
+#   (the migration task runs alembic via processing/migrations/env.py, not this module):
+#       import os, certifi; os.environ["PROCESSING_DATABASE_CA_FILE"] = certifi.where()
+#   media: the same at the top of media/lambda_handler.py, before any `media.*` import
+#   (media/config.py reads `postgres_ssl_ca` with env prefix MEDIA_):
+#       import os, certifi; os.environ["MEDIA_POSTGRES_SSL_CA"] = certifi.where()
+#   certifi must be importable in the image; if not, use "/etc/ssl/certs/ca-certificates.crt"
+#   (installed by the Dockerfiles) instead of certifi.where().
+git commit -am "release proof: Lambda-only non-RDS CA bundle (migrates, must fail the smoke)"
 python deploy/v1/build_and_verify.py --out D/release/build-bad.json
+#   If a candidate still fails in its migration task, `release abandon` clears the intent once
+#   it is proven that nothing moved (see "Release CLI actions"); the proof records that step as
+#   FAIL with failed_stage "migration", because the restore path was not exercised.
 
 # d. Push both sets with the deploy's immutable tag convention <id>-<owner> (a private docker
 #    config, as the deploy uses); ECR scans on push. Use a new id per attempt.
@@ -443,6 +456,29 @@ accept list; the release gates (`validate_bundle`, digest pin, Processing worker
 a migration beyond `--target-revision`, and both directions are compatible with it). The bundle's
 `manifest_config_id` is the local config id, because `docker push` of a local image keeps it.
 Everything it writes is mode 0600 under `D/release/`.
+
+### Release CLI actions
+
+`python -m scripts.aws.v1.release ACTION --config D/operator-config.json $S`:
+
+| Action | Does |
+|---|---|
+| `promote` | migrate the owner, publish immutable Lambda versions, move `live`, smoke through the Gateway, keep the intent if it fails |
+| `restore` | put the prior aliases back after a failed promote; never downgrades a schema; refuses until the migration completed |
+| `abandon` | clear a pending release that provably changed nothing (see below) |
+| `status` | read-only: the journal's intent (`migration_complete`, `moved`, `versions`) and each live alias |
+| `schema` | read-only: both owners' Alembic revisions and the read's source |
+
+A pending intent blocks `session open` and any other promote. A candidate that fails in its migration
+task leaves `{phase: preparing, migration_complete: false, moved: {}}`, which `restore` refuses by
+design. `release abandon [--reason TEXT]` clears it only when all of these are read live: there is
+a pending release; no alias moved; every function's `live` alias still equals its prior receipt (version and revision id, so an alias moved away and back is refused); the owner's migration task is stopped (any exit code), was never started, or its lost launch is found stopped by `startedBy` (a launch that left no trace is refused until the one-hour RunTask replay window has passed; a task ECS no longer lists is unknown and refused, so abandon within about an hour of the failure); no
+published version is aliased (published-but-unaliased versions are immutable, harmless, and listed
+in the result as `versions_published_unaliased`); the owner's schema revision (read in the VPC, or
+by the SQL station) equals the revision recorded before the release began; the owner is quiescent.
+Any failed check is a refusal that keeps the intent. On success the intent moves to
+`abandoned_releases` in the journal. After a migration that did apply, abandon refuses (schema
+changed) and restore is the path.
 
 Run Media the same way with `--owner media` and its own `--run-id`; each owner is promoted,
 rolled back and checked against the other independently, and `evidence summary` takes one run id

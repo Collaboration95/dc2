@@ -3,6 +3,12 @@
 promote  Migrate the owner, publish its immutable Lambda versions, move the `live` alias,
          smoke-test through the public Gateway, and restore on failure (retained intent).
 restore  Resume a failed promotion's alias restoration; never downgrades a schema.
+abandon  Clear a pending release that provably changed nothing (e.g. its migration task failed,
+         so restore refuses it): no alias moved, every `live` alias still equal to its prior receipt
+         (version and revision id), the migration task stopped or never started,
+         the owner's schema still at the revision recorded before the release, owner quiescent.
+         Published-but-unaliased versions are reported. Any failed check refuses and keeps the
+         intent. The intent moves to `abandoned_releases` in the journal; --reason is recorded.
 status   Read-only: the journal's release intent plus the live alias of each function.
 schema   Read-only: each owner's Alembic revision and where the read came from.
 
@@ -29,7 +35,7 @@ from scripts.aws.transport import OperationError
 from scripts.aws.v1 import operations
 from scripts.aws.v1.hooks import compatibility_from_evidence, owner_quiescence, schema_reader
 from scripts.aws.v1.public_smoke import PublicSmoke, load_credentials, urllib_http
-from scripts.aws.v1.release import promote, restore, validate_inputs
+from scripts.aws.v1.release import abandon, promote, restore, validate_inputs
 from scripts.aws.v1.vpc_reader import VpcReader
 
 SQL_SOURCE = "sql-station"
@@ -78,6 +84,13 @@ def plan_promote(config, args):
     )
     steps.append({"step": "peer-unchanged", "operation": "get-alias", "owner": _peer(owner)})
     return steps
+
+
+def pending_request(journal):
+    """The pending release's owner and migration definition, for an `abandon` given neither."""
+    with journal.locked() as state:
+        request = (state.get("pending_release") or {}).get("v1_request") or {}
+    return request.get("owner"), request.get("migration_definition")
 
 
 def _peer(owner):
@@ -166,6 +179,7 @@ def release_status(config, journal, transport, deadline):
             "owner": request.get("owner"),
             "phase": pending.get("phase"),
             "migration_complete": bool(pending.get("migration_complete")),
+            "moved": sorted(pending.get("moved") or {}),
             "versions": pending.get("versions"),
             "image": request.get("image"),
         }
@@ -183,7 +197,7 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=N
     environ = os.environ if environ is None else environ
     stdout = stdout or sys.stdout
     parser = argparse.ArgumentParser(prog="scripts.aws.v1.release", description=__doc__)
-    parser.add_argument("action", choices=["promote", "restore", "status", "schema"])
+    parser.add_argument("action", choices=["promote", "restore", "abandon", "status", "schema"])
     parser.add_argument("--config", required=True)
     parser.add_argument("--owner", choices=["media", "processing"])
     parser.add_argument("--bundle", help="JSON artifact receipts: {api[, worker]}")
@@ -194,6 +208,7 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=N
     parser.add_argument("--compat-evidence")
     parser.add_argument("--smoke-url", help="Gateway origin, e.g. the HttpApiUrl output")
     parser.add_argument("--smoke-credentials", help="private 0600 JSON {email,password}")
+    parser.add_argument("--reason", help="abandon: why the intent is cleared (journaled)")
     parser.add_argument("--no-reserve", action="store_true", help="skip the upload reservation")
     operations.add_scope_arguments(parser)
     args = parser.parse_args(argv)
@@ -230,6 +245,13 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=N
                 ]
             elif args.action == "schema":
                 result["planned_calls"] = plan_schema(config, data)
+            elif args.action == "abandon":
+                result["planned_calls"] = [
+                    {"step": "abandon", "operation": "get-alias", "expect": "prior version"},
+                    *plan_schema(config, data),
+                    {"step": "abandon", "operation": "quiescence reads"},
+                    {"step": "abandon", "journal": "pending_release -> abandoned_releases"},
+                ]
             else:
                 result["planned_calls"] = [
                     {"operation": "get-alias", "functions": [
@@ -248,6 +270,16 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=N
                 _, _, source, vpc = hooks_for(config, data, transport, args, http,
                                               clock=clock, sleep=sleep)
                 result = read_schemas(config, data, vpc, deadline)
+            elif args.action == "abandon":
+                if not args.owner or not args.migration_definition:
+                    owner, definition = pending_request(journal)
+                    args.owner = args.owner or owner
+                    args.migration_definition = args.migration_definition or definition
+                hooks, _, source, vpc = hooks_for(config, data, transport, args, http,
+                                                  clock=clock, sleep=sleep)
+                result = abandon(config, transport, journal, deadline=deadline,
+                                 reason=args.reason, schema_revision=hooks["schema_revision"],
+                                 quiescent=hooks["quiescent"])
             else:
                 hooks, smoke, source, vpc = hooks_for(config, data, transport, args, http,
                                                       clock=clock, sleep=sleep)

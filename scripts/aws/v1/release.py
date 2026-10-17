@@ -9,10 +9,12 @@ import hashlib
 import json
 import time
 import uuid
+from datetime import UTC, datetime
 
 from scripts.aws.transport import OperationError, remaining
 from scripts.aws.v1.artifacts import validate_bundle
 from scripts.aws.v1.migration import migrate
+from scripts.aws.workers import inventory
 
 
 class PublicationUncertain(OperationError):
@@ -461,6 +463,111 @@ def restore(config, transport, journal, *, schema_revision, quiescent, public_sm
         state["pending_release"] = None
         journal.save(state)
         return receipt
+
+
+def _migration_settled(config, transport, pending, deadline):
+    """Refuse unless the owner's migration task is provably STOPPED (any exit code) or never ran.
+
+    A migration still running can commit after abandon read the old revision, and quiescence
+    does not cover it (Media's checks ECS nothing). With the persisted task ARN the task is
+    described; a task the cluster no longer knows is unknown, not stopped. With only the
+    persisted request (RunTask response lost, or launch refused) the cluster inventory is
+    searched for its `startedBy`; finding nothing proves nothing until the RunTask client-token
+    replay window has passed, so the intent is kept until then. No request means no launch.
+    """
+    request = pending.get("migration_request")
+    if not request:
+        return
+    arn = pending.get("migration_task")
+    tasks = inventory(config, transport, deadline=deadline, known=[arn] if arn else ())
+    if arn:
+        mine = [tasks[arn]]
+        if mine[0].get("taskDefinitionArn") != request["taskDefinition"]:
+            raise OperationError("Migration task definition mismatch; cannot prove it stopped")
+    else:
+        mine = [t for t in tasks.values() if t.get("startedBy") == request["startedBy"]]
+        if not mine and time.time() < pending.get("migration_replay_before_epoch", float("inf")):
+            raise OperationError(
+                "Migration launch unresolved; retry after the RunTask replay window"
+            )
+    if any(t["lastStatus"] != "STOPPED" for t in mine):
+        raise OperationError("Migration task is not stopped; wait for it before abandoning")
+
+
+def abandon(
+    config, transport, journal, *, schema_revision, quiescent, deadline, reason=None
+):
+    """Clear a pending release that provably changed nothing; restore would refuse it.
+
+    A candidate whose migration task fails leaves `migration_complete` false and no alias
+    moved, and `restore` refuses that state on purpose (the schema is unreconciled). Nothing
+    else clears it, and any pending intent blocks `session open` and a new promote. Every
+    precondition is re-read live rather than trusted from the journal, because the journal's
+    `moved` record is written after the alias update and could miss a lost step.
+
+    Published-but-unaliased versions are immutable and harmless, so they are reported, not
+    refused. The schema must still be the revision `snapshot()` recorded as `prior` before the
+    release started (that is always recorded; if it is missing the intent is refused), so a
+    migration that applied is never abandoned over: restore, which never downgrades, owns it.
+
+    The owner's migration task must also be provably stopped first (see `_migration_settled`),
+    and each alias must match its full prior receipt (version and revision id).
+    """
+    journal.check_context(config)
+    with journal.locked() as state:
+        pending = state.get("pending_release")
+        if not pending or "v1_request" not in pending:
+            raise OperationError("No V1 release to abandon")
+        owner = pending["v1_request"]["owner"]
+        if pending.get("moved"):
+            raise OperationError("An alias already moved; restore the release instead")
+        alias_name = config.get("alias", "live")
+        versions = pending.get("versions") or {}
+        for name, prior in pending["prior"]["functions"].items():
+            current = _alias(transport, name, alias_name, deadline)
+            if current["version"] != prior["alias"]["version"]:
+                raise OperationError(
+                    "Live alias no longer points at its prior version; restore or reconcile"
+                )
+            # The revision id changes on every update-alias, so an alias that moved away and
+            # back (its `moved` record lost in a crash) is caught here. snapshot() always
+            # records it; an intent without one cannot prove the alias never moved.
+            if current["revision"] != prior["alias"].get("revision"):
+                raise OperationError(
+                    "Live alias revision differs from the one recorded before the release; "
+                    "it was updated, so restore or reconcile"
+                )
+            if versions.get(name) == current["version"]:
+                raise OperationError("A published version is aliased; restore the release instead")
+        _migration_settled(config, transport, pending, deadline)
+        recorded = pending["prior"].get("schema")
+        if not isinstance(recorded, str) or not recorded:
+            raise OperationError("Prior schema revision was not recorded; cannot prove no change")
+        # Read before the quiescence check: an in-VPC read is an ECS task in the same cluster.
+        live_schema = schema_revision(owner, deadline=deadline)
+        if live_schema != recorded:
+            raise OperationError("Owner schema changed since the release began; restore instead")
+        if quiescent(owner, deadline=deadline) is not True:
+            raise OperationError("Abandon requires quiescent owner")
+        unaliased = sorted(versions.values())
+        state.setdefault("abandoned_releases", []).append(
+            {
+                "id": pending.get("id"),
+                "owner": owner,
+                "phase": pending.get("phase"),
+                "reason": reason or "operator abandoned a release that changed nothing",
+                "versions_published_unaliased": unaliased,
+                "abandoned_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            }
+        )
+        state["pending_release"] = None
+        journal.save(state)
+        return {
+            "owner": owner,
+            "status": "abandoned",
+            "versions_published_unaliased": unaliased,
+            "schema": live_schema,
+        }
 
 
 if __name__ == "__main__":
