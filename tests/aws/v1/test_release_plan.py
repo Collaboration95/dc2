@@ -220,6 +220,94 @@ def test_findings_that_cannot_be_matched_to_the_counts_are_refused(tmp_path):
         make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
 
 
+def serve_findings(world, findings, counts, *, pages=1):
+    """Make the simulated registry answer with these raw findings and counts (None: no counts)."""
+    def reply(payload):
+        start = int(payload.get("nextToken") or 0)
+        size = max(1, -(-len(findings) // pages))
+        body = {"imageId": payload["imageId"], "imageScanStatus": {"status": "COMPLETE"},
+                "imageScanFindings": {"findings": findings[start:start + size]}}
+        if counts is not None:
+            body["imageScanFindings"]["findingSeverityCounts"] = counts
+        if start + size < len(findings):
+            body["nextToken"] = str(start + size)
+        return body
+    world.ecr_describe_image_scan_findings = reply
+
+
+HIGH = {"name": "CVE-2026-99", "severity": "HIGH"}
+
+
+@pytest.mark.parametrize("counts", [{"HIGH": 0}, {}, None])
+def test_zero_or_missing_counts_cannot_hide_an_unlisted_high_finding(tmp_path, counts):
+    world, ctx, builds = stack(tmp_path)
+    serve_findings(world, [HIGH], counts)
+    with pytest.raises(ProofError, match="cannot be matched"):
+        make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
+    assert not (tmp_path / "plan" / "plan.json").exists()
+
+
+def test_a_high_finding_on_a_later_page_is_found_although_the_counts_are_zero(tmp_path):
+    world, ctx, builds = stack(tmp_path)
+    low = [{"name": f"CVE-2026-{n}", "severity": "LOW"} for n in range(3)]
+    serve_findings(world, [*low, HIGH], {"LOW": 3}, pages=2)
+    with pytest.raises(ProofError, match="cannot be matched"):
+        make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
+
+
+def test_counts_above_the_listed_findings_are_refused_too(tmp_path):
+    world, ctx, builds = stack(tmp_path)
+    serve_findings(world, [], {"HIGH": 2})
+    with pytest.raises(ProofError, match="counts 2 .* lists 0"):
+        make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
+
+
+def test_enhanced_findings_are_not_matchable_so_they_are_refused(tmp_path):
+    world, ctx, builds = stack(tmp_path)
+    serve_findings(world, [], {})
+    plain = world.ecr_describe_image_scan_findings
+
+    def enhanced(payload):
+        body = plain(payload)
+        body["imageScanFindings"]["enhancedFindings"] = [{"severity": "HIGH"}]
+        return body
+    world.ecr_describe_image_scan_findings = enhanced
+    with pytest.raises(ProofError, match="enhanced findings"):
+        make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
+
+
+def test_the_worker_image_is_reconciled_like_the_api_image(tmp_path):
+    world, ctx, builds = stack(tmp_path)
+    plain = world.ecr_describe_image_scan_findings
+    serve_findings(world, [HIGH], {"HIGH": 0})
+    hiding = world.ecr_describe_image_scan_findings
+
+    def per_repository(payload):
+        return hiding(payload) if "worker" in payload["repositoryName"] else plain(payload)
+    world.ecr_describe_image_scan_findings = per_repository
+    with pytest.raises(ProofError, match="cannot be matched"):
+        make(ctx, builds, tmp_path, "processing", target_revision="p0005",
+             accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
+
+
+@pytest.mark.parametrize("where", ["top", "entry"])
+def test_repeated_keys_in_the_accept_file_are_refused_before_the_registry_is_asked(
+        tmp_path, where):
+    world, ctx, builds = stack(tmp_path)
+    entry = ('{"id": "CVE-2026-1", "package": "p", "reason": "r", "reviewed_on": "2026-10-17"')
+    text = {
+        "top": '{"accepted": [' + entry + '}], "accepted": [' + entry.replace("-1", "-2")
+               + '}], "verified_by": "v"}',
+        "entry": '{"accepted": [' + entry + ', "reason": "other"}], "verified_by": "v"}',
+    }[where]
+    path = tmp_path / "accepted.json"
+    path.write_text(text)
+    calls = len(world.calls)
+    with pytest.raises(ProofError, match="accept-unfixed"):
+        make(ctx, builds, tmp_path, accept_unfixed=path)
+    assert len(world.calls) == calls
+
+
 @pytest.mark.parametrize("change", ["not-json", "list", "no-entries", "extra-key", "bad-id",
                                     "duplicate", "missing-field", "bad-date", "unknown-entry-key",
                                     "no-verified-by"])

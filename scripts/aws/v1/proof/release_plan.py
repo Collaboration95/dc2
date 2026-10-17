@@ -86,6 +86,15 @@ def local_head(owner):
     return heads[0]
 
 
+def unique_pairs(pairs):
+    """json.loads keeps the last of a repeated key, so a reviewer and this gate could read
+    different policies from one file; refuse the ambiguity at every nesting level."""
+    keys = [k for k, _ in pairs]
+    if len(keys) != len(set(keys)):
+        raise ValueError("duplicate key")
+    return dict(pairs)
+
+
 def load_accept(path):
     """(accepted ids, sha256 of the file's bytes) for an audited list of unfixed CVEs.
 
@@ -96,9 +105,9 @@ def load_accept(path):
     """
     try:
         raw = Path(path).read_bytes()
-        data = json.loads(raw)
+        data = json.loads(raw, object_pairs_hook=unique_pairs)
     except (OSError, ValueError):
-        raise ProofError("--accept-unfixed is not readable JSON") from None
+        raise ProofError("--accept-unfixed is not readable JSON without repeated keys") from None
     if (not isinstance(data, dict) or set(data) != ACCEPT_KEYS
             or not isinstance(data["verified_by"], str) or not data["verified_by"].strip()
             or not isinstance(data["accepted"], list) or not data["accepted"]):
@@ -157,24 +166,30 @@ class Planner:
         """(report hash, blocking count, accepted ids). A pending or blocking scan is a refusal.
 
         Without an accept list any HIGH/CRITICAL blocks, from the severity counts alone. With
-        one, the individual findings are read (every page) and only an id on the list is waved
-        through."""
+        one, the individual findings are always read (every page, whatever the counts say) and
+        only an id on the list is waved through."""
         request = {"repositoryName": repository.split("/", 1)[1],
                    "imageId": {"imageDigest": digest}}
         reply = self.aws("ecr", "describe-image-scan-findings", request)
         if reply.get("imageScanStatus", {}).get("status") != "COMPLETE":
             raise ProofError(f"The scan of {tag} is not COMPLETE yet")
-        counts = reply.get("imageScanFindings", {}).get("findingSeverityCounts", {})
+        counts = reply.get("imageScanFindings", {}).get("findingSeverityCounts") or {}
         total = counts.get("HIGH", 0) + counts.get("CRITICAL", 0)
         accepted = []
-        if total and not self.accept_ids:
-            raise ProofError(f"{tag} has {total} HIGH/CRITICAL scan findings; the release "
-                             "gate blocks it")
-        if total:
+        if not self.accept_ids:
+            if total:
+                raise ProofError(f"{tag} has {total} HIGH/CRITICAL scan findings; the release "
+                                 "gate blocks it")
+        else:
+            # The counts are never trusted to be complete: with an accept list the findings
+            # themselves are read, every page, and must agree with the counts both ways.
             reply = self.all_findings(request, reply, tag)
+            if reply["imageScanFindings"].get("enhancedFindings"):
+                raise ProofError(f"The scan of {tag} uses enhanced findings, which the accept "
+                                 "list cannot be matched against")
             serious = [f for f in reply["imageScanFindings"]["findings"]
                        if f.get("severity") in ("HIGH", "CRITICAL")]
-            if len(serious) != total:  # e.g. enhanced scanning lists findings elsewhere
+            if len(serious) != total:
                 raise ProofError(f"The scan of {tag} counts {total} HIGH/CRITICAL findings but "
                                  f"lists {len(serious)}, so they cannot be matched to the "
                                  "accept list")
@@ -192,7 +207,7 @@ class Planner:
     def all_findings(self, request, reply, tag):
         """The first reply with every page's findings merged in (one page is returned as is)."""
         merged = json.loads(json.dumps(reply, default=str))
-        merged["imageScanFindings"].setdefault("findings", [])
+        merged.setdefault("imageScanFindings", {}).setdefault("findings", [])
         token, pages = merged.pop("nextToken", None), 1
         while token:
             pages += 1
