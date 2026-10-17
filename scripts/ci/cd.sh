@@ -181,6 +181,25 @@ cmd_deploy() {
 # operator session (the unattended launcher is a V2 option), so the Publisher CLI alone would
 # queue a job nothing encodes; the evidence harness starts the encoder and also checks HLS
 # playback through CloudFront, so it is the smoke. The window is always closed again.
+# `session open` returns once the stage reports the new throttle, but the data plane applies it a
+# little later, so the first request after an open can still meet the closed 0/0 gate and get a
+# 429 (seen after both the r1018b release smoke and the first laptop harness runs). Probe a cheap
+# unauthenticated route until it stops answering 429; bounded, and a miss only warns because the
+# smoke itself then reports the failure with its own evidence.
+wait_gate_open() {
+  local url code i
+  url="$(output_value HttpApiUrl)/api/media/health"
+  for i in $(seq 1 30); do
+    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$url" || true)
+    if [ "$code" != 429 ]; then
+      echo "Gateway gate open after $i probe(s) (HTTP $code)."
+      return 0
+    fi
+    sleep 2
+  done
+  echo "::warning::The Gateway still answered 429 after 60 s"
+}
+
 cmd_smoke() {
   require_state
   local config label fixture rc=0 close_rc=0
@@ -192,6 +211,7 @@ cmd_smoke() {
     -shortest "$fixture"
   "$PY" -m scripts.aws.v1.session open --config "$config" "${SCOPE[@]}" >"$CD_OUT/session-open.json" ||
     fail "session open failed: $(jq -r '.error // empty' "$CD_OUT/session-open.json" 2>/dev/null)"
+  wait_gate_open
   "$PY" -m scripts.aws.v1.evidence gateway "${SCOPE[@]}" --state-dir "$CD_STATE" --run-id "$label" \
     --fixture "$fixture" --only direct-upload-e2e --minutes 45 --job-timeout 900 \
     --skip-cross-database "not part of the CD smoke" >"$CD_OUT/smoke-raw.json" || rc=$?
