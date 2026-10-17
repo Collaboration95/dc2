@@ -212,9 +212,25 @@ cmd_smoke() {
   "$PY" -m scripts.aws.v1.session open --config "$config" "${SCOPE[@]}" >"$CD_OUT/session-open.json" ||
     fail "session open failed: $(jq -r '.error // empty' "$CD_OUT/session-open.json" 2>/dev/null)"
   wait_gate_open
-  "$PY" -m scripts.aws.v1.evidence gateway "${SCOPE[@]}" --state-dir "$CD_STATE" --run-id "$label" \
-    --fixture "$fixture" --only direct-upload-e2e --minutes 45 --job-timeout 900 \
-    --skip-cross-database "not part of the CD smoke" >"$CD_OUT/smoke-raw.json" || rc=$?
+  local attempt
+  for attempt in 1 2; do
+    rc=0
+    "$PY" -m scripts.aws.v1.evidence gateway "${SCOPE[@]}" --state-dir "$CD_STATE" --run-id "$label" \
+      --fixture "$fixture" --only direct-upload-e2e --minutes 45 --job-timeout 900 \
+      --skip-cross-database "not part of the CD smoke" >"$CD_OUT/smoke-raw.json" || rc=$?
+    [ "$rc" -ne 0 ] || break
+    # A probe that got through does not prove every Gateway node has the new limit; one that
+    # did not still answers 429 for a while (r1018b: HTTP 429 on the first reservation after a
+    # probe had succeeded). Retry once, and keep the first answer next to the second.
+    if [ "$attempt" -eq 1 ] && grep -q "HTTP 429" "$CD_OUT/smoke-raw.json"; then
+      cp "$CD_OUT/smoke-raw.json" "$CD_OUT/smoke-raw-attempt1.json"
+      echo "::warning::smoke attempt 1 was throttled (HTTP 429); retrying once after 30 s"
+      summary "Smoke attempt 1 was throttled by the Gateway (HTTP 429) and was retried once."
+      sleep 30
+      continue
+    fi
+    break
+  done
   "$PY" -m scripts.aws.v1.session close --config "$config" "${SCOPE[@]}" --in-vpc-counts \
     >"$CD_OUT/session-close.json" || close_rc=$?
   "$PY" -m scripts.aws.v1.evidence summary --state-dir "$CD_STATE" --run-id "$label" \
