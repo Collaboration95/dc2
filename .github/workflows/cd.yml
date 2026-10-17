@@ -1,0 +1,190 @@
+name: CD
+
+# Operator-triggered deploy, release and teardown of the V1 AWS stack. It wraps the existing
+# entry points (scripts.aws.v1.deploy / session / release / evidence and
+# deploy/v1/build_and_verify.py) through scripts/ci/cd.sh and reimplements none of them; the
+# order of the steps is the order of docs/execution/aws/v1/deploy-runbook.md.
+#
+#   gh workflow run cd.yml -f operation=preflight -f run_id=r1018a
+#   gh workflow run cd.yml -f operation=deploy    -f run_id=r1018a -f execute=true
+#   gh workflow run cd.yml -f operation=release   -f run_id=r1018a -f owner=media -f execute=true -f attest_additive=true
+#   gh workflow run cd.yml -f operation=teardown  -f run_id=r1018a -f execute=true
+#
+# Nothing mutates the account unless `execute` is true. AWS access is a GitHub OIDC role
+# (deploy/aws/v1/github-oidc.yaml) that only the `aws` environment can assume: there is no AWS
+# key in GitHub. The run's state directory lives in a private S3 bucket between runs (the
+# repository is public, so a workflow artifact would publish it).
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: preflight (read-only), deploy, release (one owner) or teardown
+        type: choice
+        options: [preflight, deploy, release, teardown]
+        default: preflight
+      run_id:
+        description: 2-16 lowercase letters or digits. A new id per deploy; release and teardown reuse the deploy's
+        type: string
+        required: true
+      execute:
+        description: >-
+          Apply it. Off, deploy prints a review (preflight plus an offline rehearsal), release
+          only builds and verifies images, teardown only prints its plan.
+        type: boolean
+        default: false
+      owner:
+        description: release only, the service to promote
+        type: choice
+        options: [none, media, processing]
+        default: none
+      attest_additive:
+        description: >-
+          release only. Attest that the previous and the new image both work with this checkout's
+          schema head (additive migrations only); the release plan records it as your word.
+        type: boolean
+        default: false
+      seed_email:
+        description: deploy only, address of the smoke account
+        type: string
+        default: ops@example.com
+      budget_usd:
+        description: cost guard, month-to-date + forecast + planned must stay under this
+        type: string
+        default: "30"
+      planned_hours:
+        description: cost guard, hours the stack is expected to run
+        type: string
+        default: "3"
+      forecast_usd:
+        description: >-
+          cost guard, expected spend for the rest of the month. Cost Explorer has no history for
+          this account, so it cannot forecast and the guard needs your figure
+        type: string
+        default: "5"
+      skip_final_snapshot:
+        description: teardown only, delete Aurora without a final snapshot
+        type: boolean
+        default: false
+
+# Never two runs at once: the account has one 6-vCPU Fargate quota and one Lambda pool, and a
+# run's state is a single journal. A cancelled run still uploads its state (see the last steps).
+concurrency:
+  group: dc2-aws-cd
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CD_OPERATION: ${{ inputs.operation || 'preflight' }}
+  CD_RUN_ID: ${{ inputs.run_id || format('pf{0}', github.run_id) }}
+  CD_EXECUTE: ${{ inputs.execute && 'true' || 'false' }}
+  CD_OWNER: ${{ inputs.owner }}
+  CD_ATTEST_ADDITIVE: ${{ inputs.attest_additive && 'true' || 'false' }}
+  CD_SEED_EMAIL: ${{ inputs.seed_email || 'ops@example.com' }}
+  CD_BUDGET_USD: ${{ inputs.budget_usd || '30' }}
+  CD_PLANNED_HOURS: ${{ inputs.planned_hours || '3' }}
+  CD_FORECAST_USD: ${{ inputs.forecast_usd || '5' }}
+  CD_SKIP_FINAL_SNAPSHOT: ${{ inputs.skip_final_snapshot && 'true' || 'false' }}
+  CD_STATE_BUCKET: ${{ vars.AWS_STATE_BUCKET }}
+  UV_CACHE_DIR: ${{ github.workspace }}/.cache/uv
+  UV_PROJECT_ENVIRONMENT: ${{ github.workspace }}/.venv
+  UV_PYTHON_DOWNLOADS: never
+
+jobs:
+  gate:
+    name: Refuse a commit without green CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check inputs and the CI result for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CD_SHA: ${{ github.sha }}
+          CD_REPO: ${{ github.repository }}
+          CD_EVENT: ${{ github.event_name }}
+        run: scripts/ci/cd.sh gate
+
+  run:
+    name: ${{ inputs.operation || 'preflight' }} ${{ inputs.run_id || '' }}
+    needs: gate
+    runs-on: ubuntu-latest
+    # The environment carries the branch policy that decides who can reach the AWS role.
+    environment: aws
+    timeout-minutes: 360
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: '0.8.17'
+      - run: uv sync --locked --extra dev
+
+      # Credentials go into the named profile dc2-gha, not into the environment: the deploy
+      # tooling refuses ambient AWS_* credentials. Four hours covers a deploy (50-80 min) with
+      # a retry and is the role's MaxSessionDuration.
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-southeast-1
+          aws-profile: dc2-gha
+          role-duration-seconds: 14400
+          role-session-name: cd-${{ github.run_id }}
+          allowed-account-ids: '866865534361'
+
+      - name: Restore the run's state from the private bucket
+        id: state
+        if: env.CD_OPERATION != 'preflight'
+        run: scripts/ci/cd.sh state-pull
+
+      - name: Preflight (reads only)
+        if: env.CD_OPERATION == 'preflight'
+        run: scripts/ci/cd.sh preflight
+
+      - name: Deploy
+        id: deploy
+        if: env.CD_OPERATION == 'deploy'
+        run: scripts/ci/cd.sh deploy
+
+      - name: Smoke test, upload to playback
+        if: env.CD_OPERATION == 'deploy' && env.CD_EXECUTE == 'true'
+        run: scripts/ci/cd.sh smoke
+
+      - name: Release
+        id: release
+        if: env.CD_OPERATION == 'release'
+        run: scripts/ci/cd.sh release
+
+      - name: Smoke test after the release, upload to playback
+        if: env.CD_OPERATION == 'release' && env.CD_EXECUTE == 'true'
+        run: scripts/ci/cd.sh smoke
+
+      - name: Teardown
+        if: env.CD_OPERATION == 'teardown'
+        run: scripts/ci/cd.sh teardown
+
+      # always() so a failed or cancelled run still saves its journal: a rerun resumes from it.
+      # Skipped when the restore itself failed, so an empty directory cannot overwrite the state.
+      - name: Save the run's state to the private bucket
+        if: always() && env.CD_OPERATION != 'preflight' && steps.state.outcome == 'success'
+        run: scripts/ci/cd.sh state-push
+
+      # Only the reduced, secret-free files in cd-out/public. The repository is public.
+      - name: Upload the redacted results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cd-${{ env.CD_OPERATION }}-${{ env.CD_RUN_ID }}
+          path: ${{ runner.temp }}/cd-out/public/
+          if-no-files-found: warn
+          retention-days: 14

@@ -426,7 +426,8 @@ def test_rehearse_runs_every_harness_offline_and_fails_nothing(tmp_path):
     report = json.loads(out)
     assert code == 0 and report["mode"] == "simulated", out
     assert set(report["harnesses"]) == {
-        "gateway", "capacity", "latency", "spend", "release", "short-encode", "db-topology"}
+        "gateway", "capacity", "capacity-backlog", "latency", "spend", "release", "short-encode",
+        "db-topology"}
     # No SQL station is simulated: the release harness reads schemas through the in-VPC task.
     assert report["harnesses"]["release"]["steps"]["baseline"] == "PASS"
     assert all(h["overall"] == "SIMULATED" for h in report["harnesses"].values())

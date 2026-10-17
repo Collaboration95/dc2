@@ -1,0 +1,48 @@
+# Secret scanning policy (CI job `secret-scan`, run over the full history).
+#
+# The default ruleset stays on. Everything below is a narrow allowlist: each entry names the
+# rule it silences, the one kind of value it matches and the files it may appear in, so a real
+# credential committed next to one of these is still reported. All 274 findings on 2026-10-18
+# were reviewed by hand; none was a credential. Add an entry only with that same review and a
+# reason, never a bare path or a bare "generic-api-key".
+
+title = "dc2 gitleaks policy"
+
+[extend]
+useDefault = true
+
+# Tracked issue keys such as "aws2-delivery" and "aws3-v1-sqs-delivery" sit under JSON keys
+# called "key"/"parent_key"/"issue-key", which the generic rule reads as an API key.
+[[allowlists]]
+description = "Planning issue keys (identifiers of backlog items, not credentials)"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^docs/execution/aws/(prep|readiness|v1)/[^/]+(/[^/]+)*\.(json|html)$''']
+regexes = ['''aws[23]-[a-z0-9]+(-[a-z0-9]+)*''']
+
+# Experiment manifests record the sha256 of each source file ("auth.py": "<64 hex>").
+[[allowlists]]
+description = "Source-file sha256 digests in the 2026-10-14 experiment manifests"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^docs/execution/experiments-20261014/raw/.+/manifest\.json$''']
+regexes = ['''[0-9a-f]{64}''']
+
+# The roadmap site lists use-case names ("SubmitJob/RetryJob") after a spec file name.
+[[allowlists]]
+description = "Use-case names in the roadmap site prose"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = [
+  '''^project-roadmap/design-studio\.html$''',
+  '''^project-roadmap/design/03-ddd/content\.json$''',
+]
+regexes = ['''SubmitJob/RetryJob(/GetJob(/GetJobs)?)?''']
+
+# A throwaway signing key for the Media persistence integration test; it protects nothing.
+[[allowlists]]
+description = "Test-only JWT signing key in the Media persistence integration test"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/integration/test_media_persistence\.py$''']
+regexes = ['''integration-signing-secret-32bytes-long''']
