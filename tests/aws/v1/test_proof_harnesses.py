@@ -459,3 +459,37 @@ def test_a_caller_that_needs_an_upload_grant_still_rejects_a_replayed_reservatio
     workflow.submit(ctx, api, fixture, intent, lambda: None)
     with pytest.raises(ProofError, match="no upload grant"):
         workflow.reserve(api, fixture, intent["request_id"])
+
+
+def test_slow_status_rounds_do_not_push_the_last_round_out_of_the_judged_window():
+    # Live r1017b: drift-based pacing ran 176 of 180 rounds and no client covered end - 1.
+    from concurrent.futures import ThreadPoolExecutor
+
+    from scripts.aws.latency import timing_eligible
+    from scripts.aws.v1.proof import generator
+
+    now = [100.0]
+    rounds = []
+
+    def request(user, method, path, cookie):
+        if user == 0:
+            rounds.append(now[0])
+        slow = len(rounds) in {20, 90, 150}  # three rounds take 2.4 s, as observed live
+        elapsed = 2400.0 if slow else 70.0
+        if user == 49:
+            now[0] += elapsed / 1000
+        return 200, elapsed, [], b""
+
+    def sleep(seconds):
+        now[0] += seconds
+
+    rows = []
+    with ThreadPoolExecutor(max_workers=1) as pool:  # serial: the fake clock is not shared-safe
+        start, end = generator.window_rounds(
+            request, lambda: now[0], sleep, pool, users=50, seconds=180, route="/s",
+            cookie=None, phase="timed", rows=rows, label="status")
+    assert len(rounds) >= 178
+    window = {"started_at": start, "ended_at": end, "warmup_started_at": start,
+              "warmup_ended_at": start, "booked_deadline": end + 600}
+    assert timing_eligible(rows, users=50, duration_seconds=180, measurement="status",
+                           window=window)
