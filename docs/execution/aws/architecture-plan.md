@@ -132,7 +132,9 @@ V1 is a **booked-session demo**, not unattended 24/7 operation. Open restores
 bounded Lambda concurrency, queue mappings and repair scheduling, waits for
 application/DB readiness and permits worker batches. Close quiesces intake,
 drains/stops workers, captures terminal SQL outcomes, disables mappings/schedules
-and sets application/authorizer reserved concurrency to zero. Verify Aurora
+and sets the Gateway stage throttle to zero. (As built, no Lambda reserved concurrency is used: the
+account limit of 10 forbids it, so the closed state is disabled mappings and rules plus the zero
+throttle; see `deploy/aws/v1/README.md`.) Verify Aurora
 reaches zero ACUs after connections close; maintenance can wake it. Retained
 storage and frontend/CDN/API requests may still bill. Document offline/warm-up
 states and bounded client retries. Timed warm tests keep their existing observers

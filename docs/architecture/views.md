@@ -319,6 +319,12 @@ erDiagram
 | `message_inbox`, `message_outbox` | As in Media | As in Media |
 | `launcher_control`, `launch_reservations` | Opt-in unattended launcher (V2, #68) | Singleton row check; unused unless the flag is on |
 
+Migration numbering: file numbers are not continuous. Media has `0001`, `0002`, `0004` to `0008` (no
+`0003`); Processing has `0001` to `0003`, `0005` to `0007` (no `0004`). Alembic orders by revision id,
+not file number: Processing `0005` names `0003` as its parent, and Media revision ids mix the styles
+`0001_media`, `0002_uncertain_writes` and `media_0004` onward. Nothing is missing from the chain;
+the gaps are only in the file names.
+
 Role grants (`scripts/aws/v1/bootstrap.py`): `*_owner` owns the database and cannot log in;
 `*_migrator` inherits the owner and runs Alembic; `*_runtime` has `SELECT, INSERT, UPDATE, DELETE`
 and sequence use only. `PUBLIC` has no access to either database and neither domain's login roles

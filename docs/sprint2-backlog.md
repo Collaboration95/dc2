@@ -1,3 +1,5 @@
+> **Historical (Project 1, September 2026), superseded by the as-built V1 ([architecture](architecture/README.md), [start here](../README.md)).** Kept for reasoning and provenance. It describes the inherited single-API system on one host.
+
 # Sprint 2 Backlog — what the sprint 1 review left open
 
 **Written:** 7 September 2026 · against `main` @ `40d5e6b` plus the review's fixes

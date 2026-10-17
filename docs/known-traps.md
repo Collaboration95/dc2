@@ -1,3 +1,5 @@
+> **Historical (Project 1 stack: Compose, nginx, MinIO, Redis/RQ, one host).** Many entries do not apply to the AWS V1 runtime; check that a trap still applies before relying on it. Current view: [architecture](architecture/README.md).
+
 # Known traps
 
 Every one of these was hit for real on this project. They are recorded because

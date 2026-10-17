@@ -1,3 +1,5 @@
+> **Historical (local pre-AWS experiments #38 and #39, both rejected).** Not part of V1. Current plan: [`../aws/architecture-plan.md`](../aws/architecture-plan.md).
+
 # LOCAL experimental follow-ups #38 and #39
 
 Both local experiments are complete and **REJECTED**. Product defaults are

@@ -1,3 +1,5 @@
+> **Historical (15 October AWS2 Fargate plan), superseded by [`architecture-plan.md`](architecture-plan.md) and the [V1 handoff](v1/README.md).** Kept unchanged below for provenance.
+
 # Lean AWS microservices plan
 
 15 October 2026 · proposal for review · no provisioning or spending approval.

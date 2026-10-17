@@ -1,3 +1,5 @@
+> **Historical (Project 1, September 2026), superseded by the as-built V1 ([architecture](architecture/README.md), [start here](../README.md)).** Kept for reasoning and provenance. It describes the inherited single-API system on one host.
+
 # Sprint 1 — Team Plan & Contract
 **Project:** Async video upload/transcode platform
 **Sprint 1 goal:** Upload → queue → worker → status → play. No real transcoding — worker does a copy job as a stand-in for FFmpeg.

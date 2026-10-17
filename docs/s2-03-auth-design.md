@@ -1,3 +1,5 @@
+> **Historical (Project 1 sprint 2).** The login, JWT-cookie and bcrypt decisions carried into Media (`media/services/security.py`); the nginx and single-host parts are superseded by the Gateway authorizer ([AD-09](architecture/decisions.md)).
+
 # S2-03 — Authorization: design decisions
 
 **Written:** 10 September 2026 · against `main` @ `e6fcee9`

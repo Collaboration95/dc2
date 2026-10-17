@@ -1,10 +1,13 @@
 # V1 deploy and teardown runbook
 
-Status: **written and verified offline only.** The pipeline in
-[`scripts/aws/v1/deploy.py`](../../../../scripts/aws/v1/deploy.py) has never been run against
-AWS. Nothing here authorizes AWS operations, spend or deletion; the operator named in
-[`cloud-operator-20261015.md`](cloud-operator-20261015.md) decides when to run it. Cloud issues
-#63-#67 stay open and Blocked until a real run produces real receipts.
+Status (updated 18 October): **written offline, then run against AWS once by an operator.** Run
+`r1017b` (17 October) deployed with the pipeline in
+[`scripts/aws/v1/deploy.py`](../../../../scripts/aws/v1/deploy.py) and recorded redacted receipts for
+#63-#67 in [`evidence/cloud-proof-r1017b.json`](evidence/cloud-proof-r1017b.json); that run exposed
+defects that were fixed afterwards (for example the Aurora wake-up during bootstrap). The CD workflow
+described at the end of this file has not been dispatched yet: run `r1018a` (#186) is the first run
+through it and is **in progress**. Nothing here authorizes AWS operations, spend or deletion; the
+operator named in [`cloud-operator-20261015.md`](cloud-operator-20261015.md) decides when to run it.
 
 One ordered, resumable, journaled path takes the account from nothing to a smoke-tested,
 closed V1 and back to nothing. Every step journals itself, supports `--dry-run`, and tags what
@@ -768,9 +771,10 @@ has a lock on one machine, not across two.
 
 ## Known gaps
 
-- Never executed against AWS. Request fields were checked offline against the installed AWS CLI's
-  `--generate-cli-skeleton` output (a test does this when `aws` is on the path), not against live
-  service behaviour. Expect a first-run surprise or two, and read `status` before rerunning.
+- Run against AWS once by an operator (`r1017b`), not yet through the CD workflow. Request fields were
+  also checked offline against the installed AWS CLI's `--generate-cli-skeleton` output (a test does
+  this when `aws` is on the path). Expect a surprise or two from a first CD run, and read `status`
+  before rerunning.
 - The SPA upload (`frontend` step) has only run against the simulated account and a fake CloudFront; the first real run may show an S3 or invalidation surprise.
 - The release code and `session close --in-vpc-counts` read the private database with a finite task
   in the VPC; the `deploy` pipeline's own migration step still has no such reader, so without a

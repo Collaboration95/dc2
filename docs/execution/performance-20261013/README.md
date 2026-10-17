@@ -1,3 +1,5 @@
+> **Historical (local pre-AWS performance wave, 13 October).** Baseline evidence for the Project 1 stack. V1 cloud measurements are in [`../aws/v1/evidence/`](../aws/v1/evidence/).
+
 # Performance wave — 13 October 2026
 
 Baseline87389d1; deadline11:55 Asia/Singapore. [Epic#33](https://github.com/Collaboration95/dc2/issues/33) tracks three independent GPT6.1Sol xhigh implementation lanes, clean-context Sol reviews and coordinator acceptance. No cloud operations or spending. Future infrastructure must fit $200 total for approximately three weeks.
