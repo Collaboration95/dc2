@@ -275,3 +275,5 @@ async def test_real_worker_source_invalid_edit_has_failed_attempt_and_public_pro
     }
     assert public.output_url is None and public.hls_url is None
     validate_response("public", "/jobs/{job_id}", "get", 200, body)
+
+# Controlled CI selection sample for #165; no test behavior changes.
