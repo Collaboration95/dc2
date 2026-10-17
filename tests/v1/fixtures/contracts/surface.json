@@ -1,5 +1,9 @@
 {
   "schema_version": 1,
+  "accepted_schema_versions": [
+    1
+  ],
+  "emit_schema_version": 1,
   "integration_marker": "dc2-gateway-v1",
   "max_upload_bytes": 104857600,
   "cookie_options": {

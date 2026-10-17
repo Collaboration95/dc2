@@ -1,0 +1,200 @@
+{
+  "contract": "Media consumes Processing results",
+  "owner": "media",
+  "producer": "processing",
+  "queue": "media-results",
+  "consumer_entrypoint": "media.messaging.consume_result -> media.projections.apply_result",
+  "how_to_change": "Edit only with the consumer's agreement. Processing's tests (tests/processing/test_processing_consumer_contract.py) must keep producing messages that satisfy this file; Media's (tests/media/test_media_consumer_contract.py) must keep consuming them.",
+  "reads": {
+    "envelope": [
+      "schema_version",
+      "message_id",
+      "kind",
+      "owner_id",
+      "asset_id",
+      "job_id",
+      "attempt_id",
+      "state_version",
+      "source",
+      "payload"
+    ],
+    "payload": {
+      "always": [
+        "status",
+        "attempt_number"
+      ],
+      "done": [
+        "outputs"
+      ],
+      "failed": [
+        "error"
+      ]
+    },
+    "output": [
+      "kind",
+      "object_key",
+      "media_type"
+    ],
+    "output_key_prefix": "jobs/{job_id}/attempts/{attempt_id}/",
+    "statuses": [
+      "queued",
+      "processing",
+      "done",
+      "failed",
+      "cancelled"
+    ]
+  },
+  "messages": {
+    "queued": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000201",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": 1,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "status": "queued",
+        "outputs": [],
+        "error": null,
+        "attempt_number": 1
+      }
+    },
+    "processing": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000202",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": 2,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "status": "processing",
+        "outputs": [],
+        "error": null,
+        "attempt_number": 1
+      }
+    },
+    "done": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000203",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": 3,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "status": "done",
+        "outputs": [
+          {
+            "kind": "primary",
+            "object_key": "jobs/00000000-0000-4000-8000-000000000021/attempts/00000000-0000-4000-8000-000000000031/primary.mp4",
+            "media_type": "video/mp4",
+            "size_bytes": 2048,
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "kind": "hls_manifest",
+            "object_key": "jobs/00000000-0000-4000-8000-000000000021/attempts/00000000-0000-4000-8000-000000000031/hls/master.m3u8",
+            "media_type": "application/vnd.apple.mpegurl",
+            "size_bytes": 512,
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "error": null,
+        "attempt_number": 1
+      }
+    },
+    "failed": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000204",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": 3,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "status": "failed",
+        "outputs": [],
+        "error": "The source or edit could not be processed",
+        "attempt_number": 1
+      }
+    },
+    "cancelled": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000205",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": 4,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "status": "cancelled",
+        "outputs": [],
+        "error": null,
+        "attempt_number": 1
+      }
+    },
+    "cancellation_ack": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000206",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": null,
+      "payload": {
+        "status": "cancelled",
+        "cancellation_confirmed": true,
+        "command_message_id": "00000000-0000-4000-8000-000000000305"
+      }
+    }
+  }
+}
