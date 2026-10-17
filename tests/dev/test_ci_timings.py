@@ -3,6 +3,7 @@
 import copy
 import json
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -44,7 +45,9 @@ def test_concurrency_queue_required_gate_and_workflow_are_different(receipt):
     assert result["skipped_jobs"] == ["images"]
     assert result["jobs"][-1]["execution_seconds"] is None
     assert result["base_branches"] == ["dev/v1-integration"]
-    assert result["source_sha"] == "a" * 40
+    assert result["head_sha"] == "a" * 40
+    assert result["source_sha"] is None
+    assert result["source_sha_basis"] == "unknown"
     assert "proxy" in result["workflow_end_source"]
 
 
@@ -134,9 +137,9 @@ def test_reads_only_authenticated_gh_and_paginates_exact_attempt(monkeypatch):
     def run(command, **kwargs):
         calls.append(command)
         assert kwargs == {"check": True, "capture_output": True, "text": True, "timeout": 60}
-        response = {"run_attempt": 2} if len(calls) == 1 else [
-            {"jobs": [{"name": "a"}]}, {"jobs": [{"name": "b"}]}
-        ]
+        response = ({"run_attempt": 2} if len(calls) == 1 else
+                    [{"jobs": [{"name": "a"}]}, {"jobs": [{"name": "b"}]}]
+                    if len(calls) == 2 else [{"artifacts": []}])
         return subprocess.CompletedProcess(command, 0, json.dumps(response))
 
     monkeypatch.setattr(subprocess, "run", run)
@@ -146,9 +149,60 @@ def test_reads_only_authenticated_gh_and_paginates_exact_attempt(monkeypatch):
         ["gh", "api", "repos/Collaboration95/dc2/actions/runs/123"],
         ["gh", "api", "repos/Collaboration95/dc2/actions/runs/123/attempts/2/jobs?per_page=100",
          "--paginate", "--slurp"],
+        ["gh", "api", "repos/Collaboration95/dc2/actions/runs/123/artifacts?per_page=100",
+         "--paginate", "--slurp"],
     ]
     with pytest.raises(ValueError):
         timings.fetch_receipt("../other", "x")
+
+
+def test_selection_preserves_different_pr_head_and_tested_merge(receipt):
+    receipt["selection"] = {
+        "run_id": "1", "run_attempt": "1", "event": "pull_request",
+        "head_sha": "a" * 40, "source_sha": "b" * 40, "mode": "dev",
+    }
+    result = timings.summarize(receipt, ["gate"], "dev")
+    assert result["head_sha"] == "a" * 40
+    assert result["source_sha"] == "b" * 40
+    assert result["source_sha_basis"] == "selection receipt"
+    for key, wrong in [("run_id", "2"), ("run_attempt", "2"), ("event", "push"),
+                       ("head_sha", "c" * 40), ("source_sha", "not-a-sha")]:
+        bad = copy.deepcopy(receipt)
+        bad["selection"][key] = wrong
+        with pytest.raises(ValueError, match="selection provenance"):
+            timings.summarize(bad, ["gate"], "dev")
+
+
+def test_fetch_downloads_only_current_attempt_selection(receipt, monkeypatch):
+    receipt["run"]["run_attempt"] = 2
+    calls = []
+
+    def run(command, **kwargs):
+        calls.append(command)
+        if command[1:3] == ["run", "download"]:
+            assert command[command.index("--name") + 1] == "ci-selection-2"
+            directory = Path(command[command.index("--dir") + 1])
+            (directory / "ci-policy.json").write_text(json.dumps({
+                "run_id": "1", "run_attempt": "2", "event": "pull_request",
+                "head_sha": "a" * 40, "source_sha": "b" * 40,
+            }))
+            return subprocess.CompletedProcess(command, 0, "")
+        endpoint = command[2]
+        if "/artifacts?" in endpoint:
+            response = [{"artifacts": [
+                {"name": "ci-selection-1", "expired": False},
+                {"name": "ci-selection-2", "expired": False},
+            ]}]
+        elif "/jobs?" in endpoint:
+            response = [{"jobs": receipt["jobs"]}]
+        else:
+            response = receipt["run"]
+        return subprocess.CompletedProcess(command, 0, json.dumps(response))
+
+    monkeypatch.setattr(subprocess, "run", run)
+    fetched = timings.fetch_receipt("Collaboration95/dc2", "1")
+    assert timings.tested_source(fetched) == "b" * 40
+    assert len(calls) == 4
 
 
 def test_json_fixture_cli_is_offline_and_preserves_receipts(receipt, tmp_path, monkeypatch):

@@ -157,7 +157,7 @@ def classify(paths, *, full=False, reason="routine dev PR", source_sha="", base_
         elif path.startswith(("app/", "migrations/")) or path in {"alembic.ini", "Dockerfile"}:
             select("lint-and-unit", "legacy-integration", "browser-trust")
         elif path.startswith("frontend/"):
-            select("frontend", "browser-trust", "v1_live")
+            select("frontend", "browser-trust", "v1_offline", "v1_live")
         elif path.startswith(("publisher/", "tests/publisher/")):
             select("lint-and-unit", "publisher-https", "browser-trust", "v1_live")
         elif path.startswith("tests/integration/"):
@@ -382,11 +382,16 @@ def main():
             paths = changed_paths(base, source) if base else None
         except (subprocess.SubprocessError, UnicodeError):
             pass  # An unreadable diff selects full, never empty/docs-only.
-    emit(
-        classify(
-            paths if not full else [], full=full, reason=reason, source_sha=source, base_sha=base
-        )
+    plan = classify(
+        paths if not full else [], full=full, reason=reason, source_sha=source, base_sha=base
     )
+    plan.update(
+        run_id=os.environ.get("GITHUB_RUN_ID", ""),
+        run_attempt=os.environ.get("GITHUB_RUN_ATTEMPT", ""),
+        event=os.environ["GITHUB_EVENT_NAME"],
+        head_sha=event.get("pull_request", {}).get("head", {}).get("sha", source),
+    )
+    emit(plan)
 
 
 if __name__ == "__main__":

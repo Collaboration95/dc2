@@ -26,7 +26,8 @@ diff to that tested SHA, with full history available. Changes already present in
 the intended base are excluded. `--no-renames` includes both old and new paths,
 so a rename across owners selects both; deletes select their former owner.
 Missing merge bases or undecodable filenames conservatively select full mode.
-The job summary records source SHA, selected lanes and decision reasons.
+The job summary and attempt-specific `ci-selection-N` artifact record the tested merge
+SHA separately from the PR head, run/attempt identity, selected lanes and decision reasons.
 
 For an explicit checkpoint, first put the desired candidate on the dispatched
 branch, then dispatch **that branch** and pass the exact commit:
@@ -50,7 +51,7 @@ selects it too.
 
 | Changed input | Selected dev lanes in addition to policy tests |
 | --- | --- |
-| `frontend/**` | frontend, inherited browser/CLI, V1 live |
+| `frontend/**` | frontend, inherited browser/CLI, V1 offline + live (includes unmeasured SPA packaging tests) |
 | `publisher/**`, `tests/publisher/**` | Python fast, Publisher HTTPS, inherited browser/CLI, V1 live |
 | `media/**`, `tests/media/**` | Python fast, Media integration, Publisher HTTPS, inherited browser/CLI, V1 offline + live |
 | `processing/**`, `tests/processing/**` | Python fast, Processing integration, inherited browser/CLI, V1 offline + live |

@@ -132,7 +132,9 @@ python -m scripts.dev.ci_timings \
   --output .cache/ci-baseline-report.json
 ```
 
-A receipt has `{"run": <REST workflow run>, "jobs": [<REST job>, ...]}`. Repeat
+A receipt has `{"run": <REST workflow run>, "jobs": [<REST job>, ...], "selection": <optional CI selection>}`.
+The reader downloads only the current attempt's `ci-selection-N` artifact through `gh`.
+It validates run, attempt, event and head identity before accepting the tested source. Repeat
 `--fixture` / `--baseline-fixture` to compare saved receipts offline. For example, after
 the coordinator confirms the final name and obtains a natural successful dev run:
 
@@ -153,7 +155,10 @@ The script labels the operator-supplied tier and retains all observed job result
 the selection can be checked against the classifier summary. It does not infer policy from
 job names. Empty base-branch metadata stays unknown; reconcile it with the matching PR.
 
-The report includes URL, SHA, event/head/base branches, attempt, tier label, selected
+The report separates REST `head_sha` from the tested `source_sha` in the selection receipt.
+For PRs these can differ: Actions tests the merge commit. If the selection receipt is
+unavailable (including the old baseline), tested source is unknown, never inferred from
+the PR head. The report includes URL, event/head/base branches, attempt, tier label, selected
 (observed non-skipped)/skipped job names, all job start/end timestamps and conclusions,
 initial queue/start delay, required gate latency from creation and from first job start,
 whole-workflow elapsed, summed completed job execution and immediate failed-job names.

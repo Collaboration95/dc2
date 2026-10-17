@@ -11,6 +11,7 @@ import json
 import re
 import statistics
 import subprocess
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -59,7 +60,37 @@ def fetch_receipt(repository: str, run_id: str) -> dict:
     pages = gh_json([
         "api", f"{root}/attempts/{attempt}/jobs?per_page=100", "--paginate", "--slurp"
     ])
-    return {"run": run, "jobs": [job for page in pages for job in page["jobs"]]}
+    artifacts = gh_json(["api", f"{root}/artifacts?per_page=100", "--paginate", "--slurp"])
+    name = f"ci-selection-{attempt}"
+    available = [a for page in artifacts for a in page["artifacts"]
+                 if a["name"] == name and not a["expired"]]
+    if len(available) > 1:
+        raise ValueError("ambiguous selection artifacts for this attempt")
+    selection = None
+    if available:
+        with tempfile.TemporaryDirectory(prefix="dc2-ci-selection-") as directory:
+            subprocess.run(
+                ["gh", "run", "download", run_id, "--repo", repository,
+                 "--name", name, "--dir", directory],
+                check=True, capture_output=True, text=True, timeout=60,
+            )
+            selection = json.loads((Path(directory) / "ci-policy.json").read_text())
+    return {"run": run, "jobs": [job for page in pages for job in page["jobs"]],
+            "selection": selection}
+
+
+def tested_source(receipt):
+    """REST head_sha is not the PR merge SHA checked out by Actions."""
+    run, selection = receipt["run"], receipt.get("selection")
+    if selection is None:
+        return None
+    if (str(selection.get("run_id")) != str(run["id"])
+            or str(selection.get("run_attempt")) != str(run["run_attempt"])
+            or selection.get("event") != run["event"]
+            or selection.get("head_sha") != run["head_sha"]
+            or not re.fullmatch(r"[0-9a-f]{40}", selection.get("source_sha", ""))):
+        raise ValueError("selection provenance does not match this run/attempt/head")
+    return selection["source_sha"]
 
 
 def summarize(receipt: dict, gates: list[str], tier: str) -> dict:
@@ -112,7 +143,10 @@ def summarize(receipt: dict, gates: list[str], tier: str) -> dict:
         row["conclusion"] == "skipped" or row["execution_seconds"] is not None for row in rows
     )
     return {
-        "run_id": run["id"], "url": run.get("html_url"), "source_sha": run["head_sha"],
+        "run_id": run["id"], "url": run.get("html_url"), "head_sha": run["head_sha"],
+        "source_sha": tested_source(receipt),
+        "source_sha_basis": "selection receipt" if receipt.get("selection") else "unknown",
+        "selection_mode": (receipt.get("selection") or {}).get("mode"),
         "event": run["event"], "head_branch": run.get("head_branch"),
         "base_branches": sorted({pr["base"]["ref"] for pr in run.get("pull_requests", [])
                                  if pr.get("base", {}).get("ref")}),

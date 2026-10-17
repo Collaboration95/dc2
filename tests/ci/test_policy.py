@@ -42,7 +42,7 @@ class SelectionTests(unittest.TestCase):
             ("docs/execution/evidence/run.txt", {"policy-checks"}, set()),
             ("docs/ci/policy.md", {"policy-checks"}, set()),
             ("docs/execution/aws/v1/backlog.json", {"planning"}, {"v1_live", "images"}),
-            ("frontend/app.js", {"frontend", "v1_live", "browser-trust"}, {"images"}),
+            ("frontend/app.js", {"frontend", "v1_offline", "v1_live", "browser-trust"}, {"images"}),
             (
                 "publisher/client.py",
                 {"lint-and-unit", "publisher-https", "browser-trust"},
