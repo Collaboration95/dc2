@@ -36,6 +36,9 @@ LAUNCHER = "ProcessingLauncher"
 INTAKE = ("MediaApi", "MediaAuthorizer")
 MAPPINGS = ("ProcessingCommands", "MediaResults")
 RULES = ("MediaRepair", "ProcessingRepair", "ProcessingEcsEvents", "ProcessingS3Events")
+# Present only when the stack was deployed with LambdaShortEncodes=true (#93). It runs the
+# worker image, so it joins the session's mappings and functions but never an owner's release.
+SHORT_ENCODER = "ProcessingShortEncoder"
 # Default open throttle mirrors the previous template value; tune per session.
 DEFAULT_EDGE_OPEN = {"rate": 5, "burst": 10}
 QUEUES = ("ProcessingCommands", "ProcessingWork", "MediaResults")
@@ -137,6 +140,13 @@ def config_from_outputs(
             config["owner_functions"]["processing"][LAUNCHER] = launcher
             config["owner_consumers"]["processing"]["schedules"].append(rule)
             hooks["launcher"] = launcher
+        if f"{SHORT_ENCODER}FunctionName" in outputs:
+            encoder = outputs[f"{SHORT_ENCODER}FunctionName"]
+            mapping = outputs[f"{SHORT_ENCODER}MappingId"]
+            config["functions"][encoder] = reservations.get(SHORT_ENCODER)
+            # `session open` enables every mapping and `close` disables every mapping.
+            config["mappings"].append(mapping)
+            config["owner_consumers"]["processing"]["mappings"].append(mapping)
         urls = {
             "gateway": outputs["HttpApiUrl"],
             "frontend": outputs.get("FrontendUrl"),

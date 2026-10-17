@@ -19,6 +19,8 @@ def queue_urls():
         for name, env in (
             ("processing-commands", "PROCESSING_COMMANDS_QUEUE_URL"),
             ("processing-work", "PROCESSING_WORK_QUEUE_URL"),
+            # Present only when the opt-in short lane is deployed (V2, #93); empty otherwise.
+            ("processing-work-short", "PROCESSING_WORK_SHORT_QUEUE_URL"),
             ("media-results", "MEDIA_RESULTS_QUEUE_URL"),
         )
     }

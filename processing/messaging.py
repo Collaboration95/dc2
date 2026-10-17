@@ -13,7 +13,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from delivery.envelope import document, fingerprint
 from delivery.sql import accept, publish_due, stage
-from processing import lifecycle
+from processing import lifecycle, short_lane
 from processing.errors import ProcessingError, TaskBindingError
 from processing.messaging_models import AttemptTask, JobMessaging, ProcessingInbox, ProcessingOutbox
 from processing.models import Attempt, Job, RetryRequest, SubmissionGuard
@@ -116,7 +116,8 @@ async def emit_state(session, job, attempt):
             session,
             ProcessingOutbox,
             envelope(job, attempt, saved.state_version, "work"),
-            "processing-work",
+            # The standard lane unless the opt-in short lane admits this job (V2, #93).
+            await short_lane.work_lane(session, job),
         )
         # The send itself is the first delivery; repair only needs to look again
         # after one period, not on the very next tick.
@@ -402,6 +403,43 @@ async def work_disposition(factory, job_id, attempt_id):
 
 async def finish(factory, work, *, outputs=None, error=None):
     return await lifecycle.finish(factory, work, outputs=outputs, error=error, on_change=emit_state)
+
+
+REDIRECTED = "Redirected to the standard encoder lane"
+
+
+async def redirect_to_long_lane(factory, work):
+    """Hand a claimed attempt the short lane cannot finish to the standard (Fargate) lane.
+
+    Fenced exactly like finish: only the live lease holder may apply it, so a stale or timed-out
+    invocation changes nothing. The claimed attempt ends as abandoned and a new queued attempt
+    takes over, the same shape as a retry. A new attempt is needed because the one-task-per-
+    attempt binding rejects a second executor on the old one. The binding also marks the job as
+    having run on Lambda, which is what routes the new attempt to the standard lane.
+    """
+    async with factory() as session, session.begin():
+        pair = await lifecycle.lock_pair(session, work.job_id, work.attempt_id)
+        now = await lifecycle.db_now(session)
+        if not lifecycle.live(pair, work.lease_token, now):
+            return False
+        job, attempt = pair
+        attempt.state, attempt.error, attempt.finished_at = "abandoned", REDIRECTED, now
+        attempt.lease_expires_at = now
+        # Nothing was uploaded yet, but the late-output rescan is cheap and uniform.
+        await lifecycle.cleanup_intent(session, job.id, attempt.id, now)
+        successor = Attempt(
+            id=uuid4(),
+            job_id=job.id,
+            attempt_number=attempt.attempt_number + 1,
+            state="queued",
+            queued_at=now,
+        )
+        session.add(successor)
+        await session.flush()
+        job.current_attempt_id = successor.id
+        job.status, job.error, job.outputs, job.updated_at = "queued", None, [], now
+        await emit_state(session, job, successor)
+        return True
 
 
 async def publish_outbox(factory, transport, **kwargs):

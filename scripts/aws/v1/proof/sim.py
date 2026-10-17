@@ -67,7 +67,7 @@ class FakeSqs:
     def get_queue_attributes(self, QueueUrl, AttributeNames):
         name = self.world.queue_of(QueueUrl)
         return {"Attributes": {
-            "ApproximateNumberOfMessages": str(len(self.world.dlq[name])),
+            "ApproximateNumberOfMessages": str(len(self.world.dlq.get(name, []))),
             "ApproximateNumberOfMessagesNotVisible": "0"}}
 
     def send_message(self, QueueUrl, MessageBody):
@@ -90,7 +90,8 @@ class FakeSqs:
 class SimWorld:
     def __init__(self, *, env="dc2-v1-sim", encode_seconds=45.0, start_seconds=20.0,
                  repair_seconds=90.0, requeue=True, awake=False, slow=1.0, faults=(),
-                 poison_seconds=300.0):
+                 poison_seconds=300.0, lambda_lane=False, lambda_cold_seconds=9.0,
+                 lambda_warm_seconds=4.0):
         self.env, self.faults = env, set(faults)
         self.clock = VirtualClock()
         self.plan = operations.PlanTransport()
@@ -103,9 +104,19 @@ class SimWorld:
         # Aurora: capacity is 0.5 ACU for 5.5 minutes after the last use, then 0 (paused).
         self.last_use = None if not awake else self.clock.t
         self.registered, self.generated = 0, None
+        # The opt-in Lambda short-encode lane (#93): a stack WITH it runs queued jobs in
+        # invocations (two at once, like the mapping), a stack without it never does.
+        self.lambda_lane, self.lambda_seconds = lambda_lane, (lambda_cold_seconds,
+                                                              lambda_warm_seconds)
+        self.invocations, self.last_invocation = [], None
+        if lambda_lane:  # a full `session open` has enabled every mapping
+            self.plan.mappings[str(uuid.uuid5(uuid.NAMESPACE_URL, "ProcessingShortEncoder"))] = (
+                "Enabled")
 
     # ---- plumbing --------------------------------------------------------------------
     def queue_of(self, url):
+        if "ProcessingShortWork" in url:
+            return "ProcessingShortWork"
         return next(q for q in operations.QUEUES if url.endswith((q + "Queue", q + "Dlq")))
 
     def use_database(self):
@@ -127,8 +138,19 @@ class SimWorld:
         names |= {f"{h}MappingId": str(uuid.uuid5(uuid.NAMESPACE_URL, h))
                   for h in operations.MAPPINGS}
         names |= {f"{h}RuleName": f"{self.env}-{h}" for h in operations.RULES}
+        if self.lambda_lane:
+            names |= {
+                "ProcessingShortEncoderFunctionName": f"{self.env}-ProcessingShortEncoder",
+                "ProcessingShortEncoderMappingId": str(
+                    uuid.uuid5(uuid.NAMESPACE_URL, "ProcessingShortEncoder")),
+                "ProcessingShortWorkQueueUrl":
+                    f"https://sqs.{REGION}.amazonaws.com/{ACCOUNT}/ProcessingShortWorkQueue",
+                "ProcessingShortWorkDlqUrl":
+                    f"https://sqs.{REGION}.amazonaws.com/{ACCOUNT}/ProcessingShortWorkDlq",
+            }
         return {
-            **queues, **names, "HttpApiId": "abc123def4", "HttpApiUrl": GATEWAY,
+            **queues, **names, "OutputBucketName": "dc2-sim-output",
+            "HttpApiId": "abc123def4", "HttpApiUrl": GATEWAY,
             "FrontendUrl": FRONTEND, "DistributionId": "E1SIMULATED",
             "SourceBucketName": "dc2-sim-source",
             "ClusterArn": f"arn:aws:ecs:{REGION}:{ACCOUNT}:cluster/{self.env}",
@@ -233,13 +255,14 @@ class SimWorld:
         job_id = found.get("job") or str(uuid.uuid4())
         found["job"] = job_id
         self.jobs.setdefault(job_id, {
-            "id": job_id, "owner": user["id"], "filename": found["request"]["filename"],
+            "id": job_id, "pid": str(uuid.uuid4()), "owner": user["id"],
+            "filename": found["request"]["filename"],
             "status": "queued", "queued_at": self.clock.t, "task": None})
         return reply(202, {"job_id": job_id})
 
     def job_view(self, job):
         view = {"id": job["id"], "filename": job["filename"], "status": job["status"],
-                "submission_status": "submitted"}
+                "submission_status": "submitted", "processing_job_id": job.get("pid")}
         if job["status"] == "done":
             view["output_url"] = f"https://{S3_HOST}/out.mp4?X-Amz-Signature=sim"
             if "no-hls" not in self.faults:
@@ -290,7 +313,11 @@ class SimWorld:
     def tick(self):
         """Advance every task and job to the current virtual time."""
         now = self.clock.t
+        if self.lambda_lane:
+            self.tick_lambda(now)
         for job in self.jobs.values():
+            if job["status"] == "processing" and job.get("lambda"):
+                continue
             if job["status"] == "processing":
                 task = self.tasks.get(job["task"])
                 if task and task["stopped_at"] is not None and task.get("interrupted"):
@@ -318,6 +345,30 @@ class SimWorld:
             if task["kind"] != "worker" and task["stopped_at"] is None \
                     and now >= task["started_at"] + task["script_seconds"]:
                 task["stopped_at"] = task["started_at"] + task["script_seconds"]
+
+    def tick_lambda(self, now):
+        """Complete running invocations, then start queued jobs while the mapping is enabled."""
+        uuid_ = str(uuid.uuid5(uuid.NAMESPACE_URL, "ProcessingShortEncoder"))
+        for job in self.jobs.values():
+            if job.get("lambda") and job["status"] == "processing" and now >= job["finish_at"]:
+                job["status"] = "done"
+        if self.plan.mappings.get(uuid_) != "Enabled":
+            return
+        running = sum(1 for j in self.jobs.values()
+                      if j.get("lambda") and j["status"] == "processing")
+        for job in sorted((j for j in self.jobs.values() if j["status"] == "queued"),
+                          key=lambda j: j["queued_at"]):
+            if running >= 2:
+                break
+            cold = self.last_invocation is None or now - self.last_invocation > 600
+            seconds = self.lambda_seconds[0 if cold else 1]
+            job.update(status="processing", **{"lambda": True}, finish_at=now + seconds)
+            request = uuid.uuid4().hex[:16]
+            self.invocations.append({
+                "job": job["pid"], "request": request, "cold": cold, "at": now,
+                "seconds": seconds})
+            self.last_invocation = now + seconds
+            running += 1
 
     def task_view(self, task):
         now = self.clock.t
@@ -430,6 +481,30 @@ class SimWorld:
             lines = self.generated
         return {"events": [{"timestamp": 0, "message": m} for m in lines],
                 "nextForwardToken": "end"}
+
+    def logs_filter_log_events(self, payload):
+        """The encoder's own line and Lambda's REPORT line for each simulated invocation."""
+        events = []
+        for call in self.invocations:
+            if "REPORT" in payload.get("filterPattern", ""):
+                init = f"\tInit Duration: {call['seconds'] * 100:.2f} ms" if call["cold"] else ""
+                events.append({"message": (
+                    f"REPORT RequestId: {call['request']}\tDuration: {call['seconds'] * 1000:.2f}"
+                    f" ms\tBilled Duration: {int(call['seconds'] * 1000) + 1} ms\tMemory Size: "
+                    f"3584 MB\tMax Memory Used: 410 MB{init}")})
+            else:
+                line = {"event": "short_encode", "outcome": "finished", "cold": call["cold"],
+                        "job_id": call["job"], "request_id": call["request"],
+                        "seconds": call["seconds"]}
+                events.append({"message": "dc2.short_encode " + json.dumps(line)})
+        return {"events": events}
+
+    def s3api_list_object_versions(self, payload):
+        job = payload["Prefix"].split("/")[1]
+        done = any(j["pid"] == job and j["status"] == "done" for j in self.jobs.values())
+        key = f"{payload['Prefix']}{uuid.uuid5(uuid.NAMESPACE_URL, job)}/primary.mp4"
+        return {"Versions": [{"Key": key, "VersionId": "v1"}] if done else [],
+                "IsTruncated": False}
 
     def probe_lines(self):
         result = {"own_database": "connected", "own_ddl": "denied:InsufficientPrivilegeError",

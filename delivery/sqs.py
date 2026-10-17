@@ -8,17 +8,24 @@ from delivery.envelope import canonical, document
 LANES = {
     "processing-commands": {"submit", "retry", "cancel"},
     "processing-work": {"work"},
+    "processing-work-short": {"work"},
     "media-results": {"result"},
 }
 PRODUCERS = {
     "media": {"processing-commands"},
-    "processing": {"processing-work", "media-results"},
+    "processing": {"processing-work", "processing-work-short", "media-results"},
 }
 CONSUMERS = {
     "processing-control": {"processing-commands"},
     "encoder": {"processing-work"},
+    "short-encoder": {"processing-work-short"},
     "media-projection": {"media-results"},
 }
+
+
+# A short-lane row can outlive the short queue (the experiment is switched off while work is
+# queued). It is still ordinary work, so it goes to the standard lane instead of failing forever.
+FALLBACK_LANE = {"processing-work-short": "processing-work"}
 
 
 class SQS:
@@ -48,7 +55,10 @@ class SQS:
         return self.urls[queue]
 
     async def send(self, queue, envelope):
-        url = self._lane(queue, PRODUCERS.get(self.producer, set()))
+        allowed = PRODUCERS.get(self.producer, set())
+        url = self._lane(queue, allowed)
+        if not url and queue in FALLBACK_LANE:
+            url = self._lane(FALLBACK_LANE[queue], allowed)
         body = document(envelope)
         if body["kind"] not in LANES[queue]:
             raise ValueError("Message kind does not belong to queue lane")

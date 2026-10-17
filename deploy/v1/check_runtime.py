@@ -36,6 +36,9 @@ ENTRYPOINTS = {
         "processing.worker.sqs": ("main", "run", "execute_message"),
         "processing.worker.source": ("SourceStore",),
         "processing.worker.tasks": ("pipeline",),
+        # The opt-in Lambda short encoder (V2, #93) runs from this same image.
+        "processing.handlers": ("short_encoder_handler",),
+        "processing.short_encoder": ("invoke",),
     },
 }
 
@@ -59,8 +62,8 @@ def check(kind, owner):
     assert bool(shutil.which("ffmpeg")) == (kind == "finite-worker"), "Wrong FFmpeg placement"
     assert bool(shutil.which("ffprobe")) == (kind == "finite-worker"), "Wrong FFprobe placement"
     assert "boto3" in installed
-    if kind == "lambda-api":
-        assert "awslambdaric" in installed
+    # Every image is invoked by Lambda except the worker's primary role, which also is, opt-in.
+    assert "awslambdaric" in installed
     ca = Path("/opt/rds/global-bundle.pem")
     assert ca.is_file(), "Verified RDS bundle missing"
     ssl.create_default_context(cafile=str(ca))  # Parse actual trusted bundle.

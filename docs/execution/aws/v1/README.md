@@ -49,6 +49,9 @@ manifest; without the browser flag it stays `NOT_RUN`. `cloud_acceptance` is alw
 3. V2 experiments (#80, #93, #94, #68) start only after the tag. Exception, by owner decision:
    the opt-in unattended launcher (#68) is developed in parallel and stays off by default; see
    [`../v2/unattended-launch.md`](../v2/unattended-launch.md) (cloud evidence NOT_RUN).
+   The opt-in Lambda short-encode benchmark (#93) is likewise developed ahead of the tag, off by
+   default; see [`../v2/lambda-short-encodes.md`](../v2/lambda-short-encodes.md) (cloud evidence
+   NOT_RUN, merge decision pending).
 
 ---
 
