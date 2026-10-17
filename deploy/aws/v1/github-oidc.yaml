@@ -1,0 +1,151 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  DC2 V1 CD trust. Lets the GitHub Actions `aws` environment of one repository assume a deploy
+  role without any long-lived AWS key, and keeps the private state bucket that carries a run's
+  journal between workflow runs. Deploy once, by hand, as the account operator:
+  aws cloudformation deploy --stack-name dc2-github-oidc --template-file deploy/aws/v1/github-oidc.yaml
+  --capabilities CAPABILITY_NAMED_IAM --profile dc2-agent --region ap-southeast-1
+  (see docs/execution/aws/v1/deploy-runbook.md, "CD workflow").
+
+Parameters:
+  GitHubRepository:
+    Type: String
+    Default: Collaboration95/dc2
+    AllowedPattern: "[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+"
+    Description: owner/name allowed to assume the role.
+  GitHubEnvironment:
+    Type: String
+    Default: aws
+    AllowedPattern: "[A-Za-z0-9_.-]+"
+    Description: >-
+      Only jobs that declare this environment carry the matching `sub` claim. Restrict which
+      branches may use the environment in the repository settings; that, not this template, is
+      what stops an arbitrary branch from reaching the role.
+  CreateOidcProvider:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+    Description: >-
+      An account can hold one provider per URL. Set to false to reuse the existing
+      token.actions.githubusercontent.com provider (none existed on 2026-10-18).
+  AttachRegionLock:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+    Description: Attach the account's FlickPondRegionLock policy, as the flickpond-agent user has.
+  MaxSessionSeconds:
+    Type: Number
+    Default: 14400
+    MinValue: 3600
+    MaxValue: 43200
+    Description: >-
+      A deploy takes 50-80 minutes and a teardown 25-45; the pipeline treats expiry mid-run as a
+      failure. Four hours covers either with a retry.
+
+Conditions:
+  MakeProvider: !Equals [!Ref CreateOidcProvider, "true"]
+  LockRegion: !Equals [!Ref AttachRegionLock, "true"]
+
+Resources:
+  GitHubProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: MakeProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      # No ThumbprintList: IAM validates GitHub's certificate against its own trusted CA set.
+
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: dc2-github-deploy
+      Description: Assumed by the GitHub Actions `aws` environment to run the V1 deploy pipeline.
+      MaxSessionDuration: !Ref MaxSessionSeconds
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - MakeProvider
+                - !Ref GitHubProvider
+                - !Sub arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubRepository}:environment:${GitHubEnvironment}
+      # Same grants as the flickpond-agent user the pipeline was written and rehearsed with: the
+      # deploy creates VPC, Aurora, Lambda, API Gateway, CloudFront, ECR, ECS and the IAM roles
+      # they run as, so a narrower policy would be a guess that fails twenty minutes in.
+      ManagedPolicyArns: !If
+        - LockRegion
+        - - arn:aws:iam::aws:policy/AdministratorAccess
+          - !Sub arn:aws:iam::${AWS::AccountId}:policy/FlickPondRegionLock
+        - - arn:aws:iam::aws:policy/AdministratorAccess
+      Tags:
+        - Key: Project
+          Value: dc2
+
+  # The deploy's own state directory (journal, stack outputs, smoke login, the transient database
+  # role passwords) has to outlive a runner. The repository is public, so a workflow artifact
+  # would publish it: this bucket is private, encrypted, versioned and TLS-only. Retain keeps a
+  # deleted stack from taking a run's only record of what it owns.
+  StateBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub dc2-cd-state-${AWS::AccountId}-${AWS::Region}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-superseded-versions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 30
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 2
+      Tags:
+        - Key: Project
+          Value: dc2
+
+  StateBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref StateBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: TlsOnly
+            Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource:
+              - !GetAtt StateBucket.Arn
+              - !Sub ${StateBucket.Arn}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+Outputs:
+  DeployRoleArn:
+    Description: Value of the repository variable AWS_DEPLOY_ROLE_ARN.
+    Value: !GetAtt DeployRole.Arn
+  StateBucketName:
+    Description: Value of the repository variable AWS_STATE_BUCKET.
+    Value: !Ref StateBucket

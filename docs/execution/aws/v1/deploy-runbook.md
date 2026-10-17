@@ -498,6 +498,55 @@ Caveats that matter when reading receipts:
 - The summary holds statuses, durations and numbers only (no account, URL, ARN, address or token);
   a value that looks like one fails the step instead of being stored.
 
+## CD workflow
+
+[`.github/workflows/cd.yml`](../../../../.github/workflows/cd.yml) runs the commands above from
+GitHub Actions through [`scripts/ci/cd.sh`](../../../../scripts/ci/cd.sh); it adds no deploy
+logic. It is the recorded, repeatable form of steps 0, 1, 6 and 7 plus an upload-to-playback smoke.
+
+```sh
+gh workflow run cd.yml -f operation=preflight -f run_id=r1018a            # reads only
+gh workflow run cd.yml -f operation=deploy    -f run_id=r1018a -f execute=true
+gh workflow run cd.yml -f operation=release   -f run_id=r1018a -f owner=media -f execute=true -f attest_additive=true
+gh workflow run cd.yml -f operation=teardown  -f run_id=r1018a -f execute=true
+```
+
+- **Nothing applies unless `execute=true`.** Off, `deploy` runs the real preflight and an offline
+  rehearsal, `release` builds and verifies the images only, `teardown` prints its inventory plan.
+- **Gate.** The `gate` job refuses a dispatch unless the latest `CI` run for the dispatched commit
+  finished green (a commit with no run, a running one or a failed one is refused). Dispatch
+  teardown from a green ref too.
+- **Deploy** = preflight, native linux/amd64 `build_and_verify.py` on the runner, `deploy --execute`
+  (the whole ladder, with the tool's own change-set review), then the smoke. **Release** builds the
+  commit's images for one owner, pushes them with a fresh `g<run>x<attempt>` tag, lets
+  `evidence release-plan` check digest, scan and bundle, then `session window`, `release promote`,
+  `release restore` (or `abandon`) if it fails, `session close --in-vpc-counts`, then the smoke. The
+  release commit must differ from the deployed one (the plan refuses an image equal to the baseline).
+- **Smoke** = `session open`, `evidence gateway --only direct-upload-e2e` (a generated 3 s clip is
+  reserved, uploaded straight to S3, finalized, encoded by the finite Fargate encoder the harness
+  starts and played back as HLS through CloudFront), `session close --in-vpc-counts`. The window is
+  closed even when the smoke fails. The Publisher CLI is not used: V1 starts the encoder from the
+  operator session, so a Publisher job would sit queued.
+- **Cost guard** inputs: `budget_usd` (30), `planned_hours` (3), `forecast_usd` (5; Cost Explorer has
+  no history here, so the guard needs the operator's figure). Same flags and meaning as above.
+- **Credentials.** The `aws` environment assumes `dc2-github-deploy` through GitHub OIDC (no key is
+  stored in GitHub). The role and the state bucket come from
+  [`deploy/aws/v1/github-oidc.yaml`](../../../../deploy/aws/v1/github-oidc.yaml); the repository
+  variables `AWS_DEPLOY_ROLE_ARN` and `AWS_STATE_BUCKET` carry their names. The role's trust is
+  `repo:Collaboration95/dc2:environment:aws`, and the environment only admits `Main`, `dev/closeout`
+  (and the temporary `closeout/pipeline`) so a branch of someone else cannot reach it. Its
+  permissions equal the `flickpond-agent` user's: `AdministratorAccess` plus `FlickPondRegionLock`.
+  Session length 4 h. It is written to the named profile `dc2-gha` because the tooling refuses
+  ambient `AWS_*` credentials.
+- **State.** `D` is `$HOME/dc2-state/<run id>` on the runner. It is restored from, and saved back to,
+  `s3://dc2-cd-state-866865534361-ap-southeast-1/runs/<run id>/` (private, encrypted, versioned,
+  TLS-only) around every deploy, release and teardown, including after a failure or cancel, so a
+  rerun resumes from the journal. It holds the smoke login and, until the DSNs are published, the
+  database role passwords, which is why it is never a workflow artifact. A resume after the images
+  step reuses the recorded build evidence (`build-baseline.json`); a failure before it rebuilds.
+- **Artifacts** hold only reduced files: step statuses, preflight check names, the redacted
+  `cloud-proof-*.json` of the smoke, the release outcome. 14 days.
+
 ## Known gaps
 
 - Never executed against AWS. Request fields were checked offline against the installed AWS CLI's
