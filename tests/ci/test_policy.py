@@ -1,0 +1,368 @@
+"""Offline policy behavior, source resolution, and strict aggregate regressions."""
+
+import ast
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from scripts.ci.policy import (
+    IMAGE_RECIPES,
+    LANES,
+    changed_paths,
+    classify,
+    event_selection,
+    expected_jobs,
+    image_inputs,
+    validate_gate,
+)
+
+ROOT = Path(__file__).resolve().parents[2]
+SHA = "a" * 40
+
+
+def results(plan, scope="dev"):
+    return {
+        "classify": {"result": "success"},
+        **{
+            name: {"result": "success" if selected else "skipped"}
+            for name, selected in expected_jobs(plan, scope).items()
+        },
+    }
+
+
+class SelectionTests(unittest.TestCase):
+    def test_path_table(self):
+        cases = [
+            ("docs/project2-worklog.txt", {"policy-checks"}, set()),
+            ("docs/execution/evidence/run.txt", {"policy-checks"}, set()),
+            ("docs/ci/policy.md", {"policy-checks"}, set()),
+            ("docs/execution/aws/v1/backlog.json", {"planning"}, {"v1_live", "images"}),
+            ("frontend/app.js", {"frontend", "v1_live", "browser-trust"}, {"images"}),
+            (
+                "publisher/client.py",
+                {"lint-and-unit", "publisher-https", "browser-trust"},
+                {"images"},
+            ),
+            (
+                "media/api/auth.py",
+                {"media-integration", "v1_offline", "v1_live", "images", "browser-trust"},
+                set(),
+            ),
+            (
+                "processing/worker.py",
+                {"processing-intake", "v1_live", "images", "browser-trust"},
+                set(),
+            ),
+            (
+                "runtime_support/config.py",
+                {"media-integration", "processing-intake", "v1_live", "images"},
+                set(),
+            ),
+            ("media_engine/hls.py", {"legacy-integration", "processing-intake", "images"}, set()),
+            ("contracts/source.json", {"media-integration", "processing-intake", "images"}, set()),
+            ("migrations/versions/new.py", {"legacy-integration", "browser-trust"}, {"images"}),
+            ("media/migrations/new.py", {"media-integration", "images"}, set()),
+            ("tests/media/test_auth.py", {"media-integration", "v1_live"}, {"images", "security"}),
+            (
+                "tests/integration/test_media_persistence.py",
+                {"media-integration"},
+                {"legacy-integration"},
+            ),
+            (
+                "tests/integration/test_processing_worker.py",
+                {"processing-intake"},
+                {"media-integration"},
+            ),
+            (
+                "tests/integration/conftest.py",
+                {"legacy-integration", "processing-intake", "media-integration"},
+                set(),
+            ),
+            (
+                "tests/contracts/example.json",
+                {"v1_offline", "v1_live", "browser-trust"},
+                {"images"},
+            ),
+            (
+                "tests/v1/fixtures/contracts/envelopes_valid.json",
+                {"v1_offline", "v1_live"},
+                {"images"},
+            ),
+            ("tests/aws/v1/test_deploy.py", {"v1_offline", "lint-and-unit"}, {"v1_live", "images"}),
+            ("scripts/aws/v1/deploy.py", {"v1_offline", "lint-and-unit"}, {"v1_live", "images"}),
+            ("scripts/aws/v1/bootstrap.py", {"v1_offline", "images"}, set()),
+            ("scripts/dev/runtime.py", {"browser-trust", "v1_live", "publisher-https"}, set()),
+            ("scripts/dev/v1_gateway.py", {"v1_live", "v1_offline"}, {"browser-trust"}),
+            ("compose/local/docker-compose.yml", {"browser-trust", "media-integration"}, set()),
+            ("deploy/v1/check_runtime.py", {"v1_offline", "images", "v1_live"}, set()),
+            ("deploy/v1/global-bundle.pem", {"images"}, set()),
+        ]
+        for path, required, absent in cases:
+            with self.subTest(path=path):
+                plan = classify([path])
+                selected = {k for k, v in plan["selected"].items() if v}
+                self.assertEqual(plan["mode"], "dev")
+                self.assertTrue(required <= selected, required - selected)
+                self.assertFalse(absent & selected, absent & selected)
+                if required == {"policy-checks"}:
+                    self.assertEqual(selected, required)
+
+    def test_conservative_inputs(self):
+        for paths in [
+            None,
+            ["unknown/new.py"],
+            ["docs/fixture.json"],
+            ["docs/example.sh"],
+            ["uv.lock"],
+            [".github/workflows/ci.yml"],
+            ["scripts/ci/policy.py"],
+            ["tests/ci/test_policy.py"],
+            ["frontend/package-lock.json"],
+            ["../outside"],
+            [".dockerignore"],
+            ["tests/future_component/test_behavior.py"],
+            ["deploy/future_surface/config.json"],
+            ["compose/future_surface.yml"],
+        ]:
+            with self.subTest(paths=paths):
+                plan = classify(paths)
+                self.assertEqual(plan["mode"], "full")
+                self.assertTrue(all(plan["selected"].values()))
+                self.assertEqual(len(plan["security_matrix"]["include"]), 3)
+        self.assertEqual(sum(classify([])["selected"].values()), 1)
+
+    def test_full_bypasses_diff(self):
+        for paths in [[], ["docs/project2-worklog.txt"], None]:
+            plan = classify(paths, full=True)
+            self.assertEqual(set(plan["selected"]), set(LANES))
+            self.assertTrue(all(plan["selected"].values()))
+
+    def test_actual_copy_inputs_and_legacy_matrix(self):
+        for name, (recipe, _) in IMAGE_RECIPES.items():
+            inputs = []
+            for line in (ROOT / recipe).read_text().splitlines():
+                if line.startswith("COPY "):
+                    inputs.extend(line.split()[1:-1])
+            for path in inputs:
+                # Audit directory COPY sources as changed child files.
+                changed = path + "/changed.py" if (ROOT / path).is_dir() else path
+                with self.subTest(recipe=recipe, changed=changed):
+                    self.assertIn(name, image_inputs(changed)[1])
+        for recipe in (ROOT / "deploy/v1").glob("*.Dockerfile"):
+            for line in recipe.read_text().splitlines():
+                if line.startswith("COPY "):
+                    for path in line.split()[1:-1]:
+                        changed = path + "/changed.py" if (ROOT / path).is_dir() else path
+                        with self.subTest(recipe=recipe.name, changed=changed):
+                            self.assertTrue(image_inputs(changed)[0])
+        self.assertEqual(image_inputs("media/config.py")[1], {"media"})
+        self.assertEqual(image_inputs("processing/config.py")[1], {"processing"})
+        self.assertEqual(image_inputs("runtime_support/config.py")[1], {"media", "processing"})
+        self.assertFalse(image_inputs("tests/v1/test_config.py")[0])
+
+    def test_event_table_and_exact_manual_source(self):
+        event = {"pull_request": {"base": {"ref": "dev/v1-integration", "sha": "base"}}}
+        self.assertEqual(event_selection("pull_request", event, SHA)[::2], (False, "base"))
+        for base in ["Main", "other", None]:
+            event["pull_request"]["base"]["ref"] = base
+            self.assertTrue(event_selection("pull_request", event, SHA)[0])
+        self.assertTrue(event_selection("pull_request", {}, SHA)[0])
+        for event_name in ["push", "schedule", "unknown_event"]:
+            self.assertTrue(event_selection(event_name, {}, SHA)[0])
+        self.assertTrue(event_selection("workflow_dispatch", {}, SHA, SHA)[0])
+        for candidate in ["", "Main", "b" * 40, SHA[:7]]:
+            with self.subTest(candidate=candidate), self.assertRaises(ValueError):
+                event_selection("workflow_dispatch", {}, SHA, candidate)
+
+
+class GateTests(unittest.TestCase):
+    def test_selected_success_and_expected_skips(self):
+        for paths in [[], ["docs/project2-worklog.txt"], ["media/config.py"], ["frontend/app.js"]]:
+            plan = classify(paths)
+            self.assertEqual(validate_gate(plan, results(plan), "dev"), [])
+
+    def test_selected_failure_cancellation_skip_missing_and_unknown(self):
+        plan = classify(["media/config.py"])
+        for status in ["failure", "cancelled", "skipped", "missing", "unknown"]:
+            needs = results(plan)
+            needs["media-integration"] = {"result": status}
+            self.assertTrue(validate_gate(plan, needs, "dev"))
+        needs = results(plan)
+        del needs["v1-local"]
+        self.assertTrue(validate_gate(plan, needs, "dev"))
+
+    def test_unselected_job_cannot_cancel_fail_or_run_unexpectedly(self):
+        plan = classify(["docs/project2-worklog.txt"])
+        for status in ["failure", "cancelled", "success"]:
+            needs = results(plan)
+            needs["browser-trust"] = {"result": status}
+            self.assertTrue(validate_gate(plan, needs, "dev"))
+
+    def test_docs_selected_failure_is_not_hidden_by_skips(self):
+        plan = classify(["docs/execution/aws/v1/backlog.json"])
+        needs = results(plan)
+        needs["planning"]["result"] = "failure"
+        self.assertTrue(validate_gate(plan, needs, "dev"))
+        needs = results(plan)
+        needs["classify"]["result"] = "cancelled"
+        self.assertTrue(validate_gate(plan, needs, "dev"))
+
+    def test_full_every_requested_job_is_required(self):
+        plan = classify([], full=True)
+        self.assertEqual(validate_gate(plan, results(plan, "full"), "full"), [])
+        for job in expected_jobs(plan, "full"):
+            for status in ["failure", "cancelled", "skipped"]:
+                with self.subTest(job=job, status=status):
+                    needs = results(plan, "full")
+                    needs[job]["result"] = status
+                    self.assertTrue(validate_gate(plan, needs, "full"))
+        self.assertIn("frontend", expected_jobs(plan, "full"))
+        self.assertIn("security", expected_jobs(plan, "full"))
+        self.assertIn("dast", expected_jobs(plan, "full"))
+        self.assertNotIn("security", expected_jobs(plan, "dev"))
+
+    def test_invalid_full_plan_fails_closed(self):
+        plan = classify([], full=True)
+        plan["selected"]["images"] = False
+        with self.assertRaises(ValueError):
+            expected_jobs(plan, "full")
+        plan = classify([])
+        plan["selected"]["v1_live"] = "false"
+        with self.assertRaises(ValueError):
+            expected_jobs(plan, "dev")
+
+
+class SourceTests(unittest.TestCase):
+    def test_rename_delete_and_tested_merge_diff(self):
+        with tempfile.TemporaryDirectory() as directory:
+
+            def command(*args):
+                return subprocess.check_output(["git", "-C", directory, *args], text=True).strip()
+
+            command("init", "-q", "-b", "base")
+            command("config", "user.email", "ci@example.invalid")
+            command("config", "user.name", "CI test")
+            command("config", "merge.directoryRenames", "false")
+            root = Path(directory)
+            (root / "docs").mkdir()
+            (root / "media").mkdir()
+            (root / "docs/note.txt").write_text("rename me")
+            (root / "media/delete.py").write_text("deleted")
+            command("add", ".")
+            command("commit", "-qm", "base")
+            command("checkout", "-qb", "candidate")
+            (root / "processing").mkdir()
+            command("mv", "docs/note.txt", "processing/new.py")
+            command("rm", "media/delete.py")
+            command("commit", "-qm", "candidate")
+            command("checkout", "base")
+            (root / "docs/base-only.txt").write_text("unrelated base change")
+            command("add", ".")
+            command("commit", "-qm", "base moved")
+            base = command("rev-parse", "HEAD")
+            command("merge", "--no-ff", "candidate", "-m", "tested merge")
+            candidate = command("rev-parse", "HEAD")
+            previous = Path.cwd()
+            try:
+                os.chdir(directory)
+                paths = changed_paths(base, candidate)
+            finally:
+                os.chdir(previous)
+            self.assertEqual(set(paths), {"docs/note.txt", "processing/new.py", "media/delete.py"})
+            selected = classify(paths)["selected"]
+            self.assertTrue(selected["processing-intake"])
+            self.assertTrue(selected["media-integration"])
+
+    def test_cli_missing_diff_is_full_and_checkout_mismatch_fails(self):
+        from scripts.ci.policy import main
+
+        with tempfile.TemporaryDirectory() as directory:
+            event = Path(directory) / "event.json"
+            event.write_text(
+                json.dumps(
+                    {
+                        "pull_request": {
+                            "base": {"ref": "dev/v1-integration", "sha": "unreadable-base"}
+                        }
+                    }
+                )
+            )
+            output = Path(directory) / "output"
+            env = {
+                "GITHUB_EVENT_NAME": "pull_request",
+                "GITHUB_EVENT_PATH": str(event),
+                "GITHUB_SHA": SHA,
+                "GITHUB_OUTPUT": str(output),
+            }
+            with patch.dict(os.environ, env), patch.object(sys, "argv", ["policy", "classify"]):
+                with patch("scripts.ci.policy.git", return_value=(SHA + "\n").encode()):
+                    with patch(
+                        "scripts.ci.policy.changed_paths",
+                        side_effect=subprocess.CalledProcessError(1, "git"),
+                    ):
+                        with patch("builtins.print"):
+                            main()
+                self.assertIn("mode=full", output.read_text())
+                with patch("scripts.ci.policy.git", return_value=b"wrong-source\n"):
+                    with self.assertRaisesRegex(SystemExit, "mixed-source"):
+                        main()
+
+
+class FullCoverageTests(unittest.TestCase):
+    def test_every_mandatory_fragment_and_metadata_remain_required(self):
+        # Execute the real gate's evidence validation without importing app dependencies.
+        source = ast.parse((ROOT / "scripts/dev/coverage.py").read_text())
+        function = next(
+            node
+            for node in source.body
+            if isinstance(node, ast.FunctionDef) and node.name == "main"
+        )
+        import argparse
+
+        namespace = {
+            "argparse": argparse,
+            "Path": Path,
+            "json": json,
+            "fingerprint": lambda: "same",
+            "packages": lambda: ["media"],
+        }
+        exec(
+            compile(ast.Module(body=[function], type_ignores=[]), "coverage-evidence-gate", "exec"),
+            namespace,
+        )
+        tiers = [
+            "fast",
+            "legacy-integration",
+            "processing-integration",
+            "media-integration",
+            "v1-integration",
+        ]
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        for tier in tiers:
+            self.assertIn(f"artifacts/coverage/.coverage.{tier}", workflow)
+        with tempfile.TemporaryDirectory() as directory:
+            paths = [Path(directory) / (".coverage." + tier) for tier in tiers]
+            args = ["coverage"] + [value for path in paths for value in ("--data", str(path))]
+            for missing in paths:
+                for metadata_missing in (False, True):
+                    for path, tier in zip(paths, tiers, strict=True):
+                        path.write_text("placeholder")
+                        Path(str(path) + ".json").write_text(
+                            json.dumps({"tier": tier, "fingerprint": "same"})
+                        )
+                    Path(str(missing) + ".json" if metadata_missing else missing).unlink()
+                    with self.subTest(missing=missing.name, metadata=metadata_missing):
+                        with (
+                            patch.object(sys, "argv", args),
+                            self.assertRaisesRegex(SystemExit, "Missing coverage evidence"),
+                        ):
+                            namespace["main"]()
+
+
+if __name__ == "__main__":
+    unittest.main()
