@@ -1,7 +1,7 @@
 name: V1 Redis-free local verification
 
 # ci.yml calls this workflow so one run produces the V1 coverage tier its combined gate
-# needs. Run it alone with workflow_dispatch to rehearse a single flow.
+# needs. Dispatch defaults to all offline/live checks; images remain an explicit choice.
 on:
   workflow_call:
     inputs:
@@ -9,6 +9,18 @@ on:
         description: a=dependencies/engine, b=clients, c=release/session, all=every flow
         type: string
         default: all
+      run_offline:
+        description: run the untraced offline control-plane and operational checks
+        type: boolean
+        default: true
+      run_live:
+        description: run real local acceptance with browser and source-bound coverage
+        type: boolean
+        default: true
+      auto_images:
+        description: select images from changed build inputs when not forced
+        type: boolean
+        default: true
       images:
         description: also build and verify the three amd64 images (slow)
         type: boolean
@@ -20,6 +32,14 @@ on:
         type: choice
         options: [all, a, b, c]
         default: all
+      run_offline:
+        description: run offline checks (required for complete local verification)
+        type: boolean
+        default: true
+      run_live:
+        description: run live checks (required for complete local verification)
+        type: boolean
+        default: true
       images:
         description: also build and verify the three amd64 images (slow)
         type: boolean
@@ -29,8 +49,51 @@ permissions:
   contents: read
 
 jobs:
+  v1-offline:
+    name: V1 offline control-plane and operational checks
+    if: ${{ inputs.run_offline }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.17'
+          enable-cache: true
+          cache-local-path: .cache/uv
+          cache-dependency-glob: uv.lock
+      - name: Install locked V1 checks and isolated lint tools (no legacy extra)
+        run: |
+          uv sync --locked --extra dev
+          # Keep the linter separate: its PyYAML must not leak into the no-legacy suite.
+          uv venv .cache/v1-cfn-lint
+          uv pip install --python .cache/v1-cfn-lint/bin/python 'cfn-lint==1.57.2'
+          # The offline suite's real-linter regression must execute, not skip.
+          echo "$PWD/.cache/v1-cfn-lint/bin" >> "$GITHUB_PATH"
+      - name: Lint the V1 template (render, snapshot freshness, cfn-lint required)
+        run: make lint-cfn CFN_LINT_ARGS=--require
+      - name: Lint the V1 control scripts and tests
+        run: .venv/bin/ruff check scripts/aws/v1 scripts/dev tests/v1
+      # coverage-fast excludes unmeasured tests; these untraced invocations are required.
+      - name: Offline AWS control-plane suite for the no-legacy environment (network guarded)
+        run: make test-aws-v1
+      # This test is deliberately integration-marked, but generates request shapes offline.
+      - name: Request shapes against the installed AWS CLI's offline skeletons
+        run: |
+          command -v aws
+          .venv/bin/python -m pytest tests/aws/v1/test_deploy.py -k skeleton -q \
+            -p scripts.dev.pytest_plugin --require-integration
+      - name: Offline V1 operational contracts (network guarded)
+        run: make test-v1
+
   v1-local:
     name: V1 local flows, browser leg and coverage
+    if: ${{ inputs.run_live }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -63,22 +126,10 @@ jobs:
           uv sync --locked --extra dev --extra browser
           uv venv .cache/v1-moto
           uv pip install --python "$V1_MOTO_PYTHON" 'moto[server]==5.2.4'
-          # Lint-only tool, installed after the locked sync and deliberately not in uv.lock.
-          uv pip install --python .venv/bin/python 'cfn-lint==1.57.2'
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg
           # Disposable runner only: browser system libraries need root.
           .venv/bin/python -m playwright install --with-deps chromium
-      - name: Lint the V1 template (render, snapshot freshness, cfn-lint required)
-        run: make lint-cfn CFN_LINT_ARGS=--require
-      - name: Lint the V1 control scripts and tests
-        run: .venv/bin/ruff check scripts/aws/v1 scripts/dev tests/v1
-      - name: Offline AWS control-plane suite for the no-legacy environment (network guarded)
-        run: make test-aws-v1
-      - name: Request shapes against the installed AWS CLI's offline skeletons
-        run: .venv/bin/python -m pytest tests/aws/v1/test_deploy.py -k skeleton -q
-      - name: Offline V1 operational contracts (network guarded)
-        run: make test-v1
       - name: Start unique PostgreSQL and loopback Moto
         run: make v1-up
       - name: Execute the selected flows against the real PostgreSQL and FFmpeg stack
@@ -133,11 +184,11 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # Decides whether the slow image job below must run on its own. A dispatch with
-  # images=true always runs it; otherwise it runs when a change can alter what is in the
-  # images or what the verifier sees (#134: a handler change broke 4 checks and nothing ran).
+  # Callers can provide their own classifier with auto_images=false. Standalone dispatch
+  # has no auto_images input and leaves images explicit; an unknown automatic diff builds.
   image-paths:
     name: V1 image-affecting paths changed
+    if: ${{ inputs.auto_images && !inputs.images }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
@@ -151,38 +202,14 @@ jobs:
           EVENT: ${{ github.event_name }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PUSH_BEFORE: ${{ github.event.before }}
-        run: |
-          set -euo pipefail
-          case "$EVENT" in
-            pull_request*) base="$PR_BASE" ;;
-            push) base="$PUSH_BEFORE" ;;
-            *) base="" ;;
-          esac
-          changed=false
-          if [ -z "$base" ]; then
-            # Only an explicit images=true dispatch builds without a diff to look at.
-            changed=false
-          elif [ -z "${base//0/}" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
-            # A new branch push has an all-zero "before"; an unknown base is treated as changed.
-            changed=true
-          else
-            while IFS= read -r file; do
-              case "$file" in
-                deploy/v1/*|deploy/aws/v1/*|media/handlers.py|processing/handlers.py) changed=true ;;
-                */lambda_handler.py|processing/worker/*|runtime_support/*) changed=true ;;
-                pyproject.toml|uv.lock) changed=true ;;
-              esac
-            done < <(git diff --name-only "$base" HEAD)
-          fi
-          echo "changed=$changed" >> "$GITHUB_OUTPUT"
-          echo "image-affecting paths changed: $changed"
+        run: python3 -m scripts.ci.v1 images
 
   # Native amd64 builds plus handler runs under the Lambda Runtime Interface Emulator.
   # Local evidence only; it never contacts a registry or AWS.
   images:
     name: V1 image build and verification
     needs: image-paths
-    if: ${{ inputs.images || needs.image-paths.outputs.changed == 'true' }}
+    if: ${{ !cancelled() && (inputs.images || (inputs.auto_images && (needs.image-paths.result != 'success' || needs.image-paths.outputs.changed == 'true'))) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -199,3 +226,20 @@ jobs:
           path: docs/execution/aws/v1/evidence/local-images-*.json
           if-no-files-found: warn
           retention-days: 14
+
+  v1-result:
+    name: V1 requested checks
+    if: always()
+    needs: [v1-offline, v1-local, image-paths, images]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject failures and unexpected skips in requested V1 jobs
+        env:
+          RUN_OFFLINE: ${{ inputs.run_offline }}
+          RUN_LIVE: ${{ inputs.run_live }}
+          IMAGES: ${{ inputs.images }}
+          AUTO_IMAGES: ${{ inputs.auto_images }}
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: python3 -m scripts.ci.v1 gate
