@@ -158,6 +158,14 @@ jobs:
         if: env.CD_OPERATION == 'preflight'
         run: scripts/ci/cd.sh preflight
 
+      # The smoke generates its 3 s clip with ffmpeg, which the ubuntu-latest image does not ship
+      # (first real deploy, r1018a: "ffmpeg: command not found" after a good deploy).
+      - name: Install ffmpeg for the smoke clip
+        if: (env.CD_OPERATION == 'deploy' || env.CD_OPERATION == 'release') && env.CD_EXECUTE == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
       - name: Deploy
         id: deploy
         if: env.CD_OPERATION == 'deploy'
