@@ -28,6 +28,14 @@
       "Type": "String",
       "AllowedPattern": "https://[a-zA-Z0-9.-]+"
     },
+    "UnattendedLaunch": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ]
+    },
     "MediaImageUri": {
       "Type": "String",
       "Default": "",
@@ -98,6 +106,10 @@
     "ProcessingS3EventsHandler": {
       "Type": "String",
       "Default": "processing.handlers.s3_handler"
+    },
+    "ProcessingLauncherHandler": {
+      "Type": "String",
+      "Default": "processing.handlers.launcher_handler"
     }
   },
   "Conditions": {
@@ -107,6 +119,21 @@
           "Ref": "DeployApplications"
         },
         "true"
+      ]
+    },
+    "Unattended": {
+      "Fn::And": [
+        {
+          "Condition": "Applications"
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "UnattendedLaunch"
+            },
+            "true"
+          ]
+        }
       ]
     }
   },
@@ -2685,6 +2712,197 @@
       },
       "Condition": "Applications"
     },
+    "ProcessingLauncherLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/dc2/${EnvironmentId}/ProcessingLauncher"
+        },
+        "RetentionInDays": 7
+      },
+      "Condition": "Unattended"
+    },
+    "ProcessingLauncherRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "owned-runtime",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecs:RunTask"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EnvironmentId}-worker:*"
+                    }
+                  ],
+                  "Condition": {
+                    "ArnEquals": {
+                      "ecs:cluster": {
+                        "Fn::GetAtt": [
+                          "Cluster",
+                          "Arn"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "iam:PassRole"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "WorkerRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "WorkerExecutionRole",
+                        "Arn"
+                      ]
+                    }
+                  ],
+                  "Condition": {
+                    "StringEquals": {
+                      "iam:PassedToService": "ecs-tasks.amazonaws.com"
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecs:ListTasks"
+                  ],
+                  "Resource": [
+                    "*"
+                  ],
+                  "Condition": {
+                    "ArnEquals": {
+                      "ecs:cluster": {
+                        "Fn::GetAtt": [
+                          "Cluster",
+                          "Arn"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecs:DescribeTasks"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task/${Cluster}/*"
+                    }
+                  ],
+                  "Condition": {
+                    "ArnEquals": {
+                      "ecs:cluster": {
+                        "Fn::GetAtt": [
+                          "Cluster",
+                          "Arn"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sqs:GetQueueAttributes"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingWorkQueue",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssm:GetParameter",
+                    "ssm:GetParameters"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "ProcessingRuntimeDsnParameterArn"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "ProcessingLauncherLogGroup",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:CreateNetworkInterface",
+                    "ec2:DescribeNetworkInterfaces",
+                    "ec2:DescribeSubnets",
+                    "ec2:DeleteNetworkInterface",
+                    "ec2:AssignPrivateIpAddresses",
+                    "ec2:UnassignPrivateIpAddresses"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          }
+        ]
+      },
+      "Condition": "Unattended"
+    },
     "WorkerRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -4365,6 +4583,159 @@
       },
       "Condition": "Applications"
     },
+    "ProcessingLauncher": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "PackageType": "Image",
+        "Code": {
+          "ImageUri": {
+            "Ref": "ProcessingImageUri"
+          }
+        },
+        "ImageConfig": {
+          "Command": [
+            {
+              "Ref": "ProcessingLauncherHandler"
+            }
+          ]
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "ProcessingLauncherRole",
+            "Arn"
+          ]
+        },
+        "Timeout": 30,
+        "MemorySize": 512,
+        "Architectures": [
+          "x86_64"
+        ],
+        "Environment": {
+          "Variables": {
+            "AWS_USE_DUALSTACK_ENDPOINT": "true",
+            "AWS_RETRY_MODE": "standard",
+            "AWS_MAX_ATTEMPTS": "3",
+            "PROCESSING_COMMANDS_QUEUE_URL": {
+              "Ref": "ProcessingCommandsQueue"
+            },
+            "PROCESSING_WORK_QUEUE_URL": {
+              "Ref": "ProcessingWorkQueue"
+            },
+            "MEDIA_RESULTS_QUEUE_URL": {
+              "Ref": "MediaResultsQueue"
+            },
+            "DC2_RUNTIME": "v1",
+            "DB_SSL_CA_FILE": "/opt/rds/global-bundle.pem",
+            "PROCESSING_POSTGRES_DSN_PARAMETER_ARN": {
+              "Ref": "ProcessingRuntimeDsnParameterArn"
+            },
+            "PROCESSING_STORAGE_CREDENTIAL_MODE": "lambda",
+            "PROCESSING_RUNTIME_MODE": "lambda",
+            "PROCESSING_DATABASE_TLS": "true",
+            "PROCESSING_DATABASE_CA_FILE": "/opt/rds/global-bundle.pem",
+            "PROCESSING_MINIO_ENDPOINT": {
+              "Fn::Sub": "s3.${AWS::Region}.amazonaws.com"
+            },
+            "PROCESSING_MINIO_USE_SSL": "true",
+            "PROCESSING_MINIO_REGION": {
+              "Ref": "AWS::Region"
+            },
+            "PROCESSING_MINIO_OUTPUT_BUCKET": {
+              "Ref": "OutputBucket"
+            },
+            "PROCESSING_LAUNCHER_CLUSTER": {
+              "Fn::GetAtt": [
+                "Cluster",
+                "Arn"
+              ]
+            },
+            "PROCESSING_LAUNCHER_TASK_DEFINITION": {
+              "Ref": "WorkerTaskDefinition"
+            },
+            "PROCESSING_LAUNCHER_SUBNETS": {
+              "Fn::Join": [
+                ",",
+                [
+                  {
+                    "Ref": "PublicASubnet"
+                  },
+                  {
+                    "Ref": "PublicBSubnet"
+                  }
+                ]
+              ]
+            },
+            "PROCESSING_LAUNCHER_SECURITY_GROUPS": {
+              "Ref": "WorkerSecurityGroup"
+            },
+            "PROCESSING_LAUNCHER_LIFETIME_SECONDS": {
+              "Fn::Sub": "${WorkerLifetimeSeconds}"
+            },
+            "PROCESSING_LAUNCHER_CAP": "3"
+          }
+        },
+        "VpcConfig": {
+          "SubnetIds": [
+            {
+              "Ref": "PrivateASubnet"
+            },
+            {
+              "Ref": "PrivateBSubnet"
+            }
+          ],
+          "SecurityGroupIds": [
+            {
+              "Ref": "LambdaSecurityGroup"
+            }
+          ],
+          "Ipv6AllowedForDualStack": true
+        },
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "ProcessingLauncherLogGroup"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          }
+        ]
+      },
+      "Condition": "Unattended"
+    },
+    "ProcessingLauncherVersion": {
+      "Type": "AWS::Lambda::Version",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ProcessingLauncher"
+        },
+        "Description": "V1 initial Processing artifact"
+      },
+      "Condition": "Unattended"
+    },
+    "ProcessingLauncherAlias": {
+      "Type": "AWS::Lambda::Alias",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ProcessingLauncher"
+        },
+        "FunctionVersion": {
+          "Fn::GetAtt": [
+            "ProcessingLauncherVersion",
+            "Version"
+          ]
+        },
+        "Name": "live"
+      },
+      "Condition": "Unattended"
+    },
     "ProcessingCommandsMapping": {
       "Type": "AWS::Lambda::EventSourceMapping",
       "Properties": {
@@ -5217,6 +5588,46 @@
         }
       },
       "Condition": "Applications"
+    },
+    "ProcessingLauncherRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "State": "DISABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Ref": "ProcessingLauncherAlias"
+            },
+            "Id": "ProcessingLauncher",
+            "RetryPolicy": {
+              "MaximumEventAgeInSeconds": 60,
+              "MaximumRetryAttempts": 0
+            }
+          }
+        ],
+        "ScheduleExpression": "rate(1 minute)"
+      },
+      "Condition": "Unattended"
+    },
+    "ProcessingLauncherEventPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ProcessingLauncherAlias"
+        },
+        "Principal": "events.amazonaws.com",
+        "Action": "lambda:InvokeFunction",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "ProcessingLauncherRule",
+            "Arn"
+          ]
+        },
+        "SourceAccount": {
+          "Ref": "AWS::AccountId"
+        }
+      },
+      "Condition": "Unattended"
     },
     "TaskLogGroup": {
       "Type": "AWS::Logs::LogGroup",
@@ -6490,6 +6901,18 @@
         "Ref": "ProcessingS3EventsAlias"
       }
     },
+    "ProcessingLauncherFunctionName": {
+      "Condition": "Unattended",
+      "Value": {
+        "Ref": "ProcessingLauncher"
+      }
+    },
+    "ProcessingLauncherAliasArn": {
+      "Condition": "Unattended",
+      "Value": {
+        "Ref": "ProcessingLauncherAlias"
+      }
+    },
     "WorkerTaskDefinitionArn": {
       "Condition": "Applications",
       "Value": {
@@ -6548,6 +6971,12 @@
       "Condition": "Applications",
       "Value": {
         "Ref": "ProcessingS3EventsRule"
+      }
+    },
+    "ProcessingLauncherRuleName": {
+      "Condition": "Unattended",
+      "Value": {
+        "Ref": "ProcessingLauncherRule"
       }
     },
     "HttpApiId": {

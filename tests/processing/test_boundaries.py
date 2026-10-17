@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from processing.config import Settings, get_settings
 from processing.database import Base
+from processing.launcher_models import LauncherControl, LaunchReservation
 from processing.messaging_models import (
     AttemptTask,
     JobMessaging,
@@ -60,6 +61,8 @@ def test_models_have_only_processing_tables_and_foreign_keys():
         "message_outbox",
         "job_messaging",
         "attempt_tasks",
+        "launcher_control",  # opt-in unattended launcher (#68): Processing-owned, no foreign keys
+        "launch_reservations",
     }
     assert all(
         model.metadata is Base.metadata
@@ -71,6 +74,8 @@ def test_models_have_only_processing_tables_and_foreign_keys():
             ProcessingInbox,
             ProcessingOutbox,
             AttemptTask,
+            LauncherControl,
+            LaunchReservation,
         )
     )
     for table in Base.metadata.tables.values():

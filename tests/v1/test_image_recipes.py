@@ -91,7 +91,7 @@ def test_lambda_images_use_the_runtime_client_and_precompile_bytecode(owner):
 
 def test_template_handlers_resolve_to_callables_in_the_owning_source():
     functions, _ = load_verifier().template_contract()
-    assert len(functions) == 9
+    assert len(functions) == 10  # nine V1 handlers plus the opt-in launcher (#68)
     for name, function in functions.items():
         module, _, attribute = function["handler"].rpartition(".")
         path = ROOT / (module.replace(".", "/") + ".py")

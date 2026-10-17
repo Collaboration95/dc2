@@ -1,9 +1,10 @@
 """CLI for booked V1 sessions: python -m scripts.aws.v1.session ACTION --profile P --region R.
 
 Actions: init (one-time private journal), open, window (public API only, for release
-smoke tests), close, batch, status. Live runs need an
-explicit --profile, --region and --account; --dry-run prints the calls that would be
-made against an offline simulation and touches neither AWS nor the real journal.
+smoke tests), close, batch, status. `open --unattended` additionally opts the session into the
+V2 unattended launcher (#68) until --minutes from now; `close` always switches it off first.
+Live runs need an explicit --profile, --region and --account; --dry-run prints the calls
+that would be made against an offline simulation and touches neither AWS nor the real journal.
 """
 
 import argparse
@@ -15,7 +16,13 @@ import time
 from scripts.aws.journal import Journal
 from scripts.aws.transport import OperationError
 from scripts.aws.v1 import operations
-from scripts.aws.v1.hooks import AttemptCounts, OwnerHooks, file_reader, sql_reader
+from scripts.aws.v1.hooks import (
+    AttemptCounts,
+    LauncherHooks,
+    OwnerHooks,
+    file_reader,
+    sql_reader,
+)
 from scripts.aws.v1.session import Session
 
 ZERO = dict.fromkeys(("queued", "processing", "succeeded", "failed", "abandoned", "cancelled"), 0)
@@ -38,17 +45,26 @@ def build_hooks(data, hook_names, transport, *, dry_run):
 def run_action(args, session, data, hook_names, transport, deadline):
     owner, counts = build_hooks(data, hook_names, transport, dry_run=args.dry_run)
     if args.action in {"open", "window"}:
+        unattended = args.action == "open" and args.unattended
         return session.open(
             ready=owner.ready,
             repair=owner.repair,
             intake_ready=owner.intake_ready,
             deadline=deadline,
             window=args.action == "window",
+            launcher=LauncherHooks(owner) if unattended else None,
+            launcher_session_end=time.time() + 60 * args.minutes if unattended else None,
         )
     if args.action == "close":
         if counts is None:
             raise OperationError("Close needs SQL or operator counts (config sql/counts_file)")
-        return session.close(drain=counts.drain, outcomes=counts.outcomes, deadline=deadline)
+        return session.close(
+            drain=counts.drain,
+            outcomes=counts.outcomes,
+            deadline=deadline,
+            # Whenever the stack has a launcher, close disables its flag, not only its rule.
+            launcher=LauncherHooks(owner) if session.config.get("launcher") else None,
+        )
     if args.action == "status":
         return session.status(deadline=deadline)
     session.config["session_end_epoch"] = time.time() + 60 * args.minutes
@@ -91,7 +107,12 @@ def main(argv=None, *, environ=None, transport_factory=None, sqs_factory=None, s
     parser.add_argument("action", choices=actions)
     parser.add_argument("--config", required=True)
     parser.add_argument("--count", type=int, default=1, help="batch: encoder tasks (1..3)")
-    parser.add_argument("--minutes", type=int, default=60, help="batch: session end horizon")
+    parser.add_argument(
+        "--minutes", type=int, default=60, help="batch / open --unattended: session end horizon"
+    )
+    parser.add_argument(
+        "--unattended", action="store_true", help="open: let the launcher start encoders (V2)"
+    )
     parser.add_argument("--queue", choices=operations.QUEUES, help="dlq: which queue's DLQ")
     parser.add_argument("--dlq-command", choices=["inspect", "status", "redrive"], default="status")
     parser.add_argument("--limit", type=int, default=10, help="dlq inspect: messages (1..50)")
@@ -100,6 +121,8 @@ def main(argv=None, *, environ=None, transport_factory=None, sqs_factory=None, s
     parser.add_argument("--confirm-exclusive", action="store_true", help="init: sole station")
     operations.add_scope_arguments(parser)
     args = parser.parse_args(argv)
+    if args.unattended and args.action != "open":
+        parser.error("--unattended applies to `open` only")
     scope = operations.resolve_scope(parser, args, environ)
     plan = holder = None
     try:

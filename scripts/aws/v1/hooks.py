@@ -37,12 +37,14 @@ class OwnerHooks:
         sleep=time.sleep,
         poll_seconds=5,
         repair_rounds=3,
+        launcher=None,
     ):
         if not processing_api or not media_api or not repairs:
             raise OperationError("Readiness functions and repair functions are required")
         self.transport, self.qualifier = transport, qualifier
         self.processing_api, self.media_api = processing_api, media_api
         self.repairs = list(repairs)
+        self.launcher = launcher
         self.clock, self.sleep = clock, sleep
         self.poll_seconds, self.repair_rounds = poll_seconds, repair_rounds
 
@@ -111,6 +113,52 @@ class OwnerHooks:
             if clean:
                 return True
         return False
+
+
+class LauncherHooks:
+    """Control events for the opt-in unattended launcher (#68), by alias invocation.
+
+    The SQL flag is the authoritative interlock; the schedule rule is the second one. These
+    hooks only flip and read the flag, so the operator needs no database credential for it.
+    """
+
+    def __init__(self, owner, *, clock=time.monotonic, sleep=time.sleep, poll_seconds=5):
+        if not owner.launcher:
+            raise OperationError("This stack was not deployed with UnattendedLaunch=true")
+        self.owner, self.clock, self.sleep, self.poll_seconds = owner, clock, sleep, poll_seconds
+
+    def _control(self, action, deadline, **fields):
+        event = {"dc2_operation": "launcher", "action": action, **fields}
+        result = self.owner._invoke(self.owner.launcher, event, deadline)
+        reply = result.get("Payload")
+        if (
+            result.get("FunctionError")
+            or result.get("StatusCode") != 200
+            or not isinstance(reply, dict)
+            or reply.get("service") != "processing-launcher"
+            or reply.get("action") != action
+        ):
+            raise OperationError("Launcher control did not confirm")
+        return reply
+
+    def enable(self, *, session_end_epoch, deadline):
+        reply = self._control("enable", deadline, session_end_epoch=session_end_epoch)
+        return reply.get("enabled") is True
+
+    def disable(self, *, deadline):
+        """Returns only after SQL says no send is in flight and none can start."""
+        return self._control("disable", deadline).get("enabled") is False
+
+    def settle(self, *, deadline):
+        """True once no reservation is ambiguous (each is found, replayed away or released)."""
+        while True:
+            reply = self._control("settle", deadline)
+            if type(reply.get("ambiguous")) is int and reply["ambiguous"] == 0:
+                return True
+            try:
+                self.sleep(min(self.poll_seconds, remaining(deadline, self.clock)))
+            except OperationError:
+                return False
 
 
 def validated_counts(raw):

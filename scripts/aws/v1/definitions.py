@@ -5,6 +5,9 @@ import json
 from pathlib import Path
 
 RDS_CA_BUNDLE = "/opt/rds/global-bundle.pem"
+# Opt-in V2 experiment (#68). Every resource whose name starts with this exists only when the
+# stack is deployed with UnattendedLaunch=true, so the default V1 stack gains nothing.
+LAUNCHER = "ProcessingLauncher"
 
 
 def ref(name):
@@ -63,6 +66,11 @@ def template():
             "MaxValue": 3600,
         },
         "SourceCorsOrigin": {"Type": "String", "AllowedPattern": "https://[a-zA-Z0-9.-]+"},
+        "UnattendedLaunch": {
+            "Type": "String",
+            "Default": "false",
+            "AllowedValues": ["true", "false"],
+        },
     }
     for domain in ("Media", "Processing", "Worker"):
         parameters[f"{domain}ImageUri"] = {
@@ -94,6 +102,7 @@ def template():
         "ProcessingRepair": "processing.handlers.repair_handler",
         "ProcessingEcsEvents": "processing.handlers.ecs_handler",
         "ProcessingS3Events": "processing.handlers.s3_handler",
+        LAUNCHER: "processing.handlers.launcher_handler",
     }
     for name, handler in handlers.items():
         parameters[f"{name}Handler"] = {"Type": "String", "Default": handler}
@@ -102,7 +111,7 @@ def template():
     def add(name, kind, properties, *, app=False, retain=False, depends=None):
         resource = {"Type": f"AWS::{kind}", "Properties": properties}
         if app:
-            resource["Condition"] = "Applications"
+            resource["Condition"] = "Unattended" if name.startswith(LAUNCHER) else "Applications"
         if retain:
             resource.update(DeletionPolicy="Retain", UpdateReplacePolicy="Retain")
         if depends:
@@ -510,6 +519,39 @@ def template():
             allow(["sqs:SendMessage"], [queue_arn("ProcessingWork"), queue_arn("MediaResults")]),
             *output_cleanup,
         ],
+        # Starts finite workers only: RunTask on the worker task definition family, the two
+        # roles that task passes to ECS, and read-only views of this cluster's tasks. It has
+        # no queue send/receive, no S3 and no stop/update, so a bug cannot reach beyond a
+        # bounded number of finite tasks.
+        LAUNCHER: [
+            allow(
+                ["ecs:RunTask"],
+                [
+                    sub(
+                        "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:"
+                        "task-definition/${EnvironmentId}-worker:*"
+                    )
+                ],
+                {"ArnEquals": {"ecs:cluster": attr("Cluster")}},
+            ),
+            allow(
+                ["iam:PassRole"],
+                [attr("WorkerRole"), attr("WorkerExecutionRole")],
+                {"StringEquals": {"iam:PassedToService": "ecs-tasks.amazonaws.com"}},
+            ),
+            allow(["ecs:ListTasks"], ["*"], {"ArnEquals": {"ecs:cluster": attr("Cluster")}}),
+            allow(
+                ["ecs:DescribeTasks"],
+                [
+                    sub(
+                        "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:"
+                        "task/${Cluster}/*"
+                    )
+                ],
+                {"ArnEquals": {"ecs:cluster": attr("Cluster")}},
+            ),
+            allow(["sqs:GetQueueAttributes"], [queue_arn("ProcessingWork")]),
+        ],
         "Worker": [
             source_read,
             output_write,
@@ -668,6 +710,17 @@ def template():
             f"{prefix}_MINIO_REGION": ref("AWS::Region"),
             f"{prefix}_MINIO_OUTPUT_BUCKET": ref("OutputBucket"),
         }
+        if name == LAUNCHER:
+            env |= {
+                "PROCESSING_LAUNCHER_CLUSTER": attr("Cluster"),
+                "PROCESSING_LAUNCHER_TASK_DEFINITION": ref("WorkerTaskDefinition"),
+                "PROCESSING_LAUNCHER_SUBNETS": {
+                    "Fn::Join": [",", [ref("PublicASubnet"), ref("PublicBSubnet")]]
+                },
+                "PROCESSING_LAUNCHER_SECURITY_GROUPS": ref("WorkerSecurityGroup"),
+                "PROCESSING_LAUNCHER_LIFETIME_SECONDS": {"Fn::Sub": "${WorkerLifetimeSeconds}"},
+                "PROCESSING_LAUNCHER_CAP": "3",
+            }
         if domain == "Media":
             env |= {
                 "MEDIA_MINIO_SOURCE_BUCKET": ref("SourceBucket"),
@@ -686,7 +739,9 @@ def template():
                 "Code": {"ImageUri": ref(f"{domain}ImageUri")},
                 "ImageConfig": {"Command": [ref(f"{name}Handler")]},
                 "Role": attr(f"{name}Role"),
-                "Timeout": 10 if name == "MediaAuthorizer" else 60,
+                # The launcher fires every minute; a timeout below that means a tick can never
+                # overlap itself, so it adds at most one to the shared Lambda concurrency.
+                "Timeout": {"MediaAuthorizer": 10, LAUNCHER: 30}.get(name, 60),
                 "MemorySize": 2048 if name.endswith("Api") else 512,
                 "Architectures": ["x86_64"],
                 "Environment": {"Variables": env},
@@ -964,7 +1019,13 @@ def template():
             "S3::BucketPolicy",
             {"Bucket": ref(f"{name}Bucket"), "PolicyDocument": policy(statements)},
         )
-    for name in ("MediaRepair", "ProcessingRepair", "ProcessingEcsEvents", "ProcessingS3Events"):
+    for name in (
+        "MediaRepair",
+        "ProcessingRepair",
+        "ProcessingEcsEvents",
+        "ProcessingS3Events",
+        LAUNCHER,
+    ):
         props = {
             "State": "DISABLED",
             "Targets": [
@@ -975,7 +1036,15 @@ def template():
                 }
             ],
         }
-        if name.endswith("Repair"):
+        if name == LAUNCHER:
+            # A late retry would only repeat work the next tick does anyway, and it could
+            # run beside that tick. The state is always DISABLED here: only a session open
+            # with --unattended enables it, and session close disables it first.
+            props["Targets"][0]["RetryPolicy"] = {
+                "MaximumEventAgeInSeconds": 60,
+                "MaximumRetryAttempts": 0,
+            }
+        if name.endswith("Repair") or name == LAUNCHER:
             props["ScheduleExpression"] = "rate(1 minute)"
         elif name == "ProcessingEcsEvents":
             props["EventPattern"] = {
@@ -1241,6 +1310,12 @@ def template():
         "Parameters": parameters,
         "Conditions": {
             "Applications": {"Fn::Equals": [ref("DeployApplications"), "true"]},
+            "Unattended": {
+                "Fn::And": [
+                    {"Condition": "Applications"},
+                    {"Fn::Equals": [ref("UnattendedLaunch"), "true"]},
+                ]
+            },
         },
         "Rules": {
             "ExplicitApplicationImages": {
@@ -1258,9 +1333,10 @@ def template():
         "Outputs": {name: {"Value": value} for name, value in outputs.items()},
     }
     for name in handlers:
-        result["Outputs"][f"{name}FunctionName"] = {"Condition": "Applications", "Value": ref(name)}
+        gate = "Unattended" if name == LAUNCHER else "Applications"
+        result["Outputs"][f"{name}FunctionName"] = {"Condition": gate, "Value": ref(name)}
         result["Outputs"][f"{name}AliasArn"] = {
-            "Condition": "Applications",
+            "Condition": gate,
             "Value": ref(f"{name}Alias"),
         }
     for name in ("Worker", "MediaMigration", "ProcessingMigration", "Bootstrap"):
@@ -1273,9 +1349,15 @@ def template():
             "Condition": "Applications",
             "Value": ref(f"{name}Mapping"),
         }
-    for name in ("MediaRepair", "ProcessingRepair", "ProcessingEcsEvents", "ProcessingS3Events"):
+    for name in (
+        "MediaRepair",
+        "ProcessingRepair",
+        "ProcessingEcsEvents",
+        "ProcessingS3Events",
+        LAUNCHER,
+    ):
         result["Outputs"][f"{name}RuleName"] = {
-            "Condition": "Applications",
+            "Condition": "Unattended" if name == LAUNCHER else "Applications",
             "Value": ref(f"{name}Rule"),
         }
     result["Outputs"]["HttpApiId"] = {"Condition": "Applications", "Value": ref("HttpApi")}

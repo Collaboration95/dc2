@@ -20,6 +20,7 @@ FIELDS = {
     "handlers",
     "aurora_engine_version",
     "worker_lifetime_seconds",
+    "unattended_launch",
 }
 PARAMETERS = {
     "media_runtime_dsn": "MediaRuntimeDsnParameterArn",
@@ -78,6 +79,11 @@ def parameters(config):
         "AuroraEngineVersion": config.get("aurora_engine_version", "16.8"),
         "WorkerLifetimeSeconds": config.get("worker_lifetime_seconds", 1800),
     }
+    if "unattended_launch" in config:
+        # Absent means the template default (false): V1 behaviour, no launcher resources.
+        if type(config["unattended_launch"]) is not bool:
+            raise ValueError("Unattended launch flag must be a JSON boolean")
+        result["UnattendedLaunch"] = str(config["unattended_launch"]).lower()
     result.update({name: arns[key] for key, name in PARAMETERS.items()})
     result.update({f"{key.title()}ImageUri": uri for key, uri in images.items()})
     handler_config = config.get("handlers", {})

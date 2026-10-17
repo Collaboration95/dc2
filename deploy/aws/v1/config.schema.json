@@ -38,6 +38,10 @@
       "type": "string",
       "pattern": "^16\\.(?:[3-9]|[1-9][0-9])$"
     },
+    "unattended_launch": {
+      "type": "boolean",
+      "description": "Opt in to the V2 unattended launcher resources; absent or false keeps V1"
+    },
     "worker_lifetime_seconds": {
       "type": "integer",
       "minimum": 60,
