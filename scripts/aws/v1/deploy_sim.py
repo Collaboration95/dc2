@@ -185,7 +185,10 @@ class SimulatedAws:
 
     def cloudformation_describe_change_set(self, payload):
         stack = self.stacks.get(payload["StackName"])
-        found = (stack or {}).get("changesets", {}).get(payload["ChangeSetName"])
+        if stack is None:  # what AWS really answers before the stack exists
+            raise self.error("cloudformation", "describe-change-set", "ValidationError",
+                             f"Stack [{payload['StackName']}] does not exist")
+        found = stack.get("changesets", {}).get(payload["ChangeSetName"])
         if found is None:
             raise self.error("cloudformation", "describe-change-set", "ChangeSetNotFound")
         return {key: found[key] for key in ("Status", "StatusReason", "ExecutionStatus", "Changes")}
@@ -477,7 +480,7 @@ class SimulatedAws:
     def rds_describe_db_instances(self, payload):
         found = self.instances.get(payload["DBInstanceIdentifier"])
         if found is None:
-            raise self.error("rds", "describe-db-instances", "DBInstanceNotFoundFault")
+            raise self.error("rds", "describe-db-instances", "DBInstanceNotFound")
         if found["status"] == "deleting":
             del self.instances[payload["DBInstanceIdentifier"]]
         return {"DBInstances": [{"DBInstanceStatus": found["status"]}]}
@@ -489,7 +492,7 @@ class SimulatedAws:
     def rds_delete_db_instance(self, payload):
         found = self.instances.get(payload["DBInstanceIdentifier"])
         if found is None:
-            raise self.error("rds", "delete-db-instance", "DBInstanceNotFoundFault")
+            raise self.error("rds", "delete-db-instance", "DBInstanceNotFound")
         found["status"] = "deleting"
         return {}
 
@@ -526,7 +529,7 @@ class SimulatedAws:
         if identifier not in table:
             raise self.error("rds", "list-tags-for-resource",
                              "DBClusterNotFoundFault" if kind == "cluster"
-                             else "DBInstanceNotFoundFault")
+                             else "DBInstanceNotFound")
         return {"TagList": [{"Key": k, "Value": v} for k, v in table[identifier]["tags"].items()]}
 
     # ---- SSM / Secrets Manager / Logs --------------------------------------------------------

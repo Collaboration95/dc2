@@ -179,6 +179,9 @@ ALLOWED = {
     "cloudwatch": {"get-metric-statistics"},
     "apigatewayv2": {"get-stage"},
 }
+# RDS answers a missing instance with the wire code DBInstanceNotFound; only the SDK exception
+# carries the Fault suffix (clusters do use DBClusterNotFoundFault). Seen on 2026-10-17.
+INSTANCE_NOT_FOUND = ("DBInstanceNotFound", "DBInstanceNotFoundFault")
 READ_PREFIXES = ("describe", "get", "list", "head", "simulate-principal-policy")
 SENSITIVE_RESULT = {("secretsmanager", "get-secret-value"), ("ecr", "get-authorization-token")}
 
@@ -833,7 +836,9 @@ class Pipeline:
             "Description": f"dc2-v1 {label} {digest[:12]}",
         }
         request.update(files or {"TemplateBody": body})
-        existing = self.aws(
+        # With no stack there is no change set to find, and AWS answers that describe with a
+        # ValidationError ("Stack ... does not exist"), not ChangeSetNotFound (2026-10-17 run).
+        existing = None if current is None else self.aws(
             "cloudformation", "describe-change-set",
             {"StackName": stack, "ChangeSetName": change_set},
             tolerate=("ChangeSetNotFound", "ChangeSetNotFoundException"))
@@ -1640,7 +1645,7 @@ class Pipeline:
             suffix = "cluster" if kind == "db_cluster" else "db"
             result = self.aws("rds", "list-tags-for-resource", {
                 "ResourceName": f"arn:aws:rds:{region}:{account}:{suffix}:{name}"},
-                tolerate=("DBClusterNotFoundFault", "DBInstanceNotFoundFault"))
+                tolerate=("DBClusterNotFoundFault", *INSTANCE_NOT_FOUND))
             return (result is not None), (result or {}).get("TagList", [])
         if kind == "log_group":
             result = self.aws("logs", "list-tags-for-resource", {
@@ -1795,10 +1800,10 @@ class Pipeline:
         snapshot = None
         for instance in self.owned_ids("db_instance"):
             self.aws("rds", "delete-db-instance", {"DBInstanceIdentifier": instance},
-                     tolerate=("DBInstanceNotFoundFault",))
+                     tolerate=INSTANCE_NOT_FOUND)
             self.poll(lambda i=instance: self._gone(
                 "rds", "describe-db-instances", {"DBInstanceIdentifier": i},
-                "DBInstanceNotFoundFault"), what=f"instance {instance} deletion", timeout=1800)
+                *INSTANCE_NOT_FOUND), what=f"instance {instance} deletion", timeout=1800)
         for cluster in self.owned_ids("db_cluster"):
             found = self.aws("rds", "describe-db-clusters", {"DBClusterIdentifier": cluster},
                              tolerate=("DBClusterNotFoundFault",))
@@ -1833,8 +1838,8 @@ class Pipeline:
         arn = f"arn:aws:rds:{self.s.region}:{self.s.account}:cluster-snapshot:{snapshot}"
         self.aws("rds", "add-tags-to-resource", {"ResourceName": arn, "Tags": self.s.tags})
 
-    def _gone(self, service, operation, payload, code):
-        return self.aws(service, operation, payload, tolerate=(code,)) is None, None
+    def _gone(self, service, operation, payload, *codes):
+        return self.aws(service, operation, payload, tolerate=codes) is None, None
 
     def td_parameters(self):
         base = f"/dc2/{self.s.env}/"

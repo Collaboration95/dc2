@@ -31,6 +31,8 @@ class FakeConnection:
         self.fail = fail
 
     async def fetchval(self, statement, value):
+        if "rolsuper" in statement:
+            return value in self.state.get("elevated", set())
         if "pg_roles" in statement:
             return value in self.state["roles"]
         if "pg_get_userbyid" in statement:
@@ -43,6 +45,11 @@ class FakeConnection:
     async def execute(self, statement):
         if self.fail:
             raise RuntimeError("fake failure")
+        # Like Aurora's rds_superuser master: these attributes are superuser-only to name.
+        if statement.startswith("ALTER ROLE") and any(
+            word in statement for word in ("SUPERUSER", "REPLICATION", "BYPASSRLS")
+        ):
+            raise PermissionError("Only roles with the SUPERUSER attribute may change it")
         self.sql.append(statement)
         fields = statement.split()
         if fields[:2] == ["CREATE", "ROLE"]:
@@ -54,8 +61,9 @@ class FakeConnection:
         self.closed = True
 
 
-async def run(private_input, *, existing=None, fail_database=None):
-    state = {"roles": set(), "databases": dict(existing or {})}
+async def run(private_input, *, existing=None, fail_database=None, elevated=()):
+    state = {"roles": set(elevated), "databases": dict(existing or {}),
+             "elevated": set(elevated)}
     connections, options = [], []
 
     async def connect(**kwargs):
@@ -148,3 +156,80 @@ def test_cli_never_echoes_private_parse_errors(monkeypatch, capsys):
     import os
 
     assert "DC2_BOOTSTRAP_INPUT_JSON" not in os.environ
+
+
+class CannotConnectNowError(Exception):
+    """Stands in for asyncpg's refusal while Aurora is still resuming."""
+
+
+class WakingDatabase:
+    def __init__(self, failures):
+        self.failures = list(failures)
+        self.calls = 0
+
+    async def connect(self, **options):
+        self.calls += 1
+        if self.failures:
+            raise self.failures.pop(0)
+        return options["database"]
+
+
+class FakeClock:
+    def __init__(self):
+        self.now = 0.0
+
+    def __call__(self):
+        return self.now
+
+    async def sleep(self, seconds):
+        self.now += seconds
+
+
+async def test_a_paused_aurora_is_given_time_to_resume_before_bootstrap_gives_up():
+    from scripts.aws.v1.bootstrap import connect_waking
+
+    database = WakingDatabase([TimeoutError(), CannotConnectNowError(), OSError()])
+    clock = FakeClock()
+    result = await connect_waking(
+        database.connect, sleep=clock.sleep, clock=clock, database="postgres")
+    assert result == "postgres"
+    assert database.calls == 4
+
+
+async def test_a_database_that_never_wakes_still_fails_within_the_deadline():
+    from scripts.aws.v1.bootstrap import connect_waking
+
+    database = WakingDatabase([TimeoutError()] * 100)
+    clock = FakeClock()
+    with pytest.raises(TimeoutError):
+        await connect_waking(
+            database.connect, deadline=150, sleep=clock.sleep, clock=clock, database="postgres")
+    assert clock.now <= 150
+
+
+async def test_a_rejected_credential_is_not_retried():
+    from scripts.aws.v1.bootstrap import connect_waking
+
+    class InvalidPasswordError(Exception):
+        pass
+
+    database = WakingDatabase([InvalidPasswordError()])
+    clock = FakeClock()
+    with pytest.raises(InvalidPasswordError):
+        await connect_waking(database.connect, sleep=clock.sleep, clock=clock, database="x")
+    assert database.calls == 1
+
+
+def test_cli_failure_names_only_the_error_class(monkeypatch, capsys):
+    from scripts.aws.v1.bootstrap import main
+
+    monkeypatch.setenv("DC2_BOOTSTRAP_INPUT_JSON", "private-value-that-is-not-json")
+    monkeypatch.setattr("sys.argv", ["bootstrap"])
+    with pytest.raises(SystemExit):
+        main()
+    assert "(JSONDecodeError)" in capsys.readouterr().err
+
+
+async def test_an_existing_elevated_role_is_refused_rather_than_altered(private_input):
+    with pytest.raises(ValueError, match="elevated"):
+        await run(private_input, elevated={"media_runtime"})
