@@ -395,21 +395,29 @@ for pair in "g1:good" "b1:bad"; do                      # <tag id>:<build>, the 
 done
 
 # e. plan.json. It asks the registry for each digest and a COMPLETE scan with no HIGH/CRITICAL
-#    finding (rerun in a minute if the scan is pending), registers one definition revision per
-#    good/bad image (the deployed definition with only the image swapped), builds the bundles and
-#    runs the release CLI's own offline gates on every image set.
+#    finding beyond the audited unfixed list (rerun in a minute if the scan is pending),
+#    registers one definition revision per good/bad image (the deployed definition with only the
+#    image swapped), builds the bundles and runs the release CLI's own offline gates on every
+#    image set.
 python -m scripts.aws.v1.evidence release-plan $S --state-dir D --run-id R --owner processing \
     --baseline-evidence "$BASE" --good-run-id g1 --good-evidence D/release/build-good.json \
     --bad-run-id b1 --bad-evidence D/release/build-bad.json \
     --tests-passed "$T" --attest-schema-unchanged \
+    --accept-unfixed docs/execution/aws/v1/scan-accepted-unfixed-20261017.json \
     --target-revision <processing revision printed by step a>   # default: this checkout's head
 ```
+
+`--accept-unfixed` is legitimate only for findings with no fixed version available (the pinned
+base's Debian packages, confirmed by an empty `apt list --upgradable`); re-check each id before
+every release and drop any that now has a fix. A fixable finding must be fixed by rebuilding, not
+accepted. Any HIGH/CRITICAL id not on the list still blocks, and the receipt records the accepted
+ids and the list's sha256 per image.
 
 What `release-plan` checks and what it only records. Checked: the baseline evidence is the build of
 the images the deploy journal recorded; the registry digest of every baseline tag equals the digest
 the deploy recorded; the stack's own migration/worker definitions still hold those digests; no good
-or bad image equals a baseline image; every scan is COMPLETE with zero HIGH/CRITICAL; the release
-gates (`validate_bundle`, digest pin, Processing worker) pass. Recorded as the operator's word:
+or bad image equals a baseline image; every scan is COMPLETE with zero HIGH/CRITICAL beyond the
+accept list; the release gates (`validate_bundle`, digest pin, Processing worker) pass. Recorded as the operator's word:
 `--tests-passed` (the source tests behind the images) and `--attest-schema-unchanged` (no image adds
 a migration beyond `--target-revision`, and both directions are compatible with it). The bundle's
 `manifest_config_id` is the local config id, because `docker push` of a local image keeps it.

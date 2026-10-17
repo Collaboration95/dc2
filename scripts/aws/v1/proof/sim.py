@@ -110,6 +110,9 @@ class SimWorld:
         # Aurora: capacity is 0.5 ACU for 5.5 minutes after the last use, then 0 (paused).
         self.last_use = None if not awake else self.clock.t
         self.registered, self.generated = 0, None
+        # ECR scan findings as (name, severity) pairs, served `scan_page` per reply with a
+        # nextToken; None keeps the counts-only reply the older harnesses use.
+        self.scan_findings, self.scan_page = None, 100
         # The opt-in Lambda short-encode lane (#93): a stack WITH it runs queued jobs in
         # invocations (two at once, like the mapping), a stack without it never does.
         self.lambda_lane, self.lambda_seconds = lambda_lane, (lambda_cold_seconds,
@@ -685,8 +688,20 @@ class SimWorld:
         if "scan-high" in self.faults:
             counts["HIGH"] = 1
         status = "IN_PROGRESS" if "scan-pending" in self.faults else "COMPLETE"
-        return {"imageId": payload["imageId"], "imageScanStatus": {"status": status},
-                "imageScanFindings": {"findingSeverityCounts": counts}}
+        if self.scan_findings is None:
+            return {"imageId": payload["imageId"], "imageScanStatus": {"status": status},
+                    "imageScanFindings": {"findingSeverityCounts": counts}}
+        counts = {}
+        for _, severity in self.scan_findings:
+            counts[severity] = counts.get(severity, 0) + 1
+        start = int(payload.get("nextToken") or 0)
+        end = start + self.scan_page
+        reply = {"imageId": payload["imageId"], "imageScanStatus": {"status": status},
+                 "imageScanFindings": {"findingSeverityCounts": counts, "findings": [
+                     {"name": n, "severity": sev} for n, sev in self.scan_findings[start:end]]}}
+        if end < len(self.scan_findings):
+            reply["nextToken"] = str(end)
+        return reply
 
     def s3api_list_object_versions(self, payload):
         job = payload["Prefix"].split("/")[1]
