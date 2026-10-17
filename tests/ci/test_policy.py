@@ -13,6 +13,7 @@ from unittest.mock import patch
 from scripts.ci.policy import (
     IMAGE_RECIPES,
     LANES,
+    SERVICE_INPUTS,
     changed_paths,
     classify,
     event_selection,
@@ -235,6 +236,93 @@ class GateTests(unittest.TestCase):
         plan["selected"]["v1_live"] = "false"
         with self.assertRaises(ValueError):
             expected_jobs(plan, "dev")
+
+
+class ServiceLaneTests(unittest.TestCase):
+    """#199: owner paths select only that owner's service job; shared inputs select both."""
+
+    def lanes(self, path):
+        plan = classify([path])
+        return {lane for lane in ("media-service", "processing-service") if plan["selected"][lane]}
+
+    def test_owner_paths_select_only_their_service(self):
+        for path, expected in [
+            ("media/api/auth.py", {"media-service"}),
+            ("tests/media/test_auth.py", {"media-service"}),
+            ("deploy/v1/media.Dockerfile", {"media-service"}),
+            ("processing/service.py", {"processing-service"}),
+            ("processing/worker/ffmpeg.py", {"processing-service"}),
+            ("processing/v1_worker.py", {"processing-service"}),
+            ("tests/processing/test_contracts.py", {"processing-service"}),
+            ("media_engine/hls.py", {"processing-service"}),
+            ("deploy/v1/worker.Dockerfile", {"processing-service"}),
+            ("deploy/v1/processing.Dockerfile", {"processing-service"}),
+            ("scripts/aws/v1/bootstrap.py", {"processing-service"}),
+        ]:
+            with self.subTest(path=path):
+                self.assertEqual(self.lanes(path), expected)
+
+    def test_shared_inputs_select_both_services(self):
+        both = {"media-service", "processing-service"}
+        for path in [
+            "contracts/v1.py",
+            "delivery/dlq.py",
+            "runtime_support/lambda_db.py",
+            "tests/contracts/test_prepared_contracts.py",
+            "deploy/v1/check_runtime.py",
+            "deploy/v1/build_and_verify.py",
+            "deploy/v1/global-bundle.pem",
+            "deploy/v1/README.md",
+            "deploy/aws/v1/template.json",
+        ]:
+            with self.subTest(path=path):
+                self.assertEqual(self.lanes(path), both)
+
+    def test_unrelated_paths_select_no_service(self):
+        for path in ["frontend/app.js", "publisher/client.py", "docs/ci/policy.md", "app/main.py"]:
+            with self.subTest(path=path):
+                self.assertEqual(self.lanes(path), set())
+
+    def test_full_mode_selects_both(self):
+        plan = classify([], full=True)
+        self.assertTrue(plan["selected"]["media-service"])
+        self.assertTrue(plan["selected"]["processing-service"])
+
+    def test_every_dockerfile_copy_source_selects_its_owner(self):
+        owners = {"media": {"media-service"}, "processing": {"processing-service"},
+                  "worker": {"processing-service"}}
+        shared = {"media-service", "processing-service"}
+        for recipe in (ROOT / "deploy/v1").glob("*.Dockerfile"):
+            owner = recipe.name.split(".")[0]
+            for line in recipe.read_text().splitlines():
+                if not line.startswith("COPY "):
+                    continue
+                for path in line.split()[1:-1]:
+                    if path in {"pyproject.toml", "uv.lock"}:
+                        continue  # dependency manifests select full verification
+                    changed = path + "/changed.py" if (ROOT / path).is_dir() else path
+                    with self.subTest(recipe=recipe.name, changed=changed):
+                        got = self.lanes(changed)
+                        self.assertTrue(owners[owner] <= got, (owners[owner], got))
+                        # A source that only this owner copies must not wake the peer.
+                        if changed.startswith((f"{owner}/", "media/", "processing/")):
+                            self.assertNotEqual(got, shared)
+
+    def test_service_inputs_name_real_files(self):
+        for lane, inputs in SERVICE_INPUTS.items():
+            for path in inputs:
+                with self.subTest(lane=lane, path=path):
+                    self.assertTrue((ROOT / path).exists(), path)
+
+    def test_secret_scan_is_required_by_both_aggregates_and_cannot_be_skipped(self):
+        for scope, mode_plan in [("dev", classify([])), ("full", classify([], full=True))]:
+            with self.subTest(scope=scope):
+                self.assertTrue(expected_jobs(mode_plan, scope)["secret-scan"])
+                self.assertEqual(validate_gate(mode_plan, results(mode_plan, scope), scope), [])
+                for status in ["failure", "cancelled", "skipped", "missing"]:
+                    needs = results(mode_plan, scope)
+                    needs["secret-scan"] = {"result": status}
+                    self.assertTrue(validate_gate(mode_plan, needs, scope), status)
 
 
 class SourceTests(unittest.TestCase):

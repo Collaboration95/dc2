@@ -55,6 +55,9 @@ selects it too.
 | `publisher/**`, `tests/publisher/**` | Python fast, Publisher HTTPS, inherited browser/CLI, V1 live |
 | `media/**`, `tests/media/**` | Python fast, Media integration, Publisher HTTPS, inherited browser/CLI, V1 offline + live |
 | `processing/**`, `tests/processing/**` | Python fast, Processing integration, inherited browser/CLI, V1 offline + live |
+| Per-service lanes (#199), independent of the rows above: `media/**`, `tests/media/**`, the Media V1 recipe | `media-service` |
+| `processing/**` (includes the finite worker), `media_engine/**`, their tests, the Processing and worker V1 recipes, `scripts/aws/v1/bootstrap.py` | `processing-service` |
+| `contracts/**`, `delivery/**`, `runtime_support/**`, their tests, `deploy/v1/check_runtime.py`, `build_and_verify.py`, `global-bundle.pem`, any other `deploy/v1/**` file, `deploy/aws/v1/template.json` | both service lanes |
 | Shared `media_engine`, `runtime_support`, `delivery`, `contracts` and their owned tests | Python fast, all three service integrations, Publisher HTTPS, inherited browser/CLI, V1 offline + live |
 | `app/**`, root `migrations/**`, root Dockerfile/alembic config, other inherited Python tests | Python fast, legacy integration, inherited browser/CLI |
 | `tests/integration/test_media_*` | Python fast, Media integration |
@@ -92,11 +95,26 @@ fingerprints and unmeasured production files remain errors in the existing
 coverage validator. The full coverage job waits for `v1-local` completion before
 reading its fragment. No production threshold is changed.
 
+## Per-service lanes and the secret scan
+
+`media-service` and `processing-service` are ordinary lanes (same selection output, `if:` and
+aggregate rules as the others). Each runs that owner's fast tests (`make test-media`;
+`make test-processing test-media-engine`), builds and verifies **only that owner's** V1 images
+with `deploy/v1/build_and_verify.py --only` (Processing's release unit is the API image and the
+finite worker image), then runs `deploy/v1/check_runtime.py` inside each built image. They do
+not replace `v1-local`, whose all-three build proves the images stay isolated from each other.
+The selection inputs are the owners' real Dockerfile COPY sources, and a test checks that. The
+mapping of those directories to owners is `.github/CODEOWNERS`.
+
+`secret-scan` (gitleaks over the full history, `.gitleaks.toml`) is not a lane: it runs on every
+event, and `ALWAYS_JOBS` in `scripts/ci/policy.py` makes both aggregates require it to succeed,
+so no path selection can skip it.
+
 ## Aggregate and reusable workflow interface
 
 `fast` waits for `classify`, `policy-checks`, `planning`, `lint-and-unit`, `frontend`,
-`legacy-integration`, `processing-intake`, `media-integration`, `publisher-https`,
-`browser-trust`, and `v1-local`. It deliberately excludes advisory scans and full
+`legacy-integration`, `processing-intake`, `media-integration`, `media-service`,
+`processing-service`, `publisher-https`, `browser-trust`, `v1-local` and `secret-scan`. It deliberately excludes advisory scans and full
 combined coverage. For every job in its scope, a selected job must be `success`
 and a deselected job must be `skipped`. Failure, cancellation, missing results,
 unknown statuses, and an unexpected skip fail. Docs-only skips cannot hide a
@@ -113,7 +131,7 @@ concurrency group has its own prefix so it cannot cancel its CI caller.
 `classify.outputs` are `mode` (`dev`/`full`), `plan` (JSON manifest), `source_sha`,
 `security_matrix` (JSON `include` matrix), `v1`, and the boolean strings
 `policy_checks`, `planning`, `lint_and_unit`, `frontend`, `legacy_integration`,
-`processing_intake`, `media_integration`, `publisher_https`, `browser_trust`,
+`processing_intake`, `media_integration`, `media_service`, `processing_service`, `publisher_https`, `browser_trust`,
 `v1_offline`, `v1_live`, `images`, `coverage_gate`, `security`, `dast`.
 `v1` is true if any V1 lane is selected. Manifest lane keys use real job IDs
 (with hyphens), apart from V1's three internal request flags.
