@@ -165,6 +165,24 @@ class WorkPump(threading.Thread):
         self.join(timeout=90)
 
 
+def segment_redirect_gap(redirects, reads):
+    """What a redirected native segment read still lacks, or None once it has happened.
+
+    Both halves are read where they happen: the Gateway bridge's list of 307 paths, and the
+    object store's list of segment GETs. The browser's own request and response events are
+    deliberately not used. Under load Playwright can report a redirect hop after the response
+    that followed it, attributed to the first request's URL, so they can disagree with what
+    actually crossed the wire at the moment a test looks.
+    """
+    redirected = [p for p in redirects if p.endswith(".ts")]
+    gaps = []
+    if not redirected:
+        gaps.append("the Gateway has not answered a segment request with a 307")
+    if not reads:
+        gaps.append("the object store has not been asked for a segment")
+    return "; ".join(gaps) or None
+
+
 def spki_pin(certificate):
     """SHA-256 of the leaf public key, so only this process trusts this one certificate."""
     public = subprocess.check_output(

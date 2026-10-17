@@ -54,6 +54,18 @@ def test_anonymous_paths_and_denial_do_not_forge_actor():
     assert gateway.invoke("GET", "/unknown", {})["statusCode"] == 404
 
 
+def test_gateway_logs_each_307_by_path_without_the_signed_query_it_carries():
+    signed = "https://127.0.0.1:9/b/seg.ts?X-Amz-Signature=secret"
+    gateway = Gateway(
+        lambda event, _: {"statusCode": 307, "headers": {"location": signed}},
+        lambda event, _: {"statusCode": 200},
+        lambda event, _: {"isAuthorized": True, "context": {}},
+    )
+    gateway.invoke("GET", "/api/media/jobs/j/hls/v0/seg00000.ts?x=1", {})
+    gateway.invoke("GET", "/api/processing/health", {})
+    assert gateway.redirects == ["/api/media/jobs/j/hls/v0/seg00000.ts"]
+
+
 # Binds a real loopback socket, which the offline-fast tier forbids.
 @pytest.mark.integration
 def test_real_http_bridge_preserves_multiple_set_cookie_and_binary_response():

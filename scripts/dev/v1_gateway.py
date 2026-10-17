@@ -23,6 +23,9 @@ class Gateway:
     def __init__(self, media, processing, authorizer):
         self.handlers = {"media": media, "processing": processing}
         self.authorizer = authorizer
+        # Paths (never queries, which carry signed URLs) of every 307 the Gateway answered.
+        # A test reads this instead of waiting on the browser's own report of the redirect.
+        self.redirects = []
 
     def invoke(self, method, target, headers, body=b""):
         parsed = urlsplit(target)
@@ -84,7 +87,10 @@ class Gateway:
             if not isinstance(actor, dict):
                 return {"statusCode": 401, "body": '{"detail":"invalid authorizer context"}'}
             context["authorizer"] = {"lambda": actor}
-        return self.handlers[owner](event, None)
+        reply = self.handlers[owner](event, None)
+        if reply.get("statusCode") == 307:
+            self.redirects.append(parsed.path)
+        return reply
 
 
 def server(gateway, *, port=0):
