@@ -177,6 +177,8 @@ def test_definitive_rejection_releases_intent(factory, tmp_path):
     [
         (["queued", "processing", "done"], "done", False),
         (["queued", "failed"], "failed", False),
+        (["accepted", "queued", "done"], "done", False),
+        (["accepted", "cancelled"], "cancelled", False),
         (["queued"] * 3, "queued", True),
         ([503] * 3, "unavailable", True),
         ([503, "done"], "done", False),

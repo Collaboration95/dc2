@@ -106,7 +106,7 @@ def execute(client, args):
             if args.command == "status" and args.wait
             else client.status(args.asset_id)
         )
-        ok = not job.get("poll_exhausted") and job["status"] != "failed"
+        ok = not job.get("poll_exhausted") and job["status"] not in {"failed", "cancelled"}
         if args.command == "output":
             ok = job["status"] == "done" and bool(job.get("output_url"))
         return {"ok": ok, "job": job}
