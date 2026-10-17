@@ -1,0 +1,130 @@
+{
+  "closes": "nothing by itself: an issue closes only when its acceptance list is met by the receipts and a reviewer accepts them",
+  "document_kind": "V1_CLOUD_PROOF_SUMMARY_REDACTED",
+  "generated_at": "2026-10-17T12:07:56Z",
+  "issues": {
+    "#63": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#64": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#65": {
+      "overall": "PARTIAL",
+      "steps": {
+        "bad-candidate-restore": {
+          "public": {
+            "reason": "no failing candidate was supplied in the release plan"
+          },
+          "seconds": 0.0,
+          "status": "NOT_RUN"
+        },
+        "baseline": {
+          "public": {
+            "owner": "media",
+            "owner_functions": 4,
+            "owner_schema_at_target": true,
+            "peer_functions": 5,
+            "pending_release": false,
+            "schema_read": true,
+            "schema_read_seconds": 54.3,
+            "schema_revision_source": "in-vpc-task"
+          },
+          "seconds": 54.732,
+          "status": "PASS"
+        },
+        "owner-isolation": {
+          "public": {
+            "peer_schema_unchanged": true,
+            "peer_unchanged_at_every_snapshot": true,
+            "schema_read_seconds": 47.9,
+            "schema_revision_source": "in-vpc-task",
+            "snapshots_compared": 4
+          },
+          "seconds": 47.909,
+          "status": "PASS"
+        },
+        "promote-good": {
+          "public": {
+            "exit_code": 0,
+            "gate_seconds": 600,
+            "operation": "promote-good",
+            "owner_versions_moved": true,
+            "peer_unchanged": true,
+            "pending_release_after": false,
+            "schema_read_seconds": 178.8,
+            "schema_reads": 4,
+            "schema_revision_source": "in-vpc-task",
+            "schema_rollback_attempted": false,
+            "seconds": 243.1,
+            "smoke": {
+              "all_passed": true,
+              "checks": {
+                "anonymous-denied": "PASS",
+                "login": "PASS",
+                "media-health": "PASS",
+                "media-jobs": "PASS",
+                "processing-health": "PASS",
+                "processing-jobs": "PASS",
+                "upload-reserve": "PASS"
+              }
+            },
+            "status": "promoted",
+            "within_gate": true
+          },
+          "seconds": 243.643,
+          "status": "PASS"
+        },
+        "rollback": {
+          "public": {
+            "exit_code": 0,
+            "gate_seconds": 600,
+            "operation": "rollback",
+            "owner_versions_moved": true,
+            "peer_unchanged": true,
+            "pending_release_after": false,
+            "schema_read_seconds": 203.0,
+            "schema_reads": 4,
+            "schema_revision_source": "in-vpc-task",
+            "schema_rollback_attempted": false,
+            "seconds": 256.9,
+            "smoke": {
+              "all_passed": true,
+              "checks": {
+                "anonymous-denied": "PASS",
+                "login": "PASS",
+                "media-health": "PASS",
+                "media-jobs": "PASS",
+                "processing-health": "PASS",
+                "processing-jobs": "PASS",
+                "upload-reserve": "PASS"
+              }
+            },
+            "status": "promoted",
+            "within_gate": true
+          },
+          "seconds": 257.344,
+          "status": "PASS"
+        }
+      }
+    },
+    "#66": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#67": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    }
+  },
+  "mode": "live",
+  "not_proven": [
+    "Invoice lines: Cost Explorer lags about a day and is an estimate, not a bill.",
+    "A rollback of a good promotion is an image rollback; no schema is reversed.",
+    "Latency was measured from a Fargate generator in the same region, not from users.",
+    "Local fakes, emulators and hosted CI are not AWS evidence and are excluded here."
+  ],
+  "run_id": "r1017bmedia"
+}
