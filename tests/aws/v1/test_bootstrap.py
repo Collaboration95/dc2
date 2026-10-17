@@ -31,6 +31,8 @@ class FakeConnection:
         self.fail = fail
 
     async def fetchval(self, statement, value):
+        if "rolsuper" in statement:
+            return value in self.state.get("elevated", set())
         if "pg_roles" in statement:
             return value in self.state["roles"]
         if "pg_get_userbyid" in statement:
@@ -43,6 +45,11 @@ class FakeConnection:
     async def execute(self, statement):
         if self.fail:
             raise RuntimeError("fake failure")
+        # Like Aurora's rds_superuser master: these attributes are superuser-only to name.
+        if statement.startswith("ALTER ROLE") and any(
+            word in statement for word in ("SUPERUSER", "REPLICATION", "BYPASSRLS")
+        ):
+            raise PermissionError("Only roles with the SUPERUSER attribute may change it")
         self.sql.append(statement)
         fields = statement.split()
         if fields[:2] == ["CREATE", "ROLE"]:
@@ -54,8 +61,9 @@ class FakeConnection:
         self.closed = True
 
 
-async def run(private_input, *, existing=None, fail_database=None):
-    state = {"roles": set(), "databases": dict(existing or {})}
+async def run(private_input, *, existing=None, fail_database=None, elevated=()):
+    state = {"roles": set(elevated), "databases": dict(existing or {}),
+             "elevated": set(elevated)}
     connections, options = [], []
 
     async def connect(**kwargs):
@@ -220,3 +228,8 @@ def test_cli_failure_names_only_the_error_class(monkeypatch, capsys):
     with pytest.raises(SystemExit):
         main()
     assert "(JSONDecodeError)" in capsys.readouterr().err
+
+
+async def test_an_existing_elevated_role_is_refused_rather_than_altered(private_input):
+    with pytest.raises(ValueError, match="elevated"):
+        await run(private_input, elevated={"media_runtime"})

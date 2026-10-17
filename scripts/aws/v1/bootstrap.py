@@ -92,10 +92,18 @@ async def bootstrap(data, ca_file, *, connect=None):
                 exists = await admin.fetchval("SELECT 1 FROM pg_roles WHERE rolname=$1", role)
                 if not exists:
                     await admin.execute(f"CREATE ROLE {role} NOLOGIN")
-                await admin.execute(
-                    f"ALTER ROLE {role} NOSUPERUSER NOCREATEDB NOCREATEROLE "
-                    "NOREPLICATION NOBYPASSRLS"
+                # Aurora's master is rds_superuser, not SUPERUSER, and PostgreSQL refuses it any
+                # ALTER that names SUPERUSER, REPLICATION or BYPASSRLS, even to the current value
+                # (the 2026-10-17 run failed here). New roles never have them, so verify instead
+                # and refuse to adopt an existing role that does.
+                elevated = await admin.fetchval(
+                    "SELECT rolsuper OR rolreplication OR rolbypassrls FROM pg_roles "
+                    "WHERE rolname=$1",
+                    role,
                 )
+                if elevated:
+                    raise ValueError("Existing project role is elevated; refusing adoption")
+                await admin.execute(f"ALTER ROLE {role} NOCREATEDB NOCREATEROLE")
             await admin.execute(f"ALTER ROLE {owner} NOLOGIN NOINHERIT")
             for role in (migrator, runtime):
                 # Role identifiers are fixed constants; PostgreSQL quotes secrets.
