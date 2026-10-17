@@ -1,0 +1,662 @@
+{
+  "closes": "nothing by itself: an issue closes only when its acceptance list is met by the receipts and a reviewer accepts them",
+  "document_kind": "V1_CLOUD_PROOF_SUMMARY_REDACTED",
+  "generated_at": "2026-10-17T16:56:47Z",
+  "issues": {
+    "#63": {
+      "overall": "PASS",
+      "steps": {
+        "anonymous-denied": {
+          "public": {
+            "statuses": {
+              "frontend_admin_jobs": 401,
+              "frontend_media_jobs": 401,
+              "frontend_processing_jobs": 401,
+              "gateway_admin_jobs": 401,
+              "gateway_media_jobs": 401,
+              "gateway_processing_jobs": 401
+            }
+          },
+          "seconds": 0.407,
+          "status": "PASS"
+        },
+        "cors-preflight": {
+          "public": {
+            "api_preflight_status": 401,
+            "api_wildcard": false,
+            "s3_allowed_status": 200,
+            "s3_allows_frontend_origin": true,
+            "s3_allows_post": true,
+            "s3_foreign_origin_allowed": false,
+            "s3_foreign_origin_status": 403
+          },
+          "seconds": 0.783,
+          "status": "PASS"
+        },
+        "cross-database": {
+          "public": {
+            "other_database": "connect-denied:InsufficientPrivilegeError",
+            "other_database_denied": true,
+            "other_database_read": null,
+            "own_ddl": "denied:InsufficientPrivilegeError",
+            "own_ddl_denied": true
+          },
+          "seconds": 55.68,
+          "status": "PASS"
+        },
+        "direct-upload-e2e": {
+          "public": {
+            "bytes": 828699,
+            "encoder_exit_codes": [
+              0
+            ],
+            "encoders_left_running": 0,
+            "encoders_started": 1,
+            "finalize_ms": 525.8,
+            "hls_url_present": true,
+            "job_status": "done",
+            "master_is_playlist": true,
+            "master_status": 200,
+            "mp4_fetch_bytes": 1024,
+            "mp4_fetch_status": 206,
+            "mp4_ok": true,
+            "output_url_present": true,
+            "playlist_not_cached": true,
+            "reserve_ms": 298.6,
+            "seconds_to_terminal": 75.6,
+            "segment_fetch_bytes": 1024,
+            "segment_fetch_status": 206,
+            "segment_redirects_to_s3": true,
+            "segment_status": 307,
+            "served_by_cloudfront": true,
+            "storage_host_is_s3": true,
+            "transitions": [
+              [
+                0.3,
+                "accepted"
+              ],
+              [
+                70.1,
+                "processing"
+              ],
+              [
+                75.6,
+                "done"
+              ]
+            ],
+            "upload_ms": 272.1,
+            "upload_status": 204,
+            "variant_status": 200
+          },
+          "seconds": 91.599,
+          "status": "PASS"
+        },
+        "forged-identity": {
+          "public": {
+            "forged_headers_changed_nothing": true,
+            "statuses": {
+              "anonymous_admin": 401,
+              "anonymous_jobs": 401,
+              "authenticated_admin": 403,
+              "jobs_plain": 200,
+              "jobs_with_forged_headers": 200
+            }
+          },
+          "seconds": 1.338,
+          "status": "PASS"
+        },
+        "session-roundtrip": {
+          "public": {
+            "anonymous_me_status": 401,
+            "host_only": true,
+            "http_only": true,
+            "login_status": 200,
+            "me_status": 200,
+            "no_wildcard_cors": true,
+            "same_site_strict": true,
+            "secure": true,
+            "through_cloudfront": true
+          },
+          "seconds": 0.559,
+          "status": "PASS"
+        },
+        "sqs-direct-send": {
+          "public": {
+            "messages_accepted": 0,
+            "statuses": {
+              "MediaResults": 403,
+              "ProcessingCommands": 403,
+              "ProcessingWork": 403
+            }
+          },
+          "seconds": 0.234,
+          "status": "PASS"
+        }
+      }
+    },
+    "#64": {
+      "overall": "PASS",
+      "steps": {
+        "dlq": {
+          "public": {
+            "per_queue": {
+              "MediaResults": {
+                "in_flight": 0,
+                "visible": 0
+              },
+              "ProcessingCommands": {
+                "in_flight": 0,
+                "visible": 0
+              },
+              "ProcessingWork": {
+                "in_flight": 0,
+                "visible": 0
+              }
+            },
+            "poison_provoked": true,
+            "poison_removed": true,
+            "receive_count_at_dead_letter": 0,
+            "seconds_to_dead_letter": 2101
+          },
+          "seconds": 2101.278,
+          "status": "PASS"
+        },
+        "drain": {
+          "public": {
+            "encoders_running": 0
+          },
+          "seconds": 0.8,
+          "status": "PASS"
+        },
+        "recovery": {
+          "public": {
+            "encoders_left_running": 0,
+            "final_status": "done",
+            "interrupted_attempts": 1,
+            "operator_start_delay_seconds": null,
+            "poll_interval_seconds": 5,
+            "reaction_gate_seconds": 300,
+            "status_after_stop": "done",
+            "stop_to_done_seconds": null,
+            "stop_to_reaction_seconds": 5.8,
+            "within_gate": true
+          },
+          "seconds": 93.527,
+          "status": "PASS"
+        },
+        "run-1": {
+          "public": {
+            "cap": 3,
+            "encoder_billed_seconds": [
+              153.743
+            ],
+            "encoder_cpu": [
+              "2048"
+            ],
+            "encoder_exit_codes": [
+              [
+                0
+              ]
+            ],
+            "encoder_memory": [
+              "4096"
+            ],
+            "encoders": 1,
+            "encoders_left_running": 0,
+            "fixture_bytes": 36035343,
+            "jobs_submitted": 1,
+            "median_seconds": 153.9,
+            "outcomes": {
+              "done": 1
+            },
+            "peak_concurrent_from_task_stamps": 1,
+            "peak_concurrent_polled": 1,
+            "poll_interval_seconds": 5,
+            "seconds_to_terminal": [
+              153.9
+            ],
+            "slowest_seconds": 153.9
+          },
+          "seconds": 182.739,
+          "status": "PASS"
+        },
+        "run-2": {
+          "public": {
+            "cap": 3,
+            "encoder_billed_seconds": [
+              192.676,
+              182.808
+            ],
+            "encoder_cpu": [
+              "2048"
+            ],
+            "encoder_exit_codes": [
+              [
+                0
+              ],
+              [
+                0
+              ]
+            ],
+            "encoder_memory": [
+              "4096"
+            ],
+            "encoders": 2,
+            "encoders_left_running": 0,
+            "fixture_bytes": 36035343,
+            "jobs_submitted": 2,
+            "median_seconds": 180.3,
+            "outcomes": {
+              "done": 2
+            },
+            "peak_concurrent_from_task_stamps": 2,
+            "peak_concurrent_polled": 2,
+            "poll_interval_seconds": 5,
+            "seconds_to_terminal": [
+              180.3,
+              203.2
+            ],
+            "slowest_seconds": 203.2
+          },
+          "seconds": 225.068,
+          "status": "PASS"
+        },
+        "run-3": {
+          "public": {
+            "cap": 3,
+            "encoder_billed_seconds": [
+              137.67,
+              137.685,
+              161.782
+            ],
+            "encoder_cpu": [
+              "2048"
+            ],
+            "encoder_exit_codes": [
+              [
+                0
+              ],
+              [
+                0
+              ],
+              [
+                0
+              ]
+            ],
+            "encoder_memory": [
+              "4096"
+            ],
+            "encoders": 3,
+            "encoders_left_running": 0,
+            "fixture_bytes": 36035343,
+            "jobs_submitted": 3,
+            "median_seconds": 145.8,
+            "outcomes": {
+              "done": 3
+            },
+            "peak_concurrent_from_task_stamps": 3,
+            "peak_concurrent_polled": 3,
+            "poll_interval_seconds": 5,
+            "seconds_to_terminal": [
+              145.3,
+              174.6,
+              145.8
+            ],
+            "slowest_seconds": 174.6
+          },
+          "seconds": 189.813,
+          "status": "PASS"
+        }
+      }
+    },
+    "#65": {
+      "overall": "PASS",
+      "steps": {
+        "bad-candidate-restore": {
+          "public": {
+            "aliases_restored": true,
+            "candidate_failed_as_expected": true,
+            "failed_after_seconds": 205.7,
+            "failed_stage": "smoke",
+            "gate_seconds": 300,
+            "peer_unchanged": true,
+            "pending_release_after": false,
+            "restore_seconds": 54.8,
+            "restored_smoke": {
+              "all_passed": true,
+              "checks": {
+                "anonymous-denied": "PASS",
+                "login": "PASS",
+                "media-health": "PASS",
+                "media-jobs": "PASS",
+                "processing-health": "PASS",
+                "processing-jobs": "PASS"
+              }
+            },
+            "schema_rollback_attempted": false,
+            "total_seconds": 260.5,
+            "within_gate": true
+          },
+          "seconds": 261.942,
+          "status": "PASS"
+        },
+        "baseline": {
+          "public": {
+            "owner": "processing",
+            "owner_functions": 5,
+            "owner_schema_at_target": true,
+            "peer_functions": 4,
+            "pending_release": false,
+            "schema_read": true,
+            "schema_read_seconds": 48.0,
+            "schema_revision_source": "in-vpc-task"
+          },
+          "seconds": 48.505,
+          "status": "PASS"
+        },
+        "owner-isolation": {
+          "public": {
+            "peer_schema_unchanged": true,
+            "peer_unchanged_at_every_snapshot": true,
+            "schema_read_seconds": 54.0,
+            "schema_revision_source": "in-vpc-task",
+            "snapshots_compared": 4
+          },
+          "seconds": 53.969,
+          "status": "PASS"
+        },
+        "promote-good": {
+          "public": {
+            "exit_code": 0,
+            "gate_seconds": 600,
+            "operation": "promote-good",
+            "owner_versions_moved": true,
+            "peer_unchanged": true,
+            "pending_release_after": false,
+            "schema_read_seconds": 246.6,
+            "schema_reads": 4,
+            "schema_revision_source": "in-vpc-task",
+            "schema_rollback_attempted": false,
+            "seconds": 322.5,
+            "smoke": {
+              "all_passed": true,
+              "checks": {
+                "anonymous-denied": "PASS",
+                "login": "PASS",
+                "media-health": "PASS",
+                "media-jobs": "PASS",
+                "processing-health": "PASS",
+                "processing-jobs": "PASS"
+              }
+            },
+            "status": "promoted",
+            "within_gate": true
+          },
+          "seconds": 322.97,
+          "status": "PASS"
+        },
+        "rollback": {
+          "public": {
+            "exit_code": 0,
+            "gate_seconds": 600,
+            "operation": "rollback",
+            "owner_versions_moved": true,
+            "peer_unchanged": true,
+            "pending_release_after": false,
+            "schema_read_seconds": 191.2,
+            "schema_reads": 4,
+            "schema_revision_source": "in-vpc-task",
+            "schema_rollback_attempted": false,
+            "seconds": 250.2,
+            "smoke": {
+              "all_passed": true,
+              "checks": {
+                "anonymous-denied": "PASS",
+                "login": "PASS",
+                "media-health": "PASS",
+                "media-jobs": "PASS",
+                "processing-health": "PASS",
+                "processing-jobs": "PASS"
+              }
+            },
+            "status": "promoted",
+            "within_gate": true
+          },
+          "seconds": 250.746,
+          "status": "PASS"
+        }
+      }
+    },
+    "#66": {
+      "overall": "PASS",
+      "steps": {
+        "cold-wake": {
+          "public": {
+            "database_paused_before": true,
+            "first_read_ms": 4704.7,
+            "gate_probes": 3,
+            "gate_settle_seconds": 4.2,
+            "login_ms": 312.8,
+            "measured_from": "operator station (includes the network path to the Gateway)",
+            "pause_wait_seconds": 0.2,
+            "retries": 0,
+            "second_read_ms": 263.2,
+            "statuses": [
+              200,
+              200,
+              200
+            ],
+            "wake_observed_through": "readiness probes during session window",
+            "window_closed": true,
+            "window_open_seconds": 21.8
+          },
+          "seconds": 126.892,
+          "status": "PASS"
+        },
+        "generator": {
+          "public": {
+            "generator": {
+              "billed_seconds": 294.973,
+              "cpu": "512",
+              "image_digests": [
+                "sha256:b5c462fa16fadbc0d3151c14461ce5a366bdca4825e1ac2529fe6a6f34740e54"
+              ],
+              "memory": "1024",
+              "separate_task_definition": true,
+              "task_role": "none"
+            },
+            "login_cycle": {
+              "eligible": true,
+              "error_rate": 0.0,
+              "hash_cost": 10,
+              "hash_cost_source": "configured in source, not read back",
+              "p90_gate_ms": 2000,
+              "p90_ms": 177.976,
+              "sample_count": 20,
+              "status": "PASS",
+              "throttled": 0,
+              "users": 20
+            },
+            "retries": 0,
+            "routes": {
+              "/api/media/auth/me": {
+                "count": 200,
+                "errors": 0,
+                "max_ms": 97.87418999997044,
+                "p50_ms": 48.3456019999835,
+                "p90_ms": 54.966941000031966,
+                "p95_ms": 58.50278799999842,
+                "p99_ms": 75.94139600001881,
+                "throttled": 0
+              },
+              "/api/media/health": {
+                "count": 200,
+                "errors": 0,
+                "max_ms": 22.711179999987507,
+                "p50_ms": 13.881728999990628,
+                "p90_ms": 16.51601200001096,
+                "p95_ms": 17.77488400000493,
+                "p99_ms": 20.474828999965666,
+                "throttled": 0
+              },
+              "/api/processing/health": {
+                "count": 200,
+                "errors": 0,
+                "max_ms": 1559.9823530000094,
+                "p50_ms": 16.843977000007726,
+                "p90_ms": 43.59230599999364,
+                "p95_ms": 83.84730100004845,
+                "p99_ms": 1493.1736519999959,
+                "throttled": 0
+              },
+              "/api/processing/jobs": {
+                "count": 200,
+                "errors": 0,
+                "max_ms": 170.53828999996767,
+                "p50_ms": 46.178862999965986,
+                "p90_ms": 74.47317899999462,
+                "p95_ms": 106.13719699995272,
+                "p99_ms": 166.6717499999777,
+                "throttled": 0
+              },
+              "login": {
+                "count": 20,
+                "errors": 0,
+                "max_ms": 181.90985000001092,
+                "p50_ms": 146.4739820000318,
+                "p90_ms": 177.97568299999966,
+                "p95_ms": 179.9174559999983,
+                "p99_ms": 181.90985000001092,
+                "throttled": 0
+              },
+              "status": {
+                "count": 9000,
+                "errors": 0,
+                "max_ms": 2786.3825780000016,
+                "p50_ms": 51.11684299998842,
+                "p90_ms": 58.17548500004932,
+                "p95_ms": 63.04600899994739,
+                "p99_ms": 91.61019499998702,
+                "throttled": 0
+              }
+            },
+            "samples_length": 583668,
+            "samples_sha256": "ae27ec37f4496b67bdfc00f30d8e63ecce4768c82f8e516791e7d10bbcc69b9c",
+            "status_cycle": {
+              "duration_seconds": 180,
+              "eligible": true,
+              "error_rate": 0.0,
+              "p90_gate_ms": 700,
+              "p90_ms": 58.175,
+              "sample_count": 9000,
+              "status": "PASS",
+              "throttled": 0,
+              "users": 50
+            },
+            "target": "gateway",
+            "task_definition_deregistered": true
+          },
+          "seconds": 320.653,
+          "status": "PASS"
+        }
+      }
+    },
+    "#67": {
+      "overall": "PASS",
+      "steps": {
+        "close-state": {
+          "public": {
+            "database_pause": "NOT_OBSERVED",
+            "drift": 0,
+            "edge_burst": 0,
+            "edge_rate": 0.0,
+            "functions_with_reservation": 0,
+            "journal_session": "closed",
+            "mappings": [
+              "Disabled"
+            ],
+            "schedules": [
+              "DISABLED"
+            ],
+            "tasks_running": 0
+          },
+          "seconds": 1.939,
+          "status": "PASS"
+        },
+        "cost-explorer": {
+          "public": {
+            "by_model_line": {
+              "api_gateway": 0.0,
+              "aurora": 0.0,
+              "cloudfront": -0.0,
+              "ecr": -0.0,
+              "fargate": -0.0,
+              "ipv4_and_network": 0.0,
+              "kms": 0.0,
+              "lambda": 0.0,
+              "logs_and_metrics": 0.0,
+              "managed_credentials": -0.0,
+              "other": 0.0,
+              "s3": 0.0,
+              "sqs": 0.0
+            },
+            "complete_through": "2026-10-16",
+            "cost_explorer_flagged_estimated": true,
+            "currency": "USD",
+            "estimated": true,
+            "final": false,
+            "from": "2026-10-01",
+            "invoice": "NOT_RUN: Cost Explorer lags ~24 h; attach invoice lines by hand",
+            "planned_deploy_window_model": 1.97,
+            "services": 18,
+            "through_inclusive": "2026-10-17",
+            "total": -0.0,
+            "within_monthly_alert": true,
+            "within_planning_envelope": true,
+            "within_trial_allowance": true
+          },
+          "seconds": 1.241,
+          "status": "PASS"
+        },
+        "pause": {
+          "public": {
+            "configured_max_acu": 2.0,
+            "configured_min_acu": 0.0,
+            "database_pause": "OBSERVED",
+            "datapoints": 8,
+            "max_acu_since_close": 0.5,
+            "minutes_from_close_to_zero": 6.0,
+            "pause_observed": true,
+            "seconds_until_auto_pause": 300,
+            "wakeups_in_window": 0
+          },
+          "seconds": 362.243,
+          "status": "PASS"
+        },
+        "teardown-receipt": {
+          "public": {
+            "all_remaining_explained": true,
+            "final_snapshot_kept": true,
+            "from_simulation": false,
+            "pre_existing_untouched": 1,
+            "receipt_status": "ITEMS_REMAIN",
+            "remaining_by_kind": {
+              "aurora-snapshot": 1
+            },
+            "skipped_not_owned": 0
+          },
+          "seconds": 0.0,
+          "status": "PASS"
+        }
+      }
+    }
+  },
+  "mode": "live",
+  "not_proven": [
+    "Invoice lines: Cost Explorer lags about a day and is an estimate, not a bill.",
+    "A rollback of a good promotion is an image rollback; no schema is reversed.",
+    "Latency was measured from a Fargate generator in the same region, not from users.",
+    "Local fakes, emulators and hosted CI are not AWS evidence and are excluded here."
+  ],
+  "run_id": "r1017b"
+}

@@ -42,8 +42,13 @@ async def test_source_put_and_delete_are_scoped_and_output_read_releases_connect
     store.internal.put_object.assert_called_once_with(
         "owned-source", "source-key", stream, 3, content_type="video/mp4"
     )
+    store.internal.list_objects.return_value = []
+    store.internal.remove_objects.return_value = []
     await store.delete_source("source-key")
-    store.internal.remove_object.assert_called_once_with("owned-source", "source-key")
+    store.internal.list_objects.assert_called_once_with(
+        "owned-source", prefix="source-key", recursive=True, include_version=True
+    )
+    store.internal.remove_object.assert_not_called()
     response = store.internal.get_object.return_value
     response.read.return_value = b"#EXTM3U\nv0/index.m3u8\n"
     assert await store.read_playlist("output/hls/master.m3u8") == response.read.return_value
@@ -93,3 +98,46 @@ async def test_independent_copy_verifies_digest_size_and_limits_before_put(
 def test_storage_pool_is_app_local(settings):
     request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace()))
     assert get_storage(request, settings) is get_storage(request, settings)
+
+
+def version(name, version_id, *, marker=False):
+    return SimpleNamespace(object_name=name, version_id=version_id, is_delete_marker=marker)
+
+
+def record_removals(store):
+    seen = []
+
+    def remove(bucket, deletes):
+        # The SDK consumes the generator lazily; it carries the filter under test.
+        seen.extend((bucket, d.name, d.version_id) for d in deletes)
+        return []
+
+    store.internal.remove_objects.side_effect = remove
+    return seen
+
+
+async def test_source_delete_removes_every_version_and_marker_of_only_that_key(store):
+    store.internal.list_objects.return_value = [
+        version("source-key", "v2"),
+        version("source-key", "marker", marker=True),
+        version("source-key", "v1"),
+        version("source-key-sibling", "other"),
+    ]
+    seen = record_removals(store)
+    await store.delete_source("source-key")
+    assert seen == [("owned-source", "source-key", v) for v in ("v2", "marker", "v1")]
+
+
+async def test_source_delete_reports_a_refused_version_so_the_intent_is_kept(store):
+    store.internal.list_objects.return_value = [version("source-key", "v1")]
+    store.internal.remove_objects.return_value = [SimpleNamespace(code="AccessDenied")]
+    with pytest.raises(MediaError) as error:
+        await store.delete_source("source-key")
+    assert error.value.status_code == 503
+
+
+async def test_source_delete_can_preserve_the_pinned_version(store):
+    store.internal.list_objects.return_value = [version("k", "keep"), version("k", "drop")]
+    seen = record_removals(store)
+    await store.remove_source_versions("owned-source", "k", preserve_version="keep")
+    assert seen == [("owned-source", "k", "drop")]

@@ -1,15 +1,17 @@
+from datetime import timedelta
 from io import BytesIO
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 from sqlalchemy.exc import IntegrityError
 
 from media.errors import MediaError
-from media.models import RequestKey, StagedObject
+from media.models import RequestKey, StagedObject, now
 from media.repositories.assets import fingerprint, get_asset, list_assets, replay
 from media.services import intake
+from media.services.storage import Storage
 
 
 def test_fingerprint_retains_operation_order_and_normalizes_object_order():
@@ -179,3 +181,41 @@ async def test_accept_expired_reservation_cannot_adopt_missing_source(session, s
     assert error.value.status_code == 503
     session.flush.assert_not_awaited()
     storage.delete_source.assert_not_awaited()
+
+
+async def test_discarding_a_failed_edit_stage_deletes_each_stored_version_not_a_marker(
+    session, settings
+):
+    # The failed edit's copy may have been written more than once and a prior discard may
+    # already have laid a marker over it; only naming every version releases the bytes.
+    storage = Storage(settings)
+    storage.internal = MagicMock()
+    key = "sources/owner/asset/source"
+    storage.internal.list_objects.return_value = [
+        SimpleNamespace(object_name=key, version_id=v) for v in ("v2", "marker", "v1")
+    ]
+    deleted = []
+    storage.internal.remove_objects.side_effect = lambda bucket, items: (
+        deleted.extend((bucket, i.name, i.version_id) for i in items) or []
+    )
+    session.get.return_value = StagedObject(key=key, write_uncertain=False)
+    session.scalar.return_value = None  # no Asset adopted it
+    await intake.discard_stage(session, storage, key)
+    assert deleted == [(settings.minio_source_bucket, key, v) for v in ("v2", "marker", "v1")]
+    storage.internal.remove_object.assert_not_called()
+    assert "staged_objects.key" in str(session.execute.call_args.args[0])
+
+
+async def test_adoption_refuses_a_stage_old_enough_for_recovery_to_own(session, storage, asset):
+    # Repair deletes stale stages and a timed-out deletion may still be running, so
+    # staleness is the durable fence: an adopter that outlives the grace is refused.
+    stale = StagedObject(key=asset.source_key, created_at=now() - timedelta(hours=2))
+    session.get.return_value = stale
+    with pytest.raises(MediaError) as error:
+        await intake.accept(session, storage, asset, "upload", uuid4(), "digest")
+    assert error.value.status_code == 503
+    session.flush.assert_not_awaited()
+    session.get.return_value = StagedObject(
+        key=asset.source_key, created_at=now() - timedelta(minutes=5)
+    )
+    assert await intake.accept(session, storage, asset, "upload", None, "digest") is asset

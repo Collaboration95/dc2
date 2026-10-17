@@ -1,30 +1,26 @@
 name: DAST (isolated extracted services)
 
 on:
+  workflow_call:
+    inputs:
+      required_candidate:
+        description: Called by CI for the exact tested candidate
+        type: boolean
+        default: false
   workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact 40-character SHA of the dispatched ref
+        required: true
+        type: string
   schedule:
     - cron: "0 3 * * 1"
-  pull_request:
-    paths:
-      - ".github/workflows/dast.yml"
-      - "media/**"
-      - "processing/**"
-      - "media_engine/**"
-      - "frontend/**"
-      - "tests/contracts/**"
-      - "compose/local/**"
-      - "scripts/dev/runtime.py"
-      - "scripts/dev/tls.py"
-      - "deploy/media.Dockerfile"
-      - "deploy/processing.Dockerfile"
-      - "deploy/nginx/**"
-      - "deploy/minio/**"
-      - "deploy/postgres/**"
-      - "pyproject.toml"
-      - "uv.lock"
+  # CI owns PR selection and calls this workflow once per candidate.
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # A reusable workflow inherits github.workflow from its caller. Prefixing the
+  # group prevents this scan from cancelling its own full-CI parent.
+  group: dast-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 permissions:
   contents: read
@@ -42,6 +38,22 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
+      - name: Identify exact scan source and execution policy
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          REQUIRED_CANDIDATE: ${{ inputs.required_candidate }}
+        run: |
+          python3 - <<'PYSOURCE'
+          import os, re, subprocess
+          source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          assert source == os.environ['GITHUB_SHA'], 'Scan checkout differs from tested event SHA'
+          if os.environ['GITHUB_EVENT_NAME'] == 'workflow_dispatch' and os.environ['REQUIRED_CANDIDATE'] != 'true':
+              candidate = os.environ['CANDIDATE_SHA']
+              assert re.fullmatch('[0-9a-fA-F]{40}', candidate) and candidate.lower() == source, 'Dispatch on the exact candidate ref and provide candidate_sha'
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as stream:
+              stream.write('DAST source: `' + source + '`. Scheduled scans use the default branch.\n')
+              stream.write('Full CI requires successful scan execution; dev PR scans are advisory to Dev gate. Findings are report-only at every tier.\n')
+          PYSOURCE
       - uses: actions/setup-python@v5
         with:
           python-version-file: .python-version
@@ -51,7 +63,7 @@ jobs:
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
-      - run: uv sync --locked --extra dev
+      - run: uv sync --locked --extra legacy --extra dev
       - uses: actions/cache@v4
         with:
           path: .cache/minio
@@ -157,7 +169,9 @@ jobs:
           disposition = scan_disposition('zap', outcome=outcome, target='isolated-integrated-media-public',
               scope='public authenticated owner; internal token+owner contracts offline only',report_retained=executed)
           disposition.update(exit_code=os.environ['ZAP_EXIT'],private_contracts=os.environ['CONTRACT_OUTCOME'],
-                             cloud_scan='NOT_RUN')
+                             cloud_scan='NOT_RUN',source_sha=os.environ['GITHUB_SHA'],
+                             event=os.environ['GITHUB_EVENT_NAME'],
+                             findings_policy='report-only; execution errors fail the scan job')
           (destination/'scan-disposition.json').write_text(json.dumps(disposition,indent=2))
           if executed:
               (destination/'sanitized-findings.json').write_text(json.dumps(selected,indent=2))
@@ -165,6 +179,8 @@ jobs:
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as stream:
               stream.write('ZAP: '+outcome+'. Findings remain report-only; execution errors fail.\n')
               stream.write('Private Processing/source-grant contracts: '+os.environ['CONTRACT_OUTCOME']+' (offline, not DAST).\n')
+          if os.environ['ZAP_OUTCOME'] == 'success' and not executed:
+              raise SystemExit('ZAP returned without a report; scan execution is not proven')
           PY
       - uses: actions/upload-artifact@v4
         if: always()

@@ -1,0 +1,9 @@
+{
+  "source": "https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem",
+  "documentation": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html",
+  "retrieved_at_utc": "2026-10-15T11:54:55.994231+00:00",
+  "sha256": "90a6f1a7978a1b1b096dca6c57511ca48d3b8cf052f8e704baf358f34ea2f21b",
+  "bytes": 174560,
+  "certificates": 114,
+  "public_ca_certificates_only": true
+}

@@ -148,6 +148,7 @@ def test_callable_workflow_arms_guard_before_fault(
         page_events = []
         page = SimpleNamespace(
             set_default_timeout=lambda _: None,
+            add_init_script=lambda _: None,
             on=lambda event, callback: page_events.append(event),
             goto=lambda *a, **kw: None,
             evaluate=lambda _: True,

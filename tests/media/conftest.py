@@ -30,6 +30,16 @@ def session():
     return mock
 
 
+@pytest.fixture(autouse=True)
+def pinned_version(monkeypatch):
+    """Legacy signed-URL readers consult the SQL pin; mock sessions have no pin table."""
+    from media.services import direct_intake
+
+    lookup = AsyncMock(return_value=None)
+    monkeypatch.setattr(direct_intake, "pinned_version", lookup)
+    return lookup
+
+
 @pytest.fixture
 def settings():
     return Settings(
@@ -105,6 +115,7 @@ def peer():
 @pytest.fixture
 def storage():
     mock = AsyncMock()
+    mock.settings.orphan_grace_seconds = 3600
     mock.source_grant.return_value = (
         "http://minio:9000/owned-source/source?signed=test",
         now() + timedelta(minutes=15),

@@ -1,0 +1,539 @@
+{
+  "submit_without_source": {
+    "why": "submit must carry an immutable source",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": null,
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "work_without_source": {
+    "why": "work must carry an immutable source",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000106",
+      "kind": "work",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": 1,
+      "source": null,
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "work_without_attempt": {
+    "why": "work requires job and attempt",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000106",
+      "kind": "work",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": null,
+      "state_version": 1,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "result_without_job_but_with_source": {
+    "why": "only the tombstone acknowledgement may omit the job",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000112",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "status": "cancelled",
+        "cancellation_confirmed": true,
+        "command_message_id": "00000000-0000-4000-8000-000000000104"
+      }
+    }
+  },
+  "cancellation_ack_confirmation_not_true": {
+    "why": "confirmation must be the JSON boolean true",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000112",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": null,
+      "payload": {
+        "status": "cancelled",
+        "cancellation_confirmed": "true",
+        "command_message_id": "00000000-0000-4000-8000-000000000104"
+      }
+    }
+  },
+  "cancellation_ack_extra_payload_field": {
+    "why": "the acknowledgement payload is exact",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000112",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": null,
+      "payload": {
+        "status": "cancelled",
+        "cancellation_confirmed": true,
+        "command_message_id": "00000000-0000-4000-8000-000000000104",
+        "outputs": []
+      }
+    }
+  },
+  "source_null_version_id": {
+    "why": "the literal null version is not a pin",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "null",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "source_empty_version_id": {
+    "why": "an empty version is not a pin",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "source_size_over_limit": {
+    "why": "100 MiB upload limit",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 104857601,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "source_size_boolean": {
+    "why": "booleans are not integers",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": true,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "source_bad_digest": {
+    "why": "sha256 is 64 lowercase hex",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "source_key_is_a_url": {
+    "why": "no URL in a source descriptor",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "https://bucket.s3.amazonaws.com/key?X-Amz-Signature=x",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "source_extra_field": {
+    "why": "source fields are exact",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4",
+        "url": "x"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "payload_contains_signed_url": {
+    "why": "no expiring URLs in queues",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": [],
+        "source_url": "x"
+      }
+    }
+  },
+  "payload_contains_url_value": {
+    "why": "no URLs anywhere in payload",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000110",
+      "kind": "result",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": 3,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "status": "failed",
+        "outputs": [],
+        "error": "see https://example.test/x",
+        "attempt_number": 1
+      }
+    }
+  },
+  "payload_contains_credential_key": {
+    "why": "no secrets in queues",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": [],
+        "credential": "x"
+      }
+    }
+  },
+  "unknown_kind": {
+    "why": "kind must have a registered producer",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "upload",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "schema_version_two": {
+    "why": "unknown future version is refused, not guessed",
+    "message": {
+      "schema_version": 2,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "schema_version_boolean": {
+    "why": "True == 1 in Python; the wire says integer",
+    "message": {
+      "schema_version": true,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "negative_state_version": {
+    "why": "state versions never go below zero",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000106",
+      "kind": "work",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": "00000000-0000-4000-8000-000000000021",
+      "attempt_id": "00000000-0000-4000-8000-000000000031",
+      "state_version": -1,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "owner_not_a_uuid": {
+    "why": "identities are UUIDs",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "not-a-uuid",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  },
+  "extra_top_level_field": {
+    "why": "envelope fields are exact",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "asset_id": "00000000-0000-4000-8000-000000000011",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      },
+      "media_bytes": "AAAA"
+    }
+  },
+  "missing_asset_id": {
+    "why": "all envelope fields are required",
+    "message": {
+      "schema_version": 1,
+      "message_id": "00000000-0000-4000-8000-000000000101",
+      "kind": "submit",
+      "owner_id": "00000000-0000-4000-8000-000000000001",
+      "job_id": null,
+      "attempt_id": null,
+      "state_version": 0,
+      "source": {
+        "bucket": "dc2-source",
+        "key": "staging/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000041/source",
+        "version_id": "3sL4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 1048576,
+        "content_type": "video/mp4"
+      },
+      "payload": {
+        "operations": []
+      }
+    }
+  }
+}

@@ -9,6 +9,11 @@ assessment and nothing in them has been invalidated.
 Companion to [`sprint1-report.md`](sprint1-report.md), which records what exists
 today. This one records what would have to change, why, and in what order.
 
+> **Resource note (16 Oct 2026).** Historical results here and in the evidence records were
+> measured on an 8 CPU / 8 GiB local VM and stay as recorded. That size is now the opt-in
+> benchmark profile (`make capacity-start CAPACITY_ARGS=--benchmark`); everyday development
+> uses 2 CPU / 2 GiB with an expiring lease. See issue #96.
+
 ---
 
 ## 1. "50 concurrent users" is three different questions

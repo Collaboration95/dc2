@@ -23,7 +23,9 @@
 // on the public port: a check like `location.port === "3000"` is false on 80 and
 // 443, which is every real deployment, and the fallback would then point the
 // browser at the *visitor's* own machine.
-const API = "/api";
+// Only frozen legacy regression pages opt in; production uses the V1 domain route.
+const LEGACY_API = globalThis.FLICKPOND_LEGACY_API === true;
+const API = LEGACY_API ? "/api" : "/api/media";
 
 // Mirrors app/api/uploads.py's ALLOWED_CONTENT_TYPES. This check is a courtesy
 // only -- it saves an obviously-wrong file a round trip -- never the source of
@@ -37,7 +39,9 @@ const ALLOWED_CONTENT_TYPES = new Set([
   "video/x-matroska",
   "video/x-msvideo",
 ]);
-// Mirrors app/api/uploads.py's MAX_FILE_SIZE. Same caveat: advisory only.
+// Mirrors media/services/storage.py's MAX_FILE_SIZE (enforced again at reservation and
+// finalize). Advisory here, but it is the only guard before file.arrayBuffer() hashes the
+// whole file in memory for the reservation, so keep it ahead of that call.
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
 
 const PAGE_SIZE = 12;
@@ -123,7 +127,14 @@ const el = {
   editHint: document.getElementById("edit-hint"),
 };
 
-const STATUS_LABEL = { queued: "Queued", processing: "Processing", done: "Done", failed: "Failed" };
+const STATUS_LABEL = {
+  accepted: "Accepted",
+  queued: "Queued",
+  processing: "Processing",
+  done: "Done",
+  failed: "Failed",
+  cancelled: "Cancelled",
+};
 
 // ---------------------------------------------------------------------------
 // Identity. The session cookie is HttpOnly, so this page cannot read it and
@@ -348,7 +359,11 @@ async function intentRequest(url, init, key) {
 }
 
 const POLL_INTERVAL_MS = 2000;
-const PROGRESS_LABEL = { queued: "Queued...", processing: "Processing..." };
+const PROGRESS_LABEL = {
+  accepted: "Accepted...",
+  queued: "Queued...",
+  processing: "Processing...",
+};
 // 30 polls is a minute. The transcode step finishes well inside that under
 // normal load, so past this something is wrong -- most likely a worker that
 // died holding the job, which leaves the row at `processing` with nobody left
@@ -422,7 +437,8 @@ function followJob(scope, jobId, handlers) {
       handlers.onDone(job);
       return;
     }
-    if (job.status === "failed") {
+    // Cancelled is terminal like failed, but only failed jobs offer a retry.
+    if (job.status === "failed" || job.status === "cancelled") {
       handlers.onFailed(job);
       return;
     }
@@ -595,10 +611,40 @@ async function handleFile(file) {
   setStatus("Uploading...");
 
   try {
-    const body = new FormData();
-    body.append("file", file);
-
-    const res = await intentRequest(`${API}/upload`, { method: "POST", body }, intent.key);
+    let res;
+    if (LEGACY_API) {
+      const body = new FormData();
+      body.append("file", file);
+      res = await intentRequest(`${API}/upload`, { method: "POST", body }, intent.key);
+    } else {
+      const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+      const sha256 = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+      const reserved = await intentRequest(`${API}/uploads/reservations`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ request_id: intent.key, filename: file.name,
+          content_type: file.type, size_bytes: file.size, sha256 }),
+      }, intent.key);
+      if (!ownsCard()) return;
+      if (!reserved.ok) {
+        res = reserved;
+      } else {
+        const reservation = await reserved.json();
+        if (reservation.upload) {
+          const body = new FormData();
+          for (const [name, value] of Object.entries(reservation.upload.fields)) body.append(name, value);
+          body.append("file", file);
+          const uploaded = await fetch(reservation.upload.url, {
+            method: "POST", body, credentials: "omit", redirect: "error", mode: "cors",
+          });
+          if (!uploaded.ok) throw new Error("Storage upload failed; retry this upload.");
+        }
+        if (!ownsCard()) return;
+        res = await intentRequest(`${API}/uploads/reservations/${reservation.reservation_id}/finalize`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ request_id: intent.key }),
+        }, intent.key);
+      }
+    }
     const data = await res.json().catch(() => ({}));
     if (!ownsCard()) return;
 
@@ -665,7 +711,11 @@ function pollUploadJob(jobId) {
       mountPlayer(el.player, job);
     },
     onFailed(job) {
-      setStatus(`Processing failed: ${job.error ?? "Unknown error"}`);
+      setStatus(
+        job.status === "cancelled"
+          ? "Processing was cancelled."
+          : `Processing failed: ${job.error ?? "Unknown error"}`,
+      );
       clearUploadPlayer();
       el.jobActions.hidden = false;
     },
@@ -784,7 +834,28 @@ function attachHls(state, source) {
   const { video } = state;
 
   if (video.canPlayType(HLS_MIME)) {
+    // Segments are 307-redirected from the API to presigned object-store URLs on
+    // another origin. Chromium demuxes native HLS in-process, so it refuses a
+    // cross-origin segment it was not granted by CORS (MEDIA_ERR_SRC_NOT_SUPPORTED);
+    // `anonymous` makes the media requests CORS-mode, which the output bucket
+    // allows for this origin. Same-origin requests, the playlists, still carry the
+    // session cookie; the presigned URL needs no credentials. The frozen legacy
+    // stack has no bucket CORS, so it keeps the old opaque behaviour.
+    if (!LEGACY_API) video.crossOrigin = "anonymous";
     video.src = source.hls;
+    // The ladder is best-effort and a native failure is otherwise a dead player, so
+    // drop to the MP4 exactly as a fatal hls.js error does.
+    video.addEventListener(
+      "error",
+      () => {
+        if (!source.fallback || players.get(state.host) !== state) return;
+        setTimeout(() => {
+          if (players.get(state.host) !== state) return;
+          mountPlayer(state.host, { output_url: source.fallback });
+        }, 0);
+      },
+      { once: true },
+    );
     // No level list to pass: Safari's own controls carry the quality menu,
     // and it switches levels in hardware where hls.js would do it in JS.
     startPlyr(state, null);
@@ -1198,7 +1269,11 @@ el.editForm.addEventListener("submit", async (event) => {
       },
       onFailed(job) {
         el.editProgress.hidden = true;
-        setEditStatus(`The edit failed: ${job.error ?? "Unknown error"}`);
+        setEditStatus(
+          job.status === "cancelled"
+            ? "The edit was cancelled."
+            : `The edit failed: ${job.error ?? "Unknown error"}`,
+        );
         updateProcessButton();
       },
       onError(err) {

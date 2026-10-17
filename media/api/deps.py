@@ -16,6 +16,12 @@ Config = Annotated[Settings, Depends(get_settings)]
 
 
 async def current_user(request: Request, settings: Config) -> User:
+    gateway = getattr(request.state, "gateway_v1", False)
+    if settings.runtime_mode == "lambda" and not gateway:
+        raise MediaError(401, "trusted gateway context required")
+    actor = getattr(request.state, "actor", None)
+    if gateway and actor is None:
+        raise MediaError(401, "trusted gateway context required")
     token = request.cookies.get(COOKIE_NAME)
     try:
         user_id = read_token(token or "", settings)
@@ -27,6 +33,11 @@ async def current_user(request: Request, settings: Config) -> User:
         user = await session.get(User, user_id)
     if user is None:
         raise MediaError(401, "not authenticated")
+    if gateway:
+        from media.authorizer import gateway_role
+
+        if str(user.id) != str(actor.owner_id) or gateway_role(user) != actor.role:
+            raise MediaError(401, "gateway identity no longer current")
     return user
 
 

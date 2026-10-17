@@ -1,4 +1,8 @@
-"""Real browser and independent Publisher acceptance; no service imports."""
+"""Real browser and independent Publisher acceptance of the frozen inherited stack.
+
+The V1 equivalents (reserved direct upload against the Gateway bridge) live in
+tests/v1/test_workflow_acceptance.py and tests/v1/test_browser_acceptance.py.
+"""
 
 import time
 from urllib.parse import urljoin, urlparse
@@ -176,6 +180,9 @@ def browser_workflow(scenario):
     with trusted_browser(scenario.run_id) as browser:
         page = browser.new_page()
         page.set_default_timeout(15000)
+        # This harness drives the frozen inherited stack, which has no /api/media prefix and
+        # no reservation routes. The V1 frontend keeps its legacy mode for exactly this.
+        page.add_init_script("window.FLICKPOND_LEGACY_API = true;")
         media = BrowserMediaRequests()
         # Native HLS can announce a response before Chromium exposes its body.
         # Only completed requests can supply the playlist/segment graph.
@@ -290,10 +297,16 @@ def cli_workflow(scenario):
         shutil.copyfile(source, folder / f"lesson-{number:02}.mp4")
     (folder / "unsupported.txt").write_text("Expected per-file 415; valid files must continue.")
     cookie = ROOT / ".local/runs" / scenario.run_id / "publisher-e2e/cookies.txt"
+    # The shipped CLI is V1-only (reserve, direct S3 POST, finalize). The inherited stack
+    # under test accepts only multipart /upload, so swap just that one client method.
+    legacy_cli = (
+        "import sys; from publisher.client import PublicClient as C; "
+        "C.upload = C.legacy_upload; from publisher.cli import main; sys.exit(main())"
+    )
     base = [
         str(PYTHON),
-        "-m",
-        "publisher",
+        "-c",
+        legacy_cli,
         "--base-url",
         scenario.state["public_url"] + "/api",
         "--ca-file",

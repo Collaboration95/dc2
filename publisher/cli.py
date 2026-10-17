@@ -45,11 +45,17 @@ def parser():
     retry = commands.add_parser("retry", help="Retry the stored source; never sends a file")
     retry.add_argument("asset_id", type=asset_id)
     retry.add_argument("--intent-key", type=asset_id, help="Replay a specific retry UUID")
+    edit = commands.add_parser("edit", help="Create a derived asset from JSON operations")
+    edit.add_argument("asset_id", type=asset_id)
+    edit.add_argument("--operations", type=json.loads, required=True, help="JSON operation array")
+    edit.add_argument("--intent-key", type=asset_id)
+    remove = commands.add_parser("delete", help="Delete an owned asset")
+    remove.add_argument("asset_id", type=asset_id)
     status = commands.add_parser("status")
     status.add_argument("asset_id", type=asset_id)
     output = commands.add_parser("output", help="Fetch fresh authorised playback links")
     output.add_argument("asset_id", type=asset_id)
-    for command in (publish, retry, status):
+    for command in (publish, retry, status, edit):
         command.add_argument("--wait", action="store_true")
         command.add_argument("--max-polls", type=poll_count, default=60)
         command.add_argument("--interval", type=positive, default=2)
@@ -104,8 +110,23 @@ def execute(client, args):
         if args.command == "output":
             ok = job["status"] == "done" and bool(job.get("output_url"))
         return {"ok": ok, "job": job}
+    if args.command == "delete":
+        return {"ok": True, "job_id": client.delete(args.asset_id)}
     owner = client.identity()
     intents = Intents(args.cookie_jar.with_suffix(".intents.json"), [args.base_url, owner])
+    if args.command == "edit":
+        identity = intents.identity("edit", [args.asset_id, args.operations])
+        return finish(
+            client,
+            args,
+            mutation(
+                client,
+                intents,
+                identity,
+                lambda key: client.edit(args.asset_id, args.operations, key),
+                args.intent_key,
+            ),
+        )
     if args.command == "retry":
         identity = intents.identity("retry", args.asset_id)
         return finish(

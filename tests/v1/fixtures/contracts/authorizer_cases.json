@@ -1,0 +1,194 @@
+{
+  "valid_user_session": {
+    "cookies": [
+      {
+        "token": "valid"
+      }
+    ],
+    "user": {
+      "role": "user"
+    },
+    "expect": {
+      "authorized": true,
+      "context": {
+        "role": "publisher"
+      }
+    }
+  },
+  "valid_operator_session_is_a_publisher_at_the_gateway": {
+    "cookies": [
+      {
+        "token": "valid"
+      }
+    ],
+    "user": {
+      "role": "operator"
+    },
+    "expect": {
+      "authorized": true,
+      "context": {
+        "role": "publisher"
+      }
+    }
+  },
+  "expired_jwt": {
+    "cookies": [
+      {
+        "token": "expired"
+      }
+    ],
+    "user": {
+      "role": "user"
+    },
+    "expect": {
+      "authorized": false
+    }
+  },
+  "jwt_signed_with_another_secret": {
+    "cookies": [
+      {
+        "token": "wrong-secret"
+      }
+    ],
+    "user": {
+      "role": "user"
+    },
+    "expect": {
+      "authorized": false
+    }
+  },
+  "jwt_without_required_claims": {
+    "cookies": [
+      {
+        "token": "no-exp"
+      }
+    ],
+    "user": {
+      "role": "user"
+    },
+    "expect": {
+      "authorized": false
+    }
+  },
+  "garbage_token": {
+    "cookies": [
+      {
+        "raw": "access_token=not.a.jwt"
+      }
+    ],
+    "user": {
+      "role": "user"
+    },
+    "expect": {
+      "authorized": false
+    }
+  },
+  "no_cookies": {
+    "cookies": [],
+    "user": {
+      "role": "user"
+    },
+    "expect": {
+      "authorized": false
+    }
+  },
+  "unrelated_cookie_only": {
+    "cookies": [
+      {
+        "raw": "theme=dark"
+      }
+    ],
+    "user": {
+      "role": "user"
+    },
+    "expect": {
+      "authorized": false
+    }
+  },
+  "two_session_cookies_are_ambiguous": {
+    "cookies": [
+      {
+        "token": "valid"
+      },
+      {
+        "token": "valid"
+      }
+    ],
+    "user": {
+      "role": "user"
+    },
+    "expect": {
+      "authorized": false
+    }
+  },
+  "token_for_a_user_that_no_longer_exists": {
+    "cookies": [
+      {
+        "token": "valid"
+      }
+    ],
+    "user": null,
+    "expect": {
+      "authorized": false
+    }
+  },
+  "user_with_an_unsupported_current_role": {
+    "cookies": [
+      {
+        "token": "valid"
+      }
+    ],
+    "user": {
+      "role": "root"
+    },
+    "expect": {
+      "authorized": false
+    }
+  },
+  "forged_public_identity_headers_do_not_change_the_subject": {
+    "cookies": [
+      {
+        "token": "valid"
+      }
+    ],
+    "headers": {
+      "x-owner-id": "00000000-0000-4000-8000-000000000002",
+      "x-role": "admin"
+    },
+    "user": {
+      "role": "user"
+    },
+    "expect": {
+      "authorized": true,
+      "context": {
+        "role": "publisher"
+      },
+      "owner": "token"
+    }
+  },
+  "payload_format_version_1": {
+    "cookies": [
+      {
+        "token": "valid"
+      }
+    ],
+    "user": {
+      "role": "user"
+    },
+    "version": "1.0",
+    "expect": {
+      "authorized": false
+    }
+  },
+  "database_unavailable_fails_closed": {
+    "cookies": [
+      {
+        "token": "valid"
+      }
+    ],
+    "user": "database-error",
+    "expect": {
+      "authorized": false
+    }
+  }
+}

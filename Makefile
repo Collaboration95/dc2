@@ -12,7 +12,7 @@ export PLAYWRIGHT_BROWSERS_PATH := $(CURDIR)/.local/playwright
 .PHONY: help setup setup-browser doctor doctor-infra lint test test-python test-frontend coverage \
         coverage-report integration integration-coverage clean test-app test-processing test-media \
         test-media-engine test-publisher test-cli publisher up down logs smoke-infra images env status local-tls \
-        browser browser-install browser-open browser-trust-smoke capacity-install capacity-start capacity-status capacity-stop capacity-env \
+        browser browser-install browser-open browser-trust-smoke capacity-install capacity-start capacity-status capacity-stop capacity-env capacity-reap capacity-renew \
         e2e verify-local evidence-status evidence-performance evidence-scaling evidence-recovery evidence-release release rollback
 
 help: ## List project commands
@@ -94,8 +94,11 @@ browser-open: ## Open the scoped project browser
 
 browser: browser-open ## Open the scoped project browser (alias of browser-open)
 
-capacity-install capacity-start capacity-status capacity-stop capacity-env: ## Delegate isolated capacity ACTION
-	$(PYTHON) scripts/dev/capacity.py $(patsubst capacity-%,%,$@)
+# Default VM is 2 CPU / 2 GiB with a 2 h lease. CAPACITY_ARGS examples: --benchmark (8/8, for
+# scaling measurements only), --lease-minutes 60, --keep-alive (demo, up to 24 h), --force.
+CAPACITY_ARGS ?=
+capacity-install capacity-start capacity-status capacity-stop capacity-env capacity-reap capacity-renew: ## Delegate isolated capacity ACTION (CAPACITY_ARGS for options)
+	$(PYTHON) scripts/dev/capacity.py $(patsubst capacity-%,%,$@) $(CAPACITY_ARGS)
 
 e2e: ## Full HTTPS browser/CLI workflow
 	$(PYTHON) -m scripts.dev.e2e --run-id "$(RUN_ID)"
@@ -108,3 +111,61 @@ evidence-status evidence-performance evidence-scaling evidence-recovery evidence
 
 release rollback: ## Promote or roll back Processing locally; RELEASE_ARGS supplies options
 	$(PYTHON) -m scripts.dev.release $@ --run-id "$(RUN_ID)" $(RELEASE_ARGS)
+
+# V1 uses no legacy runtime or Redis. Override PYTHON only to use an existing
+# read-only dependency environment; imports always resolve from this checkout.
+V1_RUN_ID ?= v1-$(shell date +%Y%m%d)-local
+FLOW ?= all
+.PHONY: v1-up v1-down v1-status verify-v1 test-v1
+v1-up: ## Start unique PostgreSQL + loopback Moto; no AWS calls
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_runtime up --run-id "$(V1_RUN_ID)"
+
+v1-down: ## Stop only this V1 namespace; retain SQL volume/logs (DELETE_DATA=1 deletes its SQL)
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_runtime down --run-id "$(V1_RUN_ID)" $(if $(filter 1,$(DELETE_DATA)),--delete-data,)
+
+v1-status: ## Show selected V1 namespace; preserve other runtimes
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_runtime status --run-id "$(V1_RUN_ID)"
+
+verify-v1: ## Real dependency/engine A, integrated clients B, lifecycle/release C; FLOW=a|b|c|all
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_runtime verify --run-id "$(V1_RUN_ID)" --flow "$(FLOW)"
+
+test-v1: ## Offline V1 operational contracts; no services/AWS credentials
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/v1 -m "not integration" -q \
+		-p scripts.dev.pytest_plugin --offline-fast
+
+# cfn-lint is a lint-only tool kept out of uv.lock. Locally a missing linter is a clean skip;
+# CI passes CFN_LINT_ARGS=--require so a missing linter fails.
+CFN_LINT_ARGS ?=
+.PHONY: lint-cfn test-aws test-aws-v1 v1-images aws-mfa-session aws-proof-rehearse
+lint-cfn: ## Render and lint the V1 CloudFormation template offline (no AWS calls)
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.aws.v1.lint $(CFN_LINT_ARGS)
+
+v1-images: ## Build and verify the three V1 images (amd64; local evidence only, no AWS)
+	$(BOOTSTRAP_PYTHON) deploy/v1/build_and_verify.py
+
+# The V1 runtime environment deliberately has no legacy extra (no rq, no PyYAML), so the two
+# AWS2 modules that import them run only where the legacy extra is installed: `make test` and
+# `make test-aws`, which CI's fast job executes. The V1 job uses test-aws-v1.
+test-aws-v1: ## Offline AWS control-plane suite for the no-legacy V1 environment
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/aws -m "not integration and not e2e" -q \
+		--ignore=tests/aws/test_cloud_worker.py --ignore=tests/aws/test_definitions.py \
+		-p scripts.dev.pytest_plugin --offline-fast
+
+test-aws: ## Offline AWS control-plane suite incl. AWS2 legacy tests (needs the legacy extra)
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/aws -m "not integration and not e2e" -q \
+		-p scripts.dev.pytest_plugin --offline-fast
+
+.PHONY: v1-serve
+v1-serve: ## Foreground loopback Gateway bridge to integrated actual handlers; V1_PORT=0 allocates
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_gateway --run-id "$(V1_RUN_ID)" --port "$(or $(V1_PORT),0)"
+
+# The V1 deploy drives CloudFormation, whose calls FlickPondRequireMFA denies unless the caller's
+# credentials carry MFA. This mints a 36 h session into profile dc2-project2-mfa and prints only
+# its expiry. MFA_ARGS example: --duration 43200
+MFA_ARGS ?=
+aws-mfa-session: ## Mint an MFA session profile for the V1 cloud proof: CODE=123456
+	@test -n "$(CODE)" || { echo 'Set CODE=<current 6-digit MFA code>' >&2; exit 2; }
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.aws.v1.mfa_session --code "$(CODE)" $(MFA_ARGS)
+
+aws-proof-rehearse: ## Run every cloud-proof harness against the simulated account (no AWS, proves nothing)
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.aws.v1.evidence rehearse
