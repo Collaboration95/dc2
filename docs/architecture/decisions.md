@@ -385,10 +385,10 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   `legacy` or any listed legacy module is importable, if `/app/legacy` exists, or if the executable
   graph imports one.
 - **Alternatives.** Deleting it (the issue preferred deletion; the legacy regression jobs still use it).
-- **Trade-off.** The package and CI lanes for legacy remain to maintain. Some peer-era artefacts stay
-  in V1 packages: `processing/service.py:submit_job`, `schemas.SubmitJob`,
-  `processing/auth.py:require_service_token`, `media/config.py:source_service_token`, and the schema
-  leftovers in [ddd.md](ddd.md) section 8.
+- **Trade-off.** The package and CI lanes for legacy remain to maintain. The remaining peer-era
+  code (`submit_job`, `SubmitJob`, `require_service_token` and the Media peer settings) moved to
+  `legacy/` in #210. The unused schema columns stay, by decision (no data migration this close to
+  submission): see [views.md](views.md) section 4.5.
 - **Evidence.** [Code] `deploy/v1/check_runtime.py`; [Local] `tests/v1/test_image_recipes.py`.
 
 ## 4. Proposal to as-built deviations
@@ -419,18 +419,18 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
 Places where documents and code disagree, or where the code is easy to misread. Listed so the
 report does not repeat either side blindly. Re-check before quoting; some will be fixed.
 
-Status on 18 October: rows 1, 2 and 3 were corrected in the source documents, and row 6 is now explained in [views.md](views.md) section 4.2. The code-level rows are tracked in #210.
+Status on 18 October: rows 1, 2 and 3 were corrected in the source documents, and row 6 is now explained in [views.md](views.md) section 4.2. Rows 4, 5, 7 and 8 were resolved in #210 (below); each keeps the original finding with the resolution appended.
 
 | # | Statement or expectation | What the code or evidence shows |
 |---|---|---|
 | 1 | `docs/execution/aws/v1/README.md` ("Real AWS acceptance is still pending") and `deploy-runbook.md` ("never run against AWS") | `evidence/cloud-proof-r1017b.json` records a live run with PASS on #63 to #67 |
 | 2 | `deploy/aws/v1/README.md` step 7: "every function with reserved concurrency 0" | The same file later, `session.py` and `definitions.py` use **no** reserved concurrency |
 | 3 | `architecture-plan.md` "Close ... sets application/authorizer reserved concurrency to zero" | Default policy `zero_reservation: "off"`; `close-state` reports 0 functions with a reservation |
-| 4 | Contract and `Actor` accept role `viewer` | `media/authorizer.py:gateway_role` only ever returns `publisher` |
-| 5 | `architecture-plan.md`: Processing creates jobs only from the trusted Media command path | The earlier synchronous path is still in the tree: `processing/service.py:submit_job`, `schemas.SubmitJob` (with `source_url`), `processing/auth.py:require_service_token`, and `media/config.py:source_service_token`. The V1 API does not mount them. The `redis_url` and `media_url` settings and the peer modules moved to `legacy/` (AD-26); `submit_job`, `SubmitJob` and the service-token dependency did not. |
+| 4 | Contract and `Actor` accept role `viewer` | `media/authorizer.py:gateway_role` only ever returns `publisher` **Resolved (#210):** documented as intentional at both ends (`contracts/v1.py:Actor.from_context`, `media/authorizer.py:gateway_role`): `viewer` is accepted so a read-only role can be added without a contract bump, and is never issued in V1. |
+| 5 | `architecture-plan.md`: Processing creates jobs only from the trusted Media command path | The earlier synchronous path is still in the tree: `processing/service.py:submit_job`, `schemas.SubmitJob` (with `source_url`), `processing/auth.py:require_service_token`, and `media/config.py:source_service_token`. The V1 API does not mount them. The `redis_url` and `media_url` settings and the peer modules moved to `legacy/` (AD-26); `submit_job`, `SubmitJob` and the service-token dependency did not. **Resolved (#210):** `submit_job`, `get_job`/`list_jobs`, `request_fingerprint`, `SubmitJob`, `SourceAccess`, `require_service_token`/`get_owner_id` moved to `legacy/processing_rq/`, and Media's `processing_url`, `processing_service_token`, `source_service_token`, `processing_timeout_seconds` moved to `legacy.media_peer.config.LegacyMediaSettings` (Processing's `service_token` to `LegacySettings`). A static test fails if any name returns to `processing/` or `media/`. The unused schema columns are retained and recorded in [views.md](views.md) section 4.5. |
 | 6 | Migration filenames look like a continuous sequence | Media has no `0003`, Processing has no `0004`; Processing `0005` names `0003` as its parent. Revision ids mix `0001_media`, `media_0004` styles. |
-| 7 | A `staging/` key holds unadopted data | `direct_intake.py:finalize` keeps the adopted source at `staging/{owner}/{reservation}/source`; edit-derived sources use `sources/{owner}/{asset}/source`. Processing accepts both prefixes. |
-| 8 | Submit commands have deterministic ids | Edit-derived assets use a deterministic id (`uuid5`), upload-derived ones a random `uuid4` in `media/messaging.py:enqueue_submit`. Safe because finalize is guarded by the reservation, but inconsistent. |
+| 7 | A `staging/` key holds unadopted data | `direct_intake.py:finalize` keeps the adopted source at `staging/{owner}/{reservation}/source`; edit-derived sources use `sources/{owner}/{asset}/source`. Processing accepts both prefixes. **Resolved (#210):** intentional and now commented at the source (`direct_intake.py:reserve`): the pinned VersionId, not the prefix, makes the source immutable, and a copy to `sources/` would store a second object. Documented in [views.md](views.md) section 4.3. |
+| 8 | Submit commands have deterministic ids | Edit-derived assets use a deterministic id (`uuid5`), upload-derived ones a random `uuid4` in `media/messaging.py:enqueue_submit`. Safe because finalize is guarded by the reservation, but inconsistent. **Resolved (#210):** intentional and commented at `media/messaging.py:enqueue_submit`: finalize adopts a reservation once, so a random id cannot duplicate; edits have no reservation, so `v1_lifecycle` derives a `uuid5` from the asset so a replay is idempotent. |
 
 ## 6. Architectural limitations
 
