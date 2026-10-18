@@ -83,17 +83,28 @@ def compose(data, *args):
     )
 
 
+MOTO_VENV = ".cache/v1-moto"
+MOTO_REQUIREMENT = "moto[server]==5.2.4"
+
+
 def moto_python():
     selected = os.environ.get("V1_MOTO_PYTHON")
     if selected:
         # Not resolve(): a venv's python is a symlink to the base interpreter, and following
         # it drops the venv's site-packages, so Moto would fail to import in a fresh venv.
         return os.path.abspath(selected)
+    # `make setup-v1` creates this one inside the checkout; it needs nothing from another clone.
+    local = ROOT / MOTO_VENV / "bin/python"
+    if local.exists():
+        return str(local)
     common = Path(run(["git", "rev-parse", "--git-common-dir"], capture_output=True).stdout.strip())
     repo = (ROOT / common).resolve().parent
     executable = repo / ".cache/aws-test-tools/bin/python"
     if not executable.exists():
-        raise ValueError("Set V1_MOTO_PYTHON to a Python environment with moto[server]==5.2.4")
+        raise ValueError(
+            "Set V1_MOTO_PYTHON to a Python environment with moto[server]==5.2.4 "
+            "(run `make setup-v1` to create one)"
+        )
     return str(executable)
 
 

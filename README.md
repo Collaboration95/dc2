@@ -56,18 +56,30 @@ a monorepo with one lockfile, and `contracts/` copied into both images. See
 
 Local V1 uses real PostgreSQL 16, FFmpeg and Docker, with Moto standing in for S3 and SQS and an
 in-process API Gateway bridge. It does not exercise IAM, Lambda, Fargate or Aurora. Prerequisites:
-Docker Compose, FFmpeg/FFprobe and the locked Python environment (`make setup`). Details and what is
-emulated: [`local-runtime.md`](docs/execution/aws/v1/local-runtime.md).
+Docker Compose, FFmpeg/FFprobe, `uv` and Node 20+. `make setup-v1` installs the locked environment, an isolated
+`moto[server]==5.2.4` environment in `.cache/v1-moto` (found automatically; override with
+`V1_MOTO_PYTHON`) and the Chromium that the V1 browser leg launches. On a disposable Linux host add
+`WITH_DEPS=1` (apt, needs root) for Chromium's system libraries; otherwise install them yourself.
+`make browser-install` alone is the legacy trust workflow and installs Firefox on Linux. Details and
+what is emulated: [`local-runtime.md`](docs/execution/aws/v1/local-runtime.md).
 
 ```sh
-make setup
+make setup-v1
 make test-v1                                                     # offline contract tests, no services
 make v1-up V1_RUN_ID=demo1                                       # PostgreSQL + loopback Moto
 make verify-v1 V1_RUN_ID=demo1 FLOW=all V1_BROWSER=1             # every flow plus the browser leg
-make v1-serve V1_RUN_ID=demo1                                    # loopback Gateway bridge to the real handlers
+make v1-demo V1_RUN_ID=demo1 OPEN=1                              # interactive web UI + work pump (Ctrl-C stops)
+make v1-serve V1_RUN_ID=demo1                                    # API-only loopback Gateway bridge (no UI, no pump)
 make v1-down V1_RUN_ID=demo1 DELETE_DATA=1                       # remove only this run's data
 make help                                                        # every target
 ```
+
+`make v1-demo` prints an `https://127.0.0.1:<port>` URL serving the shipped frontend, the Media and
+Processing handlers and a pump that delivers queue messages and runs one real FFmpeg encode per job.
+Its certificate is generated locally, so a normal browser warns; `OPEN=1` opens a Chromium that trusts
+only that certificate, or start Chrome with the printed `--ignore-certificate-errors-spki-list=` flag
+and a throwaway `--user-data-dir`. It is emulated, not AWS evidence, and each start resets that run's
+buckets and queues. It does not keep Moto state across restarts or start dependencies for you.
 
 Other useful targets: `make lint`, `make test` (fast Python and frontend suites), `make lint-cfn`
 (renders and lints the CloudFormation template offline), `make v1-images` (builds and verifies the three

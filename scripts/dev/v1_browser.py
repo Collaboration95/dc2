@@ -14,7 +14,7 @@ import os
 import subprocess
 import threading
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 from scripts.dev.v1_gateway import Gateway
 from scripts.dev.v1_redact import redact
@@ -34,10 +34,15 @@ class FrontendGateway(Gateway):
             return super().invoke(method, target, headers, body)
         if method not in {"GET", "HEAD"}:
             return {"statusCode": 405, "body": ""}
-        name = "index.html" if path == "/" else path.lstrip("/")
-        served = name in STATIC_FILES or name.startswith("vendor/")
+        # Decode and resolve first, then judge the resolved location: `vendor/../x` and
+        # `%2e%2e` must not borrow the vendor prefix.
+        name = "index.html" if path == "/" else unquote(path).lstrip("/")
         file = (FRONTEND / name).resolve()
-        if not served or not file.is_file() or not file.is_relative_to(FRONTEND):
+        served = file.is_file() and (
+            file.parent == FRONTEND and file.name in STATIC_FILES
+            or file.is_relative_to(FRONTEND / "vendor")
+        )
+        if not served:
             return {"statusCode": 404, "body": ""}
         kind = mimetypes.guess_type(file.name)[0] or "application/octet-stream"
         return {
@@ -193,10 +198,10 @@ def spki_pin(certificate):
 
 
 @contextlib.contextmanager
-def chromium(certificate, profile):
+def chromium(certificate, profile, headless=True):
     """Headless Chromium trusting only the generated certificate; errors stay enabled.
 
-    The browser must already be installed (make browser-install, or `playwright install
+    The browser must already be installed (`make setup-v1`, or `playwright install
     chromium`). When V1_BROWSER=1 was requested, a missing browser raises Playwright's own
     install hint; it is never turned into a skip.
     """
@@ -205,11 +210,11 @@ def chromium(certificate, profile):
 
     with sync_playwright() as playwright:
         # channel="chromium" selects the full browser in new headless mode, which is what
-        # `playwright install chromium --no-shell` (make browser-install) provides.
+        # `playwright install chromium --no-shell` (make setup-v1) provides.
         context = playwright.chromium.launch_persistent_context(
             str(profile),
             channel="chromium",
-            headless=True,
+            headless=headless,
             ignore_https_errors=False,
             args=["--ignore-certificate-errors-spki-list=" + spki_pin(certificate)],
             viewport={"width": 1280, "height": 800},
