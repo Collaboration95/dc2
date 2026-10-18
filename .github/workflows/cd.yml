@@ -50,6 +50,13 @@ on:
           run: a resume must use the same value
         type: boolean
         default: false
+      bad_candidate:
+        description: >-
+          release only, with execute. A deliberate fault for the rollback proof: the runner commits
+          a Lambda handler with a non-RDS database CA into the candidate (nothing is pushed). The
+          release must fail its smoke and be restored automatically; the job passes only if it was restored.
+        type: boolean
+        default: false
       seed_email:
         description: deploy only, address of the smoke account
         type: string
@@ -89,6 +96,7 @@ env:
   CD_OWNER: ${{ inputs.owner }}
   CD_ATTEST_ADDITIVE: ${{ inputs.attest_additive && 'true' || 'false' }}
   CD_UNATTENDED_LAUNCH: ${{ inputs.unattended_launch && 'true' || 'false' }}
+  CD_BAD_CANDIDATE: ${{ inputs.bad_candidate && 'true' || 'false' }}
   CD_SEED_EMAIL: ${{ inputs.seed_email || 'ops@example.com' }}
   CD_BUDGET_USD: ${{ inputs.budget_usd || '30' }}
   CD_PLANNED_HOURS: ${{ inputs.planned_hours || '3' }}

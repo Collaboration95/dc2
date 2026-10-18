@@ -82,7 +82,8 @@ class FakeSqs:
         if not QueueUrl.endswith("Dlq"):
             # A main queue: the commands queue holds what Media published and Processing has
             # not consumed; the others are not modelled and read empty.
-            depth = self.world.commands_waiting() if name == "ProcessingCommands" else 0
+            depth = {"ProcessingCommands": self.world.commands_waiting(),
+                     "ProcessingWork": self.world.stale_work}.get(name, 0)
             return {"Attributes": {"ApproximateNumberOfMessages": str(depth),
                                    "ApproximateNumberOfMessagesNotVisible": "0",
                                    "ApproximateNumberOfMessagesDelayed": "0"}}
@@ -114,8 +115,12 @@ class SimWorld:
                  lambda_warm_seconds=4.0, database=None, resume_seconds=30.0, probe_ms=45.0,
                  shared_load_slowdown=1.8, auto_pause_seconds=300, max_acu=2.0,
                  one_job_per_task=True, fail_claims=(), outbox_seconds=0.0, launcher=False,
-                 launcher_tick_seconds=60.0):
+                 launcher_tick_seconds=60.0, dud_encoders=0, stale_work=0):
         self.env, self.faults = env, set(faults)
+        # The first `dud_encoders` worker tasks exit 0 a few seconds after starting without
+        # claiming anything (r1018b: an encoder that long-polled before the command arrived).
+        # `stale_work` is how many messages an earlier run left in the ProcessingWork queue.
+        self.dud_encoders, self.stale_work, self.workers_started = dud_encoders, stale_work, 0
         # V1 encoders are finite: a task claims one attempt, encodes it and exits (processing/
         # worker/sqs.py). `False` keeps the older model where a task keeps taking queued jobs.
         # `fail_claims` lists the 1-based claim numbers whose encode ends `failed`.
@@ -665,6 +670,10 @@ class SimWorld:
                 "idle_since": now + self.start, "interrupted": False, "script_seconds": 30,
                 "cpu": payload.get("overrides", {}).get("cpu", spec.get("cpu", "2048")),
                 "memory": payload.get("overrides", {}).get("memory", spec.get("memory", "4096"))}
+        if kind == "worker":
+            self.workers_started += 1
+            if self.workers_started <= self.dud_encoders:
+                task.update(dud=True, stopped_at=now + self.start + 3.0)
         if kind == "generator":
             task["script_seconds"] = 330
             self.logs[("/dc2/tasks", f"generator/generator/{arn.rsplit('/', 1)[-1]}")] = \

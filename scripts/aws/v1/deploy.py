@@ -1625,7 +1625,7 @@ class Pipeline:
                 ("update", "put", "enable", "disable", "run", "stop", "delete")),
                 "command": "# sdk " + json.dumps(call, sort_keys=True)})
         if code or not payload.get("ok"):
-            raise DeployError(f"session {action} failed: {str(payload.get('error', ''))[:160]}")
+            raise DeployError(f"session {action} failed: {str(payload.get('error', ''))[:700]}")
         return payload.get("result", {})
 
     def session_dir(self):

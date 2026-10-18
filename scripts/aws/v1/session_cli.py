@@ -26,7 +26,7 @@ from scripts.aws.v1.hooks import (
     file_reader,
     sql_reader,
 )
-from scripts.aws.v1.session import Session
+from scripts.aws.v1.session import CLOSE_RETRY_SECONDS, Session
 from scripts.aws.v1.vpc_reader import VpcReader
 
 ZERO = dict.fromkeys(("queued", "processing", "succeeded", "failed", "abandoned", "cancelled"), 0)
@@ -168,6 +168,8 @@ def main(argv=None, *, environ=None, transport_factory=None, sqs_factory=None, s
             result = {"journal": "planned" if args.dry_run else "initialized"}
         else:
             session = Session(config, transport, journal, clock=clock, sleep=sleep)
+            if not args.dry_run:
+                session.close_retry_seconds = CLOSE_RETRY_SECONDS
             deadline = clock() + args.deadline_seconds
             result = run_action(args, session, data, hook_names, transport, deadline, clock=clock,
                                 sleep=sleep)

@@ -183,3 +183,56 @@ def test_gate_validates_inputs_before_trusting_ci(gate):
 def test_a_non_dispatch_trigger_may_only_run_the_read_only_preflight(gate):
     assert gate([], CD_EVENT="push", CD_OPERATION="preflight").returncode == 0
     assert gate([], CD_EVENT="push", CD_OPERATION="deploy").returncode == 1
+
+
+def test_a_bad_candidate_is_only_accepted_for_an_executed_release(gate):
+    ok = {"CD_OPERATION": "release", "CD_OWNER": "processing", "CD_EXECUTE": "true"}
+    assert gate([ci_run("success")], CD_BAD_CANDIDATE="true", **ok).returncode == 0
+    assert gate([ci_run("success")], CD_BAD_CANDIDATE="true", **{**ok, "CD_EXECUTE": "false"}
+                ).returncode == 1
+    assert gate([ci_run("success")], CD_BAD_CANDIDATE="true", CD_OPERATION="deploy",
+                CD_EXECUTE="true").returncode == 1
+    assert gate([ci_run("success")], CD_BAD_CANDIDATE="false", CD_OPERATION="deploy"
+                ).returncode == 0
+
+
+def test_the_bad_candidate_input_reaches_the_script_off_by_default(workflow):
+    spec = workflow[True]["workflow_dispatch"]["inputs"]["bad_candidate"]
+    assert spec["type"] == "boolean" and spec["default"] is False
+    assert "CD_BAD_CANDIDATE" in workflow["env"]
+
+
+@pytest.mark.parametrize(
+    ("owner", "handler", "variable"),
+    [
+        ("processing", "processing/lambda_handler.py", "PROCESSING_DATABASE_CA_FILE"),
+        ("media", "media/lambda_handler.py", "MEDIA_POSTGRES_SSL_CA"),
+    ],
+)
+def test_the_bad_candidate_changes_only_the_lambda_handler_and_commits_it_locally(
+        tmp_path, owner, handler, variable):
+    repo = tmp_path / "repo"
+    (repo / owner).mkdir(parents=True)
+    original = '"""entrypoint"""\n\nfrom contracts import x\n'
+    (repo / handler).write_text(original)
+    (repo / "other.py").write_text("untouched\n")
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@invalid"]
+    subprocess.run([*git, "init", "-q"], cwd=repo, check=True)
+    subprocess.run([*git, "add", "."], cwd=repo, check=True)
+    subprocess.run([*git, "commit", "-qm", "base"], cwd=repo, check=True)
+    before = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True)
+    env = {**os.environ, "CD_RUN_ID": "r1019a", "CD_OPERATION": "release",
+           "RUNNER_TEMP": str(tmp_path)}
+    done = subprocess.run(["bash", str(CD_SCRIPT), "inject-bad-candidate", owner], env=env,
+                          cwd=repo, capture_output=True, text=True)
+    assert done.returncode == 0, done.stdout + done.stderr
+    patched = (repo / handler).read_text()
+    # The assignment comes before every import of the service, and the original is intact.
+    assert patched.startswith("import os\nimport certifi\n")
+    assert f'os.environ["{variable}"] = certifi.where()' in patched
+    assert patched.endswith(original)
+    assert (repo / "other.py").read_text() == "untouched\n"
+    after = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True)
+    assert after != before  # a new commit, so the image label differs from the deployed one
+    status = subprocess.check_output(["git", "status", "--porcelain"], cwd=repo, text=True)
+    assert status.strip() == ""

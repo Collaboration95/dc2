@@ -700,6 +700,25 @@ gh workflow run cd.yml -f operation=teardown  -f run_id=r1018a -f execute=true
   starts and played back as HLS through CloudFront), `session close --in-vpc-counts`. The window is
   closed even when the smoke fails. The Publisher CLI is not used: V1 starts the encoder from the
   operator session, so a Publisher job would sit queued.
+- **Rollback through CD.** The `release` operation rolls back by itself: `release promote` runs its
+  own smoke through the Gateway (health, anonymous denial, login, jobs, and for Media a reservation);
+  if it fails, `cd.sh` runs `release restore` (or `release abandon` when the candidate failed in its
+  migration task before anything moved), then closes the window, and the job fails with outcome
+  `restored`. The upload-to-playback smoke that follows is a verification, not a gate: it runs after
+  the promotion, and a failure there does not move any alias. Rolling back a release that passed its
+  own smoke is a second promotion of the earlier image set, which the laptop `evidence release`
+  harness does (#65, `rollback` step); the CD `release` cannot, because it refuses an image equal to
+  the deployed baseline. To prove the automatic path on demand, dispatch `release` with
+  `bad_candidate=true` (and `execute=true`): the runner commits a Lambda handler with a non-RDS
+  database CA into the candidate (nothing is pushed), the candidate builds, migrates and fails its
+  smoke, and the job is green only if the outcome was `restored`.
+- **Encoder start in the smoke.** The smoke starts its single encoder only once the job is `queued`
+  with a Processing job id, starts another if one exits without claiming (two starts at most), and
+  refuses to start while the ProcessingWork queue still holds messages an earlier run left (#223).
+- **Teardown close.** `td-session-close` retries each failed close step for up to four minutes in
+  total (ten-second pauses; Aurora needs 30 to 60 s to resume and the launcher flag waits on it),
+  and a failure names every unresolved step with the error type or curated message (#225). The
+  drain checks are not retried.
 - **Cost guard** inputs: `budget_usd` (30), `planned_hours` (3), `forecast_usd` (5; Cost Explorer has
   no history here, so the guard needs the operator's figure). Same flags and meaning as above.
 - **Credentials.** The `aws` environment assumes `dc2-github-deploy` through GitHub OIDC (no key is

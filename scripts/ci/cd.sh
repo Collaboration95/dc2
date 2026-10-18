@@ -78,6 +78,10 @@ cmd_gate() {
   if [ "$CD_OPERATION" = release ]; then
     [[ ${CD_OWNER:-} =~ ^(media|processing)$ ]] || fail "release needs owner=media or processing"
   fi
+  if [ "${CD_BAD_CANDIDATE:-false}" = true ]; then
+    [ "$CD_OPERATION" = release ] && [ "${CD_EXECUTE:-false}" = true ] ||
+      fail "bad_candidate only applies to a release with execute=true"
+  fi
   [[ $CD_BUDGET_USD =~ ^[0-9]+(\.[0-9]+)?$ ]] || fail "budget_usd must be a number"
   [[ $CD_PLANNED_HOURS =~ ^[0-9]+(\.[0-9]+)?$ ]] || fail "planned_hours must be a number"
   [[ -z ${CD_FORECAST_USD:-} || $CD_FORECAST_USD =~ ^[0-9]+(\.[0-9]+)?$ ]] ||
@@ -247,6 +251,26 @@ cmd_smoke() {
 # One owner at a time, as the runbook's "Release proof on an existing stack": build the commit's
 # images, push them with a fresh tag, let `evidence release-plan` verify digest, scan and bundle,
 # then run the release CLI. A failed promotion is restored (UC-7) before the job fails.
+# Deliberate fault for the rollback proof (bad_candidate=true): commit, on the runner only, a
+# Lambda handler that points database TLS at a CA bundle that is not RDS's. The image still
+# builds, passes its offline checks and migrates, then fails the release smoke (login and the
+# job calls), which is the path that must trigger the automatic restore. Nothing is pushed.
+inject_bad_candidate() { # owner
+  local file var
+  case "$1" in
+    media) file=media/lambda_handler.py var=MEDIA_POSTGRES_SSL_CA ;;
+    processing) file=processing/lambda_handler.py var=PROCESSING_DATABASE_CA_FILE ;;
+    *) fail "No bad candidate for owner '$1'" ;;
+  esac
+  [ -f "$file" ] || fail "$file not found"
+  {
+    printf 'import os\nimport certifi\n\nos.environ["%s"] = certifi.where()\n\n' "$var"
+    cat "$file"
+  } >"$file.new" && mv "$file.new" "$file"
+  git -c user.name=cd-fault-injection -c user.email=cd@invalid commit -q -am \
+    "release proof: Lambda-only non-RDS CA bundle (migrates, must fail the smoke)"
+}
+
 cmd_release() {
   require_state
   cost_flags
@@ -261,6 +285,10 @@ cmd_release() {
   fi
   mkdir -m 700 -p "$CD_STATE/release"
   local build="$CD_STATE/release/build-$rel.json"
+  if [ "${CD_BAD_CANDIDATE:-false}" = true ]; then
+    inject_bad_candidate "$owner"
+    summary "bad_candidate: the $owner candidate was built with a non-RDS database CA on purpose."
+  fi
   python3 deploy/v1/build_and_verify.py "${only[@]}" --out "$build"
   if [ "$CD_EXECUTE" != true ]; then
     summary "Release built and verified the $owner images only (execute=false); nothing was pushed."
@@ -357,6 +385,13 @@ cmd_release() {
       versions: ($result[0].result.versions // null)}' >"$PUBLIC/release.json" || true
   summary "Release of **$owner**: **$outcome** (window closed: $([ "$close_rc" -eq 0 ] && echo yes || echo NO))"
   [ "$close_rc" -eq 0 ] || fail "session close failed; the public window may still be open"
+  if [ "${CD_BAD_CANDIDATE:-false}" = true ]; then
+    # The proof passes only when the bad candidate was caught and rolled back. A promotion would
+    # mean the smoke let a broken release through; anything else means the restore did not work.
+    [ "$outcome" = restored ] || fail "The deliberately bad candidate ended '$outcome', not restored"
+    summary "Rollback verified: the bad $owner candidate failed its smoke and the previous aliases were restored."
+    return 0
+  fi
   [ "$outcome" = promoted ] || fail "Release did not complete: $outcome"
 }
 
@@ -392,5 +427,6 @@ case "$command" in
   smoke) cmd_smoke ;;
   release) cmd_release ;;
   teardown) cmd_teardown ;;
+  inject-bad-candidate) inject_bad_candidate "${2:?owner}" ;;
   *) fail "Unknown command '$command'" ;;
 esac
