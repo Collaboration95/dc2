@@ -15,11 +15,12 @@ import datetime as dt
 import hashlib
 import io
 import json
+import re
 import time
 import uuid
 import zlib
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 from scripts.aws.v1 import operations, release_cli
 from scripts.aws.v1.deploy import DeployJournal
@@ -41,6 +42,9 @@ S3_HOST = "dc2-sim-source.s3.ap-southeast-1.amazonaws.com"
 EDGE_OPEN = {"rate": 100, "burst": 200}
 OPEN_EDGE = {"ThrottlingBurstLimit": EDGE_OPEN["burst"], "ThrottlingRateLimit": EDGE_OPEN["rate"]}
 COOKIE = "session=sim-token; HttpOnly; Secure; SameSite=Strict; Path=/"
+MAX_BYTES = 100 * 1024 * 1024  # the product's upload limit (contracts.v1.MAX_UPLOAD_BYTES)
+GRANT_SECONDS = 900  # a reservation's grant lives 15 minutes (media/services/direct_intake.py)
+SIGNED_SECONDS = 900  # a signed GET lives signed_url_ttl_seconds (media/config.py default)
 
 
 class VirtualClock:
@@ -159,6 +163,10 @@ class SimWorld:
         self.attempt_counts = {"queued": 0, "processing": 0, "succeeded": 3, "failed": 1,
                                "abandoned": 0, "cancelled": 0}
         self.vpc_reads = []
+        # The security proof (#229): the upload limit the simulated Media enforces, and the
+        # addresses and ports the simulated CloudFront edge answers on.
+        self.max_bytes = MAX_BYTES
+        self.open_ports = {80, 443} | ({8080} if "port-8080-open" in self.faults else set())
         if lambda_lane:  # a full `session open` has enabled every mapping
             self.plan.mappings[str(uuid.uuid5(uuid.NAMESPACE_URL, "ProcessingShortEncoder"))] = (
                 "Enabled")
@@ -322,7 +330,29 @@ class SimWorld:
                 return 200, {}, b"<SendMessageResponse/>"
             return 403, {}, b"<Error><Code>MissingAuthenticationToken</Code></Error>"
         origin = "cloudfront" if host.endswith("cloudfront.net") else "gateway"
+        if parts.scheme == "http":  # the edge redirects to HTTPS; execute-api has no port 80
+            if origin != "cloudfront":
+                raise ConnectionRefusedError
+            return self.reply(301, raw=b"", headers={"location": f"https://{host}{path}"},
+                              origin=origin)
         return self.api(method, origin, path, parse_qs(parts.query), headers, body)
+
+    # ---- the network edge, for the port scan (#229) ---------------------------------------
+    def resolve(self, host):
+        return ["203.0.113.10", "203.0.113.11"]  # TEST-NET-3: documentation addresses
+
+    def connect(self, address, port, timeout):
+        if port in self.open_ports:
+            return "open"
+        return "filtered" if port % 2 else "closed"
+
+    def signed(self, path, *, key=None):
+        """A presigned GET for `path`: the signature binds path, date and lifetime."""
+        date = dt.datetime.fromtimestamp(self.clock.wall(), dt.UTC).strftime("%Y%m%dT%H%M%SZ")
+        query = {"X-Amz-Algorithm": "AWS4-HMAC-SHA256", "X-Amz-Date": date,
+                 "X-Amz-Expires": SIGNED_SECONDS,
+                 "X-Amz-Signature": f"sim{crc(key or path, date, SIGNED_SECONDS):08x}"}
+        return f"https://{S3_HOST}{path}?{urlencode(query)}"
 
     def reply(self, status, payload=None, headers=None, raw=None, origin="gateway"):
         out = {k.lower(): [v] if isinstance(v, str) else v for k, v in (headers or {}).items()}
@@ -347,6 +377,8 @@ class SimWorld:
             else {}
         if path == "/api/media/auth/register":
             self.use_database()
+            if data["email"] in self.users:
+                return reply(409, raw=b"")
             uid = uuid.uuid4().hex
             self.users[data["email"]] = {"id": uid, "password": data["password"]}
             return reply(201, {"id": uid})
@@ -363,6 +395,8 @@ class SimWorld:
         if method == "OPTIONS":
             return reply(204, raw=b"")
         user = self.user_of(headers)
+        if user is None and "gateway-anonymous-open" in self.faults and origin == "gateway":
+            return reply(200, [])
         if user is None:
             return reply(401, {"error": "unauthorized"})
         if path == "/api/media/auth/me":
@@ -389,13 +423,21 @@ class SimWorld:
                         if found["owner"] == user["id"]
                         and found["request"]["request_id"] == data["request_id"]), None)
             if rid is None:
+                if data["size_bytes"] > self.max_bytes and "oversize-open" not in self.faults:
+                    return reply(422, {"error": "size_bytes too large"})
                 rid = str(uuid.uuid4())
                 self.reservations[rid] = {"owner": user["id"], "request": data,
-                                          "uploaded": False}
-            grant = None if self.reservations[rid].get("job") else {
-                "url": f"https://{S3_HOST}/", "fields": {"key": rid, "policy": "p"}}
+                                          "uploaded": False,
+                                          "expires_t": self.clock.t + GRANT_SECONDS}
+            found = self.reservations[rid]
+            grant = None if found.get("job") else {
+                "url": f"https://{S3_HOST}/", "fields": {
+                    "key": f"staging/{found['owner']}/{rid}/source",
+                    "Content-Type": found["request"]["content_type"],
+                    "policy": f"policy-{rid}", "x-amz-signature": f"sig-{rid}",
+                    "x-amz-credential": "sim", "x-amz-date": "20261017T000000Z"}}
             return reply(201, {
-                "reservation_id": rid, "expires_at": "2026-10-17T11:00:00Z",
+                "reservation_id": rid, "expires_at": iso(self.wall_of(found["expires_t"])),
                 "finalize_url": f"/uploads/reservations/{rid}/finalize", "upload": grant})
         if path.startswith("/api/media/uploads/reservations/") and path.endswith("/finalize"):
             return self.finalize(path.split("/")[-2], user, reply)
@@ -406,8 +448,13 @@ class SimWorld:
 
     def finalize(self, rid, user, reply):
         found = self.reservations.get(rid)
-        if not found or not found["uploaded"]:
+        if not found or found["owner"] != user["id"]:
+            return reply(404, {"error": "not found"})
+        if not found["uploaded"]:
             return reply(409, {"error": "no upload"})
+        if found["stored_bytes"] > found["request"]["size_bytes"] and (
+                "adopts-oversize" not in self.faults):
+            return reply(422, {"error": "source size does not match reservation"})
         if "finalize-needs-processing" in self.faults and not self.commands_enabled():
             return reply(503, {"error": "processing unavailable"})
         job_id = found.get("job") or str(uuid.uuid4())
@@ -444,14 +491,14 @@ class SimWorld:
                 "submission_status": "submitted" if published else "pending",
                 "processing_job_id": job.get("pid") if job.get("delivered", True) else None}
         if job["status"] == "done":
-            view["output_url"] = f"https://{S3_HOST}/out.mp4?X-Amz-Signature=sim"
+            view["output_url"] = self.signed("/out.mp4")
             if "no-hls" not in self.faults:
                 view["hls_url"] = f"/api/media/jobs/{job['id']}/hls/master.m3u8"
         return view
 
     def job_route(self, parts, user, reply):
         job = self.jobs.get(parts[4])
-        if not job or job["owner"] != user["id"]:
+        if not job or (job["owner"] != user["id"] and "cross-owner-open" not in self.faults):
             return reply(404, {"error": "not found"})
         if len(parts) == 5:
             return reply(200, self.job_view(job))
@@ -465,8 +512,7 @@ class SimWorld:
             return reply(200, raw=b"#EXTM3U\n#EXTINF:2,\nseg0.ts\n#EXT-X-ENDLIST\n",
                          headers={"cache-control": "private, no-store"})
         if name == "v0/seg0.ts":
-            return reply(307, raw=b"", headers={
-                "location": f"https://{S3_HOST}/seg0.ts?X-Amz-Signature=sim"})
+            return reply(307, raw=b"", headers={"location": self.signed("/seg0.ts")})
         return reply(404, {"error": "not found"})
 
     def s3(self, method, parts, headers, body):
@@ -477,17 +523,57 @@ class SimWorld:
                              "access-control-allow-methods": ["POST"]}, b""
             return 403, {}, b""
         if method == "POST":
-            assert "cookie" not in headers, "the session must never reach storage"
-            rid = next((r for r in self.reservations if r.encode() in body), None)
-            if rid is None or b"filename=" not in body:
-                return 403, {}, b""
-            self.reservations[rid]["uploaded"] = True
-            self.clock.sleep(1.2)
-            return 204, {}, b""
+            return self.s3_post(headers, body)
         if method == "GET" and "X-Amz-Signature" in parts.query:
+            if not self.signed_get_ok(parts):
+                return 403, {}, b"<Error><Code>SignatureDoesNotMatch</Code></Error>"
             size = int(headers.get("range", "bytes=0-1023").split("-")[1]) + 1
             return 206, {"content-type": ["video/mp2t"]}, b"x" * size
-        return 403, {}, b""
+        if method == "GET" and "s3-listable" in self.faults:
+            return 200, {}, b"<ListBucketResult/>"
+        return 403, {}, b"<Error><Code>AccessDenied</Code></Error>"
+
+    def signed_get_ok(self, parts):
+        query = {k: v[0] for k, v in parse_qs(parts.query).items()}
+        if "tamper-open" in self.faults:
+            return True
+        date = query.get("X-Amz-Date", "")
+        try:
+            lifetime = int(query.get("X-Amz-Expires", ""))
+        except ValueError:
+            return False
+        if query.get("X-Amz-Signature") != f"sim{crc(parts.path, date, lifetime):08x}":
+            return False
+        issued = dt.datetime.strptime(date, "%Y%m%dT%H%M%SZ").replace(tzinfo=dt.UTC)
+        late = self.clock.wall() > issued.timestamp() + lifetime
+        return not late or "expiry-open" in self.faults
+
+    def s3_post(self, headers, body):
+        """A presigned POST: signature, policy, key and content type are bound; size is capped."""
+        assert "cookie" not in headers, "the session must never reach storage"
+        text = body.decode("latin-1")
+        fields = dict(re.findall(r'name="([^"]+)"\r\n\r\n(.*?)\r\n--', text, re.S))
+        found = re.fullmatch(r"staging/[^/]+/([^/]+)/source", fields.get("key", ""))
+        reservation = self.reservations.get(found.group(1)) if found else None
+        if reservation is None or b"filename=" not in body:
+            return 403, {}, b""
+        rid = found.group(1)
+        if "tamper-open" not in self.faults and (
+                fields.get("x-amz-signature") != f"sig-{rid}"
+                or fields.get("policy") != f"policy-{rid}"
+                or fields.get("Content-Type") != reservation["request"]["content_type"]):
+            return 403, {}, b"<Error><Code>SignatureDoesNotMatch</Code></Error>"
+        if self.clock.t > reservation["expires_t"] and "expiry-open" not in self.faults:
+            return 403, {}, b"<Error><Code>AccessDenied</Code></Error>"
+        boundary = headers["content-type"].split("boundary=")[1]
+        start = body.index(b"\r\n\r\n", body.index(b'name="file"')) + 4
+        stored = body.rindex(f"\r\n--{boundary}--\r\n".encode()) - start
+        if stored > reservation["request"]["size_bytes"] and (
+                "no-s3-limit" not in self.faults and "adopts-oversize" not in self.faults):
+            return 400, {}, b"<Error><Code>EntityTooLarge</Code></Error>"
+        reservation["uploaded"], reservation["stored_bytes"] = True, stored
+        self.clock.sleep(1.2)
+        return 204, {}, b""
 
     # ---- encoder tasks -----------------------------------------------------------------------
     def tick(self):

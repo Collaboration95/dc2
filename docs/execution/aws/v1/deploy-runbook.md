@@ -298,6 +298,15 @@ python -m scripts.aws.v1.evidence capacity $S --state-dir D --run-id R --fixture
 #    back on, and require `done` within the gate. About 6-8 min, one short encode.
 python -m scripts.aws.v1.evidence isolation $S --state-dir D --run-id R --fixture short.mp4
 
+#    #229 security negatives (plain `session open`; about 8-12 min and one short encode, well
+#    under 0.01 USD of Fargate). Registers two users; A uploads, B must get 404 on A's job, retry,
+#    playback and Processing job; no session is 401; tampered upload grants and signed GETs fail;
+#    an oversize reservation and oversize bytes are refused; unsigned S3 list/GET/PUT are 403;
+#    a 12-port TCP connect scan of the CloudFront host expects only 80 and 443; the execute-api
+#    URL is classified. Expiry of a signed URL or grant (both 15 min) and the 100 MiB upload are
+#    NOT_RUN unless asked for (`--max-expiry-wait 960`, adds about 32 min; `--full-size-limit`).
+python -m scripts.aws.v1.evidence security $S --state-dir D --run-id R --fixture short.mp4
+
 #    #68 (V2, optional): only on a stack deployed with `deploy ... --unattended-launch` (step 1),
 #    and only after the #185 sweep above, which is its baseline. Close the plain session, reopen
 #    it unattended, run the IAM check ("Unattended launcher" below), then the observe-only harness:
