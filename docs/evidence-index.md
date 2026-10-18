@@ -94,6 +94,7 @@ and CI are not AWS evidence.
 | S8 | Secrets kept out of git and images | Secret scanning in the pipeline | gitleaks job green on the latest full run (allowlist `.gitleaks.toml`). Receipts are redacted; presigned query strings are stripped from captures | PASS | CI | run [39075571439](https://github.com/Collaboration95/dc2/actions/runs/39075571439) "Secret scan (gitleaks)" |
 | S9 | Pipeline: failed tests and fixable HIGH/CRITICAL image findings block a release | Trivy on three images; ECR scan in each release | Trivy (severity CRITICAL,HIGH, `ignore-unfixed: true`, exit code 1) passed on the app, media and processing images. Each `Release` step promoted, so the ECR scan gate passed against the allow list below | PASS | CI; AWS r1018b | run 39075571439; `r1018b-results.md` |
 | S10 | Dynamic scan (OWASP ZAP) | Findings report-only | DAST job ran and finished; findings are **report-only**, they do not block | NOT a gate | CI | run 39075571439 "Exact-candidate DAST execution" |
+| S11 | Rerun of the S2, S5a, S5c, S6 and S7 negatives on AWS (`evidence security`, #229): cross-user read/retry/playback, tampered and expired presigned URLs, 100 MiB limit against real S3 bytes, unsigned S3 access, external port scan, execute-api without CloudFront | Section 3.3 as above | pending `r1019a` | pending `r1019a` | AWS | `evidence-229-<run>.json`, to be committed as `cloud-proof-<run>.json` `#229` |
 
 ### Image findings
 

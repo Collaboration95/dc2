@@ -4,6 +4,7 @@
     python -m scripts.aws.v1.evidence capacity ...   #64 1/2/3 encoders, recovery, DLQ
     python -m scripts.aws.v1.evidence capacity --backlog N ...   #185 backlog jobs/min at cap 1/2/3
     python -m scripts.aws.v1.evidence isolation ...  #196 Media accepts uploads, Processing down
+    python -m scripts.aws.v1.evidence security ...   #229 cross-owner, tampered URLs, size, ports
     python -m scripts.aws.v1.evidence unattended ... #68 (V2) launcher vs operator batches
     python -m scripts.aws.v1.evidence release  ...   #65 promote, roll back, peer untouched
     python -m scripts.aws.v1.evidence release-plan   write #65's plan.json for a deployed stack
@@ -39,6 +40,7 @@ from scripts.aws.v1.proof import (
     latency,
     release,
     release_plan,
+    security,
     short_encode,
     sim,
     spend,
@@ -49,10 +51,10 @@ from scripts.aws.v1.proof.core import ProofError
 
 REQUIRED = {"63": gateway.REQUIRED, "64": capacity.REQUIRED, "65": release.REQUIRED,
             "66": latency.REQUIRED, "67": spend.REQUIRED, "185": capacity.BACKLOG_REQUIRED,
-            "196": isolation.REQUIRED, "68": unattended.REQUIRED}
+            "196": isolation.REQUIRED, "68": unattended.REQUIRED, "229": security.REQUIRED}
 # The session state each harness needs when it starts (latency opens its own window).
 SESSION = {"gateway": "open", "capacity": "open", "capacity-backlog": "open",
-           "isolation": "open", "unattended": "open",
+           "isolation": "open", "unattended": "open", "security": "open",
            "release": "window", "latency": "closed", "release-plan": "closed",
            "spend": "closed", "short-encode": "open", "db-topology": "window"}
 
@@ -69,7 +71,8 @@ def scope_arguments(parser):
                         help="simulated account, throwaway receipts; proves nothing about AWS")
     parser.add_argument("--only", help="comma-separated step names to run")
     parser.add_argument("--fresh", action="store_true",
-                        help="latency (#66) only: rerun the steps selected by --only (all steps "
+                        help="latency (#66) and security (#229, with --only, never setup-job): "
+                             "rerun the steps selected by --only (all steps "
                              "without it) as new "
                              "attempts: the old receipt entry and intent are archived under "
                              "`attempts` and a new task or request is minted. Without it PASS "
@@ -111,6 +114,18 @@ def build_parser():
                      help="longest the consumer stays off waiting for the command to reach the "
                           "queue")
     iso.add_argument("--minutes", type=int, default=60, help="session horizon for the encoder")
+    sec = sub.add_parser("security", help="#229: cross-owner, tampered URLs, size, port scan")
+    scope_arguments(sec)
+    sec.add_argument("--fixture", type=Path, required=True, help="a short mp4 for user A's upload")
+    sec.add_argument("--job-timeout", type=int, default=900)
+    sec.add_argument("--minutes", type=int, default=45, help="session horizon for the encoder")
+    sec.add_argument("--max-expiry-wait", type=int, default=security.EXPIRY_WAIT,
+                     help="longest to wait for a signed URL or upload grant to expire; both live "
+                          "15 minutes, so the expiry steps are NOT_RUN unless this is about 930 "
+                          "or more")
+    sec.add_argument("--full-size-limit", action="store_true",
+                     help="also upload 100 MiB plus one byte to storage (about 100 MiB of "
+                          "bandwidth)")
     un = sub.add_parser("unattended", help="#68 (V2): the launcher against operator batches")
     scope_arguments(un)
     un.add_argument("--fixture", type=Path, required=True, help="the same clip as the baseline")
@@ -255,6 +270,11 @@ def execute(args, ctx):
     if args.command == "isolation":
         return isolation.run(ctx, fixture=args.fixture, job_timeout=args.job_timeout,
                              minutes=args.minutes, hold=args.hold_seconds)
+    if args.command == "security":
+        return security.run(
+            ctx, fixture=args.fixture, job_timeout=args.job_timeout, minutes=args.minutes,
+            only=only(args), max_expiry_wait=args.max_expiry_wait,
+            full_size=args.full_size_limit)
     if args.command == "unattended":
         return unattended.run(
             ctx, fixture=args.fixture, backlog=args.backlog, drain_timeout=args.drain_timeout,
@@ -383,6 +403,7 @@ def rehearse(args, stdout):
                                              minutes=30),
         "capacity-backlog": lambda ctx: capacity.run_backlog(ctx, fixture=fixture, minutes=30),
         "isolation": lambda ctx: isolation.run(ctx, fixture=fixture, minutes=30),
+        "security": lambda ctx: security.run(ctx, fixture=fixture, minutes=30),
         "latency": rehearse_latency,
         "spend": lambda ctx: spend.run(ctx, wait_minutes=10),
     }
@@ -416,11 +437,12 @@ def main(argv=None, *, stdout=None, world=None, factory=None):
             return rehearse(args, stdout)
         if args.command in {"counts", "summary"}:
             return post_process(args, stdout)
-        if getattr(args, "fresh", False) and args.command != "latency":
+        if getattr(args, "fresh", False) and args.command not in {"latency", "security"}:
             raise ProofError(
                 f"--fresh is not supported for `{args.command}`: its drain counts and release "
                 "snapshots are cumulative across attempts, so archiving a step would undercount "
-                "or corrupt them. Only `latency` (#66) can be rerun as a fresh attempt")
+                "or corrupt them. Only `latency` (#66) and `security` (#229) can be rerun as a "
+                "fresh attempt")
         if not args.dry_run and not args.state_dir:
             raise ProofError("--state-dir is required for a live run")
         if args.command == "release-plan":

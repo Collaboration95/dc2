@@ -19,7 +19,7 @@ from scripts.aws.v1.proof.core import (
 
 ROOT = Path(__file__).resolve().parents[4]
 EVIDENCE_DIR = ROOT / "docs/execution/aws/v1/evidence"
-ISSUES = ("63", "64", "65", "66", "67", "68", "185", "196")
+ISSUES = ("63", "64", "65", "66", "67", "68", "185", "196", "229")
 NOT_PROVEN = (
     "Invoice lines: Cost Explorer lags about a day and is an estimate, not a bill.",
     "A rollback of a good promotion is an image rollback; no schema is reversed.",
@@ -113,6 +113,8 @@ def counts(docs):
                 # A timed-out step stops its encoders: any job still queued or processing is a
                 # real leftover, so it is counted and the close proof stays honest.
                 result["queued"] += public.get("jobs_not_terminal", 0)
+            if issue == "229" and name == "setup-job":
+                result["succeeded" if public.get("job_status") == "done" else "failed"] += 1
             if issue == "196" and name == "processing-down":
                 result["succeeded" if public.get("job_status") == "done" else "failed"] += 1
             if issue == "64" and name == "recovery":
