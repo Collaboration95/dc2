@@ -218,6 +218,48 @@ jobs:
         with:
           python-version-file: .python-version
       - run: make v1-images
+      - name: Scan the built media image (report only; the gate step decides)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: dc2-v1-media:local-${{ substr(github.sha, 0, 12) }}
+          format: json
+          output: trivy-media.json
+          exit-code: '0'
+          severity: CRITICAL,HIGH
+      - name: Scan the built processing image (report only; the gate step decides)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: dc2-v1-processing:local-${{ substr(github.sha, 0, 12) }}
+          format: json
+          output: trivy-processing.json
+          exit-code: '0'
+          severity: CRITICAL,HIGH
+      - name: Scan the built worker image (report only; the gate step decides)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: dc2-v1-worker:local-${{ substr(github.sha, 0, 12) }}
+          format: json
+          output: trivy-worker.json
+          exit-code: '0'
+          severity: CRITICAL,HIGH
+      # Same policy as the inherited scan (zero fixable HIGH/CRITICAL), applied to the exact
+      # images above and tied to the receipt's source SHA and local config IDs.
+      - name: Gate fixable HIGH/CRITICAL findings per image
+        if: always()
+        run: python3 -m scripts.ci.v1_scan
+      - name: Retain scan reports and identity (also on failure)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1-image-scans-${{ github.sha }}
+          path: |
+            trivy-*.json
+            v1-scan-summary.json
+          if-no-files-found: error
+          retention-days: 60
       - name: Retain the image receipt (config IDs, checks; no secrets)
         if: always()
         uses: actions/upload-artifact@v4

@@ -214,12 +214,18 @@ image decision. The reusable standalone `auto_images` implementation uses `scrip
 and the same classifier, including conservative unknown-path fallback. There is no
 second path allowlist. The template snapshot is an image-verifier input too. V1 image validation builds all three as one
 isolation contract.
-The legacy matrix **does not scan V1 Lambda/Fargate images**. The current V1 build
-receipt explicitly says vulnerability scan `NOT_RUN`; successful artifact builds
-must not be described as release vulnerability acceptance. Before release, the
-release process still needs scans of each exact promoted V1 digest, attributable
-to its source, under its existing applicable acceptance policy. This work does
-not operate a registry or replace that evidence with a legacy scan.
+The legacy matrix **does not scan V1 Lambda/Fargate images**. The V1 image job
+(`v1.yml`, same job, no extra build) runs Trivy on the three just-built images with the
+same policy (zero fixable HIGH/CRITICAL; unfixed findings are counted, not failing),
+then `scripts/ci/v1_scan.py` ties each report to the receipt's source SHA, Dockerfile and
+local image config ID, and fails the job if any image has fixable findings, a missing
+report or a mismatched image ID. Reports and `v1-scan-summary.json` upload with
+`if: always()` as `v1-image-scans-<sha>`. The config ID is a local Docker image ID, never a
+registry digest. The build receipt's `scan` stays `NOT_RUN` because it is written before
+and by a different step; the CI artifact is the scan record. This is candidate CI evidence:
+release acceptance still needs the scan of each exact promoted ECR digest, attributable to
+its source, under its existing policy. A green job does not mean the system is
+vulnerability-free.
 
 Sonar configuration is checked immediately, independently of coverage setup.
 Missing token/project/organization produces **NOT_RUN / not configured** in the
