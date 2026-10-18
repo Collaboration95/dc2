@@ -151,13 +151,26 @@ for provenance and carry a "Historical" banner on their first line. Index: [`doc
 The old root README, with the Project 1 architecture and the pre-AWS local stack commands, is
 [`docs/history/README-project1-and-pre-aws-local-stack.md`](docs/history/README-project1-and-pre-aws-local-stack.md).
 
-## Coursework deadlines — Team 17
+## Project wrap-up timeline — Team 17
 
-| Date | Coursework milestone |
-| --- | --- |
-| 26 October 2026, 14:35–15:15 | Team 17 presentation, including Q&A. |
-| 16 November 2026 | Final project report submission, incorporating presentation feedback. |
+Only course dates are shown. The other activities are listed in sequence for the team to schedule.
+
+| Course date | Milestone | Work to complete |
+| --- | --- | --- |
+| — | Finish and review | Complete the final code changes, review the integrated workflow and resolve submission-critical defects. Draft the deck, report outline and member-effort ledger in parallel. |
+| — | Feature freeze | Stop adding capabilities. Decide whether the always-on environment changes make the demo release; defer unfinished additions and retain the working V1 baseline. |
+| — | Capture evidence | Finish cloud proof, scaling and recovery results, security checks, and pipeline deploy, release and rollback receipts. Record the web and CLI demo; link each claim to its evidence. |
+| — | Code and demo release freeze | Pin the tested commit, images, configuration and fixtures. Save the demo recording and rollback path. Only a blocker fix can reopen this release; rerun affected checks and refresh its evidence. |
+| — | Rehearse and package | Finish slides and speaker ownership. Run a timed full-team rehearsal, including the demo fallback and Q&A. Verify submission links and upload instructions. |
+| 26 October 2026, 14:35–15:15 | Team 17 presentation | The allocated 40 minutes include Q&A. Present the frozen release, actual results, known limitations and each member's contribution. |
+| — | Complete report draft | Incorporate presentation feedback and assemble the complete report using the course template. |
+| — | Review report and evidence | Check the architecture against the delivered system, reconcile effort and results, test repository and recording links, and have every member review the report. |
+| — | Report and submission freeze | Lock the report, code reference, scripts and evidence index. Check the exported document and final submission package. |
+| — | Submit early | Upload the final package and retain the submission receipt, allowing time to resolve upload problems before the course deadline. |
+| 16 November 2026 | Final report due | Submit the final project report, incorporating presentation feedback. |
 
 Sources: [presentation guidelines and schedule](project-documentation/original-reference/04%20Project%20Presentation%20Guidelines%20%26%20Schedule.pdf) and [course briefing](project-documentation/original-reference/01%20Briefing.pdf).
 
 The supplied course documents do not specify a separate code-freeze date or exact upload cutoffs. Refer to Canvas for current submission instructions, including any separate code or slide deadlines.
+
+Also check the progress-report receipt and the individual peer-assessment deadline in NUS email.
