@@ -436,6 +436,13 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   other is attested additive; for the same reason the launcher may keep starting the previous
   worker until the release is adopted into the stack. The idle markers are best effort: a lost
   touch delays a repair by at most 30 minutes, after which every tick runs a full SQL pass.
+  The original 120 s (lost work) and 300 s (worker interruption) targets stay as the comparison
+  target for healthy markers only. A failed marker write followed by a healthy read of the old
+  quiet snapshot can delay discovery until that snapshot ages out (30 minutes plus tick alignment
+  and invocation time); an SSM read failure fails open to SQL instead. This is distinct from a
+  missing writer (the public Processing API, #244), which needs no SSM failure and is fixed by
+  wiring `ProcessingApi` as a writer; that fix does not close this case. A local test with a
+  controlled clock and fake SSM exercises it; no AWS failure injection has been run (NOT_RUN).
   Code reaches an alias only through a release or through a stack update that replaces the
   function's version (its description names the image digest, a digest of the definition, and
   the parameters, conditions and task definitions it resolves).

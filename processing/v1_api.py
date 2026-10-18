@@ -4,6 +4,7 @@ The legacy private HTTP application remains a separate regression surface. This
 application never mounts it or imports Redis/RQ, a worker, or any Media package.
 """
 
+import asyncio
 from typing import Annotated
 from uuid import UUID
 
@@ -21,6 +22,9 @@ from processing.database import get_v1_session
 from processing.errors import ProcessingError
 from processing.schemas import RetryJob
 from processing.service import owned_jobs
+from runtime_support.activity import Activity
+
+READ_METHODS = {"GET", "HEAD", "OPTIONS"}
 
 Identity = Annotated[Actor, Depends(gateway_actor)]
 Session = Annotated[AsyncSession, Depends(get_v1_session)]
@@ -121,6 +125,15 @@ def create_app() -> FastAPI:
 
     for error in (SQLAlchemyError, OSError, TimeoutError):
         app.add_exception_handler(error, unavailable)
+
+    @app.middleware("http")
+    async def record_activity(request: Request, call_next):
+        # Retry/cancel commit pending outbox work, so the idle gate must hear about them first
+        # (AD-27). Reads and /health never write a marker. Absent markers: V1 as before.
+        activity = Activity.from_environ("PROCESSING")
+        if activity and request.method not in READ_METHODS:
+            await asyncio.to_thread(activity.touch)
+        return await call_next(request)
 
     @app.get("/health")
     async def health(settings: Configuration):

@@ -23,7 +23,10 @@ OPTIONAL_FUNCTIONS = (LAUNCHER, SHORT_ENCODER)
 # launcher only reads.
 ACTIVITY_ROLES = {
     "Media": {"writers": ("MediaApi", "MediaResults"), "repair": "MediaRepair"},
-    "Processing": {"writers": ("ProcessingCommands",), "repair": "ProcessingRepair"},
+    "Processing": {
+        "writers": ("ProcessingApi", "ProcessingCommands"),
+        "repair": "ProcessingRepair",
+    },
 }
 # The Processing functions that publish work onto processing-work, and so wake the launcher.
 WORK_PUBLISHERS = ("ProcessingCommands", "ProcessingRepair", "ProcessingEcsEvents",
