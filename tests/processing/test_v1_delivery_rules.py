@@ -173,3 +173,33 @@ def test_v1_runtime_modules_never_reach_the_redis_only_settings_gates():
         assert not banned & used, (name, banned & used)
     # The V1 worker entry validates storage credentials only.
     assert "require_storage" in (ROOT / "processing/worker/sqs.py").read_text()
+
+
+def test_v1_packages_define_none_of_the_peer_era_submission_or_token_surface():
+    # Moved to legacy/ (#210): the synchronous SubmitJob intake, its presigned source_url body
+    # and the shared-secret settings. Nothing under processing/ or media/ may bring them back.
+    banned = {
+        "submit_job",
+        "SubmitJob",
+        "SourceAccess",
+        "require_service_token",
+        "service_token",
+        "source_service_token",
+        "processing_service_token",
+        "processing_url",
+        "processing_timeout_seconds",
+    }
+    for package in ("processing", "media"):
+        for path in (ROOT / package).rglob("*.py"):
+            if "migrations" in path.parts:
+                continue
+            tree = ast.parse(path.read_text())
+            names = {
+                n.name if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef)
+                else n.attr if isinstance(n, ast.Attribute)
+                else n.id if isinstance(n, ast.Name)
+                else n.target.id if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name)
+                else None
+                for n in ast.walk(tree)
+            }
+            assert not banned & names, (str(path.relative_to(ROOT)), banned & names)

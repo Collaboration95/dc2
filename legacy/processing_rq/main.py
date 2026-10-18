@@ -10,12 +10,14 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from legacy.processing_rq import service
+from legacy.processing_rq.auth import get_owner_id
 from legacy.processing_rq.queue import publish
-from processing import lifecycle, service
-from processing.auth import get_owner_id
+from legacy.processing_rq.schemas import SubmitJob
+from processing import lifecycle
 from processing.database import get_session
 from processing.errors import ProcessingError
-from processing.schemas import ProcessingJob, RetryJob, SubmitJob
+from processing.schemas import ProcessingJob, RetryJob
 
 Owner = Annotated[UUID, Depends(get_owner_id)]
 Session = Annotated[AsyncSession, Depends(get_session)]

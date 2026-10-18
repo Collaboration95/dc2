@@ -78,6 +78,8 @@ class Actor:
         if (
             not accepts_version(context.get("schema_version"))
             or context.get("integration") != INTEGRATION_MARKER
+            # "viewer" is accepted so a read-only role can be added without a contract bump, but
+            # Media never issues it in V1 (media/authorizer.py:gateway_role).
             or context.get("role") not in ("publisher", "viewer")
         ):
             raise ContractError("Invalid trusted actor")

@@ -4,8 +4,10 @@ from contextlib import asynccontextmanager
 
 from legacy.media_peer import hls, jobs, source_access
 from legacy.media_peer import uploads as multipart
+from legacy.media_peer.config import get_settings as legacy_settings
 from media.api import auth
 from media.api import uploads as direct
+from media.config import get_settings as media_settings
 from media.main import build_app, lifespan
 
 
@@ -22,7 +24,7 @@ async def peer_lifespan(app):
 
 
 def create_app():
-    return build_app(
+    application = build_app(
         (
             auth.router,
             multipart.router,
@@ -34,6 +36,9 @@ def create_app():
         ),
         lifespan=peer_lifespan,
     )
+    # Shared V1 dependencies ask media.config for settings; the peer routes need the peer fields.
+    application.dependency_overrides.setdefault(media_settings, legacy_settings)
+    return application
 
 
 app = create_app()

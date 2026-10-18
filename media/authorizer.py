@@ -15,6 +15,8 @@ def gateway_role(user: User) -> str:
     # independently against the current owned row, never a Gateway role claim.
     if user.role not in {"user", "operator"}:
         raise ValueError("unsupported current role")
+    # The contract also accepts "viewer", but no sharing or read-only account exists in V1, so
+    # the authorizer never issues it (owners only); it is reserved for a later sharing feature.
     return "publisher"
 
 

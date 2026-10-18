@@ -13,7 +13,6 @@ class Settings(BaseSettings):
     database_ca_file: str | None = None
     database_connect_timeout_seconds: float = Field(default=10, gt=0, le=30)
     release_version: str = "v1-dev"
-    service_token: SecretStr = SecretStr("")
     migration_dsn: str | None = Field(default=None, repr=False)
 
     storage_credential_mode: Literal["static", "ecs", "lambda"] = "static"

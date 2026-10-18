@@ -116,6 +116,8 @@ async def reserve(session, storage, owner_id, request):
                     asset_id=asset_id,
                     filename=safe_filename(request.filename),
                     bucket=storage.settings.minio_source_bucket,
+                    # An adopted upload keeps this key: the version pin, not a copy to sources/,
+                    # is what makes it immutable, and a copy would cost a second 100 MiB object.
                     key=f"staging/{owner_id}/{reservation_id}/source",
                     content_type=request.content_type,
                     size_bytes=request.size_bytes,

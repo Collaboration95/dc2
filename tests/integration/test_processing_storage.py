@@ -20,8 +20,8 @@ from minio import Minio
 from minio.error import S3Error
 from pydantic import SecretStr
 
-from legacy.processing_rq import tasks
-from processing import lifecycle, recovery, service
+from legacy.processing_rq import service, tasks
+from processing import lifecycle, recovery
 from processing.worker.storage import OutputStore
 
 asset_ids = lane.asset_ids
