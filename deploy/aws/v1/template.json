@@ -3600,6 +3600,9 @@
         "PolicyName": "activity-touch",
         "Roles": [
           {
+            "Ref": "ProcessingApiRole"
+          },
+          {
             "Ref": "ProcessingCommandsRole"
           }
         ],
@@ -4693,6 +4696,28 @@
             "PROCESSING_MINIO_OUTPUT_BUCKET": {
               "Ref": "OutputBucket"
             },
+            "PROCESSING_ACTIVITY_TOUCHED_PARAMETER": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                {
+                  "Ref": "ProcessingActivityTouched"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "PROCESSING_ACTIVITY_QUIET_PARAMETER": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                {
+                  "Ref": "ProcessingActivityQuiet"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
             "PROCESSING_SHORT_LANE": {
               "Fn::If": [
                 "ShortEncodes",
@@ -4775,9 +4800,16 @@
                   }
                 ]
               },
-              "85d65aa1c90e",
+              "a49e59a4e50a",
               {
                 "Ref": "ProcessingApiHandler"
+              },
+              {
+                "Fn::If": [
+                  "AlwaysOnEnv",
+                  "AlwaysOnEnv=1",
+                  "AlwaysOnEnv=0"
+                ]
               },
               {
                 "Fn::If": [

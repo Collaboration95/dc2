@@ -326,3 +326,16 @@ def test_a_version_description_stays_within_lambdas_256_characters():
             else:  # a parameter: its longest plausible value
                 rendered.append("x" * 48)
         assert len(" ".join(rendered)) <= 256, name
+
+
+def test_the_processing_api_is_an_activity_writer_with_the_marker_environment():
+    # #244: a direct retry/cancel must reach the idle gate; the role needs the env and the put.
+    policy = RESOURCES["ProcessingActivityWriters"]["Properties"]
+    assert {"Ref": "ProcessingApiRole"} in policy["Roles"]
+    (statement,) = policy["PolicyDocument"]["Statement"]
+    assert statement["Action"] == ["ssm:PutParameter"]
+    assert "ProcessingActivityTouched" in json.dumps(statement["Resource"])
+    assert "ProcessingActivityQuiet" not in json.dumps(statement["Resource"])
+    variables = RESOURCES["ProcessingApi"]["Properties"]["Environment"]["Variables"]
+    for kind in ("TOUCHED", "QUIET"):
+        assert variables[f"PROCESSING_ACTIVITY_{kind}_PARAMETER"]["Fn::If"][0] == "AlwaysOnEnv"
