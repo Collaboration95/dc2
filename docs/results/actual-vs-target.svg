@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="430" viewBox="0 0 1000 430" font-family="sans-serif" font-size="12">
+<rect width="1000" height="430" fill="#ffffff"/>
+<text x="20" y="24" font-size="15" font-weight="bold">Actual against target, from docs/results/actual-vs-target.csv</text>
+<text x="20" y="44" font-size="11">Panels use different designs, environments and timing boundaries; see the table. Target lines are the proposal section 3.4 values.</text>
+<text x="20" y="64" font-size="13" font-weight="bold">A. Speedup over one worker (x)</text>
+<line x1="40" y1="330.0" x2="400" y2="330.0" stroke="#333"/>
+<rect x="60" y="214" width="60" height="116" fill="#d55e00"/><text x="90" y="230" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="bold">1.449x</text><text x="90" y="245" text-anchor="middle" font-size="11" fill="#ffffff">FAIL</text><text x="90" y="344" text-anchor="middle" font-size="10">AWS V1</text>
+<rect x="130" y="167" width="60" height="163" fill="#0072b2"/><text x="160" y="183" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="bold">2.032x</text><text x="160" y="198" text-anchor="middle" font-size="11" fill="#ffffff">PASS</text><text x="160" y="344" text-anchor="middle" font-size="10">local</text>
+<line x1="50" y1="202" x2="200" y2="202" stroke="#000" stroke-dasharray="5 3"/>
+<text x="125" y="362.0" text-anchor="middle">2 workers (target 1.6x, dashed)</text>
+<rect x="240" y="142" width="60" height="188" fill="#d55e00"/><text x="270" y="158" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="bold">2.347x</text><text x="270" y="173" text-anchor="middle" font-size="11" fill="#ffffff">PASS</text><text x="270" y="344" text-anchor="middle" font-size="10">AWS V1</text>
+<rect x="310" y="99" width="60" height="231" fill="#0072b2"/><text x="340" y="115" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="bold">2.885x</text><text x="340" y="130" text-anchor="middle" font-size="11" fill="#ffffff">PASS</text><text x="340" y="344" text-anchor="middle" font-size="10">local</text>
+<line x1="230" y1="162" x2="380" y2="162" stroke="#000" stroke-dasharray="5 3"/>
+<text x="305" y="362.0" text-anchor="middle">3 workers (target 2.1x, dashed)</text>
+<text x="40" y="378" font-size="10">AWS V1 (orange): 6 clips, one run per cap, 2 vCPU Fargate tasks, r1018b.</text>
+<text x="40" y="392" font-size="10">Local pre-V1 (blue): 30 clips, three rotated repeats, Redis/RQ design; not comparable with AWS.</text>
+<text x="540" y="64" font-size="13" font-weight="bold">B. Processing release time (min)</text>
+<line x1="540" y1="330.0" x2="960" y2="330.0" stroke="#333"/>
+<rect x="550" y="186" width="60" height="144" fill="#d55e00"/><text x="580" y="202" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="bold">10.30</text><text x="580" y="344" text-anchor="middle" font-size="10">r1018b round 1</text>
+<text x="580" y="358.0" text-anchor="middle" font-size="9">Release step</text>
+<rect x="630" y="187" width="60" height="143" fill="#d55e00"/><text x="660" y="203" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="bold">10.20</text><text x="660" y="344" text-anchor="middle" font-size="10">round 2</text>
+<text x="660" y="358.0" text-anchor="middle" font-size="9">Release step</text>
+<rect x="710" y="189" width="60" height="141" fill="#d55e00"/><text x="740" y="205" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="bold">10.10</text><text x="740" y="344" text-anchor="middle" font-size="10">round 3</text>
+<text x="740" y="358.0" text-anchor="middle" font-size="9">Release step</text>
+<rect x="790" y="195" width="60" height="135" fill="#009e73"/><text x="820" y="211" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="bold">9.65</text><text x="820" y="344" text-anchor="middle" font-size="10">r1019a</text>
+<text x="820" y="358.0" text-anchor="middle" font-size="9">Release step</text>
+<rect x="870" y="111" width="60" height="219" fill="#d55e00"/><text x="900" y="127" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="bold">15.63</text><text x="900" y="344" text-anchor="middle" font-size="10">r1019a</text>
+<text x="900" y="358.0" text-anchor="middle" font-size="9">Release + upload smoke</text>
+<line x1="540" y1="190" x2="930" y2="190" stroke="#000" stroke-dasharray="5 3"/><text x="934" y="194" font-size="10">target 10 min</text>
+<text x="540" y="378" font-size="10">Orange = over 10 min. r1018b Release step: build, push, scan, promote, smoke, close.</text>
+<text x="540" y="392" font-size="10">r1019a: Actions job-step durations; smoke is a separate step (15m38s together).</text>
+</svg>
