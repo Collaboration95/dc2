@@ -1,0 +1,639 @@
+{
+  "closes": "nothing by itself: an issue closes only when its acceptance list is met by the receipts and a reviewer accepts them",
+  "document_kind": "V1_CLOUD_PROOF_SUMMARY_REDACTED",
+  "generated_at": "2026-10-18T00:05:20Z",
+  "issues": {
+    "#185": {
+      "overall": "FAIL",
+      "steps": {
+        "backlog-1": {
+          "public": {
+            "backlog": 6,
+            "cap": 1,
+            "cap_limit": 3,
+            "cap_note": "Cap 3 is the ceiling because the account's Fargate on-demand quota is 6 vCPU and each encoder is a 2-vCPU task; a cap above 3 was not and could not be measured.",
+            "drain_jobs_per_minute": 0.4955,
+            "drain_seconds": 726.5,
+            "elapsed_seconds": 745.4,
+            "encoder_billed_seconds": [
+              117.965,
+              109.087,
+              115.895,
+              99.202,
+              117.987,
+              97.191
+            ],
+            "encoder_billed_seconds_total": 657.3,
+            "encoder_cpu": [
+              "2048"
+            ],
+            "encoder_memory": [
+              "4096"
+            ],
+            "encoder_nonzero_exits": 0,
+            "encoders_left_running": 0,
+            "encoders_started": 6,
+            "fixture_bytes": 36035343,
+            "jobs_done": 6,
+            "jobs_failed": 0,
+            "jobs_not_terminal": 0,
+            "jobs_per_minute": 0.483,
+            "launch_waves": 6,
+            "max_poll_gap_seconds": 8.4,
+            "missing_processing_time": 0,
+            "missing_queue_wait": 0,
+            "outcomes": {
+              "done": 6
+            },
+            "peak_concurrent_from_task_stamps": 1,
+            "peak_concurrent_polled": 1,
+            "poll_interval_seconds": 5,
+            "processing_median_seconds": 62.106,
+            "processing_p90_seconds": 80.488,
+            "queue_wait_median_seconds": 274.347,
+            "queue_wait_p90_seconds": 602.231,
+            "queue_wait_samples": 6,
+            "refill_gap_gate_seconds": 60,
+            "retried_jobs": 0,
+            "timed_out": false
+          },
+          "seconds": 772.684,
+          "status": "PASS"
+        },
+        "backlog-2": {
+          "public": {
+            "backlog": 6,
+            "cap": 2,
+            "cap_limit": 3,
+            "cap_note": "Cap 3 is the ceiling because the account's Fargate on-demand quota is 6 vCPU and each encoder is a 2-vCPU task; a cap above 3 was not and could not be measured.",
+            "drain_jobs_per_minute": 0.7306,
+            "drain_seconds": 492.7,
+            "elapsed_seconds": 514.3,
+            "encoder_billed_seconds": [
+              165.152,
+              144.383,
+              171.255,
+              168.856,
+              148.72,
+              99.112
+            ],
+            "encoder_billed_seconds_total": 897.5,
+            "encoder_cpu": [
+              "2048"
+            ],
+            "encoder_memory": [
+              "4096"
+            ],
+            "encoder_nonzero_exits": 0,
+            "encoders_left_running": 0,
+            "encoders_started": 6,
+            "fixture_bytes": 36035343,
+            "jobs_done": 6,
+            "jobs_failed": 0,
+            "jobs_not_terminal": 0,
+            "jobs_per_minute": 0.7,
+            "launch_waves": 5,
+            "max_poll_gap_seconds": 9.3,
+            "missing_processing_time": 0,
+            "missing_queue_wait": 0,
+            "outcomes": {
+              "done": 6
+            },
+            "peak_concurrent_from_task_stamps": 2,
+            "peak_concurrent_polled": 2,
+            "poll_interval_seconds": 5,
+            "processing_median_seconds": 105.655,
+            "processing_p90_seconds": 125.817,
+            "queue_wait_median_seconds": 135.707,
+            "queue_wait_p90_seconds": 377.504,
+            "queue_wait_samples": 6,
+            "refill_gap_gate_seconds": 60,
+            "retried_jobs": 0,
+            "timed_out": false
+          },
+          "seconds": 542.061,
+          "status": "PASS"
+        },
+        "backlog-3": {
+          "public": {
+            "backlog": 6,
+            "cap": 3,
+            "cap_limit": 3,
+            "cap_note": "Cap 3 is the ceiling because the account's Fargate on-demand quota is 6 vCPU and each encoder is a 2-vCPU task; a cap above 3 was not and could not be measured.",
+            "drain_jobs_per_minute": 1.2131,
+            "drain_seconds": 296.8,
+            "elapsed_seconds": 317.6,
+            "encoder_billed_seconds": [
+              163.39,
+              98.102,
+              106.485,
+              171.816,
+              171.014,
+              119.501
+            ],
+            "encoder_billed_seconds_total": 830.3,
+            "encoder_cpu": [
+              "2048"
+            ],
+            "encoder_memory": [
+              "4096"
+            ],
+            "encoder_nonzero_exits": 0,
+            "encoders_left_running": 0,
+            "encoders_started": 6,
+            "fixture_bytes": 36035343,
+            "jobs_done": 6,
+            "jobs_failed": 0,
+            "jobs_not_terminal": 0,
+            "jobs_per_minute": 1.1336,
+            "launch_waves": 4,
+            "max_poll_gap_seconds": 10.2,
+            "missing_processing_time": 0,
+            "missing_queue_wait": 0,
+            "outcomes": {
+              "done": 6
+            },
+            "peak_concurrent_from_task_stamps": 3,
+            "peak_concurrent_polled": 3,
+            "poll_interval_seconds": 5,
+            "processing_median_seconds": 80.512,
+            "processing_p90_seconds": 128.123,
+            "queue_wait_median_seconds": 9.612,
+            "queue_wait_p90_seconds": 184.753,
+            "queue_wait_samples": 6,
+            "refill_gap_gate_seconds": 60,
+            "retried_jobs": 0,
+            "timed_out": false
+          },
+          "seconds": 332.145,
+          "status": "PASS"
+        },
+        "backlog-compare": {
+          "public": {
+            "all_cap_steps_passed": true,
+            "backlog": 6,
+            "basis": "jobs_per_minute = jobs done / (first upload started to last job seen terminal, polled every 5 s); drain_* starts instead at the first encoder launch. Queue wait and processing time are the Processing API's own attempt stamps (queued_at, started_at, finished_at), so they carry no client clock skew. p90 is nearest-rank.",
+            "cap_note": "Cap 3 is the ceiling because the account's Fargate on-demand quota is 6 vCPU and each encoder is a 2-vCPU task; a cap above 3 was not and could not be measured.",
+            "comparable": true,
+            "drain_jobs_per_minute": {
+              "1": 0.4955,
+              "2": 0.7307,
+              "3": 1.2129
+            },
+            "drain_meets_target": {
+              "2": false,
+              "3": true
+            },
+            "drain_speedup": {
+              "2": 1.4745,
+              "3": 2.4478
+            },
+            "encoder_billed_seconds_total": {
+              "1": 657.3,
+              "2": 897.5,
+              "3": 830.3
+            },
+            "encoders_left_running": {
+              "1": 0,
+              "2": 0,
+              "3": 0
+            },
+            "ideal_speedup": {
+              "2": 2.0,
+              "3": 3.0
+            },
+            "jobs_failed": {
+              "1": 0,
+              "2": 0,
+              "3": 0
+            },
+            "jobs_per_minute": {
+              "1": 0.483,
+              "2": 0.7,
+              "3": 1.1335
+            },
+            "median_queue_wait_decreasing": true,
+            "median_queue_wait_seconds": {
+              "1": 274.3,
+              "2": 135.7,
+              "3": 9.6
+            },
+            "meets_target": {
+              "2": false,
+              "3": true
+            },
+            "p90_queue_wait_seconds": {
+              "1": 602.2,
+              "2": 377.5,
+              "3": 184.8
+            },
+            "speedup": {
+              "2": 1.4493,
+              "3": 2.347
+            },
+            "targets": {
+              "2": 1.6,
+              "3": 2.1
+            },
+            "verdict_rule": "PASS needs every cap step PASS, one backlog size and fixture, and speedup >= 1.6 at cap 2 and >= 2.1 at cap 3 on the jobs_per_minute basis"
+          },
+          "seconds": 0.0,
+          "status": "FAIL"
+        }
+      }
+    },
+    "#196": {
+      "overall": "PASS",
+      "steps": {
+        "processing-down": {
+          "public": {
+            "asset_in_list": true,
+            "asset_visible_by_id": true,
+            "command_held_in": "both",
+            "commands_queue_depth_max": 1,
+            "consumer_catch_up_seconds": 0.1,
+            "encoder_billed_seconds": [
+              42.119
+            ],
+            "encoders_left_running": 0,
+            "encoders_started": 1,
+            "finalize_status": 202,
+            "gate_seconds": 900,
+            "held_seconds": 34.7,
+            "job_status": "done",
+            "mapping_after": "Enabled",
+            "mapping_before": "Enabled",
+            "mapping_during": "Disabled",
+            "mapping_restore": "re-enabled",
+            "outage_seconds": 48.2,
+            "outbox_pending_seen": true,
+            "poll_interval_seconds": 5,
+            "processing_acknowledged_during_outage": false,
+            "reenable_to_done_seconds": 58.9,
+            "scope_note": "Processing is down means its ProcessingCommands consumer is off; its API stays up.",
+            "status_during_outage": "accepted",
+            "submission_status_during_outage": "pending",
+            "within_gate": true
+          },
+          "seconds": 124.647,
+          "status": "PASS"
+        }
+      }
+    },
+    "#63": {
+      "overall": "PASS",
+      "steps": {
+        "anonymous-denied": {
+          "public": {
+            "statuses": {
+              "frontend_admin_jobs": 401,
+              "frontend_media_jobs": 401,
+              "frontend_processing_jobs": 401,
+              "gateway_admin_jobs": 401,
+              "gateway_media_jobs": 401,
+              "gateway_processing_jobs": 401
+            }
+          },
+          "seconds": 0.29,
+          "status": "PASS"
+        },
+        "cors-preflight": {
+          "public": {
+            "api_preflight_status": 401,
+            "api_wildcard": false,
+            "s3_allowed_status": 200,
+            "s3_allows_frontend_origin": true,
+            "s3_allows_post": true,
+            "s3_foreign_origin_allowed": false,
+            "s3_foreign_origin_status": 403
+          },
+          "seconds": 0.532,
+          "status": "PASS"
+        },
+        "cross-database": {
+          "public": {
+            "other_database": "connect-denied:InsufficientPrivilegeError",
+            "other_database_denied": true,
+            "other_database_read": null,
+            "own_ddl": "denied:InsufficientPrivilegeError",
+            "own_ddl_denied": true
+          },
+          "seconds": 55.814,
+          "status": "PASS"
+        },
+        "direct-upload-e2e": {
+          "public": {
+            "bytes": 828699,
+            "encoder_exit_codes": [
+              0
+            ],
+            "encoders_left_running": 0,
+            "encoders_started": 1,
+            "finalize_ms": 224.2,
+            "hls_url_present": true,
+            "job_status": "done",
+            "master_is_playlist": true,
+            "master_status": 200,
+            "mp4_fetch_bytes": 1024,
+            "mp4_fetch_status": 206,
+            "mp4_ok": true,
+            "output_url_present": true,
+            "playlist_not_cached": true,
+            "reserve_ms": 191.5,
+            "seconds_to_terminal": 67.3,
+            "segment_fetch_bytes": 1024,
+            "segment_fetch_status": 206,
+            "segment_redirects_to_s3": true,
+            "segment_status": 307,
+            "served_by_cloudfront": true,
+            "storage_host_is_s3": true,
+            "transitions": [
+              [
+                0.2,
+                "accepted"
+              ],
+              [
+                46.4,
+                "queued"
+              ],
+              [
+                67.3,
+                "done"
+              ]
+            ],
+            "upload_ms": 163.7,
+            "upload_status": 204,
+            "variant_status": 200
+          },
+          "seconds": 71.372,
+          "status": "PASS"
+        },
+        "forged-identity": {
+          "public": {
+            "forged_headers_changed_nothing": true,
+            "statuses": {
+              "anonymous_admin": 401,
+              "anonymous_jobs": 401,
+              "authenticated_admin": 403,
+              "jobs_plain": 200,
+              "jobs_with_forged_headers": 200
+            }
+          },
+          "seconds": 0.761,
+          "status": "PASS"
+        },
+        "session-roundtrip": {
+          "public": {
+            "anonymous_me_status": 401,
+            "host_only": true,
+            "http_only": true,
+            "login_status": 200,
+            "me_status": 200,
+            "no_wildcard_cors": true,
+            "same_site_strict": true,
+            "secure": true,
+            "through_cloudfront": true
+          },
+          "seconds": 0.311,
+          "status": "PASS"
+        },
+        "sqs-direct-send": {
+          "public": {
+            "messages_accepted": 0,
+            "statuses": {
+              "MediaResults": 403,
+              "ProcessingCommands": 403,
+              "ProcessingWork": 403
+            }
+          },
+          "seconds": 0.166,
+          "status": "PASS"
+        }
+      }
+    },
+    "#64": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#65": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#66": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#67": {
+      "overall": "PASS",
+      "steps": {
+        "close-state": {
+          "public": {
+            "database_pause": "NOT_OBSERVED",
+            "drift": 0,
+            "edge_burst": 0,
+            "edge_rate": 0.0,
+            "functions_with_reservation": 0,
+            "journal_session": "closed",
+            "mappings": [
+              "Disabled"
+            ],
+            "schedules": [
+              "DISABLED"
+            ],
+            "tasks_running": 0
+          },
+          "seconds": 1.722,
+          "status": "PASS"
+        },
+        "cost-explorer": {
+          "public": {
+            "by_model_line": {
+              "api_gateway": 0.0,
+              "aurora": 0.0,
+              "cloudfront": -0.0,
+              "ecr": -0.0,
+              "fargate": -0.0,
+              "ipv4_and_network": 0.0,
+              "kms": 0.0,
+              "lambda": 0.0,
+              "logs_and_metrics": 0.0,
+              "managed_credentials": -0.0,
+              "other": 0.0,
+              "s3": 0.0,
+              "sqs": 0.0
+            },
+            "complete_through": "2026-10-17",
+            "cost_explorer_flagged_estimated": true,
+            "currency": "USD",
+            "estimated": true,
+            "final": false,
+            "from": "2026-10-01",
+            "invoice": "NOT_RUN: Cost Explorer lags ~24 h; attach invoice lines by hand",
+            "planned_deploy_window_model": 1.97,
+            "services": 19,
+            "through_inclusive": "2026-10-18",
+            "total": -0.0,
+            "within_monthly_alert": true,
+            "within_planning_envelope": true,
+            "within_trial_allowance": true
+          },
+          "seconds": 1.252,
+          "status": "PASS"
+        },
+        "pause": {
+          "public": {
+            "configured_max_acu": 2.0,
+            "configured_min_acu": 0.0,
+            "database_pause": "OBSERVED",
+            "datapoints": 7,
+            "max_acu_since_close": 0.5,
+            "minutes_from_close_to_zero": 5.8,
+            "pause_observed": true,
+            "seconds_until_auto_pause": 300,
+            "wakeups_in_window": 0
+          },
+          "seconds": 362.259,
+          "status": "PASS"
+        },
+        "teardown-receipt": {
+          "public": {
+            "all_remaining_explained": true,
+            "final_snapshot_kept": true,
+            "from_simulation": false,
+            "pre_existing_untouched": 1,
+            "receipt_status": "CLEAN",
+            "remaining_by_kind": {},
+            "skipped_not_owned": 0
+          },
+          "seconds": 0.0,
+          "status": "PASS"
+        }
+      }
+    },
+    "#68": {
+      "overall": "PASS",
+      "steps": {
+        "launcher-backlog": {
+          "public": {
+            "backlog": 6,
+            "cap_limit": 3,
+            "cap_note": "Cap 3 is the ceiling because the account's Fargate on-demand quota is 6 vCPU and each encoder is a 2-vCPU task; a cap above 3 was not and could not be measured.",
+            "elapsed_seconds": 457.3,
+            "encoder_billed_seconds": [
+              97.456,
+              119.135,
+              153.363,
+              166.651,
+              168.62,
+              165.393
+            ],
+            "encoder_billed_seconds_total": 870.6,
+            "encoder_nonzero_exits": 0,
+            "encoders_left_running": 0,
+            "encoders_started": 6,
+            "first_start_after_first_queued_seconds": 84.0,
+            "fixture_bytes": 36035343,
+            "jobs_claimed": 6,
+            "jobs_done": 6,
+            "jobs_failed": 0,
+            "jobs_not_terminal": 0,
+            "jobs_per_minute": 0.7873,
+            "missing_processing_time": 0,
+            "missing_queue_wait": 0,
+            "outcomes": {
+              "done": 6
+            },
+            "peak_concurrent_from_task_stamps": 3,
+            "peak_concurrent_polled": 3,
+            "poll_interval_seconds": 5,
+            "processing_median_seconds": 107.104,
+            "processing_p90_seconds": 125.492,
+            "queue_wait_median_seconds": 110.534,
+            "queue_wait_p90_seconds": 293.871,
+            "queue_wait_samples": 6,
+            "retried_jobs": 0,
+            "settle_seconds": 180,
+            "start_offsets_seconds": [
+              84.0,
+              84.3,
+              84.8,
+              266.3,
+              266.9,
+              267.3
+            ],
+            "starts_after_backlog_empty": 0,
+            "starts_per_job": 1.0,
+            "timed_out": false,
+            "unclaimed_encoders": 0,
+            "unclaimed_limit": 3
+          },
+          "seconds": 645.473,
+          "status": "PASS"
+        },
+        "launcher-compare": {
+          "public": {
+            "backlog": 6,
+            "cap_note": "Cap 3 is the ceiling because the account's Fargate on-demand quota is 6 vCPU and each encoder is a 2-vCPU task; a cap above 3 was not and could not be measured.",
+            "comparable": true,
+            "encoder_billed_seconds_total": {
+              "delta": 40.3,
+              "operator_cap3": 830.3,
+              "unattended": 870.6
+            },
+            "encoders_started": {
+              "delta": 0,
+              "operator_cap3": 6,
+              "unattended": 6
+            },
+            "jobs_per_minute": {
+              "operator_cap3": 1.1335,
+              "unattended": 0.7872
+            },
+            "peak_concurrent_from_task_stamps": {
+              "delta": 0,
+              "operator_cap3": 3,
+              "unattended": 3
+            },
+            "queue_wait_median_seconds": {
+              "delta": 100.9,
+              "operator_cap3": 9.612,
+              "unattended": 110.534
+            },
+            "queue_wait_p90_seconds": {
+              "delta": 109.1,
+              "operator_cap3": 184.753,
+              "unattended": 293.871
+            },
+            "throughput_ratio": 0.6945,
+            "unattended_step_passed": true,
+            "verdict_rule": "PASS needs the unattended step PASS (every job done, peak concurrency at most 3, no start after the backlog emptied, at most 3 unclaimed encoders, nothing left running) and the same backlog and fixture as the operator-batch step. No speed target: the ratios are as measured."
+          },
+          "seconds": 0.001,
+          "status": "PASS"
+        },
+        "launcher-preflight": {
+          "public": {
+            "baseline_backlog": 6,
+            "baseline_fixture_bytes": 36035343,
+            "encoders_running_at_start": 0,
+            "iam_simulation": "attested by the operator, not verified by this harness",
+            "launcher_in_stack": true,
+            "launcher_rule_state": "ENABLED",
+            "session": "open",
+            "session_unattended": true
+          },
+          "seconds": 1.087,
+          "status": "PASS"
+        }
+      }
+    }
+  },
+  "mode": "live",
+  "not_proven": [
+    "Invoice lines: Cost Explorer lags about a day and is an estimate, not a bill.",
+    "A rollback of a good promotion is an image rollback; no schema is reversed.",
+    "Latency was measured from a Fargate generator in the same region, not from users.",
+    "Local fakes, emulators and hosted CI are not AWS evidence and are excluded here."
+  ],
+  "run_id": "r1018b"
+}
