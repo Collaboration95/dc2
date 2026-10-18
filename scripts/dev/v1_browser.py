@@ -14,7 +14,7 @@ import os
 import subprocess
 import threading
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 from scripts.dev.v1_gateway import Gateway
 from scripts.dev.v1_redact import redact
@@ -34,10 +34,15 @@ class FrontendGateway(Gateway):
             return super().invoke(method, target, headers, body)
         if method not in {"GET", "HEAD"}:
             return {"statusCode": 405, "body": ""}
-        name = "index.html" if path == "/" else path.lstrip("/")
-        served = name in STATIC_FILES or name.startswith("vendor/")
+        # Decode and resolve first, then judge the resolved location: `vendor/../x` and
+        # `%2e%2e` must not borrow the vendor prefix.
+        name = "index.html" if path == "/" else unquote(path).lstrip("/")
         file = (FRONTEND / name).resolve()
-        if not served or not file.is_file() or not file.is_relative_to(FRONTEND):
+        served = file.is_file() and (
+            file.parent == FRONTEND and file.name in STATIC_FILES
+            or file.is_relative_to(FRONTEND / "vendor")
+        )
+        if not served:
             return {"statusCode": 404, "body": ""}
         kind = mimetypes.guess_type(file.name)[0] or "application/octet-stream"
         return {
