@@ -4,6 +4,9 @@
 # only supplies what an unattended runner lacks: a named AWS profile, a state directory that
 # survives the runner, and the ordering the runbook asks an operator to follow by hand.
 #
+# It targets one persistent, always-on environment (V2-live, #234): `deploy` creates it once and
+# afterwards updates it in place, then releases every owner whose image changed.
+#
 #   scripts/ci/cd.sh gate | state-pull | state-push | preflight | deploy | smoke | release |
 #                    teardown
 #
@@ -13,7 +16,7 @@
 # to statuses and counts. The repository is public, so an artifact is public too.
 set -euo pipefail
 
-: "${CD_RUN_ID:?}" "${CD_OPERATION:?}"
+: "${CD_ENVIRONMENT:?}" "${CD_OPERATION:?}"
 CD_REGION=ap-southeast-1
 CD_ACCOUNT=866865534361
 CD_PROFILE=dc2-gha
@@ -23,7 +26,7 @@ CD_PROFILE=dc2-gha
 unset AWS_PROFILE AWS_DEFAULT_PROFILE AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
 # Any path works for the tooling (operator-config.json names its files relative to itself); a
 # fixed one keeps the runner and the laptop handoff in the runbook easy to compare.
-CD_STATE="$HOME/dc2-state/$CD_RUN_ID"
+CD_STATE="$HOME/dc2-state/$CD_ENVIRONMENT"
 CD_OUT="${RUNNER_TEMP:-/tmp}/cd-out"
 PUBLIC="$CD_OUT/public"
 SCOPE=(--profile "$CD_PROFILE" --region "$CD_REGION" --account "$CD_ACCOUNT")
@@ -40,18 +43,24 @@ summary() { # append a markdown line to the run summary
   if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then echo "$*" >>"$GITHUB_STEP_SUMMARY"; fi
 }
 
-launch_flags() { # deploy-only options that change the stack's shape
-  LAUNCH=()
-  if [ "${CD_UNATTENDED_LAUNCH:-false}" = true ]; then LAUNCH+=(--unattended-launch); fi
-}
-
 cost_flags() {
   COST=(--budget-usd "$CD_BUDGET_USD" --planned-hours "$CD_PLANNED_HOURS")
   if [ -n "${CD_FORECAST_USD:-}" ]; then COST+=(--forecast-usd "$CD_FORECAST_USD"); fi
 }
 
-deploy_cli() { # deploy.py with this run's scope; prints the tool's JSON, returns its exit code
-  "$PY" -m scripts.aws.v1.deploy "$@" "${SCOPE[@]}" --run-id "$CD_RUN_ID"
+deploy_cli() { # deploy.py with this environment's scope; prints its JSON, returns its exit code
+  local email=()
+  if [ -n "${CD_BUDGET_EMAIL:-}" ]; then email=(--budget-alert-email "$CD_BUDGET_EMAIL"); fi
+  "$PY" -m scripts.aws.v1.deploy "$@" "${SCOPE[@]}" --environment "$CD_ENVIRONMENT" \
+    ${email[@]+"${email[@]}"}
+}
+
+journal_value() { # one jq expression over the deploy journal, empty when there is none
+  jq -r "$1 // empty" "$CD_STATE/deploy-journal.json" 2>/dev/null || true
+}
+
+session_state() { # what the session journal records: open, closed, window, ...
+  jq -r '.session // empty' "$CD_STATE/session/journal.json" 2>/dev/null || true
 }
 
 operator_config() { echo "$CD_STATE/operator-config.json"; }
@@ -64,13 +73,14 @@ output_value() { # one stack output; outputs.json is either a mapping or the Clo
 
 require_state() {
   [ -f "$CD_STATE/deploy-journal.json" ] ||
-    fail "No journal for run '$CD_RUN_ID' in the state bucket; deploy it with this workflow first"
+    fail "No journal for environment '$CD_ENVIRONMENT' in the state bucket; deploy it first"
 }
 
 # ---------------------------------------------------------------------------------- gate
 cmd_gate() {
   : "${CD_SHA:?}" "${CD_REPO:?}" "${CD_EVENT:?}"
-  [[ $CD_RUN_ID =~ ^[a-z0-9]{2,16}$ ]] || fail "run_id must be 2-16 lowercase letters or digits"
+  [[ $CD_ENVIRONMENT =~ ^[a-z0-9]{2,16}$ ]] ||
+    fail "environment must be 2-16 lowercase letters or digits"
   case "$CD_OPERATION" in
     preflight | deploy | release | teardown) ;;
     *) fail "Unknown operation '$CD_OPERATION'" ;;
@@ -86,12 +96,22 @@ cmd_gate() {
   [[ $CD_PLANNED_HOURS =~ ^[0-9]+(\.[0-9]+)?$ ]] || fail "planned_hours must be a number"
   [[ -z ${CD_FORECAST_USD:-} || $CD_FORECAST_USD =~ ^[0-9]+(\.[0-9]+)?$ ]] ||
     fail "forecast_usd must be a number or empty"
-  if [ "$CD_EVENT" != workflow_dispatch ]; then
-    # Only a dispatch is expected; anything else is held to the read-only preflight.
-    [ "$CD_OPERATION" = preflight ] || fail "Only a dispatch may run '$CD_OPERATION'"
-    echo "Non-dispatch trigger, read-only preflight: the CI gate applies to dispatched operations."
-    return 0
+  if [ "$CD_OPERATION" = teardown ] && [ "${CD_EXECUTE:-false}" = true ]; then
+    # The environment is meant to outlive every deploy; deleting it takes its name, typed.
+    [ "${CD_CONFIRM:-}" = "$CD_ENVIRONMENT" ] ||
+      fail "teardown with execute needs confirm=$CD_ENVIRONMENT"
   fi
+  case "$CD_EVENT" in
+    workflow_dispatch) ;;
+    # The automatic in-place update after green CI on Main (cd.yml filters the CI run).
+    workflow_run) [ "$CD_OPERATION" = deploy ] || fail "A CI completion may only deploy" ;;
+    *)
+      # Anything else is held to the read-only preflight.
+      [ "$CD_OPERATION" = preflight ] || fail "Only a dispatch may run '$CD_OPERATION'"
+      echo "Non-dispatch trigger, read-only preflight: the CI gate applies to operations."
+      return 0
+      ;;
+  esac
   local runs total running latest
   runs=$(gh api "repos/$CD_REPO/actions/workflows/ci.yml/runs?head_sha=$CD_SHA&per_page=100" \
     --jq '.workflow_runs | sort_by(.created_at)
@@ -114,7 +134,7 @@ cmd_gate() {
 cmd_state_pull() {
   : "${CD_STATE_BUCKET:?}"
   mkdir -p "$CD_STATE"
-  aws s3 sync "s3://$CD_STATE_BUCKET/runs/$CD_RUN_ID/" "$CD_STATE/" \
+  aws s3 sync "s3://$CD_STATE_BUCKET/envs/$CD_ENVIRONMENT/" "$CD_STATE/" \
     --profile "$CD_PROFILE" --region "$CD_REGION" --only-show-errors
   # S3 keeps no modes; the tooling insists on 0700 directories and 0600 files.
   chmod -R go-rwx "$CD_STATE"
@@ -124,18 +144,23 @@ cmd_state_pull() {
 cmd_state_push() {
   : "${CD_STATE_BUCKET:?}"
   [ -d "$CD_STATE" ] || return 0
-  aws s3 sync "$CD_STATE/" "s3://$CD_STATE_BUCKET/runs/$CD_RUN_ID/" --delete \
+  aws s3 sync "$CD_STATE/" "s3://$CD_STATE_BUCKET/envs/$CD_ENVIRONMENT/" --delete \
     --exclude "frontend-dist/*" --exclude "*.run" --exclude "*.lock" \
     --profile "$CD_PROFILE" --region "$CD_REGION" --only-show-errors
 }
 
 # ---------------------------------------------------------------------------------- preflight
-# Runbook step 0: reads only. A throwaway state directory, so it never touches a run's journal.
+# Runbook step 0: reads only. A throwaway state directory, so it never touches the journal; a
+# copy of the journal tells it whether this is an update of the established environment (whose
+# routine updates the cost guard reports but does not block).
 cmd_preflight() {
   cost_flags
   local state
   state=$(mktemp -d "$CD_OUT/preflight-XXXXXX")
   chmod 700 "$state"
+  if [ -f "$CD_STATE/deploy-journal.json" ]; then
+    install -m 600 "$CD_STATE/deploy-journal.json" "$state/deploy-journal.json"
+  fi
   deploy_cli deploy --state-dir "$state" --assume-empty-counts "${COST[@]}" \
     --stop-after preflight | tee "$CD_OUT/preflight-raw.json"
   jq '{ok, mode, run_id, steps}' "$CD_OUT/preflight-raw.json" >"$PUBLIC/preflight.json"
@@ -150,43 +175,96 @@ cmd_preflight() {
 }
 
 # ---------------------------------------------------------------------------------- deploy
+# The first deploy creates the environment from this commit's images. Every later deploy is an
+# in-place update: the stack is updated as a change set from this checkout (code untouched),
+# then every owner whose image changed ships through its own release, smoke and restore.
 cmd_deploy() {
+  if [ "${CD_EVENT:-}" = workflow_run ] && [ "$(journal_value .deploy.established)" != true ]; then
+    # The first deploy creates billable infrastructure and waits for a human (#238): only an
+    # explicit dispatch may do it. A merge before then changes nothing in the account.
+    echo "::notice::$CD_ENVIRONMENT is not established; the first deploy must be dispatched by hand"
+    summary "Skipped: \`$CD_ENVIRONMENT\` is not established yet. Its first deploy is an explicit dispatch."
+    return 0
+  fi
   cost_flags
-  launch_flags
   cmd_preflight
   if [ "$CD_EXECUTE" != true ]; then
     # Review only: an offline rehearsal of the exact commands, no images, nothing mutated.
-    deploy_cli deploy --dry-run --seed-email "$CD_SEED_EMAIL" "${COST[@]}" ${LAUNCH[@]+"${LAUNCH[@]}"} \
+    deploy_cli deploy --dry-run --seed-email "$CD_SEED_EMAIL" "${COST[@]}" \
       >"$PUBLIC/deploy-plan.txt"
     summary "Deploy was a review only (execute=false). Plan: deploy-plan.txt in the artifact."
     return 0
   fi
   mkdir -p "$CD_STATE"
   chmod 700 "$CD_STATE"
-  local baseline="$CD_STATE/build-baseline.json"
-  # Rebuilding after the images step pushed would change the local image id and the deploy
-  # refuses that (ECR tags are immutable), so a resume reuses the recorded build.
-  if [ -f "$baseline" ] &&
-    jq -e '.deploy.steps.images.status == "done"' "$CD_STATE/deploy-journal.json" >/dev/null 2>&1; then
+  local baseline="$CD_STATE/build-baseline.json" images
+  if [ "$(journal_value .deploy.established)" = true ]; then
+    # Built to compare with what runs; only a changed owner's images are ever pushed.
+    images="$CD_OUT/build-candidate.json"
+    python3 deploy/v1/build_and_verify.py --out "$images"
+  elif [ -f "$baseline" ] && [ "$(journal_value .deploy.steps.images.status)" = done ]; then
+    # A first deploy resumed after its images step pushed: a rebuild would change the local
+    # image id and the deploy refuses that (ECR tags are immutable).
     echo "The images step already finished in an earlier attempt; keeping its build evidence."
+    images="$baseline"
   else
     # Native linux/amd64 on the runner, so no emulation. The evidence file is what --images takes.
     python3 deploy/v1/build_and_verify.py --out "$baseline"
+    images="$baseline"
   fi
   local code=0
-  deploy_cli deploy --state-dir "$CD_STATE" --images "$baseline" --seed-email "$CD_SEED_EMAIL" \
-    --assume-empty-counts "${COST[@]}" ${LAUNCH[@]+"${LAUNCH[@]}"} --execute | tee "$CD_OUT/deploy-raw.json" || code=$?
+  deploy_cli deploy --state-dir "$CD_STATE" --images "$images" --seed-email "$CD_SEED_EMAIL" \
+    --assume-empty-counts "${COST[@]}" --execute | tee "$CD_OUT/deploy-raw.json" || code=$?
   jq '{ok, mode, run_id, steps}' "$CD_OUT/deploy-raw.json" >"$PUBLIC/deploy.json" || true
-  return "$code"
+  [ "$code" -eq 0 ] || return "$code"
+  local owners
+  owners=$(journal_value '.deploy.steps.images.detail.changed_owners | arrays | join(" ")')
+  summary "Stack: $(journal_value '.deploy.steps.applications.detail
+    | if .no_changes then "no changes" else "\(.change_kind) with \(.changes | length) change(s)" end'
+  ); owners to release: ${owners:-none}"
+  [ -n "$owners" ] || return 0
+  if [ "$(session_state)" != open ]; then
+    echo "::warning::The kill switch is on; the release of $owners waits until it is off"
+    summary "Releases deferred (kill switch on): **$owners**. Turn it off, then dispatch a deploy."
+    return 0
+  fi
+  release_changed_owners "$images" "$owners"
+}
+
+# A release whose migrations changed needs a human's word that the previous image works with the
+# new schema (attest_additive); green CI does not show that. Others ship now. Everything is read
+# from the journal before the first release: each release's adoption re-runs the deploy, which
+# rewrites the images step and with it `migrations_changed`.
+release_changed_owners() { # images-evidence owners
+  local images="$1" owners="$2" owner name deferred=() rebuilt migrations
+  rebuilt=$(journal_value '.deploy.steps.images.detail.changed_images | arrays | join(" ")')
+  migrations=$(journal_value '.deploy.steps.images.detail.migrations_changed | arrays | join(" ")')
+  for owner in $owners; do
+    if [[ " $migrations " == *" $owner "* ]]; then
+      deferred+=("$owner")
+      continue
+    fi
+    local mine=()
+    for name in $rebuilt; do
+      case "$owner:$name" in
+        media:media | processing:processing | processing:worker) mine+=("$name") ;;
+      esac
+    done
+    release_owner "$owner" "$images" true "${mine[@]}"
+  done
+  if [ "${#deferred[@]}" -gt 0 ]; then
+    summary "Not released: **${deferred[*]}** changed its migrations. Dispatch \`release\` with attest_additive."
+    fail "${deferred[*]} changed migrations; release it by hand with attest_additive=true"
+  fi
 }
 
 # ---------------------------------------------------------------------------------- smoke
-# Upload -> processing -> playback through the public URLs. V1 starts its finite encoder from the
-# operator session (the unattended launcher is a V2 option), so the Publisher CLI alone would
-# queue a job nothing encodes; the evidence harness starts the encoder and also checks HLS
-# playback through CloudFront, so it is the smoke. The window is always closed again.
-# `session open` returns once the stage reports the new throttle, but the data plane applies it a
-# little later, so the first request after an open can still meet the closed 0/0 gate and get a
+# Upload -> processing -> playback through the public URLs, on the always-on environment as any
+# user meets it: no session is opened or closed, and the launcher starts the encoder on enqueue.
+# The evidence harness is the smoke because it also checks HLS playback through CloudFront.
+# A release reopens the session just before its smoke, and `session open` returns once the stage
+# reports the new throttle while the data plane applies it a little later, so the first request
+# after an open can still meet the closed 0/0 gate and get a
 # 429 (seen after both the r1018b release smoke and the first laptop harness runs). Probe a cheap
 # unauthenticated route until it stops answering 429; bounded, and a miss only warns because the
 # smoke itself then reports the failure with its own evidence.
@@ -205,16 +283,22 @@ wait_gate_open() {
 }
 
 cmd_smoke() {
+  if [ "$(journal_value .deploy.established)" != true ]; then
+    echo "::notice::$CD_ENVIRONMENT is not established; nothing to smoke-test"
+    return 0
+  fi
   require_state
-  local config label fixture rc=0 close_rc=0
-  config=$(operator_config)
+  local label fixture rc=0
+  if [ "$(session_state)" != open ]; then
+    echo "::warning::The kill switch is on (session $(session_state)); the smoke is skipped"
+    summary "Smoke skipped: the kill switch is on. Turn it off with \`session open --unattended\`."
+    return 0
+  fi
   label="smoke-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}"
   fixture="$CD_OUT/smoke.mp4"
   ffmpeg -y -loglevel error -f lavfi -i "testsrc=duration=3:size=320x240:rate=15" \
     -f lavfi -i "sine=frequency=440:duration=3" -c:v libx264 -pix_fmt yuv420p -c:a aac \
     -shortest "$fixture"
-  "$PY" -m scripts.aws.v1.session open --config "$config" "${SCOPE[@]}" >"$CD_OUT/session-open.json" ||
-    fail "session open failed: $(jq -r '.error // empty' "$CD_OUT/session-open.json" 2>/dev/null)"
   wait_gate_open
   local attempt
   for attempt in 1 2; do
@@ -235,15 +319,12 @@ cmd_smoke() {
     fi
     break
   done
-  "$PY" -m scripts.aws.v1.session close --config "$config" "${SCOPE[@]}" --in-vpc-counts \
-    >"$CD_OUT/session-close.json" || close_rc=$?
   "$PY" -m scripts.aws.v1.evidence summary --state-dir "$CD_STATE" --run-id "$label" \
     --out "$PUBLIC" >/dev/null || true
   local status
   status=$(jq -r '.issues["#63"].steps["direct-upload-e2e"].status // "MISSING"' \
     "$PUBLIC/cloud-proof-$label.json" 2>/dev/null || echo MISSING)
-  summary "Upload to playback smoke: **$status** (session closed again: $([ "$close_rc" -eq 0 ] && echo yes || echo NO))"
-  [ "$close_rc" -eq 0 ] || fail "session close failed; the public window may still be open"
+  summary "Upload to playback smoke: **$status**"
   [ "$rc" -eq 0 ] && [ "$status" = PASS ] || fail "Upload-to-playback smoke did not pass ($status)"
 }
 
@@ -273,16 +354,9 @@ inject_bad_candidate() { # owner
 
 cmd_release() {
   require_state
-  cost_flags
   local owner="$CD_OWNER" rel="g${GITHUB_RUN_ID:-0}x${GITHUB_RUN_ATTEMPT:-1}"
-  local baseline="$CD_STATE/build-baseline.json"
-  [ -f "$baseline" ] || fail "No baseline build evidence in the state; was this run deployed by CD?"
   local only=(--only media)
-  local names=(media)
-  if [ "$owner" = processing ]; then
-    only=(--only processing --only worker)
-    names=(processing worker)
-  fi
+  if [ "$owner" = processing ]; then only=(--only processing --only worker); fi
   mkdir -m 700 -p "$CD_STATE/release"
   local build="$CD_STATE/release/build-$rel.json"
   if [ "${CD_BAD_CANDIDATE:-false}" = true ]; then
@@ -296,11 +370,38 @@ cmd_release() {
   fi
   [ "$CD_ATTEST_ADDITIVE" = true ] ||
     fail "Set attest_additive: the release plan records that the baseline and candidate images both work with this checkout's schema head"
-  local sha docker_config uri_key
+  local rebuilt=(media)
+  if [ "$owner" = processing ]; then rebuilt=(processing worker); fi
+  release_owner "$owner" "$build" false "${rebuilt[@]}"
+}
+
+# One owner's release on the always-on environment, online: nothing is closed. The release CLI's
+# --online mode holds the online invariant instead of quiescence (consumers and schedules on as
+# recorded). A promoted release is then adopted: its images become the journal's and the stack
+# is updated to name them, which is also what moves the launcher's WorkerTaskDefinition to the
+# released worker; until then the launcher keeps starting the previous one, which is fine
+# because a release is additive. The environment is never left closed by a failure here,
+# because it is never closed. `automatic` is the deploy's own
+# release of a changed owner whose migrations did not change (cmd_deploy decides that); a
+# manual dispatch still requires attest_additive. Remaining arguments name the owner's images
+# that were rebuilt; the others are kept exactly as they run (their build inputs did not change).
+release_owner() { # owner build-evidence automatic rebuilt-image...
+  local owner="$1" build="$2" automatic="$3" rel="g${GITHUB_RUN_ID:-0}x${GITHUB_RUN_ATTEMPT:-1}"
+  shift 3
+  local rebuilt=("$@")
+  local baseline="$CD_STATE/build-baseline.json"
+  [ -f "$baseline" ] || fail "No baseline build evidence in the state; was this environment deployed by CD?"
+  [ "$(session_state)" = open ] ||
+    fail "The kill switch is on (session $(session_state)): releases wait until \`session open --unattended\`"
+  cost_flags
+  local names=(media)
+  if [ "$owner" = processing ]; then names=(processing worker); fi
+  mkdir -m 700 -p "$CD_STATE/release"
+  if [ "$automatic" = true ]; then summary "Releasing **$owner**: rebuilt ${rebuilt[*]}."; fi
+  local sha docker_config uri_key repo name kept=()
   sha=$(jq -r .source_sha "$build" | cut -c1-12)
   docker_config=$(mktemp -d)
   export DOCKER_CONFIG="$docker_config"
-  local repo name
   for name in "${names[@]}"; do
     case "$name" in
       media) uri_key=MediaRepositoryUri ;;
@@ -308,13 +409,32 @@ cmd_release() {
       worker) uri_key=WorkerRepositoryUri ;;
     esac
     repo=$(jq -r --arg k "$uri_key" '.deploy.outputs[$k]' "$CD_STATE/deploy-journal.json")
-    aws ecr get-login-password --profile "$CD_PROFILE" --region "$CD_REGION" |
-      docker login --username AWS --password-stdin "${repo%%/*}" >/dev/null
-    docker tag "dc2-v1-$name:local-$sha" "$repo:$rel-$name"
-    docker push --quiet "$repo:$rel-$name"
+    if [[ " ${rebuilt[*]} " == *" $name "* ]]; then
+      aws ecr get-login-password --profile "$CD_PROFILE" --region "$CD_REGION" |
+        docker login --username AWS --password-stdin "${repo%%/*}" >/dev/null
+      docker tag "dc2-v1-$name:local-$sha" "$repo:$rel-$name"
+      docker push --quiet "$repo:$rel-$name"
+    else
+      # Kept as it runs: the running manifest gains this release's tag, nothing is rebuilt.
+      kept+=("$name")
+      local reply
+      reply=$(aws ecr batch-get-image --repository-name "${repo#*/}" --profile "$CD_PROFILE" \
+        --region "$CD_REGION" --output json \
+        --image-ids "imageDigest=$(journal_value ".deploy.images.$name.digest")")
+      aws ecr put-image --repository-name "${repo#*/}" --image-tag "$rel-$name" \
+        --image-manifest "$(jq -r '.images[0].imageManifest' <<<"$reply")" \
+        --image-manifest-media-type "$(jq -r '.images[0].imageManifestMediaType' <<<"$reply")" \
+        --profile "$CD_PROFILE" --region "$CD_REGION" >/dev/null
+    fi
   done
   rm -rf "$docker_config"
   unset DOCKER_CONFIG
+  # The release's evidence: the rebuilt images from this build, the kept ones as they were built.
+  local good="$CD_STATE/release/good-$rel-$owner.json"
+  jq --slurpfile base "$baseline" --args '.images += ($base[0].images
+      | with_entries(select(.key as $k | $ARGS.positional | index($k))))' \
+    "$build" ${kept[@]+"${kept[@]}"} >"$good"
+  chmod 600 "$good"
 
   # Attested by the green CI gate; the number is what the bundle records.
   local tests
@@ -324,8 +444,8 @@ cmd_release() {
   local attempt planned=1
   for attempt in 1 2 3 4 5 6 7 8 9 10; do
     if "$PY" -m scripts.aws.v1.evidence release-plan "${SCOPE[@]}" --state-dir "$CD_STATE" \
-      --run-id "$CD_RUN_ID" --owner "$owner" --baseline-evidence "$baseline" \
-      --good-run-id "$rel" --good-evidence "$build" --tests-passed "$tests" \
+      --run-id "$CD_ENVIRONMENT" --owner "$owner" --baseline-evidence "$baseline" \
+      --good-run-id "$rel" --good-evidence "$good" --tests-passed "$tests" \
       --attest-schema-unchanged \
       --accept-unfixed docs/execution/aws/v1/scan-accepted-unfixed-20261017.json \
       --out "$CD_STATE/release" >"$CD_OUT/release-plan.json"; then
@@ -343,7 +463,7 @@ cmd_release() {
   local plan="$CD_STATE/release/plan.json" config gateway
   config=$(operator_config)
   gateway=$(output_value HttpApiUrl)
-  local promote=(--config "$config" "${SCOPE[@]}" --deadline-seconds 1800 --owner "$owner"
+  local promote=(--config "$config" "${SCOPE[@]}" --online --deadline-seconds 1800 --owner "$owner"
     --bundle "$CD_STATE/release/$(jq -r .good.bundle "$plan")" --image-uri "$(jq -r .good.image_uri "$plan")"
     --migration-definition "$(jq -r '.good.migration_definition // .migration_definition' "$plan")"
     --target-revision "$(jq -r .target_revision "$plan")"
@@ -352,11 +472,9 @@ cmd_release() {
   if [ "$owner" = processing ]; then
     promote+=(--worker-definition "$(jq -r .good.worker_definition "$plan")")
   fi
-  local restore=(--config "$config" "${SCOPE[@]}" --deadline-seconds 900
+  local restore=(--config "$config" "${SCOPE[@]}" --online --deadline-seconds 900
     --smoke-url "$gateway" --smoke-credentials "$CD_STATE/smoke-credentials.json")
 
-  "$PY" -m scripts.aws.v1.session window --config "$config" "${SCOPE[@]}" >"$CD_OUT/session-window.json" ||
-    fail "session window failed: $(jq -r '.error // empty' "$CD_OUT/session-window.json" 2>/dev/null)"
   local rc=0 outcome=promoted
   "$PY" -m scripts.aws.v1.release promote "${promote[@]}" >"$CD_OUT/release-promote.json" || rc=$?
   if [ "$rc" -ne 0 ]; then
@@ -367,24 +485,19 @@ cmd_release() {
     else
       # A candidate that failed in its migration task has nothing to restore; abandon clears
       # the intent only when it can prove nothing moved.
-      "$PY" -m scripts.aws.v1.release abandon --config "$config" "${SCOPE[@]}" --owner "$owner" \
-        --reason "cd run ${GITHUB_RUN_ID:-local}" >"$CD_OUT/release-abandon.json" &&
-        outcome=abandoned || outcome=restore-failed
+      "$PY" -m scripts.aws.v1.release abandon --config "$config" "${SCOPE[@]}" --online \
+        --owner "$owner" --reason "cd run ${GITHUB_RUN_ID:-local}" \
+        >"$CD_OUT/release-abandon.json" && outcome=abandoned || outcome=restore-failed
     fi
-    # The new definitions are unused after a failed promotion; a good one stays (the worker uses it).
-    "$PY" -m scripts.aws.v1.evidence release-plan "${SCOPE[@]}" --state-dir "$CD_STATE" \
-      --run-id "$CD_RUN_ID" --deregister "$plan" >/dev/null || true
+    # The plan's task definition revisions stay registered: they cost nothing, and a revision
+    # another record still names must never disappear.
   fi
-  local close_rc=0
-  "$PY" -m scripts.aws.v1.session close --config "$config" "${SCOPE[@]}" --in-vpc-counts \
-    >"$CD_OUT/session-close.json" || close_rc=$?
   jq -n --arg outcome "$outcome" --arg owner "$owner" --arg release "$rel" \
     --slurpfile result "$CD_OUT/release-promote.json" \
     '{owner: $owner, release: $release, outcome: $outcome,
       smoke: ($result[0].result.smoke // $result[0].smoke // null),
-      versions: ($result[0].result.versions // null)}' >"$PUBLIC/release.json" || true
-  summary "Release of **$owner**: **$outcome** (window closed: $([ "$close_rc" -eq 0 ] && echo yes || echo NO))"
-  [ "$close_rc" -eq 0 ] || fail "session close failed; the public window may still be open"
+      versions: ($result[0].result.versions // null)}' >"$PUBLIC/release-$owner.json" || true
+  summary "Release of **$owner**: **$outcome** (online; kept as running: ${kept[*]:-none})"
   if [ "${CD_BAD_CANDIDATE:-false}" = true ]; then
     # The proof passes only when the bad candidate was caught and rolled back. A promotion would
     # mean the smoke let a broken release through; anything else means the restore did not work.
@@ -393,6 +506,22 @@ cmd_release() {
     return 0
   fi
   [ "$outcome" = promoted ] || fail "Release did not complete: $outcome"
+  # Adopt: the journal, the baseline and then the stack name the released images. A failure here
+  # leaves the Lambdas on the release and the launcher on the previous worker, both of which
+  # work; rerunning the deploy finishes the adoption.
+  deploy_cli adopt-release --state-dir "$CD_STATE" --owner "$owner" \
+    --release-dir "$CD_STATE/release" --release-tag "$rel" >"$CD_OUT/adopt-$owner.json" ||
+    fail "Adopting the $owner release failed: $(jq -r '.error // empty' "$CD_OUT/adopt-$owner.json")"
+  local merged="$CD_STATE/build-baseline.next.json"
+  jq --slurpfile built "$good" --args '.images += ($built[0].images
+      | with_entries(select(.key as $k | $ARGS.positional | index($k))))' \
+    "$baseline" "${names[@]}" >"$merged"
+  chmod 600 "$merged"
+  mv "$merged" "$baseline"
+  deploy_cli deploy --state-dir "$CD_STATE" --images "$baseline" --seed-email "$CD_SEED_EMAIL" \
+    --assume-empty-counts "${COST[@]}" --stop-after applications --execute \
+    >"$CD_OUT/adopt-stack-$owner.json" ||
+    fail "The stack update naming the released $owner images failed; the release itself serves. See adopt-stack-$owner.json"
 }
 
 # ---------------------------------------------------------------------------------- teardown
@@ -409,7 +538,7 @@ cmd_teardown() {
   fi
   local extra=()
   if [ "${CD_SKIP_FINAL_SNAPSHOT:-false}" = true ]; then extra+=(--skip-final-snapshot); fi
-  deploy_cli teardown --state-dir "$CD_STATE" --execute --confirm-run-id "$CD_RUN_ID" \
+  deploy_cli teardown --state-dir "$CD_STATE" --execute --confirm-run-id "$CD_ENVIRONMENT" \
     "${extra[@]}" | tee "$CD_OUT/teardown-raw.json"
   jq '{ok, mode, run_id, steps,
        receipt: (.resources_remaining_receipt | {status, journal_steps})}' \

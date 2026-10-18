@@ -65,6 +65,9 @@ class LauncherConfig:
     idle_trip: int = 3
     # Do not start a worker that the session would stop almost at once.
     min_useful_seconds: float = 120
+    # V2-live (#237): the persistent environment has no session end. The flag, the cap, the
+    # reservations and the idle breaker still apply; only the end-of-session gate does not.
+    always_on: bool = False
 
     @property
     def family(self):
@@ -212,12 +215,18 @@ async def _idle_exits(session, control, limit):
     return run, newest
 
 
+def _session_ended(control, now, config, margin=0.0):
+    if config is not None and config.always_on:
+        return False
+    return control.session_end_at is None or (
+        now + timedelta(seconds=margin) >= control.session_end_at
+    )
+
+
 def _gate(control, now, config, idle_run, idle_newest):
     if control is None or not control.enabled:
         return "disabled"
-    if control.session_end_at is None or (
-        now + timedelta(seconds=config.min_useful_seconds) >= control.session_end_at
-    ):
+    if _session_ended(control, now, config, config.min_useful_seconds):
         return "session-ended"
     if idle_run >= config.idle_trip:
         return "idle-breaker"
@@ -297,9 +306,9 @@ async def _reserve(factory, config, obs, visible, *, launching):
         created = []
         for _ in range(count):
             token = uuid4().hex
-            deadline = min(
-                now + timedelta(seconds=config.lifetime_seconds), control.session_end_at
-            )
+            deadline = now + timedelta(seconds=config.lifetime_seconds)
+            if not config.always_on:
+                deadline = min(deadline, control.session_end_at)
             session.add(
                 LaunchReservation(
                     token=token,
@@ -325,7 +334,7 @@ async def _reserve(factory, config, obs, visible, *, launching):
         }
 
 
-async def _send(factory, ecs, token):
+async def _send(factory, ecs, token, config=None):
     """Send one reservation while holding the control row FOR SHARE.
 
     Disable takes the same row FOR UPDATE, so it cannot return while a send is in flight,
@@ -341,12 +350,7 @@ async def _send(factory, ecs, token):
         now = await lifecycle.db_now(session)
         if row is None or row.status != "reserved":
             return "skipped"
-        if (
-            control is None
-            or not control.enabled
-            or control.session_end_at is None
-            or now >= control.session_end_at
-        ):
+        if control is None or not control.enabled or _session_ended(control, now, config):
             row.status, row.settled_at, row.last_error = "released", now, "closed"
             return "closed"
         row.sent_at = now
@@ -398,7 +402,7 @@ async def tick(factory, ecs, queue, config, *, launching=True):
     plan = await _reserve(factory, config, obs, visible, launching=launching)
     results = {"launched": 0, "refused": 0, "unconfirmed": 0, "closed": 0, "skipped": 0}
     for token in plan.pop("tokens"):
-        outcome = await _send(factory, ecs, token)
+        outcome = await _send(factory, ecs, token, config)
         results["unconfirmed" if outcome == "ambiguous" else outcome] += 1
         if outcome in {"refused", "ambiguous"}:
             break  # ECS is unhealthy or refusing; the next tick reconciles by token.

@@ -821,3 +821,25 @@ def test_abandon_refuses_a_running_media_migration_even_though_media_quiescence_
     with pytest.raises(OperationError, match="not stopped"):
         abandon(config, aws, journal, **abandon_args(options))
     assert pending_of(journal) is not None
+
+
+def with_source(item, source):
+    gate = {"source_sha": source}
+    return {**item, "source_sha": source, "tests": {**item["tests"], **gate},
+            "artifact_test": {**item["artifact_test"], **gate}, "scan": {**item["scan"], **gate}}
+
+
+def test_a_processing_release_may_keep_one_image_as_it_runs_but_not_both():
+    # V2-live: a worker-only change rebuilds the worker and keeps the running API image.
+    bundle = {"api": with_source(proof("processing", "lambda-api"), "a" * 40),
+              "worker": proof("processing", "finite-worker")}
+    with pytest.raises(OperationError, match="share frozen source"):
+        validate_bundle(bundle, owner="processing")
+    bundle["api"]["retained"] = True
+    assert validate_bundle(bundle, owner="processing")
+    bundle["worker"]["retained"] = True
+    with pytest.raises(OperationError, match="at least one rebuilt"):
+        validate_bundle(bundle, owner="processing")
+    bundle["worker"]["retained"] = "yes"
+    with pytest.raises(OperationError):
+        validate_bundle(bundle, owner="processing")

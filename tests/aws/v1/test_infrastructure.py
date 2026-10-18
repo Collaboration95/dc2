@@ -215,7 +215,8 @@ def test_closed_defaults_finite_worker_and_partial_batches():
     for domain in ("ProcessingCommands", "MediaResults"):
         mapping = resources[domain + "Mapping"]["Properties"]
         assert mapping["FunctionResponseTypes"] == ["ReportBatchItemFailures"]
-        assert mapping["Enabled"] is False
+        # Closed unless the persistent environment deploys always on (#236).
+        assert mapping["Enabled"] == {"Fn::If": ["AlwaysOpen", True, False]}
     for resource in resources.values():
         if resource["Type"] == "AWS::Lambda::Function":
             assert "ReservedConcurrentExecutions" not in resource["Properties"]
@@ -301,12 +302,18 @@ def test_template_is_closed_safe_and_never_requires_positive_reservations():
     for name in ("ProcessingCommandsMapping", "MediaResultsMapping"):
         assert resources[name]["Properties"]["ScalingConfig"] == {"MaximumConcurrency": 2}
     rules = [r for r in resources.values() if r["Type"] == "AWS::Events::Rule"]
-    assert rules and {r["Properties"]["State"] for r in rules} == {"DISABLED"}
-    stage = resources["HttpStage"]["Properties"]["DefaultRouteSettings"]
-    assert stage == {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0}
+    # Every gate opens only under AlwaysOpen, which the per-run V1 stack never sets (#236).
+    assert built["Parameters"]["AlwaysOn"]["Default"] == "false"
+    assert rules and all(
+        r["Properties"]["State"] == {"Fn::If": ["AlwaysOpen", "ENABLED", "DISABLED"]}
+        for r in rules
+    )
+    stage = resources["HttpStage"]["Properties"]["DefaultRouteSettings"]["Fn::If"]
+    assert stage[0] == "AlwaysOpen"
+    assert stage[2] == {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0}
     assert built["Outputs"]["HttpApiId"]["Condition"] == "Applications"
     assert all(
-        resources[n]["Properties"]["Enabled"] is False
+        resources[n]["Properties"]["Enabled"] == {"Fn::If": ["AlwaysOpen", True, False]}
         for n in ("ProcessingCommandsMapping", "MediaResultsMapping")
     )
 

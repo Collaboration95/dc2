@@ -2,7 +2,9 @@
 
 import argparse
 import dataclasses
+import hashlib
 import json
+import re
 from pathlib import Path
 
 from processing import short_lane
@@ -16,6 +18,16 @@ LAUNCHER = "ProcessingLauncher"
 SHORT_ENCODER = "ProcessingShortEncoder"
 SHORT_QUEUE = "ProcessingShortWork"
 OPTIONAL_FUNCTIONS = (LAUNCHER, SHORT_ENCODER)
+# Who reads and writes each domain's idle markers (runtime_support.activity, AD-27): writers
+# record a request before committing it; the repair schedule reads both and writes `quiet`; the
+# launcher only reads.
+ACTIVITY_ROLES = {
+    "Media": {"writers": ("MediaApi", "MediaResults"), "repair": "MediaRepair"},
+    "Processing": {"writers": ("ProcessingCommands",), "repair": "ProcessingRepair"},
+}
+# The Processing functions that publish work onto processing-work, and so wake the launcher.
+WORK_PUBLISHERS = ("ProcessingCommands", "ProcessingRepair", "ProcessingEcsEvents",
+                   "ProcessingS3Events")
 
 
 # Opt-in V2 experiment (#94). The database layout is chosen when the template is rendered, not by
@@ -118,6 +130,57 @@ def db_ca_env(domain):
     return {"PROCESSING_DATABASE_TLS": "true", "PROCESSING_DATABASE_CA_FILE": RDS_CA_BUNDLE}
 
 
+# Parameters a function refers to whose value is fixed by the environment's name, so they cannot
+# change under a live alias; the image is named separately, by its digest.
+FIXED_PARAMETERS = ("EnvironmentId",)
+
+
+def references(value, found, conditions):
+    """Every Ref/GetAtt/Sub target and Fn::If condition inside a property tree."""
+    if isinstance(value, list):
+        for item in value:
+            references(item, found, conditions)
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            if key == "Ref":
+                found.add(item)
+            elif key == "Fn::GetAtt":
+                found.add(item[0])
+            elif key == "Fn::Sub":
+                text = item if isinstance(item, str) else item[0]
+                found.update(m.split(".")[0] for m in re.findall(r"\$\{([^}!]+)\}", text))
+                if not isinstance(item, str):
+                    references(item[1], found, conditions)
+            elif key == "Fn::If":
+                conditions.add(item[0])
+                references(item[1:], found, conditions)
+            else:
+                references(item, found, conditions)
+
+
+def version_description(domain, image, properties, parameters, resources):
+    """What a function's published version runs, resolved at deploy time.
+
+    An alias moves only when its Version resource is replaced, and that happens only when the
+    Version's own properties change. This description changes whenever the function's image,
+    its definition, a parameter or condition it reads, or a task definition it names changes,
+    even though the function's template text names those only by reference (#235).
+    """
+    found, conditions = set(), set()
+    references(properties, found, conditions)
+    digest = hashlib.sha256(json.dumps(properties, sort_keys=True).encode()).hexdigest()[:12]
+    parts = [domain, {"Fn::Select": [1, {"Fn::Split": ["@", ref(f"{image}ImageUri")]}]}, digest]
+    for name in sorted(found):
+        if name in parameters and name not in FIXED_PARAMETERS and not name.endswith(
+                ("ImageUri", "ParameterArn")):
+            parts.append(ref(name))
+        elif resources.get(name, {}).get("Type") == "AWS::ECS::TaskDefinition":
+            # family:revision, which a replacement always changes
+            parts.append({"Fn::Select": [1, {"Fn::Split": ["/", ref(name)]}]})
+    parts += [{"Fn::If": [name, f"{name}=1", f"{name}=0"]} for name in sorted(conditions)]
+    return {"Fn::Join": [" ", parts]}
+
+
 def template(database=None):
     """Closed-by-default two-phase stack; resources retained where data is durable."""
     database = database or DatabaseOptions()
@@ -151,6 +214,29 @@ def template(database=None):
             "Type": "String",
             "Default": "false",
             "AllowedValues": ["true", "false"],
+        },
+        # V2-live (#236): the persistent environment deploys open. False keeps V1's closed
+        # template, where only a booked session opens the API, consumers and schedules.
+        "AlwaysOn": {
+            "Type": "String",
+            "Default": "false",
+            "AllowedValues": ["true", "false"],
+        },
+        # The gates (stage throttle, consumers, schedules) of an always-on environment. False
+        # while the kill switch is on, so a stack update keeps closed gates closed.
+        "GatesOpen": {
+            "Type": "String",
+            "Default": "true",
+            "AllowedValues": ["true", "false"],
+        },
+        "StageRateLimit": {"Type": "Number", "Default": 20, "MinValue": 1, "MaxValue": 1000},
+        "StageBurstLimit": {"Type": "Number", "Default": 50, "MinValue": 1, "MaxValue": 2000},
+        "MonthlyBudgetUsd": {"Type": "Number", "Default": 20, "MinValue": 1, "MaxValue": 1000},
+        # Empty means the alerts reach only the SNS topic; anyone can subscribe to it later.
+        "BudgetAlertEmail": {
+            "Type": "String",
+            "Default": "",
+            "AllowedPattern": r"^$|^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$",
         },
     }
     for domain in ("Media", "Processing", "Worker"):
@@ -777,6 +863,135 @@ def template(database=None):
             "ProcessingS3Events",
         ],
     }
+    # Only the work publishers may invoke the launcher, and only its alias (#237).
+    add(
+        f"{LAUNCHER}Invokers",
+        "IAM::Policy",
+        {
+            "PolicyName": "launcher-wake",
+            "Roles": [ref(f"{role}Role") for role in WORK_PUBLISHERS],
+            "PolicyDocument": policy([allow(["lambda:InvokeFunction"], [ref(f"{LAUNCHER}Alias")])]),
+        },
+        app=True,
+    )
+    # Idle markers (AD-27). String parameters, so no KMS; "0" reads as "not quiet".
+    for domain, roles in ACTIVITY_ROLES.items():
+
+        def marker(kind, domain=domain):
+            return sub(
+                "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter"
+                f"${{{domain}Activity{kind}}}"
+            )
+
+        for kind in ("Touched", "Quiet"):
+            add(
+                f"{domain}Activity{kind}",
+                "SSM::Parameter",
+                {
+                    "Name": sub(
+                        f"/dc2/${{EnvironmentId}}/activity/{domain.lower()}/{kind.lower()}"
+                    ),
+                    "Type": "String",
+                    "Value": "0",
+                },
+                gate="AlwaysOnEnv",
+            )
+        add(
+            f"{domain}ActivityWriters",
+            "IAM::Policy",
+            {
+                "PolicyName": "activity-touch",
+                "Roles": [ref(f"{role}Role") for role in roles["writers"]],
+                "PolicyDocument": policy([allow(["ssm:PutParameter"], [marker("Touched")])]),
+            },
+            gate="AlwaysOnEnv",
+        )
+        add(
+            f"{domain}ActivityRepair",
+            "IAM::Policy",
+            {
+                "PolicyName": "activity-quiet",
+                "Roles": [ref(f"{roles['repair']}Role")],
+                "PolicyDocument": policy([
+                    allow(["ssm:GetParameter"], [marker("Touched"), marker("Quiet")]),
+                    allow(["ssm:PutParameter"], [marker("Quiet")]),
+                ]),
+            },
+            gate="AlwaysOnEnv",
+        )
+    add(
+        "ProcessingActivityLauncherRead",
+        "IAM::Policy",
+        {
+            "PolicyName": "activity-read",
+            "Roles": [ref(f"{LAUNCHER}Role")],
+            "PolicyDocument": policy([allow(["ssm:GetParameter"], [
+                sub("arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter"
+                    "${ProcessingActivityTouched}"),
+                sub("arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter"
+                    "${ProcessingActivityQuiet}"),
+            ])]),
+        },
+        gate="AlwaysOnLauncher",
+    )
+    # The cost safety net of an always-on environment (#236): alerts at 50, 80 and 100 % of a
+    # small monthly amount, on top of the per-service alarms. Account-wide, since the account
+    # holds only this project.
+    add("BudgetAlertTopic", "SNS::Topic", {"Tags": tags}, gate="AlwaysOnEnv")
+    add(
+        "BudgetAlertTopicPolicy",
+        "SNS::TopicPolicy",
+        {
+            "Topics": [ref("BudgetAlertTopic")],
+            "PolicyDocument": policy(
+                [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {"Service": "budgets.amazonaws.com"},
+                        "Action": "sns:Publish",
+                        "Resource": ref("BudgetAlertTopic"),
+                        "Condition": {"StringEquals": {"aws:SourceAccount": ref("AWS::AccountId")}},
+                    }
+                ]
+            ),
+        },
+        gate="AlwaysOnEnv",
+    )
+    add(
+        "BudgetAlertSubscription",
+        "SNS::Subscription",
+        {"TopicArn": ref("BudgetAlertTopic"), "Protocol": "email",
+         "Endpoint": ref("BudgetAlertEmail")},
+        gate="BudgetEmail",
+    )
+    add(
+        "MonthlyBudget",
+        "Budgets::Budget",
+        {
+            "Budget": {
+                "BudgetName": sub("${EnvironmentId}-monthly"),
+                "BudgetType": "COST",
+                "TimeUnit": "MONTHLY",
+                "BudgetLimit": {"Amount": ref("MonthlyBudgetUsd"), "Unit": "USD"},
+            },
+            "NotificationsWithSubscribers": [
+                {
+                    "Notification": {
+                        "NotificationType": "ACTUAL",
+                        "ComparisonOperator": "GREATER_THAN",
+                        "Threshold": percent,
+                        "ThresholdType": "PERCENTAGE",
+                    },
+                    "Subscribers": [
+                        {"SubscriptionType": "SNS", "Address": ref("BudgetAlertTopic")}
+                    ],
+                }
+                for percent in (50, 80, 100)
+            ],
+        },
+        gate="AlwaysOnEnv",
+        depends=["BudgetAlertTopicPolicy"],
+    )
     consumers = {
         "ProcessingCommands": ["ProcessingCommands"],
         "ProcessingWork": ["Worker"],
@@ -898,6 +1113,21 @@ def template(database=None):
                 "PROCESSING_LAUNCHER_SECURITY_GROUPS": ref("WorkerSecurityGroup"),
                 "PROCESSING_LAUNCHER_LIFETIME_SECONDS": {"Fn::Sub": "${WorkerLifetimeSeconds}"},
                 "PROCESSING_LAUNCHER_CAP": "3",
+                # Always on, the launcher has no session end to stop at (#237).
+                "PROCESSING_LAUNCHER_ALWAYS_ON": {
+                    "Fn::If": ["AlwaysOnEnv", "true", ref("AWS::NoValue")]
+                },
+            }
+        activity = ACTIVITY_ROLES[domain]
+        if name in (*activity["writers"], activity["repair"], LAUNCHER):
+            for kind in ("Touched", "Quiet"):
+                env[f"{prefix}_ACTIVITY_{kind.upper()}_PARAMETER"] = {
+                    "Fn::If": ["AlwaysOnEnv", ref(f"{domain}Activity{kind}"), ref("AWS::NoValue")]
+                }
+        if name in WORK_PUBLISHERS:
+            # A work send wakes the launcher at once (#237); the minute schedule stays the net.
+            env["PROCESSING_LAUNCHER_FUNCTION"] = {
+                "Fn::If": ["Unattended", ref(f"{LAUNCHER}Alias"), ref("AWS::NoValue")]
             }
         if domain == "Processing" and name not in (LAUNCHER, SHORT_ENCODER):
             # Every publisher routes work by lane. The values resolve to nothing, so the
@@ -971,11 +1201,19 @@ def template(database=None):
             },
             app=True,
         )
+        # An alias moves only when its Version is replaced, and a Version is replaced only when
+        # its own properties change. Naming the image and a digest of the function's definition
+        # here makes an in-place stack update (#235) publish a new version, and repoint the
+        # alias, exactly when the function's image or configuration changed. Retained, because
+        # Lambda answers an unchanged publish with the existing version, which a replaced
+        # resource must then not delete; the versions go with the function itself.
         add(
             f"{name}Version",
             "Lambda::Version",
-            {"FunctionName": ref(name), "Description": f"V1 initial {domain} artifact"},
+            # The description is filled in once every resource it may name exists (below).
+            {"FunctionName": ref(name), "Description": (domain, image)},
             app=True,
+            retain=True,
         )
         add(
             f"{name}Alias",
@@ -1002,7 +1240,7 @@ def template(database=None):
                 "FunctionResponseTypes": ["ReportBatchItemFailures"],
                 # Without reservations this is the consumer bound; 2 is the SQS minimum.
                 "ScalingConfig": {"MaximumConcurrency": 2},
-                "Enabled": False,
+                "Enabled": {"Fn::If": ["AlwaysOpen", True, False]},
             },
             app=True,
         )
@@ -1018,7 +1256,7 @@ def template(database=None):
             # Nothing is reservable at an account limit of 10, so this is the executor bound.
             # 2 is the SQS minimum. Closed until a session opens, like every other mapping.
             "ScalingConfig": {"MaximumConcurrency": short_lane.ENCODER_MAX_CONCURRENCY},
-            "Enabled": False,
+            "Enabled": {"Fn::If": ["AlwaysOpen", True, False]},
         },
         app=True,
     )
@@ -1233,8 +1471,18 @@ def template(database=None):
             "StageName": "$default",
             "AutoDeploy": True,
             # Closed by default (account limit 10 forbids Lambda reservations, so this and
-            # the disabled mappings/rules are the gates); the session API opens it.
-            "DefaultRouteSettings": {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0},
+            # the disabled mappings/rules are the gates); the session API opens it. An
+            # always-on environment (#236) deploys with its sane limit instead.
+            "DefaultRouteSettings": {
+                "Fn::If": [
+                    "AlwaysOpen",
+                    {
+                        "ThrottlingBurstLimit": ref("StageBurstLimit"),
+                        "ThrottlingRateLimit": ref("StageRateLimit"),
+                    },
+                    {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0},
+                ]
+            },
         },
         app=True,
     )
@@ -1456,7 +1704,7 @@ def template(database=None):
         LAUNCHER,
     ):
         props = {
-            "State": "DISABLED",
+            "State": {"Fn::If": ["AlwaysOpen", "ENABLED", "DISABLED"]},
             "Targets": [
                 {
                     "Arn": ref(f"{name}Alias"),
@@ -1467,8 +1715,9 @@ def template(database=None):
         }
         if name == LAUNCHER:
             # A late retry would only repeat work the next tick does anyway, and it could
-            # run beside that tick. The state is always DISABLED here: only a session open
-            # with --unattended enables it, and session close disables it first.
+            # run beside that tick. Closed, only a session open with --unattended enables
+            # it; always on, it is the safety net behind the enqueue trigger. Session close
+            # disables it first either way.
             props["Targets"][0]["RetryPolicy"] = {
                 "MaximumEventAgeInSeconds": 60,
                 "MaximumRetryAttempts": 0,
@@ -1749,6 +1998,12 @@ def template(database=None):
         outputs[f"{name}QueueArn"] = queue_arn(name)
         outputs[f"{name}DlqUrl"] = ref(f"{name}Dlq")
         outputs[f"{name}DlqArn"] = attr(f"{name}Dlq")
+    for name in handlers:
+        version = resources[f"{name}Version"]["Properties"]
+        domain, image = version["Description"]
+        version["Description"] = version_description(
+            domain, image, resources[name]["Properties"], parameters, resources
+        )
     result = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Description": "DC2 V1 managed two-domain stack. Operator applies explicitly.",
@@ -1765,6 +2020,27 @@ def template(database=None):
                 "Fn::And": [
                     {"Condition": "Applications"},
                     {"Fn::Equals": [ref("LambdaShortEncodes"), "true"]},
+                ]
+            },
+            "AlwaysOnEnv": {
+                "Fn::And": [
+                    {"Condition": "Applications"},
+                    {"Fn::Equals": [ref("AlwaysOn"), "true"]},
+                ]
+            },
+            "AlwaysOpen": {
+                "Fn::And": [
+                    {"Condition": "AlwaysOnEnv"},
+                    {"Fn::Equals": [ref("GatesOpen"), "true"]},
+                ]
+            },
+            "AlwaysOnLauncher": {
+                "Fn::And": [{"Condition": "AlwaysOnEnv"}, {"Condition": "Unattended"}]
+            },
+            "BudgetEmail": {
+                "Fn::And": [
+                    {"Condition": "AlwaysOnEnv"},
+                    {"Fn::Not": [{"Fn::Equals": [ref("BudgetAlertEmail"), ""]}]},
                 ]
             },
         },

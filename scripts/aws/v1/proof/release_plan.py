@@ -356,9 +356,13 @@ def assemble(ctx, planner, owner, baseline_evidence, good, bad, tests_passed, ta
         evidence = load_evidence(spec["evidence"])
         new_tags = {name: f"{spec['run_id']}-{name}" for _, name, _ in IMAGES[owner]}
         image = planner.image_set(role, new_tags, evidence, tests_passed)
-        if any(image["digests"][k] == baseline["digests"][k] for k in image["digests"]):
-            raise ProofError(f"The {role} image set shares an image with the baseline, so "
-                             "promoting it would move nothing; build a different image")
+        if all(image["digests"][k] == baseline["digests"][k] for k in image["digests"]):
+            raise ProofError(f"The {role} image set is the baseline's, so promoting it would "
+                             "move nothing; build a different image")
+        # One of Processing's two images may be kept as it runs (its inputs did not change).
+        for kind in image["digests"]:
+            if image["digests"][kind] == baseline["digests"][kind]:
+                image["bundle"][kind]["retained"] = True
         sets[role] = (image, planner.registered_definitions(image, base))
     plan = {"owner": owner, "target_revision": target,
             "registered_definitions": planner.registered}
@@ -372,7 +376,8 @@ def assemble(ctx, planner, owner, baseline_evidence, good, bad, tests_passed, ta
         item = plan[role]
         validate_inputs(ctx.config, owner=owner, bundle=image["bundle"],
                         image_uri=item["image_uri"],
-                        worker_definition=item.get("worker_definition"))
+                        worker_definition=item.get("worker_definition"),
+                        deployed=role == "baseline")
     return {"plan": str(plan_path), "owner": owner, "target_revision": target,
             "images": {role: image["digests"] for role, (image, _) in sets.items()},
             "registered_definitions": len(planner.registered),

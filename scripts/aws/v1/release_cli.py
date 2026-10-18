@@ -18,9 +18,12 @@ finite task in the VPC from the owner's migration task definition and parses its
 the result records `schema_revision_source: in-vpc-task`.
 
 Run `session window` first so the public API is reachable while every consumer, repair
-rule and worker stays disabled. Live runs need an explicit --profile/--region/--account;
---dry-run validates the artifact and digest gates offline and prints the planned calls
-without any AWS access or journal write.
+rule and worker stays disabled. On the always-on environment pass `--online` instead (V2-live):
+nothing is closed, and the release holds the online invariant (hooks.owner_online) where the
+closed one holds quiescence. The launcher keeps starting the stack's worker until the release
+is adopted into the stack (scripts/ci/cd.sh). Live runs need an explicit
+--profile/--region/--account; --dry-run validates the artifact and digest gates offline and
+prints the planned calls without any AWS access or journal write.
 """
 
 import argparse
@@ -33,7 +36,12 @@ from pathlib import Path
 from scripts.aws.journal import Journal
 from scripts.aws.transport import OperationError
 from scripts.aws.v1 import operations
-from scripts.aws.v1.hooks import compatibility_from_evidence, owner_quiescence, schema_reader
+from scripts.aws.v1.hooks import (
+    compatibility_from_evidence,
+    owner_online,
+    owner_quiescence,
+    schema_reader,
+)
 from scripts.aws.v1.public_smoke import PublicSmoke, load_credentials, urllib_http
 from scripts.aws.v1.release import abandon, promote, restore, validate_inputs
 from scripts.aws.v1.vpc_reader import VpcReader
@@ -120,7 +128,9 @@ def hooks_for(config, data, transport, args, http, *, clock=time.monotonic, slee
             http=http or urllib_http,
             reserve=not args.no_reserve,
         )
-    hooks = {"schema_revision": reader, "quiescent": owner_quiescence(config, transport)}
+    quiescent = (owner_online(config, transport) if args.online
+                 else owner_quiescence(config, transport))
+    hooks = {"schema_revision": reader, "quiescent": quiescent}
     if smoke:
         hooks["public_smoke"] = smoke
     return hooks, smoke, source, vpc
@@ -210,6 +220,8 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=N
     parser.add_argument("--smoke-credentials", help="private 0600 JSON {email,password}")
     parser.add_argument("--reason", help="abandon: why the intent is cleared (journaled)")
     parser.add_argument("--no-reserve", action="store_true", help="skip the upload reservation")
+    parser.add_argument("--online", action="store_true",
+                        help="the always-on environment: release without closing anything")
     operations.add_scope_arguments(parser)
     args = parser.parse_args(argv)
     scope = operations.resolve_scope(parser, args, environ)

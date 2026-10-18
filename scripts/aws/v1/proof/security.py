@@ -4,8 +4,9 @@ User A uploads one short clip and the encoder finishes it. Then, through the pub
 
 * `cross-owner`: user B gets 404 on A's job, retry, playback and Processing job, and A's job is
   unchanged afterwards. A's own reads are the control (200), so a 404 cannot mean a dead route.
-* `unauthenticated`: every protected route answers exactly 401 with no session, a forged token
-  and a token with a changed signature, on both CloudFront and the execute-api origin.
+* `unauthenticated`: every protected route answers exactly 401 with no session on both CloudFront
+  and the execute-api origin; a forged token and a token with a changed signature are denied
+  (401, or 403 when API Gateway's Lambda authorizer rejects a cookie that is present).
 * `tampered-urls`: an upload grant and the two kinds of signed GET (HLS segment, MP4) are refused
   once the signature, policy, key, content type or lifetime is changed or the signature removed.
   The untouched grant or URL is the control (it works), so the refusal is the tampering's.
@@ -383,8 +384,16 @@ def unauthenticated(ctx, proof):
     for variant, cookie in forged_tokens(account(ctx, "a")).items():
         reply = ask(ctx, ctx.api("frontend"), "GET", "/api/media/jobs", headers={"cookie": cookie})
         seen[f"forged_{variant}_jobs"] = reply.status
-    return {"status": PASS if all(s == 401 for s in seen.values()) else FAIL,
-            "public": {"statuses": seen, "all_401": all(s == 401 for s in seen.values())}}
+    # API Gateway answers 401 when the cookie is absent (identity source) but 403 when the Lambda
+    # authorizer runs and returns isAuthorized=false for a present-but-invalid token (measured on
+    # AWS in r1019a). Both stop the request before the API; a forged token may get nothing else.
+    absent = {k: v for k, v in seen.items() if not k.startswith("forged_")}
+    forged = {k: v for k, v in seen.items() if k.startswith("forged_")}
+    ok = all(s == 401 for s in absent.values()) and all(s in (401, 403) for s in forged.values())
+    return {"status": PASS if ok else FAIL,
+            "public": {"statuses": seen, "all_401": all(s == 401 for s in seen.values()),
+                       "absent_session_all_401": all(s == 401 for s in absent.values()),
+                       "forged_token_denied": all(s in (401, 403) for s in forged.values())}}
 
 
 # ---- signed URLs ---------------------------------------------------------------------

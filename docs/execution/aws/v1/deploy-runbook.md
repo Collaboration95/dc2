@@ -16,6 +16,66 @@ closed V1 and back to nothing. Every step journals itself, supports `--dry-run`,
 it creates `deploy-project=dc2-v1` and `owner-run=<run id>` (the keys avoid `Project`, which the
 template already uses: IAM compares tag keys case-insensitively and would reject the duplicate).
 
+## Persistent environment (V2-live, #234)
+
+The normal path is now one long-lived environment, `dc2-live`, that CD updates in place; the
+per-run lifecycle below (a new run id, a booked session, a teardown) is kept as the historical
+record of the V1 proof runs. The decision is AD-27 in
+[`decisions.md`](../../../architecture/decisions.md).
+
+- **Deploy.** `python -m scripts.aws.v1.deploy deploy --environment live ...` (CD passes
+  `--environment`, never `--run-id`). The first deploy runs the ordered steps below and ends with
+  `session-open` instead of a window and a close. Later deploys archive the journal's step log
+  under `invocations` and run every step again: `foundation`, `images` (it only compares),
+  `db-bootstrap` and `migrations` are skipped, `applications` updates the stack as a change set
+  (no changes is a no-op), and the session is not reopened. A change set that replaces Aurora, an
+  S3 bucket or the CloudFront distribution fails unless `--allow-replacement` is given.
+- **CD.** Every green `CI` run of a push to `Main` dispatches `cd.yml` (`workflow_run`). It
+  only ever updates an established environment: the first deploy is an explicit dispatch, and a
+  merge before it changes nothing in the account. The update applies the stack change set, then
+  releases each owner whose images' build inputs changed since the commit it runs from
+  (`images.detail.changed_owners`; the per-image Dockerfile inputs are `IMAGE_BUILD_INPUTS` in
+  `scripts/ci/policy.py`). An image whose inputs did not change is kept as it runs and only
+  retagged. An owner whose migrations changed is not released automatically: the run fails
+  with a message, and a dispatched `release` with `attest_additive=true` ships it.
+- **Online releases.** Nothing is closed. `release promote|restore|abandon --online` holds the
+  online invariant (the owner's consumers and schedules enabled as recorded, so a kill switch
+  that is on refuses) instead of quiescence; the compatibility, alias-revision, smoke and
+  restore checks are those of the closed release, which stays available for the historical
+  per-run proofs. After a promotion, `deploy adopt-release` records the released images and the
+  stack is updated to name them; that update is also what moves the launcher's
+  `WorkerTaskDefinition` to the released worker. Until it lands the launcher keeps starting the
+  previous worker, which is fine because a release is additive (migrations unchanged, or
+  attested) and the old worker stays compatible. CD never deregisters a task definition
+  revision: they cost nothing, and another record may still name one. The Fargate quota is
+  30 vCPU, so the release's migration task fits beside the three encoders; the cap of 3 is a
+  cost and demo choice, not a quota limit. The state lives under `envs/<name>/`
+  in the state bucket.
+- **Always on.** The template deploys with `AlwaysOn=true`: stage throttle 20 rps / burst 50
+  (`--stage-rate-limit`, `--stage-burst-limit`), both consumers and the four schedules enabled,
+  and the launcher enabled with no session end. Encoders scale 0 to 3 to 0 with the queue: each
+  work send wakes the launcher, and its one-minute schedule stays as the safety net.
+- **Aurora pauses when idle.** The repair schedules and the launcher tick every minute, but a
+  tick opens no database connection while the domain is quiet (`runtime_support/activity.py`).
+  Two SSM parameters per domain, `/dc2/<env>/activity/<domain>/touched|quiet`, decide this:
+  every writer records `touched` before it commits, and the repair pass records when SQL next has
+  anything due. Aurora therefore pauses about 3 minutes plus its 300 s auto-pause after the last
+  activity. The marker is best effort: a write it cannot record still goes ahead, and every tick
+  runs a full SQL pass once the last one is 30 minutes old. Pending work is therefore picked up
+  by the next minute's tick normally, and within 30 minutes at worst if a touch was lost.
+- **Cost.** The stack's AWS Budget `dc2-live-monthly` alerts at 50/80/100 % of $20 a month
+  (`--monthly-budget-usd`) to the SNS topic `BudgetAlertTopic`. Set the repository variable
+  `DC2_BUDGET_ALERT_EMAIL` (or `--budget-alert-email`) to subscribe an address; without it the
+  alerts reach only the topic, and the address must confirm the subscription email once. The
+  preflight cost guard reports routine updates but does not block them.
+- **Kill switch.** `python -m scripts.aws.v1.session close --config <state>/operator-config.json
+  --in-vpc-counts $S` closes everything as before (launcher first, then intake, drain, consumers,
+  schedules). While it is on, deploys render the template with `GatesOpen=false` (so an update
+  cannot reopen a gate), skip the seed and the smoke, and defer releases. `session open
+  --unattended` turns it off. `session status` reports any drift from the recorded state.
+- **Teardown.** Not routine. `cd.yml` refuses an executed teardown unless `confirm` repeats the
+  environment name.
+
 ## Before the first real run
 
 The operator must decide or supply all of these. None has a default.
@@ -680,6 +740,10 @@ Caveats that matter when reading receipts:
   a value that looks like one fails the step instead of being stored.
 
 ## CD workflow
+
+Since V2-live the workflow targets the persistent environment (inputs `environment`, default
+`live`, and `confirm` for teardown; see "Persistent environment" above) and also runs after every
+green CI on `Main`. The `run_id` examples below are the historical per-run form.
 
 [`.github/workflows/cd.yml`](../../../../.github/workflows/cd.yml) runs the commands above from
 GitHub Actions through [`scripts/ci/cd.sh`](../../../../scripts/ci/cd.sh); it adds no deploy

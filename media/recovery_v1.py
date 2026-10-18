@@ -10,8 +10,9 @@ import asyncio
 import time
 from datetime import timedelta
 
-from sqlalchemy import delete, or_, select
+from sqlalchemy import delete, func, or_, select
 
+from media.messaging_models import MediaOutbox
 from media.models import Asset, CleanupIntent, StagedObject, now
 from media.projections import source_for_asset
 from media.services.direct_intake import (
@@ -19,6 +20,10 @@ from media.services.direct_intake import (
     cleanup_delay,
     cleanup_expired_uploads,
 )
+from media.upload_models import UploadReservation
+
+# A staged copy no Asset adopted: the one predicate the staged cleanup and next_due share.
+ORPHANED = ~select(Asset.id).where(Asset.source_key == StagedObject.key).exists()
 
 
 def unretired(horizon):
@@ -134,7 +139,7 @@ async def cleanup_staged_objects(
     Each row is its own short transaction and the storage call is bounded by the deadline.
     """
     stale = StagedObject.created_at < now() - timedelta(seconds=grace_seconds)
-    orphaned = ~select(Asset.id).where(Asset.source_key == StagedObject.key).exists()
+    orphaned = ORPHANED
     async with factory() as session:
         keys = list(
             await session.scalars(
@@ -175,6 +180,43 @@ async def cleanup_staged_objects(
                 await session.execute(delete(StagedObject).where(StagedObject.key == key))
             cleaned += 1
     return cleaned
+
+
+async def next_due(factory, settings):
+    """When the Media repair pass next has SQL work: an epoch, or None if never.
+
+    Each term uses the predicate of the pass it stands for (outbox publish and its scheduled
+    replay, tombstone rescans, expired-upload rescans, orphaned staged copies), so a tick that
+    skips SQL until then misses nothing (runtime_support.activity).
+    """
+    grace = timedelta(seconds=settings.orphan_grace_seconds)
+    async with factory() as session:
+        times = [
+            await session.scalar(select(func.min(MediaOutbox.next_try_at))),
+            await session.scalar(
+                select(func.min(CleanupIntent.next_try_at))
+                .join(Asset, Asset.id == CleanupIntent.asset_id)
+                .where(
+                    Asset.deleted_at.is_not(None),
+                    CleanupIntent.processing_deleted_at.is_not(None),
+                    unretired(CLEANUP_HORIZON),
+                )
+            ),
+            await session.scalar(
+                select(
+                    func.min(
+                        func.greatest(
+                            UploadReservation.expires_at, UploadReservation.cleanup_next_at
+                        )
+                    )
+                ).where(UploadReservation.cleanup_retired_at.is_(None))
+            ),
+        ]
+        staged = await session.scalar(select(func.min(StagedObject.created_at)).where(ORPHANED))
+    if staged is not None:
+        times.append(staged + grace)
+    found = [t.timestamp() for t in times if t is not None]
+    return min(found) if found else None
 
 
 async def run_once(factory, settings, storage, *, deadline=None):

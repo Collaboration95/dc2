@@ -273,6 +273,8 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
 
 ### AD-19 Closed-by-default stack, operated as booked sessions
 
+**Superseded by AD-27** for the persistent environment. It still describes the per-run V1 stacks.
+
 - **Context.** The account limits Lambda to 10 concurrent executions, which makes reserved
   concurrency impossible, and cost must stay near zero when idle.
 - **Decision.** The template deploys with both SQS event source mappings disabled, all EventBridge
@@ -399,6 +401,49 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   `legacy/` in #210. The unused schema columns stay, by decision (no data migration this close to
   submission): see [views.md](views.md) section 4.5.
 - **Evidence.** [Code] `deploy/v1/check_runtime.py`; [Local] `tests/v1/test_image_recipes.py`.
+
+### AD-27 One persistent always-on environment, updated in place, scaling to zero (supersedes AD-19)
+
+- **Context.** V1 created a full stack per run id (VPC, Aurora, CloudFront, ...) and deleted it
+  afterwards, and AD-19 kept it closed outside booked sessions. Every infrastructure check cost a
+  25 min deploy and a 25-40 min teardown, five times (r1017a-r1019a). The stack already scales to
+  zero: Lambda, Aurora at 0 ACU with auto-pause, SQS, CloudFront and Fargate cost nothing idle, and
+  there is no NAT and no paid endpoint, so the fixed idle cost is about $3-5 a month (alarms,
+  secret, logs, ECR, storage). Nobody runs a product behind booked sessions (#234).
+- **Decision.** One named environment (`--environment live`, stack `dc2-live`) is deployed once and
+  kept. Its first deploy is a human's dispatch; after that CD updates it after every green CI
+  run on Main: a CloudFormation `UPDATE` change set from the checkout, then the per-owner release
+  (aliases, migration, smoke, automatic restore) for each owner whose images' build inputs
+  changed, online (nothing is closed; see the trade-off). An owner whose migrations changed
+  waits for an explicitly attested release. The release's images are then adopted into the
+  stack, so the stack stays the description of what runs. A change set that would replace Aurora, an S3
+  bucket or the CloudFront distribution fails the deploy unless `--allow-replacement` is given.
+  The template deploys open (`AlwaysOn=true`): stage throttle 20 rps / burst 50, consumers and
+  schedules enabled, and the launcher (#68) on with no session end. Every work send wakes the
+  launcher with an asynchronous invoke; its one-minute schedule stays as the safety net, and the
+  SQL reservations keep the cap of three under concurrent wakes. The cost safety net is an AWS
+  Budget alerting at 50/80/100 % of $20 a month, plus the per-service alarms (AD-25); the CI-side
+  cost guard only reports on routine updates. Idle minute ticks skip SQL (SSM activity markers),
+  so Aurora still pauses. `session close` remains as the emergency kill switch, which deploys
+  respect (`GatesOpen=false`, releases deferred), and `session status` reports drift.
+- **Alternatives.** Keep per-run stacks (the cost in time above); keep the closed template and
+  open a long session (an expiring window is a booking under another name); a staging plus a
+  production environment (out of scope for the time left).
+- **Trade-off.** The environment is public all the time, bounded by the stage throttle, the
+  encoder cap (3, a cost choice; the Fargate quota is 30 vCPU) and the budget alerts rather than
+  by a closed gate. A release no longer quiesces its owner: old and new code run side by side
+  for a moment, which is safe only because an automatic release has unchanged migrations and any
+  other is attested additive; for the same reason the launcher may keep starting the previous
+  worker until the release is adopted into the stack. The idle markers are best effort: a lost
+  touch delays a repair by at most 30 minutes, after which every tick runs a full SQL pass.
+  Code reaches an alias only through a release or through a stack update that replaces the
+  function's version (its description names the image digest, a digest of the definition, and
+  the parameters, conditions and task definitions it resolves).
+- **Evidence.** [Code] `scripts/aws/v1/deploy.py` (`deploy_persistent`, `begin_invocation`,
+  `adopt_release`), `scripts/aws/v1/definitions.py` (`AlwaysOpen`, `MonthlyBudget`,
+  `ProcessingLauncherInvokers`), `processing/launcher_trigger.py`, `scripts/ci/cd.sh`;
+  [Local] `tests/aws/v1/test_persistent_environment.py`, `tests/v1/test_launcher_sql.py`.
+  [AWS] pending the live verification (#238).
 
 ## 4. Proposal to as-built deviations
 

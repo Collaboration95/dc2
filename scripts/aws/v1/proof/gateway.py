@@ -145,6 +145,7 @@ def drive_job(ctx, proof, api, intent, job_id, *, timeout, minutes, interval=5):
     """
     row = intent.setdefault("row", {"job_id": job_id})
     intent.setdefault("tasks", [])
+    launcher = workflow.launcher_owns_workers(ctx)
     start, transitions, polls = ctx.clock(), [], 0
     while True:
         reply = api.request("GET", f"/api/media/jobs/{job_id}")
@@ -158,7 +159,14 @@ def drive_job(ctx, proof, api, intent, job_id, *, timeout, minutes, interval=5):
         if ctx.clock() - start >= timeout:
             raise ProofError(
                 f"Job did not reach {sorted(workflow.TERMINAL)} within {timeout} seconds")
-        if row.get("processing_job_id") and row.get("status") in capacity.QUEUED_STATES:
+        if launcher and row.get("processing_job_id"):
+            # The launcher starts the encoder on enqueue; record which ones ran meanwhile.
+            seen = [a for a in workflow.live_tasks(ctx) if a not in intent["tasks"]]
+            if seen:
+                intent["tasks"] += seen
+                intent.setdefault("started_at", ctx.clock())
+                proof.save()
+        elif row.get("processing_job_id") and row.get("status") in capacity.QUEUED_STATES:
             live = len(workflow.live_tasks(ctx))
             if capacity.refill(ctx, intent, [row], live, cap=1, minutes=minutes):
                 intent.setdefault("started_at", ctx.clock())
@@ -180,8 +188,11 @@ def direct_upload(ctx, proof, fixture, *, timeout, minutes):
                                  minutes=minutes)
     final = workflow.wait_stopped(ctx, intent["tasks"], timeout=300, checkpoint=proof.checkpoint)
     still = workflow.live_tasks(ctx)
+    if workflow.launcher_owns_workers(ctx):
+        # Other users' encoders may run on the always-on environment; only this job's count.
+        still = {arn: task for arn, task in still.items() if arn in intent["tasks"]}
     ok, played = workflow.playback(ctx, api, job) if job["status"] == "done" else (False, {})
-    task = list(final.values())[-1]
+    task = list(final.values())[-1] if final else {}
     public = {
         "job_status": job["status"], "bytes": sent["bytes"],
         "reserve_ms": sent["reserve_ms"], "upload_ms": sent.get("upload_ms"),
