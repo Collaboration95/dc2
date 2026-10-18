@@ -10,15 +10,21 @@ decide, without SQL, whether a tick has anything to do:
 * ``quiet``: ``"C T"``. The repair pass took the time C, then found, in SQL, that nothing is
   due before T (the same predicates its passes select by).
 
-A tick skips SQL only while ``touched < C - MARGIN`` and ``now < T``. Why nothing is missed:
-pending state is created either by a writer, which touched within ``MARGIN`` before its commit,
-so a commit that C's snapshot did not see has ``touched >= C - MARGIN``; or by time reaching a
-scheduled row (lease, retry, outbox replay, cleanup rescan), whose time is at least T. Work
-that already exists (a running attempt, an unsent row) makes the pass find something due now,
-and then it writes no quiet value at all. Any read error, a missing or malformed value, is
-"not quiet": the tick runs SQL as before.
+A tick skips SQL only while ``touched < C - MARGIN``, ``now < T`` and C is less than
+MAX_QUIET_SECONDS old. Pending state is created either by a writer, which touched within
+``MARGIN`` before its commit, so a commit that C's snapshot did not see has
+``touched >= C - MARGIN``; or by time reaching a scheduled row (lease, retry, outbox replay,
+cleanup rescan), whose time is at least T. Work that already exists (a running attempt, an
+unsent row) makes the pass find something due now, and then it writes no quiet value at all.
+Any read error, a missing or malformed value, is "not quiet".
+
+The markers are best effort: a touch that cannot be written is logged and the request goes
+ahead. Such a write may be missed until the quiet value ages out, so every tick runs a full SQL
+pass at least every MAX_QUIET_SECONDS: work is found by the next minute's tick normally, and
+within 30 minutes at worst.
 """
 
+import logging
 import os
 import time
 
@@ -27,9 +33,11 @@ import time
 # put that lands after a later one.
 REFRESH_SECONDS = 60
 MARGIN_SECONDS = 180
-# With nothing scheduled, SQL is still consulted this often.
-MAX_QUIET_SECONDS = 6 * 3600
+# A quiet value older than this is ignored: the unconditional full sweep that bounds the delay
+# a lost touch can cause.
+MAX_QUIET_SECONDS = 30 * 60
 
+logger = logging.getLogger(__name__)
 _last_touch = {}  # parameter name -> when this container last wrote it
 
 
@@ -75,11 +83,16 @@ class Activity:
         self.client.put_parameter(Name=name, Value=value, Type="String", Overwrite=True)
 
     def touch(self):
-        """Record a write that is about to happen. Raises: an unrecorded write could be missed."""
+        """Record a write that is about to happen; never fails the request it belongs to."""
         now = self.clock()
         if now - _last_touch.get(self.touched, float("-inf")) < REFRESH_SECONDS:
             return
-        self._put(self.touched, str(int(now)))
+        try:
+            self._put(self.touched, str(int(now)))
+        except Exception as error:
+            # The full sweep finds the write within MAX_QUIET_SECONDS; only the type is logged.
+            logger.warning("activity touch failed: %s", type(error).__name__)
+            return
         _last_touch[self.touched] = now
 
     def quiet(self):
@@ -89,7 +102,9 @@ class Activity:
             checked, due = (float(v) for v in self._get(self.quiet_name).split())
         except Exception:
             return False
-        return touched < checked - MARGIN_SECONDS and self.clock() < due
+        now = self.clock()
+        return (touched < checked - MARGIN_SECONDS and now < due
+                and now - checked < MAX_QUIET_SECONDS)
 
     def record(self, checked_at, due_at):
         """After a pass: ``checked_at`` was taken before the SQL that found ``due_at``.

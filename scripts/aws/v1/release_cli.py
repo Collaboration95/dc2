@@ -9,8 +9,6 @@ abandon  Clear a pending release that provably changed nothing (e.g. its migrati
          the owner's schema still at the revision recorded before the release, owner quiescent.
          Published-but-unaliased versions are reported. Any failed check refuses and keeps the
          intent. The intent moves to `abandoned_releases` in the journal; --reason is recorded.
-launcher-default  --online only: point the launcher back at the stack's own worker and cap,
-         once the stack names the released images.
 status   Read-only: the journal's release intent plus the live alias of each function.
 schema   Read-only: each owner's Alembic revision and where the read came from.
 
@@ -21,9 +19,9 @@ the result records `schema_revision_source: in-vpc-task`.
 
 Run `session window` first so the public API is reachable while every consumer, repair
 rule and worker stays disabled. On the always-on environment pass `--online` instead (V2-live):
-nothing is closed; the release holds the online invariant (hooks.owner_online) where the closed
-one holds quiescence, lowers the launcher's cap for headroom while it runs, and points the
-launcher at the released (or, on restore, the prior) worker. Live runs need an explicit
+nothing is closed, and the release holds the online invariant (hooks.owner_online) where the
+closed one holds quiescence. The launcher keeps starting the stack's worker until the release
+is adopted into the stack (scripts/ci/cd.sh). Live runs need an explicit
 --profile/--region/--account; --dry-run validates the artifact and digest gates offline and
 prints the planned calls without any AWS access or journal write.
 """
@@ -39,9 +37,6 @@ from scripts.aws.journal import Journal
 from scripts.aws.transport import OperationError
 from scripts.aws.v1 import operations
 from scripts.aws.v1.hooks import (
-    RELEASE_CAP,
-    LauncherHooks,
-    OwnerHooks,
     compatibility_from_evidence,
     owner_online,
     owner_quiescence,
@@ -133,7 +128,7 @@ def hooks_for(config, data, transport, args, http, *, clock=time.monotonic, slee
             http=http or urllib_http,
             reserve=not args.no_reserve,
         )
-    quiescent = (owner_online(config, transport, clock=clock, sleep=sleep) if args.online
+    quiescent = (owner_online(config, transport) if args.online
                  else owner_quiescence(config, transport))
     hooks = {"schema_revision": reader, "quiescent": quiescent}
     if smoke:
@@ -207,45 +202,12 @@ def release_status(config, journal, transport, deadline):
     }
 
 
-def launcher_for(hook_names, transport, *, clock=time.monotonic, sleep=time.sleep):
-    owner = OwnerHooks(transport, **hook_names, clock=clock, sleep=sleep)
-    return LauncherHooks(owner, clock=clock, sleep=sleep)
-
-
-def online(launcher, action, *, worker_of, clock=time.monotonic):
-    """Run a release step with the launcher capped for headroom, then restore the cap.
-
-    `worker_of(result)` names the worker the launcher must start from now on (the released one
-    after a promotion, the prior one after a restore); None keeps it. A failed step leaves the
-    worker as it was, which is the prior one, and its own error is the one reported.
-    """
-    def control(**fields):
-        if not launcher.release_controls(deadline=clock() + 120, **fields):
-            raise OperationError(f"The launcher did not confirm {sorted(fields)}")
-
-    control(cap_limit=RELEASE_CAP)
-    try:
-        result = action()
-        worker = worker_of(result)
-        if worker is not False:
-            control(worker_definition=worker)
-    except BaseException:
-        try:
-            control(cap_limit=None)
-        except OperationError:
-            pass  # the step's own error matters more; launcher-default clears it
-        raise
-    control(cap_limit=None)
-    return result
-
-
 def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=None,
          clock=time.monotonic, sleep=time.sleep):
     environ = os.environ if environ is None else environ
     stdout = stdout or sys.stdout
     parser = argparse.ArgumentParser(prog="scripts.aws.v1.release", description=__doc__)
-    parser.add_argument("action", choices=["promote", "restore", "abandon", "status", "schema",
-                                           "launcher-default"])
+    parser.add_argument("action", choices=["promote", "restore", "abandon", "status", "schema"])
     parser.add_argument("--config", required=True)
     parser.add_argument("--owner", choices=["media", "processing"])
     parser.add_argument("--bundle", help="JSON artifact receipts: {api[, worker]}")
@@ -268,14 +230,12 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=N
         if any(getattr(args, n) is None for n in needed) or not args.compat_evidence:
             parser.error("promote needs --owner --bundle --image-uri --migration-definition "
                          "--target-revision --compat-evidence")
-    if args.action == "launcher-default" and not args.online:
-        parser.error("launcher-default applies to --online releases only")
     if args.action in {"promote", "restore"} and not (args.smoke_url and args.smoke_credentials):
         parser.error("--smoke-url and --smoke-credentials are required")
     smoke = vpc = None
     source = None
     try:
-        data, config, hook_names, urls = operations.load_operator_config(args.config)
+        data, config, _, urls = operations.load_operator_config(args.config)
         deadline = clock() + args.deadline_seconds
         if args.dry_run:
             result = {"validated": "offline gates only; no AWS access"}
@@ -316,14 +276,7 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=N
                 station=data["operator_station"],
                 environment=data["environment_id"],
             )
-            launcher = (launcher_for(hook_names, transport, clock=clock, sleep=sleep)
-                        if args.online else None)
-            if args.action == "launcher-default":
-                if not launcher.release_controls(
-                        deadline=deadline, cap_limit=None, worker_definition=None):
-                    raise OperationError("The launcher did not confirm its defaults")
-                result = {"launcher": "stack worker and cap"}
-            elif args.action == "status":
+            if args.action == "status":
                 result = release_status(config, journal, transport, deadline)
             elif args.action == "schema":
                 _, _, source, vpc = hooks_for(config, data, transport, args, http,
@@ -336,47 +289,30 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=N
                     args.migration_definition = args.migration_definition or definition
                 hooks, _, source, vpc = hooks_for(config, data, transport, args, http,
                                                   clock=clock, sleep=sleep)
-                def run_abandon():
-                    return abandon(config, transport, journal, deadline=deadline,
-                                   reason=args.reason, schema_revision=hooks["schema_revision"],
-                                   quiescent=hooks["quiescent"])
-
-                result = (online(launcher, run_abandon, worker_of=lambda _r: False, clock=clock)
-                          if launcher else run_abandon())
+                result = abandon(config, transport, journal, deadline=deadline,
+                                 reason=args.reason, schema_revision=hooks["schema_revision"],
+                                 quiescent=hooks["quiescent"])
             else:
                 hooks, smoke, source, vpc = hooks_for(config, data, transport, args, http,
                                                       clock=clock, sleep=sleep)
                 if args.action == "promote":
                     bundle = json.loads(Path(args.bundle).read_text())
-
-                    def step():
-                        return promote(
-                            config,
-                            transport,
-                            journal,
-                            owner=args.owner,
-                            bundle=bundle,
-                            image_uri=args.image_uri,
-                            migration_definition=args.migration_definition,
-                            target_revision=args.target_revision,
-                            compatibility=compatibility_from_evidence(args.compat_evidence),
-                            worker_definition=args.worker_definition,
-                            deadline=deadline,
-                            **hooks,
-                        )
-
-                    def worker_of(_result):
-                        return args.worker_definition if args.owner == "processing" else False
+                    result = promote(
+                        config,
+                        transport,
+                        journal,
+                        owner=args.owner,
+                        bundle=bundle,
+                        image_uri=args.image_uri,
+                        migration_definition=args.migration_definition,
+                        target_revision=args.target_revision,
+                        compatibility=compatibility_from_evidence(args.compat_evidence),
+                        worker_definition=args.worker_definition,
+                        deadline=deadline,
+                        **hooks,
+                    )
                 else:
-                    def step():
-                        return restore(config, transport, journal, deadline=deadline, **hooks)
-
-                    def worker_of(result):
-                        # The prior worker, or None for the stack's own.
-                        return (result.get("worker_definition")
-                                if result.get("owner") == "processing" else False)
-                result = (online(launcher, step, worker_of=worker_of, clock=clock)
-                          if launcher else step())
+                    result = restore(config, transport, journal, deadline=deadline, **hooks)
                 result = {**result, "smoke": smoke.receipt}
             if source:
                 result = {**result, **schema_receipt(source, vpc)}

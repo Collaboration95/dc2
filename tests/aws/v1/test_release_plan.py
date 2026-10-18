@@ -428,3 +428,49 @@ def test_the_command_has_no_simulation_of_its_own(tmp_path):
     code = evidence.main(["release-plan", "--profile", "dc2-agent", "--region", "ap-southeast-1",
                           "--account", "123456789012", "--run-id", "r", "--dry-run"], stdout=out)
     assert code == 1 and "rehearse" in json.loads(out.getvalue())["error"]
+
+
+def test_a_worker_only_then_an_api_only_release_each_plan_against_the_mixed_baseline(tmp_path):
+    # V2-live: each release keeps the image whose inputs did not change, so after the first the
+    # running API and worker come from different commits, and that baseline must still plan.
+    from scripts.aws.v1 import deploy
+
+    world, ctx, builds = stack(tmp_path)
+    journal = deploy.DeployJournal(ctx.state_dir / "deploy-journal.json",
+                                   station=ctx.data["operator_station"],
+                                   environment=ctx.data["environment_id"])
+
+    def release_keeping(number, kept, rebuilt, baseline_path, source):
+        """One release as cd.sh runs it: `kept` retagged as it runs, `rebuilt` from `source`."""
+        run_id, deployed = f"g{number}", journal.view()["images"]
+        world.retagged[(world.repository(kept), f"{run_id}-{kept}")] = deployed[kept]["digest"]
+        evidence = json.loads(baseline_path.read_text())
+        evidence["images"][rebuilt] = {**evidence["images"][rebuilt], "source_sha": source,
+                                       "config_id": "sha256:" + str(number) * 64}
+        good = tmp_path / f"good-{number}.json"
+        good.write_text(json.dumps(evidence))
+        make(ctx, {"baseline": baseline_path, "good": good}, tmp_path, "processing",
+             good={"run_id": run_id, "evidence": good}, target_revision="p0005",
+             out=tmp_path / f"plan-{number}")
+        bundle = json.loads((tmp_path / f"plan-{number}" / "bundle-good.json").read_text())
+        kinds = {"processing": "api", "worker": "worker"}
+        assert bundle[kinds[kept]]["retained"] is True
+        assert "retained" not in bundle[kinds[rebuilt]]
+        # Adopted: the journal and the stack's definitions now name what was released.
+        for name in (kept, rebuilt):
+            digest = world.image_digest(world.repository(name), f"{run_id}-{name}")
+            journal.mutate(lambda d, n=name, g=digest: d["images"][n].update(
+                tag=f"{run_id}-{n}", digest=g,
+                local_id=evidence["images"][n]["config_id"]))
+            world.stack_digests[name] = digest
+        return good
+
+    first = release_keeping(1, "processing", "worker", builds["baseline"], "b" * 40)
+    second = release_keeping(2, "worker", "processing", first, "c" * 40)
+    sources = {n: i["source_sha"] for n, i in json.loads(second.read_text())["images"].items()}
+    assert sources["processing"] == "c" * 40 and sources["worker"] == "b" * 40
+    baseline = json.loads((tmp_path / "plan-2" / "bundle-baseline.json").read_text())
+    assert baseline["api"]["source_sha"] != baseline["worker"]["source_sha"]
+    with pytest.raises(Exception, match="share frozen source"):
+        validate_bundle(baseline, owner="processing")  # as a candidate it would not pass
+    assert validate_bundle(baseline, owner="processing", deployed=True)

@@ -4,7 +4,13 @@ from scripts.aws.artifacts import validate
 from scripts.aws.transport import OperationError
 
 
-def validate_bundle(bundle, *, owner):
+def validate_bundle(bundle, *, owner, deployed=False):
+    """`deployed` describes what runs now (a plan's baseline) rather than a release candidate.
+
+    After a release that kept one of Processing's images, the API and the worker that run come
+    from different commits. That is a valid baseline: each artifact is still checked on its own,
+    and only a candidate must share one frozen source and rebuild something.
+    """
     api = validate(bundle["api"], owner=owner)
     if api.get("runtime_kind") != "lambda-api":
         raise OperationError("Lambda API artifact required")
@@ -16,10 +22,11 @@ def validate_bundle(bundle, *, owner):
     # every rebuilt artifact shares one frozen source, and at least one must be rebuilt.
     if any(type(proof.get("retained", False)) is not bool for proof in bundle.values()):
         raise OperationError("Retained must be a boolean")
-    fresh = {kind: proof for kind, proof in bundle.items() if not proof.get("retained")}
-    if not fresh:
+    fresh = {} if deployed else {
+        kind: proof for kind, proof in bundle.items() if not proof.get("retained")}
+    if not fresh and not deployed:
         raise OperationError("A release needs at least one rebuilt artifact")
-    source = next(iter(fresh.values()))["source_sha"]
+    source = next(iter(fresh.values()))["source_sha"] if fresh else None
     for kind, proof in bundle.items():
         validate(proof, owner=owner)
         if kind in fresh and proof["source_sha"] != source:

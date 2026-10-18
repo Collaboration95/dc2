@@ -88,7 +88,7 @@ on:
         type: string
         default: ""
 
-# Never two runs at once: the account has one 6-vCPU Fargate quota and one Lambda pool, and the
+# Never two runs at once: the account has one Fargate quota and one Lambda pool, and the
 # environment's state is a single journal. Merges queue up; a cancelled run still uploads its
 # state (see the last steps).
 concurrency:

@@ -434,15 +434,7 @@ def test_the_launcher_migration_is_the_next_revision_and_only_adds():
     assert "drop_" not in upgrade and "alter_column" not in upgrade
     assert upgrade.count("create_table") == 2
     versions = sorted(p.name for p in (ROOT / "processing/migrations/versions").glob("*.py"))
-    assert versions[-2:] == ["0007_launch_reservations.py", "0008_launcher_release_controls.py"]
-
-
-def test_the_release_controls_migration_only_adds_nullable_columns():
-    source = (ROOT / "processing/migrations/versions/0008_launcher_release_controls.py").read_text()
-    assert 'down_revision = "processing_0007"' in source
-    upgrade = source.split("def upgrade")[1].split("def downgrade")[0]
-    assert upgrade.count("add_column") == 2 and "nullable=False" not in upgrade
-    assert "drop_" not in upgrade and "alter_column" not in upgrade
+    assert versions[-1] == "0007_launch_reservations.py"
 
 
 # --- Pure launcher parts -----------------------------------------------------------------------

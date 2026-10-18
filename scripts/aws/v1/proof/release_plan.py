@@ -376,7 +376,8 @@ def assemble(ctx, planner, owner, baseline_evidence, good, bad, tests_passed, ta
         item = plan[role]
         validate_inputs(ctx.config, owner=owner, bundle=image["bundle"],
                         image_uri=item["image_uri"],
-                        worker_definition=item.get("worker_definition"))
+                        worker_definition=item.get("worker_definition"),
+                        deployed=role == "baseline")
     return {"plan": str(plan_path), "owner": owner, "target_revision": target,
             "images": {role: image["digests"] for role, (image, _) in sets.items()},
             "registered_definitions": len(planner.registered),

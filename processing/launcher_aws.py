@@ -184,10 +184,6 @@ async def _dispatch(event, factory, ecs, queue, config):
             result = await launcher.settle(factory, ecs, config)
         elif action == "status":
             result = await launcher.status(factory)
-        elif action == "release":
-            # An online release (V2-live): headroom for its tasks, then the released worker.
-            fields = {k: event[k] for k in ("cap_limit", "worker_definition") if k in event}
-            result = await launcher.set_release_controls(factory, **fields)
         elif action == "wake":
             # Sent by a work publisher the moment it enqueued (#237): a tick, without waiting
             # for the minute schedule.

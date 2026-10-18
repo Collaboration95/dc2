@@ -141,6 +141,9 @@ class SimWorld:
         self.encode, self.start, self.repair = encode_seconds, start_seconds, repair_seconds
         self.requeue, self.slow, self.poison_seconds = requeue, slow, poison_seconds
         self.users, self.reservations, self.jobs, self.tasks = {}, {}, {}, {}
+        # A release that keeps an image retags its running manifest; an adopted release is what
+        # the stack's own definitions then hold (V2-live).
+        self.retagged, self.stack_digests = {}, dict(BASELINE_DIGEST)
         self.definitions, self.logs, self.calls = {}, {}, []
         self.dlq = {q: [] for q in operations.QUEUES}
         self.poison = []
@@ -305,7 +308,9 @@ class SimWorld:
         return f"{ACCOUNT}.dkr.ecr.{REGION}.amazonaws.com/{self.env}-{owner}"
 
     def image_digest(self, repository, tag):
-        """The registry's digest for a tag: the deployed baseline, else a stable made-up one."""
+        """The registry's digest for a tag: a retag, the deployed baseline, else a made-up one."""
+        if (repository, tag) in self.retagged:
+            return self.retagged[(repository, tag)]
         owner = repository.rsplit("-", 1)[-1]
         if tag == f"{self.env}-{owner}" and owner in BASELINE_DIGEST:
             return BASELINE_DIGEST[owner]
@@ -836,7 +841,7 @@ class SimWorld:
                                     "operatingSystemFamily": "LINUX"},
                 "containerDefinitions": [{
                     "name": "migration",
-                    "image": f"{self.repository(owner)}@{BASELINE_DIGEST[owner]}",
+                    "image": f"{self.repository(owner)}@{self.stack_digests[owner]}",
                     "logConfiguration": {"logDriver": "awslogs", "options": {
                         "awslogs-group": group, "awslogs-region": REGION,
                         "awslogs-stream-prefix": f"{owner.title()}Migration"}}}]}}
@@ -849,7 +854,7 @@ class SimWorld:
             "runtimePlatform": {"cpuArchitecture": "X86_64", "operatingSystemFamily": "LINUX"},
             "containerDefinitions": [{
                 "name": "worker",
-                "image": f"{self.repository('worker')}@{BASELINE_DIGEST['worker']}",
+                "image": f"{self.repository('worker')}@{self.stack_digests['worker']}",
                 "logConfiguration": {"logDriver": "awslogs", "options": {
                     "awslogs-group": group, "awslogs-region": REGION,
                     "awslogs-stream-prefix": "Worker"}}}]}}

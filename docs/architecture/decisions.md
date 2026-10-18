@@ -430,11 +430,12 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   open a long session (an expiring window is a booking under another name); a staging plus a
   production environment (out of scope for the time left).
 - **Trade-off.** The environment is public all the time, bounded by the stage throttle, the
-  Fargate quota (cap 3) and the budget alerts rather than by a closed gate. A release no longer
-  quiesces its owner: old and new code run side by side for a moment, which is safe only because
-  an automatic release has unchanged migrations and any other is attested additive. During a
-  release the encoder cap is 2, so its migration task fits the quota. Every writer pays one SSM
-  write a minute at most, and a write it cannot record fails rather than risk a missed repair.
+  encoder cap (3, a cost choice; the Fargate quota is 30 vCPU) and the budget alerts rather than
+  by a closed gate. A release no longer quiesces its owner: old and new code run side by side
+  for a moment, which is safe only because an automatic release has unchanged migrations and any
+  other is attested additive; for the same reason the launcher may keep starting the previous
+  worker until the release is adopted into the stack. The idle markers are best effort: a lost
+  touch delays a repair by at most 30 minutes, after which every tick runs a full SQL pass.
   Code reaches an alias only through a release or through a stack update that replaces the
   function's version (its description names the image digest, a digest of the definition, and
   the parameters, conditions and task definitions it resolves).

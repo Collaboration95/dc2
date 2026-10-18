@@ -25,10 +25,6 @@ class LauncherControl(Base):
     enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # A launch without a session end would be unbounded, so enabling always sets one.
     session_end_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    # Set by an online release (V2-live): a lower cap for Fargate headroom, and the released
-    # worker definition. NULL means the stack's own.
-    cap_limit: Mapped[int | None]
-    worker_definition: Mapped[str | None] = mapped_column(String(512))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

@@ -371,11 +371,11 @@ cmd_release() {
 
 # One owner's release on the always-on environment, online: nothing is closed. The release CLI's
 # --online mode holds the online invariant instead of quiescence (consumers and schedules on as
-# recorded, room for its migration task), caps the launcher for that room while it runs, and
-# points the launcher at the released worker (or back at the prior one on restore). A promoted
-# release is then adopted: its images become the journal's and the stack is updated to name
-# them, after which the launcher goes back to the stack's own worker. The environment is never
-# left closed by a failure here, because it is never closed. `automatic` is the deploy's own
+# recorded). A promoted release is then adopted: its images become the journal's and the stack
+# is updated to name them, which is also what moves the launcher's WorkerTaskDefinition to the
+# released worker; until then the launcher keeps starting the previous one, which is fine
+# because a release is additive. The environment is never left closed by a failure here,
+# because it is never closed. `automatic` is the deploy's own
 # release of a changed owner whose migrations did not change (cmd_deploy decides that); a
 # manual dispatch still requires attest_additive. Remaining arguments name the owner's images
 # that were rebuilt; the others are kept exactly as they run (their build inputs did not change).
@@ -473,7 +473,7 @@ release_owner() { # owner build-evidence automatic rebuilt-image...
   "$PY" -m scripts.aws.v1.release promote "${promote[@]}" >"$CD_OUT/release-promote.json" || rc=$?
   if [ "$rc" -ne 0 ]; then
     outcome=failed
-    echo "::warning::promote failed; restoring the previous aliases and worker (UC-7)"
+    echo "::warning::promote failed; restoring the previous aliases (UC-7)"
     if "$PY" -m scripts.aws.v1.release restore "${restore[@]}" >"$CD_OUT/release-restore.json"; then
       outcome=restored
     else
@@ -483,9 +483,8 @@ release_owner() { # owner build-evidence automatic rebuilt-image...
         --owner "$owner" --reason "cd run ${GITHUB_RUN_ID:-local}" \
         >"$CD_OUT/release-abandon.json" && outcome=abandoned || outcome=restore-failed
     fi
-    # The new definitions are unused after a failed promotion; a good one stays (the worker uses it).
-    "$PY" -m scripts.aws.v1.evidence release-plan "${SCOPE[@]}" --state-dir "$CD_STATE" \
-      --run-id "$CD_ENVIRONMENT" --deregister "$plan" >/dev/null || true
+    # The plan's task definition revisions stay registered: they cost nothing, and a revision
+    # another record still names must never disappear.
   fi
   jq -n --arg outcome "$outcome" --arg owner "$owner" --arg release "$rel" \
     --slurpfile result "$CD_OUT/release-promote.json" \
@@ -501,9 +500,9 @@ release_owner() { # owner build-evidence automatic rebuilt-image...
     return 0
   fi
   [ "$outcome" = promoted ] || fail "Release did not complete: $outcome"
-  # Adopt: the journal, the baseline and then the stack name the released images. Until the
-  # stack update lands the launcher keeps the released worker, so a failure here leaves the
-  # environment serving the release; rerunning the deploy finishes it.
+  # Adopt: the journal, the baseline and then the stack name the released images. A failure here
+  # leaves the Lambdas on the release and the launcher on the previous worker, both of which
+  # work; rerunning the deploy finishes the adoption.
   deploy_cli adopt-release --state-dir "$CD_STATE" --owner "$owner" \
     --release-dir "$CD_STATE/release" --release-tag "$rel" >"$CD_OUT/adopt-$owner.json" ||
     fail "Adopting the $owner release failed: $(jq -r '.error // empty' "$CD_OUT/adopt-$owner.json")"
@@ -517,9 +516,6 @@ release_owner() { # owner build-evidence automatic rebuilt-image...
     --assume-empty-counts "${COST[@]}" --stop-after applications --execute \
     >"$CD_OUT/adopt-stack-$owner.json" ||
     fail "The stack update naming the released $owner images failed; the release itself serves. See adopt-stack-$owner.json"
-  "$PY" -m scripts.aws.v1.release launcher-default --config "$config" "${SCOPE[@]}" --online \
-    >"$CD_OUT/launcher-default.json" ||
-    fail "The launcher still names the released worker definition; run release launcher-default --online"
 }
 
 # ---------------------------------------------------------------------------------- teardown

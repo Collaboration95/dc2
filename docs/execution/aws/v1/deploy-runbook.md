@@ -39,14 +39,17 @@ record of the V1 proof runs. The decision is AD-27 in
   retagged. An owner whose migrations changed is not released automatically: the run fails
   with a message, and a dispatched `release` with `attest_additive=true` ships it.
 - **Online releases.** Nothing is closed. `release promote|restore|abandon --online` holds the
-  online invariant (the owner's consumers and schedules enabled as recorded, and room for one
-  more 2 vCPU Fargate task) instead of quiescence. It caps the launcher at 2 encoders while it
-  runs, so the migration and schema-probe tasks fit the 6 vCPU quota, and points the launcher at
-  the released worker (on restore, at the prior one). After a promotion, `deploy adopt-release`
-  records the released images, the stack is updated to name them, and
-  `release launcher-default --online` returns the launcher to the stack's own worker and cap.
-  The compatibility, alias-revision, smoke and restore checks are those of the closed release,
-  which stays available for the historical per-run proofs. The state lives under `envs/<name>/`
+  online invariant (the owner's consumers and schedules enabled as recorded, so a kill switch
+  that is on refuses) instead of quiescence; the compatibility, alias-revision, smoke and
+  restore checks are those of the closed release, which stays available for the historical
+  per-run proofs. After a promotion, `deploy adopt-release` records the released images and the
+  stack is updated to name them; that update is also what moves the launcher's
+  `WorkerTaskDefinition` to the released worker. Until it lands the launcher keeps starting the
+  previous worker, which is fine because a release is additive (migrations unchanged, or
+  attested) and the old worker stays compatible. CD never deregisters a task definition
+  revision: they cost nothing, and another record may still name one. The Fargate quota is
+  30 vCPU, so the release's migration task fits beside the three encoders; the cap of 3 is a
+  cost and demo choice, not a quota limit. The state lives under `envs/<name>/`
   in the state bucket.
 - **Always on.** The template deploys with `AlwaysOn=true`: stage throttle 20 rps / burst 50
   (`--stage-rate-limit`, `--stage-burst-limit`), both consumers and the four schedules enabled,
@@ -57,7 +60,9 @@ record of the V1 proof runs. The decision is AD-27 in
   Two SSM parameters per domain, `/dc2/<env>/activity/<domain>/touched|quiet`, decide this:
   every writer records `touched` before it commits, and the repair pass records when SQL next has
   anything due. Aurora therefore pauses about 3 minutes plus its 300 s auto-pause after the last
-  activity.
+  activity. The marker is best effort: a write it cannot record still goes ahead, and every tick
+  runs a full SQL pass once the last one is 30 minutes old. Pending work is therefore picked up
+  by the next minute's tick normally, and within 30 minutes at worst if a touch was lost.
 - **Cost.** The stack's AWS Budget `dc2-live-monthly` alerts at 50/80/100 % of $20 a month
   (`--monthly-budget-usd`) to the SNS topic `BudgetAlertTopic`. Set the repository variable
   `DC2_BUDGET_ALERT_EMAIL` (or `--budget-alert-email`) to subscribe an address; without it the

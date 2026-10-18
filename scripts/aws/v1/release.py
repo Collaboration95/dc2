@@ -216,9 +216,11 @@ def _validate_definition(transport, reference, digest, deadline):
         raise OperationError("Task definition must use exact owning artifact")
 
 
-def validate_inputs(config, *, owner, bundle, image_uri, worker_definition):
-    """Offline release-input gates shared by promote and its --dry-run. Returns the digest."""
-    validate_bundle(bundle, owner=owner)
+def validate_inputs(config, *, owner, bundle, image_uri, worker_definition, deployed=False):
+    """Offline release-input gates shared by promote and its --dry-run. Returns the digest.
+
+    `deployed` checks a plan's baseline, which may mix sources (see validate_bundle)."""
+    validate_bundle(bundle, owner=owner, deployed=deployed)
     owners = config.get("owner_functions", {})
     if set(owners) != {"media", "processing"} or any(not v for v in owners.values()):
         raise OperationError("Both complete owner function maps are required")

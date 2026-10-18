@@ -1,5 +1,7 @@
 """V2-live (AD-27): idle minute ticks skip SQL so Aurora can pause; nothing pending is missed."""
 
+import time
+
 import pytest
 
 from runtime_support import activity
@@ -44,6 +46,13 @@ def test_a_domain_is_quiet_only_after_a_check_that_postdates_its_last_write_by_t
     assert not gate(Ssm("0", f"{checked} 10000")).quiet()
 
 
+def test_every_tick_sweeps_sql_once_the_last_check_is_half_an_hour_old():
+    # The bound on a lost touch: the quiet value ages out whatever it promised.
+    assert gate(Ssm("0", "9000 99999"), now=9_000 + MAX_QUIET_SECONDS - 1).quiet()
+    assert not gate(Ssm("0", "9000 99999"), now=9_000 + MAX_QUIET_SECONDS).quiet()
+    assert MAX_QUIET_SECONDS == 30 * 60
+
+
 @pytest.mark.parametrize("quiet", ["0", "", "not numbers", "1 2 3"])
 def test_any_doubt_about_the_markers_means_run_sql(quiet):
     assert not gate(Ssm("0", quiet)).quiet()
@@ -52,7 +61,7 @@ def test_any_doubt_about_the_markers_means_run_sql(quiet):
     assert not gate(unreachable).quiet()
 
 
-def test_a_write_is_recorded_before_it_happens_and_refreshed_at_most_once_a_minute():
+def test_a_write_is_recorded_before_it_happens_at_most_once_a_minute_and_never_blocks():
     ssm = Ssm()
     gate(ssm, now=1_000).touch()
     gate(ssm, now=1_030).touch()
@@ -60,8 +69,8 @@ def test_a_write_is_recorded_before_it_happens_and_refreshed_at_most_once_a_minu
     assert ssm.puts == [(TOUCHED, "1000"), (TOUCHED, "1061")]
     ssm.fail = True
     activity._last_touch.clear()
-    with pytest.raises(TimeoutError):  # a write that cannot be recorded must not proceed
-        gate(ssm, now=2_000).touch()
+    gate(ssm, now=2_000).touch()  # never fails the request; the 30 min sweep covers it
+    assert ssm.puts[-1] == (TOUCHED, "1061")
 
 
 def test_a_pass_records_quiet_only_when_nothing_is_due_now_and_never_for_long():
@@ -98,7 +107,7 @@ def deny_database(monkeypatch, module):
 
 @pytest.fixture
 def quiet_markers(monkeypatch):
-    ssm = Ssm("0", "9000 99999999999")
+    ssm = Ssm("0", f"{int(time.time())} 99999999999")  # checked just now, nothing due
     monkeypatch.setattr(activity, "_ssm_client", lambda: ssm)
     for prefix in ("MEDIA", "PROCESSING"):
         monkeypatch.setenv(f"{prefix}_ACTIVITY_TOUCHED_PARAMETER", TOUCHED)

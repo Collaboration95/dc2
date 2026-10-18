@@ -653,20 +653,3 @@ async def test_once_no_attempt_is_open_the_earliest_scheduled_row_is_the_next_du
             deadline_at=func.now() + timedelta(minutes=5)))
     assert await next_due(factory) == 0.0
 
-
-async def test_an_online_release_caps_launches_and_switches_the_worker_through_sql(factory):
-    # V2-live: the release leaves Fargate room for its own tasks, then the launcher starts the
-    # released worker; clearing both returns the stack's own cap and worker.
-    ecs = FakeEcs()
-    await submit(factory, 10)
-    await enable(factory)
-    released = DEFINITION.replace(":3", ":9")
-    await launcher.set_release_controls(factory, cap_limit=2, worker_definition=released)
-    first = await tick(factory, ecs, Depth())
-    assert first["launched"] == 2
-    assert {call["taskDefinition"] for call in ecs.run_calls} == {released}
-    await launcher.set_release_controls(factory, cap_limit=None, worker_definition=None)
-    later = await tick(factory, ecs, Depth())
-    assert later["launched"] == 1 and ecs.run_calls[-1]["taskDefinition"] == DEFINITION
-    with pytest.raises(ValueError):
-        await launcher.set_release_controls(factory, cap_limit=4)

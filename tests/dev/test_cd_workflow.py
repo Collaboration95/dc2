@@ -115,14 +115,14 @@ def test_releases_run_online_and_cd_never_closes_or_reopens_the_environment():
     script = CD_SCRIPT.read_text()
     # The kill switch is the operator's: CD neither engages it nor undoes it.
     assert "scripts.aws.v1.session" not in script
-    calls = [line for line in script.splitlines()
-             if "scripts.aws.v1.release " in line and "launcher-default" not in line]
+    calls = [line for line in script.splitlines() if "scripts.aws.v1.release " in line]
     assert len(calls) == 3  # promote, restore, abandon
     for call in ('local promote=(--config "$config" "${SCOPE[@]}" --online',
                  'local restore=(--config "$config" "${SCOPE[@]}" --online',
-                 'release abandon --config "$config" "${SCOPE[@]}" --online',
-                 'release launcher-default --config "$config" "${SCOPE[@]}" --online'):
+                 'release abandon --config "$config" "${SCOPE[@]}" --online'):
         assert call in script, call
+    # No task definition revision is ever deregistered by CD: another record may name it.
+    assert "--deregister" not in script
 
 
 def test_an_automatic_deploy_never_creates_the_environment():
