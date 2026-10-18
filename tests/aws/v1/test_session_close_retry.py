@@ -25,7 +25,7 @@ class Clock:
     """A virtual clock that the injected sleep advances, so a retry costs no real time."""
 
     def __init__(self):
-        self.now, self.slept = 1000.0, []
+        self.now, self.slept = time.monotonic(), []
 
     def __call__(self):
         return self.now
@@ -80,7 +80,7 @@ def zero_counts():
 def close(session, launcher):
     reader = zero_counts()
     return session.close(drain=reader.drain, outcomes=reader.outcomes,
-                         deadline=time.monotonic() + 600, launcher=launcher)
+                         deadline=session.clock() + 600, launcher=launcher)
 
 
 def test_a_close_waits_out_a_database_that_is_still_resuming(tmp_path):
