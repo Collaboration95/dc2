@@ -10,6 +10,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from delivery.sql import MessageConflict
+from media import models, upload_models  # noqa: F401  (their tables, for next_due)
 from media.database import Base
 from media.messaging import consume_result, enqueue_submit
 from media.messaging_models import MediaInbox, MediaOutbox
@@ -97,3 +98,21 @@ async def test_result_commit_dedupe_and_callback_rollback(factory):
         assert await session.scalar(text("SELECT count(*) FROM projection_probe")) == 1
     async with factory() as session:
         assert await consume_result(session, failed, apply)
+
+
+async def test_media_repair_is_idle_without_rows_and_due_when_a_command_awaits_publishing(
+        factory):
+    # V2-live (AD-27): the minute tick may skip SQL only while nothing is due.
+    import time
+    from types import SimpleNamespace
+
+    from media.recovery_v1 import next_due
+
+    settings = SimpleNamespace(orphan_grace_seconds=900)
+    assert await next_due(factory, settings) is None
+    body = message()
+    asset = SimpleNamespace(id=UUID(body["asset_id"]), owner_id=UUID(body["owner_id"]),
+                            processing_job_id=None, operations=[])
+    async with factory() as session, session.begin():
+        await enqueue_submit(session, asset, body["source"])
+    assert await next_due(factory, settings) <= time.time() + 1

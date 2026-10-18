@@ -1,3 +1,4 @@
+import asyncio
 import os
 from contextlib import asynccontextmanager
 
@@ -7,6 +8,11 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from media.api import auth, uploads, v1_hls, v1_jobs
 from media.errors import MediaError
+from runtime_support.activity import Activity
+
+# Reads never create pending state; every other request may (uploads, finalize, edit, retry,
+# delete, sign-up), so the always-on environment records it before the app commits (AD-27).
+READ_METHODS = {"GET", "HEAD", "OPTIONS"}
 
 
 @asynccontextmanager
@@ -51,9 +57,18 @@ def build_app(routers, *, lifespan=lifespan):
 
 def create_v1_app():
     """Projections and durable commands only: Media never calls Processing."""
-    return build_app(
+    app = build_app(
         (auth.router, uploads.router, v1_jobs.router, v1_jobs.admin_router, v1_hls.router)
     )
+
+    @app.middleware("http")
+    async def record_activity(request: Request, call_next):
+        activity = Activity.from_environ("MEDIA")
+        if activity and request.method not in READ_METHODS:
+            await asyncio.to_thread(activity.touch)
+        return await call_next(request)
+
+    return app
 
 
 app = create_v1_app()

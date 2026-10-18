@@ -62,6 +62,9 @@ class SimulatedAws:
         # already deleted. arn -> {"state": what the owning service reports, "tags": {...}}.
         # `tag_lag` makes a stack deletion leave such entries behind, as the r1017a one did.
         self.lingering, self.tag_lag = {}, True
+        # Logical ids an update would replace rather than modify in place (CloudFormation
+        # decides that per property; tests name the resources they want replaced).
+        self.replacing = set()
         # The previous sprint's rolled-back staging stack, so the plan shows it left alone.
         self.stacks[LEGACY] = {"status": "ROLLBACK_COMPLETE", "tags": {}, "resources": [],
                                "outputs": {}, "changesets": {}, "id": "legacy"}
@@ -175,12 +178,31 @@ class SimulatedAws:
                 "changesets": {}, "template": None}
         elif stack is None:
             raise self.error("cloudformation", "create-change-set", "ValidationError")
-        previous = set(self.included(stack["template"], stack["parameters"])) \
-            if stack.get("template") else set()
+        previous = self.included(stack["template"], stack["parameters"]) \
+            if stack.get("template") else {}
         wanted = self.included(template, parameters)
-        changes = [{"ResourceChange": {"Action": "Add", "LogicalResourceId": logical,
-                                       "ResourceType": res["Type"], "Replacement": "False"}}
-                   for logical, res in wanted.items() if logical not in previous]
+        changed = {k for k, v in parameters.items()
+                   if (stack.get("parameters") or {}).get(k) != v} if previous else set()
+
+        def row(action, logical, res, replacement="False"):
+            return {"ResourceChange": {"Action": action, "LogicalResourceId": logical,
+                                       "ResourceType": res["Type"],
+                                       "Replacement": replacement}}
+
+        def modified(logical, res):
+            # Changed bytes, or a reference to a parameter whose value changed.
+            text = json.dumps(res, sort_keys=True)
+            return text != json.dumps(previous[logical], sort_keys=True) or any(
+                f'"Ref": "{name}"' in text or f"${{{name}}}" in text for name in changed)
+
+        changes = [row("Add", logical, res) for logical, res in wanted.items()
+                   if logical not in previous]
+        changes += [row("Modify", logical, res,
+                        "True" if logical in self.replacing else "False")
+                    for logical, res in wanted.items()
+                    if logical in previous and modified(logical, res)]
+        changes += [row("Remove", logical, res) for logical, res in previous.items()
+                    if logical not in wanted]
         stack["changesets"][request["ChangeSetName"]] = {
             "Status": "CREATE_COMPLETE" if changes else "FAILED",
             "StatusReason": "" if changes else "The submitted information didn't contain changes.",
@@ -205,6 +227,8 @@ class SimulatedAws:
         if change_set["ExecutionStatus"] != "AVAILABLE":
             raise self.error("cloudformation", "execute-change-set", "InvalidChangeSetStatus")
         change_set["ExecutionStatus"] = "EXECUTE_COMPLETE"
+        # As in AWS: executing one change set deletes the stack's other change sets.
+        stack["changesets"] = {payload["ChangeSetName"]: change_set}
         stack["status"] = "CREATE_IN_PROGRESS" if change_set["kind"] == "CREATE" \
             else "UPDATE_IN_PROGRESS"
         failure = self.fail.get(("stack-complete", name))

@@ -138,6 +138,16 @@ def start_workers(ctx, count, minutes):
     return session(ctx, minutes).batch(count=count, deadline=ctx.deadline(300), epoch=ctx.wall)
 
 
+def launcher_owns_workers(ctx):
+    """True when the session runs the unattended launcher (always on, V2-live #237).
+
+    `Session.batch` refuses then, since two starters would race each other's cap: the launcher
+    starts every encoder, and a harness only observes which ones ran.
+    """
+    with ctx.journal.locked() as state:
+        return bool(state.get("unattended"))
+
+
 def live_tasks(ctx):
     found = inventory(ctx.config, ctx.aws, deadline=ctx.deadline(120))
     return {arn: t for arn, t in found.items() if t["lastStatus"] != "STOPPED"}

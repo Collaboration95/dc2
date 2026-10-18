@@ -294,6 +294,38 @@ def owner_quiescence(config, transport):
     return quiescent
 
 
+def owner_online(config, transport):
+    """online(owner): the invariant an online release holds instead of quiescence (V2-live).
+
+    A closed release needs the owner silent so that nothing runs beside a half-moved release.
+    The always-on environment keeps serving instead, which is safe because a release is either
+    schema-unchanged or attested additive, so old and new code both work mid-switch; the alias
+    moves stay revision-checked and the smoke and restore are unchanged. What must hold is that
+    the environment runs as recorded open: every consumer mapping of the owner Enabled and every
+    schedule (the launcher's too) ENABLED, so a kill switch that is on refuses the release rather
+    than being undone by it. Running encoders do not matter: the Fargate quota (30 vCPU) leaves
+    room for the release's migration task beside the three the launcher may run.
+    """
+
+    def online(owner, *, deadline):
+        consumers = config["owner_consumers"][owner]
+        for identity in consumers["mappings"]:
+            state = transport.call(
+                "lambda", "get-event-source-mapping", {"UUID": identity}, deadline=deadline
+            ).get("State")
+            if state != "Enabled":
+                return False
+        for name in consumers["schedules"]:
+            state = transport.call(
+                "events", "describe-rule", {"Name": name}, deadline=deadline
+            ).get("State")
+            if state != "ENABLED":
+                return False
+        return True
+
+    return online
+
+
 def schema_reader(dsn_files, ca_file, *, connect=None):
     """schema_revision(owner): the owning database's Alembic head, read-only over TLS."""
 

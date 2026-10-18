@@ -308,6 +308,26 @@ class ServiceLaneTests(unittest.TestCase):
                         if changed.startswith((f"{owner}/", "media/", "processing/")):
                             self.assertNotEqual(got, shared)
 
+    def test_every_dockerfile_copy_source_is_a_build_input_of_its_image(self):
+        from scripts.ci.policy import IMAGE_BUILD_INPUTS, changed_images
+
+        for recipe in (ROOT / "deploy/v1").glob("*.Dockerfile"):
+            image = recipe.name.split(".")[0]
+            self.assertIn(f"deploy/v1/{recipe.name}", IMAGE_BUILD_INPUTS[image])
+            for line in recipe.read_text().splitlines():
+                if not line.startswith("COPY "):
+                    continue
+                for path in line.split()[1:-1]:
+                    changed = path + "/changed.py" if (ROOT / path).is_dir() else path
+                    with self.subTest(recipe=recipe.name, changed=changed):
+                        self.assertIn(image, changed_images([changed]))
+        # Only what an image copies selects it: tests, docs and the template select none,
+        # and Media's own code never selects Processing's images.
+        self.assertEqual(changed_images(["tests/media/x.py", "docs/a.md",
+                                         "deploy/aws/v1/template.json"]), set())
+        self.assertEqual(changed_images(["media/api/uploads.py"]), {"media"})
+        self.assertEqual(changed_images(["media_engine/x.py"]), {"worker"})
+
     def test_service_inputs_name_real_files(self):
         for lane, inputs in SERVICE_INPUTS.items():
             for path in inputs:

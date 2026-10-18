@@ -115,6 +115,18 @@ def test_the_smoke_stops_starting_encoders_that_keep_exiting_without_claiming(
     assert len([t for t in ctx.world.tasks.values() if t["kind"] == "worker"]) == 2
 
 
+def test_on_the_always_on_environment_the_smoke_lets_the_launcher_start_the_encoder(
+        tmp_path, fixture):
+    # V2-live (#236, #237): no operator batch, which the unattended session would refuse.
+    args = argparse.Namespace(run_id="t", dry_run=True)
+    ctx = sim.build(args, session="open", unattended=True, tmp=tmp_path / "state",
+                    world=sim.SimWorld(encode_seconds=45.0, launcher=True))
+    proof = gateway.run(ctx, fixture=fixture, minutes=30, only=E2E)
+    assert statuses(proof)["direct-upload-e2e"] == PASS
+    public = proof.doc["steps"]["direct-upload-e2e"]["public"]
+    assert public["encoders_started"] >= 1 and public["encoders_left_running"] == 0
+
+
 def test_the_smoke_refuses_to_start_on_stale_work_from_an_earlier_run(tmp_path, fixture):
     ctx = build(tmp_path, "open", stale_work=17)
     proof = gateway.run(ctx, fixture=fixture, minutes=30, only=E2E)

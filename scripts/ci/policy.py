@@ -90,6 +90,32 @@ SERVICE_RECIPE_FILES = {
     path for inputs in SERVICE_INPUTS.values() for path in inputs if path.startswith("deploy/v1/")
 }
 COMMON_IMAGE_INPUTS = {"pyproject.toml", "uv.lock", ".dockerignore"}
+# What each V1 image is built from: its Dockerfile, the COPY sources in it and the dependency
+# manifests (tests/ci checks every COPY against this). CD releases an owner only when one of
+# its images' inputs changed (V2-live, AD-27): the image also carries the commit SHA as a
+# label, so every commit changes every image id, and the id says nothing about content.
+_RUNTIME_INPUTS = (
+    *sorted(COMMON_IMAGE_INPUTS),
+    "contracts/",
+    "delivery/",
+    "runtime_support/",
+    "deploy/v1/global-bundle.pem",
+    "deploy/v1/check_runtime.py",
+)
+IMAGE_BUILD_INPUTS = {
+    "media": (
+        *_RUNTIME_INPUTS, "media/", "deploy/v1/media.Dockerfile",
+        "deploy/v1/media.requirements.in",
+    ),
+    "processing": (
+        *_RUNTIME_INPUTS, "processing/", "deploy/v1/processing.Dockerfile",
+        "deploy/v1/processing.requirements.in",
+    ),
+    "worker": (
+        *_RUNTIME_INPUTS, "processing/", "media_engine/", "scripts/aws/v1/bootstrap.py",
+        "deploy/v1/worker.Dockerfile", "deploy/v1/worker.requirements.in",
+    ),
+}
 DAST_INPUTS = (
     "media/", "processing/", "legacy/", "media_engine/", "runtime_support/", "delivery/",
     "contracts/", "app/", "frontend/", "tests/contracts/", "compose/local/",
@@ -139,6 +165,12 @@ def image_inputs(path):
         common or matches(path, V1_INPUTS),
         {name for name, inputs in LEGACY_INPUTS.items() if common or matches(path, inputs)},
     )
+
+
+def changed_images(paths):
+    """The V1 images whose build inputs include any of ``paths``."""
+    return {name for name, inputs in IMAGE_BUILD_INPUTS.items()
+            if any(matches(path, inputs) for path in paths)}
 
 
 def service_lanes(path):

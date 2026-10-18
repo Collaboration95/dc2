@@ -5,10 +5,11 @@ import os
 import time
 from datetime import timedelta
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 
 from delivery.sql import stage
 from processing import lifecycle, short_lane
+from processing.launcher_models import OPEN_STATES, LaunchReservation
 from processing.messaging import (
     REPAIR_INTERVAL_SECONDS,
     emit_state,
@@ -17,7 +18,7 @@ from processing.messaging import (
     work_message_id,
 )
 from processing.messaging_models import AttemptTask, JobMessaging, ProcessingOutbox
-from processing.models import Attempt, Job
+from processing.models import Attempt, CleanupIntent, Job
 from processing.recovery import INTERRUPTED, cleanup_outputs, interrupt, recover_expired
 
 
@@ -197,6 +198,41 @@ async def run_once(factory, settings, transport, *, store=None, limit=25, deadli
     except TimeoutError:
         result["deadline_reached"] = True
     return result
+
+
+async def next_due(factory):
+    """When the repair pass or the launcher next has SQL work: epoch, 0 for now, None never.
+
+    It selects what those passes select, so a tick that skips SQL until then misses nothing
+    (runtime_support.activity). A current attempt still queued or processing is work now
+    (lease expiry, dispatch, launches), as is any open launch reservation. Otherwise the
+    earliest outbox row (a send or its scheduled replay) and the earliest unretired cleanup
+    rescan decide.
+    """
+    async with factory() as session:
+        busy = await session.scalar(
+            select(Attempt.id)
+            .join(Job, Job.current_attempt_id == Attempt.id)
+            .where(Job.deleted_at.is_(None), Attempt.state.in_(("queued", "processing")))
+            .limit(1)
+        )
+        reserved = await session.scalar(
+            select(LaunchReservation.token)
+            .where(LaunchReservation.status.in_(OPEN_STATES))
+            .limit(1)
+        )
+        if busy is not None or reserved is not None:
+            return 0.0
+        times = [
+            await session.scalar(select(func.min(ProcessingOutbox.next_try_at))),
+            await session.scalar(
+                select(func.min(CleanupIntent.next_try_at)).where(
+                    CleanupIntent.retired_at.is_(None)
+                )
+            ),
+        ]
+    found = [t.timestamp() for t in times if t is not None]
+    return min(found) if found else None
 
 
 def stopped_task_names(event):

@@ -44,6 +44,45 @@
         "false"
       ]
     },
+    "AlwaysOn": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ]
+    },
+    "GatesOpen": {
+      "Type": "String",
+      "Default": "true",
+      "AllowedValues": [
+        "true",
+        "false"
+      ]
+    },
+    "StageRateLimit": {
+      "Type": "Number",
+      "Default": 20,
+      "MinValue": 1,
+      "MaxValue": 1000
+    },
+    "StageBurstLimit": {
+      "Type": "Number",
+      "Default": 50,
+      "MinValue": 1,
+      "MaxValue": 2000
+    },
+    "MonthlyBudgetUsd": {
+      "Type": "Number",
+      "Default": 20,
+      "MinValue": 1,
+      "MaxValue": 1000
+    },
+    "BudgetAlertEmail": {
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "^$|^[^@\\s]+@[^@\\s]+\\.[A-Za-z]{2,}$"
+    },
     "MediaImageUri": {
       "Type": "String",
       "Default": "",
@@ -159,6 +198,65 @@
               "Ref": "LambdaShortEncodes"
             },
             "true"
+          ]
+        }
+      ]
+    },
+    "AlwaysOnEnv": {
+      "Fn::And": [
+        {
+          "Condition": "Applications"
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AlwaysOn"
+            },
+            "true"
+          ]
+        }
+      ]
+    },
+    "AlwaysOpen": {
+      "Fn::And": [
+        {
+          "Condition": "AlwaysOnEnv"
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "GatesOpen"
+            },
+            "true"
+          ]
+        }
+      ]
+    },
+    "AlwaysOnLauncher": {
+      "Fn::And": [
+        {
+          "Condition": "AlwaysOnEnv"
+        },
+        {
+          "Condition": "Unattended"
+        }
+      ]
+    },
+    "BudgetEmail": {
+      "Fn::And": [
+        {
+          "Condition": "AlwaysOnEnv"
+        },
+        {
+          "Fn::Not": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "BudgetAlertEmail"
+                },
+                ""
+              ]
+            }
           ]
         }
       ]
@@ -3342,6 +3440,397 @@
       },
       "Condition": "Applications"
     },
+    "ProcessingLauncherInvokers": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "launcher-wake",
+        "Roles": [
+          {
+            "Ref": "ProcessingCommandsRole"
+          },
+          {
+            "Ref": "ProcessingRepairRole"
+          },
+          {
+            "Ref": "ProcessingEcsEventsRole"
+          },
+          {
+            "Ref": "ProcessingS3EventsRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "lambda:InvokeFunction"
+              ],
+              "Resource": [
+                {
+                  "Ref": "ProcessingLauncherAlias"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "Condition": "Unattended"
+    },
+    "MediaActivityTouched": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "/dc2/${EnvironmentId}/activity/media/touched"
+        },
+        "Type": "String",
+        "Value": "0"
+      },
+      "Condition": "AlwaysOnEnv"
+    },
+    "MediaActivityQuiet": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "/dc2/${EnvironmentId}/activity/media/quiet"
+        },
+        "Type": "String",
+        "Value": "0"
+      },
+      "Condition": "AlwaysOnEnv"
+    },
+    "MediaActivityWriters": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "activity-touch",
+        "Roles": [
+          {
+            "Ref": "MediaApiRole"
+          },
+          {
+            "Ref": "MediaResultsRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:PutParameter"
+              ],
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${MediaActivityTouched}"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "Condition": "AlwaysOnEnv"
+    },
+    "MediaActivityRepair": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "activity-quiet",
+        "Roles": [
+          {
+            "Ref": "MediaRepairRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:GetParameter"
+              ],
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${MediaActivityTouched}"
+                },
+                {
+                  "Fn::Sub": "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${MediaActivityQuiet}"
+                }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:PutParameter"
+              ],
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${MediaActivityQuiet}"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "Condition": "AlwaysOnEnv"
+    },
+    "ProcessingActivityTouched": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "/dc2/${EnvironmentId}/activity/processing/touched"
+        },
+        "Type": "String",
+        "Value": "0"
+      },
+      "Condition": "AlwaysOnEnv"
+    },
+    "ProcessingActivityQuiet": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "/dc2/${EnvironmentId}/activity/processing/quiet"
+        },
+        "Type": "String",
+        "Value": "0"
+      },
+      "Condition": "AlwaysOnEnv"
+    },
+    "ProcessingActivityWriters": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "activity-touch",
+        "Roles": [
+          {
+            "Ref": "ProcessingCommandsRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:PutParameter"
+              ],
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ProcessingActivityTouched}"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "Condition": "AlwaysOnEnv"
+    },
+    "ProcessingActivityRepair": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "activity-quiet",
+        "Roles": [
+          {
+            "Ref": "ProcessingRepairRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:GetParameter"
+              ],
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ProcessingActivityTouched}"
+                },
+                {
+                  "Fn::Sub": "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ProcessingActivityQuiet}"
+                }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:PutParameter"
+              ],
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ProcessingActivityQuiet}"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "Condition": "AlwaysOnEnv"
+    },
+    "ProcessingActivityLauncherRead": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "activity-read",
+        "Roles": [
+          {
+            "Ref": "ProcessingLauncherRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:GetParameter"
+              ],
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ProcessingActivityTouched}"
+                },
+                {
+                  "Fn::Sub": "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ProcessingActivityQuiet}"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "Condition": "AlwaysOnLauncher"
+    },
+    "BudgetAlertTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "dc2"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "EnvironmentId"
+            }
+          }
+        ]
+      },
+      "Condition": "AlwaysOnEnv"
+    },
+    "BudgetAlertTopicPolicy": {
+      "Type": "AWS::SNS::TopicPolicy",
+      "Properties": {
+        "Topics": [
+          {
+            "Ref": "BudgetAlertTopic"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "budgets.amazonaws.com"
+              },
+              "Action": "sns:Publish",
+              "Resource": {
+                "Ref": "BudgetAlertTopic"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceAccount": {
+                    "Ref": "AWS::AccountId"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "Condition": "AlwaysOnEnv"
+    },
+    "BudgetAlertSubscription": {
+      "Type": "AWS::SNS::Subscription",
+      "Properties": {
+        "TopicArn": {
+          "Ref": "BudgetAlertTopic"
+        },
+        "Protocol": "email",
+        "Endpoint": {
+          "Ref": "BudgetAlertEmail"
+        }
+      },
+      "Condition": "BudgetEmail"
+    },
+    "MonthlyBudget": {
+      "Type": "AWS::Budgets::Budget",
+      "Properties": {
+        "Budget": {
+          "BudgetName": {
+            "Fn::Sub": "${EnvironmentId}-monthly"
+          },
+          "BudgetType": "COST",
+          "TimeUnit": "MONTHLY",
+          "BudgetLimit": {
+            "Amount": {
+              "Ref": "MonthlyBudgetUsd"
+            },
+            "Unit": "USD"
+          }
+        },
+        "NotificationsWithSubscribers": [
+          {
+            "Notification": {
+              "NotificationType": "ACTUAL",
+              "ComparisonOperator": "GREATER_THAN",
+              "Threshold": 50,
+              "ThresholdType": "PERCENTAGE"
+            },
+            "Subscribers": [
+              {
+                "SubscriptionType": "SNS",
+                "Address": {
+                  "Ref": "BudgetAlertTopic"
+                }
+              }
+            ]
+          },
+          {
+            "Notification": {
+              "NotificationType": "ACTUAL",
+              "ComparisonOperator": "GREATER_THAN",
+              "Threshold": 80,
+              "ThresholdType": "PERCENTAGE"
+            },
+            "Subscribers": [
+              {
+                "SubscriptionType": "SNS",
+                "Address": {
+                  "Ref": "BudgetAlertTopic"
+                }
+              }
+            ]
+          },
+          {
+            "Notification": {
+              "NotificationType": "ACTUAL",
+              "ComparisonOperator": "GREATER_THAN",
+              "Threshold": 100,
+              "ThresholdType": "PERCENTAGE"
+            },
+            "Subscribers": [
+              {
+                "SubscriptionType": "SNS",
+                "Address": {
+                  "Ref": "BudgetAlertTopic"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "Condition": "AlwaysOnEnv",
+      "DependsOn": [
+        "BudgetAlertTopicPolicy"
+      ]
+    },
     "ProcessingCommandsQueuePolicy": {
       "Type": "AWS::SQS::QueuePolicy",
       "Properties": {
@@ -3866,6 +4355,28 @@
             "MEDIA_MINIO_OUTPUT_BUCKET": {
               "Ref": "OutputBucket"
             },
+            "MEDIA_ACTIVITY_TOUCHED_PARAMETER": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                {
+                  "Ref": "MediaActivityTouched"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "MEDIA_ACTIVITY_QUIET_PARAMETER": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                {
+                  "Ref": "MediaActivityQuiet"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
             "MEDIA_MINIO_SOURCE_BUCKET": {
               "Ref": "SourceBucket"
             },
@@ -3924,9 +4435,42 @@
         "FunctionName": {
           "Ref": "MediaApi"
         },
-        "Description": "V1 initial Media artifact"
+        "Description": {
+          "Fn::Join": [
+            " ",
+            [
+              "Media",
+              {
+                "Fn::Select": [
+                  1,
+                  {
+                    "Fn::Split": [
+                      "@",
+                      {
+                        "Ref": "MediaImageUri"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "962f0a664106",
+              {
+                "Ref": "MediaApiHandler"
+              },
+              {
+                "Fn::If": [
+                  "AlwaysOnEnv",
+                  "AlwaysOnEnv=1",
+                  "AlwaysOnEnv=0"
+                ]
+              }
+            ]
+          ]
+        }
       },
-      "Condition": "Applications"
+      "Condition": "Applications",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
     },
     "MediaApiAlias": {
       "Type": "AWS::Lambda::Alias",
@@ -4052,9 +4596,35 @@
         "FunctionName": {
           "Ref": "MediaAuthorizer"
         },
-        "Description": "V1 initial Media artifact"
+        "Description": {
+          "Fn::Join": [
+            " ",
+            [
+              "Media",
+              {
+                "Fn::Select": [
+                  1,
+                  {
+                    "Fn::Split": [
+                      "@",
+                      {
+                        "Ref": "MediaImageUri"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "2c0d83c06fc3",
+              {
+                "Ref": "MediaAuthorizerHandler"
+              }
+            ]
+          ]
+        }
       },
-      "Condition": "Applications"
+      "Condition": "Applications",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
     },
     "MediaAuthorizerAlias": {
       "Type": "AWS::Lambda::Alias",
@@ -4187,9 +4757,42 @@
         "FunctionName": {
           "Ref": "ProcessingApi"
         },
-        "Description": "V1 initial Processing artifact"
+        "Description": {
+          "Fn::Join": [
+            " ",
+            [
+              "Processing",
+              {
+                "Fn::Select": [
+                  1,
+                  {
+                    "Fn::Split": [
+                      "@",
+                      {
+                        "Ref": "ProcessingImageUri"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "85d65aa1c90e",
+              {
+                "Ref": "ProcessingApiHandler"
+              },
+              {
+                "Fn::If": [
+                  "ShortEncodes",
+                  "ShortEncodes=1",
+                  "ShortEncodes=0"
+                ]
+              }
+            ]
+          ]
+        }
       },
-      "Condition": "Applications"
+      "Condition": "Applications",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
     },
     "ProcessingApiAlias": {
       "Type": "AWS::Lambda::Alias",
@@ -4264,6 +4867,39 @@
             "PROCESSING_MINIO_OUTPUT_BUCKET": {
               "Ref": "OutputBucket"
             },
+            "PROCESSING_ACTIVITY_TOUCHED_PARAMETER": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                {
+                  "Ref": "ProcessingActivityTouched"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "PROCESSING_ACTIVITY_QUIET_PARAMETER": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                {
+                  "Ref": "ProcessingActivityQuiet"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "PROCESSING_LAUNCHER_FUNCTION": {
+              "Fn::If": [
+                "Unattended",
+                {
+                  "Ref": "ProcessingLauncherAlias"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
             "PROCESSING_SHORT_LANE": {
               "Fn::If": [
                 "ShortEncodes",
@@ -4328,9 +4964,56 @@
         "FunctionName": {
           "Ref": "ProcessingCommands"
         },
-        "Description": "V1 initial Processing artifact"
+        "Description": {
+          "Fn::Join": [
+            " ",
+            [
+              "Processing",
+              {
+                "Fn::Select": [
+                  1,
+                  {
+                    "Fn::Split": [
+                      "@",
+                      {
+                        "Ref": "ProcessingImageUri"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "c152b579073b",
+              {
+                "Ref": "ProcessingCommandsHandler"
+              },
+              {
+                "Fn::If": [
+                  "AlwaysOnEnv",
+                  "AlwaysOnEnv=1",
+                  "AlwaysOnEnv=0"
+                ]
+              },
+              {
+                "Fn::If": [
+                  "ShortEncodes",
+                  "ShortEncodes=1",
+                  "ShortEncodes=0"
+                ]
+              },
+              {
+                "Fn::If": [
+                  "Unattended",
+                  "Unattended=1",
+                  "Unattended=0"
+                ]
+              }
+            ]
+          ]
+        }
       },
-      "Condition": "Applications"
+      "Condition": "Applications",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
     },
     "ProcessingCommandsAlias": {
       "Type": "AWS::Lambda::Alias",
@@ -4398,6 +5081,28 @@
             "MEDIA_MINIO_OUTPUT_BUCKET": {
               "Ref": "OutputBucket"
             },
+            "MEDIA_ACTIVITY_TOUCHED_PARAMETER": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                {
+                  "Ref": "MediaActivityTouched"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "MEDIA_ACTIVITY_QUIET_PARAMETER": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                {
+                  "Ref": "MediaActivityQuiet"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
             "MEDIA_MINIO_SOURCE_BUCKET": {
               "Ref": "SourceBucket"
             },
@@ -4453,9 +5158,42 @@
         "FunctionName": {
           "Ref": "MediaResults"
         },
-        "Description": "V1 initial Media artifact"
+        "Description": {
+          "Fn::Join": [
+            " ",
+            [
+              "Media",
+              {
+                "Fn::Select": [
+                  1,
+                  {
+                    "Fn::Split": [
+                      "@",
+                      {
+                        "Ref": "MediaImageUri"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "14a67540bbcd",
+              {
+                "Ref": "MediaResultsHandler"
+              },
+              {
+                "Fn::If": [
+                  "AlwaysOnEnv",
+                  "AlwaysOnEnv=1",
+                  "AlwaysOnEnv=0"
+                ]
+              }
+            ]
+          ]
+        }
       },
-      "Condition": "Applications"
+      "Condition": "Applications",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
     },
     "MediaResultsAlias": {
       "Type": "AWS::Lambda::Alias",
@@ -4526,6 +5264,28 @@
             "MEDIA_MINIO_OUTPUT_BUCKET": {
               "Ref": "OutputBucket"
             },
+            "MEDIA_ACTIVITY_TOUCHED_PARAMETER": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                {
+                  "Ref": "MediaActivityTouched"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "MEDIA_ACTIVITY_QUIET_PARAMETER": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                {
+                  "Ref": "MediaActivityQuiet"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
             "MEDIA_MINIO_SOURCE_BUCKET": {
               "Ref": "SourceBucket"
             },
@@ -4581,9 +5341,42 @@
         "FunctionName": {
           "Ref": "MediaRepair"
         },
-        "Description": "V1 initial Media artifact"
+        "Description": {
+          "Fn::Join": [
+            " ",
+            [
+              "Media",
+              {
+                "Fn::Select": [
+                  1,
+                  {
+                    "Fn::Split": [
+                      "@",
+                      {
+                        "Ref": "MediaImageUri"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "de4fd98ea0f6",
+              {
+                "Ref": "MediaRepairHandler"
+              },
+              {
+                "Fn::If": [
+                  "AlwaysOnEnv",
+                  "AlwaysOnEnv=1",
+                  "AlwaysOnEnv=0"
+                ]
+              }
+            ]
+          ]
+        }
       },
-      "Condition": "Applications"
+      "Condition": "Applications",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
     },
     "MediaRepairAlias": {
       "Type": "AWS::Lambda::Alias",
@@ -4658,6 +5451,39 @@
             "PROCESSING_MINIO_OUTPUT_BUCKET": {
               "Ref": "OutputBucket"
             },
+            "PROCESSING_ACTIVITY_TOUCHED_PARAMETER": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                {
+                  "Ref": "ProcessingActivityTouched"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "PROCESSING_ACTIVITY_QUIET_PARAMETER": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                {
+                  "Ref": "ProcessingActivityQuiet"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "PROCESSING_LAUNCHER_FUNCTION": {
+              "Fn::If": [
+                "Unattended",
+                {
+                  "Ref": "ProcessingLauncherAlias"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
             "PROCESSING_SHORT_LANE": {
               "Fn::If": [
                 "ShortEncodes",
@@ -4722,9 +5548,56 @@
         "FunctionName": {
           "Ref": "ProcessingRepair"
         },
-        "Description": "V1 initial Processing artifact"
+        "Description": {
+          "Fn::Join": [
+            " ",
+            [
+              "Processing",
+              {
+                "Fn::Select": [
+                  1,
+                  {
+                    "Fn::Split": [
+                      "@",
+                      {
+                        "Ref": "ProcessingImageUri"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "0a40b637253c",
+              {
+                "Ref": "ProcessingRepairHandler"
+              },
+              {
+                "Fn::If": [
+                  "AlwaysOnEnv",
+                  "AlwaysOnEnv=1",
+                  "AlwaysOnEnv=0"
+                ]
+              },
+              {
+                "Fn::If": [
+                  "ShortEncodes",
+                  "ShortEncodes=1",
+                  "ShortEncodes=0"
+                ]
+              },
+              {
+                "Fn::If": [
+                  "Unattended",
+                  "Unattended=1",
+                  "Unattended=0"
+                ]
+              }
+            ]
+          ]
+        }
       },
-      "Condition": "Applications"
+      "Condition": "Applications",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
     },
     "ProcessingRepairAlias": {
       "Type": "AWS::Lambda::Alias",
@@ -4799,6 +5672,17 @@
             "PROCESSING_MINIO_OUTPUT_BUCKET": {
               "Ref": "OutputBucket"
             },
+            "PROCESSING_LAUNCHER_FUNCTION": {
+              "Fn::If": [
+                "Unattended",
+                {
+                  "Ref": "ProcessingLauncherAlias"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
             "PROCESSING_SHORT_LANE": {
               "Fn::If": [
                 "ShortEncodes",
@@ -4863,9 +5747,49 @@
         "FunctionName": {
           "Ref": "ProcessingEcsEvents"
         },
-        "Description": "V1 initial Processing artifact"
+        "Description": {
+          "Fn::Join": [
+            " ",
+            [
+              "Processing",
+              {
+                "Fn::Select": [
+                  1,
+                  {
+                    "Fn::Split": [
+                      "@",
+                      {
+                        "Ref": "ProcessingImageUri"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "decb23d80562",
+              {
+                "Ref": "ProcessingEcsEventsHandler"
+              },
+              {
+                "Fn::If": [
+                  "ShortEncodes",
+                  "ShortEncodes=1",
+                  "ShortEncodes=0"
+                ]
+              },
+              {
+                "Fn::If": [
+                  "Unattended",
+                  "Unattended=1",
+                  "Unattended=0"
+                ]
+              }
+            ]
+          ]
+        }
       },
-      "Condition": "Applications"
+      "Condition": "Applications",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
     },
     "ProcessingEcsEventsAlias": {
       "Type": "AWS::Lambda::Alias",
@@ -4940,6 +5864,17 @@
             "PROCESSING_MINIO_OUTPUT_BUCKET": {
               "Ref": "OutputBucket"
             },
+            "PROCESSING_LAUNCHER_FUNCTION": {
+              "Fn::If": [
+                "Unattended",
+                {
+                  "Ref": "ProcessingLauncherAlias"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
             "PROCESSING_SHORT_LANE": {
               "Fn::If": [
                 "ShortEncodes",
@@ -5004,9 +5939,49 @@
         "FunctionName": {
           "Ref": "ProcessingS3Events"
         },
-        "Description": "V1 initial Processing artifact"
+        "Description": {
+          "Fn::Join": [
+            " ",
+            [
+              "Processing",
+              {
+                "Fn::Select": [
+                  1,
+                  {
+                    "Fn::Split": [
+                      "@",
+                      {
+                        "Ref": "ProcessingImageUri"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "e693374184f7",
+              {
+                "Ref": "ProcessingS3EventsHandler"
+              },
+              {
+                "Fn::If": [
+                  "ShortEncodes",
+                  "ShortEncodes=1",
+                  "ShortEncodes=0"
+                ]
+              },
+              {
+                "Fn::If": [
+                  "Unattended",
+                  "Unattended=1",
+                  "Unattended=0"
+                ]
+              }
+            ]
+          ]
+        }
       },
-      "Condition": "Applications"
+      "Condition": "Applications",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
     },
     "ProcessingS3EventsAlias": {
       "Type": "AWS::Lambda::Alias",
@@ -5106,7 +6081,38 @@
             "PROCESSING_LAUNCHER_LIFETIME_SECONDS": {
               "Fn::Sub": "${WorkerLifetimeSeconds}"
             },
-            "PROCESSING_LAUNCHER_CAP": "3"
+            "PROCESSING_LAUNCHER_CAP": "3",
+            "PROCESSING_LAUNCHER_ALWAYS_ON": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                "true",
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "PROCESSING_ACTIVITY_TOUCHED_PARAMETER": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                {
+                  "Ref": "ProcessingActivityTouched"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "PROCESSING_ACTIVITY_QUIET_PARAMETER": {
+              "Fn::If": [
+                "AlwaysOnEnv",
+                {
+                  "Ref": "ProcessingActivityQuiet"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            }
           }
         },
         "VpcConfig": {
@@ -5151,9 +6157,58 @@
         "FunctionName": {
           "Ref": "ProcessingLauncher"
         },
-        "Description": "V1 initial Processing artifact"
+        "Description": {
+          "Fn::Join": [
+            " ",
+            [
+              "Processing",
+              {
+                "Fn::Select": [
+                  1,
+                  {
+                    "Fn::Split": [
+                      "@",
+                      {
+                        "Ref": "ProcessingImageUri"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "28271a796fce",
+              {
+                "Ref": "ProcessingLauncherHandler"
+              },
+              {
+                "Ref": "WorkerLifetimeSeconds"
+              },
+              {
+                "Fn::Select": [
+                  1,
+                  {
+                    "Fn::Split": [
+                      "/",
+                      {
+                        "Ref": "WorkerTaskDefinition"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "Fn::If": [
+                  "AlwaysOnEnv",
+                  "AlwaysOnEnv=1",
+                  "AlwaysOnEnv=0"
+                ]
+              }
+            ]
+          ]
+        }
       },
-      "Condition": "Unattended"
+      "Condition": "Unattended",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
     },
     "ProcessingLauncherAlias": {
       "Type": "AWS::Lambda::Alias",
@@ -5279,9 +6334,35 @@
         "FunctionName": {
           "Ref": "ProcessingShortEncoder"
         },
-        "Description": "V1 initial Processing artifact"
+        "Description": {
+          "Fn::Join": [
+            " ",
+            [
+              "Processing",
+              {
+                "Fn::Select": [
+                  1,
+                  {
+                    "Fn::Split": [
+                      "@",
+                      {
+                        "Ref": "WorkerImageUri"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "7cb07876e3b3",
+              {
+                "Ref": "ProcessingShortEncoderHandler"
+              }
+            ]
+          ]
+        }
       },
-      "Condition": "ShortEncodes"
+      "Condition": "ShortEncodes",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
     },
     "ProcessingShortEncoderAlias": {
       "Type": "AWS::Lambda::Alias",
@@ -5319,7 +6400,13 @@
         "ScalingConfig": {
           "MaximumConcurrency": 2
         },
-        "Enabled": false
+        "Enabled": {
+          "Fn::If": [
+            "AlwaysOpen",
+            true,
+            false
+          ]
+        }
       },
       "Condition": "Applications"
     },
@@ -5343,7 +6430,13 @@
         "ScalingConfig": {
           "MaximumConcurrency": 2
         },
-        "Enabled": false
+        "Enabled": {
+          "Fn::If": [
+            "AlwaysOpen",
+            true,
+            false
+          ]
+        }
       },
       "Condition": "Applications"
     },
@@ -5366,7 +6459,13 @@
         "ScalingConfig": {
           "MaximumConcurrency": 2
         },
-        "Enabled": false
+        "Enabled": {
+          "Fn::If": [
+            "AlwaysOpen",
+            true,
+            false
+          ]
+        }
       },
       "Condition": "ShortEncodes"
     },
@@ -6040,8 +7139,21 @@
         "StageName": "$default",
         "AutoDeploy": true,
         "DefaultRouteSettings": {
-          "ThrottlingBurstLimit": 0,
-          "ThrottlingRateLimit": 0
+          "Fn::If": [
+            "AlwaysOpen",
+            {
+              "ThrottlingBurstLimit": {
+                "Ref": "StageBurstLimit"
+              },
+              "ThrottlingRateLimit": {
+                "Ref": "StageRateLimit"
+              }
+            },
+            {
+              "ThrottlingBurstLimit": 0,
+              "ThrottlingRateLimit": 0
+            }
+          ]
         }
       },
       "Condition": "Applications"
@@ -6633,7 +7745,13 @@
     "MediaRepairRule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
-        "State": "DISABLED",
+        "State": {
+          "Fn::If": [
+            "AlwaysOpen",
+            "ENABLED",
+            "DISABLED"
+          ]
+        },
         "Targets": [
           {
             "Arn": {
@@ -6673,7 +7791,13 @@
     "ProcessingRepairRule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
-        "State": "DISABLED",
+        "State": {
+          "Fn::If": [
+            "AlwaysOpen",
+            "ENABLED",
+            "DISABLED"
+          ]
+        },
         "Targets": [
           {
             "Arn": {
@@ -6713,7 +7837,13 @@
     "ProcessingEcsEventsRule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
-        "State": "DISABLED",
+        "State": {
+          "Fn::If": [
+            "AlwaysOpen",
+            "ENABLED",
+            "DISABLED"
+          ]
+        },
         "Targets": [
           {
             "Arn": {
@@ -6773,7 +7903,13 @@
     "ProcessingS3EventsRule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
-        "State": "DISABLED",
+        "State": {
+          "Fn::If": [
+            "AlwaysOpen",
+            "ENABLED",
+            "DISABLED"
+          ]
+        },
         "Targets": [
           {
             "Arn": {
@@ -6829,7 +7965,13 @@
     "ProcessingLauncherRule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
-        "State": "DISABLED",
+        "State": {
+          "Fn::If": [
+            "AlwaysOpen",
+            "ENABLED",
+            "DISABLED"
+          ]
+        },
         "Targets": [
           {
             "Arn": {

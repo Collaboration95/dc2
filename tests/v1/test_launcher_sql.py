@@ -14,6 +14,7 @@ from uuid import uuid4
 import pytest
 import pytest_asyncio
 from sqlalchemy import func, select, text
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from processing import launcher, launcher_models, messaging
@@ -268,6 +269,44 @@ async def test_concurrent_triggers_never_exceed_the_cap(factory):
     assert len(ecs.run_calls) == 3 == len(ecs.live())
     assert len({call["clientToken"] for call in ecs.run_calls}) == 3
     assert len([r for r in await rows(factory) if r.status in launcher.OPEN_STATES]) == 3
+
+
+async def test_always_on_concurrent_wakes_never_exceed_the_cap_without_a_session_end(factory):
+    # V2-live (#237): every work publisher wakes the launcher, so wakes arrive together. The
+    # SQL reservation, not the session, is what holds the cap.
+    ecs = FakeEcs()
+    ecs.barrier = asyncio.Barrier(8)
+    await submit(factory, 10)
+    async with factory() as session, session.begin():
+        await session.execute(
+            insert(launcher_models.LauncherControl).values(id=1, enabled=True)
+        )  # enabled with no session end, as nothing on the persistent environment sets one
+    results = await asyncio.gather(
+        *(tick(factory, ecs, Depth(), always_on=True) for _ in range(8))
+    )
+    assert sum(r["launched"] for r in results) == 3
+    assert len(ecs.run_calls) == 3 == len(ecs.live())
+    held = [r for r in await rows(factory) if r.status in launcher.OPEN_STATES]
+    assert len(held) == 3
+    # Finite all the same: each task ends after its lifetime.
+    assert all(
+        (r.deadline_at - r.reserved_at).total_seconds() == config().lifetime_seconds
+        for r in held
+    )
+
+
+async def test_always_on_launches_nothing_for_an_empty_queue_or_while_switched_off(factory):
+    ecs = FakeEcs()
+    async with factory() as session, session.begin():
+        await session.execute(
+            insert(launcher_models.LauncherControl).values(id=1, enabled=True)
+        )
+    assert (await tick(factory, ecs, Depth(), always_on=True))["outcome"] == "idle"
+    await submit(factory, 2)
+    assert (await tick(factory, ecs, Depth(0), always_on=True))["launched"] == 0
+    await launcher.set_enabled(factory, False)  # the kill switch
+    result = await tick(factory, ecs, Depth(), always_on=True)
+    assert result["launched"] == 0 and ecs.run_calls == []
 
 
 async def test_concurrent_triggers_with_a_lost_response_still_respect_the_cap(factory):
@@ -581,3 +620,36 @@ async def test_reservation_timestamps_use_the_database_clock(factory):
         now = await session.scalar(select(func.clock_timestamp()))
     assert timedelta(0) <= now - row.reserved_at < timedelta(seconds=30)
     assert row.sent_at is not None and row.deadline_at > row.reserved_at
+
+
+# ---- V2-live (AD-27): when the minute ticks next need SQL ------------------------------
+async def test_idle_processing_has_nothing_due_and_open_work_is_due_now(factory):
+    from processing.recovery_v1 import next_due
+
+    assert await next_due(factory) is None
+    await submit(factory, 1)
+    assert await next_due(factory) == 0.0  # a queued attempt: dispatch and launches
+
+
+async def test_once_no_attempt_is_open_the_earliest_scheduled_row_is_the_next_due_time(factory):
+    from sqlalchemy import update
+
+    from processing.messaging_models import ProcessingOutbox
+    from processing.recovery_v1 import next_due
+
+    await submit(factory, 1)
+    async with factory() as session, session.begin():
+        await session.execute(update(Attempt).values(state="cancelled"))
+        await session.execute(
+            update(ProcessingOutbox).values(next_try_at=func.now() + timedelta(days=6))
+        )
+    due = await next_due(factory)
+    # The outbox's scheduled replay, six days out: the ticks may skip SQL until then.
+    assert time.time() + 5 * 86400 < due < time.time() + 7 * 86400
+    # An open launch reservation is work now, whatever else is scheduled.
+    async with factory() as session, session.begin():
+        session.add(launcher_models.LaunchReservation(
+            token="t" * 32, started_by="v1-ut", status="reserved", payload={},
+            deadline_at=func.now() + timedelta(minutes=5)))
+    assert await next_due(factory) == 0.0
+

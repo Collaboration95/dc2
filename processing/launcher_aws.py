@@ -15,6 +15,7 @@ from delivery.runtime import deadline_for
 from processing import launcher
 from processing.config import get_settings
 from processing.launcher import LauncherConfig, RunTaskRefused
+from runtime_support.activity import Activity
 from runtime_support.settings import heal_on_rejection
 
 SERVICE = "processing-launcher"
@@ -108,6 +109,24 @@ class QueueDepth(_Lazy):
         return int(reply["Attributes"]["ApproximateNumberOfMessages"])
 
 
+class SettledDepth:
+    """SQS's visible count trails a send by a moment, and a wake arrives right after one.
+
+    Asked again a few times, briefly, before an empty answer is believed; a scheduled tick
+    keeps the plain single read.
+    """
+
+    def __init__(self, queue, *, attempts=5, interval=1.0):
+        self.queue, self.attempts, self.interval = queue, attempts, interval
+
+    async def visible(self):
+        for attempt in range(self.attempts):
+            count = await self.queue.visible()
+            if count or attempt == self.attempts - 1:
+                return count
+            await asyncio.sleep(self.interval)
+
+
 def config_from_environ(environ=None):
     environ = os.environ if environ is None else environ
     prefix = "PROCESSING_LAUNCHER_"
@@ -118,11 +137,19 @@ def config_from_environ(environ=None):
         security_groups=tuple(environ[prefix + "SECURITY_GROUPS"].split(",")),
         lifetime_seconds=int(environ[prefix + "LIFETIME_SECONDS"]),
         cap=int(environ.get(prefix + "CAP", launcher.HARD_CAP)),
+        always_on=environ.get(prefix + "ALWAYS_ON") == "true",
     )
 
 
-async def run(event, context, *, ecs=None, queue=None, config=None, factory=None):
+async def run(event, context, *, ecs=None, queue=None, config=None, factory=None,
+              activity=None):
     """Dispatch a scheduled tick or an operator control event; returns counts only."""
+    scheduled = not (isinstance(event, dict) and event.get("dc2_operation") == OPERATION)
+    activity = activity or Activity.from_environ("PROCESSING")
+    if scheduled and activity and await asyncio.to_thread(activity.quiet):
+        # Nothing queued, running or reserved (AD-27): no connection, so Aurora can pause. A
+        # wake after a work send and every control event still reach SQL.
+        return {"service": SERVICE, "action": "tick", "outcome": "idle", "skipped": "quiet"}
     config = config or config_from_environ()
     engine = None
     if factory is None:
@@ -157,6 +184,11 @@ async def _dispatch(event, factory, ecs, queue, config):
             result = await launcher.settle(factory, ecs, config)
         elif action == "status":
             result = await launcher.status(factory)
+        elif action == "wake":
+            # Sent by a work publisher the moment it enqueued (#237): a tick, without waiting
+            # for the minute schedule.
+            depth = SettledDepth(queue or QueueDepth(os.environ["PROCESSING_WORK_QUEUE_URL"]))
+            result = await launcher.tick(factory, ecs, depth, config)
         else:
             raise ValueError("Unknown launcher action")
         return {"service": SERVICE, "action": action, **result}

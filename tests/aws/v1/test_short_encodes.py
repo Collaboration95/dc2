@@ -194,7 +194,8 @@ def test_the_queue_visibility_meets_the_mapping_requirement_and_dead_letters_are
 
 def test_the_mapping_is_closed_one_message_at_a_time_and_bounded_at_the_sqs_minimum():
     mapping = resources()[f"{SHORT_ENCODER}Mapping"]["Properties"]
-    assert mapping["Enabled"] is False  # only a session open enables it
+    # Only a session open, or the always-on environment, enables it.
+    assert mapping["Enabled"] == {"Fn::If": ["AlwaysOpen", True, False]}
     assert mapping["BatchSize"] == 1
     assert mapping["FunctionResponseTypes"] == ["ReportBatchItemFailures"]
     assert mapping["ScalingConfig"] == {"MaximumConcurrency": 2}

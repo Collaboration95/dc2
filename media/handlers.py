@@ -1,5 +1,6 @@
 """Media's result consumer and bounded command outbox repair Lambdas."""
 
+import asyncio
 import os
 import time
 
@@ -10,6 +11,7 @@ from delivery.sqs import SQS, consume_batch
 from media.config import get_settings
 from media.messaging import consume_result, publish_commands
 from runtime_support import lambda_db
+from runtime_support.activity import Activity
 from runtime_support.errors import sanitized_entrypoint
 from runtime_support.settings import heal_on_rejection
 
@@ -33,6 +35,13 @@ async def consume_results(event, factory, apply=None):
 async def invoke(event, context, mode):
     from media.database import engine_options
 
+    # Always on (AD-27): a scheduled repair with nothing due opens no connection, so Aurora can
+    # pause; a result is about to write, so it is recorded first. Absent markers: V1 as before.
+    activity = Activity.from_environ("MEDIA")
+    if activity and mode == "repair" and await asyncio.to_thread(activity.quiet):
+        return {"skipped": "idle"}
+    if activity and mode == "result":
+        await asyncio.to_thread(activity.touch)
     settings = get_settings()
     engine = await lambda_db.shared_engine(
         "media",
@@ -52,7 +61,7 @@ async def invoke(event, context, mode):
             region=os.environ.get("AWS_REGION"),
             endpoint_url=os.environ.get("SQS_ENDPOINT_URL"),
         )
-        from media.recovery_v1 import run_once
+        from media.recovery_v1 import next_due, run_once
         from media.services.storage import Storage
 
         # The repair pass raises on a refused login, so one guard covers the outbox
@@ -62,6 +71,10 @@ async def invoke(event, context, mode):
                 factory, transport, limit=25, deadline=min(deadline, time.monotonic() + 5)
             )
             cleanup = await run_once(factory, settings, Storage(settings), deadline=deadline)
+            if activity:
+                checked = time.time()  # before the snapshot next_due reads
+                due = await next_due(factory, settings)
+                await asyncio.to_thread(activity.record, checked, due)
         return {"published": published, **cleanup}
     except Exception as error:
         await lambda_db.release_after("media", error)
