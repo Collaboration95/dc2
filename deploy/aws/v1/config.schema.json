@@ -42,6 +42,14 @@
       "type": "boolean",
       "description": "Opt in to the V2 unattended launcher resources; absent or false keeps V1"
     },
+    "always_on": {
+      "type": "boolean",
+      "description": "V2-live (#236): deploy open (stage throttle, consumers, schedules) with a monthly budget; absent or false keeps V1's closed stack"
+    },
+    "stage_rate_limit": {"type": "integer", "minimum": 1, "maximum": 1000},
+    "stage_burst_limit": {"type": "integer", "minimum": 1, "maximum": 2000},
+    "monthly_budget_usd": {"type": "integer", "minimum": 1, "maximum": 1000},
+    "budget_alert_email": {"type": "string"},
     "lambda_short_encodes": {
       "type": "boolean",
       "description": "Opt in to the V2 Lambda short-encode lane (#93); absent or false keeps V1"

@@ -79,6 +79,17 @@ DEPLOY_STEPS = (
     "public-smoke",
     "session-close",
 )
+# The persistent environment (#235) opens once and stays open: the booked window/close pair
+# becomes one `session-open` that runs on the first deploy only (#236).
+PERSISTENT_STEPS = (
+    *DEPLOY_STEPS[:DEPLOY_STEPS.index("session-window")],
+    "session-open",
+    "seed",
+    "public-smoke",
+)
+# The launcher's SQL flag needs a session end even always on, where nothing enforces it.
+ALWAYS_ON_OPEN_MINUTES = 60
+INVOCATION_HISTORY = 20
 TEARDOWN_STEPS = (
     "td-inventory",
     "td-session-close",
@@ -466,6 +477,13 @@ class Settings:
     database: DatabaseOptions = dataclasses.field(default_factory=DatabaseOptions)
     # The opt-in V2 launcher (#68): renders UnattendedLaunch=true; off keeps the V1 template.
     unattended_launch: bool = False
+    # V2-live (#235): `run_id` names a long-lived environment (stack dc2-<name>) that every
+    # deploy updates in place, deployed always on (#236) with the launcher (#237).
+    persistent: bool = False
+    stage_rate_limit: int = 20
+    stage_burst_limit: int = 50
+    monthly_budget_usd: int = 20
+    budget_alert_email: str = ""
 
     def __post_init__(self):
         if self.profile == "default" or not operations.PROFILE_PATTERN.fullmatch(self.profile):
@@ -480,10 +498,12 @@ class Settings:
         if not 0 < self.budget_usd <= 1000:
             raise DeployError("--budget-usd must be positive")
         self.state_dir = Path(self.state_dir)
+        if self.persistent:
+            self.unattended_launch = True  # encoders start from the queue, never by hand
 
     @property
     def env(self):
-        return f"dc2-v1-{self.run_id}"
+        return env_name(self.run_id, persistent=self.persistent)
 
     @property
     def scope(self):
@@ -501,6 +521,10 @@ class Settings:
     @property
     def artifacts_bucket(self):
         return f"{self.env}-artifacts-{self.account}"
+
+
+def env_name(name, *, persistent=False):
+    return f"dc2-{name}" if persistent else f"dc2-v1-{name}"
 
 
 def owned(tags, run_id):
@@ -620,6 +644,29 @@ class Pipeline:
     def detail(self, name):
         return self.meta()["steps"].get(name, {}).get("detail", {})
 
+    def established(self):
+        """A persistent environment whose first deploy finished: from now on it is updated."""
+        return self.s.persistent and bool(self.meta().get("established"))
+
+    def begin_invocation(self):
+        """Give this deploy of an established environment its own step log.
+
+        The journal's resources, outputs and images describe the environment and are kept; its
+        steps describe one deploy, so the last ones are archived and every step runs again.
+        That is what makes a second deploy re-run `applications` as an UPDATE change set
+        instead of skipping it as done. A first deploy that failed still resumes as before.
+        """
+        def change(d):
+            if not d.get("established"):
+                return
+            if d["steps"]:
+                history = d.setdefault("invocations", [])
+                history.append({"archived_at": now(), "steps": ordered_steps(d)})
+                del history[:-INVOCATION_HISTORY]
+            d["steps"] = {}
+
+        self.journal.mutate(change)
+
     def run_step(self, name, action, *, always=False):
         self.step = name
         record = self.meta()["steps"].get(name, {})
@@ -692,7 +739,9 @@ class Pipeline:
                     "with the operator's own estimate if Cost Explorer has too little history"
                 )
             forecast = float(result["Total"]["Amount"])
-        planned = planned_cost(self.s.planned_hours, self.s.database)
+        # Updating an environment that already runs adds nothing it does not already cost.
+        planned = 0.0 if self.established() else planned_cost(
+            self.s.planned_hours, self.s.database)
         total = round(mtd + forecast + planned, 2)
         report = {
             "month_to_date_usd": round(mtd, 2), "forecast_usd": round(forecast, 2),
@@ -775,7 +824,9 @@ class Pipeline:
         try:
             record("cost-guard", "pass", **self.cost_guard())
         except DeployError as error:
-            record("cost-guard", "blocker", detail=str(error))
+            # Routine updates of the persistent environment are never held back by spend: its
+            # AWS Budget alerts at 50/80/100 % instead (#235, #236).
+            record("cost-guard", "info" if self.established() else "blocker", detail=str(error))
 
         self._collisions(record)
         proof = ("sql" if self.s.sql_config else "counts-file" if self.s.counts_file
@@ -918,6 +969,10 @@ class Pipeline:
             self.aws("cloudformation", "create-change-set", request)
             # Recorded at once: even a stack that later fails belongs to this run's teardown.
             self.journal.mutate(lambda d: remember(d["resources"], "stacks", stack))
+        elif existing.get("Status") == "FAILED" and no_changes(existing):
+            # An earlier deploy of these exact bytes found nothing to change; so does this one.
+            self.mark(self.step, "started", change_set=change_set, no_changes=True)
+            return self._finish_stack(stack)
         elif existing.get("ExecutionStatus") == "EXECUTE_COMPLETE":
             # A previous attempt executed this exact change set and died before journaling it.
             self.mark(self.step, "started", applied=change_set)
@@ -941,7 +996,8 @@ class Pipeline:
             raise AwaitingExecute(
                 f"change set {change_set} described ({len(changes)} changes); re-run with "
                 "--execute to apply it")
-        self.cost_guard()
+        if not self.established():
+            self.cost_guard()
         self.aws("cloudformation", "execute-change-set", {
             "StackName": stack, "ChangeSetName": change_set,
             "ClientRequestToken": f"exec-{digest[:24]}"})
@@ -956,10 +1012,9 @@ class Pipeline:
         if status == "CREATE_COMPLETE":
             return True, described
         if status == "FAILED":
-            reason = described.get("StatusReason", "")
-            if "didn't contain changes" in reason or "No updates" in reason:
+            if no_changes(described):
                 return True, None
-            raise DeployError(f"Change set failed: {reason[:200]}")
+            raise DeployError(f"Change set failed: {described.get('StatusReason', '')[:200]}")
         return False, None
 
     def _wait_stack(self, stack):
@@ -1059,6 +1114,10 @@ class Pipeline:
             "region": self.s.region, "source_cors_origin": cors, "deploy_applications": apps,
             "parameter_arns": arns, "images": images or {},
             **({"unattended_launch": True} if self.s.unattended_launch else {}),
+            **({"always_on": True, "stage_rate_limit": self.s.stage_rate_limit,
+                "stage_burst_limit": self.s.stage_burst_limit,
+                "monthly_budget_usd": self.s.monthly_budget_usd,
+                "budget_alert_email": self.s.budget_alert_email} if self.s.persistent else {}),
         })
         body = json.dumps(render_template(self.s.database), sort_keys=True,
                           separators=(",", ":"))
@@ -1085,6 +1144,9 @@ class Pipeline:
         return {"TemplateURL": f"https://{bucket}.s3.{self.s.region}.amazonaws.com/{key}"}
 
     def step_foundation(self):
+        if self.established():
+            # Rendering without applications would ask CloudFormation to remove them.
+            return {"skipped": "established environment; `applications` updates the stack"}
         body, parameters = self.render(apps=False)
         outputs, rows = self.apply_stack(
             "foundation", self.s.env, body, parameters, files=self.stage_template(body))
@@ -1094,6 +1156,8 @@ class Pipeline:
                     "MediaRepositoryUri", "ProcessingRepositoryUri", "WorkerRepositoryUri")]}
 
     def step_images(self):
+        if self.established():
+            return self.changed_owners()
         if not self.s.images_file:
             raise DeployError("--images is required to push the three amd64 images")
         sources = load_images(self.s.images_file)
@@ -1144,6 +1208,24 @@ class Pipeline:
                              "scan_severity_counts": counts or "PENDING"}
         self.journal.mutate(lambda d: [d["images"][o].update(v) for o, v in pushed.items()])
         return {"images": {k: v["digest"] for k, v in pushed.items()}}
+
+    def changed_owners(self):
+        """Owners whose built image differs from the one the environment runs.
+
+        Nothing is pushed: on an established environment code ships through each changed
+        owner's release (aliases, migration, smoke, automatic restore), never through the
+        stack, so `applications` keeps rendering the images the environment already runs.
+        """
+        if not self.s.images_file:
+            return {"pushed": False, "changed_owners": "not compared (no --images)"}
+        built = load_images(self.s.images_file)
+        running = self.meta()["images"]
+        differs = {name for name in ("media", "processing", "worker")
+                   if built[name].get("local_id") != running.get(name, {}).get("local_id")}
+        changed = [owner for owner, names in (("media", {"media"}),
+                                              ("processing", {"processing", "worker"}))
+                   if differs & names]
+        return {"pushed": False, "changed_owners": changed}
 
     def step_applications(self):
         meta = self.meta()
@@ -1449,6 +1531,9 @@ class Pipeline:
         is rewritten together, so an interrupted attempt never leaves the roles and the
         parameters disagreeing. The file is removed once everything is published.
         """
+        if self.established():
+            # A rerun would rotate every role password under the running functions.
+            return {"skipped": "established environment; role passwords and DSNs are kept"}
         outputs = self.outputs()
         base = f"/dc2/{self.s.env}/"
         endpoints = self.database_endpoints(outputs)
@@ -1511,6 +1596,8 @@ class Pipeline:
 
     def step_migrations(self, revisions=None):
         """Per-owner migration tasks through the shared `migrate`, one owner at a time."""
+        if self.established():
+            return {"skipped": "established environment; a changed owner migrates in its release"}
         revisions = revisions or {}
         outputs = self.outputs()
         _, config, _, _ = operations.load_operator_config(self.write_ops_config())
@@ -1587,6 +1674,10 @@ class Pipeline:
             "operator-config-teardown.json" if teardown else "operator-config.json")
         data = {"operator_station": self.s.station, "environment_id": self.s.env,
                 "journal": "session/journal.json", "outputs_file": "outputs.json"}
+        if self.s.persistent:
+            # `session open` (the kill switch off) and `status` must agree with the template.
+            data["edge_open"] = {"rate": self.s.stage_rate_limit,
+                                 "burst": self.s.stage_burst_limit}
         sql = {} if teardown else self.sql_settings()
         counts = None if teardown else self.s.counts_file
         if sql:
@@ -1633,7 +1724,8 @@ class Pipeline:
 
     def step_session_init(self):
         journal = self.session_dir() / "journal.json"
-        if journal.exists() and not self.s.dry_run:
+        # An established environment's journal is never re-initialised: init attests "empty".
+        if self.established() or (journal.exists() and not self.s.dry_run):
             return {"session_journal": "exists"}
         if not (self.s.sql_config or self.s.counts_file or self.s.assume_empty_counts):
             raise DeployError(
@@ -1642,6 +1734,37 @@ class Pipeline:
                 "open a window that could not be closed")
         self.run_session("init", "--confirm-empty", "--confirm-exclusive")
         return {"session_journal": "initialized"}
+
+    def session_recorded(self):
+        """What the session journal says (open, closed, ...); None before it exists."""
+        path = self.session_dir() / "journal.json"
+        if self.s.dry_run or not path.exists():
+            return None
+        journal = Journal(path, station=self.s.station, environment=self.s.env)
+        with journal.locked() as state:
+            return state.get("session")
+
+    def kill_switch_on(self):
+        return self.s.persistent and bool(self.meta().get("session_opened")) and (
+            self.session_recorded() not in (None, "open"))
+
+    def step_session_open(self):
+        """Open the persistent environment once; afterwards an operator's close is respected.
+
+        The template already deploys it open, so this records the open session (which `status`
+        compares against) and switches the launcher's SQL flag on, after the same readiness and
+        repair checks a booked open makes. A later `session close` is the emergency kill
+        switch, and a routine deploy must not quietly undo it.
+        """
+        if self.meta().get("session_opened"):
+            recorded = self.session_recorded()
+            return {"session": recorded or "unknown", "opened": "earlier",
+                    "kill_switch": "on" if self.kill_switch_on() else "off"}
+        result = self.run_session("open", "--unattended", "--minutes",
+                                  str(ALWAYS_ON_OPEN_MINUTES))
+        if not self.s.dry_run:
+            self.journal.mutate(lambda d: d.update(session_opened=True))
+        return {"session": result.get("session", "open"), "launcher": "enabled"}
 
     def step_session_window(self):
         result = self.run_session("window")
@@ -1676,6 +1799,8 @@ class Pipeline:
                 "email_sha256": hashlib.sha256(creds["email"].encode()).hexdigest()[:12]}
 
     def step_public_smoke(self):
+        if self.kill_switch_on():
+            return {"checks": "skipped: the kill switch is on (`session open --unattended`)"}
         base = self.outputs()["HttpApiUrl"]
         if self.s.dry_run:
             checks = ["media-health", "processing-health", "anonymous-denied", "login",
@@ -1697,6 +1822,8 @@ class Pipeline:
 
     # ---- orchestration -------------------------------------------------------------------
     def deploy(self, *, stop_after=None, revisions=None):
+        if self.s.persistent:
+            return self.deploy_persistent(stop_after=stop_after, revisions=revisions)
         actions = {
             "preflight": self.preflight, "bootstrap-stack": self.step_bootstrap_stack,
             "foundation": self.step_foundation, "images": self.step_images,
@@ -1727,6 +1854,27 @@ class Pipeline:
                     self.journal.mutate(lambda d: [d["steps"].pop(n, None) for n in (
                         "session-window", "session-close")])
             raise
+        return results
+
+    def deploy_persistent(self, *, stop_after=None, revisions=None):
+        """Create the environment, or update it in place once it is established (#235)."""
+        self.begin_invocation()
+        actions = {
+            "preflight": self.preflight, "bootstrap-stack": self.step_bootstrap_stack,
+            "foundation": self.step_foundation, "images": self.step_images,
+            "applications": self.step_applications, "frontend": self.step_frontend,
+            "db-bootstrap": self.step_db_bootstrap,
+            "migrations": lambda: self.step_migrations(revisions),
+            "session-init": self.step_session_init, "session-open": self.step_session_open,
+            "seed": self.step_seed, "public-smoke": self.step_public_smoke,
+        }
+        results = {}
+        for name in PERSISTENT_STEPS:
+            results[name] = self.run_step(name, actions[name], always=name == "preflight")
+            if name == stop_after:
+                return results
+        if not self.s.dry_run:
+            self.journal.mutate(lambda d: d.update(established=True))
         return results
 
     # ---- teardown ---------------------------------------------------------------------
@@ -2302,7 +2450,13 @@ class Pipeline:
 STATEFUL = {
     "AWS::RDS::DBCluster", "AWS::RDS::DBInstance", "AWS::S3::Bucket", "AWS::ECR::Repository",
     "AWS::EC2::VPC", "AWS::EC2::Subnet", "AWS::SQS::Queue", "AWS::ECS::Cluster",
+    "AWS::CloudFront::Distribution",
 }
+
+
+def no_changes(described):
+    reason = described.get("StatusReason", "")
+    return "didn't contain changes" in reason or "No updates" in reason
 
 
 def summarize(rows):
@@ -2374,12 +2528,17 @@ def load_images(path):
 def build_parser():
     p = argparse.ArgumentParser(prog="scripts.aws.v1.deploy", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("action", choices=["deploy", "teardown", "rehearse", "status"])
+    p.add_argument("action",
+                   choices=["deploy", "teardown", "rehearse", "status", "adopt-release"])
     p.add_argument("--profile", required=True,
                    help="explicit AWS profile, e.g. dc2-agent or dc2-project2-mfa; never 'default'")
     p.add_argument("--region", required=True, help="must be " + REGION)
     p.add_argument("--account", required=True, help="12-digit account; STS must agree")
-    p.add_argument("--run-id", required=True, help="2-16 lowercase alphanumerics")
+    target = p.add_mutually_exclusive_group(required=True)
+    target.add_argument("--run-id", help="2-16 lowercase alphanumerics: one per-run stack "
+                        "dc2-v1-<id> (V1, historical)")
+    target.add_argument("--environment", help="2-16 lowercase alphanumerics: the persistent "
+                        "always-on stack dc2-<name> that every deploy updates in place (V2-live)")
     p.add_argument("--state-dir", type=Path,
                    help="private 0700 directory outside the repository (journal, outputs, receipt)")
     p.add_argument("--dry-run", action="store_true", help="offline simulation; print the commands")
@@ -2394,7 +2553,8 @@ def build_parser():
     p.add_argument("--allow-replacement", action="store_true")
     p.add_argument("--skip-final-snapshot", action="store_true",
                    help="teardown: delete Aurora without a final snapshot (default takes one)")
-    p.add_argument("--confirm-run-id", help="teardown --execute: repeat the run id")
+    p.add_argument("--confirm-run-id",
+                   help="teardown --execute: repeat the run id (or the environment name)")
     p.add_argument("--seed-email", help="smoke account address (registered via the public API)")
     p.add_argument("--counts-file", type=Path, help="private 0600 attempt-count JSON for close")
     p.add_argument("--assume-empty-counts", action="store_true",
@@ -2402,7 +2562,19 @@ def build_parser():
     p.add_argument("--sql-config", type=Path, help="ca_file/media_dsn_file/processing_dsn_file")
     p.add_argument("--media-revision")
     p.add_argument("--processing-revision")
-    p.add_argument("--stop-after", choices=DEPLOY_STEPS)
+    p.add_argument("--stop-after", choices=list(dict.fromkeys(DEPLOY_STEPS + PERSISTENT_STEPS)))
+    p.add_argument("--stage-rate-limit", type=int, default=20,
+                   help="--environment: the Gateway's steady requests per second")
+    p.add_argument("--stage-burst-limit", type=int, default=50,
+                   help="--environment: the Gateway's burst")
+    p.add_argument("--monthly-budget-usd", type=int, default=20,
+                   help="--environment: the AWS Budget alerting at 50/80/100 %%")
+    p.add_argument("--budget-alert-email", default="",
+                   help="--environment: subscribe this address to the budget alerts (optional)")
+    p.add_argument("--owner", choices=OWNERS, help="adopt-release: the released owner")
+    p.add_argument("--release-dir", type=Path,
+                   help="adopt-release: the release plan's directory (plan.json, bundles)")
+    p.add_argument("--release-tag", help="adopt-release: the release id its images were tagged")
     p.add_argument("--database-topology", choices=("shared", "separate"), default="shared",
                    help="V2 experiment (#94): one Aurora cluster for both databases (V1, default) "
                         "or one per domain. Fixed for the run: a resume must repeat it")
@@ -2467,8 +2639,13 @@ def main(argv=None, *, environ=None, transport=None, docker=None, http=None, ses
                                        args.database_max_capacity)
         except ValueError as error:
             raise DeployError(str(error)) from None
+        persistent = args.environment is not None
         settings = Settings(
-            profile=args.profile, region=args.region, account=args.account, run_id=args.run_id,
+            profile=args.profile, region=args.region, account=args.account,
+            run_id=args.environment if persistent else args.run_id, persistent=persistent,
+            stage_rate_limit=args.stage_rate_limit, stage_burst_limit=args.stage_burst_limit,
+            monthly_budget_usd=args.monthly_budget_usd,
+            budget_alert_email=args.budget_alert_email,
             state_dir=state, budget_usd=args.budget_usd, budget_name=args.budget_name,
             forecast_usd=args.forecast_usd, planned_hours=args.planned_hours,
             execute=args.execute or rehearse, dry_run=dry, images_file=args.images,
@@ -2481,6 +2658,13 @@ def main(argv=None, *, environ=None, transport=None, docker=None, http=None, ses
                                 environment=settings.env)
         if args.action == "status":
             print(json.dumps(journal.view(), indent=2, sort_keys=True), file=stdout)
+            return 0
+        if args.action == "adopt-release":
+            if dry or not persistent:
+                raise DeployError("adopt-release applies to a live --environment only")
+            with journal.run_lock():
+                adopted = adopt_release(journal, args.owner, args.release_dir, args.release_tag)
+            print(json.dumps({"ok": True, "adopted": adopted}, indent=2), file=stdout)
             return 0
         seed = None
         if dry:
@@ -2537,10 +2721,48 @@ def recorded_state(args):
         raise DeployError("teardown --dry-run needs --state-dir to read the run's journal; "
                           "use 'rehearse' for a self-contained deploy+teardown simulation")
     path = args.state_dir / "deploy-journal.json"
-    journal = DeployJournal(path, station=args.station, environment=f"dc2-v1-{args.run_id}")
+    persistent = args.environment is not None
+    environment = env_name(args.environment if persistent else args.run_id, persistent=persistent)
+    journal = DeployJournal(path, station=args.station, environment=environment)
     if not journal.exists():
         raise DeployError("No journal for this run; nothing recorded to tear down")
     return journal.view()
+
+
+def adopt_release(journal, owner, release_dir, tag):
+    """Make a promoted release's images the ones the persistent environment's stack renders.
+
+    After `release promote` the aliases run the new images, while the journal (and so the
+    next `applications` render, the stack's task definitions and the launcher's worker) still
+    name the old ones. Recording them here, then updating the stack, keeps the stack the
+    single description of what runs, and makes this release the next one's baseline.
+    """
+    if not (owner and release_dir and tag and re.fullmatch(r"[a-z0-9]{1,24}", tag)):
+        raise DeployError("adopt-release needs --owner, --release-dir and a plain --release-tag")
+    try:
+        plan = json.loads((Path(release_dir) / "plan.json").read_text())
+        bundle = json.loads((Path(release_dir) / plan["good"]["bundle"]).read_text())
+    except (OSError, ValueError, KeyError, TypeError):
+        raise DeployError("The release plan or its good bundle is unreadable") from None
+    if plan.get("owner") != owner:
+        raise DeployError(f"The release plan is for {plan.get('owner')}, not {owner}")
+    names = {"api": owner, "worker": "worker"}
+    adopted = {}
+
+    def change(d):
+        for kind, image in bundle.items():
+            name = names[kind]
+            repository = d["outputs"][f"{name.title()}RepositoryUri"]
+            digest = image["manifest_digest"]
+            if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+                raise DeployError(f"The {name} digest in the release bundle is malformed")
+            d["images"].setdefault(name, {}).update(
+                tag=f"{tag}-{name}", digest=digest, uri=f"{repository}@{digest}",
+                local_id=image["config_id"], scan_severity_counts="see the release plan")
+            adopted[name] = digest
+
+    journal.mutate(change)
+    return adopted
 
 
 def check_database_layout(journal, wanted):

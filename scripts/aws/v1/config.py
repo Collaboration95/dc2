@@ -25,6 +25,18 @@ FIELDS = {
     "worker_lifetime_seconds",
     "unattended_launch",
     "lambda_short_encodes",
+    "always_on",
+    "stage_rate_limit",
+    "stage_burst_limit",
+    "monthly_budget_usd",
+    "budget_alert_email",
+}
+# V2-live (#236): the persistent environment's render inputs -> CloudFormation parameters.
+ALWAYS_ON_PARAMETERS = {
+    "stage_rate_limit": "StageRateLimit",
+    "stage_burst_limit": "StageBurstLimit",
+    "monthly_budget_usd": "MonthlyBudgetUsd",
+    "budget_alert_email": "BudgetAlertEmail",
 }
 PARAMETERS = {
     "media_runtime_dsn": "MediaRuntimeDsnParameterArn",
@@ -111,6 +123,13 @@ def parameters(config):
         if type(config["lambda_short_encodes"]) is not bool:
             raise ValueError("Lambda short-encode flag must be a JSON boolean")
         result["LambdaShortEncodes"] = str(config["lambda_short_encodes"]).lower()
+    if "always_on" in config:
+        # Absent means the template default (false): V1's closed-by-default stack.
+        if type(config["always_on"]) is not bool:
+            raise ValueError("Always-on flag must be a JSON boolean")
+        result["AlwaysOn"] = str(config["always_on"]).lower()
+    result.update({name: config[key] for key, name in ALWAYS_ON_PARAMETERS.items()
+                   if key in config})
     result.update({name: arns[key] for key, name in PARAMETERS.items()})
     result.update({f"{key.title()}ImageUri": uri for key, uri in images.items()})
     handler_config = config.get("handlers", {})

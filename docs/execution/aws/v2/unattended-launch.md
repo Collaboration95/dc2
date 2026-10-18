@@ -10,6 +10,12 @@ The experiment was started in parallel with the V1 cloud proof at the user's dir
 overrides the epic's "after the `project2-v1` tag" gating (#80). It is still not on the V1
 critical path: no V1 issue depends on it and it can be reverted by redeploying without the flag.
 
+On the persistent environment (V2-live, #237) the launcher is no longer opt-in: it is deployed
+and enabled by default, it has no session end (`PROCESSING_LAUNCHER_ALWAYS_ON`), and every work
+send wakes it at once with an asynchronous `lambda:InvokeFunction` (action `wake`), granted only
+to the four work publishers and only on the launcher alias. The one-minute rule stays as the
+safety net. The cap, reservations, idle breaker and kill switch below are unchanged.
+
 ## What it does
 
 A Lambda (`processing.handlers.launcher_handler`) runs on an EventBridge `rate(1 minute)` rule

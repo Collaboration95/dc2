@@ -16,6 +16,43 @@ closed V1 and back to nothing. Every step journals itself, supports `--dry-run`,
 it creates `deploy-project=dc2-v1` and `owner-run=<run id>` (the keys avoid `Project`, which the
 template already uses: IAM compares tag keys case-insensitively and would reject the duplicate).
 
+## Persistent environment (V2-live, #234)
+
+The normal path is now one long-lived environment, `dc2-live`, that CD updates in place; the
+per-run lifecycle below (a new run id, a booked session, a teardown) is kept as the historical
+record of the V1 proof runs. The decision is AD-27 in
+[`decisions.md`](../../../architecture/decisions.md).
+
+- **Deploy.** `python -m scripts.aws.v1.deploy deploy --environment live ...` (CD passes
+  `--environment`, never `--run-id`). The first deploy runs the ordered steps below and ends with
+  `session-open` instead of a window and a close. Later deploys archive the journal's step log
+  under `invocations` and run every step again: `foundation`, `images` (it only compares),
+  `db-bootstrap` and `migrations` are skipped, `applications` updates the stack as a change set
+  (no changes is a no-op), and the session is not reopened. A change set that replaces Aurora, an
+  S3 bucket or the CloudFront distribution fails unless `--allow-replacement` is given.
+- **CD.** Every green `CI` run of a push to `Main` dispatches `cd.yml` (`workflow_run`), which
+  deploys `live` in place and then runs the existing release for each owner whose image changed
+  (`images.detail.changed_owners`). Such a release quiesces the owner (`session close`), opens the
+  release window, promotes with its smoke and automatic restore, records the released images in
+  the journal (`deploy adopt-release`), updates the stack to name them, and reopens with
+  `session open --unattended`. The upload-to-playback smoke then runs against the open environment.
+  The state lives under `envs/<name>/` in the state bucket.
+- **Always on.** The template deploys with `AlwaysOn=true`: stage throttle 20 rps / burst 50
+  (`--stage-rate-limit`, `--stage-burst-limit`), both consumers and the four schedules enabled,
+  and the launcher enabled with no session end. Encoders scale 0 to 3 to 0 with the queue: each
+  work send wakes the launcher, and its one-minute schedule stays as the safety net.
+- **Cost.** The stack's AWS Budget `dc2-live-monthly` alerts at 50/80/100 % of $20 a month
+  (`--monthly-budget-usd`) to the SNS topic `BudgetAlertTopic`. Set the repository variable
+  `DC2_BUDGET_ALERT_EMAIL` (or `--budget-alert-email`) to subscribe an address; without it the
+  alerts reach only the topic, and the address must confirm the subscription email once. The
+  preflight cost guard reports routine updates but does not block them.
+- **Kill switch.** `python -m scripts.aws.v1.session close --config <state>/operator-config.json
+  --in-vpc-counts $S` closes everything as before (launcher first, then intake, drain, consumers,
+  schedules). Routine deploys keep it closed and skip the smoke. `session open --unattended`
+  turns it off. `session status` reports any drift from the recorded state.
+- **Teardown.** Not routine. `cd.yml` refuses an executed teardown unless `confirm` repeats the
+  environment name.
+
 ## Before the first real run
 
 The operator must decide or supply all of these. None has a default.
@@ -680,6 +717,10 @@ Caveats that matter when reading receipts:
   a value that looks like one fails the step instead of being stored.
 
 ## CD workflow
+
+Since V2-live the workflow targets the persistent environment (inputs `environment`, default
+`live`, and `confirm` for teardown; see "Persistent environment" above) and also runs after every
+green CI on `Main`. The `run_id` examples below are the historical per-run form.
 
 [`.github/workflows/cd.yml`](../../../../.github/workflows/cd.yml) runs the commands above from
 GitHub Actions through [`scripts/ci/cd.sh`](../../../../scripts/ci/cd.sh); it adds no deploy

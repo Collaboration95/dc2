@@ -63,15 +63,16 @@ def test_dispatch_offers_the_four_operations_and_nothing_applies_by_default(work
     assert inputs["operation"]["options"] == ["preflight", "deploy", "release", "teardown"]
     assert inputs["owner"]["options"] == ["none", "media", "processing"]
     assert inputs["execute"]["default"] is False
-    assert inputs["unattended_launch"]["default"] is False
-    assert inputs["run_id"]["required"] is True
+    # V2-live (#235): one persistent environment instead of a run id per stack.
+    assert inputs["environment"]["default"] == "live" and "run_id" not in inputs
+    assert inputs["confirm"]["default"] == ""
     assert inputs["budget_usd"]["default"] == "30"
     assert inputs["planned_hours"]["default"] == "3"
 
 
 def test_state_is_saved_even_when_the_run_fails_and_never_after_a_failed_restore(workflow):
     steps = {s.get("name"): s for s in workflow["jobs"]["run"]["steps"]}
-    save = steps["Save the run's state to the private bucket"]
+    save = steps["Save the environment's state to the private bucket"]
     assert "always()" in save["if"]
     assert "steps.state.outcome == 'success'" in save["if"]
     upload = steps["Upload the redacted results"]
@@ -90,10 +91,25 @@ def test_the_wrapped_entry_points_are_the_existing_ones():
         assert entry in script
 
 
-def test_unattended_launch_reaches_deploy_only_when_asked():
+def test_every_deploy_call_targets_the_persistent_environment_and_state_follows_it():
     script = CD_SCRIPT.read_text()
-    assert script.count("--unattended-launch") == 1  # one definition, used by both deploy calls
-    assert script.count('${LAUNCH[@]+"${LAUNCH[@]}"}') == 2
+    assert '--environment "$CD_ENVIRONMENT"' in script and "--run-id \"$CD_RUN_ID\"" not in script
+    assert "--unattended-launch" not in script  # the environment always deploys the launcher
+    assert script.count("s3://$CD_STATE_BUCKET/envs/$CD_ENVIRONMENT/") == 2
+
+
+def test_green_ci_on_main_updates_the_environment_in_place(workflow):
+    trigger = workflow[True]["workflow_run"]
+    assert trigger == {"workflows": ["CI"], "types": ["completed"], "branches": ["Main"]}
+    condition = workflow["jobs"]["gate"]["if"]
+    for clause in ("conclusion == 'success'", "event == 'push'",
+                   "head_repository.full_name == github.repository"):
+        assert clause in condition
+    assert "workflow_run' && 'deploy'" in workflow["env"]["CD_OPERATION"]
+    assert "workflow_run.head_sha" in workflow["env"]["CD_SHA"]
+    checkouts = [s for job in workflow["jobs"].values() for s in job["steps"]
+                 if s.get("uses", "").startswith("actions/checkout")]
+    assert checkouts and all(s["with"]["ref"] == "${{ env.CD_SHA }}" for s in checkouts)
 
 
 def test_script_is_executable_and_parses():
@@ -122,7 +138,7 @@ def gate(tmp_path):
             "FAKE_RUNS": str(reply),
             "RUNNER_TEMP": str(tmp_path),
             "CD_OPERATION": "deploy",
-            "CD_RUN_ID": "r1018a",
+            "CD_ENVIRONMENT": "live",
             "CD_SHA": SHA,
             "CD_REPO": "Collaboration95/dc2",
             "CD_EVENT": "workflow_dispatch",
@@ -174,7 +190,7 @@ def test_gate_refuses_while_ci_is_still_running(gate):
 
 
 def test_gate_validates_inputs_before_trusting_ci(gate):
-    assert gate([ci_run("success")], CD_RUN_ID="Bad_ID").returncode == 1
+    assert gate([ci_run("success")], CD_ENVIRONMENT="Bad_ID").returncode == 1
     assert gate([ci_run("success")], CD_OPERATION="release").returncode == 1
     assert gate([ci_run("success")], CD_OPERATION="release", CD_OWNER="media").returncode == 0
     assert gate([ci_run("success")], CD_BUDGET_USD="lots").returncode == 1
@@ -183,6 +199,22 @@ def test_gate_validates_inputs_before_trusting_ci(gate):
 def test_a_non_dispatch_trigger_may_only_run_the_read_only_preflight(gate):
     assert gate([], CD_EVENT="push", CD_OPERATION="preflight").returncode == 0
     assert gate([], CD_EVENT="push", CD_OPERATION="deploy").returncode == 1
+
+
+def test_a_ci_completion_may_only_deploy_and_still_needs_green_ci_for_its_commit(gate):
+    assert gate([ci_run("success")], CD_EVENT="workflow_run").returncode == 0
+    assert gate([ci_run("failure")], CD_EVENT="workflow_run").returncode == 1
+    assert gate([ci_run("success")], CD_EVENT="workflow_run", CD_OPERATION="teardown",
+                CD_EXECUTE="true", CD_CONFIRM="live").returncode == 1
+
+
+def test_an_executed_teardown_needs_the_environment_name_typed_again(gate):
+    down = {"CD_OPERATION": "teardown", "CD_EXECUTE": "true"}
+    assert gate([ci_run("success")], **down).returncode == 1
+    assert gate([ci_run("success")], CD_CONFIRM="other", **down).returncode == 1
+    assert gate([ci_run("success")], CD_CONFIRM="live", **down).returncode == 0
+    # The plan alone deletes nothing and needs no confirmation.
+    assert gate([ci_run("success")], CD_OPERATION="teardown").returncode == 0
 
 
 def test_a_bad_candidate_is_only_accepted_for_an_executed_release(gate):
@@ -221,7 +253,7 @@ def test_the_bad_candidate_changes_only_the_lambda_handler_and_commits_it_locall
     subprocess.run([*git, "add", "."], cwd=repo, check=True)
     subprocess.run([*git, "commit", "-qm", "base"], cwd=repo, check=True)
     before = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True)
-    env = {**os.environ, "CD_RUN_ID": "r1019a", "CD_OPERATION": "release",
+    env = {**os.environ, "CD_ENVIRONMENT": "live", "CD_OPERATION": "release",
            "RUNNER_TEMP": str(tmp_path)}
     done = subprocess.run(["bash", str(CD_SCRIPT), "inject-bad-candidate", owner], env=env,
                           cwd=repo, capture_output=True, text=True)

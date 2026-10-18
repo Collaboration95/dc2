@@ -73,17 +73,18 @@ def test_the_default_config_renders_no_unattended_parameter_and_true_opts_in(tmp
 
 def test_the_launcher_schedule_rule_is_disabled_by_default_and_never_retried():
     rule = resources_of()["ProcessingLauncherRule"]["Properties"]
-    assert rule["State"] == "DISABLED"
+    assert rule["State"] == {"Fn::If": ["AlwaysOpen", "ENABLED", "DISABLED"]}
     assert rule["ScheduleExpression"] == "rate(1 minute)"
     assert rule["Targets"][0]["RetryPolicy"]["MaximumRetryAttempts"] == 0
     assert rule["Targets"][0]["Arn"] == {"Ref": "ProcessingLauncherAlias"}
-    # No rule in the stack starts enabled: only the session API turns any of them on.
-    states = {
+    # No rule starts enabled unless the stack is the always-on environment (#236): otherwise
+    # only the session API turns any of them on.
+    states = [
         r["Properties"]["State"]
         for r in resources_of().values()
         if r["Type"] == "AWS::Events::Rule"
-    }
-    assert states == {"DISABLED"}
+    ]
+    assert states and all(s == {"Fn::If": ["AlwaysOpen", "ENABLED", "DISABLED"]} for s in states)
 
 
 def role_statements():
@@ -630,6 +631,48 @@ def test_runtime_configuration_comes_from_the_stack_environment():
     assert built.subnets == ("s1", "s2") and built.lifetime_seconds == 900 and built.slots == 3
     environ["PROCESSING_LAUNCHER_CAP"] = "9"
     assert launcher_aws.config_from_environ(environ).slots == 3
+    assert launcher_aws.config_from_environ(environ).always_on is False
+    environ["PROCESSING_LAUNCHER_ALWAYS_ON"] = "true"
+    assert launcher_aws.config_from_environ(environ).always_on is True
+
+
+async def test_a_wake_is_a_tick_that_waits_briefly_for_the_queue_to_show_the_new_work(
+        monkeypatch):
+    seen = []
+
+    async def tick(factory, ecs, queue, cfg):
+        seen.append(await queue.visible())
+        return {"launched": 1}
+
+    class Lagging:
+        answers = [0, 0, 2]
+
+        async def visible(self):
+            return self.answers.pop(0)
+
+    monkeypatch.setattr(launcher, "tick", tick)
+    monkeypatch.setattr(launcher_aws.asyncio, "sleep", lambda _s: _no_wait())
+    wake = {"dc2_operation": "launcher", "action": "wake"}
+    result = await launcher_aws._dispatch(wake, 1, 2, Lagging(), 4)
+    assert result == {"service": "processing-launcher", "action": "wake", "launched": 1}
+    assert seen == [2]
+
+
+async def _no_wait():
+    return None
+
+
+async def test_an_empty_queue_is_believed_after_a_bounded_number_of_reads():
+    class Empty:
+        reads = 0
+
+        async def visible(self):
+            self.reads += 1
+            return 0
+
+    queue = Empty()
+    assert await launcher_aws.SettledDepth(queue, attempts=3, interval=0).visible() == 0
+    assert queue.reads == 3
 
 
 async def test_control_events_dispatch_to_the_matching_sql_action(monkeypatch):

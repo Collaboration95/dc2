@@ -14,6 +14,7 @@ from uuid import uuid4
 import pytest
 import pytest_asyncio
 from sqlalchemy import func, select, text
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from processing import launcher, launcher_models, messaging
@@ -268,6 +269,44 @@ async def test_concurrent_triggers_never_exceed_the_cap(factory):
     assert len(ecs.run_calls) == 3 == len(ecs.live())
     assert len({call["clientToken"] for call in ecs.run_calls}) == 3
     assert len([r for r in await rows(factory) if r.status in launcher.OPEN_STATES]) == 3
+
+
+async def test_always_on_concurrent_wakes_never_exceed_the_cap_without_a_session_end(factory):
+    # V2-live (#237): every work publisher wakes the launcher, so wakes arrive together. The
+    # SQL reservation, not the session, is what holds the cap.
+    ecs = FakeEcs()
+    ecs.barrier = asyncio.Barrier(8)
+    await submit(factory, 10)
+    async with factory() as session, session.begin():
+        await session.execute(
+            insert(launcher_models.LauncherControl).values(id=1, enabled=True)
+        )  # enabled with no session end, as nothing on the persistent environment sets one
+    results = await asyncio.gather(
+        *(tick(factory, ecs, Depth(), always_on=True) for _ in range(8))
+    )
+    assert sum(r["launched"] for r in results) == 3
+    assert len(ecs.run_calls) == 3 == len(ecs.live())
+    held = [r for r in await rows(factory) if r.status in launcher.OPEN_STATES]
+    assert len(held) == 3
+    # Finite all the same: each task ends after its lifetime.
+    assert all(
+        (r.deadline_at - r.reserved_at).total_seconds() == config().lifetime_seconds
+        for r in held
+    )
+
+
+async def test_always_on_launches_nothing_for_an_empty_queue_or_while_switched_off(factory):
+    ecs = FakeEcs()
+    async with factory() as session, session.begin():
+        await session.execute(
+            insert(launcher_models.LauncherControl).values(id=1, enabled=True)
+        )
+    assert (await tick(factory, ecs, Depth(), always_on=True))["outcome"] == "idle"
+    await submit(factory, 2)
+    assert (await tick(factory, ecs, Depth(0), always_on=True))["launched"] == 0
+    await launcher.set_enabled(factory, False)  # the kill switch
+    result = await tick(factory, ecs, Depth(), always_on=True)
+    assert result["launched"] == 0 and ecs.run_calls == []
 
 
 async def test_concurrent_triggers_with_a_lost_response_still_respect_the_cap(factory):

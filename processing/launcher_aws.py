@@ -108,6 +108,24 @@ class QueueDepth(_Lazy):
         return int(reply["Attributes"]["ApproximateNumberOfMessages"])
 
 
+class SettledDepth:
+    """SQS's visible count trails a send by a moment, and a wake arrives right after one.
+
+    Asked again a few times, briefly, before an empty answer is believed; a scheduled tick
+    keeps the plain single read.
+    """
+
+    def __init__(self, queue, *, attempts=5, interval=1.0):
+        self.queue, self.attempts, self.interval = queue, attempts, interval
+
+    async def visible(self):
+        for attempt in range(self.attempts):
+            count = await self.queue.visible()
+            if count or attempt == self.attempts - 1:
+                return count
+            await asyncio.sleep(self.interval)
+
+
 def config_from_environ(environ=None):
     environ = os.environ if environ is None else environ
     prefix = "PROCESSING_LAUNCHER_"
@@ -118,6 +136,7 @@ def config_from_environ(environ=None):
         security_groups=tuple(environ[prefix + "SECURITY_GROUPS"].split(",")),
         lifetime_seconds=int(environ[prefix + "LIFETIME_SECONDS"]),
         cap=int(environ.get(prefix + "CAP", launcher.HARD_CAP)),
+        always_on=environ.get(prefix + "ALWAYS_ON") == "true",
     )
 
 
@@ -157,6 +176,11 @@ async def _dispatch(event, factory, ecs, queue, config):
             result = await launcher.settle(factory, ecs, config)
         elif action == "status":
             result = await launcher.status(factory)
+        elif action == "wake":
+            # Sent by a work publisher the moment it enqueued (#237): a tick, without waiting
+            # for the minute schedule.
+            depth = SettledDepth(queue or QueueDepth(os.environ["PROCESSING_WORK_QUEUE_URL"]))
+            result = await launcher.tick(factory, ecs, depth, config)
         else:
             raise ValueError("Unknown launcher action")
         return {"service": SERVICE, "action": action, **result}

@@ -2,6 +2,7 @@
 
 import argparse
 import dataclasses
+import hashlib
 import json
 from pathlib import Path
 
@@ -16,6 +17,9 @@ LAUNCHER = "ProcessingLauncher"
 SHORT_ENCODER = "ProcessingShortEncoder"
 SHORT_QUEUE = "ProcessingShortWork"
 OPTIONAL_FUNCTIONS = (LAUNCHER, SHORT_ENCODER)
+# The Processing functions that publish work onto processing-work, and so wake the launcher.
+WORK_PUBLISHERS = ("ProcessingCommands", "ProcessingRepair", "ProcessingEcsEvents",
+                   "ProcessingS3Events")
 
 
 # Opt-in V2 experiment (#94). The database layout is chosen when the template is rendered, not by
@@ -151,6 +155,22 @@ def template(database=None):
             "Type": "String",
             "Default": "false",
             "AllowedValues": ["true", "false"],
+        },
+        # V2-live (#236): the persistent environment deploys open. False keeps V1's closed
+        # template, where only a booked session opens the API, consumers and schedules.
+        "AlwaysOn": {
+            "Type": "String",
+            "Default": "false",
+            "AllowedValues": ["true", "false"],
+        },
+        "StageRateLimit": {"Type": "Number", "Default": 20, "MinValue": 1, "MaxValue": 1000},
+        "StageBurstLimit": {"Type": "Number", "Default": 50, "MinValue": 1, "MaxValue": 2000},
+        "MonthlyBudgetUsd": {"Type": "Number", "Default": 20, "MinValue": 1, "MaxValue": 1000},
+        # Empty means the alerts reach only the SNS topic; anyone can subscribe to it later.
+        "BudgetAlertEmail": {
+            "Type": "String",
+            "Default": "",
+            "AllowedPattern": r"^$|^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$",
         },
     }
     for domain in ("Media", "Processing", "Worker"):
@@ -777,6 +797,75 @@ def template(database=None):
             "ProcessingS3Events",
         ],
     }
+    # Only the work publishers may invoke the launcher, and only its alias (#237).
+    add(
+        f"{LAUNCHER}Invokers",
+        "IAM::Policy",
+        {
+            "PolicyName": "launcher-wake",
+            "Roles": [ref(f"{role}Role") for role in WORK_PUBLISHERS],
+            "PolicyDocument": policy([allow(["lambda:InvokeFunction"], [ref(f"{LAUNCHER}Alias")])]),
+        },
+        app=True,
+    )
+    # The cost safety net of an always-on environment (#236): alerts at 50, 80 and 100 % of a
+    # small monthly amount, on top of the per-service alarms. Account-wide, since the account
+    # holds only this project.
+    add("BudgetAlertTopic", "SNS::Topic", {"Tags": tags}, gate="AlwaysOpen")
+    add(
+        "BudgetAlertTopicPolicy",
+        "SNS::TopicPolicy",
+        {
+            "Topics": [ref("BudgetAlertTopic")],
+            "PolicyDocument": policy(
+                [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {"Service": "budgets.amazonaws.com"},
+                        "Action": "sns:Publish",
+                        "Resource": ref("BudgetAlertTopic"),
+                        "Condition": {"StringEquals": {"aws:SourceAccount": ref("AWS::AccountId")}},
+                    }
+                ]
+            ),
+        },
+        gate="AlwaysOpen",
+    )
+    add(
+        "BudgetAlertSubscription",
+        "SNS::Subscription",
+        {"TopicArn": ref("BudgetAlertTopic"), "Protocol": "email",
+         "Endpoint": ref("BudgetAlertEmail")},
+        gate="BudgetEmail",
+    )
+    add(
+        "MonthlyBudget",
+        "Budgets::Budget",
+        {
+            "Budget": {
+                "BudgetName": sub("${EnvironmentId}-monthly"),
+                "BudgetType": "COST",
+                "TimeUnit": "MONTHLY",
+                "BudgetLimit": {"Amount": ref("MonthlyBudgetUsd"), "Unit": "USD"},
+            },
+            "NotificationsWithSubscribers": [
+                {
+                    "Notification": {
+                        "NotificationType": "ACTUAL",
+                        "ComparisonOperator": "GREATER_THAN",
+                        "Threshold": percent,
+                        "ThresholdType": "PERCENTAGE",
+                    },
+                    "Subscribers": [
+                        {"SubscriptionType": "SNS", "Address": ref("BudgetAlertTopic")}
+                    ],
+                }
+                for percent in (50, 80, 100)
+            ],
+        },
+        gate="AlwaysOpen",
+        depends=["BudgetAlertTopicPolicy"],
+    )
     consumers = {
         "ProcessingCommands": ["ProcessingCommands"],
         "ProcessingWork": ["Worker"],
@@ -898,6 +987,15 @@ def template(database=None):
                 "PROCESSING_LAUNCHER_SECURITY_GROUPS": ref("WorkerSecurityGroup"),
                 "PROCESSING_LAUNCHER_LIFETIME_SECONDS": {"Fn::Sub": "${WorkerLifetimeSeconds}"},
                 "PROCESSING_LAUNCHER_CAP": "3",
+                # Always on, the launcher has no session end to stop at (#237).
+                "PROCESSING_LAUNCHER_ALWAYS_ON": {
+                    "Fn::If": ["AlwaysOpen", "true", ref("AWS::NoValue")]
+                },
+            }
+        if name in WORK_PUBLISHERS:
+            # A work send wakes the launcher at once (#237); the minute schedule stays the net.
+            env["PROCESSING_LAUNCHER_FUNCTION"] = {
+                "Fn::If": ["Unattended", ref(f"{LAUNCHER}Alias"), ref("AWS::NoValue")]
             }
         if domain == "Processing" and name not in (LAUNCHER, SHORT_ENCODER):
             # Every publisher routes work by lane. The values resolve to nothing, so the
@@ -971,11 +1069,24 @@ def template(database=None):
             },
             app=True,
         )
+        # An alias moves only when its Version is replaced, and a Version is replaced only when
+        # its own properties change. Naming the image and a digest of the function's definition
+        # here makes an in-place stack update (#235) publish a new version, and repoint the
+        # alias, exactly when the function's image or configuration changed. Retained, because
+        # Lambda answers an unchanged publish with the existing version, which a replaced
+        # resource must then not delete; the versions go with the function itself.
+        definition = hashlib.sha256(
+            json.dumps(resources[name]["Properties"], sort_keys=True).encode()
+        ).hexdigest()[:12]
         add(
             f"{name}Version",
             "Lambda::Version",
-            {"FunctionName": ref(name), "Description": f"V1 initial {domain} artifact"},
+            {
+                "FunctionName": ref(name),
+                "Description": sub(f"{domain} ${{{image}ImageUri}} definition {definition}"),
+            },
             app=True,
+            retain=True,
         )
         add(
             f"{name}Alias",
@@ -1002,7 +1113,7 @@ def template(database=None):
                 "FunctionResponseTypes": ["ReportBatchItemFailures"],
                 # Without reservations this is the consumer bound; 2 is the SQS minimum.
                 "ScalingConfig": {"MaximumConcurrency": 2},
-                "Enabled": False,
+                "Enabled": {"Fn::If": ["AlwaysOpen", True, False]},
             },
             app=True,
         )
@@ -1018,7 +1129,7 @@ def template(database=None):
             # Nothing is reservable at an account limit of 10, so this is the executor bound.
             # 2 is the SQS minimum. Closed until a session opens, like every other mapping.
             "ScalingConfig": {"MaximumConcurrency": short_lane.ENCODER_MAX_CONCURRENCY},
-            "Enabled": False,
+            "Enabled": {"Fn::If": ["AlwaysOpen", True, False]},
         },
         app=True,
     )
@@ -1233,8 +1344,18 @@ def template(database=None):
             "StageName": "$default",
             "AutoDeploy": True,
             # Closed by default (account limit 10 forbids Lambda reservations, so this and
-            # the disabled mappings/rules are the gates); the session API opens it.
-            "DefaultRouteSettings": {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0},
+            # the disabled mappings/rules are the gates); the session API opens it. An
+            # always-on environment (#236) deploys with its sane limit instead.
+            "DefaultRouteSettings": {
+                "Fn::If": [
+                    "AlwaysOpen",
+                    {
+                        "ThrottlingBurstLimit": ref("StageBurstLimit"),
+                        "ThrottlingRateLimit": ref("StageRateLimit"),
+                    },
+                    {"ThrottlingBurstLimit": 0, "ThrottlingRateLimit": 0},
+                ]
+            },
         },
         app=True,
     )
@@ -1456,7 +1577,7 @@ def template(database=None):
         LAUNCHER,
     ):
         props = {
-            "State": "DISABLED",
+            "State": {"Fn::If": ["AlwaysOpen", "ENABLED", "DISABLED"]},
             "Targets": [
                 {
                     "Arn": ref(f"{name}Alias"),
@@ -1467,8 +1588,9 @@ def template(database=None):
         }
         if name == LAUNCHER:
             # A late retry would only repeat work the next tick does anyway, and it could
-            # run beside that tick. The state is always DISABLED here: only a session open
-            # with --unattended enables it, and session close disables it first.
+            # run beside that tick. Closed, only a session open with --unattended enables
+            # it; always on, it is the safety net behind the enqueue trigger. Session close
+            # disables it first either way.
             props["Targets"][0]["RetryPolicy"] = {
                 "MaximumEventAgeInSeconds": 60,
                 "MaximumRetryAttempts": 0,
@@ -1765,6 +1887,18 @@ def template(database=None):
                 "Fn::And": [
                     {"Condition": "Applications"},
                     {"Fn::Equals": [ref("LambdaShortEncodes"), "true"]},
+                ]
+            },
+            "AlwaysOpen": {
+                "Fn::And": [
+                    {"Condition": "Applications"},
+                    {"Fn::Equals": [ref("AlwaysOn"), "true"]},
+                ]
+            },
+            "BudgetEmail": {
+                "Fn::And": [
+                    {"Condition": "AlwaysOpen"},
+                    {"Fn::Not": [{"Fn::Equals": [ref("BudgetAlertEmail"), ""]}]},
                 ]
             },
         },

@@ -97,7 +97,9 @@ def test_the_optional_functions_alarm_only_when_they_exist():
 
 
 def test_alarms_page_nobody_and_are_deleted_with_the_stack():
-    assert not [k for k, v in RESOURCES.items() if v["Type"].startswith("AWS::SNS::")]
+    # The only topic is the always-on environment's budget alert (#236), never an alarm's.
+    topics = {k: v for k, v in RESOURCES.items() if v["Type"].startswith("AWS::SNS::")}
+    assert set(topics) == {"BudgetAlertTopic", "BudgetAlertTopicPolicy", "BudgetAlertSubscription"}
     for name, resource in {**ALARMS, "ServicesDashboard": DASHBOARD}.items():
         assert "DeletionPolicy" not in resource, name
         for hook in ("AlarmActions", "OKActions", "InsufficientDataActions"):

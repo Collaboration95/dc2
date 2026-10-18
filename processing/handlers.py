@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from delivery.runtime import deadline_for, queue_urls
 from delivery.sqs import SQS
+from processing import launcher_trigger
 from processing.config import get_settings
 from processing.messaging import consume_commands, publish_outbox
 from processing.recovery_v1 import run_once, terminal_event
@@ -28,11 +29,13 @@ async def invoke(event, context, mode):
         lambda: create_async_engine(settings.postgres_dsn, **v1_engine_options(settings)),
     )
     factory = async_sessionmaker(engine, expire_on_commit=False)
-    transport = SQS(
-        queue_urls(),
-        producer="processing",
-        region=os.environ.get("AWS_REGION"),
-        endpoint_url=os.environ.get("SQS_ENDPOINT_URL"),
+    transport = launcher_trigger.wrap(
+        SQS(
+            queue_urls(),
+            producer="processing",
+            region=os.environ.get("AWS_REGION"),
+            endpoint_url=os.environ.get("SQS_ENDPOINT_URL"),
+        )
     )
     deadline = deadline_for(context)
     try:

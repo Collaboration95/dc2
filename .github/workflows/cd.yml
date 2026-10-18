@@ -1,21 +1,29 @@
 name: CD
 
-# Operator-triggered deploy, release and teardown of the V1 AWS stack. It wraps the existing
-# entry points (scripts.aws.v1.deploy / session / release / evidence and
-# deploy/v1/build_and_verify.py) through scripts/ci/cd.sh and reimplements none of them; the
-# order of the steps is the order of docs/execution/aws/v1/deploy-runbook.md.
+# Deploy, release and teardown of the one persistent, always-on AWS environment (V2-live, #234:
+# stack dc2-live). It wraps the existing entry points (scripts.aws.v1.deploy / session / release
+# / evidence and deploy/v1/build_and_verify.py) through scripts/ci/cd.sh and reimplements none of
+# them; docs/execution/aws/v1/deploy-runbook.md ("Persistent environment") describes the flow.
 #
-#   gh workflow run cd.yml -f operation=preflight -f run_id=r1018a
-#   gh workflow run cd.yml -f operation=deploy    -f run_id=r1018a -f execute=true
-#   gh workflow run cd.yml -f operation=release   -f run_id=r1018a -f owner=media -f execute=true -f attest_additive=true
-#   gh workflow run cd.yml -f operation=teardown  -f run_id=r1018a -f execute=true
+# Every green CI run on Main updates the environment in place (a CloudFormation change set,
+# then a release of each owner whose image changed). By hand:
 #
-# Nothing mutates the account unless `execute` is true. AWS access is a GitHub OIDC role
+#   gh workflow run cd.yml -f operation=preflight
+#   gh workflow run cd.yml -f operation=deploy    -f execute=true
+#   gh workflow run cd.yml -f operation=release   -f owner=media -f execute=true -f attest_additive=true
+#   gh workflow run cd.yml -f operation=teardown  -f execute=true -f confirm=live
+#
+# A dispatch mutates nothing unless `execute` is true. AWS access is a GitHub OIDC role
 # (deploy/aws/v1/github-oidc.yaml) that only the `aws` environment can assume: there is no AWS
-# key in GitHub. The run's state directory lives in a private S3 bucket between runs (the
+# key in GitHub. The environment's state directory lives in a private S3 bucket (the
 # repository is public, so a workflow artifact would publish it).
 
 on:
+  # The automatic in-place update. The `run` job checks out the exact commit CI tested.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [Main]
   workflow_dispatch:
     inputs:
       operation:
@@ -23,10 +31,10 @@ on:
         type: choice
         options: [preflight, deploy, release, teardown]
         default: preflight
-      run_id:
-        description: 2-16 lowercase letters or digits. A new id per deploy; release and teardown reuse the deploy's
+      environment:
+        description: The persistent environment (stack dc2-<name>); 2-16 lowercase letters or digits
         type: string
-        required: true
+        default: live
       execute:
         description: >-
           Apply it. Off, deploy prints a review (preflight plus an offline rehearsal), release
@@ -44,12 +52,6 @@ on:
           schema head (additive migrations only); the release plan records it as your word.
         type: boolean
         default: false
-      unattended_launch:
-        description: >-
-          deploy only. Pass --unattended-launch (the optional V2 launcher, #68). Fixed for the
-          run: a resume must use the same value
-        type: boolean
-        default: false
       bad_candidate:
         description: >-
           release only, with execute. A deliberate fault for the rollback proof: the runner commits
@@ -62,7 +64,9 @@ on:
         type: string
         default: ops@example.com
       budget_usd:
-        description: cost guard, month-to-date + forecast + planned must stay under this
+        description: >-
+          cost guard of the first deploy, month-to-date + forecast + planned must stay under
+          this. Routine updates are only reported; the stack's AWS Budget alerts instead
         type: string
         default: "30"
       planned_hours:
@@ -79,9 +83,14 @@ on:
         description: teardown only, delete Aurora without a final snapshot
         type: boolean
         default: false
+      confirm:
+        description: teardown with execute only, the environment's name typed again
+        type: string
+        default: ""
 
-# Never two runs at once: the account has one 6-vCPU Fargate quota and one Lambda pool, and a
-# run's state is a single journal. A cancelled run still uploads its state (see the last steps).
+# Never two runs at once: the account has one 6-vCPU Fargate quota and one Lambda pool, and the
+# environment's state is a single journal. Merges queue up; a cancelled run still uploads its
+# state (see the last steps).
 concurrency:
   group: dc2-aws-cd
   cancel-in-progress: false
@@ -90,18 +99,22 @@ permissions:
   contents: read
 
 env:
-  CD_OPERATION: ${{ inputs.operation || 'preflight' }}
-  CD_RUN_ID: ${{ inputs.run_id || format('pf{0}', github.run_id) }}
-  CD_EXECUTE: ${{ inputs.execute && 'true' || 'false' }}
+  # A CI completion on Main is an executed deploy of the default environment.
+  CD_OPERATION: ${{ github.event_name == 'workflow_run' && 'deploy' || inputs.operation || 'preflight' }}
+  CD_ENVIRONMENT: ${{ inputs.environment || 'live' }}
+  CD_EXECUTE: ${{ (github.event_name == 'workflow_run' || inputs.execute) && 'true' || 'false' }}
+  CD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
   CD_OWNER: ${{ inputs.owner }}
   CD_ATTEST_ADDITIVE: ${{ inputs.attest_additive && 'true' || 'false' }}
-  CD_UNATTENDED_LAUNCH: ${{ inputs.unattended_launch && 'true' || 'false' }}
   CD_BAD_CANDIDATE: ${{ inputs.bad_candidate && 'true' || 'false' }}
   CD_SEED_EMAIL: ${{ inputs.seed_email || 'ops@example.com' }}
   CD_BUDGET_USD: ${{ inputs.budget_usd || '30' }}
   CD_PLANNED_HOURS: ${{ inputs.planned_hours || '3' }}
   CD_FORECAST_USD: ${{ inputs.forecast_usd || '5' }}
   CD_SKIP_FINAL_SNAPSHOT: ${{ inputs.skip_final_snapshot && 'true' || 'false' }}
+  CD_CONFIRM: ${{ inputs.confirm }}
+  # Optional; empty leaves the budget alerts on the stack's SNS topic only.
+  CD_BUDGET_EMAIL: ${{ vars.DC2_BUDGET_ALERT_EMAIL }}
   CD_STATE_BUCKET: ${{ vars.AWS_STATE_BUCKET }}
   UV_CACHE_DIR: ${{ github.workspace }}/.cache/uv
   UV_PROJECT_ENVIRONMENT: ${{ github.workspace }}/.venv
@@ -110,6 +123,13 @@ env:
 jobs:
   gate:
     name: Refuse a commit without green CI
+    # Only a successful CI run of a push to this repository's Main, never a pull request's run
+    # (a fork's branch may also be called Main).
+    if: >-
+      github.event_name != 'workflow_run' || (
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -117,16 +137,17 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CD_SHA }}
       - name: Check inputs and the CI result for this commit
         env:
           GH_TOKEN: ${{ github.token }}
-          CD_SHA: ${{ github.sha }}
           CD_REPO: ${{ github.repository }}
           CD_EVENT: ${{ github.event_name }}
         run: scripts/ci/cd.sh gate
 
   run:
-    name: ${{ inputs.operation || 'preflight' }} ${{ inputs.run_id || '' }}
+    name: ${{ github.event_name == 'workflow_run' && 'deploy' || inputs.operation || 'preflight' }} ${{ inputs.environment || 'live' }}
     needs: gate
     runs-on: ubuntu-latest
     # The environment carries the branch policy that decides who can reach the AWS role.
@@ -137,6 +158,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CD_SHA }}
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
@@ -157,7 +180,7 @@ jobs:
           role-session-name: cd-${{ github.run_id }}
           allowed-account-ids: '866865534361'
 
-      - name: Restore the run's state from the private bucket
+      - name: Restore the environment's state from the private bucket
         id: state
         if: env.CD_OPERATION != 'preflight'
         run: scripts/ci/cd.sh state-pull
@@ -198,7 +221,7 @@ jobs:
 
       # always() so a failed or cancelled run still saves its journal: a rerun resumes from it.
       # Skipped when the restore itself failed, so an empty directory cannot overwrite the state.
-      - name: Save the run's state to the private bucket
+      - name: Save the environment's state to the private bucket
         if: always() && env.CD_OPERATION != 'preflight' && steps.state.outcome == 'success'
         run: scripts/ci/cd.sh state-push
 
@@ -207,7 +230,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: cd-${{ env.CD_OPERATION }}-${{ env.CD_RUN_ID }}
+          name: cd-${{ env.CD_OPERATION }}-${{ env.CD_ENVIRONMENT }}-${{ github.run_id }}
           path: ${{ runner.temp }}/cd-out/public/
           if-no-files-found: warn
           retention-days: 14
