@@ -50,3 +50,6 @@ frontend-redesign/
 .cache/
 .local/
 artifacts/
+
+# Local agent notes (per-user context, not shared)
+AGENTS.md
