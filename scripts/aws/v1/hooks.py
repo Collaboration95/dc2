@@ -153,6 +153,11 @@ class LauncherHooks:
         """Returns only after SQL says no send is in flight and none can start."""
         return self._control("disable", deadline).get("enabled") is False
 
+    def release_controls(self, *, deadline, **fields):
+        """Online releases (V2-live): `cap_limit` and/or `worker_definition`, None clears."""
+        reply = self._control("release", deadline, **fields)
+        return all(reply.get(name) == value for name, value in fields.items())
+
     def settle(self, *, deadline):
         """True once no reservation is ambiguous (each is found, replayed away or released)."""
         while True:
@@ -292,6 +297,56 @@ def owner_quiescence(config, transport):
         return True
 
     return quiescent
+
+
+# Fargate's 6 vCPU quota holds exactly three 2 vCPU encoders. An online release lowers the
+# launcher's cap to RELEASE_CAP for its duration, which frees a 2 vCPU slot for its migration
+# and in-VPC schema-probe tasks (0.25 vCPU each), and waits until running tasks leave that slot.
+FARGATE_CPU_UNITS = 6 * 1024
+RELEASE_CAP = 2
+ENCODER_CPU_UNITS = 2048
+
+
+def owner_online(config, transport, *, clock=time.monotonic, sleep=time.sleep, poll_seconds=10):
+    """online(owner): the invariant an online release holds instead of quiescence (V2-live).
+
+    A closed release needs the owner silent so that nothing runs beside a half-moved release.
+    The always-on environment keeps serving instead, which is safe because a release is either
+    schema-unchanged or attested additive, so old and new code both work mid-switch; the alias
+    moves stay revision-checked and the smoke and restore are unchanged. What must hold is that
+    the environment runs as recorded open: every consumer mapping of the owner Enabled and
+    every schedule (the launcher's too) ENABLED, so a kill switch that is on refuses the release
+    rather than being undone by it. And the cluster must have room for one more 2 vCPU task,
+    waited for within the deadline while earlier encoders finish under the lowered cap.
+    """
+    from scripts.aws.workers import inventory
+
+    def online(owner, *, deadline):
+        consumers = config["owner_consumers"][owner]
+        for identity in consumers["mappings"]:
+            state = transport.call(
+                "lambda", "get-event-source-mapping", {"UUID": identity}, deadline=deadline
+            ).get("State")
+            if state != "Enabled":
+                return False
+        for name in consumers["schedules"]:
+            state = transport.call(
+                "events", "describe-rule", {"Name": name}, deadline=deadline
+            ).get("State")
+            if state != "ENABLED":
+                return False
+        while True:
+            tasks = inventory(config, transport, deadline=deadline)
+            used = sum(int(t.get("cpu") or ENCODER_CPU_UNITS) for t in tasks.values()
+                       if t.get("lastStatus") != "STOPPED")
+            if used + ENCODER_CPU_UNITS <= FARGATE_CPU_UNITS:
+                return True
+            try:
+                sleep(min(poll_seconds, remaining(deadline, clock)))
+            except OperationError:
+                return False
+
+    return online
 
 
 def schema_reader(dsn_files, ca_file, *, connect=None):

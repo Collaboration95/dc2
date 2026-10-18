@@ -46,6 +46,7 @@
       "type": "boolean",
       "description": "V2-live (#236): deploy open (stage throttle, consumers, schedules) with a monthly budget; absent or false keeps V1's closed stack"
     },
+    "gates_open": {"type": "boolean", "description": "Always-on only: false while the kill switch is on"},
     "stage_rate_limit": {"type": "integer", "minimum": 1, "maximum": 1000},
     "stage_burst_limit": {"type": "integer", "minimum": 1, "maximum": 2000},
     "monthly_budget_usd": {"type": "integer", "minimum": 1, "maximum": 1000},

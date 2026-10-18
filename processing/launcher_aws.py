@@ -15,6 +15,7 @@ from delivery.runtime import deadline_for
 from processing import launcher
 from processing.config import get_settings
 from processing.launcher import LauncherConfig, RunTaskRefused
+from runtime_support.activity import Activity
 from runtime_support.settings import heal_on_rejection
 
 SERVICE = "processing-launcher"
@@ -140,8 +141,15 @@ def config_from_environ(environ=None):
     )
 
 
-async def run(event, context, *, ecs=None, queue=None, config=None, factory=None):
+async def run(event, context, *, ecs=None, queue=None, config=None, factory=None,
+              activity=None):
     """Dispatch a scheduled tick or an operator control event; returns counts only."""
+    scheduled = not (isinstance(event, dict) and event.get("dc2_operation") == OPERATION)
+    activity = activity or Activity.from_environ("PROCESSING")
+    if scheduled and activity and await asyncio.to_thread(activity.quiet):
+        # Nothing queued, running or reserved (AD-27): no connection, so Aurora can pause. A
+        # wake after a work send and every control event still reach SQL.
+        return {"service": SERVICE, "action": "tick", "outcome": "idle", "skipped": "quiet"}
     config = config or config_from_environ()
     engine = None
     if factory is None:
@@ -176,6 +184,10 @@ async def _dispatch(event, factory, ecs, queue, config):
             result = await launcher.settle(factory, ecs, config)
         elif action == "status":
             result = await launcher.status(factory)
+        elif action == "release":
+            # An online release (V2-live): headroom for its tasks, then the released worker.
+            fields = {k: event[k] for k in ("cap_limit", "worker_definition") if k in event}
+            result = await launcher.set_release_controls(factory, **fields)
         elif action == "wake":
             # Sent by a work publisher the moment it enqueued (#237): a tick, without waiting
             # for the minute schedule.

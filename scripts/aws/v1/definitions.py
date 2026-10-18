@@ -4,6 +4,7 @@ import argparse
 import dataclasses
 import hashlib
 import json
+import re
 from pathlib import Path
 
 from processing import short_lane
@@ -17,6 +18,13 @@ LAUNCHER = "ProcessingLauncher"
 SHORT_ENCODER = "ProcessingShortEncoder"
 SHORT_QUEUE = "ProcessingShortWork"
 OPTIONAL_FUNCTIONS = (LAUNCHER, SHORT_ENCODER)
+# Who reads and writes each domain's idle markers (runtime_support.activity, AD-27): writers
+# record a request before committing it; the repair schedule reads both and writes `quiet`; the
+# launcher only reads.
+ACTIVITY_ROLES = {
+    "Media": {"writers": ("MediaApi", "MediaResults"), "repair": "MediaRepair"},
+    "Processing": {"writers": ("ProcessingCommands",), "repair": "ProcessingRepair"},
+}
 # The Processing functions that publish work onto processing-work, and so wake the launcher.
 WORK_PUBLISHERS = ("ProcessingCommands", "ProcessingRepair", "ProcessingEcsEvents",
                    "ProcessingS3Events")
@@ -122,6 +130,57 @@ def db_ca_env(domain):
     return {"PROCESSING_DATABASE_TLS": "true", "PROCESSING_DATABASE_CA_FILE": RDS_CA_BUNDLE}
 
 
+# Parameters a function refers to whose value is fixed by the environment's name, so they cannot
+# change under a live alias; the image is named separately, by its digest.
+FIXED_PARAMETERS = ("EnvironmentId",)
+
+
+def references(value, found, conditions):
+    """Every Ref/GetAtt/Sub target and Fn::If condition inside a property tree."""
+    if isinstance(value, list):
+        for item in value:
+            references(item, found, conditions)
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            if key == "Ref":
+                found.add(item)
+            elif key == "Fn::GetAtt":
+                found.add(item[0])
+            elif key == "Fn::Sub":
+                text = item if isinstance(item, str) else item[0]
+                found.update(m.split(".")[0] for m in re.findall(r"\$\{([^}!]+)\}", text))
+                if not isinstance(item, str):
+                    references(item[1], found, conditions)
+            elif key == "Fn::If":
+                conditions.add(item[0])
+                references(item[1:], found, conditions)
+            else:
+                references(item, found, conditions)
+
+
+def version_description(domain, image, properties, parameters, resources):
+    """What a function's published version runs, resolved at deploy time.
+
+    An alias moves only when its Version resource is replaced, and that happens only when the
+    Version's own properties change. This description changes whenever the function's image,
+    its definition, a parameter or condition it reads, or a task definition it names changes,
+    even though the function's template text names those only by reference (#235).
+    """
+    found, conditions = set(), set()
+    references(properties, found, conditions)
+    digest = hashlib.sha256(json.dumps(properties, sort_keys=True).encode()).hexdigest()[:12]
+    parts = [domain, {"Fn::Select": [1, {"Fn::Split": ["@", ref(f"{image}ImageUri")]}]}, digest]
+    for name in sorted(found):
+        if name in parameters and name not in FIXED_PARAMETERS and not name.endswith(
+                ("ImageUri", "ParameterArn")):
+            parts.append(ref(name))
+        elif resources.get(name, {}).get("Type") == "AWS::ECS::TaskDefinition":
+            # family:revision, which a replacement always changes
+            parts.append({"Fn::Select": [1, {"Fn::Split": ["/", ref(name)]}]})
+    parts += [{"Fn::If": [name, f"{name}=1", f"{name}=0"]} for name in sorted(conditions)]
+    return {"Fn::Join": [" ", parts]}
+
+
 def template(database=None):
     """Closed-by-default two-phase stack; resources retained where data is durable."""
     database = database or DatabaseOptions()
@@ -161,6 +220,13 @@ def template(database=None):
         "AlwaysOn": {
             "Type": "String",
             "Default": "false",
+            "AllowedValues": ["true", "false"],
+        },
+        # The gates (stage throttle, consumers, schedules) of an always-on environment. False
+        # while the kill switch is on, so a stack update keeps closed gates closed.
+        "GatesOpen": {
+            "Type": "String",
+            "Default": "true",
             "AllowedValues": ["true", "false"],
         },
         "StageRateLimit": {"Type": "Number", "Default": 20, "MinValue": 1, "MaxValue": 1000},
@@ -808,10 +874,70 @@ def template(database=None):
         },
         app=True,
     )
+    # Idle markers (AD-27). String parameters, so no KMS; "0" reads as "not quiet".
+    for domain, roles in ACTIVITY_ROLES.items():
+
+        def marker(kind, domain=domain):
+            return sub(
+                "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter"
+                f"${{{domain}Activity{kind}}}"
+            )
+
+        for kind in ("Touched", "Quiet"):
+            add(
+                f"{domain}Activity{kind}",
+                "SSM::Parameter",
+                {
+                    "Name": sub(
+                        f"/dc2/${{EnvironmentId}}/activity/{domain.lower()}/{kind.lower()}"
+                    ),
+                    "Type": "String",
+                    "Value": "0",
+                },
+                gate="AlwaysOnEnv",
+            )
+        add(
+            f"{domain}ActivityWriters",
+            "IAM::Policy",
+            {
+                "PolicyName": "activity-touch",
+                "Roles": [ref(f"{role}Role") for role in roles["writers"]],
+                "PolicyDocument": policy([allow(["ssm:PutParameter"], [marker("Touched")])]),
+            },
+            gate="AlwaysOnEnv",
+        )
+        add(
+            f"{domain}ActivityRepair",
+            "IAM::Policy",
+            {
+                "PolicyName": "activity-quiet",
+                "Roles": [ref(f"{roles['repair']}Role")],
+                "PolicyDocument": policy([
+                    allow(["ssm:GetParameter"], [marker("Touched"), marker("Quiet")]),
+                    allow(["ssm:PutParameter"], [marker("Quiet")]),
+                ]),
+            },
+            gate="AlwaysOnEnv",
+        )
+    add(
+        "ProcessingActivityLauncherRead",
+        "IAM::Policy",
+        {
+            "PolicyName": "activity-read",
+            "Roles": [ref(f"{LAUNCHER}Role")],
+            "PolicyDocument": policy([allow(["ssm:GetParameter"], [
+                sub("arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter"
+                    "${ProcessingActivityTouched}"),
+                sub("arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter"
+                    "${ProcessingActivityQuiet}"),
+            ])]),
+        },
+        gate="AlwaysOnLauncher",
+    )
     # The cost safety net of an always-on environment (#236): alerts at 50, 80 and 100 % of a
     # small monthly amount, on top of the per-service alarms. Account-wide, since the account
     # holds only this project.
-    add("BudgetAlertTopic", "SNS::Topic", {"Tags": tags}, gate="AlwaysOpen")
+    add("BudgetAlertTopic", "SNS::Topic", {"Tags": tags}, gate="AlwaysOnEnv")
     add(
         "BudgetAlertTopicPolicy",
         "SNS::TopicPolicy",
@@ -829,7 +955,7 @@ def template(database=None):
                 ]
             ),
         },
-        gate="AlwaysOpen",
+        gate="AlwaysOnEnv",
     )
     add(
         "BudgetAlertSubscription",
@@ -863,7 +989,7 @@ def template(database=None):
                 for percent in (50, 80, 100)
             ],
         },
-        gate="AlwaysOpen",
+        gate="AlwaysOnEnv",
         depends=["BudgetAlertTopicPolicy"],
     )
     consumers = {
@@ -989,9 +1115,15 @@ def template(database=None):
                 "PROCESSING_LAUNCHER_CAP": "3",
                 # Always on, the launcher has no session end to stop at (#237).
                 "PROCESSING_LAUNCHER_ALWAYS_ON": {
-                    "Fn::If": ["AlwaysOpen", "true", ref("AWS::NoValue")]
+                    "Fn::If": ["AlwaysOnEnv", "true", ref("AWS::NoValue")]
                 },
             }
+        activity = ACTIVITY_ROLES[domain]
+        if name in (*activity["writers"], activity["repair"], LAUNCHER):
+            for kind in ("Touched", "Quiet"):
+                env[f"{prefix}_ACTIVITY_{kind.upper()}_PARAMETER"] = {
+                    "Fn::If": ["AlwaysOnEnv", ref(f"{domain}Activity{kind}"), ref("AWS::NoValue")]
+                }
         if name in WORK_PUBLISHERS:
             # A work send wakes the launcher at once (#237); the minute schedule stays the net.
             env["PROCESSING_LAUNCHER_FUNCTION"] = {
@@ -1075,16 +1207,11 @@ def template(database=None):
         # alias, exactly when the function's image or configuration changed. Retained, because
         # Lambda answers an unchanged publish with the existing version, which a replaced
         # resource must then not delete; the versions go with the function itself.
-        definition = hashlib.sha256(
-            json.dumps(resources[name]["Properties"], sort_keys=True).encode()
-        ).hexdigest()[:12]
         add(
             f"{name}Version",
             "Lambda::Version",
-            {
-                "FunctionName": ref(name),
-                "Description": sub(f"{domain} ${{{image}ImageUri}} definition {definition}"),
-            },
+            # The description is filled in once every resource it may name exists (below).
+            {"FunctionName": ref(name), "Description": (domain, image)},
             app=True,
             retain=True,
         )
@@ -1871,6 +1998,12 @@ def template(database=None):
         outputs[f"{name}QueueArn"] = queue_arn(name)
         outputs[f"{name}DlqUrl"] = ref(f"{name}Dlq")
         outputs[f"{name}DlqArn"] = attr(f"{name}Dlq")
+    for name in handlers:
+        version = resources[f"{name}Version"]["Properties"]
+        domain, image = version["Description"]
+        version["Description"] = version_description(
+            domain, image, resources[name]["Properties"], parameters, resources
+        )
     result = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Description": "DC2 V1 managed two-domain stack. Operator applies explicitly.",
@@ -1889,15 +2022,24 @@ def template(database=None):
                     {"Fn::Equals": [ref("LambdaShortEncodes"), "true"]},
                 ]
             },
-            "AlwaysOpen": {
+            "AlwaysOnEnv": {
                 "Fn::And": [
                     {"Condition": "Applications"},
                     {"Fn::Equals": [ref("AlwaysOn"), "true"]},
                 ]
             },
+            "AlwaysOpen": {
+                "Fn::And": [
+                    {"Condition": "AlwaysOnEnv"},
+                    {"Fn::Equals": [ref("GatesOpen"), "true"]},
+                ]
+            },
+            "AlwaysOnLauncher": {
+                "Fn::And": [{"Condition": "AlwaysOnEnv"}, {"Condition": "Unattended"}]
+            },
             "BudgetEmail": {
                 "Fn::And": [
-                    {"Condition": "AlwaysOpen"},
+                    {"Condition": "AlwaysOnEnv"},
                     {"Fn::Not": [{"Fn::Equals": [ref("BudgetAlertEmail"), ""]}]},
                 ]
             },

@@ -1,6 +1,8 @@
 """V1 Lambda control entrypoints. No public raw-source job creation endpoint."""
 
+import asyncio
 import os
+import time
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -9,8 +11,9 @@ from delivery.sqs import SQS
 from processing import launcher_trigger
 from processing.config import get_settings
 from processing.messaging import consume_commands, publish_outbox
-from processing.recovery_v1 import run_once, terminal_event
+from processing.recovery_v1 import next_due, run_once, terminal_event
 from runtime_support import lambda_db
+from runtime_support.activity import Activity
 from runtime_support.errors import sanitized_entrypoint
 from runtime_support.settings import credentials_rejected, heal_on_rejection
 
@@ -22,6 +25,13 @@ def _heal():
 async def invoke(event, context, mode):
     from processing.database import v1_engine_options
 
+    # Always on (AD-27): a scheduled repair with nothing due opens no connection, so Aurora can
+    # pause; a command is about to write, so it is recorded first. Absent markers: V1 as before.
+    activity = Activity.from_environ("PROCESSING")
+    if activity and mode == "repair" and await asyncio.to_thread(activity.quiet):
+        return {"skipped": "idle"}
+    if activity and mode == "command":
+        await asyncio.to_thread(activity.touch)
     settings = get_settings()
     engine = await lambda_db.shared_engine(
         "processing",
@@ -56,6 +66,9 @@ async def invoke(event, context, mode):
             # S3 notifications are also hints. Repeated retained cleanup intents, not
             # a supplied bucket/key, determine what can safely be deleted.
             result = await run_once(factory, settings, transport, deadline=deadline)
+            if activity and mode == "repair":
+                checked = time.time()  # before the snapshot next_due reads
+                await asyncio.to_thread(activity.record, checked, await next_due(factory))
         return result if stopped is None else {**result, "stopped": stopped}
     except Exception as error:
         await lambda_db.release_after("processing", error)

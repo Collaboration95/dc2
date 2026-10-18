@@ -411,28 +411,33 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   there is no NAT and no paid endpoint, so the fixed idle cost is about $3-5 a month (alarms,
   secret, logs, ECR, storage). Nobody runs a product behind booked sessions (#234).
 - **Decision.** One named environment (`--environment live`, stack `dc2-live`) is deployed once and
-  kept. CD updates it after every green CI run on Main: a CloudFormation `UPDATE` change set from
-  the checkout, then the existing per-owner release (aliases, migration, smoke, automatic restore)
-  for each owner whose image changed. The release's images are then adopted into the stack, so
-  the stack stays the description of what runs. A change set that would replace Aurora, an S3
+  kept. Its first deploy is a human's dispatch; after that CD updates it after every green CI
+  run on Main: a CloudFormation `UPDATE` change set from the checkout, then the per-owner release
+  (aliases, migration, smoke, automatic restore) for each owner whose images' build inputs
+  changed, online (nothing is closed; see the trade-off). An owner whose migrations changed
+  waits for an explicitly attested release. The release's images are then adopted into the
+  stack, so the stack stays the description of what runs. A change set that would replace Aurora, an S3
   bucket or the CloudFront distribution fails the deploy unless `--allow-replacement` is given.
   The template deploys open (`AlwaysOn=true`): stage throttle 20 rps / burst 50, consumers and
   schedules enabled, and the launcher (#68) on with no session end. Every work send wakes the
   launcher with an asynchronous invoke; its one-minute schedule stays as the safety net, and the
   SQL reservations keep the cap of three under concurrent wakes. The cost safety net is an AWS
   Budget alerting at 50/80/100 % of $20 a month, plus the per-service alarms (AD-25); the CI-side
-  cost guard only reports on routine updates. `session close` remains as the emergency kill
-  switch and `session status` reports drift from the open state.
+  cost guard only reports on routine updates. Idle minute ticks skip SQL (SSM activity markers),
+  so Aurora still pauses. `session close` remains as the emergency kill switch, which deploys
+  respect (`GatesOpen=false`, releases deferred), and `session status` reports drift.
 - **Alternatives.** Keep per-run stacks (the cost in time above); keep the closed template and
   open a long session (an expiring window is a booking under another name); a staging plus a
   production environment (out of scope for the time left).
 - **Trade-off.** The environment is public all the time, bounded by the stage throttle, the
-  Fargate quota (cap 3) and the budget alerts rather than by a closed gate. A release quiesces the
-  owner as before, so background processing pauses for the release (the public API stays served
-  through the release window). A stack update that touches a gated resource re-applies the open
-  state, so check `session status` after deploying with the kill switch on. Code reaches an alias
-  only through a release or through a stack update that replaces the function's version (its
-  description names the image and a digest of the function definition).
+  Fargate quota (cap 3) and the budget alerts rather than by a closed gate. A release no longer
+  quiesces its owner: old and new code run side by side for a moment, which is safe only because
+  an automatic release has unchanged migrations and any other is attested additive. During a
+  release the encoder cap is 2, so its migration task fits the quota. Every writer pays one SSM
+  write a minute at most, and a write it cannot record fails rather than risk a missed repair.
+  Code reaches an alias only through a release or through a stack update that replaces the
+  function's version (its description names the image digest, a digest of the definition, and
+  the parameters, conditions and task definitions it resolves).
 - **Evidence.** [Code] `scripts/aws/v1/deploy.py` (`deploy_persistent`, `begin_invocation`,
   `adopt_release`), `scripts/aws/v1/definitions.py` (`AlwaysOpen`, `MonthlyBudget`,
   `ProcessingLauncherInvokers`), `processing/launcher_trigger.py`, `scripts/ci/cd.sh`;

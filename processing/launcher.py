@@ -20,7 +20,7 @@ Safety rests on SQL, not on the Lambda or on ECS:
   added to and an exited one is not replaced without new backlog.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -76,6 +76,23 @@ class LauncherConfig:
     @property
     def slots(self):
         return max(0, min(self.cap, HARD_CAP))
+
+
+def effective(config, control):
+    """The configuration a release steered (V2-live): a lower cap, the released worker.
+
+    A worker definition outside the stack's own family is ignored: the launcher's IAM grant
+    and its inventory both stop at that family, so it could neither start nor count it.
+    """
+    if control is None:
+        return config
+    cap, worker = control.cap_limit, control.worker_definition
+    changes = {}
+    if cap is not None:
+        changes["cap"] = max(0, min(config.cap, cap))
+    if worker and family(worker) == config.family:
+        changes["task_definition"] = worker
+    return replace(config, **changes) if changes else config
 
 
 def family(reference):
@@ -388,6 +405,7 @@ async def tick(factory, ecs, queue, config, *, launching=True):
             )
         ).all()
         backlog = await queued_backlog(session)
+    config = effective(config, control)
     enabled = control is not None and control.enabled
     if not open_rows and not (launching and enabled and backlog):
         # Nothing to reconcile and nothing to start: no ECS or SQS call at all.
@@ -455,6 +473,28 @@ async def _status(session, control):
         "launched": counts.get("launched", 0),
         "reservations": counts,
     }
+
+
+async def set_release_controls(factory, **fields):
+    """Set or clear (None) `cap_limit` and/or `worker_definition`; returns the status."""
+    if set(fields) - {"cap_limit", "worker_definition"}:
+        raise ValueError("Unknown launcher control")
+    cap = fields.get("cap_limit")
+    if cap is not None and (type(cap) is not int or not 0 <= cap <= HARD_CAP):
+        raise ValueError("A cap limit is 0 to 3")
+    worker = fields.get("worker_definition")
+    if worker is not None and (not isinstance(worker, str) or ":task-definition/" not in worker):
+        raise ValueError("A worker definition is a task definition ARN")
+    async with factory() as session, session.begin():
+        await session.execute(insert(LauncherControl).values(id=1).on_conflict_do_nothing())
+        control = await session.scalar(
+            select(LauncherControl).where(LauncherControl.id == 1).with_for_update()
+        )
+        for name, value in fields.items():
+            setattr(control, name, value)
+        control.updated_at = await lifecycle.db_now(session)
+        return {**await _status(session, control), "cap_limit": control.cap_limit,
+                "worker_definition": control.worker_definition}
 
 
 async def status(factory):

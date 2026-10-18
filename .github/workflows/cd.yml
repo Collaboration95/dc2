@@ -104,6 +104,7 @@ env:
   CD_ENVIRONMENT: ${{ inputs.environment || 'live' }}
   CD_EXECUTE: ${{ (github.event_name == 'workflow_run' || inputs.execute) && 'true' || 'false' }}
   CD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+  CD_EVENT: ${{ github.event_name }}
   CD_OWNER: ${{ inputs.owner }}
   CD_ATTEST_ADDITIVE: ${{ inputs.attest_additive && 'true' || 'false' }}
   CD_BAD_CANDIDATE: ${{ inputs.bad_candidate && 'true' || 'false' }}
@@ -160,6 +161,9 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ env.CD_SHA }}
+          # Whole history: each owner is released only if its images' inputs changed since the
+          # commit it runs from, which `git diff` needs (V2-live).
+          fetch-depth: 0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version

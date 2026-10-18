@@ -30,6 +30,7 @@ FIELDS = {
     "stage_burst_limit",
     "monthly_budget_usd",
     "budget_alert_email",
+    "gates_open",
 }
 # V2-live (#236): the persistent environment's render inputs -> CloudFormation parameters.
 ALWAYS_ON_PARAMETERS = {
@@ -128,6 +129,10 @@ def parameters(config):
         if type(config["always_on"]) is not bool:
             raise ValueError("Always-on flag must be a JSON boolean")
         result["AlwaysOn"] = str(config["always_on"]).lower()
+    if "gates_open" in config:
+        if type(config["gates_open"]) is not bool:
+            raise ValueError("Gates-open flag must be a JSON boolean")
+        result["GatesOpen"] = str(config["gates_open"]).lower()
     result.update({name: config[key] for key, name in ALWAYS_ON_PARAMETERS.items()
                    if key in config})
     result.update({name: arns[key] for key, name in PARAMETERS.items()})

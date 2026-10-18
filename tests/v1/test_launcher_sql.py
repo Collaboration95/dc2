@@ -620,3 +620,53 @@ async def test_reservation_timestamps_use_the_database_clock(factory):
         now = await session.scalar(select(func.clock_timestamp()))
     assert timedelta(0) <= now - row.reserved_at < timedelta(seconds=30)
     assert row.sent_at is not None and row.deadline_at > row.reserved_at
+
+
+# ---- V2-live (AD-27): when the minute ticks next need SQL ------------------------------
+async def test_idle_processing_has_nothing_due_and_open_work_is_due_now(factory):
+    from processing.recovery_v1 import next_due
+
+    assert await next_due(factory) is None
+    await submit(factory, 1)
+    assert await next_due(factory) == 0.0  # a queued attempt: dispatch and launches
+
+
+async def test_once_no_attempt_is_open_the_earliest_scheduled_row_is_the_next_due_time(factory):
+    from sqlalchemy import update
+
+    from processing.messaging_models import ProcessingOutbox
+    from processing.recovery_v1 import next_due
+
+    await submit(factory, 1)
+    async with factory() as session, session.begin():
+        await session.execute(update(Attempt).values(state="cancelled"))
+        await session.execute(
+            update(ProcessingOutbox).values(next_try_at=func.now() + timedelta(days=6))
+        )
+    due = await next_due(factory)
+    # The outbox's scheduled replay, six days out: the ticks may skip SQL until then.
+    assert time.time() + 5 * 86400 < due < time.time() + 7 * 86400
+    # An open launch reservation is work now, whatever else is scheduled.
+    async with factory() as session, session.begin():
+        session.add(launcher_models.LaunchReservation(
+            token="t" * 32, started_by="v1-ut", status="reserved", payload={},
+            deadline_at=func.now() + timedelta(minutes=5)))
+    assert await next_due(factory) == 0.0
+
+
+async def test_an_online_release_caps_launches_and_switches_the_worker_through_sql(factory):
+    # V2-live: the release leaves Fargate room for its own tasks, then the launcher starts the
+    # released worker; clearing both returns the stack's own cap and worker.
+    ecs = FakeEcs()
+    await submit(factory, 10)
+    await enable(factory)
+    released = DEFINITION.replace(":3", ":9")
+    await launcher.set_release_controls(factory, cap_limit=2, worker_definition=released)
+    first = await tick(factory, ecs, Depth())
+    assert first["launched"] == 2
+    assert {call["taskDefinition"] for call in ecs.run_calls} == {released}
+    await launcher.set_release_controls(factory, cap_limit=None, worker_definition=None)
+    later = await tick(factory, ecs, Depth())
+    assert later["launched"] == 1 and ecs.run_calls[-1]["taskDefinition"] == DEFINITION
+    with pytest.raises(ValueError):
+        await launcher.set_release_controls(factory, cap_limit=4)

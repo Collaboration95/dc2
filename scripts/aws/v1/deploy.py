@@ -54,6 +54,7 @@ from scripts.aws.v1.migration import migrate
 from scripts.aws.v1.public_smoke import PublicSmoke, urllib_http, validate_base_url
 from scripts.aws.v1.transport import REGION, validate_arguments
 from scripts.aws.v1_operator import sanitized_environment
+from scripts.ci import policy
 
 ROOT = Path(__file__).resolve().parents[3]
 BOOTSTRAP_TEMPLATE = ROOT / "deploy/aws/v1-operator-bootstrap.json"
@@ -1114,7 +1115,8 @@ class Pipeline:
             "region": self.s.region, "source_cors_origin": cors, "deploy_applications": apps,
             "parameter_arns": arns, "images": images or {},
             **({"unattended_launch": True} if self.s.unattended_launch else {}),
-            **({"always_on": True, "stage_rate_limit": self.s.stage_rate_limit,
+            **({"always_on": True, "gates_open": not self.kill_switch_on(),
+                "stage_rate_limit": self.s.stage_rate_limit,
                 "stage_burst_limit": self.s.stage_burst_limit,
                 "monthly_budget_usd": self.s.monthly_budget_usd,
                 "budget_alert_email": self.s.budget_alert_email} if self.s.persistent else {}),
@@ -1162,6 +1164,9 @@ class Pipeline:
             raise DeployError("--images is required to push the three amd64 images")
         sources = load_images(self.s.images_file)
         outputs = self.meta()["outputs"]
+        # Which commit each image was built from: what later deploys diff against (AD-27).
+        self.journal.mutate(lambda d: [d["images"].setdefault(o, {}).update(
+            source_sha=sources[o]["source_sha"]) for o in sources if sources[o].get("source_sha")])
         registry = f"{self.s.account}.dkr.ecr.{self.s.region}.amazonaws.com"
         token = self.aws("ecr", "get-authorization-token", {})["authorizationData"][0]
         password = base64.b64decode(token["authorizationToken"]).decode().split(":", 1)[1]
@@ -1210,22 +1215,36 @@ class Pipeline:
         return {"images": {k: v["digest"] for k, v in pushed.items()}}
 
     def changed_owners(self):
-        """Owners whose built image differs from the one the environment runs.
+        """Owners whose images' build inputs changed since the commit each image runs from.
 
         Nothing is pushed: on an established environment code ships through each changed
         owner's release (aliases, migration, smoke, automatic restore), never through the
         stack, so `applications` keeps rendering the images the environment already runs.
+        The image id is no signal (every image carries its commit SHA as a label); the diff of
+        each image's Dockerfile inputs (scripts/ci/policy.py) is. An image whose commit is
+        unknown or not in this checkout counts as changed. `migrations_changed` names owners
+        whose Alembic history moved too: their release needs an explicit attestation.
         """
         if not self.s.images_file:
             return {"pushed": False, "changed_owners": "not compared (no --images)"}
         built = load_images(self.s.images_file)
         running = self.meta()["images"]
-        differs = {name for name in ("media", "processing", "worker")
-                   if built[name].get("local_id") != running.get(name, {}).get("local_id")}
-        changed = [owner for owner, names in (("media", {"media"}),
-                                              ("processing", {"processing", "worker"}))
-                   if differs & names]
-        return {"pushed": False, "changed_owners": changed}
+        changed, migrations = set(), []
+        for name in ("media", "processing", "worker"):
+            old, new = running.get(name, {}).get("source_sha"), built[name].get("source_sha")
+            paths = changed_paths(old, new)
+            if paths is None or name in policy.changed_images(paths):
+                changed.add(name)
+        owners = [owner for owner, names in (("media", {"media"}),
+                                             ("processing", {"processing", "worker"}))
+                  if changed & names]
+        for owner in owners:
+            paths = changed_paths(running.get(owner, {}).get("source_sha"),
+                                  built[owner].get("source_sha"))
+            if paths is None or any(p.startswith(f"{owner}/migrations/") for p in paths):
+                migrations.append(owner)
+        return {"pushed": False, "changed_owners": owners, "changed_images": sorted(changed),
+                "migrations_changed": migrations}
 
     def step_applications(self):
         meta = self.meta()
@@ -1775,6 +1794,9 @@ class Pipeline:
 
     def step_seed(self):
         """Register the smoke account through the public endpoint (always role 'user')."""
+        if self.established():
+            # Registered by the first deploy; with the kill switch on the API would answer 429.
+            return {"registered": "earlier"}
         if not self.s.seed_email:
             raise DeployError("--seed-email is required to register the smoke account")
         base = validate_base_url(self.outputs()["HttpApiUrl"])
@@ -2454,6 +2476,18 @@ STATEFUL = {
 }
 
 
+def changed_paths(old, new):
+    """Files that differ between two commits of this checkout; None if that cannot be told."""
+    if not (old and new and re.fullmatch(r"[0-9a-f]{40}", old)
+            and re.fullmatch(r"[0-9a-f]{40}", new)):
+        return None
+    if old == new:
+        return []
+    done = subprocess.run(["git", "diff", "--name-only", old, new], cwd=ROOT,
+                          capture_output=True, text=True, check=False)
+    return done.stdout.split() if done.returncode == 0 else None
+
+
 def no_changes(described):
     reason = described.get("StatusReason", "")
     return "didn't contain changes" in reason or "No updates" in reason
@@ -2504,7 +2538,9 @@ def load_images(path):
         if data["status"] != "LOCAL_ARTIFACT_PASS":
             raise DeployError("The build evidence did not pass; refusing to push its images")
         try:
-            data = {owner: {"source": image["tag"], "local_id": image["config_id"]}
+            data = {owner: {"source": image["tag"], "local_id": image["config_id"],
+                            **({"source_sha": image["source_sha"]}
+                               if image.get("source_sha") else {})}
                     for owner, image in data["images"].items()}
         except (KeyError, TypeError):
             raise DeployError("Build evidence lacks image tags or config ids") from None
@@ -2513,7 +2549,8 @@ def load_images(path):
     result = {}
     for owner, value in data.items():
         entry = {"source": value} if isinstance(value, str) else dict(value)
-        if set(entry) - {"source", "expected_digest", "local_id"} or not entry.get("source"):
+        if set(entry) - {"source", "expected_digest", "local_id", "source_sha"} or not entry.get(
+                "source"):
             raise DeployError(f"--images entry for {owner} needs 'source' (and optional digest)")
         if re.search(r"[\s;|&$`]", entry["source"]):
             raise DeployError(f"--images source for {owner} is not a plain image reference")
@@ -2758,7 +2795,8 @@ def adopt_release(journal, owner, release_dir, tag):
                 raise DeployError(f"The {name} digest in the release bundle is malformed")
             d["images"].setdefault(name, {}).update(
                 tag=f"{tag}-{name}", digest=digest, uri=f"{repository}@{digest}",
-                local_id=image["config_id"], scan_severity_counts="see the release plan")
+                local_id=image["config_id"], source_sha=image["source_sha"],
+                scan_severity_counts="see the release plan")
             adopted[name] = digest
 
     journal.mutate(change)

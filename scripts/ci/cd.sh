@@ -179,6 +179,13 @@ cmd_preflight() {
 # in-place update: the stack is updated as a change set from this checkout (code untouched),
 # then every owner whose image changed ships through its own release, smoke and restore.
 cmd_deploy() {
+  if [ "${CD_EVENT:-}" = workflow_run ] && [ "$(journal_value .deploy.established)" != true ]; then
+    # The first deploy creates billable infrastructure and waits for a human (#238): only an
+    # explicit dispatch may do it. A merge before then changes nothing in the account.
+    echo "::notice::$CD_ENVIRONMENT is not established; the first deploy must be dispatched by hand"
+    summary "Skipped: \`$CD_ENVIRONMENT\` is not established yet. Its first deploy is an explicit dispatch."
+    return 0
+  fi
   cost_flags
   cmd_preflight
   if [ "$CD_EXECUTE" != true ]; then
@@ -215,10 +222,34 @@ cmd_deploy() {
   summary "Stack: $(journal_value '.deploy.steps.applications.detail
     | if .no_changes then "no changes" else "\(.change_kind) with \(.changes | length) change(s)" end'
   ); owners to release: ${owners:-none}"
-  local owner
+  [ -n "$owners" ] || return 0
+  if [ "$(session_state)" != open ]; then
+    echo "::warning::The kill switch is on; the release of $owners waits until it is off"
+    summary "Releases deferred (kill switch on): **$owners**. Turn it off, then dispatch a deploy."
+    return 0
+  fi
+  # A release whose migrations changed needs a human's word that the previous image works with
+  # the new schema (attest_additive); green CI does not show that. Others ship now.
+  local owner name deferred=() rebuilt
+  rebuilt=$(journal_value '.deploy.steps.images.detail.changed_images | arrays | join(" ")')
   for owner in $owners; do
-    release_owner "$owner" "$images" true
+    if journal_value '.deploy.steps.images.detail.migrations_changed | arrays | join(" ")' |
+      grep -qw "$owner"; then
+      deferred+=("$owner")
+      continue
+    fi
+    local mine=()
+    for name in $rebuilt; do
+      case "$owner:$name" in
+        media:media | processing:processing | processing:worker) mine+=("$name") ;;
+      esac
+    done
+    release_owner "$owner" "$images" true "${mine[@]}"
   done
+  if [ "${#deferred[@]}" -gt 0 ]; then
+    summary "Not released: **${deferred[*]}** changed its migrations. Dispatch \`release\` with attest_additive."
+    fail "${deferred[*]} changed migrations; release it by hand with attest_additive=true"
+  fi
 }
 
 # ---------------------------------------------------------------------------------- smoke
@@ -246,6 +277,10 @@ wait_gate_open() {
 }
 
 cmd_smoke() {
+  if [ "$(journal_value .deploy.established)" != true ]; then
+    echo "::notice::$CD_ENVIRONMENT is not established; nothing to smoke-test"
+    return 0
+  fi
   require_state
   local label fixture rc=0
   if [ "$(session_state)" != open ]; then
@@ -329,30 +364,38 @@ cmd_release() {
   fi
   [ "$CD_ATTEST_ADDITIVE" = true ] ||
     fail "Set attest_additive: the release plan records that the baseline and candidate images both work with this checkout's schema head"
-  release_owner "$owner" "$build" false
+  local rebuilt=(media)
+  if [ "$owner" = processing ]; then rebuilt=(processing worker); fi
+  release_owner "$owner" "$build" false "${rebuilt[@]}"
 }
 
-# One owner's release on the always-on environment. The release machinery needs the owner
-# quiescent, so an open environment is closed first (the API stays served through the release
-# window), and reopened afterwards unless the kill switch was already on. A promoted release is
-# then adopted: its images become the journal's and the stack is updated to name them, so the
-# stack's task definitions, the launcher's worker and the next release's baseline all agree.
-# `automatic` is the deploy's own release of a changed owner: CI on Main stands for the
-# attestation that the previous and the new image both work with the schema head.
-release_owner() { # owner build-evidence automatic
+# One owner's release on the always-on environment, online: nothing is closed. The release CLI's
+# --online mode holds the online invariant instead of quiescence (consumers and schedules on as
+# recorded, room for its migration task), caps the launcher for that room while it runs, and
+# points the launcher at the released worker (or back at the prior one on restore). A promoted
+# release is then adopted: its images become the journal's and the stack is updated to name
+# them, after which the launcher goes back to the stack's own worker. The environment is never
+# left closed by a failure here, because it is never closed. `automatic` is the deploy's own
+# release of a changed owner whose migrations did not change (cmd_deploy decides that); a
+# manual dispatch still requires attest_additive. Remaining arguments name the owner's images
+# that were rebuilt; the others are kept exactly as they run (their build inputs did not change).
+release_owner() { # owner build-evidence automatic rebuilt-image...
   local owner="$1" build="$2" automatic="$3" rel="g${GITHUB_RUN_ID:-0}x${GITHUB_RUN_ATTEMPT:-1}"
+  shift 3
+  local rebuilt=("$@")
   local baseline="$CD_STATE/build-baseline.json"
   [ -f "$baseline" ] || fail "No baseline build evidence in the state; was this environment deployed by CD?"
+  [ "$(session_state)" = open ] ||
+    fail "The kill switch is on (session $(session_state)): releases wait until \`session open --unattended\`"
   cost_flags
   local names=(media)
   if [ "$owner" = processing ]; then names=(processing worker); fi
   mkdir -m 700 -p "$CD_STATE/release"
-  if [ "$automatic" = true ]; then summary "Releasing **$owner**: its image changed in this commit."; fi
-  local sha docker_config uri_key
+  if [ "$automatic" = true ]; then summary "Releasing **$owner**: rebuilt ${rebuilt[*]}."; fi
+  local sha docker_config uri_key repo name kept=()
   sha=$(jq -r .source_sha "$build" | cut -c1-12)
   docker_config=$(mktemp -d)
   export DOCKER_CONFIG="$docker_config"
-  local repo name
   for name in "${names[@]}"; do
     case "$name" in
       media) uri_key=MediaRepositoryUri ;;
@@ -360,13 +403,32 @@ release_owner() { # owner build-evidence automatic
       worker) uri_key=WorkerRepositoryUri ;;
     esac
     repo=$(jq -r --arg k "$uri_key" '.deploy.outputs[$k]' "$CD_STATE/deploy-journal.json")
-    aws ecr get-login-password --profile "$CD_PROFILE" --region "$CD_REGION" |
-      docker login --username AWS --password-stdin "${repo%%/*}" >/dev/null
-    docker tag "dc2-v1-$name:local-$sha" "$repo:$rel-$name"
-    docker push --quiet "$repo:$rel-$name"
+    if [[ " ${rebuilt[*]} " == *" $name "* ]]; then
+      aws ecr get-login-password --profile "$CD_PROFILE" --region "$CD_REGION" |
+        docker login --username AWS --password-stdin "${repo%%/*}" >/dev/null
+      docker tag "dc2-v1-$name:local-$sha" "$repo:$rel-$name"
+      docker push --quiet "$repo:$rel-$name"
+    else
+      # Kept as it runs: the running manifest gains this release's tag, nothing is rebuilt.
+      kept+=("$name")
+      local reply
+      reply=$(aws ecr batch-get-image --repository-name "${repo#*/}" --profile "$CD_PROFILE" \
+        --region "$CD_REGION" --output json \
+        --image-ids "imageDigest=$(journal_value ".deploy.images.$name.digest")")
+      aws ecr put-image --repository-name "${repo#*/}" --image-tag "$rel-$name" \
+        --image-manifest "$(jq -r '.images[0].imageManifest' <<<"$reply")" \
+        --image-manifest-media-type "$(jq -r '.images[0].imageManifestMediaType' <<<"$reply")" \
+        --profile "$CD_PROFILE" --region "$CD_REGION" >/dev/null
+    fi
   done
   rm -rf "$docker_config"
   unset DOCKER_CONFIG
+  # The release's evidence: the rebuilt images from this build, the kept ones as they were built.
+  local good="$CD_STATE/release/good-$rel-$owner.json"
+  jq --slurpfile base "$baseline" --args '.images += ($base[0].images
+      | with_entries(select(.key as $k | $ARGS.positional | index($k))))' \
+    "$build" ${kept[@]+"${kept[@]}"} >"$good"
+  chmod 600 "$good"
 
   # Attested by the green CI gate; the number is what the bundle records.
   local tests
@@ -377,7 +439,7 @@ release_owner() { # owner build-evidence automatic
   for attempt in 1 2 3 4 5 6 7 8 9 10; do
     if "$PY" -m scripts.aws.v1.evidence release-plan "${SCOPE[@]}" --state-dir "$CD_STATE" \
       --run-id "$CD_ENVIRONMENT" --owner "$owner" --baseline-evidence "$baseline" \
-      --good-run-id "$rel" --good-evidence "$build" --tests-passed "$tests" \
+      --good-run-id "$rel" --good-evidence "$good" --tests-passed "$tests" \
       --attest-schema-unchanged \
       --accept-unfixed docs/execution/aws/v1/scan-accepted-unfixed-20261017.json \
       --out "$CD_STATE/release" >"$CD_OUT/release-plan.json"; then
@@ -395,7 +457,7 @@ release_owner() { # owner build-evidence automatic
   local plan="$CD_STATE/release/plan.json" config gateway
   config=$(operator_config)
   gateway=$(output_value HttpApiUrl)
-  local promote=(--config "$config" "${SCOPE[@]}" --deadline-seconds 1800 --owner "$owner"
+  local promote=(--config "$config" "${SCOPE[@]}" --online --deadline-seconds 1800 --owner "$owner"
     --bundle "$CD_STATE/release/$(jq -r .good.bundle "$plan")" --image-uri "$(jq -r .good.image_uri "$plan")"
     --migration-definition "$(jq -r '.good.migration_definition // .migration_definition' "$plan")"
     --target-revision "$(jq -r .target_revision "$plan")"
@@ -404,67 +466,33 @@ release_owner() { # owner build-evidence automatic
   if [ "$owner" = processing ]; then
     promote+=(--worker-definition "$(jq -r .good.worker_definition "$plan")")
   fi
-  local restore=(--config "$config" "${SCOPE[@]}" --deadline-seconds 900
+  local restore=(--config "$config" "${SCOPE[@]}" --online --deadline-seconds 900
     --smoke-url "$gateway" --smoke-credentials "$CD_STATE/smoke-credentials.json")
 
-  local was
-  was=$(session_state)
-  if [ "$was" = open ]; then
-    "$PY" -m scripts.aws.v1.session close --config "$config" "${SCOPE[@]}" --in-vpc-counts \
-      >"$CD_OUT/session-quiesce.json" ||
-      fail "Quiescing for the release failed: $(jq -r '.error // empty' "$CD_OUT/session-quiesce.json" 2>/dev/null)"
-  fi
-  "$PY" -m scripts.aws.v1.session window --config "$config" "${SCOPE[@]}" >"$CD_OUT/session-window.json" ||
-    fail "session window failed: $(jq -r '.error // empty' "$CD_OUT/session-window.json" 2>/dev/null)"
   local rc=0 outcome=promoted
   "$PY" -m scripts.aws.v1.release promote "${promote[@]}" >"$CD_OUT/release-promote.json" || rc=$?
   if [ "$rc" -ne 0 ]; then
     outcome=failed
-    echo "::warning::promote failed; restoring the previous aliases (UC-7)"
+    echo "::warning::promote failed; restoring the previous aliases and worker (UC-7)"
     if "$PY" -m scripts.aws.v1.release restore "${restore[@]}" >"$CD_OUT/release-restore.json"; then
       outcome=restored
     else
       # A candidate that failed in its migration task has nothing to restore; abandon clears
       # the intent only when it can prove nothing moved.
-      "$PY" -m scripts.aws.v1.release abandon --config "$config" "${SCOPE[@]}" --owner "$owner" \
-        --reason "cd run ${GITHUB_RUN_ID:-local}" >"$CD_OUT/release-abandon.json" &&
-        outcome=abandoned || outcome=restore-failed
+      "$PY" -m scripts.aws.v1.release abandon --config "$config" "${SCOPE[@]}" --online \
+        --owner "$owner" --reason "cd run ${GITHUB_RUN_ID:-local}" \
+        >"$CD_OUT/release-abandon.json" && outcome=abandoned || outcome=restore-failed
     fi
     # The new definitions are unused after a failed promotion; a good one stays (the worker uses it).
     "$PY" -m scripts.aws.v1.evidence release-plan "${SCOPE[@]}" --state-dir "$CD_STATE" \
       --run-id "$CD_ENVIRONMENT" --deregister "$plan" >/dev/null || true
-  fi
-  local close_rc=0
-  "$PY" -m scripts.aws.v1.session close --config "$config" "${SCOPE[@]}" --in-vpc-counts \
-    >"$CD_OUT/session-close.json" || close_rc=$?
-  if [ "$outcome" = promoted ] && [ "$close_rc" -eq 0 ]; then
-    deploy_cli adopt-release --state-dir "$CD_STATE" --owner "$owner" \
-      --release-dir "$CD_STATE/release" --release-tag "$rel" >"$CD_OUT/adopt-$owner.json" ||
-      fail "Adopting the $owner release failed: $(jq -r '.error // empty' "$CD_OUT/adopt-$owner.json")"
-    local merged="$CD_STATE/build-baseline.next.json"
-    jq --slurpfile built "$build" --args '.images += ($built[0].images
-        | with_entries(select(.key as $k | $ARGS.positional | index($k))))' \
-      "$baseline" "${names[@]}" >"$merged"
-    chmod 600 "$merged"
-    mv "$merged" "$baseline"
-    deploy_cli deploy --state-dir "$CD_STATE" --images "$baseline" --seed-email "$CD_SEED_EMAIL" \
-      --assume-empty-counts "${COST[@]}" --stop-after applications --execute \
-      >"$CD_OUT/adopt-stack-$owner.json" ||
-      fail "The stack update naming the released $owner images failed; see adopt-stack-$owner.json"
-  fi
-  local open_rc=0
-  if [ "$was" = open ]; then
-    "$PY" -m scripts.aws.v1.session open --unattended --minutes 60 --config "$config" \
-      "${SCOPE[@]}" >"$CD_OUT/session-reopen.json" || open_rc=$?
   fi
   jq -n --arg outcome "$outcome" --arg owner "$owner" --arg release "$rel" \
     --slurpfile result "$CD_OUT/release-promote.json" \
     '{owner: $owner, release: $release, outcome: $outcome,
       smoke: ($result[0].result.smoke // $result[0].smoke // null),
       versions: ($result[0].result.versions // null)}' >"$PUBLIC/release-$owner.json" || true
-  summary "Release of **$owner**: **$outcome** (closed again: $([ "$close_rc" -eq 0 ] && echo yes || echo NO); reopened: $([ "$was" = open ] && { [ "$open_rc" -eq 0 ] && echo yes || echo NO; } || echo "no, the kill switch was on"))"
-  [ "$close_rc" -eq 0 ] || fail "session close failed; the release window may still be open"
-  [ "$open_rc" -eq 0 ] || fail "Reopening the environment after the release failed; run session open --unattended"
+  summary "Release of **$owner**: **$outcome** (online; kept as running: ${kept[*]:-none})"
   if [ "${CD_BAD_CANDIDATE:-false}" = true ]; then
     # The proof passes only when the bad candidate was caught and rolled back. A promotion would
     # mean the smoke let a broken release through; anything else means the restore did not work.
@@ -473,6 +501,25 @@ release_owner() { # owner build-evidence automatic
     return 0
   fi
   [ "$outcome" = promoted ] || fail "Release did not complete: $outcome"
+  # Adopt: the journal, the baseline and then the stack name the released images. Until the
+  # stack update lands the launcher keeps the released worker, so a failure here leaves the
+  # environment serving the release; rerunning the deploy finishes it.
+  deploy_cli adopt-release --state-dir "$CD_STATE" --owner "$owner" \
+    --release-dir "$CD_STATE/release" --release-tag "$rel" >"$CD_OUT/adopt-$owner.json" ||
+    fail "Adopting the $owner release failed: $(jq -r '.error // empty' "$CD_OUT/adopt-$owner.json")"
+  local merged="$CD_STATE/build-baseline.next.json"
+  jq --slurpfile built "$good" --args '.images += ($built[0].images
+      | with_entries(select(.key as $k | $ARGS.positional | index($k))))' \
+    "$baseline" "${names[@]}" >"$merged"
+  chmod 600 "$merged"
+  mv "$merged" "$baseline"
+  deploy_cli deploy --state-dir "$CD_STATE" --images "$baseline" --seed-email "$CD_SEED_EMAIL" \
+    --assume-empty-counts "${COST[@]}" --stop-after applications --execute \
+    >"$CD_OUT/adopt-stack-$owner.json" ||
+    fail "The stack update naming the released $owner images failed; the release itself serves. See adopt-stack-$owner.json"
+  "$PY" -m scripts.aws.v1.release launcher-default --config "$config" "${SCOPE[@]}" --online \
+    >"$CD_OUT/launcher-default.json" ||
+    fail "The launcher still names the released worker definition; run release launcher-default --online"
 }
 
 # ---------------------------------------------------------------------------------- teardown

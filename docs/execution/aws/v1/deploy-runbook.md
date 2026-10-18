@@ -30,17 +30,34 @@ record of the V1 proof runs. The decision is AD-27 in
   `db-bootstrap` and `migrations` are skipped, `applications` updates the stack as a change set
   (no changes is a no-op), and the session is not reopened. A change set that replaces Aurora, an
   S3 bucket or the CloudFront distribution fails unless `--allow-replacement` is given.
-- **CD.** Every green `CI` run of a push to `Main` dispatches `cd.yml` (`workflow_run`), which
-  deploys `live` in place and then runs the existing release for each owner whose image changed
-  (`images.detail.changed_owners`). Such a release quiesces the owner (`session close`), opens the
-  release window, promotes with its smoke and automatic restore, records the released images in
-  the journal (`deploy adopt-release`), updates the stack to name them, and reopens with
-  `session open --unattended`. The upload-to-playback smoke then runs against the open environment.
-  The state lives under `envs/<name>/` in the state bucket.
+- **CD.** Every green `CI` run of a push to `Main` dispatches `cd.yml` (`workflow_run`). It
+  only ever updates an established environment: the first deploy is an explicit dispatch, and a
+  merge before it changes nothing in the account. The update applies the stack change set, then
+  releases each owner whose images' build inputs changed since the commit it runs from
+  (`images.detail.changed_owners`; the per-image Dockerfile inputs are `IMAGE_BUILD_INPUTS` in
+  `scripts/ci/policy.py`). An image whose inputs did not change is kept as it runs and only
+  retagged. An owner whose migrations changed is not released automatically: the run fails
+  with a message, and a dispatched `release` with `attest_additive=true` ships it.
+- **Online releases.** Nothing is closed. `release promote|restore|abandon --online` holds the
+  online invariant (the owner's consumers and schedules enabled as recorded, and room for one
+  more 2 vCPU Fargate task) instead of quiescence. It caps the launcher at 2 encoders while it
+  runs, so the migration and schema-probe tasks fit the 6 vCPU quota, and points the launcher at
+  the released worker (on restore, at the prior one). After a promotion, `deploy adopt-release`
+  records the released images, the stack is updated to name them, and
+  `release launcher-default --online` returns the launcher to the stack's own worker and cap.
+  The compatibility, alias-revision, smoke and restore checks are those of the closed release,
+  which stays available for the historical per-run proofs. The state lives under `envs/<name>/`
+  in the state bucket.
 - **Always on.** The template deploys with `AlwaysOn=true`: stage throttle 20 rps / burst 50
   (`--stage-rate-limit`, `--stage-burst-limit`), both consumers and the four schedules enabled,
   and the launcher enabled with no session end. Encoders scale 0 to 3 to 0 with the queue: each
   work send wakes the launcher, and its one-minute schedule stays as the safety net.
+- **Aurora pauses when idle.** The repair schedules and the launcher tick every minute, but a
+  tick opens no database connection while the domain is quiet (`runtime_support/activity.py`).
+  Two SSM parameters per domain, `/dc2/<env>/activity/<domain>/touched|quiet`, decide this:
+  every writer records `touched` before it commits, and the repair pass records when SQL next has
+  anything due. Aurora therefore pauses about 3 minutes plus its 300 s auto-pause after the last
+  activity.
 - **Cost.** The stack's AWS Budget `dc2-live-monthly` alerts at 50/80/100 % of $20 a month
   (`--monthly-budget-usd`) to the SNS topic `BudgetAlertTopic`. Set the repository variable
   `DC2_BUDGET_ALERT_EMAIL` (or `--budget-alert-email`) to subscribe an address; without it the
@@ -48,8 +65,9 @@ record of the V1 proof runs. The decision is AD-27 in
   preflight cost guard reports routine updates but does not block them.
 - **Kill switch.** `python -m scripts.aws.v1.session close --config <state>/operator-config.json
   --in-vpc-counts $S` closes everything as before (launcher first, then intake, drain, consumers,
-  schedules). Routine deploys keep it closed and skip the smoke. `session open --unattended`
-  turns it off. `session status` reports any drift from the recorded state.
+  schedules). While it is on, deploys render the template with `GatesOpen=false` (so an update
+  cannot reopen a gate), skip the seed and the smoke, and defer releases. `session open
+  --unattended` turns it off. `session status` reports any drift from the recorded state.
 - **Teardown.** Not routine. `cd.yml` refuses an executed teardown unless `confirm` repeats the
   environment name.
 

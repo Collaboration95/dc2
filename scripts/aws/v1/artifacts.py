@@ -11,9 +11,18 @@ def validate_bundle(bundle, *, owner):
     expected = {"api", "worker"} if owner == "processing" else {"api"}
     if set(bundle) != expected:
         raise OperationError("Exactly the owning artifact set is required")
+    # A release may keep one of Processing's two images exactly as it runs (its build inputs did
+    # not change, V2-live). That companion is marked retained and keeps its own, older source;
+    # every rebuilt artifact shares one frozen source, and at least one must be rebuilt.
+    if any(type(proof.get("retained", False)) is not bool for proof in bundle.values()):
+        raise OperationError("Retained must be a boolean")
+    fresh = {kind: proof for kind, proof in bundle.items() if not proof.get("retained")}
+    if not fresh:
+        raise OperationError("A release needs at least one rebuilt artifact")
+    source = next(iter(fresh.values()))["source_sha"]
     for kind, proof in bundle.items():
         validate(proof, owner=owner)
-        if proof["source_sha"] != api["source_sha"]:
+        if kind in fresh and proof["source_sha"] != source:
             raise OperationError("Owner artifacts must share frozen source")
         if proof.get("runtime_kind") != ("lambda-api" if kind == "api" else "finite-worker"):
             raise OperationError("Wrong execution artifact kind")

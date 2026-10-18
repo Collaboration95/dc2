@@ -139,7 +139,7 @@ def test_failed_build_evidence_is_refused(tmp_path):
 
 def test_a_good_image_that_is_the_deployed_one_would_move_nothing_and_is_refused(tmp_path):
     world, ctx, builds = stack(tmp_path)
-    with pytest.raises(ProofError, match="shares an image with the baseline"):
+    with pytest.raises(ProofError, match="is the baseline's"):
         make(ctx, builds, tmp_path, good={"run_id": world.env, "evidence": builds["good"]})
 
 

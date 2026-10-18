@@ -83,7 +83,6 @@ def test_the_wrapped_entry_points_are_the_existing_ones():
     script = CD_SCRIPT.read_text()
     for entry in (
         "scripts.aws.v1.deploy",
-        "scripts.aws.v1.session",
         "scripts.aws.v1.release",
         "scripts.aws.v1.evidence",
         "deploy/v1/build_and_verify.py",
@@ -110,6 +109,28 @@ def test_green_ci_on_main_updates_the_environment_in_place(workflow):
     checkouts = [s for job in workflow["jobs"].values() for s in job["steps"]
                  if s.get("uses", "").startswith("actions/checkout")]
     assert checkouts and all(s["with"]["ref"] == "${{ env.CD_SHA }}" for s in checkouts)
+
+
+def test_releases_run_online_and_cd_never_closes_or_reopens_the_environment():
+    script = CD_SCRIPT.read_text()
+    # The kill switch is the operator's: CD neither engages it nor undoes it.
+    assert "scripts.aws.v1.session" not in script
+    calls = [line for line in script.splitlines()
+             if "scripts.aws.v1.release " in line and "launcher-default" not in line]
+    assert len(calls) == 3  # promote, restore, abandon
+    for call in ('local promote=(--config "$config" "${SCOPE[@]}" --online',
+                 'local restore=(--config "$config" "${SCOPE[@]}" --online',
+                 'release abandon --config "$config" "${SCOPE[@]}" --online',
+                 'release launcher-default --config "$config" "${SCOPE[@]}" --online'):
+        assert call in script, call
+
+
+def test_an_automatic_deploy_never_creates_the_environment():
+    script = CD_SCRIPT.read_text()
+    deploy = script.split("cmd_deploy() {", 1)[1]
+    guard = deploy.split("cost_flags", 1)[0]
+    assert 'CD_EVENT:-}" = workflow_run' in guard and ".deploy.established" in guard
+    assert "return 0" in guard
 
 
 def test_script_is_executable_and_parses():

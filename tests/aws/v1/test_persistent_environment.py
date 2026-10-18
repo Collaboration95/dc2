@@ -125,19 +125,42 @@ def test_replacing_stateful_data_fails_the_update_unless_explicitly_allowed(
     assert applied_changes(live)[0]["Replacement"] == "True"
 
 
-def test_only_owners_whose_build_changed_are_reported_for_release(live, tmp_path):
+def images_at(tmp_path, sha, name="next.json"):
+    path = tmp_path / name
+    path.write_text(json.dumps({o: {"source": f"{o}:{sha[:4]}", "source_sha": sha}
+                                for o in ("media", "processing", "worker")}))
+    return path
+
+
+@pytest.mark.parametrize(("paths", "owners", "migrations"), [
+    # Every image carries its commit SHA as a label, so a docs-only commit changes every image
+    # id; only the build inputs decide, and here none changed.
+    (["docs/a.md", "tests/media/x.py", "deploy/aws/v1/template.json"], [], []),
+    (["media/api/uploads.py"], ["media"], []),
+    (["media_engine/probe.py"], ["processing"], []),  # the worker is Processing's
+    (["runtime_support/settings.py"], ["media", "processing"], []),
+    (["processing/migrations/versions/x.py"], ["processing"], ["processing"]),
+    (None, ["media", "processing"], ["media", "processing"]),  # history unknown: all changed
+])
+def test_owners_are_released_only_when_their_images_build_inputs_changed(
+        live, tmp_path, monkeypatch, paths, owners, migrations):
+    live.s.images_file = images_at(tmp_path, "a" * 40, "first.json")
     live.deploy()
-    running = live.journal.view()["images"]
-    images = tmp_path / "next.json"
-    images.write_text(json.dumps({
-        "media": {"source": "m:2", "local_id": running["media"]["local_id"]},
-        "processing": {"source": "p:2", "local_id": "sha256:" + "f" * 64},
-        "worker": {"source": "w:2", "local_id": running["worker"]["local_id"]},
-    }))
-    live.s.images_file = images
+    monkeypatch.setattr(deploy, "changed_paths", lambda old, new: paths)
+    live.s.images_file = images_at(tmp_path, "b" * 40)
     live.deploy()
     detail = live.journal.view()["steps"]["images"]["detail"]
-    assert detail == {"pushed": False, "changed_owners": ["processing"]}
+    assert detail["pushed"] is False and detail["changed_owners"] == owners
+    assert detail["migrations_changed"] == migrations
+
+
+def test_the_commit_of_each_running_image_is_known_to_the_next_deploy(live, tmp_path):
+    live.s.images_file = images_at(tmp_path, "a" * 40, "first.json")
+    live.deploy()
+    images = live.journal.view()["images"]
+    assert {images[o]["source_sha"] for o in ("media", "processing", "worker")} == {"a" * 40}
+    assert deploy.changed_paths("a" * 40, "a" * 40) == []
+    assert deploy.changed_paths(None, "a" * 40) is None
 
 
 def test_the_kill_switch_survives_routine_deploys(live):
@@ -150,13 +173,23 @@ def test_the_kill_switch_survives_routine_deploys(live):
     assert steps["session-open"]["detail"]["kill_switch"] == "on"
     assert steps["public-smoke"]["detail"]["checks"].startswith("skipped")
     assert live.session.actions == ["init", "open"]
+    # The stack update renders the gates closed, so CloudFormation cannot reopen them, and the
+    # smoke account is not registered again through the closed API.
+    parameters = {p["ParameterKey"]: p["ParameterValue"] for p in change_sets(live)[-1][
+        "Parameters"]}
+    assert parameters["GatesOpen"] == "false" and parameters["AlwaysOn"] == "true"
+    assert steps["seed"]["detail"] == {"registered": "earlier"}
+    gates = {"HttpStage", "ProcessingCommandsMapping", "MediaResultsMapping", "MediaRepairRule",
+             "ProcessingRepairRule", "ProcessingEcsEventsRule", "ProcessingS3EventsRule",
+             "ProcessingLauncherRule"}
+    assert {c["LogicalResourceId"] for c in applied_changes(live)} <= gates
 
 
 def release_dir(tmp_path, owner, digests):
     directory = tmp_path / "release"
     directory.mkdir()
-    bundle = {kind: {"manifest_digest": digest, "config_id": f"sha256:{kind}-id"}
-              for kind, digest in digests.items()}
+    bundle = {kind: {"manifest_digest": digest, "config_id": f"sha256:{kind}-id",
+                     "source_sha": "c" * 40} for kind, digest in digests.items()}
     (directory / "bundle-good.json").write_text(json.dumps(bundle))
     (directory / "plan.json").write_text(json.dumps(
         {"owner": owner, "good": {"bundle": "bundle-good.json"}}))
@@ -219,12 +252,16 @@ def test_always_on_opens_every_gate_the_session_api_used_to_open():
     for name in ("ProcessingCommandsMapping", "MediaResultsMapping"):
         assert RESOURCES[name]["Properties"]["Enabled"]["Fn::If"][1] is True
     launcher = RESOURCES["ProcessingLauncher"]["Properties"]["Environment"]["Variables"]
-    assert launcher["PROCESSING_LAUNCHER_ALWAYS_ON"]["Fn::If"][:2] == ["AlwaysOpen", "true"]
+    assert launcher["PROCESSING_LAUNCHER_ALWAYS_ON"]["Fn::If"][:2] == ["AlwaysOnEnv", "true"]
+    # The gates open only while the kill switch is off: GatesOpen=false keeps them closed.
+    assert template()["Conditions"]["AlwaysOpen"] == {"Fn::And": [
+        {"Condition": "AlwaysOnEnv"}, {"Fn::Equals": [{"Ref": "GatesOpen"}, "true"]}]}
 
 
 def test_the_budget_alerts_at_half_four_fifths_and_all_of_the_monthly_amount():
     budget = RESOURCES["MonthlyBudget"]
-    assert budget["Condition"] == "AlwaysOpen"
+    # Kept while the kill switch is on: it follows the environment, not the gates.
+    assert budget["Condition"] == "AlwaysOnEnv"
     assert budget["Properties"]["Budget"]["BudgetLimit"] == {
         "Amount": {"Ref": "MonthlyBudgetUsd"}, "Unit": "USD"}
     notes = budget["Properties"]["NotificationsWithSubscribers"]
@@ -251,14 +288,41 @@ def test_only_the_work_publishers_may_wake_the_launcher_and_only_through_its_ali
             "Unattended", {"Ref": "ProcessingLauncherAlias"}]
 
 
-def test_a_function_definition_change_publishes_a_new_version_for_its_alias():
-    def digest(properties):
-        return hashlib.sha256(json.dumps(properties, sort_keys=True).encode()).hexdigest()[:12]
+def test_a_function_version_names_everything_its_resolved_configuration_depends_on():
+    def description(resources, name):
+        return resources[f"{name}Version"]["Properties"]["Description"]["Fn::Join"][1]
 
-    version = RESOURCES["ProcessingApiVersion"]
+    version = RESOURCES["ProcessingLauncherVersion"]
     assert version["DeletionPolicy"] == version["UpdateReplacePolicy"] == "Retain"
-    description = version["Properties"]["Description"]["Fn::Sub"]
-    properties = RESOURCES["ProcessingApi"]["Properties"]
-    # The image and the definition both name the version, so either change replaces it.
-    assert "${ProcessingImageUri}" in description and digest(properties) in description
-    assert digest({**properties, "MemorySize": 4096}) not in description
+    parts = description(RESOURCES, "ProcessingLauncher")
+    properties = RESOURCES["ProcessingLauncher"]["Properties"]
+    digest = hashlib.sha256(json.dumps(properties, sort_keys=True).encode()).hexdigest()[:12]
+    # The image by digest, the definition, the parameters and conditions it reads, and the
+    # worker task definition it launches, which a replacement always renumbers.
+    assert parts[1] == {"Fn::Select": [1, {"Fn::Split": ["@", {"Ref": "ProcessingImageUri"}]}]}
+    assert parts[2] == digest
+    assert {"Ref": "WorkerLifetimeSeconds"} in parts
+    assert {"Fn::Select": [1, {"Fn::Split": ["/", {"Ref": "WorkerTaskDefinition"}]}]} in parts
+    assert {"Fn::If": ["AlwaysOnEnv", "AlwaysOnEnv=1", "AlwaysOnEnv=0"]} in parts
+    commands = description(RESOURCES, "ProcessingCommands")
+    assert {"Fn::If": ["Unattended", "Unattended=1", "Unattended=0"]} in commands
+
+
+def test_a_version_description_stays_within_lambdas_256_characters():
+    image = "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processing@sha256:" + (
+        "f" * 64)
+    for name, resource in RESOURCES.items():
+        if resource["Type"] != "AWS::Lambda::Version":
+            continue
+        rendered = []
+        for part in resource["Properties"]["Description"]["Fn::Join"][1]:
+            if isinstance(part, str):
+                rendered.append(part)
+            elif "Fn::If" in part:
+                rendered.append(part["Fn::If"][1])
+            elif "Fn::Select" in part:
+                rendered.append(image.split("@")[1] if part["Fn::Select"][1]["Fn::Split"][0] == "@"
+                                else "dc2-live-worker:9999")
+            else:  # a parameter: its longest plausible value
+                rendered.append("x" * 48)
+        assert len(" ".join(rendered)) <= 256, name
