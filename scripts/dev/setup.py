@@ -102,7 +102,12 @@ def setup_v1(*, with_deps: bool = False) -> None:
     from scripts.dev.v1_runtime import MOTO_REQUIREMENT, MOTO_VENV
 
     venv = ROOT / MOTO_VENV
-    run(["uv", "venv", "--allow-existing", str(venv)], label="setup-v1-moto-venv", timeout=120)
+    # Same interpreter as the locked environment: setup never downloads Python.
+    run(
+        ["uv", "venv", "--allow-existing", "--python", str(ROOT / ".venv/bin/python"), str(venv)],
+        label="setup-v1-moto-venv",
+        timeout=120,
+    )
     run(
         ["uv", "pip", "install", "--python", str(venv / "bin/python"), MOTO_REQUIREMENT],
         label="setup-v1-moto",
