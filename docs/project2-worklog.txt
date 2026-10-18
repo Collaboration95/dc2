@@ -750,12 +750,21 @@ is NOT_RUN and Blocked. No issue is Ready under the current no-AWS instruction.
 - Microservices audit (read-only, 18 Oct, origin/dev/closeout at 9f5436e): "mostly real
   microservices". Separate images, DB roles denied cross-database (#63 receipt), SQS and outbox/inbox
   only, independent release (#65, peer_unchanged). Gaps became #196-#200; #196 harness, #197, #198,
-  #199, #200 are merged, the live isolation receipt waits for r1018a. Accepted trade-offs: one
+  #199, #200 are merged; the live isolation receipt came with r1018b (consumer only). Accepted trade-offs: one
   CloudFormation stack, shared Aurora cluster, monorepo with one lockfile. Peer-era leftovers in V1
   packages found by the docs review: #210 (not started).
 - User decisions: use GitHub OIDC for CD (no stored AWS key); #93 and #94 closed (parked, future work
   in the report, opt-in code stays off); keep the r1017b final Aurora snapshot; presentation and
   report (#181) do not start without human approval.
-- In progress: r1018a (#186) single cloud session through the CD workflow: smoke, backlog scaling,
-  independent release, demo recording, teardown. Evidence index (#189) follows it. Repo hygiene (#190):
-  new root README, historical banners, root hand-off files moved to docs/history/.
+- Repo hygiene (#190, PR #211): new root README, historical banners, root hand-off files moved to
+  docs/history/.
+- Cloud session r1018b (#186, 17-18 Oct; r1018a was a partial first attempt) through the CD workflow.
+  Receipts: evidence/cloud-proof-r1018b.json, cloud-proof-r1018bmedia.json, r1018b-results.md (PR #224).
+  Results against targets: backlog of 6 clips at cap 1/2/3 = 0.483/0.700/1.134 jobs/min, 1.449x (FAIL
+  vs 1.6x) and 2.347x (PASS vs 2.1x); Processing release 10.1-10.3 min vs 10 min (FAIL, marginal),
+  Media 8.0-8.2 min; Processing-down proof PASS on rerun (consumer only); unattended launcher 0.69x of
+  operator-batch throughput (measured, no target); bad-candidate restore PASS for Media; 13/13 alarms OK.
+  CD post-release smoke did not pass in 5 runs and both CD teardowns failed (finished from the laptop).
+  Spend still PENDING (Cost Explorer 0.00 USD, credits). Both stacks torn down.
+- Evidence index (#189): docs/evidence-index.md, every 3.3 control and 3.4 scenario by environment.
+  CD end-to-end green run is pending r1019a (#182, #223, #225).

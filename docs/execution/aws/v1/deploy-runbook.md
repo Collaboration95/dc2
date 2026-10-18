@@ -5,8 +5,10 @@ Status (updated 18 October): **written offline, then run against AWS once by an 
 [`scripts/aws/v1/deploy.py`](../../../../scripts/aws/v1/deploy.py) and recorded redacted receipts for
 #63-#67 in [`evidence/cloud-proof-r1017b.json`](evidence/cloud-proof-r1017b.json); that run exposed
 defects that were fixed afterwards (for example the Aurora wake-up during bootstrap). The CD workflow
-described at the end of this file has not been dispatched yet: run `r1018a` (#186) is the first run
-through it and is **in progress**. Nothing here authorizes AWS operations, spend or deletion; the
+described at the end of this file was exercised by runs `r1018a` (partial) and `r1018b` (deploy green;
+releases promoted but the post-release smoke did not pass; teardown failed twice and was finished from
+the laptop). It is not yet green end to end (pending `r1019a`); see
+[`evidence/r1018b-results.md`](evidence/r1018b-results.md). Nothing here authorizes AWS operations, spend or deletion; the
 operator named in [`cloud-operator-20261015.md`](cloud-operator-20261015.md) decides when to run it.
 
 One ordered, resumable, journaled path takes the account from nothing to a smoke-tested,

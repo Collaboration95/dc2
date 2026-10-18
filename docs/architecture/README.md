@@ -16,6 +16,8 @@ renders each block marked `%% img: <name>` to [`img/<name>.svg`](img/). The prop
 under `project-documentation/images/` are untouched.
 
 Evidence labels used in all three pages: **[AWS]** a live receipt
-([`cloud-proof-r1017b.json`](../execution/aws/v1/evidence/cloud-proof-r1017b.json)), **[Local]**
+([`cloud-proof-r1017b.json`](../execution/aws/v1/evidence/cloud-proof-r1017b.json),
+[`cloud-proof-r1018b.json`](../execution/aws/v1/evidence/cloud-proof-r1018b.json); results in
+[`evidence-index.md`](../evidence-index.md)), **[Local]**
 tests on real PostgreSQL and FFmpeg with Moto for S3 and SQS, **[Code]** source or the rendered
 template only, **[NOT_RUN]** implemented but never run on AWS.

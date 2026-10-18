@@ -8,7 +8,8 @@ flags (`DeployApplications=true`, `UnattendedLaunch=false`, `LambdaShortEncodes=
 
 Evidence labels: **[AWS]** recorded in
 [`cloud-proof-r1017b.json`](../execution/aws/v1/evidence/cloud-proof-r1017b.json) (live run
-2026-10-17, since torn down); **[Local]** real PostgreSQL and FFmpeg with Moto for S3/SQS, not AWS;
+2026-10-17) and [`cloud-proof-r1018b.json`](../execution/aws/v1/evidence/cloud-proof-r1018b.json) (live run
+2026-10-18), both since torn down, with results against targets in [`evidence-index.md`](../evidence-index.md); **[Local]** real PostgreSQL and FFmpeg with Moto for S3/SQS, not AWS;
 **[Code]** source or rendered template only.
 
 Diagram sources are the Mermaid blocks in this file. Rendered copies are in [`img/`](img/); run
@@ -205,7 +206,7 @@ Rendered: [`img/views-physical.svg`](img/views-physical.svg).
 | ECR | Immutable, scanned images, one repository per image | AD-10, AD-16 |
 | SSM Parameter Store | DSNs and JWT secret as SecureStrings (created by the deploy pipeline, referenced by ARN) | Keeps secrets out of the template and images |
 | Secrets Manager | Aurora master password (`ManageMasterUserPassword`), readable only by the bootstrap operator | AD-12 |
-| CloudWatch | 7-day log groups per function and for tasks; 12 alarms (3 DLQ depth, 9 function errors) and the `ServicesDashboard` with a Media and a Processing section | AD-25 (added after the live run, not yet seen on AWS) |
+| CloudWatch | 7-day log groups per function and for tasks; 12 alarms (3 DLQ depth, 9 function errors) and the `ServicesDashboard` with a Media and a Processing section | AD-25 (13 of 13 `OK` in `r1018b`; none seen firing) |
 | IAM, OIDC | Per-handler roles; GitHub deploy role (separate stack `deploy/aws/v1/github-oidc.yaml`) | AD-17, AD-20 |
 
 Resource counts at defaults: 60 resources before applications are enabled, 159 after (ten

@@ -7,7 +7,7 @@ Evidence labels used throughout:
 
 | Label | Meaning |
 |---|---|
-| **[AWS]** | Recorded in the live receipt [`cloud-proof-r1017b.json`](../execution/aws/v1/evidence/cloud-proof-r1017b.json) (run `r1017b`, 2026-10-17, ap-southeast-1) or [`cloud-proof-r1017bmedia.json`](../execution/aws/v1/evidence/cloud-proof-r1017bmedia.json). The stack has since been torn down. |
+| **[AWS]** | Recorded in a live receipt: [`cloud-proof-r1017b.json`](../execution/aws/v1/evidence/cloud-proof-r1017b.json) (run `r1017b`, 2026-10-17, ap-southeast-1), [`cloud-proof-r1017bmedia.json`](../execution/aws/v1/evidence/cloud-proof-r1017bmedia.json), or, from 18 October, [`cloud-proof-r1018b.json`](../execution/aws/v1/evidence/cloud-proof-r1018b.json) and [`cloud-proof-r1018bmedia.json`](../execution/aws/v1/evidence/cloud-proof-r1018bmedia.json) (run `r1018b`). Both stacks have been torn down. Results against targets: [`docs/evidence-index.md`](../evidence-index.md). |
 | **[Local]** | Tests on real PostgreSQL 16 and FFmpeg with Moto for S3/SQS and an in-process Gateway bridge. Not AWS: it does not exercise IAM, Gateway, Lambda, Fargate or Aurora. |
 | **[Code]** | Read from source or from the rendered CloudFormation template (`scripts/aws/v1/definitions.py`; the checked-in `deploy/aws/v1/template.json` is identical to its output). No runtime evidence. |
 | **[NOT_RUN]** | Implemented, never run against AWS. |
@@ -130,7 +130,9 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   lost queue entry. Failure isolation (Media accepts and holds an upload while the
   `ProcessingCommands` consumer is off, then Processing catches up) has a harness,
   `python -m scripts.aws.v1.evidence isolation` (`scripts/aws/v1/proof/isolation.py`, #196), tested
-  against the simulated account; **[NOT_RUN]** on AWS, no receipt exists yet.
+  against the simulated account. [AWS] `r1018b` `processing-down`: command consumer off 48 s, Media
+  answered 202, the command was held, and the job reached `done` 58.9 s after re-enable (first attempt
+  failed on a harness bug, rerun passed). Consumer only: the Processing API stayed up.
 
 ### AD-12 Aurora Serverless v2: one cluster, two logical databases, separate roles
 
@@ -162,7 +164,7 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   ECS (`DC2_WORKER_CAP` is documentary). Work arriving later stays queued until another batch.
 - **Alternatives.** An ECS service with autoscaling (always-on cost; the proposal also put
   autoscaling out of scope); AWS Batch (not a V1 dependency); Lambda for short encodes (#93) and a
-  launcher Lambda for unattended starts (#68), both opt-in and [NOT_RUN].
+  launcher Lambda for unattended starts (#68), both opt-in. #68 ran on AWS in `r1018b` (see below); #93 is [NOT_RUN].
 - **Trade-off.** No autoscaling; at most three concurrent encodes; submissions are not processed
   until someone starts a batch, so a Publisher job on its own would sit queued.
 - **Evidence.** [AWS] `run-1/2/3`: 1, 2, 3 encoders running together (peak concurrency read from task
@@ -224,8 +226,10 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   a breaking change takes the two-release rollout in `contracts/README.md`.
 - **Evidence.** [AWS] Processing: `promote-good` 322.5 s (gate 600 s) with peer unchanged at every
   snapshot, `rollback` 250.7 s, a failing candidate stopped at smoke after 205.7 s and restored in
-  54.8 s. Media: `promote-good` and `rollback` pass; no failing Media candidate was supplied
-  (`bad-candidate-restore` is NOT_RUN in the media receipt). [Code] `scripts/aws/v1/release.py`.
+  54.8 s. Media (`r1018bmedia`): `promote-good` 246.8 s, `rollback` 251.8 s, a failing candidate stopped
+  at smoke after 189.5 s and restored in 47.0 s. Through CD, the `Release` step took 10.1 to 10.3 min
+  for Processing (the proposal target is 10 min: a marginal FAIL) and 8.0 to 8.2 min for Media, and the
+  post-release smoke did not pass in the five runs that reached it. [Code] `scripts/aws/v1/release.py`.
 
 ### AD-17 GitHub Actions CD over OIDC
 
@@ -244,7 +248,10 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   **No dispatched run of `cd.yml` exists** (`gh run list --workflow cd.yml --event workflow_dispatch`
   returns nothing at the time of writing; the two recorded runs were push-triggered on
   `closeout/pipeline`). The live receipt `r1017b` came from the operator CLI, not from this workflow.
-  [NOT_RUN] for AWS deployment through CD.
+  Update, 18 October: `r1018a` and `r1018b` ran through `cd.yml` (OIDC). `r1018b` deploy succeeded
+  (26.5 min, smoke PASS) and releases promoted, but the post-release smoke failed in all five runs that
+  reached it and both teardown dispatches failed at `td-session-close`. Not yet green end to end:
+  pending `r1019a` (#182, #223, #225).
 
 ### AD-18 Network: private Lambda subnets, IPv6 egress-only, S3 gateway endpoint, no NAT
 
@@ -325,7 +332,8 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   to the V1 template (a test compares it with `deploy/aws/v1/template.json`).
 - **Alternatives.** Separate branches (the original gating, #80).
 - **Trade-off.** V1 images and the migration history carry code and tables only the experiments use
-  (`launcher_control`, `launch_reservations`). All three are [NOT_RUN] in the cloud.
+  (`launcher_control`, `launch_reservations`). #68 ran in the cloud in `r1018b` (6 clips: 0.787 jobs/min,
+  0.69x the operator batch); #93 and #94 are [NOT_RUN].
 - **Evidence.** [Code] `docs/execution/aws/v2/*.md`, `definitions.py`, `tests/aws/v1/test_database_topology.py`.
 
 ### AD-23 One CloudFormation stack, applied in two phases
@@ -373,8 +381,9 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   messages stand in for running encoders); paging through SNS (out of scope).
 - **Trade-off.** Alarms are state to read, not pages. Log retention is 7 days.
 - **Evidence.** [Code] `definitions.py` (`*DlqAlarm`, `*ErrorsAlarm`, `ServicesDashboard`);
-  [Local] `tests/aws/v1/test_observability.py`. **[NOT_RUN]** on AWS: the alarms and dashboard were
-  added after receipt `r1017b`.
+  [Local] `tests/aws/v1/test_observability.py`. [AWS] `r1018b`: 13 of 13 alarms `OK` after
+  the backlog and the unattended run, no transition to `ALARM`; `ServicesDashboard` captured three
+  times (images private). No alarm was seen firing.
 
 ### AD-26 Retired peer-HTTP and Redis/RQ code quarantined in `legacy/`
 
@@ -398,7 +407,7 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
 | Containers on one small AWS environment (AD-07, section 2.5) | Managed serverless: API Gateway, Lambda, SQS, Aurora Serverless v2, S3, CloudFront. Containers only for the encoder, migrations and bootstrap. | Scale to zero, no host to run, course emphasis on cloud-native services | [Code] `definitions.py`; [AWS] receipt |
 | Scale workers 1 to 3 independently (UC-6, section 3.3) | Operator-started finite batches of 1 to 3, not autoscaling. The proposal's own section 3.5 excludes autoscaling. | Cost, Fargate quota (6 vCPU), complexity | [AWS] `run-1/2/3`; [Code] `session.py:batch` |
 | Redis/RQ workers kept (AD-03) | SQS plus outbox/inbox; workers poll SQS | Redis is an always-on node; decoupling Media from Processing | [Code] images, template |
-| Sync `SubmitJob` and `GetJob` between services | Asynchronous commands and a Media-owned projection | Failure isolation and removal of a runtime dependency | [Local] messaging tests; failure-isolation harness exists (#196), no AWS receipt yet |
+| Sync `SubmitJob` and `GetJob` between services | Asynchronous commands and a Media-owned projection | Failure isolation and removal of a runtime dependency | [Local] messaging tests; [AWS] `r1018b` `processing-down` (#196, consumer only) |
 | Service token on a private network (AD-06) | Gateway-trusted actor and role-scoped queue policies | No private network exists between Lambdas; IAM is the boundary | [AWS] `forged-identity`, `sqs-direct-send` |
 | Workers never hold storage credentials; presigned source URL (AD-05) | Workers read the source bucket with an IAM grant pinned to a VersionId | Removes the Media callback from the encode path | [Code]; plan states the broadening |
 | Upload through Media Management, 100 MiB (section 2.3) | Direct-to-S3 reservation and finalize; limit unchanged | Payload limits and cost of proxying bytes | [AWS] `direct-upload-e2e` |
@@ -406,8 +415,8 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
 | Each service deployed on its own (section 2.5) | Code releases are independent per owner (Lambda aliases), with path-filtered per-service CI lanes that build and check only that owner's images (#204, CODEOWNERS). **Infrastructure is one CloudFormation stack** for both. | Effort; recorded as an accepted trade-off in #195 | [AWS] `promote-good` peer unchanged; [Code] AD-23, `.github/workflows/ci.yml`, `.github/CODEOWNERS` |
 | One PostgreSQL server (AD-02) | Kept, which makes the **shared Aurora cluster one failure and capacity boundary** | Cost; separate clusters are a [NOT_RUN] experiment (#94) | [Code]; `docs/execution/aws/v2/database-topology.md` |
 | Pipeline deploys then the Publisher CLI runs the smoke test (section 2.5) | CD smoke uses the evidence harness (`evidence gateway --only direct-upload-e2e`), not Publisher | Encoders are operator-started, so a Publisher job would stay queued | `deploy-runbook.md` "CD workflow"; Publisher is exercised by CI (`publisher-https`) [Local] |
-| Automated pipeline builds, tests, scans, deploys | CI (lint, unit, per-service lanes, Trivy, Sonar, secret scan, ZAP workflow) is automatic. **CD is manual dispatch and has not been dispatched.** | Cost guard and operator-gated sessions | [Code] workflows; no dispatched run |
-| Scalability target: 30 identical 60 s clips, 1, 2, 3 workers, jobs/min ratios (section 3.4) | AWS receipt runs 1, 2 and 3 concurrent encoders with one 36 MB fixture each; no backlog throughput ratio was computed in this receipt | A capacity backlog mode exists (#185) and was not run live in `r1017b` | [AWS] `run-1/2/3`; [Local] `tests/aws/v1/test_capacity_backlog.py` simulation only |
+| Automated pipeline builds, tests, scans, deploys | CI (lint, unit, per-service lanes, Trivy, Sonar, secret scan, ZAP workflow) is automatic. **CD is manual dispatch; it ran for `r1018a` and `r1018b` and is not yet green end to end.** | Cost guard and operator-gated sessions | [Code] workflows; [AWS] `r1018b` CD runs, see [`docs/evidence-index.md`](../evidence-index.md) |
+| Scalability target: 30 identical 60 s clips, 1, 2, 3 workers, jobs/min ratios (section 3.4) | AWS `r1018b` ran a backlog of **6** clips (36 MB fixture) at cap 1, 2 and 3: 0.483 / 0.700 / 1.134 jobs/min, so 1.449x (**FAIL**, target 1.6x) and 2.347x (PASS, target 2.1x). The 30-clip, three-repeat design ran only locally on the pre-V1 design (2.03x and 2.89x) | Cost and time; the Fargate quota caps the run at 3 encoders | [AWS] `cloud-proof-r1018b.json` `#185`; [Local] `reviews/scaling-validation.md`. Detail and likely cause: [`docs/evidence-index.md`](../evidence-index.md) |
 | Status p90 at most 700 ms (50 users, 3 min); login p90 under 2 s | p90 58 ms and 178 ms, measured from a Fargate generator in the same region, not from users | Method fixed by the proof tooling | [AWS] `generator` (#66) |
 | Release Processing in 10 min or less | Promote plus smoke 322.5 s; rollback 250.7 s | | [AWS] `promote-good`, `rollback` |
 | Failed worker re-queued or failed within 5 min | Detected in 5.8 s. Lease expiry marks the attempt `abandoned` and the job `failed`; there is **no automatic requeue**, a retry makes a new attempt. | Design choice in `recovery.py:interrupt` | [AWS] `recovery`; [Code] |
@@ -438,17 +447,17 @@ Status on 18 October: rows 1, 2 and 3 were corrected in the source documents, an
 |---|---|---|
 | Shared Aurora cluster is a single failure and capacity boundary | One cluster, one instance, 2 ACU ceiling, 1-day backup retention. An outage, a failed resume or a capacity limit affects both domains. Role separation does not isolate failures. Separate clusters were not measured on AWS. | [Code]; #94 [NOT_RUN] |
 | Single region | Everything runs in ap-southeast-1. Subnets span two AZs but the database instance does not. No cross-region copy or failover; the proposal excluded multi-zone and multi-region failover. | [Code] |
-| Operator-started encoders | No autoscaling or unattended starts in V1. At most three concurrent encodes (quota and operator cap). Work that arrives after a batch waits for the next one. | [AWS] `run-1/2/3`; #68 [NOT_RUN] |
+| Operator-started encoders | No autoscaling and no unattended starts by default. At most three concurrent encodes (quota and operator cap). Work that arrives after a batch waits for the next one. The opt-in launcher (#68) removes the operator but measured 0.69x the throughput of operator batches on the same 6 clips. | [AWS] `run-1/2/3`; `r1018b` `#68` |
 | Booked sessions only | When closed, the Gateway throttle is 0 and consumers are disabled. A cold start after pause took 4.7 s for the first read. | [AWS] `close-state`, `cold-wake` |
 | Command publication waits for a repair tick | The Media API cannot send to SQS; the one-minute `MediaRepair` rule publishes `submit`. Intake-to-queue latency is up to about a minute. | [Code] `definitions.py` (`privileges`, rules) |
 | One stack, one repository, one lockfile | Infrastructure for both domains changes together. `contracts/`, `delivery/` and `runtime_support/` are copied into both images. Additive changes can ship in either order, but a breaking change needs two releases of both, and compatibility of a released pair is still attested by the operator. | AD-23, AD-16, AD-24 |
-| Failure isolation is not yet proven on AWS | Media finalize writes only its outbox and never calls Processing. The proof (`evidence isolation`) disables the `ProcessingCommands` consumer, uploads, checks Media holds the command, re-enables and requires `done`. It has run only against the simulated account. The Processing API stays up during it, so it shows consumer isolation, not a full Processing outage. | AD-11; #196 harness merged, live run pending |
-| Alarms exist but have not been seen firing | 12 alarms and one dashboard are in the template but were added after the live run. There is no notification target, so nobody is paged; log retention is 7 days; Container Insights is off. | AD-25 [NOT_RUN] |
+| Failure isolation is not yet proven on AWS | Media finalize writes only its outbox and never calls Processing. The proof (`evidence isolation`) disables the `ProcessingCommands` consumer, uploads, checks Media holds the command, re-enables and requires `done`. It passed on AWS in `r1018b` (after one harness-bug failure). The Processing API stays up during it, so it shows consumer isolation, not a full Processing outage. | AD-11; [AWS] `processing-down` |
+| Alarms exist but have not been seen firing | 12 alarms at default flags (13 in the `r1018b` stack, all `OK`) and one dashboard. No alarm was observed in the `ALARM` state. There is no notification target, so nobody is paged; log retention is 7 days; Container Insights is off. | AD-25; [AWS] `r1018b`, state only |
 | Public API endpoint beyond CloudFront | The `execute-api` URL is reachable directly (the receipt tests both). There is no WAF; throttling is a single stage limit. | [AWS] `anonymous-denied`; [Code] |
 | Worker source read is bucket-wide | Owner scoping is application-level binding, not IAM. | AD-20 |
 | No viewer sharing | Only the owner can play an asset. | [Code] |
 | Rollback is image-only | Schema is never reversed; destructive migrations are not supported by release tooling. | [AWS] `schema_rollback_attempted: false`; `release.py` |
 | Delivery is at-least-once | Duplicates, reordering and lost responses are expected and absorbed by fences. Poison messages stop in a DLQ and need an operator redrive (`dlq-runbook.md`). | [Local]; [AWS] `dlq` |
-| Evidence limits | Latency is from an in-region generator. Cost Explorer reported an estimate with no usable total (`total` about 0, `final: false`); no invoice. Encoder throughput is not a backlog ratio. HLS output is best effort. | `cloud-proof-r1017b.json` "not_proven" |
-| CD not exercised | `cd.yml` has no dispatched run; its role is `AdministratorAccess`. | AD-17 |
+| Evidence limits | Latency is from an in-region generator. Cost Explorer reported an estimate with no usable total (`total` about 0, `final: false`); no invoice. The AWS backlog ratio uses 6 clips, one run per cap. HLS output is best effort. | `cloud-proof-r1017b.json` and `cloud-proof-r1018b.json` "not_proven" |
+| CD not yet green end to end | `cd.yml` ran for `r1018a` and `r1018b`; deploy succeeded, but the post-release smoke and both teardowns failed (pending `r1019a`). Its role is `AdministratorAccess`. | AD-17 |
 | Legacy residue | The peer code moved to `legacy/` and is kept out of the images, but peer-era tables, columns and a few functions remain in V1 packages. | AD-26, section 5 |

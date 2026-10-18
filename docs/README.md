@@ -18,7 +18,7 @@ of V1.
 | [`execution/aws/v2/`](execution/aws/v2/) | Opt-in V2 experiments, off by default, cloud evidence NOT_RUN |
 | [`ci/`](ci/) | CI policy and measurements |
 | [`project2-worklog.txt`](project2-worklog.txt) | Running log of decisions and status |
-| `evidence-index.md` | Quality scenarios against targets (in progress, pending the `r1018a` session) |
+| `evidence-index.md` | Every proposal quality scenario and security control against its target, by environment, with receipts |
 
 ## Historical
 
