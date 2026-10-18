@@ -132,8 +132,8 @@ waits in the queue until a batch is started.
 
 ```sh
 make publisher ARGS='--help'
-python -m publisher --base-url https://<cloudfront-domain>/api --json login you@example.com
-python -m publisher --base-url https://<cloudfront-domain>/api --json publish ./videos --wait
+python -m publisher --base-url https://<frontend-host>/api/media --json login you@example.com
+python -m publisher --base-url https://<frontend-host>/api/media --json publish ./videos --wait --max-polls 180 --interval 2
 ```
 
 ## Repository map
