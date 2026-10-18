@@ -289,3 +289,47 @@ def test_the_bad_candidate_changes_only_the_lambda_handler_and_commits_it_locall
     assert after != before  # a new commit, so the image label differs from the deployed one
     status = subprocess.check_output(["git", "status", "--porcelain"], cwd=repo, text=True)
     assert status.strip() == ""
+
+
+def script_function(name):
+    """One function of cd.sh, as text, so its logic runs without the rest of the script."""
+    found = re.search(rf"^{name}\(\) \{{.*?^\}}\n", CD_SCRIPT.read_text(), re.M | re.S)
+    assert found, name
+    return found.group(0)
+
+
+def test_an_owner_with_changed_migrations_stays_deferred_after_the_other_owners_adoption(
+        tmp_path):
+    # Media releases first and its adoption re-runs the deploy, which rewrites the images step:
+    # Processing's changed migrations must still hold it back (attestation, not green CI).
+    if not shutil.which("jq"):
+        pytest.skip("jq is not installed")
+    journal = tmp_path / "deploy-journal.json"
+
+    def write(migrations):
+        journal.write_text(json.dumps({"deploy": {"steps": {"images": {"detail": {
+            "changed_owners": ["media", "processing"],
+            "changed_images": ["media", "processing", "worker"],
+            "migrations_changed": migrations}}}}}))
+
+    write(["processing"])
+    stubs = f"""
+set -euo pipefail
+CD_STATE={tmp_path}
+summary() {{ :; }}
+fail() {{ echo "FAIL: $*"; exit 1; }}
+release_owner() {{
+  echo "RELEASED $1 ${{*:4}}"
+  # The adoption deploy: a fresh images step that no longer reports the migrations.
+  echo '{{"deploy": {{"steps": {{"images": {{"detail": {{"migrations_changed": []}}}}}}}}}}' \\
+    >"$CD_STATE/deploy-journal.json"
+}}
+{script_function("journal_value")}
+{script_function("release_changed_owners")}
+release_changed_owners images.json "media processing"
+"""
+    done = subprocess.run(["bash", "-c", stubs], capture_output=True, text=True)
+    assert done.returncode == 1, done.stdout + done.stderr
+    assert done.stdout.splitlines() == [
+        "RELEASED media media",
+        "FAIL: processing changed migrations; release it by hand with attest_additive=true"]

@@ -25,6 +25,7 @@ within 30 minutes at worst.
 """
 
 import logging
+import math
 import os
 import time
 
@@ -102,9 +103,12 @@ class Activity:
             checked, due = (float(v) for v in self._get(self.quiet_name).split())
         except Exception:
             return False
+        if not all(math.isfinite(v) for v in (touched, checked, due)):
+            return False
         now = self.clock()
+        # A check from the future (or in milliseconds) is as untrustworthy as a stale one.
         return (touched < checked - MARGIN_SECONDS and now < due
-                and now - checked < MAX_QUIET_SECONDS)
+                and 0 <= now - checked < MAX_QUIET_SECONDS)
 
     def record(self, checked_at, due_at):
         """After a pass: ``checked_at`` was taken before the SQL that found ``due_at``.

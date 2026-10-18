@@ -53,6 +53,40 @@ def test_every_tick_sweeps_sql_once_the_last_check_is_half_an_hour_old():
     assert MAX_QUIET_SECONDS == 30 * 60
 
 
+MALFORMED = [
+    ("0", "inf inf"), ("0", "nan 20000"), ("-inf", "9000 20000"), ("nan", "9000 20000"),
+    ("0", "10500 20000"),  # checked in the future
+    ("0", "9000000 9999999999999"),  # milliseconds: a check far in the future
+]
+
+
+@pytest.mark.parametrize(("touched", "quiet"), MALFORMED)
+def test_non_finite_or_out_of_range_markers_are_never_quiet(touched, quiet):
+    assert not gate(Ssm(touched, quiet)).quiet()
+
+
+@pytest.mark.parametrize("owner", ["processing", "media"])
+@pytest.mark.parametrize(("touched", "quiet"), [("0", "inf inf"), ("0", "99999999999999 inf")])
+async def test_a_malformed_marker_sends_each_repair_tick_to_sql(
+        monkeypatch, quiet_markers, owner, touched, quiet):
+    import importlib
+
+    handlers = importlib.import_module(f"{owner}.handlers")
+    deny_database(monkeypatch, handlers)
+    quiet_markers.values.update({TOUCHED: touched, QUIET: quiet})
+    with pytest.raises(NoDatabase):
+        await handlers.invoke({}, None, "repair")
+
+
+@pytest.mark.parametrize(("touched", "quiet"), [("0", "inf inf"), ("0", "99999999999999 inf")])
+async def test_a_malformed_marker_sends_the_launcher_tick_to_sql(quiet_markers, touched, quiet):
+    from processing import launcher_aws
+
+    quiet_markers.values.update({TOUCHED: touched, QUIET: quiet})
+    with pytest.raises(KeyError):  # past the gate: config_from_environ, unset in this test
+        await launcher_aws.run({"source": "aws.events"}, None)
+
+
 @pytest.mark.parametrize("quiet", ["0", "", "not numbers", "1 2 3"])
 def test_any_doubt_about_the_markers_means_run_sql(quiet):
     assert not gate(Ssm("0", quiet)).quiet()

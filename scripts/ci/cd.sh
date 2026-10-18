@@ -228,13 +228,19 @@ cmd_deploy() {
     summary "Releases deferred (kill switch on): **$owners**. Turn it off, then dispatch a deploy."
     return 0
   fi
-  # A release whose migrations changed needs a human's word that the previous image works with
-  # the new schema (attest_additive); green CI does not show that. Others ship now.
-  local owner name deferred=() rebuilt
+  release_changed_owners "$images" "$owners"
+}
+
+# A release whose migrations changed needs a human's word that the previous image works with the
+# new schema (attest_additive); green CI does not show that. Others ship now. Everything is read
+# from the journal before the first release: each release's adoption re-runs the deploy, which
+# rewrites the images step and with it `migrations_changed`.
+release_changed_owners() { # images-evidence owners
+  local images="$1" owners="$2" owner name deferred=() rebuilt migrations
   rebuilt=$(journal_value '.deploy.steps.images.detail.changed_images | arrays | join(" ")')
+  migrations=$(journal_value '.deploy.steps.images.detail.migrations_changed | arrays | join(" ")')
   for owner in $owners; do
-    if journal_value '.deploy.steps.images.detail.migrations_changed | arrays | join(" ")' |
-      grep -qw "$owner"; then
+    if [[ " $migrations " == *" $owner "* ]]; then
       deferred+=("$owner")
       continue
     fi
