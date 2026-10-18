@@ -218,11 +218,14 @@ jobs:
         with:
           python-version-file: .python-version
       - run: make v1-images
+      - id: short
+        if: always()
+        run: echo "sha12=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
       - name: Scan the built media image (report only; the gate step decides)
         if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: dc2-v1-media:local-${{ substr(github.sha, 0, 12) }}
+          image-ref: dc2-v1-media:local-${{ steps.short.outputs.sha12 }}
           format: json
           output: trivy-media.json
           exit-code: '0'
@@ -231,7 +234,7 @@ jobs:
         if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: dc2-v1-processing:local-${{ substr(github.sha, 0, 12) }}
+          image-ref: dc2-v1-processing:local-${{ steps.short.outputs.sha12 }}
           format: json
           output: trivy-processing.json
           exit-code: '0'
@@ -240,7 +243,7 @@ jobs:
         if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: dc2-v1-worker:local-${{ substr(github.sha, 0, 12) }}
+          image-ref: dc2-v1-worker:local-${{ steps.short.outputs.sha12 }}
           format: json
           output: trivy-worker.json
           exit-code: '0'
