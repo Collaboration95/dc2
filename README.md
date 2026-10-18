@@ -80,15 +80,18 @@ Deployment is operator-run and costs money. Nothing is applied unless `execute=t
 - **Pipeline:** the CD workflow [`.github/workflows/cd.yml`](.github/workflows/cd.yml) (preflight,
   deploy, release, teardown) over a GitHub OIDC role
   ([`deploy/aws/v1/github-oidc.yaml`](deploy/aws/v1/github-oidc.yaml)). It refuses a commit without green
-  CI. Example: `gh workflow run cd.yml -f operation=preflight -f run_id=r1018a`.
+  CI. Example: `gh workflow run cd.yml -f operation=preflight -f run_id=<run id>`.
 - **Runbook:** [`deploy-runbook.md`](docs/execution/aws/v1/deploy-runbook.md) covers the deploy ladder,
   sessions, the cloud proof steps, release and rollback, teardown, and the section
   "Operator handoff: CD deploy, then session and evidence from a laptop".
 - **Template:** `scripts/aws/v1/definitions.py` renders `deploy/aws/v1/template.json`;
   [`deploy/aws/v1/README.md`](deploy/aws/v1/README.md) explains the two phases and the closed-by-default
   session model. Account, quotas and authorization: [`account-receipt-20261017.md`](docs/execution/aws/v1/account-receipt-20261017.md).
-- **Status:** run `r1017b` (17 October) deployed and proved V1 on AWS and has been torn down. Run `r1018a`
-  (the first through the CD workflow, plus backlog scaling and a demo recording) is in progress.
+- **Status:** two live runs, both torn down. `r1017b` (17 October, operator CLI) proved V1 on AWS.
+  `r1018b` (17 to 18 October, deployed through the CD workflow) added backlog scaling, independent
+  releases, the Processing-down proof and the unattended launcher. Results include two FAILs reported
+  as FAILs: 2-worker scaling at 1.449x against 1.6x, and Processing release at 10.1 to 10.3 min against
+  10 min. The CD pipeline is not yet green end to end (pending run `r1019a`). See the evidence index.
 
 ## API specifications
 
@@ -100,12 +103,12 @@ Deployment is operator-run and costs money. Nothing is applied unless `execute=t
 
 ## Evidence
 
-- Live AWS receipts (run `r1017b`, redacted): [`docs/execution/aws/v1/evidence/`](docs/execution/aws/v1/evidence/).
+- Live AWS receipts (runs `r1017b` and `r1018b`, redacted): [`docs/execution/aws/v1/evidence/`](docs/execution/aws/v1/evidence/).
   Each receipt lists what it does not prove.
 - Local image receipts are in the same folder; local acceptance output is described in
   [`local-runtime.md`](docs/execution/aws/v1/local-runtime.md). Local results are not AWS results.
-- Quality scenarios against targets, with local and cloud results labelled:
-  [`docs/evidence-index.md`](docs/evidence-index.md) (in progress, pending the `r1018a` session).
+- Quality scenarios and security controls against the proposal targets, with local and cloud results
+  labelled and FAILs stated: [`docs/evidence-index.md`](docs/evidence-index.md).
 - Running log: [`docs/project2-worklog.txt`](docs/project2-worklog.txt).
 
 ## Publisher CLI
