@@ -30,7 +30,10 @@ def poll_count(value):
 
 def parser():
     root = argparse.ArgumentParser(description=__doc__)
-    root.add_argument("--base-url", required=True, help="HTTPS public API, including /api")
+    root.add_argument(
+        "--base-url", required=True,
+        help="HTTPS Media API base, including /api/media (e.g. https://HOST/api/media)",
+    )
     root.add_argument("--ca-file", help="Explicit PEM CA file; otherwise system trust")
     root.add_argument("--cookie-jar", type=Path, default=Path.home() / ".publisher/cookies.txt")
     root.add_argument("--timeout", type=positive, default=20)

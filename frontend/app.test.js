@@ -24,7 +24,7 @@ let fetchMock;
  * index from its own first request rather than from the identity check.
  * `loadSignedOut` is for the tests that care about the signed-out half.
  */
-async function loadApp({ signedIn = true, role = "user" } = {}) {
+async function loadApp({ signedIn = true, role = "user", legacy = true } = {}) {
   document.body.innerHTML = BODY;
   vi.resetModules();
   fetchMock.mockResolvedValueOnce(
@@ -32,9 +32,11 @@ async function loadApp({ signedIn = true, role = "user" } = {}) {
       ? jsonResponse({ id: "u-1", email: "maya@example.test", role })
       : jsonResponse({ error: "not authenticated" }, false, 401),
   );
-  globalThis.FLICKPOND_LEGACY_API = true; // Frozen pre-Gateway regression.
+  globalThis.FLICKPOND_LEGACY_API = legacy; // Default tests are the frozen pre-Gateway regression.
   await import("./app.js");
-  await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/auth/me"));
+  await vi.waitFor(() =>
+    expect(fetchMock).toHaveBeenCalledWith(legacy ? "/api/auth/me" : "/api/media/auth/me"),
+  );
   await vi.advanceTimersByTimeAsync(0);
   fetchMock.mockClear();
   return {
@@ -79,6 +81,8 @@ async function loadApp({ signedIn = true, role = "user" } = {}) {
     adminEmpty: document.getElementById("admin-empty"),
     adminFilters: document.getElementById("admin-filters"),
     adminStatus: document.getElementById("admin-status"),
+    adminRetry: document.getElementById("admin-retry"),
+    libraryRetry: document.getElementById("library-retry"),
     adminPrev: document.getElementById("admin-prev"),
     adminNext: document.getElementById("admin-next"),
     editBack: document.getElementById("edit-back"),
@@ -980,7 +984,7 @@ describe("library", () => {
     expect(el.authStatus.textContent).toContain("session expired");
   });
 
-  it("shows an empty library rather than nothing when the list request fails", async () => {
+  it("says the library could not be loaded rather than showing it empty when the list request fails", async () => {
     const el = await loadApp();
     fetchMock.mockResolvedValueOnce(jsonResponse({ error: "boom" }, false, 500));
 
@@ -988,11 +992,13 @@ describe("library", () => {
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(el.libraryEmpty.hidden).toBe(false);
+    expect(el.libraryEmpty.hidden).toBe(true);
     expect(el.libraryGrid.hidden).toBe(true);
+    expect(el.libraryStatus.textContent).toContain("Could not load");
+    expect(el.libraryRetry.hidden).toBe(false);
   });
 
-  it("shows an empty library when the list request cannot be made at all", async () => {
+  it("reports a library load error when the list request cannot be made at all", async () => {
     const el = await loadApp();
     fetchMock.mockRejectedValueOnce(new Error("connection refused"));
 
@@ -1000,7 +1006,8 @@ describe("library", () => {
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(el.libraryEmpty.hidden).toBe(false);
+    expect(el.libraryEmpty.hidden).toBe(true);
+    expect(el.libraryStatus.textContent).toContain("Could not load");
   });
 
   it("pages back without going below the first page", async () => {
@@ -1188,7 +1195,7 @@ describe("admin", () => {
     expect(el.authStatus.textContent).toContain("session expired");
   });
 
-  it("shows an empty table rather than none when the admin list request fails", async () => {
+  it("reports an admin load error rather than an empty table when the list request fails", async () => {
     const el = await loadApp({ role: "operator" });
     fetchMock.mockResolvedValueOnce(jsonResponse({ error: "boom" }, false, 500));
 
@@ -1196,10 +1203,12 @@ describe("admin", () => {
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(el.adminEmpty.hidden).toBe(false);
+    expect(el.adminEmpty.hidden).toBe(true);
+    expect(el.adminStatus.textContent).toContain("Could not load");
+    expect(el.adminRetry.hidden).toBe(false);
   });
 
-  it("shows an empty table when the admin list request cannot be made at all", async () => {
+  it("reports an admin load error when the list request cannot be made at all", async () => {
     const el = await loadApp({ role: "operator" });
     fetchMock.mockRejectedValueOnce(new Error("connection refused"));
 
@@ -1207,7 +1216,8 @@ describe("admin", () => {
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(el.adminEmpty.hidden).toBe(false);
+    expect(el.adminEmpty.hidden).toBe(true);
+    expect(el.adminStatus.textContent).toContain("Could not load");
   });
 
   it("returns to the sign-in form if the session expired mid-admin-delete", async () => {
@@ -2366,5 +2376,165 @@ describe("replaced mutation controls", () => {
     expect(el.editStatus.textContent).toContain("The edit failed");
     expect(fetchMock.mock.calls.some(([url]) => url === "/api/jobs/derived-A")).toBe(false);
     expect(el.editProcess.disabled).toBe(false);
+  });
+});
+
+describe("list errors and account switching (default /api/media routes)", () => {
+  const flush = () => vi.advanceTimersByTimeAsync(0);
+  const A_JOB = {
+    id: "A1",
+    filename: "A-private.mp4",
+    status: "done",
+    output_url: "https://storage.example.test/a?signature=FAKE",
+  };
+
+  async function signInAs(el, id, role = "user") {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id, email: `${id}@example.test`, role }));
+    el.authEmail.value = `${id}@example.test`;
+    el.authPassword.value = "fixture-password";
+    el.authForm.dispatchEvent(new Event("submit", { cancelable: true }));
+    await flush();
+  }
+
+  async function signOut(el) {
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, true, 204));
+    el.logout.click();
+    await flush();
+  }
+
+  const deferred = () => {
+    let resolve;
+    const promise = new Promise((r) => { resolve = r; });
+    return { promise, resolve };
+  };
+
+  it("uses the Media base for the list and distinguishes failure from an empty list", async () => {
+    const el = await loadApp({ legacy: false });
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, false, 503));
+    el.navLibrary.click();
+    await flush();
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/media/jobs?limit=12&offset=0");
+    expect(el.libraryEmpty.hidden).toBe(true);
+    expect(el.libraryStatus.textContent).toContain("Could not load");
+
+    fetchMock.mockResolvedValueOnce(jsonResponse([]));
+    el.libraryRetry.click();
+    await flush();
+    expect(el.libraryStatus.hidden).toBe(true);
+    expect(el.libraryRetry.hidden).toBe(true);
+    expect(el.libraryEmpty.hidden).toBe(false);
+  });
+
+  it("treats malformed list JSON as a load error and recovers on retry", async () => {
+    const el = await loadApp({ legacy: false });
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, json: async () => { throw new Error("bad"); } });
+    el.navLibrary.click();
+    await flush();
+    expect(el.libraryEmpty.hidden).toBe(true);
+    expect(el.libraryRetry.hidden).toBe(false);
+
+    fetchMock.mockResolvedValueOnce(jsonResponse([A_JOB]));
+    el.libraryRetry.click();
+    await flush();
+    expect(el.libraryGrid.textContent).toContain("A-private.mp4");
+    expect(el.libraryStatus.hidden).toBe(true);
+  });
+
+  it("shows an admin error, then recovers on retry", async () => {
+    const el = await loadApp({ legacy: false, role: "operator" });
+    fetchMock.mockRejectedValueOnce(new Error("down"));
+    el.navAdmin.click();
+    await flush();
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/media/admin/jobs?limit=12&offset=0");
+    expect(el.adminEmpty.hidden).toBe(true);
+    expect(el.adminStatus.textContent).toContain("Could not load");
+
+    fetchMock.mockResolvedValueOnce(jsonResponse([]));
+    el.adminRetry.click();
+    await flush();
+    expect(el.adminStatus.hidden).toBe(true);
+    expect(el.adminEmpty.hidden).toBe(false);
+  });
+
+  it("shows none of owner A's library while owner B's list is pending", async () => {
+    const el = await loadApp({ legacy: false });
+    fetchMock.mockResolvedValueOnce(jsonResponse([A_JOB]));
+    el.navLibrary.click();
+    await flush();
+    expect(el.libraryGrid.querySelector(".playable")).toBeTruthy();
+
+    await signOut(el);
+    await signInAs(el, "B");
+    fetchMock.mockReturnValueOnce(new Promise(() => {}));
+    el.navLibrary.click();
+    await flush();
+
+    expect(el.libraryGrid.textContent).not.toContain("A-private.mp4");
+    expect(el.libraryGrid.querySelector(".playable")).toBeNull();
+    expect(document.body.textContent).not.toContain("signature=FAKE");
+  });
+
+  it("ignores owner A's late list response, including delayed JSON parsing, after B has loaded", async () => {
+    const el = await loadApp({ legacy: false });
+    const body = deferred();
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, json: () => body.promise });
+    el.navLibrary.click();
+    await flush();
+
+    await signOut(el);
+    await signInAs(el, "B");
+    fetchMock.mockResolvedValueOnce(jsonResponse([{ id: "B1", filename: "B.mp4", status: "queued" }]));
+    el.navLibrary.click();
+    await flush();
+    expect(el.libraryGrid.textContent).toContain("B.mp4");
+
+    body.resolve([A_JOB]);
+    await flush();
+    expect(el.libraryGrid.textContent).toContain("B.mp4");
+    expect(el.libraryGrid.textContent).not.toContain("A-private.mp4");
+  });
+
+  it("does not let owner A's late 401 or failure sign B out or replace B's list", async () => {
+    const el = await loadApp({ legacy: false });
+    const late401 = deferred();
+    const lateFail = deferred();
+    fetchMock.mockReturnValueOnce(late401.promise);
+    el.navLibrary.click();
+    await flush();
+    await signOut(el);
+    await signInAs(el, "B");
+    fetchMock.mockResolvedValueOnce(jsonResponse([{ id: "B1", filename: "B.mp4", status: "queued" }]));
+    el.navLibrary.click();
+    await flush();
+
+    late401.resolve(jsonResponse({}, false, 401));
+    await flush();
+    expect(el.auth.hidden).toBe(true);
+    expect(el.libraryGrid.textContent).toContain("B.mp4");
+
+    fetchMock.mockReturnValueOnce(lateFail.promise);
+    el.libraryNext.disabled = false;
+    el.libraryNext.click();
+    await flush();
+    await signOut(el);
+    await signInAs(el, "C");
+    lateFail.resolve(jsonResponse({}, false, 500));
+    await flush();
+    expect(el.libraryStatus.hidden).toBe(true);
+    expect(el.libraryRetry.hidden).toBe(true);
+  });
+
+  it("leaves no admin rows from operator A for ordinary user B", async () => {
+    const el = await loadApp({ legacy: false, role: "operator" });
+    fetchMock.mockResolvedValueOnce(jsonResponse([A_JOB]));
+    el.navAdmin.click();
+    await flush();
+    expect(el.adminTbody.textContent).toContain("A-private.mp4");
+
+    await signOut(el);
+    await signInAs(el, "B", "user");
+    expect(el.adminTbody.textContent).not.toContain("A-private.mp4");
+    expect(el.adminTbody.querySelector("video, audio, [data-hls]")).toBeNull();
+    expect(el.navAdmin.hidden).toBe(true);
   });
 });

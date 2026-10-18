@@ -86,6 +86,7 @@ const el = {
   viewLibrary: document.getElementById("view-library"),
   libraryFilters: document.getElementById("library-filters"),
   libraryStatus: document.getElementById("library-status"),
+  libraryRetry: document.getElementById("library-retry"),
   libraryGrid: document.getElementById("library-grid"),
   libraryEmpty: document.getElementById("library-empty"),
   libraryPrev: document.getElementById("library-prev"),
@@ -95,6 +96,7 @@ const el = {
   viewAdmin: document.getElementById("view-admin"),
   adminFilters: document.getElementById("admin-filters"),
   adminStatus: document.getElementById("admin-status"),
+  adminRetry: document.getElementById("admin-retry"),
   adminTbody: document.getElementById("admin-tbody"),
   adminEmpty: document.getElementById("admin-empty"),
   adminPrev: document.getElementById("admin-prev"),
@@ -177,6 +179,7 @@ function applyAuthMode() {
 
 function showSignedIn(user) {
   sessionGeneration += 1;
+  resetOwnerViews();
   currentUser = user;
   el.who.textContent = user.email;
   el.operatorTag.hidden = user.role !== "operator";
@@ -207,6 +210,7 @@ function showSignedIn(user) {
 
 function showSignedOut() {
   sessionGeneration += 1;
+  resetOwnerViews();
   currentUser = null;
   pendingUpload = pendingRetry = pendingEdit = null;
   retrying = editSubmitting = false;
@@ -1300,6 +1304,8 @@ el.editForm.addEventListener("submit", async (event) => {
 let libraryOffset = 0;
 let libraryFilter = "all";
 let libraryJobs = [];
+let libraryFailed = false;
+let libraryRequest = 0;
 
 // The dot's colour comes from `currentColor` on the badge's own class -- it
 // does not need to know which status it is drawing.
@@ -1325,7 +1331,7 @@ function renderLibrary() {
   el.libraryGrid.replaceChildren();
   const visible = libraryJobs.filter((j) => libraryFilter === "all" || j.status === libraryFilter);
 
-  el.libraryEmpty.hidden = visible.length > 0;
+  el.libraryEmpty.hidden = visible.length > 0 || libraryFailed;
   el.libraryGrid.hidden = visible.length === 0;
 
   for (const job of visible) {
@@ -1511,20 +1517,65 @@ function toggleInlinePlayer(container, job) {
   container.classList.add("expanded");
 }
 
+// Everything the Library and Admin views show belongs to one owner. Drop it
+// (cards hold the owner's job document, including its signed playback URL)
+// whenever the identity changes, and orphan any list request still in flight.
+function resetOwnerViews() {
+  libraryRequest += 1;
+  adminRequest += 1;
+  closeEditor();
+  libraryJobs = [];
+  adminJobs = [];
+  libraryFailed = adminFailed = false;
+  libraryOffset = adminOffset = 0;
+  libraryFilter = adminFilter = "all";
+  for (const filters of [el.libraryFilters, el.adminFilters]) {
+    for (const b of filters.querySelectorAll("[data-status]")) {
+      b.classList.toggle("active", b.dataset.status === "all");
+    }
+  }
+  el.libraryStatus.hidden = true;
+  el.libraryRetry.hidden = true;
+  el.adminStatus.hidden = true;
+  el.adminRetry.hidden = true;
+  renderLibrary();
+  renderAdmin();
+}
+
 async function loadLibrary() {
+  const session = sessionGeneration;
+  const request = ++libraryRequest;
+  // A response is applied only if neither the identity nor a newer request has
+  // moved on; checked after every await, including body parsing.
+  const current = () => session === sessionGeneration && request === libraryRequest;
+  let jobs;
   try {
     const res = await fetch(`${API}/jobs?limit=${PAGE_SIZE}&offset=${libraryOffset}`);
+    if (!current()) return;
     if (res.status === 401) {
       showSignedOut();
       setAuthStatus("Your session expired. Sign in again.");
       return;
     }
-    libraryJobs = res.ok ? await res.json() : [];
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    jobs = await res.json();
+    if (!current()) return;
+    if (!Array.isArray(jobs)) throw new Error("malformed list");
+    libraryFailed = false;
+    el.libraryStatus.hidden = true;
+    el.libraryRetry.hidden = true;
   } catch {
-    libraryJobs = [];
+    if (!current()) return;
+    jobs = [];
+    libraryFailed = true;
+    setLibraryStatus("Could not load your videos. Please try again.");
+    el.libraryRetry.hidden = false;
   }
+  libraryJobs = jobs;
   renderLibrary();
 }
+
+el.libraryRetry.addEventListener("click", loadLibrary);
 
 for (const button of el.libraryFilters.querySelectorAll("[data-status]")) {
   button.addEventListener("click", () => {
@@ -1553,13 +1604,15 @@ el.libraryNext.addEventListener("click", () => {
 let adminOffset = 0;
 let adminFilter = "all";
 let adminJobs = [];
+let adminFailed = false;
+let adminRequest = 0;
 
 function renderAdmin() {
   unmountPlayersIn(el.adminTbody);
   el.adminTbody.replaceChildren();
   const visible = adminJobs.filter((j) => adminFilter === "all" || j.status === adminFilter);
 
-  el.adminEmpty.hidden = visible.length > 0;
+  el.adminEmpty.hidden = visible.length > 0 || adminFailed;
   el.adminTbody.parentElement.hidden = visible.length === 0;
 
   for (const job of visible) {
@@ -1653,8 +1706,13 @@ function setAdminStatus(message) {
 }
 
 async function loadAdmin() {
+  const session = sessionGeneration;
+  const request = ++adminRequest;
+  const current = () => session === sessionGeneration && request === adminRequest;
+  let jobs;
   try {
     const res = await fetch(`${API}/admin/jobs?limit=${PAGE_SIZE}&offset=${adminOffset}`);
+    if (!current()) return;
     if (res.status === 401) {
       showSignedOut();
       setAuthStatus("Your session expired. Sign in again.");
@@ -1664,12 +1722,25 @@ async function loadAdmin() {
       switchView("upload");
       return;
     }
-    adminJobs = res.ok ? await res.json() : [];
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    jobs = await res.json();
+    if (!current()) return;
+    if (!Array.isArray(jobs)) throw new Error("malformed list");
+    adminFailed = false;
+    el.adminStatus.hidden = true;
+    el.adminRetry.hidden = true;
   } catch {
-    adminJobs = [];
+    if (!current()) return;
+    jobs = [];
+    adminFailed = true;
+    setAdminStatus("Could not load the job list. Please try again.");
+    el.adminRetry.hidden = false;
   }
+  adminJobs = jobs;
   renderAdmin();
 }
+
+el.adminRetry.addEventListener("click", loadAdmin);
 
 for (const button of el.adminFilters.querySelectorAll("[data-status]")) {
   button.addEventListener("click", () => {
