@@ -72,7 +72,8 @@ def test_user_b_gets_404_everywhere_while_user_a_gets_200_as_the_control(tmp_pat
 
 def test_every_protected_route_is_401_without_a_valid_session_on_both_origins(tmp_path, fixture):
     seen = public(security.run(build(tmp_path), fixture=fixture), "unauthenticated")
-    assert seen["all_401"] and len(seen["statuses"]) == 18
+    assert seen["absent_session_all_401"] and seen["forged_token_denied"]
+    assert len(seen["statuses"]) == 18
     assert {"forged_alg_none_jobs", "forged_signature_changed_jobs"} <= set(seen["statuses"])
 
 
