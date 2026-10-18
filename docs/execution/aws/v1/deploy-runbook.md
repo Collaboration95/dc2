@@ -7,9 +7,35 @@ Status (updated 18 October): **written offline, then run against AWS once by an 
 defects that were fixed afterwards (for example the Aurora wake-up during bootstrap). The CD workflow
 described at the end of this file was exercised by runs `r1018a` (partial) and `r1018b` (deploy green;
 releases promoted but the post-release smoke did not pass; teardown failed twice and was finished from
-the laptop). It is not yet green end to end (pending `r1019a`); see
-[`evidence/r1018b-results.md`](evidence/r1018b-results.md). Nothing here authorizes AWS operations, spend or deletion; the
-operator named in [`cloud-operator-20261015.md`](cloud-operator-20261015.md) decides when to run it.
+the laptop). Run `r1019a` (18 October) then went green through the same workflow: deploy
+[39085599276](https://github.com/Collaboration95/dc2/actions/runs/39085599276), Processing release with a
+post-release upload-to-playback smoke
+[39087966647](https://github.com/Collaboration95/dc2/actions/runs/39087966647) (`Release` step 9m39s,
+smoke step 5m59s) and teardown `CLEAN`
+[39089615147](https://github.com/Collaboration95/dc2/actions/runs/39089615147). The deliberate
+bad-candidate dispatch [39089045496](https://github.com/Collaboration95/dc2/actions/runs/39089045496)
+was cancelled and has no result. Redacted receipts with hashes and source SHAs:
+[`evidence/archive-20261018/`](evidence/archive-20261018/README.md); older results, including the
+`r1018b` failures, stay in [`evidence/r1018b-results.md`](evidence/r1018b-results.md) and the
+[evidence index](../../../evidence-index.md). Since then the persistent environment (below, AD-27) was
+deployed from Main with a basic smoke (run
+[39105817431](https://github.com/Collaboration95/dc2/actions/runs/39105817431)); #229 security
+negatives and the rest of #238 are not complete. Nothing here authorizes AWS operations, spend or
+deletion; the operator named in [`cloud-operator-20261015.md`](cloud-operator-20261015.md) decides when
+to run it.
+
+**Which mode do these instructions describe?** Two modes exist in this file. The *per-run* form (a new
+`--run-id`, a booked session, a teardown; the `r1017b`, `r1018x`, `r1019a` proofs) is historical V1 and
+stays accurate for those runs. The *persistent environment* form (`--environment live`, AD-27) is what
+current `Main` and `cd.yml` operate. Examples labelled historical use `run_id`; the current workflow
+has no `run_id` input.
+
+**Which AWS profile?** Every command needs an explicit profile and never `default`. `dc2-agent` is the
+dedicated agent user authorized on 2026-10-17 (no MFA session needed) and is what the current
+instructions use for agent-run sessions; `dc2-project2-mfa` is the human operator's MFA session
+(`make aws-mfa-session`); `dc2-project2` appears in the original per-run examples as the project profile.
+Pick the one that satisfies the credential check below; this is guidance only and changes no
+credential, profile or IAM policy.
 
 One ordered, resumable, journaled path takes the account from nothing to a smoke-tested,
 closed V1 and back to nothing. Every step journals itself, supports `--dry-run`, and tags what
@@ -748,6 +774,19 @@ green CI on `Main`. The `run_id` examples below are the historical per-run form.
 [`.github/workflows/cd.yml`](../../../../.github/workflows/cd.yml) runs the commands above from
 GitHub Actions through [`scripts/ci/cd.sh`](../../../../scripts/ci/cd.sh); it adds no deploy
 logic. It is the recorded, repeatable form of steps 0, 1, 6 and 7 plus an upload-to-playback smoke.
+
+Current form (persistent environment; inputs are `operation`, `environment` (default `live`),
+`execute`, `owner`, `attest_additive`, `bad_candidate`, `seed_email`, `budget_usd`, `planned_hours`,
+`forecast_usd`, `skip_final_snapshot`, `confirm`):
+
+```sh
+gh workflow run cd.yml -f operation=preflight                                  # reads only
+gh workflow run cd.yml -f operation=release -f owner=media -f execute=true -f attest_additive=true
+gh workflow run cd.yml -f operation=teardown -f execute=true -f confirm=live  # destroys the environment
+```
+
+Historical per-run form (`run_id` was an input of the workflow at the time of `r1018a` to `r1019a`; the
+current `cd.yml` does not accept it):
 
 ```sh
 gh workflow run cd.yml -f operation=preflight -f run_id=r1018a            # reads only

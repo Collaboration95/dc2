@@ -1,0 +1,62 @@
+[
+  {
+    "check": "identity",
+    "status": "pass",
+    "detail": null
+  },
+  {
+    "check": "credentials",
+    "status": "pass",
+    "detail": null
+  },
+  {
+    "check": "mfa",
+    "status": "info",
+    "detail": "assumed role or session; MFA state not inspectable"
+  },
+  {
+    "check": "lambda-concurrency",
+    "status": "pass",
+    "detail": null
+  },
+  {
+    "check": "fargate-vcpu",
+    "status": "pass",
+    "detail": null
+  },
+  {
+    "check": "aurora-engine",
+    "status": "pass",
+    "detail": null
+  },
+  {
+    "check": "budget",
+    "status": "pass",
+    "detail": ""
+  },
+  {
+    "check": "cost-guard",
+    "status": "pass",
+    "detail": null
+  },
+  {
+    "check": "name-collisions",
+    "status": "pass",
+    "detail": null
+  },
+  {
+    "check": "close-proof",
+    "status": "pass",
+    "detail": ""
+  },
+  {
+    "check": "images-input",
+    "status": "warn",
+    "detail": "--images is needed from the images step on"
+  },
+  {
+    "check": "legacy-bootstrap-stack",
+    "status": "info",
+    "detail": null
+  }
+]

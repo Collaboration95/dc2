@@ -12,8 +12,31 @@ link. Applications use one documented HTTP API and never touch storage, queues o
 exist: the FlickPond web app (`frontend/`) and an independent Publisher CLI (`publisher/`).
 
 It runs on AWS in one region (ap-southeast-1): CloudFront, API Gateway, Lambda container images, SQS,
-Aurora PostgreSQL Serverless v2, S3, and finite Fargate tasks for the encoder. Nothing runs while it is
-idle except storage; the stack is operated as booked sessions.
+Aurora PostgreSQL Serverless v2, S3, and finite Fargate tasks for the encoder.
+
+**Two operating modes exist; the text below says which one it means.**
+
+- **V1 as accepted (`project2-v1`, immutable): per-run stacks.** One stack per run id, closed outside a
+  booked session, deleted afterwards. Nothing runs while it is idle except storage. The AWS proofs
+  (`r1017b`, `r1018b`, `r1019a`) were run this way.
+- **V2-live on Main (AD-27): one persistent, always-on environment.** Stack `dc2-live`, deployed once
+  and updated in place after every green CI run on Main; it scales to zero when idle (about 3 to 5 USD a
+  month fixed, by design, not yet measured). The API prefixes are the same (`/api/media/*`,
+  `/api/processing/*`); the difference is operations, not the contract.
+
+**Status snapshot, 18 October 2026** (Main `d2070db`, source of every row linked):
+
+| Item | Status | Source |
+|---|---|---|
+| `project2-v1` tag | Accepted, immutable | [V1 README, "What remains"](docs/execution/aws/v1/README.md) |
+| `r1017b`, `r1018b` AWS runs | Proved V1; results include two FAILs (2-worker 1.449x vs 1.6x; Processing release 10.1 to 10.3 min vs 10 min) | [evidence index](docs/evidence-index.md) |
+| `r1019a` CD run | Deploy, Processing release with upload smoke and teardown `CLEAN` all **succeeded** | runs [39085599276](https://github.com/Collaboration95/dc2/actions/runs/39085599276), [39087966647](https://github.com/Collaboration95/dc2/actions/runs/39087966647), [39089615147](https://github.com/Collaboration95/dc2/actions/runs/39089615147); [archive](docs/execution/aws/v1/evidence/archive-20261018/README.md) |
+| CD bad-candidate rollback test | Dispatched, **cancelled**, no result | run [39089045496](https://github.com/Collaboration95/dc2/actions/runs/39089045496) |
+| V2-live deploy from Main | Succeeded with an upload-to-playback smoke; **not** all of #238 (in-place update, scaling, pause, idle cost), and #229 AWS security negatives are NOT_RUN | run [39105817431](https://github.com/Collaboration95/dc2/actions/runs/39105817431) |
+| Full CI on Main | Success; Sonar advisory and skipped; DAST findings report-only | run [39107762106](https://github.com/Collaboration95/dc2/actions/runs/39107762106) |
+| Actual versus target | One table and figure, misses and unmeasured items stated | [`docs/results/actual-vs-target.md`](docs/results/actual-vs-target.md) |
+
+Whether `dc2-live` is running at this moment is not recorded in the repository.
 
 ## Architecture
 
@@ -48,8 +71,12 @@ Why these are microservices and not one app split into folders (each point has a
 - The published language is [`contracts/`](contracts/README.md) with a versioning policy and
   consumer-driven tests.
 
-Honest limits: one CloudFormation stack, one Aurora cluster (a shared failure and capacity boundary),
-a monorepo with one lockfile, and `contracts/` copied into both images. See
+Honest limits: one CloudFormation stack, a monorepo with one lockfile, and **three** source directories
+copied into every image (`contracts/`, `delivery/` and `runtime_support/`, see the Dockerfiles in
+[`deploy/v1/`](deploy/v1/)). Database ownership is logical: Media and Processing each own a database and
+migrations, but both live on **one Aurora cluster**, which is a shared failure and capacity boundary
+that role separation does not remove. Processing also depends on the **Media-owned Lambda authorizer**
+for caller identity (AD-09): every Processing request is authenticated by Media's code, although Processing holds neither Media's secret nor its database. See
 [limitations](docs/architecture/decisions.md#6-architectural-limitations).
 
 ## Run it locally
@@ -87,23 +114,31 @@ images; local evidence only).
 
 ## Deploy to AWS
 
-Deployment is operator-run and costs money. Nothing is applied unless `execute=true`.
+Deployment is operator-run and costs money. Nothing is applied unless `execute=true`. Cloud sessions
+use an explicit AWS profile, never `default`: `dc2-agent` (the dedicated agent user) for agent-run work or
+the operator's `dc2-project2-mfa` session; see the profile note in the
+[runbook](docs/execution/aws/v1/deploy-runbook.md).
 
 - **Pipeline:** the CD workflow [`.github/workflows/cd.yml`](.github/workflows/cd.yml) (preflight,
   deploy, release, teardown) over a GitHub OIDC role
   ([`deploy/aws/v1/github-oidc.yaml`](deploy/aws/v1/github-oidc.yaml)). It refuses a commit without green
-  CI. Example: `gh workflow run cd.yml -f operation=preflight -f run_id=<run id>`.
+  CI. Current inputs target the persistent environment (`environment`, default `live`), for example
+  `gh workflow run cd.yml -f operation=preflight` (read-only). The `run_id` input of the per-run
+  `r1017b` to `r1019a` proofs no longer exists; the runbook keeps those examples labelled historical.
 - **Runbook:** [`deploy-runbook.md`](docs/execution/aws/v1/deploy-runbook.md) covers the deploy ladder,
   sessions, the cloud proof steps, release and rollback, teardown, and the section
   "Operator handoff: CD deploy, then session and evidence from a laptop".
 - **Template:** `scripts/aws/v1/definitions.py` renders `deploy/aws/v1/template.json`;
   [`deploy/aws/v1/README.md`](deploy/aws/v1/README.md) explains the two phases and the closed-by-default
   session model. Account, quotas and authorization: [`account-receipt-20261017.md`](docs/execution/aws/v1/account-receipt-20261017.md).
-- **Status:** two live runs, both torn down. `r1017b` (17 October, operator CLI) proved V1 on AWS.
-  `r1018b` (17 to 18 October, deployed through the CD workflow) added backlog scaling, independent
-  releases, the Processing-down proof and the unattended launcher. Results include two FAILs reported
-  as FAILs: 2-worker scaling at 1.449x against 1.6x, and Processing release at 10.1 to 10.3 min against
-  10 min. The CD pipeline is not yet green end to end (pending run `r1019a`). See the evidence index.
+- **Status:** per-run V1 stacks `r1017b`, `r1018b` and `r1019a` were all torn down. `r1017b` (17 October,
+  operator CLI) proved V1 on AWS. `r1018b` (17 to 18 October, deployed through the CD workflow) added
+  backlog scaling, independent releases, the Processing-down proof and the unattended launcher; its
+  results include two FAILs reported as FAILs (2-worker scaling at 1.449x against 1.6x; Processing
+  release at 10.1 to 10.3 min against 10 min) and a post-release smoke that never passed. `r1019a`
+  (18 October) then ran CD green end to end: deploy, Processing release with a passing upload smoke
+  (`Release` step 9m39s, smoke 5m59s, separate steps) and a `CLEAN` teardown. See the status snapshot
+  above and the evidence index.
 
 ## API specifications
 
@@ -116,7 +151,10 @@ Deployment is operator-run and costs money. Nothing is applied unless `execute=t
 ## Evidence
 
 - Live AWS receipts (runs `r1017b` and `r1018b`, redacted): [`docs/execution/aws/v1/evidence/`](docs/execution/aws/v1/evidence/).
-  Each receipt lists what it does not prove.
+  Each receipt lists what it does not prove. The `r1019a`, V2-live smoke and exact-source CI receipts,
+  with hashes and source SHAs, are in
+  [`evidence/archive-20261018/`](docs/execution/aws/v1/evidence/archive-20261018/README.md).
+- Actual against target, one table and figure: [`docs/results/actual-vs-target.md`](docs/results/actual-vs-target.md).
 - Local image receipts are in the same folder; local acceptance output is described in
   [`local-runtime.md`](docs/execution/aws/v1/local-runtime.md). Local results are not AWS results.
 - Quality scenarios and security controls against the proposal targets, with local and cloud results

@@ -4,7 +4,18 @@ Every quality scenario in proposal section 3.4 and every security control in sec
 result against the target as written. Targets were not revised. A FAIL is reported as a FAIL. Nothing
 was rerun to turn a FAIL into a PASS; where a first attempt failed and a rerun passed, both are stated.
 
-Last updated 18 October 2026. Backs report sections 3.3 and 3.4 and the evidence slides.
+Last updated 18 October 2026. Section numbers 3.3 and 3.4 are the **Team17 proposal's** ("How the
+implementation demonstrates the course areas" and "Quality scenarios and initial targets"). The original
+course report template discusses quality attributes in its section 4 (4.1 Performance, 4.2 Availability,
+4.3 Security, 4.4 Extensibility and Maintainability) and architectural limitations in its 3.4; when the
+report is written, map these rows to the template, not to the proposal numbers. Backs the evidence slides.
+
+Newer successful receipts (`r1019a`, the V2-live smoke and the exact-source CI run of 18 October) are
+archived with hashes and source SHAs in
+[`execution/aws/v1/evidence/archive-20261018/`](execution/aws/v1/evidence/archive-20261018/README.md),
+and a compact actual-versus-target table with a figure is in
+[`results/actual-vs-target.md`](results/actual-vs-target.md). They are added below as new rows; the
+older rows and their FAIL and NOT_RUN outcomes are unchanged.
 
 ## How to read this
 
@@ -37,7 +48,7 @@ and CI are not AWS evidence.
 | 0 fixable HIGH/CRITICAL image findings | PASS | 14 unfixed findings accepted, one CRITICAL. |
 | Reuse, 0 imports and 0 DB credentials | PASS | Effort in person-days not measured. |
 | Spend | PENDING | Cost Explorer shows 0.00 USD (credits). |
-| CD pipeline green end to end | pending `r1019a` | See the last section. |
+| CD pipeline green end to end | **PASS in `r1019a`** (deploy, Processing release with upload smoke, teardown `CLEAN`), after the `r1018b` failures | See Q7i and "Pipeline runs on AWS". The deliberate bad-candidate dispatch was cancelled; #229 and #238 acceptance are incomplete. |
 
 ## Quality scenarios (proposal section 3.4)
 
@@ -72,7 +83,9 @@ and CI are not AWS evidence.
 | Q7e | Rollback of a good promotion (Processing) | `rollback` 250.7 s (gate 600 s), peer unchanged, schema not reversed | PASS | AWS r1017b | `#65` `rollback` |
 | Q7f | Bad candidate restore, Processing | Candidate failed its smoke after 205.7 s, aliases restored in 54.8 s, total 260.5 s (gate 300 s), peer unchanged | PASS | AWS r1017b | `#65` `bad-candidate-restore` |
 | Q7g | Rollback and bad-candidate restore, Media | Baseline 48.7 s, promote-good 246.8 s, `rollback` 251.8 s; bad candidate failed its smoke after 189.5 s, aliases restored in 47.0 s, peer unchanged; owner isolation 47.7 s | PASS | AWS r1018b (`r1018bmedia`) | [`cloud-proof-r1018bmedia.json`](execution/aws/v1/evidence/cloud-proof-r1018bmedia.json) `#65`; the earlier `r1017bmedia` receipt has `bad-candidate-restore` NOT_RUN |
-| Q7h | The bad-candidate path inside the CD pipeline | Proven by the operator-run receipts above, not by a pipeline run | NOT_RUN in CD | | `r1018b-results.md` |
+| Q7h | The bad-candidate path inside the CD pipeline | Proven by the operator-run receipts above, not by a pipeline run. A CD dispatch with `bad_candidate=true` ([39089045496](https://github.com/Collaboration95/dc2/actions/runs/39089045496), source `784318636b690aac6ca64f0f8817ae7a15b6cae7`, 18 October) was **cancelled** during its `Release` step and produced no result | NOT_RUN in CD | | `r1018b-results.md` |
+| Q7i | Processing release through CD, later run (added 18 October; does not replace Q7a or Q7d) | `r1019a`, run [39087966647](https://github.com/Collaboration95/dc2/actions/runs/39087966647), source `358d169d6b0d0fc0f1e5ce809ffc8f1ad02fc592`: `Release` step **9m39s**, promoted, post-release checks (health, anonymous-denied, login, jobs) PASS; the separate upload-to-playback smoke step took **5m59s** and PASSED (`seconds_to_terminal` 150.0). The two steps ran back to back (15m38s). The 322.5 s operator-CLI figure (Q7b), the `Release` step and the whole upload-smoked sequence are different timing boundaries | `Release` step PASS under 10 min; **an upload-smoked release inside 10 min is not shown**; Q7a stays FAIL; Q7d (smoke never passed in r1018b) stays FAIL and was fixed afterwards | AWS r1019a (CD) | [archive](execution/aws/v1/evidence/archive-20261018/README.md), [`release.json`](execution/aws/v1/evidence/archive-20261018/r1019a-release-39087966647/release.json) |
+| Q7j | Persistent environment (V2-live, AD-27) deploy and upload-to-playback smoke from Main (added 18 October) | Run [39105817431](https://github.com/Collaboration95/dc2/actions/runs/39105817431), source `d2070db68c6b3545881eb948046b8e57f47e078e`: deploy steps all done; smoke PASS, `seconds_to_terminal` 123.8. Basic live evidence. Not completion of every #238 acceptance item (in-place update, scaling, pause, idle cost). Whether the environment is still running now is unverified | PASS (smoke only) | AWS V2-live | [archive](execution/aws/v1/evidence/archive-20261018/live-deploy-39105817431/cloud-proof-smoke-39105817431-1.json) |
 | Q8 | Security: negative tests in section 3.3 all rejected; 0 fixable HIGH/CRITICAL image findings at release | Detail in the next table | see below | | |
 | Q9 | Reusability: Publisher CLI against the published API, 0 imports from service code, 0 database credentials, within 2 person-days | See "Reuse" below | PASS on imports and credentials; effort NOT MEASURED | Code / Local / AWS | below |
 
@@ -95,7 +108,7 @@ and CI are not AWS evidence.
 | S8 | Secrets kept out of git and images | Secret scanning in the pipeline | gitleaks job green on the latest full run (allowlist `.gitleaks.toml`). Receipts are redacted; presigned query strings are stripped from captures | PASS | CI | run [39075571439](https://github.com/Collaboration95/dc2/actions/runs/39075571439) "Secret scan (gitleaks)" |
 | S9 | Pipeline: failed tests and fixable HIGH/CRITICAL image findings block a release | Trivy on three images; ECR scan in each release | Trivy (severity CRITICAL,HIGH, `ignore-unfixed: true`, exit code 1) passed on the app, media and processing images. Each `Release` step promoted, so the ECR scan gate passed against the allow list below | PASS | CI; AWS r1018b | run 39075571439; `r1018b-results.md` |
 | S10 | Dynamic scan (OWASP ZAP) | Findings report-only | DAST job ran and finished; findings are **report-only**, they do not block | NOT a gate | CI | run 39075571439 "Exact-candidate DAST execution" |
-| S11 | Rerun of the S2, S5a, S5c, S6 and S7 negatives on AWS (`evidence security`, #229): cross-user read/retry/playback, tampered and expired presigned URLs, 100 MiB limit against real S3 bytes, unsigned S3 access, external port scan, execute-api without CloudFront | Section 3.3 as above | pending `r1019a` | pending `r1019a` | AWS | `evidence-229-<run>.json`, to be committed as `cloud-proof-<run>.json` `#229` |
+| S11 | Rerun of the S2, S5a, S5c, S6 and S7 negatives on AWS (`evidence security`, #229): cross-user read/retry/playback, tampered and expired presigned URLs, 100 MiB limit against real S3 bytes, unsigned S3 access, external port scan, execute-api without CloudFront | Section 3.3 as above | **NOT_RUN**: the `r1019a` and live smoke receipts list #229 as NOT_RUN; the acceptance stays open under #229 | NOT_RUN | AWS | `evidence-229-<run>.json`, to be committed as `cloud-proof-<run>.json` `#229` when run |
 
 ### Image findings
 
@@ -151,13 +164,13 @@ per-task CPU data was captured, so it is not proven.
 | Not monotonic in concurrency | Cap 3 runs more tasks at once than cap 2 but its per-job time is lower (80.5 s) | Contention among concurrent tasks alone does not explain it |
 | Spread of billed seconds | Cap 1: 97 to 118 s (tight). Cap 2: 99 to 171 s, five of six tasks above 144 s. Cap 3: 98 to 172 s, three above 160 s and three below 121 s | The cap-1 baseline was uniformly fast. If the baseline had been as variable as the other two, its throughput would probably have been lower and the ratios higher |
 | Run-to-run variance of one task | r1017b `run-1`, one encoder, same fixture and size: 153.7 s billed. r1018b cap 1: 97 to 118 s | A single task's billed time varied by about 1.3x to 1.6x between runs. That alone can move a two-way ratio across the 1.6x line |
-| Sample size | 6 jobs per cap, one run per cap | One slow pair of tasks changes cap 2 by a large fraction. The proposal asked for 30 clips and three repeats; neither was run on AWS |
+| Sample size | 6 jobs per cap, one run per cap | One slow pair of tasks changes cap 2 by a large fraction. The proposal's scalability scenario specifies a backlog of 30 clips; that was not run on AWS. Three rotated repeats per worker count were the team's local pre-V1 protocol, not an explicit proposal commitment, and one run per cap was done on AWS |
 
 Reading: the most probable explanation is uncontrolled variation in how fast individual Fargate tasks
 ran, combined with a 6-job backlog that is too small to average it out and a cap-1 baseline that
 happened to be fast. This does not excuse the result. The target was 1.6x at two workers, the measured
-value is 1.449x, and the 30-clip, three-repeat design that would have tested it properly was not run on
-AWS. The local pre-V1 pass (2.03x) is a different design and does not substitute.
+value is 1.449x, and the proposal's 30-clip backlog (with repeats, as in the local protocol) that would have tested
+it properly was not run on AWS. The local pre-V1 pass (2.03x) is a different design and does not substitute.
 
 ### Unattended launcher (#68), measured, no target
 
@@ -241,6 +254,12 @@ verification 462 s to its gate, 464 s whole workflow; the selected gates took 22
 | [39062471021](https://github.com/Collaboration95/dc2/actions/runs/39062471021) | r1018b CD deploy | **success**: deploy 26.5 min, upload-to-playback smoke PASS in 4.2 min |
 | Processing and Media releases, three rounds each | r1018b CD `release` | Every `Release` step promoted; the post-release smoke never passed (see Q7d) |
 | r1018b CD teardown | two dispatches | Both failed at `td-session-close`; completed from the laptop |
+| [39085599276](https://github.com/Collaboration95/dc2/actions/runs/39085599276) | r1019a CD deploy, source `0b491e1712a9e4423e7f53bc2c813191d25669e8` (18 October) | **success**: `Deploy` step 23m47s, upload-to-playback smoke PASS in 4m53s (`seconds_to_terminal` 108.5) |
+| [39087966647](https://github.com/Collaboration95/dc2/actions/runs/39087966647) | r1019a CD Processing release, source `358d169d6b0d0fc0f1e5ce809ffc8f1ad02fc592` | **success**: `Release` step 9m39s, post-release upload-to-playback smoke PASS in 5m59s (see Q7i for what this does and does not show) |
+| [39089615147](https://github.com/Collaboration95/dc2/actions/runs/39089615147) | r1019a CD teardown, source `0b491e1712a9e4423e7f53bc2c813191d25669e8` | **success**, receipt `CLEAN` |
+| [39089045496](https://github.com/Collaboration95/dc2/actions/runs/39089045496) | r1019a CD release with `bad_candidate=true`, source `784318636b690aac6ca64f0f8817ae7a15b6cae7` | **cancelled** in the `Release` step; no rollback result |
+| [39105817431](https://github.com/Collaboration95/dc2/actions/runs/39105817431) | V2-live persistent deploy from Main, source `d2070db68c6b3545881eb948046b8e57f47e078e` | **success**, smoke PASS (Q7j) |
+| [39107762106](https://github.com/Collaboration95/dc2/actions/runs/39107762106) | Full CI (scheduled full verification) on `d2070db68c6b3545881eb948046b8e57f47e078e` | **success**: every lane selected; "Full verification" and "Dev gate" passed; SonarCloud jobs skipped (advisory); DAST findings report-only. Coverage percentage for this run is not recorded here (unverified); the figures in the table above are from run 39075571439 |
 
 ### Runs that did not count
 
@@ -252,7 +271,7 @@ it from the worker task definition; fixed in #214). It was torn down and its num
 
 | Item | Status |
 |---|---|
-| CD pipeline end to end green (deploy, release smoke, teardown, all through `cd.yml`) | **pending `r1019a` (#182, #223, #225).** Another session is running it and will append its rows here. Until then no row claims a green end-to-end pipeline: r1018b deploy was green, but the post-release smoke and both teardowns were not |
+| CD pipeline end to end green (deploy, release smoke, teardown, all through `cd.yml`) | **Done for `r1019a` (#182, #223, #225): deploy 39085599276, Processing release with upload smoke 39087966647, teardown `CLEAN` 39089615147** (rows in "Pipeline runs on AWS"). The earlier `r1018b` post-release smoke failures and teardown failures are unchanged. The deliberate bad-candidate dispatch was cancelled (Q7h) |
 | Invoice | PENDING (Cost Explorer 0.00 USD because of credits) |
 | 30-clip, three-repeat scaling on AWS | Not run. The AWS figures above are 6 clips, one run per cap |
 | Two-user cross-read test on AWS (S2), expired and tampered presigned URL (S5c), external port scan (S7), S3-side 100 MiB limit end to end (S6) | NOT_RUN |

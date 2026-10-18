@@ -768,3 +768,22 @@ is NOT_RUN and Blocked. No issue is Ready under the current no-AWS instruction.
   Spend still PENDING (Cost Explorer 0.00 USD, credits). Both stacks torn down.
 - Evidence index (#189): docs/evidence-index.md, every 3.3 control and 3.4 scenario by environment.
   CD end-to-end green run is pending r1019a (#182, #223, #225).
+
+UPDATE, 18 OCTOBER 2026 (later; #249, #250, #252). Supersedes the "pending r1019a" lines above.
+- r1019a went green end to end through cd.yml: deploy run 39085599276 (source 0b491e1), Processing
+  release with post-release upload smoke run 39087966647 (source 358d169; Release step 9m39s, smoke step
+  5m59s, separate steps), teardown run 39089615147 (CLEAN). The deliberate bad-candidate dispatch
+  39089045496 (source 784318636b69) was cancelled in its Release step: no rollback result.
+- V2-live (AD-27): persistent deploy from Main, run 39105817431 (source d2070db), upload-to-playback
+  smoke PASS. Basic live evidence only; #229 security negatives and the rest of #238 are not complete.
+  Full CI on Main: run 39107762106, success (Sonar advisory and skipped, DAST report-only).
+- Redacted receipts for those runs are archived with hashes in
+  docs/execution/aws/v1/evidence/archive-20261018/ (README.md, MANIFEST.json); 14-day artifacts would
+  have expired on 1 November. Retention of small final-claim artifacts raised to 60 days
+  (cd.yml, ci.yml python-coverage and container-scan, v1.yml v1-local and v1-images).
+- Actual-versus-target table and figure: docs/results/actual-vs-target.md (data in the CSV next to it;
+  rebuild with scripts/dev/results_summary.py). The r1018b FAILs (1.449x vs 1.6x; Release step 10.1-10.3
+  min vs 10) are unchanged; r1019a rows are added beside them.
+- Corrected: the proposal commits to 30 clips; three rotated repeats were the local pre-V1 protocol.
+  Proposal sections 3.3/3.4 are not the report template's quality section (template section 4).
+- Not changed: the held presentation and report (#181, #191-#193).

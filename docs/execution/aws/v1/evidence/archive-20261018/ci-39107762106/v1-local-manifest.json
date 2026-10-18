@@ -1,0 +1,162 @@
+{
+  "run_id": "ci-39107762106-1",
+  "source_sha": "d2070db68c6b3545881eb948046b8e57f47e078e",
+  "tracked_dirty": false,
+  "source": {
+    "sha": "d2070db68c6b3545881eb948046b8e57f47e078e",
+    "dirty": false,
+    "untracked_files": 0
+  },
+  "images": {
+    "v1_artifacts": {
+      "dc2-v1-media": {
+        "status": "NOT_BUILT",
+        "reference": "dc2-v1-media:latest"
+      },
+      "dc2-v1-processing": {
+        "status": "NOT_BUILT",
+        "reference": "dc2-v1-processing:latest"
+      },
+      "dc2-v1-worker": {
+        "status": "NOT_BUILT",
+        "reference": "dc2-v1-worker:latest"
+      }
+    },
+    "postgres": {
+      "status": "RUNNING",
+      "reference": "postgres:16",
+      "config_id": "sha256:275447c94b11b151decd1f29877965301d5a77032037c46de93d990f739f00a9"
+    }
+  },
+  "tools": {
+    "python": "3.12.11",
+    "ffmpeg": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+    "moto": "5.2.4"
+  },
+  "boundaries": {
+    "real": {
+      "postgresql": "PostgreSQL 16 container, owner roles, TLS and migrations",
+      "ffmpeg": "inherited engine encoding real MP4 and HLS bytes",
+      "domain_code": "media/, processing/, delivery/, contracts/ handlers and SQL",
+      "clients": "Publisher PublicClient and, when V1_BROWSER=1, the real frontend in Chromium"
+    },
+    "emulated": {
+      "api_gateway": "scripts.dev.v1_gateway loopback bridge; not HTTP API, IAM or CloudFront",
+      "s3_sqs": "Moto HTTP server on loopback; not AWS S3/SQS semantics, IAM or KMS",
+      "event_source_mapping": "scripts.dev.v1_acceptance.pump delivers SQS batches by hand",
+      "lambda": "handlers imported in-process; no Lambda runtime, cold start or concurrency",
+      "fargate": "processing.v1_worker runs as a local subprocess; no ECS task or image",
+      "release_transport": "fake Lambda/ECS transport; alias moves are not AWS API calls",
+      "tls": "generated local certificate trusted only by the test process"
+    },
+    "not_run": [
+      "AWS IAM and resource policies",
+      "Aurora networking and pause",
+      "public DNS, TLS and CloudFront",
+      "Lambda and Fargate images in a registry",
+      "billing"
+    ]
+  },
+  "browser_requested": true,
+  "flows": {
+    "a": {
+      "status": "PASS",
+      "scope": "dependency/engine seam only",
+      "owners": [
+        "media",
+        "processing"
+      ],
+      "runtime_dml": "PASS",
+      "runtime_ddl_denied": "PASS",
+      "cross_database_runtime_and_migrator_denied": "PASS",
+      "postgres_tls": "verified local certificate",
+      "queued_rows": "retained",
+      "s3_immutable_version": "PASS",
+      "sqs_redelivery": "PASS",
+      "mp4_hls_ffmpeg": "PASS",
+      "s3_range": "PASS",
+      "source_sha256": "0a4c9dd382949ea46b07d4f1bac092866690f1b7c31dcfaa5320414d62dd002a",
+      "output_sha256": "0e5fe74b69ead5610fa5b197ce3ea2602dc1671b8a2211dbf9ac8e4d194b4ed6",
+      "source_bytes": 20890,
+      "output_bytes": 25268,
+      "cloud_iam_gateway_lambda_fargate": "NOT_RUN"
+    },
+    "b": {
+      "status": "PASS",
+      "publisher": {
+        "status": "PASS",
+        "counts": {
+          "tests": 2,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0
+        },
+        "junit_sha256": "52aa5bddc4f78adba8d8842fdcde03f269e40b64293d12a18460d207d1451e07",
+        "tests": [
+          "tests/v1/test_workflow_acceptance.py"
+        ],
+        "failed_tests": [],
+        "skipped_tests": []
+      },
+      "browser": {
+        "status": "PASS",
+        "counts": {
+          "tests": 2,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0
+        },
+        "junit_sha256": "75e038c03d05503ee37737d2d4e4eefef7344290cb83f51aba621ad8fdd387c0",
+        "tests": [
+          "tests/v1/test_browser_acceptance.py"
+        ],
+        "failed_tests": [],
+        "skipped_tests": []
+      }
+    },
+    "c": {
+      "status": "PASS",
+      "sessions": {
+        "status": "PASS",
+        "counts": {
+          "tests": 38,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0
+        },
+        "junit_sha256": "f64b4aca0c758a25c29c0ab7c35b6208d4b24d1b32229fe5f817ce6c88abbb80",
+        "tests": [
+          "tests/v1/test_launcher_sql.py",
+          "tests/v1/test_session.py"
+        ],
+        "failed_tests": [],
+        "skipped_tests": []
+      },
+      "release": {
+        "status": "PASS",
+        "counts": {
+          "tests": 3,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0
+        },
+        "junit_sha256": "d342ab650771eb156c6f72a5c68b863b4b985f6bf4d17e7dab5349bee950d16b",
+        "tests": [
+          "tests/v1/test_release_acceptance.py"
+        ],
+        "failed_tests": [],
+        "skipped_tests": []
+      }
+    }
+  },
+  "status": "PASS",
+  "complete_v1_acceptance": "PASS",
+  "cloud_acceptance": "NOT_RUN",
+  "failed_tests": [],
+  "coverage": {
+    "status": "COLLECTED",
+    "fragments": 4,
+    "tier": "v1-integration"
+  },
+  "elapsed_seconds": 117.476
+}

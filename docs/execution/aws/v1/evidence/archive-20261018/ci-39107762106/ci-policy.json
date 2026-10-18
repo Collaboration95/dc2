@@ -1,0 +1,51 @@
+{
+  "mode": "full",
+  "selected": {
+    "policy-checks": true,
+    "planning": true,
+    "lint-and-unit": true,
+    "frontend": true,
+    "legacy-integration": true,
+    "processing-intake": true,
+    "media-integration": true,
+    "media-service": true,
+    "processing-service": true,
+    "publisher-https": true,
+    "browser-trust": true,
+    "v1_offline": true,
+    "v1_live": true,
+    "images": true,
+    "coverage-gate": true,
+    "security": true,
+    "dast": true
+  },
+  "reasons": [
+    "schedule: full verification at d2070db68c6b3545881eb948046b8e57f47e078e"
+  ],
+  "source_sha": "d2070db68c6b3545881eb948046b8e57f47e078e",
+  "base_sha": "",
+  "paths": [],
+  "security_matrix": {
+    "include": [
+      {
+        "name": "app",
+        "file": "Dockerfile",
+        "tag": "flickpond-api:ci"
+      },
+      {
+        "name": "media",
+        "file": "deploy/media.Dockerfile",
+        "tag": "dc2-media:ci"
+      },
+      {
+        "name": "processing",
+        "file": "deploy/processing.Dockerfile",
+        "tag": "dc2-processing:ci"
+      }
+    ]
+  },
+  "run_id": "39107762106",
+  "run_attempt": "1",
+  "event": "schedule",
+  "head_sha": "d2070db68c6b3545881eb948046b8e57f47e078e"
+}
