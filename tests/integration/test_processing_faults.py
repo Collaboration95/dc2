@@ -12,8 +12,8 @@ import test_processing_lifecycle as lane
 import test_processing_worker as worker_tests
 from sqlalchemy import select
 
-from legacy.processing_rq import tasks
-from processing import lifecycle, recovery, service
+from legacy.processing_rq import service, tasks
+from processing import lifecycle, recovery
 from processing.models import Attempt, Job
 
 asset_ids = lane.asset_ids

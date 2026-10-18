@@ -23,9 +23,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from legacy.media_peer.app import create_app
+from legacy.media_peer.config import LegacyMediaSettings as Settings
 from legacy.media_peer.processing_client import ProcessingClient
 from legacy.media_peer.recovery import reconcile
-from media.config import Settings, get_settings
+from media.config import get_settings
 from media.models import Asset, CleanupIntent, RequestKey, RetryIntent, StagedObject, User, now
 from media.services.security import issue_token
 from media.services.storage import get_storage

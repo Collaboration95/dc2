@@ -20,10 +20,11 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
+from legacy.processing_rq import service
 from legacy.processing_rq.config import LegacySettings as Settings
-from processing import lifecycle, service
+from legacy.processing_rq.schemas import SubmitJob
+from processing import lifecycle
 from processing.models import Attempt, Job
-from processing.schemas import SubmitJob
 
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_PROCESSING_TESTS") != "1",

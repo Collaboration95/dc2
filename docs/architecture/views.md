@@ -289,7 +289,7 @@ erDiagram
 | `cleanup_intents` | Source deletion after cancel acknowledgement | PK `asset_id` |
 | `staged_objects` | Ledger of copied sources not yet adopted | PK `key`; `write_uncertain` |
 | `message_inbox`, `message_outbox` | Dedupe and send queue | PK `message_id`; outbox index on `next_try_at` |
-| `retry_intents` | Earlier retry design | No V1 code path uses it |
+| `retry_intents` | Earlier retry design | No V1 code path uses it; retained, see [4.5](#45-retained-v1-schema-leftovers) |
 
 ### 4.2 Processing (`processing_db`, migrations `processing_0001` to `processing_0007`)
 
@@ -310,7 +310,7 @@ erDiagram
 
 | Table | Purpose | Key constraints |
 |---|---|---|
-| `jobs` | Aggregate root | `asset_id` unique; `owner_id` indexed; `current_attempt_id` FK to `attempts`, deferrable and initially deferred; CHECK status in (`queued`, `processing`, `done`, `failed`); `source` and `outputs` JSONB; `source_url*` columns are legacy |
+| `jobs` | Aggregate root | `asset_id` unique; `owner_id` indexed; `current_attempt_id` FK to `attempts`, deferrable and initially deferred; CHECK status in (`queued`, `processing`, `done`, `failed`); `source` and `outputs` JSONB; `source_url*` columns are legacy and retained, see [4.5](#45-retained-v1-schema-leftovers) |
 | `attempts` | One try, with its lease | unique `(job_id, attempt_number)`; CHECK `attempt_number >= 1`; CHECK state in six values; lease columns `lease_token`, `lease_expires_at`, `deadline_at`, `heartbeat_at`; index `(state, next_dispatch_at)` for recovery |
 | `submission_guards` | Per-asset serialisation and cancel-before-submit | PK `asset_id`; carries `owner_id`, `job_id`, `deleted_at` |
 | `retry_requests` | Retry idempotency | unique `(job_id, request_id)` |
@@ -356,6 +356,25 @@ adds a marker, so both use `DeleteObjectVersion`.
 Queued messages live 7 days (DLQs 14 days). SQL is the source of truth: a sent outbox row is kept
 and re-armed for replay, and queued work is recreated from `jobs` and `attempts` by
 `repair_work`. Losing a queue therefore delays work; it does not lose it.
+
+### 4.5 Retained V1 schema leftovers
+
+The synchronous peer design (`SubmitJob` with a presigned `source_url`, Media's pending/submitted
+reconciler) left columns and a table in the V1 schema. The code that used them now lives in `legacy/`
+(AD-26), but the schema is deliberately **not** cleaned up: dropping them would be a data migration
+on both databases this close to submission, with no V1 behaviour to gain and a rollback risk. They
+are retained, unused, and must not be read as V1 behaviour.
+
+| Object | Database | What V1 does with it |
+|---|---|---|
+| `retry_intents` (table) | Media | Nothing. No V1 code reads or writes it; V1 retry uses `request_keys` and the outbox. |
+| `assets.submit_attempts` | Media | Nothing; stays at its default. |
+| `assets.next_submit_at` | Media | Nothing; only the `assets_pending_due` index and column default use it. |
+| `assets.submission_state` | Media | Written only by `apply_result` (`pending` to `submitted` or `error`), purely as a status label. No reconciler reads it to resubmit. |
+| `jobs.source_url`, `jobs.source_url_expires_at` | Processing | Required (non-null) columns that V1 fills with an empty string and the current time in `handle_command`. No source URL exists in V1; the worker reads a pinned S3 VersionId. |
+
+Removing them is a later, separately planned migration (drop the index, constraint and columns in a
+release after the last legacy stack is deleted).
 
 ## 5. Representative use case: upload, process, play
 

@@ -225,7 +225,7 @@ public one: before the first result the asset shows `accepted`, a state Processi
 | Two aggregates, no FK across services | Same. No table or key crosses databases. | `media/models.py`, `processing/models.py`; `cross-database` **[AWS]** |
 
 Leftovers from the earlier design still present in the V1 schema, noted so nobody mistakes them for
-V1 behaviour: the Media tables `retry_intents` and the `assets.submission_state`, `submit_attempts`,
+V1 behaviour (retained on purpose, see [views.md](views.md) section 4.5): the Media tables `retry_intents` and the `assets.submission_state`, `submit_attempts`,
 `next_submit_at` columns (V1 writes only `submission_state`, `submitted_at` and `last_submit_error`, from `apply_result`), and the Processing
 columns `jobs.source_url` and `source_url_expires_at` (V1 writes an empty string and the current
 time in `handle_command`).
