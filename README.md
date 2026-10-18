@@ -150,3 +150,14 @@ Planning packets, local-delivery records, Project 1 sprint documents and the old
 for provenance and carry a "Historical" banner on their first line. Index: [`docs/README.md`](docs/README.md).
 The old root README, with the Project 1 architecture and the pre-AWS local stack commands, is
 [`docs/history/README-project1-and-pre-aws-local-stack.md`](docs/history/README-project1-and-pre-aws-local-stack.md).
+
+## Coursework deadlines — Team 17
+
+| Date | Coursework milestone |
+| --- | --- |
+| 26 October 2026, 14:35–15:15 | Team 17 presentation, including Q&A. |
+| 16 November 2026 | Final project report submission, incorporating presentation feedback. |
+
+Sources: [presentation guidelines and schedule](project-documentation/original-reference/04%20Project%20Presentation%20Guidelines%20%26%20Schedule.pdf) and [course briefing](project-documentation/original-reference/01%20Briefing.pdf).
+
+The supplied course documents do not specify a separate code-freeze date or exact upload cutoffs. Refer to Canvas for current submission instructions, including any separate code or slide deadlines.
