@@ -14,7 +14,7 @@ import uuid
 from pathlib import Path
 from urllib.parse import urlencode
 
-from scripts.aws.v1.proof import tasks, workflow
+from scripts.aws.v1.proof import capacity, tasks, workflow
 from scripts.aws.v1.proof.core import FAIL, NOT_RUN, PASS, ProofError, SessionRefused, direct
 
 REQUIRED = ("anonymous-denied", "forged-identity", "session-roundtrip", "cors-preflight",
@@ -134,20 +134,54 @@ def sqs_direct_send(ctx):
         "statuses": seen, "messages_accepted": len(accepted)}, {"accepted": accepted})
 
 
+def drive_job(ctx, proof, api, intent, job_id, *, timeout, minutes, interval=5):
+    """Poll one job and keep one encoder on it; returns (transitions, last job document).
+
+    The encoder is started only once the job is `queued` with a Processing job id, that is once
+    Media's command has reached Processing's work queue, and another is started if one exits
+    without claiming (the same rule as the backlog and isolation drivers, for a backlog of
+    one). Starting at finalize raced the command: after a Processing release the encoder
+    long-polled an empty queue, exited 0 and nothing was left to claim the work (r1018b, #223).
+    """
+    row = intent.setdefault("row", {"job_id": job_id})
+    intent.setdefault("tasks", [])
+    start, transitions, polls = ctx.clock(), [], 0
+    while True:
+        reply = api.request("GET", f"/api/media/jobs/{job_id}")
+        job = reply.json() if reply.status == 200 else None
+        if job:
+            if not transitions or transitions[-1][1] != job["status"]:
+                transitions.append((round(ctx.clock() - start, 1), job["status"]))
+            row["status"], row["processing_job_id"] = job["status"], job.get("processing_job_id")
+            if job["status"] in workflow.TERMINAL:
+                return transitions, job
+        if ctx.clock() - start >= timeout:
+            raise ProofError(
+                f"Job did not reach {sorted(workflow.TERMINAL)} within {timeout} seconds")
+        if row.get("processing_job_id") and row.get("status") in capacity.QUEUED_STATES:
+            live = len(workflow.live_tasks(ctx))
+            if capacity.refill(ctx, intent, [row], live, cap=1, minutes=minutes):
+                intent.setdefault("started_at", ctx.clock())
+                proof.save()
+        polls += 1
+        if polls % 12 == 0:
+            proof.checkpoint("open")
+        ctx.sleep(interval)
+
+
 def direct_upload(ctx, proof, fixture, *, timeout, minutes):
     intent = proof.intent("direct-upload-e2e")
     api, _, _ = workflow.login(ctx)
-    sent = workflow.submit(ctx, api, fixture, intent, proof.save)
-    if not intent.get("tasks"):
-        intent["tasks"] = workflow.start_workers(ctx, 1, minutes)
-        intent["started_at"] = ctx.clock()
+    if not intent.get("request_id"):
+        intent["stale_work_polls"] = workflow.require_empty_work_queue(ctx)
         proof.save()
-    transitions, job = workflow.poll_job(ctx, api, sent["job_id"], timeout=timeout,
-                                         checkpoint=proof.checkpoint)
+    sent = workflow.submit(ctx, api, fixture, intent, proof.save)
+    transitions, job = drive_job(ctx, proof, api, intent, sent["job_id"], timeout=timeout,
+                                 minutes=minutes)
     final = workflow.wait_stopped(ctx, intent["tasks"], timeout=300, checkpoint=proof.checkpoint)
     still = workflow.live_tasks(ctx)
     ok, played = workflow.playback(ctx, api, job) if job["status"] == "done" else (False, {})
-    task = next(iter(final.values()))
+    task = list(final.values())[-1]
     public = {
         "job_status": job["status"], "bytes": sent["bytes"],
         "reserve_ms": sent["reserve_ms"], "upload_ms": sent.get("upload_ms"),

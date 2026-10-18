@@ -82,6 +82,48 @@ def test_a_rerun_of_the_gateway_harness_repeats_nothing_that_already_passed(tmp_
     assert again.ran == [] and ctx.world.registered == registered
 
 
+# ---- #223 the smoke's encoder waits for the command ------------------------------------
+E2E = {"direct-upload-e2e"}
+
+
+def test_the_smoke_starts_its_encoder_only_after_the_command_reached_processing(
+        tmp_path, fixture):
+    # Media publishes the command 75 s after finalize (a cold consumer after a release). An
+    # encoder started at finalize would long-poll 40 s, exit without claiming and strand the job.
+    ctx = build(tmp_path, "open", outbox_seconds=75.0)
+    proof = gateway.run(ctx, fixture=fixture, minutes=30, only=E2E)
+    assert statuses(proof)["direct-upload-e2e"] == PASS
+    public = proof.doc["steps"]["direct-upload-e2e"]["public"]
+    assert public["encoders_started"] == 1
+    (task,) = [t for t in ctx.world.tasks.values() if t["kind"] == "worker"]
+    assert task["created_at"] >= 75.0
+
+
+def test_the_smoke_starts_another_encoder_when_one_exits_without_claiming(tmp_path, fixture):
+    ctx = build(tmp_path, "open", dud_encoders=1)
+    proof = gateway.run(ctx, fixture=fixture, minutes=30, only=E2E)
+    assert statuses(proof)["direct-upload-e2e"] == PASS
+    assert proof.doc["steps"]["direct-upload-e2e"]["public"]["encoders_started"] == 2
+
+
+def test_the_smoke_stops_starting_encoders_that_keep_exiting_without_claiming(
+        tmp_path, fixture):
+    ctx = build(tmp_path, "open", dud_encoders=9)
+    proof = gateway.run(ctx, fixture=fixture, minutes=30, only=E2E)
+    assert statuses(proof)["direct-upload-e2e"] == FAIL
+    assert "start budget is spent" in proof.doc["steps"]["direct-upload-e2e"]["public"]["error"]
+    assert len([t for t in ctx.world.tasks.values() if t["kind"] == "worker"]) == 2
+
+
+def test_the_smoke_refuses_to_start_on_stale_work_from_an_earlier_run(tmp_path, fixture):
+    ctx = build(tmp_path, "open", stale_work=17)
+    proof = gateway.run(ctx, fixture=fixture, minutes=30, only=E2E)
+    assert statuses(proof)["direct-upload-e2e"] == FAIL
+    assert "17 message(s)" in proof.doc["steps"]["direct-upload-e2e"]["public"]["error"]
+    assert ctx.world.jobs == {} and not [t for t in ctx.world.tasks.values()
+                                         if t["kind"] == "worker"]
+
+
 # ---- #64 capacity ----------------------------------------------------------------------
 def test_simulated_capacity_runs_one_two_and_three_encoders_then_recovers_and_drains(
         tmp_path, fixture):

@@ -138,7 +138,11 @@ class LauncherHooks:
             or reply.get("service") != "processing-launcher"
             or reply.get("action") != action
         ):
-            raise OperationError("Launcher control did not confirm")
+            error_type = reply.get("errorType") if isinstance(reply, dict) else None
+            raise OperationError(
+                f"Launcher control did not confirm ({action}: status {result.get('StatusCode')}, "
+                f"function error {result.get('FunctionError')}, error type "
+                f"{str(error_type)[:60]})")
         return reply
 
     def enable(self, *, session_end_epoch, deadline):
