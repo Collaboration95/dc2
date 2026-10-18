@@ -1,8 +1,16 @@
 {
   "closes": "nothing by itself: an issue closes only when its acceptance list is met by the receipts and a reviewer accepts them",
   "document_kind": "V1_CLOUD_PROOF_SUMMARY_REDACTED",
-  "generated_at": "2026-10-17T16:56:47Z",
+  "generated_at": "2026-10-18T00:05:20Z",
   "issues": {
+    "#185": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#196": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
     "#63": {
       "overall": "PASS",
       "steps": {
@@ -608,14 +616,14 @@
             "from": "2026-10-01",
             "invoice": "NOT_RUN: Cost Explorer lags ~24 h; attach invoice lines by hand",
             "planned_deploy_window_model": 1.97,
-            "services": 18,
+            "services": 19,
             "through_inclusive": "2026-10-17",
             "total": -0.0,
             "within_monthly_alert": true,
             "within_planning_envelope": true,
             "within_trial_allowance": true
           },
-          "seconds": 1.241,
+          "seconds": 1.36,
           "status": "PASS"
         },
         "pause": {
@@ -649,6 +657,10 @@
           "status": "PASS"
         }
       }
+    },
+    "#68": {
+      "overall": "NOT_RUN",
+      "steps": {}
     }
   },
   "mode": "live",
