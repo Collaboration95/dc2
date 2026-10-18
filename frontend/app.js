@@ -626,6 +626,8 @@ async function handleFile(file) {
       res = await intentRequest(`${API}/upload`, { method: "POST", body }, intent.key);
     } else {
       const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+      // Reading and hashing can outlive the session; never send A's file under B's cookie.
+      if (!ownsCard()) return;
       const sha256 = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
       const reserved = await intentRequest(`${API}/uploads/reservations`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -637,6 +639,7 @@ async function handleFile(file) {
         res = reserved;
       } else {
         const reservation = await reserved.json();
+        if (!ownsCard()) return;
         if (reservation.upload) {
           const body = new FormData();
           for (const [name, value] of Object.entries(reservation.upload.fields)) body.append(name, value);

@@ -2582,4 +2582,25 @@ describe("list errors and account switching (default /api/media routes)", () => 
     expect(el.libraryStatus.textContent).not.toContain("Could not delete");
     expect(el.libraryGrid.textContent).toContain("B.mp4");
   });
+
+  it("does not send owner A's reservation under B's session when hashing finishes late", async () => {
+    const el = await loadApp({ legacy: false });
+    const file = fileNamed("A-private.mp4");
+    const read = deferred();
+    file.arrayBuffer = async () => new ArrayBuffer(4);
+    vi.spyOn(crypto.subtle, "digest").mockImplementation(() => read.promise);
+    chooseFile(el.fileInput, file);
+    el.fileInput.dispatchEvent(new Event("change"));
+    await flush();
+
+    await signOut(el);
+    await signInAs(el, "B");
+    const count = fetchMock.mock.calls.length;
+    read.resolve(new ArrayBuffer(32));
+    await flush();
+
+    expect(fetchMock).toHaveBeenCalledTimes(count);
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/uploads/reservations"))).toBe(false);
+    expect(el.activeJob.hidden).toBe(true);
+  });
 });
