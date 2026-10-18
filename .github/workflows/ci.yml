@@ -656,7 +656,7 @@ jobs:
             artifacts/coverage/backend.json
             artifacts/coverage/gate.json
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 60
 
   integration:
     name: Full verification
@@ -751,7 +751,7 @@ jobs:
             image-source.json
             trivy-findings.json
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 60
 
   # Unconditional on purpose: no lane selection may skip the one check that stops a leaked
   # credential, and both aggregates require it (scripts/ci/policy.py ALWAYS_JOBS). It scans the

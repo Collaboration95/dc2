@@ -1,0 +1,103 @@
+{
+  "closes": "nothing by itself: an issue closes only when its acceptance list is met by the receipts and a reviewer accepts them",
+  "document_kind": "V1_CLOUD_PROOF_SUMMARY_REDACTED",
+  "generated_at": "2026-10-18T07:24:16Z",
+  "issues": {
+    "#185": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#196": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#229": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#63": {
+      "overall": "INCOMPLETE",
+      "steps": {
+        "direct-upload-e2e": {
+          "public": {
+            "bytes": 43153,
+            "encoder_exit_codes": [
+              0
+            ],
+            "encoders_left_running": 0,
+            "encoders_started": 1,
+            "finalize_ms": 480.1,
+            "hls_url_present": true,
+            "job_status": "done",
+            "master_is_playlist": true,
+            "master_status": 200,
+            "mp4_fetch_bytes": 1024,
+            "mp4_fetch_status": 206,
+            "mp4_ok": true,
+            "output_url_present": true,
+            "playlist_not_cached": true,
+            "reserve_ms": 742.2,
+            "seconds_to_terminal": 123.8,
+            "segment_fetch_bytes": 1024,
+            "segment_fetch_status": 206,
+            "segment_redirects_to_s3": true,
+            "segment_status": 307,
+            "served_by_cloudfront": true,
+            "storage_host_is_s3": true,
+            "transitions": [
+              [
+                0.7,
+                "accepted"
+              ],
+              [
+                94.5,
+                "queued"
+              ],
+              [
+                104.2,
+                "processing"
+              ],
+              [
+                123.8,
+                "done"
+              ]
+            ],
+            "upload_ms": 1207.6,
+            "upload_status": 204,
+            "variant_status": 200
+          },
+          "seconds": 138.316,
+          "status": "PASS"
+        }
+      }
+    },
+    "#64": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#65": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#66": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#67": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#68": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    }
+  },
+  "mode": "live",
+  "not_proven": [
+    "Invoice lines: Cost Explorer lags about a day and is an estimate, not a bill.",
+    "A rollback of a good promotion is an image rollback; no schema is reversed.",
+    "Latency was measured from a Fargate generator in the same region, not from users.",
+    "Local fakes, emulators and hosted CI are not AWS evidence and are excluded here."
+  ],
+  "run_id": "smoke-39105817431-1"
+}

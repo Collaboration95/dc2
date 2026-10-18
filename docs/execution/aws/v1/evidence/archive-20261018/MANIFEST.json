@@ -1,0 +1,153 @@
+{
+  "document_kind": "EVIDENCE_ARCHIVE_MANIFEST",
+  "retrieved_at_utc": "2026-10-18T13:05Z",
+  "retrieved_by": "authenticated gh run download; files copied unmodified",
+  "redaction": "Files are the redacted reduced outputs the workflows publish (cd-out/public) or CI uploads; no further edits made. Private journals and state stay in the private S3 bucket.",
+  "groups": [
+    {
+      "group": "r1019a-deploy-39085599276",
+      "run_url": "https://github.com/Collaboration95/dc2/actions/runs/39085599276",
+      "source": "0b491e1712a9e4423e7f53bc2c813191d25669e8",
+      "workflow": "CD (workflow_dispatch)",
+      "artifact": "cd-deploy-r1019a",
+      "artifact_id": 12121511585,
+      "expires": "2026-11-01T01:41:42Z",
+      "environment": "AWS V1 per-run stack r1019a, ap-southeast-1",
+      "kind": "AWS: deploy plus post-deploy upload-to-playback smoke",
+      "conclusion": "success",
+      "limits": "Smoke is #63 direct-upload-e2e only (overall INCOMPLETE by the receipt's own roll-up); #185/#196/#229/#64-#68 NOT_RUN in this file.",
+      "files": [
+        {
+          "path": "r1019a-deploy-39085599276/cloud-proof-smoke-39085599276-1.json",
+          "sha256": "4e9fd8eae92ad6f95659ca439dd8aa6051a925e6676d180d7c0716af5b68000c",
+          "bytes": 2642
+        },
+        {
+          "path": "r1019a-deploy-39085599276/deploy.json",
+          "sha256": "dd723e76324ec3eb4fbf1ba56b98e0dd6f2f795a13519993b6fb4af772d043bf",
+          "bytes": 419
+        },
+        {
+          "path": "r1019a-deploy-39085599276/preflight-checks.json",
+          "sha256": "bc041df593ba2e16df9b744f8c6338280bcdb5600402e8f23349deb293e130ae",
+          "bytes": 1032
+        },
+        {
+          "path": "r1019a-deploy-39085599276/preflight.json",
+          "sha256": "a411827737fce70030c3e810574da2de9483fc2a92580f54513bf7a76e73eb82",
+          "bytes": 99
+        }
+      ]
+    },
+    {
+      "group": "r1019a-release-39087966647",
+      "run_url": "https://github.com/Collaboration95/dc2/actions/runs/39087966647",
+      "source": "358d169d6b0d0fc0f1e5ce809ffc8f1ad02fc592",
+      "workflow": "CD (workflow_dispatch)",
+      "artifact": "cd-release-r1019a",
+      "artifact_id": 12121718272,
+      "expires": "2026-11-01T02:07:57Z",
+      "environment": "AWS V1 per-run stack r1019a, ap-southeast-1",
+      "kind": "AWS: Processing release (promoted) plus post-release upload-to-playback smoke",
+      "conclusion": "success",
+      "limits": "Release step 9m39s and smoke step 5m59s are separate job steps (from the Actions job API, not in the JSON). No whole-release-with-smoke timing within 10 min is claimed.",
+      "files": [
+        {
+          "path": "r1019a-release-39087966647/cloud-proof-smoke-39087966647-1.json",
+          "sha256": "138d7d8a1ce32f056fdccaa53c375c7261b0c2da091ce75815e6507efdb5ec02",
+          "bytes": 2727
+        },
+        {
+          "path": "r1019a-release-39087966647/release.json",
+          "sha256": "1b2195b517f06939bc4c6f3b3ea7760ab8a3451c4ede13cf19f7aace07845c0f",
+          "bytes": 1093
+        }
+      ]
+    },
+    {
+      "group": "r1019a-teardown-39089615147",
+      "run_url": "https://github.com/Collaboration95/dc2/actions/runs/39089615147",
+      "source": "0b491e1712a9e4423e7f53bc2c813191d25669e8",
+      "workflow": "CD (workflow_dispatch)",
+      "artifact": "cd-teardown-r1019a",
+      "artifact_id": 12122313810,
+      "expires": "2026-11-01T02:52:09Z",
+      "environment": "AWS V1 per-run stack r1019a, ap-southeast-1",
+      "kind": "AWS: teardown, receipt status CLEAN",
+      "conclusion": "success",
+      "limits": "The receipt's own journal lists td-receipt as 'started' while the step list says done; kept verbatim.",
+      "files": [
+        {
+          "path": "r1019a-teardown-39089615147/teardown.json",
+          "sha256": "334ed58e27f561bbb34278bd6096fe9a5f8921857c736ee6cfe8cd8d5ed00187",
+          "bytes": 1526
+        }
+      ]
+    },
+    {
+      "group": "live-deploy-39105817431",
+      "run_url": "https://github.com/Collaboration95/dc2/actions/runs/39105817431",
+      "source": "d2070db68c6b3545881eb948046b8e57f47e078e",
+      "workflow": "CD (workflow_dispatch)",
+      "artifact": "cd-deploy-live-39105817431",
+      "artifact_id": 12128789108,
+      "expires": "2026-11-01T07:24:19Z",
+      "environment": "AWS persistent environment 'live' (V2-live, stack dc2-live)",
+      "kind": "AWS: persistent deploy plus upload-to-playback smoke",
+      "conclusion": "success",
+      "limits": "Basic live evidence only; not completion of every #238 acceptance row.",
+      "files": [
+        {
+          "path": "live-deploy-39105817431/cloud-proof-smoke-39105817431-1.json",
+          "sha256": "b6e4f87d62d2f439574732d5bd72e68a374a3e1e04ebcf522966c54e7fe9684d",
+          "bytes": 2728
+        },
+        {
+          "path": "live-deploy-39105817431/deploy.json",
+          "sha256": "cfc428943efe37fd64a2d56bda463e89f701ee909b38911e97e6dd28c1a51e0e",
+          "bytes": 386
+        },
+        {
+          "path": "live-deploy-39105817431/preflight-checks.json",
+          "sha256": "bc041df593ba2e16df9b744f8c6338280bcdb5600402e8f23349deb293e130ae",
+          "bytes": 1032
+        },
+        {
+          "path": "live-deploy-39105817431/preflight.json",
+          "sha256": "358bf4b80afafb5d8e6ba585a2f984c00486d88f5497d711aa12a1164628c51d",
+          "bytes": 97
+        }
+      ]
+    },
+    {
+      "group": "ci-39107762106",
+      "run_url": "https://github.com/Collaboration95/dc2/actions/runs/39107762106",
+      "source": "d2070db68c6b3545881eb948046b8e57f47e078e",
+      "workflow": "CI (schedule, full verification)",
+      "artifact": "ci-selection-1; v1-images-<sha>; v1-local-<sha>-1",
+      "artifact_id": "12129675164; 12129132507; 12129242085",
+      "expires": "2026-11-01T07:28:12Z; 2026-11-01T07:31:17Z; 2026-11-01T07:31:45Z",
+      "environment": "GitHub-hosted runner; local emulation (Moto, PostgreSQL 16, FFmpeg) and Docker image checks, NOT AWS",
+      "kind": "Local/CI: verification policy, local image verification, local V1 flow manifest",
+      "conclusion": "success",
+      "limits": "Sonar jobs skipped (advisory); DAST findings are report-only. Coverage data artifacts (7-day retention, expire 2026-10-25) and scanner reports are not archived here; the combined coverage job concluded success but its percentage is not recorded in this archive.",
+      "files": [
+        {
+          "path": "ci-39107762106/ci-policy.json",
+          "sha256": "ff09f42f52b9377e1faf186b4bbeb475943fdf548bf939f1c2be2478cd758371",
+          "bytes": 1200
+        },
+        {
+          "path": "ci-39107762106/local-images-d2070db68c6b.json",
+          "sha256": "42c85a99bdf4f7b3b5876f049fb63cd10979881a526202c6a3f9598faf50b96b",
+          "bytes": 40245
+        },
+        {
+          "path": "ci-39107762106/v1-local-manifest.json",
+          "sha256": "d4fe63aea25ae5738ed407db29116e30aa3c411ad714d29e2475933647df2b95",
+          "bytes": 4982
+        }
+      ]
+    }
+  ]
+}
