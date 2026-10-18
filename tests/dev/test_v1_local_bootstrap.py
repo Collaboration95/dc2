@@ -28,3 +28,24 @@ def test_missing_moto_environment_points_at_the_setup_target(tmp_path, monkeypat
 def test_moto_pin_matches_the_ci_workflow():
     workflow = (v1_runtime.ROOT / ".github/workflows/v1.yml").read_text()
     assert v1_runtime.MOTO_REQUIREMENT in workflow
+
+
+def test_demo_stops_waiting_once_the_last_browser_window_closes():
+    from scripts.dev.v1_demo import wait_until_closed
+
+    class Page:
+        def __init__(self, browser):
+            self.browser, self.ticks = browser, 0
+
+        def wait_for_timeout(self, ms):
+            self.ticks += 1
+            if self.ticks == 3:
+                self.browser.pages = []
+
+    class Browser:
+        pages = [object()]
+
+    browser = Browser()
+    page = Page(browser)
+    wait_until_closed(browser, page)
+    assert page.ticks == 3

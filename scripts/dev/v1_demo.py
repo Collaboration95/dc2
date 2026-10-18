@@ -22,6 +22,22 @@ from scripts.dev.v1_acceptance import app_runtime
 from scripts.dev.v1_browser import FrontendGateway, WorkPump, allow_origin, chromium, spki_pin
 
 
+def wait_until_closed(browser, page):
+    """Block until the user closes every window.
+
+    Sync Playwright only dispatches events while it is driven, so a plain Event.wait() would
+    never see the close. Polling through the page also lets Ctrl-C interrupt between ticks.
+    """
+    while browser.pages:
+        try:
+            page.wait_for_timeout(500)
+        except Exception:
+            # The page itself closed; keep going while another window remains.
+            page = next(iter(browser.pages), None)
+            if page is None:
+                return
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", required=True)
@@ -49,11 +65,10 @@ def main(argv=None):
             if args.open:
                 with tempfile.TemporaryDirectory() as profile:
                     with chromium(runtime["ca"], Path(profile), headless=False) as browser:
-                        browser.new_page().goto(runtime["url"])
+                        page = browser.new_page()
+                        page.goto(runtime["url"])
                         print("Close the browser window or press Ctrl-C to stop.", flush=True)
-                        closed = threading.Event()
-                        browser.on("close", lambda *_: closed.set())
-                        closed.wait()
+                        wait_until_closed(browser, page)
             else:
                 threading.Event().wait()
         except KeyboardInterrupt:
