@@ -2537,4 +2537,49 @@ describe("list errors and account switching (default /api/media routes)", () => 
     expect(el.adminTbody.querySelector("video, audio, [data-hls]")).toBeNull();
     expect(el.navAdmin.hidden).toBe(true);
   });
+
+  it("leaves no editor result or download capability for the next owner", async () => {
+    const el = await loadApp({ legacy: false });
+    const SRC = { id: "S", filename: "A-src.mp4", status: "done", output_url: "https://s.example.test/src?sig=FAKE" };
+    fetchMock.mockResolvedValueOnce(jsonResponse([SRC]));
+    el.navLibrary.click();
+    await flush();
+    el.libraryGrid.querySelector(".card-edit").click();
+    await flush();
+    const dl = document.getElementById("edit-result-download");
+    dl.href = "https://s.example.test/derived?sig=FAKE";
+    dl.setAttribute("download", "A-derived.mp4");
+    document.getElementById("edit-result-name").textContent = "A-derived.mp4";
+
+    await signOut(el);
+    await signInAs(el, "B");
+    expect(dl.getAttribute("href")).toBeNull();
+    expect(dl.getAttribute("download")).toBeNull();
+    expect(document.getElementById("edit-result-name").textContent).toBe("");
+    expect(document.getElementById("edit-source").textContent).toBe("");
+  });
+
+  it.each([401, 503])("ignores owner A's late delete %s after B has signed in", async (status) => {
+    const el = await loadApp({ legacy: false });
+    fetchMock.mockResolvedValueOnce(jsonResponse([A_JOB]));
+    el.navLibrary.click();
+    await flush();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const late = deferred();
+    fetchMock.mockReturnValueOnce(late.promise);
+    el.libraryGrid.querySelector(".card-delete").click();
+    await flush();
+
+    await signOut(el);
+    await signInAs(el, "B");
+    fetchMock.mockResolvedValueOnce(jsonResponse([{ id: "B1", filename: "B.mp4", status: "queued" }]));
+    el.navLibrary.click();
+    await flush();
+
+    late.resolve(jsonResponse({ error: "x" }, false, status));
+    await flush();
+    expect(el.auth.hidden).toBe(true);
+    expect(el.libraryStatus.textContent).not.toContain("Could not delete");
+    expect(el.libraryGrid.textContent).toContain("B.mp4");
+  });
 });

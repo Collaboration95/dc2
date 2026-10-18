@@ -560,8 +560,10 @@ async function deleteActiveJob() {
   if (!window.confirm(`Delete "${filename}"? This cannot be undone.`)) return;
 
   const jobId = activeJobId;
+  const session = sessionGeneration;
   try {
     const res = await fetch(`${API}/jobs/${jobId}`, { method: "DELETE" });
+    if (session !== sessionGeneration) return;
 
     if (res.status === 401) {
       showSignedOut();
@@ -571,6 +573,7 @@ async function deleteActiveJob() {
 
     if (!res.ok && res.status !== 204) {
       const data = await res.json().catch(() => ({}));
+      if (session !== sessionGeneration) return;
       setStatus(`Could not delete "${filename}": ${data.error ?? res.status}`);
       return;
     }
@@ -583,6 +586,7 @@ async function deleteActiveJob() {
     pendingUpload = pendingRetry = null;
     setStatus("Video deleted.");
   } catch (err) {
+    if (session !== sessionGeneration) return;
     setStatus(`Request failed: ${err.message}`);
   }
 }
@@ -1169,6 +1173,18 @@ function closeEditor() {
   editingJob = null;
 }
 
+// closeEditor ends the session but leaves the last text on screen; on an owner
+// change that text (and the signed download link) belongs to the old owner.
+function clearEditorOwnerState() {
+  el.editSource.textContent = "";
+  el.editResultName.textContent = "";
+  el.editResultDownload.removeAttribute("href");
+  el.editResultDownload.removeAttribute("download");
+  el.editResult.hidden = true;
+  el.editProgress.hidden = true;
+  setEditStatus("");
+}
+
 function showEditResult(job) {
   el.editProgress.hidden = true;
   setEditStatus("Done — the result is a new library entry.");
@@ -1464,8 +1480,10 @@ function makeEditButton(job) {
 async function deleteJob(job) {
   if (!window.confirm(`Delete "${job.filename}"? This cannot be undone.`)) return;
 
+  const session = sessionGeneration;
   try {
     const res = await fetch(`${API}/jobs/${job.id}`, { method: "DELETE" });
+    if (session !== sessionGeneration) return;
 
     if (res.status === 401) {
       showSignedOut();
@@ -1475,6 +1493,7 @@ async function deleteJob(job) {
 
     if (!res.ok && res.status !== 204) {
       const data = await res.json().catch(() => ({}));
+      if (session !== sessionGeneration) return;
       setLibraryStatus(`Could not delete "${job.filename}": ${data.error ?? res.status}`);
       return;
     }
@@ -1482,6 +1501,7 @@ async function deleteJob(job) {
     libraryJobs = libraryJobs.filter((j) => j.id !== job.id);
     renderLibrary();
   } catch (err) {
+    if (session !== sessionGeneration) return;
     setLibraryStatus(`Request failed: ${err.message}`);
   }
 }
@@ -1524,6 +1544,7 @@ function resetOwnerViews() {
   libraryRequest += 1;
   adminRequest += 1;
   closeEditor();
+  clearEditorOwnerState();
   libraryJobs = [];
   adminJobs = [];
   libraryFailed = adminFailed = false;
@@ -1672,11 +1693,13 @@ function makeAdminDeleteButton(job) {
 async function deleteJobAsAdmin(job) {
   if (!window.confirm(`Delete "${job.filename}"? This cannot be undone.`)) return;
 
+  const session = sessionGeneration;
   try {
     // Unscoped: an operator can delete any user's job, not just their own --
     // the same "identify what this upload is" story the inline preview
     // above exists for.
     const res = await fetch(`${API}/admin/jobs/${job.id}`, { method: "DELETE" });
+    if (session !== sessionGeneration) return;
 
     if (res.status === 401) {
       showSignedOut();
@@ -1689,6 +1712,7 @@ async function deleteJobAsAdmin(job) {
     }
     if (!res.ok && res.status !== 204) {
       const data = await res.json().catch(() => ({}));
+      if (session !== sessionGeneration) return;
       setAdminStatus(`Could not delete "${job.filename}": ${data.error ?? res.status}`);
       return;
     }
@@ -1696,6 +1720,7 @@ async function deleteJobAsAdmin(job) {
     adminJobs = adminJobs.filter((j) => j.id !== job.id);
     renderAdmin();
   } catch (err) {
+    if (session !== sessionGeneration) return;
     setAdminStatus(`Request failed: ${err.message}`);
   }
 }
