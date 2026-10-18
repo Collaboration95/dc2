@@ -8,8 +8,8 @@ Unfixed findings stay in the full report and are counted, but do not fail.
 """
 
 import argparse
-import glob
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -19,7 +19,7 @@ OWNERS = {
     "worker": "finite encoder worker (Fargate task)",
 }
 BLOCKING = {"HIGH", "CRITICAL"}
-RECEIPT_GLOB = "docs/execution/aws/v1/evidence/local-images-*.json"
+RECEIPT = "docs/execution/aws/v1/evidence/local-images-{}.json"
 
 
 def findings(report):
@@ -33,7 +33,7 @@ def findings(report):
     return fixable, unfixed
 
 
-def evaluate(receipt, reports_dir):
+def evaluate(receipt, reports_dir, sha=None):
     entries = []
     for owner, role in OWNERS.items():
         image = (receipt or {}).get("images", {}).get(owner, {})
@@ -47,7 +47,9 @@ def evaluate(receipt, reports_dir):
             "report": f"trivy-{owner}.json",
         }
         path = Path(reports_dir) / entry["report"]
-        if not entry["local_image_config_id"]:
+        if sha and entry["source_sha"] != sha:
+            entry["verdict"] = "FAIL: receipt source SHA is not this candidate"
+        elif not entry["local_image_config_id"]:
             entry["verdict"] = "FAIL: image missing from build receipt"
         elif not path.is_file():
             entry["verdict"] = "FAIL: scanner report missing"
@@ -71,10 +73,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--reports", default=".", help="directory holding trivy-<owner>.json")
     parser.add_argument("--out", default="v1-scan-summary.json")
+    # Committed receipts from earlier candidates sit in the same directory, so the file is
+    # selected by this candidate's SHA, never by glob order or age.
+    parser.add_argument("--sha", default=os.environ.get("GITHUB_SHA", ""))
     args = parser.parse_args(argv)
-    receipts = sorted(glob.glob(RECEIPT_GLOB))
-    receipt = json.loads(Path(receipts[-1]).read_text()) if receipts else None
-    entries = evaluate(receipt, args.reports)
+    path = Path(RECEIPT.format(args.sha[:12]))
+    receipt = json.loads(path.read_text()) if args.sha and path.is_file() else None
+    entries = evaluate(receipt, args.reports, args.sha or None)
     summary = {"scan": "V1 images, CI local candidates", "images": entries}
     Path(args.out).write_text(json.dumps(summary, indent=2) + "\n")
     for e in entries:

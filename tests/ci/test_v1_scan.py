@@ -65,6 +65,11 @@ class ScanGateTests(unittest.TestCase):
         self.assertEqual(entry["verdict"], "PASS")
         self.assertEqual(entry["unfixed_high_critical_count"], 1)
 
+    def test_receipt_from_another_candidate_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            entries = evaluate(receipt(), tmp, sha="c" * 40)
+        self.assertTrue(all("not this candidate" in e["verdict"] for e in entries))
+
     def test_missing_report_wrong_image_or_missing_receipt_entry_fail(self):
         reports = self.clean()
         del reports["processing"]
