@@ -5,9 +5,10 @@ import httpx
 from fastapi import Depends, Request
 from pydantic import TypeAdapter, ValidationError
 
+from legacy.media_peer.config import LegacyMediaSettings
 from legacy.media_peer.errors import PeerError
 from legacy.media_peer.schemas import ProcessingJob
-from media.config import Settings, get_settings
+from media.config import get_settings
 
 
 class ProcessingClient:
@@ -96,7 +97,7 @@ class ProcessingClient:
 
 
 def get_processing_client(
-    request: Request, settings: Annotated[Settings, Depends(get_settings)]
+    request: Request, settings: Annotated[LegacyMediaSettings, Depends(get_settings)]
 ) -> ProcessingClient:
     if getattr(request.app.state, "http_client", None) is None:
         request.app.state.http_client = httpx.AsyncClient(

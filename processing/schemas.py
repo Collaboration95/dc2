@@ -1,7 +1,7 @@
 from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import AnyUrl, AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 PositiveInt = Annotated[int, Field(strict=True, ge=1)]
 NonnegativeInt = Annotated[int, Field(strict=True, ge=0)]
@@ -77,27 +77,6 @@ EditOperation = Annotated[
 ]
 
 
-class SubmitJob(StrictObject):
-    asset_id: UUID
-    owner_id: UUID
-    source: Source
-    source_url: AnyUrl
-    source_url_expires_at: AwareDatetime
-    # Omitted means original upload; explicit [] or null violates the contract.
-    operations: list[EditOperation] = Field(default_factory=list, min_length=1, max_length=5)
-
-    @model_validator(mode="after")
-    def consistent_request(self) -> Self:
-        if self.source.asset_id != self.asset_id:
-            raise ValueError("source.asset_id must equal asset_id")
-        names = [op.operation for op in self.operations]
-        if len(names) != len(set(names)):
-            raise ValueError("operation names must be unique")
-        if "upscale" in names and "downscale" in names:
-            raise ValueError("upscale and downscale cannot be combined")
-        return self
-
-
 class AttemptResponse(BaseModel):
     attempt_id: UUID
     number: PositiveInt
@@ -131,9 +110,3 @@ class ProcessingJob(BaseModel):
 
 class RetryJob(StrictObject):
     retry_request_id: UUID
-
-
-class SourceAccess(StrictObject):
-    source_url: AnyUrl
-    expires_at: AwareDatetime
-    source: Source

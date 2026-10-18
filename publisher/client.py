@@ -12,6 +12,11 @@ from uuid import UUID
 
 import httpx
 
+# Every status Media's public schema can answer (media/schemas/public.py). "accepted" is what a
+# V1 job shows until Processing has acknowledged its command; the first live bulk publish
+# (r1018b) failed on it with "Invalid status response." although every upload had succeeded.
+STATUSES = {"accepted", "queued", "processing", "done", "failed", "cancelled"}
+
 
 class PublisherError(Exception):
     """Safe diagnostic: never includes response bodies, cookies or request URLs."""
@@ -211,7 +216,7 @@ class PublicClient:
         if (
             data.get("id") != asset_id(job_id)
             or not isinstance(data.get("filename"), str)
-            or data.get("status") not in {"queued", "processing", "done", "failed"}
+            or data.get("status") not in STATUSES
         ):
             raise PublisherError("Invalid status response.")
         # Deliberate whitelist: arbitrary server diagnostics must not leak credentials.
@@ -229,7 +234,7 @@ class PublicClient:
                 if exc.status != 503:
                     raise
                 data = {"id": job_id, "status": "unavailable"}
-            if data["status"] in {"done", "failed"}:
+            if data["status"] in {"done", "failed", "cancelled"}:
                 return data
             if attempt + 1 < max_polls:
                 sleep(interval)

@@ -81,7 +81,7 @@
   "info": {
     "description": "Public Processing API behind the API Gateway: owner-scoped job status, retry and cancel. Needs the same session cookie as the Media API.",
     "title": "FlickPond Processing V1 API",
-    "version": "1.0.0"
+    "version": "1.0.1"
   },
   "openapi": "3.1.0",
   "paths": {

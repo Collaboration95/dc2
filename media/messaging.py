@@ -36,6 +36,8 @@ async def enqueue_submit(session, asset, source):
         session,
         {
             "schema_version": EMIT_VERSION,
+            # Random on purpose: finalize adopts a reservation once, so nothing replays.
+            # Edits have no reservation, so v1_lifecycle derives a uuid5 from the asset.
             "message_id": str(uuid4()),
             "kind": "submit",
             "owner_id": str(asset.owner_id),

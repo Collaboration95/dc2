@@ -1,10 +1,15 @@
 # V1 deploy and teardown runbook
 
-Status: **written and verified offline only.** The pipeline in
-[`scripts/aws/v1/deploy.py`](../../../../scripts/aws/v1/deploy.py) has never been run against
-AWS. Nothing here authorizes AWS operations, spend or deletion; the operator named in
-[`cloud-operator-20261015.md`](cloud-operator-20261015.md) decides when to run it. Cloud issues
-#63-#67 stay open and Blocked until a real run produces real receipts.
+Status (updated 18 October): **written offline, then run against AWS once by an operator.** Run
+`r1017b` (17 October) deployed with the pipeline in
+[`scripts/aws/v1/deploy.py`](../../../../scripts/aws/v1/deploy.py) and recorded redacted receipts for
+#63-#67 in [`evidence/cloud-proof-r1017b.json`](evidence/cloud-proof-r1017b.json); that run exposed
+defects that were fixed afterwards (for example the Aurora wake-up during bootstrap). The CD workflow
+described at the end of this file was exercised by runs `r1018a` (partial) and `r1018b` (deploy green;
+releases promoted but the post-release smoke did not pass; teardown failed twice and was finished from
+the laptop). It is not yet green end to end (pending `r1019a`); see
+[`evidence/r1018b-results.md`](evidence/r1018b-results.md). Nothing here authorizes AWS operations, spend or deletion; the
+operator named in [`cloud-operator-20261015.md`](cloud-operator-20261015.md) decides when to run it.
 
 One ordered, resumable, journaled path takes the account from nothing to a smoke-tested,
 closed V1 and back to nothing. Every step journals itself, supports `--dry-run`, and tags what
@@ -292,6 +297,15 @@ python -m scripts.aws.v1.evidence capacity $S --state-dir D --run-id R --fixture
 #    through the public API, check Media accepted it and holds the command, switch the consumer
 #    back on, and require `done` within the gate. About 6-8 min, one short encode.
 python -m scripts.aws.v1.evidence isolation $S --state-dir D --run-id R --fixture short.mp4
+
+#    #229 security negatives (plain `session open`; about 8-12 min and one short encode, well
+#    under 0.01 USD of Fargate). Registers two users; A uploads, B must get 404 on A's job, retry,
+#    playback and Processing job; no session is 401; tampered upload grants and signed GETs fail;
+#    an oversize reservation and oversize bytes are refused; unsigned S3 list/GET/PUT are 403;
+#    a 12-port TCP connect scan of the CloudFront host expects only 80 and 443; the execute-api
+#    URL is classified. Expiry of a signed URL or grant (both 15 min) and the 100 MiB upload are
+#    NOT_RUN unless asked for (`--max-expiry-wait 960`, adds about 32 min; `--full-size-limit`).
+python -m scripts.aws.v1.evidence security $S --state-dir D --run-id R --fixture short.mp4
 
 #    #68 (V2, optional): only on a stack deployed with `deploy ... --unattended-launch` (step 1),
 #    and only after the #185 sweep above, which is its baseline. Close the plain session, reopen
@@ -695,6 +709,25 @@ gh workflow run cd.yml -f operation=teardown  -f run_id=r1018a -f execute=true
   starts and played back as HLS through CloudFront), `session close --in-vpc-counts`. The window is
   closed even when the smoke fails. The Publisher CLI is not used: V1 starts the encoder from the
   operator session, so a Publisher job would sit queued.
+- **Rollback through CD.** The `release` operation rolls back by itself: `release promote` runs its
+  own smoke through the Gateway (health, anonymous denial, login, jobs, and for Media a reservation);
+  if it fails, `cd.sh` runs `release restore` (or `release abandon` when the candidate failed in its
+  migration task before anything moved), then closes the window, and the job fails with outcome
+  `restored`. The upload-to-playback smoke that follows is a verification, not a gate: it runs after
+  the promotion, and a failure there does not move any alias. Rolling back a release that passed its
+  own smoke is a second promotion of the earlier image set, which the laptop `evidence release`
+  harness does (#65, `rollback` step); the CD `release` cannot, because it refuses an image equal to
+  the deployed baseline. To prove the automatic path on demand, dispatch `release` with
+  `bad_candidate=true` (and `execute=true`): the runner commits a Lambda handler with a non-RDS
+  database CA into the candidate (nothing is pushed), the candidate builds, migrates and fails its
+  smoke, and the job is green only if the outcome was `restored`.
+- **Encoder start in the smoke.** The smoke starts its single encoder only once the job is `queued`
+  with a Processing job id, starts another if one exits without claiming (two starts at most), and
+  refuses to start while the ProcessingWork queue still holds messages an earlier run left (#223).
+- **Teardown close.** `td-session-close` retries each failed close step for up to four minutes in
+  total (ten-second pauses; Aurora needs 30 to 60 s to resume and the launcher flag waits on it),
+  and a failure names every unresolved step with the error type or curated message (#225). The
+  drain checks are not retried.
 - **Cost guard** inputs: `budget_usd` (30), `planned_hours` (3), `forecast_usd` (5; Cost Explorer has
   no history here, so the guard needs the operator's figure). Same flags and meaning as above.
 - **Credentials.** The `aws` environment assumes `dc2-github-deploy` through GitHub OIDC (no key is
@@ -768,9 +801,10 @@ has a lock on one machine, not across two.
 
 ## Known gaps
 
-- Never executed against AWS. Request fields were checked offline against the installed AWS CLI's
-  `--generate-cli-skeleton` output (a test does this when `aws` is on the path), not against live
-  service behaviour. Expect a first-run surprise or two, and read `status` before rerunning.
+- Run against AWS once by an operator (`r1017b`), not yet through the CD workflow. Request fields were
+  also checked offline against the installed AWS CLI's `--generate-cli-skeleton` output (a test does
+  this when `aws` is on the path). Expect a surprise or two from a first CD run, and read `status`
+  before rerunning.
 - The SPA upload (`frontend` step) has only run against the simulated account and a fake CloudFront; the first real run may show an S3 or invalidation surprise.
 - The release code and `session close --in-vpc-counts` read the private database with a finite task
   in the VPC; the `deploy` pipeline's own migration step still has no such reader, so without a

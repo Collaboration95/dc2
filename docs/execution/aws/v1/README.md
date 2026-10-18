@@ -2,7 +2,7 @@
 
 Source of intent: [the accepted architecture](../architecture-plan.md).
 
-## Current status (2026-10-17)
+## Current status (updated 2026-10-18)
 
 **Local V1 is implemented and verified on `dev/v1-integration`.** The seed import and
 the three lanes landed through PRs #97-#106: both domain Lambda API applications behind
@@ -11,15 +11,26 @@ SQS Fargate encoder, bounded repair and late-output cleanup, the session and rel
 operators, reproducible images, the browser acceptance leg and the journaled deploy and
 teardown pipeline. The Redis/RQ path is gone from V1.
 
-**Real AWS acceptance is still pending.** Account #45 and the evidence issues #63-#67 (and
-therefore epics #41-#44 and the immutable `project2-v1` tag) stay open and Blocked on an
-MFA-capable operator session. Nothing below is cloud evidence: the local runtime uses real
-PostgreSQL 16, FFmpeg and Docker but Moto for S3/SQS, an in-process API Gateway bridge and
-an in-memory release transport.
+**Cloud acceptance has run twice; both stacks are torn down.** Run `r1017b`
+(ap-southeast-1, 17 October) produced redacted receipts that record PASS for #63 to #67:
+[`evidence/cloud-proof-r1017b.json`](evidence/cloud-proof-r1017b.json) and the Media release leg
+[`evidence/cloud-proof-r1017bmedia.json`](evidence/cloud-proof-r1017bmedia.json) (there, only #65 ran, and
+`bad-candidate-restore` is NOT_RUN). Their own `not_proven` lists apply: Cost Explorer is an estimate,
+latency came from an in-region generator, and fakes or CI are not AWS evidence. The stack is torn down
+(one Aurora snapshot is retained). #45 and #63-#67 are closed and the `project2-v1` tag exists. Run
+`r1018b` (#186, 17 to 18 October; `r1018a` was a partial first attempt) deployed through the CD workflow
+and added backlog scaling, independent releases, the Processing-down proof (#196) and the unattended
+launcher (#68): [`evidence/cloud-proof-r1018b.json`](evidence/cloud-proof-r1018b.json),
+[`evidence/cloud-proof-r1018bmedia.json`](evidence/cloud-proof-r1018bmedia.json) and
+[`evidence/r1018b-results.md`](evidence/r1018b-results.md). It recorded two FAILs against the proposal
+targets (2-worker scaling 1.449x, Processing release 10.1 to 10.3 min) and the CD post-release smoke did
+not pass; see [`../../../evidence-index.md`](../../../evidence-index.md). Everything in "Run it"
+below is local: real PostgreSQL 16, FFmpeg and Docker, but Moto for S3/SQS, an in-process API Gateway
+bridge and an in-memory release transport.
 
 The actual account, billing currency (USD), quotas, MFA state and the scoped cloud
 authorization are recorded in [`account-receipt-20261017.md`](account-receipt-20261017.md);
-it does not itself authorize or evidence any cloud run.
+it does not itself authorize or evidence any cloud run (it predates `r1017b`).
 
 ### Run it
 
@@ -46,9 +57,9 @@ manifest; without the browser flag it stays `NOT_RUN`. `cloud_acceptance` is alw
 
 ### What remains
 
-1. Cloud proof (#45, #63-#67): needs an MFA session; follow the deploy runbook.
-2. Then close the epics (#41-#44) against that evidence and preserve the `project2-v1` tag.
-3. V2 experiments (#80, #93, #94, #68) start only after the tag. Exception, by owner decision:
+1. Done (17-18 October): cloud proof #45 and #63-#67 (run `r1017b`), epics closed, `project2-v1` tagged.
+2. Done (18 October): run `r1018b` (#186) and the evidence index (#189). Pending: the CD end-to-end green run `r1019a` (#182, #223, #225).
+3. V2 experiments (#80, #93, #94, #68) start only after the tag. #93 and #94 were closed on 18 October (parked, listed as future work); #68 stays opt-in and off by default. Exception, by owner decision:
    the opt-in unattended launcher (#68) is developed in parallel and stays off by default; see
    [`../v2/unattended-launch.md`](../v2/unattended-launch.md) (cloud evidence NOT_RUN).
    The opt-in Lambda short-encode benchmark (#93) is likewise developed ahead of the tag, off by

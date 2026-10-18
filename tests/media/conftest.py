@@ -7,8 +7,8 @@ from uuid import uuid4
 import pytest
 from starlette.datastructures import UploadFile
 
+from legacy.media_peer.config import LegacyMediaSettings as Settings
 from legacy.media_peer.schemas import ProcessingJob
-from media.config import Settings
 from media.models import Asset, User, now
 
 

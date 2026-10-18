@@ -29,7 +29,27 @@ def _bounded(value):
     return value is None or (type(value) is int and 1 <= value <= 20)
 
 
+NO_RETRY = {"drain", "outcomes", "inventory"}
+# Sized for an Aurora resume (30 to 60 s) plus one 70 s Lambda invocation that timed out
+# waiting for it.
+CLOSE_RETRY_SECONDS = 240
+
+
+def _reason(error):
+    """What a failed step says, without anything a payload could carry: the curated message of
+    an OperationError, otherwise the exception's type alone."""
+    if isinstance(error, OperationError):
+        return f"OperationError: {str(error)[:200]}"
+    return type(error).__name__
+
+
 class Session:
+    # How long a close may spend retrying its failed steps, in total, and how often. Off by
+    # default so a library caller or a test sees a failure at once; the CLI turns it on
+    # (CLOSE_RETRY_SECONDS) because a live close can meet a database that is still resuming.
+    close_retry_seconds = 0
+    close_retry_interval = 10
+
     def __init__(self, config, transport, journal, *, clock=time.monotonic, sleep=time.sleep):
         self.config, self.transport, self.journal = config, transport, journal
         self.clock, self.sleep = clock, sleep
@@ -380,13 +400,36 @@ class Session:
             self.journal.save(state)
             failed, warnings = [], []
 
+            errors = {}
+            # One budget for the whole close, so several failing steps cannot add up to more
+            # than the action's own deadline.
+            retry_until = self.clock() + self.close_retry_seconds
+
             def attempt(name, action):
-                try:
-                    self._step(state, name, action)
-                except Exception:
-                    failed.append(name)
-                    state["session_failures"] = list(failed)
-                    self.journal.save(state)
+                # Every close step is an idempotent control setting, so a failed one is tried
+                # again for a bounded time before the close gives up on it. The launcher flag
+                # and the readiness hooks reach Aurora through a Lambda, and a database that
+                # paused after the last use needs a minute or more to resume (r1018b: two CD
+                # teardowns failed their close on exactly such a step). The drain checks are
+                # not retried: they wait on running encoders, which a retry cannot change.
+                tries = 0
+                while True:
+                    tries += 1
+                    try:
+                        self._step(state, name, action)
+                        return
+                    except Exception as error:
+                        reason = _reason(error)
+                        if name in NO_RETRY or (
+                            self.clock() + self.close_retry_interval > retry_until
+                        ):
+                            break
+                    self.sleep(self.close_retry_interval)
+                failed.append(name)
+                errors[name] = f"{reason} (tries: {tries})"
+                state["session_failures"] = list(failed)
+                state["session_errors"] = dict(errors)
+                self.journal.save(state)
 
             if self.config.get("launcher"):
                 rule = self.config["launcher"]["rule"]
@@ -417,7 +460,9 @@ class Session:
             state["session_warnings"] = warnings
             if failed:
                 self.journal.save(state)
-                raise OperationError("Partial close; retry from retained journal")
+                # Name each unresolved step and why: the CD log keeps nothing else of the close.
+                detail = "; ".join(f"{name}: {errors.get(name, 'not run')}" for name in failed)
+                raise OperationError(f"Partial close; retry from retained journal. {detail}")
             state.update(session="closed", unattended=False, session_step="complete")
             self.journal.save(state)
             return {

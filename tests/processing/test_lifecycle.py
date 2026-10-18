@@ -6,11 +6,12 @@ from uuid import UUID, uuid4
 import pytest
 from _processing_doubles import NOW, Rows, Session, pair
 
-from processing import lifecycle, service
+from legacy.processing_rq import service
+from legacy.processing_rq.schemas import SubmitJob
+from processing import lifecycle
 from processing.config import Settings
 from processing.errors import ProcessingError
 from processing.models import Attempt, Job, RetryRequest, SubmissionGuard, utcnow
-from processing.schemas import SubmitJob
 
 
 def cfg():

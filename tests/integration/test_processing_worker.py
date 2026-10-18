@@ -11,11 +11,10 @@ import httpx
 import pytest
 import test_processing_lifecycle as lane
 
+from legacy.media_peer.config import LegacyMediaSettings as MediaSettings
 from legacy.media_peer.lifecycle import projection
-from legacy.processing_rq import tasks
-from media.config import Settings as MediaSettings
+from legacy.processing_rq import service, tasks
 from media.models import Asset
-from processing import service
 from processing.models import Attempt, Job
 from processing.worker import tasks as pipeline_tasks
 from scripts.dev.contracts import validate_request, validate_response

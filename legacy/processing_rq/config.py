@@ -11,6 +11,8 @@ class LegacySettings(Settings):
     redis_url: SecretStr = SecretStr("")
     queue_name: str = "processing"
     media_url: str = "http://media:8000"
+    # Media-to-Processing bearer secret (forward) and Processing-to-Media source grant (reverse).
+    service_token: SecretStr = SecretStr("")
     source_service_token: SecretStr = SecretStr("")
     queue_retry_cap_seconds: int = Field(default=60, ge=1, le=90)
 

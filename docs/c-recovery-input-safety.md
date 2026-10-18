@@ -1,3 +1,5 @@
+> **Historical (Project 1 sprint 3, track C), superseded by the as-built V1 ([architecture](architecture/README.md)).** Retry, crop and clip validation survive in Processing; the integration instructions below are for the old single-API stack. Kept for provenance.
+
 # Sprint 3 track C: recovery and input safety
 
 Owner: Yang Dongwei (`@ttydw-ch`). Branch: `C-status-endpoints-db`.

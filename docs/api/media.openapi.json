@@ -512,7 +512,7 @@
   "info": {
     "description": "Public Media API behind the API Gateway: accounts, direct-to-S3 upload reservations, owned jobs and HLS delivery. Every route except the health probe and the three auth routes needs the session cookie set by /auth/login.",
     "title": "FlickPond Media Management",
-    "version": "1.0.0"
+    "version": "1.0.1"
   },
   "openapi": "3.1.0",
   "paths": {

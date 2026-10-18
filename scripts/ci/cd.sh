@@ -78,6 +78,10 @@ cmd_gate() {
   if [ "$CD_OPERATION" = release ]; then
     [[ ${CD_OWNER:-} =~ ^(media|processing)$ ]] || fail "release needs owner=media or processing"
   fi
+  if [ "${CD_BAD_CANDIDATE:-false}" = true ]; then
+    [ "$CD_OPERATION" = release ] && [ "${CD_EXECUTE:-false}" = true ] ||
+      fail "bad_candidate only applies to a release with execute=true"
+  fi
   [[ $CD_BUDGET_USD =~ ^[0-9]+(\.[0-9]+)?$ ]] || fail "budget_usd must be a number"
   [[ $CD_PLANNED_HOURS =~ ^[0-9]+(\.[0-9]+)?$ ]] || fail "planned_hours must be a number"
   [[ -z ${CD_FORECAST_USD:-} || $CD_FORECAST_USD =~ ^[0-9]+(\.[0-9]+)?$ ]] ||
@@ -181,6 +185,25 @@ cmd_deploy() {
 # operator session (the unattended launcher is a V2 option), so the Publisher CLI alone would
 # queue a job nothing encodes; the evidence harness starts the encoder and also checks HLS
 # playback through CloudFront, so it is the smoke. The window is always closed again.
+# `session open` returns once the stage reports the new throttle, but the data plane applies it a
+# little later, so the first request after an open can still meet the closed 0/0 gate and get a
+# 429 (seen after both the r1018b release smoke and the first laptop harness runs). Probe a cheap
+# unauthenticated route until it stops answering 429; bounded, and a miss only warns because the
+# smoke itself then reports the failure with its own evidence.
+wait_gate_open() {
+  local url code i
+  url="$(output_value HttpApiUrl)/api/media/health"
+  for i in $(seq 1 30); do
+    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$url" || true)
+    if [ "$code" != 429 ]; then
+      echo "Gateway gate open after $i probe(s) (HTTP $code)."
+      return 0
+    fi
+    sleep 2
+  done
+  echo "::warning::The Gateway still answered 429 after 60 s"
+}
+
 cmd_smoke() {
   require_state
   local config label fixture rc=0 close_rc=0
@@ -192,9 +215,26 @@ cmd_smoke() {
     -shortest "$fixture"
   "$PY" -m scripts.aws.v1.session open --config "$config" "${SCOPE[@]}" >"$CD_OUT/session-open.json" ||
     fail "session open failed: $(jq -r '.error // empty' "$CD_OUT/session-open.json" 2>/dev/null)"
-  "$PY" -m scripts.aws.v1.evidence gateway "${SCOPE[@]}" --state-dir "$CD_STATE" --run-id "$label" \
-    --fixture "$fixture" --only direct-upload-e2e --minutes 45 --job-timeout 900 \
-    --skip-cross-database "not part of the CD smoke" >"$CD_OUT/smoke-raw.json" || rc=$?
+  wait_gate_open
+  local attempt
+  for attempt in 1 2; do
+    rc=0
+    "$PY" -m scripts.aws.v1.evidence gateway "${SCOPE[@]}" --state-dir "$CD_STATE" --run-id "$label" \
+      --fixture "$fixture" --only direct-upload-e2e --minutes 45 --job-timeout 900 \
+      --skip-cross-database "not part of the CD smoke" >"$CD_OUT/smoke-raw.json" || rc=$?
+    [ "$rc" -ne 0 ] || break
+    # A probe that got through does not prove every Gateway node has the new limit; one that
+    # did not still answers 429 for a while (r1018b: HTTP 429 on the first reservation after a
+    # probe had succeeded). Retry once, and keep the first answer next to the second.
+    if [ "$attempt" -eq 1 ] && grep -q "HTTP 429" "$CD_OUT/smoke-raw.json"; then
+      cp "$CD_OUT/smoke-raw.json" "$CD_OUT/smoke-raw-attempt1.json"
+      echo "::warning::smoke attempt 1 was throttled (HTTP 429); retrying once after 30 s"
+      summary "Smoke attempt 1 was throttled by the Gateway (HTTP 429) and was retried once."
+      sleep 30
+      continue
+    fi
+    break
+  done
   "$PY" -m scripts.aws.v1.session close --config "$config" "${SCOPE[@]}" --in-vpc-counts \
     >"$CD_OUT/session-close.json" || close_rc=$?
   "$PY" -m scripts.aws.v1.evidence summary --state-dir "$CD_STATE" --run-id "$label" \
@@ -211,6 +251,26 @@ cmd_smoke() {
 # One owner at a time, as the runbook's "Release proof on an existing stack": build the commit's
 # images, push them with a fresh tag, let `evidence release-plan` verify digest, scan and bundle,
 # then run the release CLI. A failed promotion is restored (UC-7) before the job fails.
+# Deliberate fault for the rollback proof (bad_candidate=true): commit, on the runner only, a
+# Lambda handler that points database TLS at a CA bundle that is not RDS's. The image still
+# builds, passes its offline checks and migrates, then fails the release smoke (login and the
+# job calls), which is the path that must trigger the automatic restore. Nothing is pushed.
+inject_bad_candidate() { # owner
+  local file var
+  case "$1" in
+    media) file=media/lambda_handler.py var=MEDIA_POSTGRES_SSL_CA ;;
+    processing) file=processing/lambda_handler.py var=PROCESSING_DATABASE_CA_FILE ;;
+    *) fail "No bad candidate for owner '$1'" ;;
+  esac
+  [ -f "$file" ] || fail "$file not found"
+  {
+    printf 'import os\nimport certifi\n\nos.environ["%s"] = certifi.where()\n\n' "$var"
+    cat "$file"
+  } >"$file.new" && mv "$file.new" "$file"
+  git -c user.name=cd-fault-injection -c user.email=cd@invalid commit -q -am \
+    "release proof: Lambda-only non-RDS CA bundle (migrates, must fail the smoke)"
+}
+
 cmd_release() {
   require_state
   cost_flags
@@ -225,6 +285,10 @@ cmd_release() {
   fi
   mkdir -m 700 -p "$CD_STATE/release"
   local build="$CD_STATE/release/build-$rel.json"
+  if [ "${CD_BAD_CANDIDATE:-false}" = true ]; then
+    inject_bad_candidate "$owner"
+    summary "bad_candidate: the $owner candidate was built with a non-RDS database CA on purpose."
+  fi
   python3 deploy/v1/build_and_verify.py "${only[@]}" --out "$build"
   if [ "$CD_EXECUTE" != true ]; then
     summary "Release built and verified the $owner images only (execute=false); nothing was pushed."
@@ -321,6 +385,13 @@ cmd_release() {
       versions: ($result[0].result.versions // null)}' >"$PUBLIC/release.json" || true
   summary "Release of **$owner**: **$outcome** (window closed: $([ "$close_rc" -eq 0 ] && echo yes || echo NO))"
   [ "$close_rc" -eq 0 ] || fail "session close failed; the public window may still be open"
+  if [ "${CD_BAD_CANDIDATE:-false}" = true ]; then
+    # The proof passes only when the bad candidate was caught and rolled back. A promotion would
+    # mean the smoke let a broken release through; anything else means the restore did not work.
+    [ "$outcome" = restored ] || fail "The deliberately bad candidate ended '$outcome', not restored"
+    summary "Rollback verified: the bad $owner candidate failed its smoke and the previous aliases were restored."
+    return 0
+  fi
   [ "$outcome" = promoted ] || fail "Release did not complete: $outcome"
 }
 
@@ -356,5 +427,6 @@ case "$command" in
   smoke) cmd_smoke ;;
   release) cmd_release ;;
   teardown) cmd_teardown ;;
+  inject-bad-candidate) inject_bad_candidate "${2:?owner}" ;;
   *) fail "Unknown command '$command'" ;;
 esac

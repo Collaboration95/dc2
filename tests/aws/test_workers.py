@@ -312,3 +312,51 @@ def test_mismatched_designated_station_refuses_launch(config, fake, journal, clo
     with pytest.raises(OperationError, match="station"):
         launch(config, fake, journal, clock)
     assert not fake.calls
+
+
+class Listing:
+    """Minimal ECS: list-tasks answers per desiredStatus, describe-tasks answers `described`."""
+
+    def __init__(self, listed, tasks=(), failures=()):
+        self.listed, self.tasks, self.failures = listed, list(tasks), list(failures)
+
+    def call(self, service, operation, payload, *, deadline):
+        assert service == "ecs"
+        if operation == "list-tasks":
+            return {"taskArns": self.listed.get(payload["desiredStatus"], [])}
+        assert operation == "describe-tasks"
+        return {"tasks": self.tasks, "failures": self.failures}
+
+
+def stopped(arn):
+    return {"taskArn": arn, "lastStatus": "STOPPED"}
+
+
+def test_a_stopped_task_ecs_purged_between_list_and_describe_is_not_unresolved(config):
+    # r1018b: listed STOPPED a moment before ECS's one-hour purge, MISSING when described.
+    ecs = Listing(
+        {"STOPPED": ["arn:old", "arn:new"]},
+        tasks=[stopped("arn:new")],
+        failures=[{"arn": "arn:old", "reason": "MISSING"}],
+    )
+    assert set(inventory(config, ecs, deadline=1000)) == {"arn:new"}
+
+
+@pytest.mark.parametrize(
+    "listed,failure",
+    [
+        # still listed RUNNING: ECS never purges a running task, so MISSING cannot be believed
+        ({"RUNNING": ["arn:x"], "STOPPED": ["arn:x"]}, {"arn": "arn:x", "reason": "MISSING"}),
+        # a launch the journal is waiting on goes through worker_inventory's own rules
+        ({"STOPPED": ["arn:x"]}, {"arn": "arn:x", "reason": "ACCESS_DENIED"}),
+    ],
+)
+def test_every_other_describe_failure_stays_unresolved(config, listed, failure):
+    with pytest.raises(OperationError, match="unresolved identities"):
+        inventory(config, Listing(listed, failures=[failure]), deadline=1000)
+
+
+def test_a_missing_task_the_journal_still_waits_on_stays_unresolved(config):
+    ecs = Listing({"STOPPED": ["arn:x"]}, failures=[{"arn": "arn:x", "reason": "MISSING"}])
+    with pytest.raises(OperationError, match="unresolved identities"):
+        inventory(config, ecs, deadline=1000, known=["arn:x"])

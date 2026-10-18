@@ -16,8 +16,8 @@ import httpx
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from legacy.processing_rq.config import get_settings
+from legacy.processing_rq.schemas import SourceAccess
 from processing import lifecycle
-from processing.schemas import SourceAccess
 from processing.worker.storage import OutputStore
 from processing.worker.supervisor import AttemptDeadline, LeaseLost, Supervisor
 from processing.worker.tasks import pipeline

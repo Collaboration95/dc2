@@ -12,8 +12,9 @@ from rq import Queue
 from sqlalchemy import text
 
 from legacy.processing_rq import recovery as rq_recovery
+from legacy.processing_rq import service
 from legacy.processing_rq.queue import enqueue_attempt
-from processing import lifecycle, recovery, service
+from processing import lifecycle, recovery
 from processing.models import Attempt, CleanupIntent
 from processing.worker import supervisor as supervision
 

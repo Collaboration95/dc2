@@ -12,10 +12,6 @@ class Settings(BaseSettings):
     migration_dsn: str | None = Field(default=None, repr=False)
     jwt_secret: SecretStr = SecretStr("")
     jwt_ttl_seconds: int = Field(default=3600, ge=60)
-    processing_url: str = "http://processing:8000"
-    processing_service_token: SecretStr = SecretStr("")
-    source_service_token: SecretStr = SecretStr("")
-    processing_timeout_seconds: float = Field(default=5, gt=0, le=30)
     runtime_mode: Literal["http", "lambda"] = "http"
     postgres_ssl_ca: str | None = "/opt/rds/global-bundle.pem"
     storage_credential_mode: Literal["static", "ecs", "lambda"] = "static"

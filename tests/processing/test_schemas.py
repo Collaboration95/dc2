@@ -6,8 +6,8 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from processing.schemas import SubmitJob
-from processing.service import request_fingerprint
+from legacy.processing_rq.schemas import SubmitJob
+from legacy.processing_rq.service import request_fingerprint
 
 CONTRACT = json.loads(
     (

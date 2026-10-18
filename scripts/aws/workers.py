@@ -21,7 +21,12 @@ def family(reference):
     return reference.rsplit("/", 1)[-1].split(":")[0]
 
 
-def describe_tasks(config, transport, arns, *, deadline):
+def describe_tasks(config, transport, arns, *, deadline, purged=frozenset()):
+    """Describe every ARN. `purged` names ARNs a STOPPED listing returned: ECS forgets a stopped
+    task about an hour after it stops, so one listed a moment before that can be MISSING by the
+    time it is described. Only STOPPED tasks are ever forgotten, so for those the answer MISSING
+    means "stopped and gone". Any other failure, or MISSING for an ARN not in `purged`, is still
+    unresolved."""
     found = {}
     arns = list(dict.fromkeys(arns))
     for offset in range(0, len(arns), 100):
@@ -32,13 +37,18 @@ def describe_tasks(config, transport, arns, *, deadline):
             {"cluster": config_value(config, "cluster"), "tasks": selected},
             deadline=deadline,
         )
-        if result.get("failures"):
+        gone = {
+            f.get("arn")
+            for f in result.get("failures") or []
+            if f.get("reason") == "MISSING" and f.get("arn") in purged
+        }
+        if len(result.get("failures") or []) != len(gone):
             raise OperationError("Task inventory contains unresolved identities")
         for task in result.get("tasks", []):
             if task.get("lastStatus") not in NONTERMINAL | {"STOPPED"}:
                 raise OperationError("Unknown task state")
             found[task["taskArn"]] = task
-        if not set(selected) <= found.keys():
+        if not set(selected) - gone <= found.keys():
             raise OperationError("Task missing from describe; absence is not STOPPED")
     return found
 
@@ -50,6 +60,7 @@ def inventory(config, transport, *, deadline, known=()):
     Describe acknowledged requests independently of eventually-consistent lists.
     """
     arns = set(known)
+    listed = {"RUNNING": set(), "STOPPED": set()}
     for desired in ("RUNNING", "STOPPED"):
         token = None
         seen = set()
@@ -59,13 +70,18 @@ def inventory(config, transport, *, deadline, known=()):
                 payload["nextToken"] = token
             result = transport.call("ecs", "list-tasks", payload, deadline=deadline)
             arns.update(result.get("taskArns", []))
+            listed[desired].update(result.get("taskArns", []))
             token = result.get("nextToken")
             if not token:
                 break
             if token in seen:
                 raise OperationError("Repeated inventory pagination token")
             seen.add(token)
-    return describe_tasks(config, transport, sorted(arns), deadline=deadline)
+    # Listed STOPPED, never RUNNING, and not a launch the journal is waiting on: if describe
+    # no longer finds it, ECS purged it between the two calls (r1018b: a CD smoke an hour into a
+    # busy session failed on exactly that).
+    purged = listed["STOPPED"] - listed["RUNNING"] - set(known)
+    return describe_tasks(config, transport, sorted(arns), deadline=deadline, purged=purged)
 
 
 def worker_inventory(config, transport, state, *, deadline):

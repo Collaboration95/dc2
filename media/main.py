@@ -22,7 +22,7 @@ async def lifespan(app):
 
 def build_app(routers, *, lifespan=lifespan):
     """Shared shell: error mapping and /health. The router set decides which API this is."""
-    app = FastAPI(title="FlickPond Media Management", version="1.0.0", lifespan=lifespan)
+    app = FastAPI(title="FlickPond Media Management", version="1.0.1", lifespan=lifespan)
 
     @app.exception_handler(MediaError)
     async def media_error(request: Request, exc: MediaError):

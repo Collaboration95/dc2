@@ -1,6 +1,8 @@
+> **Historical, superseded by the as-built V1 ([start here](../../README.md), [architecture](../architecture/README.md)).** Moved here from the repository root on 18 October 2026 (the readiness swarm brief, completed). Links below were rewritten for the new location; the text is unchanged. It holds no credentials.
+
 > Historical AWS2 readiness assignment, completed and superseded for execution.
-> Current authority: [V1/V2 architecture](docs/execution/aws/architecture-plan.md)
-> and [dependency-ordered V1 handoff](docs/execution/aws/v1/README.md).
+> Current authority: [V1/V2 architecture](../execution/aws/architecture-plan.md)
+> and [dependency-ordered V1 handoff](../execution/aws/v1/README.md).
 > Preserve the older findings/evidence; do not execute this swarm brief again.
 
 # Handoff to GPT-6.1 Sol: swarm the AWS readiness gaps, build the backlog, audit it

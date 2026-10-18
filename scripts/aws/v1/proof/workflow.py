@@ -205,3 +205,38 @@ def _first_reference(body):
         if line and not line.startswith("#"):
             return posixpath.normpath(line) if "://" not in line else None
     return None
+
+
+WORK_QUEUE_ATTRIBUTES = [
+    "ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible",
+    "ApproximateNumberOfMessagesDelayed"]
+
+
+def work_queue_depth(ctx):
+    """Messages the ProcessingWork queue holds: visible, in flight or delayed."""
+    got = ctx.sqs().get_queue_attributes(
+        QueueUrl=ctx.outputs["ProcessingWorkQueueUrl"], AttributeNames=WORK_QUEUE_ATTRIBUTES)
+    return sum(int(got["Attributes"].get(name, 0)) for name in WORK_QUEUE_ATTRIBUTES)
+
+
+def require_empty_work_queue(ctx, *, settle=60, interval=5):
+    """Refuse to start while an earlier run left work behind; returns the polls it needed.
+
+    The encoder a smoke starts claims whatever message it receives first, so a stale message
+    (r1018b: 17 of them after a smoke that never got an encoder) would be encoded instead of the
+    smoke's own job, which then waits out its whole timeout. A message that is merely in flight
+    or just claimed settles within `settle` seconds; anything still there after that is named
+    and fails the run before an upload is made.
+    """
+    began, polls = ctx.clock(), 0
+    while True:
+        polls += 1
+        depth = work_queue_depth(ctx)
+        if depth == 0:
+            return polls
+        if ctx.clock() - began >= settle:
+            raise ProofError(
+                f"The ProcessingWork queue still holds {depth} message(s) {settle} s after the "
+                "run started: an earlier run left work behind. Let an encoder drain it or "
+                "tear the stack down; this run would encode it instead of its own job.")
+        ctx.sleep(interval)

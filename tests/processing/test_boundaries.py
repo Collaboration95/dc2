@@ -24,15 +24,12 @@ def test_settings_use_only_processing_environment(monkeypatch):
     monkeypatch.setenv("POSTGRES_DSN", "postgresql://media:private@media/media_db")
     monkeypatch.setenv("SERVICE_TOKEN", "media-secret")
     monkeypatch.setenv("PROCESSING_POSTGRES_DSN", "postgres://processing@processing/processing_db")
-    monkeypatch.setenv("PROCESSING_SERVICE_TOKEN", "processing-secret")
     monkeypatch.setenv("PROCESSING_MIGRATION_DSN", "postgresql://migrator@processing/processing_db")
     get_settings.cache_clear()
     try:
         settings = get_settings()
         assert settings.postgres_dsn == "postgresql+asyncpg://processing@processing/processing_db"
         assert settings.migration_dsn == "postgresql+asyncpg://migrator@processing/processing_db"
-        assert settings.service_token.get_secret_value() == "processing-secret"
-        assert "processing-secret" not in repr(settings)
         assert get_settings() is settings
     finally:
         get_settings.cache_clear()

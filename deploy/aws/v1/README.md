@@ -56,8 +56,9 @@ verified account; do not run inherited AWS2 deploy paths.
    negative cross-database/DDL tests before intake. Migration tasks must complete
    before encoder batches: the observed Fargate quota was only six vCPUs.
 7. Open only through the session API (`python -m scripts.aws.v1.session open ...`)
-   after readiness and quotas pass. The template deploys every function with reserved
-   concurrency 0, both mappings and all four rules disabled, and Gateway throttle 0.
+   after readiness and quotas pass. The template reserves no Lambda concurrency (the account
+   limit of 10 forbids it); it deploys with both mappings and all four rules disabled and Gateway
+   throttle 0.
    See "Concurrency and session model" for how the account limit of 10 is handled.
 
 No ECS service, autoscaler or automatic worker starts exist. `WorkerTaskDefinitionArn`

@@ -4,7 +4,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header
 
-from media.api.deps import Config, Session
+from legacy.media_peer.config import LegacyMediaSettings
+from media.api.deps import Session
+from media.config import get_settings
 from media.errors import MediaError
 from media.repositories.assets import get_asset, source_descriptor
 from media.schemas.public import SourceAccessRequest
@@ -15,7 +17,7 @@ router = APIRouter(prefix="/internal/v1/assets", tags=["source-access"])
 
 
 async def source_owner(
-    settings: Config,
+    settings: Annotated[LegacyMediaSettings, Depends(get_settings)],
     authorization: Annotated[str | None, Header()] = None,
     x_owner_id: Annotated[UUID | None, Header()] = None,
 ) -> UUID:

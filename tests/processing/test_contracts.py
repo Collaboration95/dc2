@@ -10,11 +10,14 @@ import pytest
 from _processing_doubles import pair
 from pydantic import ValidationError
 
+from legacy.processing_rq import service as legacy_service
+from legacy.processing_rq.config import LegacySettings as Settings
+from legacy.processing_rq.config import get_settings
 from legacy.processing_rq.main import create_app
+from legacy.processing_rq.schemas import SourceAccess, SubmitJob
 from processing import lifecycle, service
-from processing.config import Settings, get_settings
 from processing.database import get_session
-from processing.schemas import RetryJob, SourceAccess, SubmitJob
+from processing.schemas import RetryJob
 
 CONTRACTS = Path(__file__).resolve().parents[2] / "project-roadmap/design/05-contracts"
 
@@ -65,9 +68,9 @@ async def test_http_retry_submit_batch_single_cancel_shapes(monkeypatch, submiss
     job, attempt, _, _ = pair("queued")
     response = service.job_response(job, attempt)
     submit = AsyncMock(return_value=(response, True))
-    monkeypatch.setattr(service, "submit_job", submit)
-    monkeypatch.setattr(service, "get_job", AsyncMock(return_value=response))
-    monkeypatch.setattr(service, "list_jobs", AsyncMock(return_value=[response]))
+    monkeypatch.setattr(legacy_service, "submit_job", submit)
+    monkeypatch.setattr(legacy_service, "get_job", AsyncMock(return_value=response))
+    monkeypatch.setattr(legacy_service, "list_jobs", AsyncMock(return_value=[response]))
     monkeypatch.setattr(lifecycle, "retry_job", AsyncMock(return_value=response))
     monkeypatch.setattr(lifecycle, "cancel_asset", AsyncMock())
     publish = AsyncMock()
