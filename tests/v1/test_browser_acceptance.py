@@ -4,7 +4,7 @@ Real: the shipped page and scripts, browser cookies and CORS enforcement, Media 
 Processing handlers, PostgreSQL, the direct S3 POST path, FFmpeg, hls.js and Chromium's
 native HLS, with the bucket CORS rules the V1 template ships. Emulated:
 API Gateway (loopback bridge), S3/SQS (Moto) and the queue-to-Lambda/Fargate triggers (a
-thread). Opt in with V1_BROWSER=1 after installing Chromium; once requested, a missing
+thread). Opt in with V1_BROWSER=1 after `make setup-v1`; once requested, a missing
 browser is a failure, not a skip.
 
 Every wait polls something the test can observe (the job's status, the video element, the
@@ -60,7 +60,7 @@ def test_browser_signs_in_uploads_directly_waits_for_encode_plays_and_deletes(tm
     if not os.environ.get("V1_RUNTIME_CONFIG"):
         pytest.skip("Explicit Lead C runtime attachment required")
     if os.environ.get("V1_BROWSER") != "1":
-        pytest.skip("Set V1_BROWSER=1 to run the real-browser leg (make browser-install first)")
+        pytest.skip("Set V1_BROWSER=1 to run the real-browser leg (make setup-v1 first)")
     from scripts.dev.v1_acceptance import app_runtime, short_video
     from scripts.dev.v1_browser import (
         FrontendGateway,

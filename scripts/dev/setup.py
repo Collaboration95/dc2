@@ -44,6 +44,12 @@ def find_python(version: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--browser-install", action="store_true", help="Install local Firefox")
+    parser.add_argument(
+        "--v1",
+        action="store_true",
+        help="Also create the isolated pinned Moto environment and install Chromium for V1",
+    )
+    parser.add_argument("--with-deps", action="store_true", help="With --v1: apt system libraries")
     args = parser.parse_args()
     os.chdir(ROOT)
     for name in ("uv", "node", "npm"):
@@ -87,6 +93,27 @@ def main() -> None:
             label="setup-firefox",
             timeout=180,
         )
+    if args.v1:
+        setup_v1(with_deps=args.with_deps)
+
+
+def setup_v1(*, with_deps: bool = False) -> None:
+    """Moto lives outside uv.lock and the production images, as in .github/workflows/v1.yml."""
+    from scripts.dev.v1_runtime import MOTO_REQUIREMENT, MOTO_VENV
+
+    venv = ROOT / MOTO_VENV
+    run(["uv", "venv", "--allow-existing", str(venv)], label="setup-v1-moto-venv", timeout=120)
+    run(
+        ["uv", "pip", "install", "--python", str(venv / "bin/python"), MOTO_REQUIREMENT],
+        label="setup-v1-moto",
+        timeout=180,
+    )
+    helper = [str(ROOT / ".venv/bin/python"), str(ROOT / "scripts/dev/browser.py"), "install"]
+    run(
+        [*helper, "--chromium", *(["--with-deps"] if with_deps else [])],
+        label="setup-v1-chromium",
+        timeout=300,
+    )
 
 
 if __name__ == "__main__":
