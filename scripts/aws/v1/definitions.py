@@ -1306,8 +1306,9 @@ def template(database=None):
                 "AlarmName": sub(f"${{EnvironmentId}}-{name}-errors"),
                 "AlarmDescription": (
                     f"{owner}: the {name} function returned an error (unhandled exception, "
-                    "timeout or out-of-memory). A message batch it was reading is retried "
-                    "and, after five receives, lands in its dead-letter queue."
+                    "timeout or out-of-memory). A message batch a consumer was reading is "
+                    "retried and, after five receives, lands in its dead-letter queue; a "
+                    "scheduled tick simply runs again a minute later."
                 ),
                 "Namespace": "AWS/Lambda",
                 "MetricName": "Errors",

@@ -6652,7 +6652,7 @@
         "AlarmName": {
           "Fn::Sub": "${EnvironmentId}-MediaApi-errors"
         },
-        "AlarmDescription": "Media: the MediaApi function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "AlarmDescription": "Media: the MediaApi function returned an error (unhandled exception, timeout or out-of-memory). A message batch a consumer was reading is retried and, after five receives, lands in its dead-letter queue; a scheduled tick simply runs again a minute later.",
         "Namespace": "AWS/Lambda",
         "MetricName": "Errors",
         "Dimensions": [
@@ -6694,7 +6694,7 @@
         "AlarmName": {
           "Fn::Sub": "${EnvironmentId}-MediaAuthorizer-errors"
         },
-        "AlarmDescription": "Media: the MediaAuthorizer function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "AlarmDescription": "Media: the MediaAuthorizer function returned an error (unhandled exception, timeout or out-of-memory). A message batch a consumer was reading is retried and, after five receives, lands in its dead-letter queue; a scheduled tick simply runs again a minute later.",
         "Namespace": "AWS/Lambda",
         "MetricName": "Errors",
         "Dimensions": [
@@ -6736,7 +6736,7 @@
         "AlarmName": {
           "Fn::Sub": "${EnvironmentId}-ProcessingApi-errors"
         },
-        "AlarmDescription": "Processing: the ProcessingApi function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "AlarmDescription": "Processing: the ProcessingApi function returned an error (unhandled exception, timeout or out-of-memory). A message batch a consumer was reading is retried and, after five receives, lands in its dead-letter queue; a scheduled tick simply runs again a minute later.",
         "Namespace": "AWS/Lambda",
         "MetricName": "Errors",
         "Dimensions": [
@@ -6778,7 +6778,7 @@
         "AlarmName": {
           "Fn::Sub": "${EnvironmentId}-ProcessingCommands-errors"
         },
-        "AlarmDescription": "Processing: the ProcessingCommands function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "AlarmDescription": "Processing: the ProcessingCommands function returned an error (unhandled exception, timeout or out-of-memory). A message batch a consumer was reading is retried and, after five receives, lands in its dead-letter queue; a scheduled tick simply runs again a minute later.",
         "Namespace": "AWS/Lambda",
         "MetricName": "Errors",
         "Dimensions": [
@@ -6820,7 +6820,7 @@
         "AlarmName": {
           "Fn::Sub": "${EnvironmentId}-MediaResults-errors"
         },
-        "AlarmDescription": "Media: the MediaResults function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "AlarmDescription": "Media: the MediaResults function returned an error (unhandled exception, timeout or out-of-memory). A message batch a consumer was reading is retried and, after five receives, lands in its dead-letter queue; a scheduled tick simply runs again a minute later.",
         "Namespace": "AWS/Lambda",
         "MetricName": "Errors",
         "Dimensions": [
@@ -6862,7 +6862,7 @@
         "AlarmName": {
           "Fn::Sub": "${EnvironmentId}-MediaRepair-errors"
         },
-        "AlarmDescription": "Media: the MediaRepair function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "AlarmDescription": "Media: the MediaRepair function returned an error (unhandled exception, timeout or out-of-memory). A message batch a consumer was reading is retried and, after five receives, lands in its dead-letter queue; a scheduled tick simply runs again a minute later.",
         "Namespace": "AWS/Lambda",
         "MetricName": "Errors",
         "Dimensions": [
@@ -6904,7 +6904,7 @@
         "AlarmName": {
           "Fn::Sub": "${EnvironmentId}-ProcessingRepair-errors"
         },
-        "AlarmDescription": "Processing: the ProcessingRepair function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "AlarmDescription": "Processing: the ProcessingRepair function returned an error (unhandled exception, timeout or out-of-memory). A message batch a consumer was reading is retried and, after five receives, lands in its dead-letter queue; a scheduled tick simply runs again a minute later.",
         "Namespace": "AWS/Lambda",
         "MetricName": "Errors",
         "Dimensions": [
@@ -6946,7 +6946,7 @@
         "AlarmName": {
           "Fn::Sub": "${EnvironmentId}-ProcessingEcsEvents-errors"
         },
-        "AlarmDescription": "Processing: the ProcessingEcsEvents function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "AlarmDescription": "Processing: the ProcessingEcsEvents function returned an error (unhandled exception, timeout or out-of-memory). A message batch a consumer was reading is retried and, after five receives, lands in its dead-letter queue; a scheduled tick simply runs again a minute later.",
         "Namespace": "AWS/Lambda",
         "MetricName": "Errors",
         "Dimensions": [
@@ -6988,7 +6988,7 @@
         "AlarmName": {
           "Fn::Sub": "${EnvironmentId}-ProcessingS3Events-errors"
         },
-        "AlarmDescription": "Processing: the ProcessingS3Events function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "AlarmDescription": "Processing: the ProcessingS3Events function returned an error (unhandled exception, timeout or out-of-memory). A message batch a consumer was reading is retried and, after five receives, lands in its dead-letter queue; a scheduled tick simply runs again a minute later.",
         "Namespace": "AWS/Lambda",
         "MetricName": "Errors",
         "Dimensions": [
@@ -7030,7 +7030,7 @@
         "AlarmName": {
           "Fn::Sub": "${EnvironmentId}-ProcessingLauncher-errors"
         },
-        "AlarmDescription": "Processing: the ProcessingLauncher function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "AlarmDescription": "Processing: the ProcessingLauncher function returned an error (unhandled exception, timeout or out-of-memory). A message batch a consumer was reading is retried and, after five receives, lands in its dead-letter queue; a scheduled tick simply runs again a minute later.",
         "Namespace": "AWS/Lambda",
         "MetricName": "Errors",
         "Dimensions": [
@@ -7072,7 +7072,7 @@
         "AlarmName": {
           "Fn::Sub": "${EnvironmentId}-ProcessingShortEncoder-errors"
         },
-        "AlarmDescription": "Processing: the ProcessingShortEncoder function returned an error (unhandled exception, timeout or out-of-memory). A message batch it was reading is retried and, after five receives, lands in its dead-letter queue.",
+        "AlarmDescription": "Processing: the ProcessingShortEncoder function returned an error (unhandled exception, timeout or out-of-memory). A message batch a consumer was reading is retried and, after five receives, lands in its dead-letter queue; a scheduled tick simply runs again a minute later.",
         "Namespace": "AWS/Lambda",
         "MetricName": "Errors",
         "Dimensions": [
