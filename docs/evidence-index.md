@@ -4,7 +4,7 @@ Every quality scenario in proposal section 3.4 and every security control in sec
 result against the target as written. Targets were not revised. A FAIL is reported as a FAIL. Nothing
 was rerun to turn a FAIL into a PASS; where a first attempt failed and a rerun passed, both are stated.
 
-Last updated 19 October 2026 (rows Q7k to Q7n). Section numbers 3.3 and 3.4 are the **Team17 proposal's** ("How the
+Last updated 19 October 2026 (rows Q7k to Q7o). Section numbers 3.3 and 3.4 are the **Team17 proposal's** ("How the
 implementation demonstrates the course areas" and "Quality scenarios and initial targets"). The original
 course report template discusses quality attributes in its section 4 (4.1 Performance, 4.2 Availability,
 4.3 Security, 4.4 Extensibility and Maintainability) and architectural limitations in its 3.4; when the
@@ -16,6 +16,8 @@ archived with hashes and source SHAs in
 and a compact actual-versus-target table with a figure is in
 [`results/actual-vs-target.md`](results/actual-vs-target.md). They are added below as new rows; the
 older rows and their FAIL and NOT_RUN outcomes are unchanged.
+
+The sanitized release identity of the persistent environment (source SHA, image digests, migration heads, acceptance rows) is in [`release/demo-release-manifest.md`](release/demo-release-manifest.md), status prepared and not yet team-accepted.
 
 ## How to read this
 
@@ -91,6 +93,7 @@ and CI are not AWS evidence.
 | Q7l | Processing release on `dc2-live` and rollback proof (added 19 October) | Release run [39265004564](https://github.com/Collaboration95/dc2/actions/runs/39265004564): promoted, six aliases moved, smoke PASS (the adoption step then failed on the second `jq` bug). Rollback run [39271754470](https://github.com/Collaboration95/dc2/actions/runs/39271754470): `bad_candidate=true` failed its smoke (`processing-jobs:503`), outcome `restored`, job green, release step 8m36s; post-release upload-to-playback smoke PASS (72.4 s) | PASS | AWS V2-live | [rollback](execution/aws/v1/evidence/v2live-verify-20261019/cd-39271754470-bad-candidate-rollback/release-processing.json) |
 | Q7m | Encoders scale 0 -> 3 -> 0 with the queue, and a 9-clip backlog on `dc2-live` (added 19 October) | 3 concurrent clips: 3 tasks, peak 3, 0 after 13:43:11 UTC; queued-to-processing about 37 s, of which Fargate start 25.6 s median (n=12): the 20 s target of #237 is **not met**. 9 clips at cap 3: 239 s submit to done, 2.26 jobs/min, 9 tasks, peak 3; 21 sends for 9 jobs and 10 stale messages left behind | PASS (scaling), FAIL (20 s queue wait) | AWS V2-live | [scaling-and-backlog.json](execution/aws/v1/evidence/v2live-verify-20261019/scaling-and-backlog.json) |
 | Q7n | Aurora pause after idle on `dc2-live` (added 19 October) | **Not observed**: 0.5 ACU in every 1-minute datapoint from 13:00 to 14:57 UTC. The Media repair SQL pass found work due within 60 s on most ticks; hypothesis: unretired upload reservations. Re-check command in the README | NOT_RUN (open) | AWS V2-live | [README](execution/aws/v1/evidence/v2live-verify-20261019/README.md) |
+| Q7o | Stale duplicate `ProcessingWork` messages after a burst, re-test of #270 on `dc2-live` (added 19 October) | Source `daee44b` (CD run [39286933644](https://github.com/Collaboration95/dc2/actions/runs/39286933644)); 9 concurrent clips, 9 of 9 done, 18 sends (21 before the fix), ProcessingWork visible/in-flight **0/0** at 17:11:01Z with no purge (peak 12 visible), 9 encoder tasks all exit 0. No worker log lines exist, so no log-side drain evidence | PASS | AWS V2-live | [README](execution/aws/v1/evidence/v2live-verify-20261019/README.md), [`burst-270-recheck.json`](execution/aws/v1/evidence/v2live-verify-20261019/burst-270-recheck.json) |
 | Q8 | Security: negative tests in section 3.3 all rejected; 0 fixable HIGH/CRITICAL image findings at release | Detail in the next table | see below | | |
 | Q9 | Reusability: Publisher CLI against the published API, 0 imports from service code, 0 database credentials, within 2 person-days | See "Reuse" below | PASS on imports and credentials; effort NOT MEASURED | Code / Local / AWS | below |
 
