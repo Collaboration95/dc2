@@ -2,7 +2,10 @@
 
 A task encodes at most one claimed attempt. Messages that durable SQL proves stale
 (cancelled, superseded, terminal or already claimed) are deleted and polling goes
-on, so leftovers never spend a finite task or cycle to the DLQ. They also do not
+on, so leftovers never spend a finite task or cycle to the DLQ. After its one encode a
+task also drains the stale duplicates still visible (#270), because the launcher starts
+workers from SQL backlog, so once the last job is terminal nothing else would ever read
+them. They also do not
 spend the per-task message allowance: repair re-sends queued work every interval, so
 a backlog of duplicates must not starve the fresh work behind it. Empty receives,
 non-stale messages, stale drains and total runtime are each bounded. Work arriving
@@ -195,6 +198,7 @@ async def run(
     stop=None,
     max_messages=25,
     max_stale=500,
+    drain_disposition=None,
 ):
     if not math.isfinite(end_epoch) or not 0 < end_epoch - time.time() <= 3600:
         raise ValueError("A future absolute deadline within one hour is required")
@@ -209,6 +213,46 @@ async def run(
         if remaining <= 0:
             raise AttemptDeadline()
         return await asyncio.wait_for(asyncio.to_thread(method, **kwargs), remaining)
+
+    async def drain():
+        """Delete visible duplicates that SQL proves dead, after this task's one encode.
+
+        Repair re-sends queued work every interval, so a backlog that waits on the executor
+        cap collects several copies per attempt; each is stale once its attempt is claimed or
+        terminal. The first message that is still claimable goes straight back (another task
+        will take it), and anything unproven keeps its receipt for the redrive policy.
+        """
+        seen = 0
+        while seen < max_stale and not stop.is_set() and deadline - time.monotonic() > 3:
+            received = await call(
+                sqs.receive_message,
+                QueueUrl=queue_url,
+                MaxNumberOfMessages=1,
+                WaitTimeSeconds=2,
+                VisibilityTimeout=visibility,
+            )
+            messages = received.get("Messages", [])
+            if not messages:
+                return
+            seen += 1
+            receipt = messages[0]["ReceiptHandle"]
+            try:
+                work = decode(messages[0]["Body"])
+                verdict = await drain_disposition(
+                    factory, UUID(work["job_id"]), UUID(work["attempt_id"])
+                )
+            except (ValueError, KeyError, TypeError):
+                continue
+            if verdict == "stale":
+                await call(sqs.delete_message, QueueUrl=queue_url, ReceiptHandle=receipt)
+            elif verdict == "pending":
+                await call(
+                    sqs.change_message_visibility,
+                    QueueUrl=queue_url,
+                    ReceiptHandle=receipt,
+                    VisibilityTimeout=0,
+                )
+                return
 
     # ``handled`` counts receipts that stay in the queue or encode; acknowledged stale
     # duplicates are bounded separately (and by the deadline) so they cannot starve work.
@@ -265,7 +309,11 @@ async def run(
             handled -= 1
             stale += 1
             continue
-        # Exactly one encode per task, successful or uncertain.
+        # Exactly one encode per task, successful or uncertain. Only a completed one sweeps up
+        # afterwards: after an uncertain end the task is out of time or authority.
+        if complete and drain_disposition is not None:
+            with suppress(Exception):
+                await drain()
         return 0 if complete else 1
     return 0
 
@@ -329,6 +377,8 @@ async def connect_engine(settings):
 
 
 async def async_main(args):
+    from processing import messaging
+
     settings, queue_url = load_configuration()
     settings, engine = await connect_engine(settings)
     stop = asyncio.Event()
@@ -357,6 +407,7 @@ async def async_main(args):
             name=args.name,
             empty_polls=args.empty_polls,
             stop=stop,
+            drain_disposition=messaging.work_disposition,
         )
     finally:
         for sig in (signal.SIGINT, signal.SIGTERM):
