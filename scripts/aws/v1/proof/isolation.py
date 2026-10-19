@@ -165,6 +165,7 @@ def finish_job(ctx, proof, api, intent, *, gate, minutes):
     row, begun = intent["row"], ctx.clock()
     row["job_id"] = intent["job_id"]
     intent.setdefault("tasks", [])
+    launcher = workflow.launcher_owns_workers(ctx)
     while True:
         _, job = job_view(api, intent["job_id"])
         if job:
@@ -172,9 +173,17 @@ def finish_job(ctx, proof, api, intent, *, gate, minutes):
             row["processing_job_id"] = job.get("processing_job_id")
         if row.get("status") in workflow.TERMINAL or ctx.clock() - begun >= gate:
             return job
-        live = len(workflow.live_tasks(ctx))
-        if capacity.refill(ctx, intent, [row], live, cap=1, minutes=minutes):
-            proof.save()
+        if launcher:
+            # Always-on (V2-live): the launcher starts the encoder, and a second starter would
+            # race its cap, so only record which encoders ran meanwhile.
+            seen = [a for a in workflow.live_tasks(ctx) if a not in intent["tasks"]]
+            if seen and row.get("processing_job_id"):
+                intent["tasks"] += seen
+                proof.save()
+        else:
+            live = len(workflow.live_tasks(ctx))
+            if capacity.refill(ctx, intent, [row], live, cap=1, minutes=minutes):
+                proof.save()
         proof.checkpoint("open")
         ctx.sleep(POLL_SECONDS)
 

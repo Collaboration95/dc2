@@ -64,7 +64,8 @@ def test_a_healthy_stack_passes_what_can_run_and_marks_the_rest_not_run_with_a_r
 def test_user_b_gets_404_everywhere_while_user_a_gets_200_as_the_control(tmp_path, fixture):
     proof = security.run(build(tmp_path), fixture=fixture)
     seen = public(proof, "cross-owner")
-    for name in ("read", "retry", "playback_master", "playback_segment", "processing_job"):
+    for name in ("read", "retry", "edit", "delete", "playback_master", "playback_segment",
+                 "processing_job", "processing_retry", "processing_cancel"):
         assert seen[f"b_{name}"] == 404
     assert seen["a_read"] == seen["a_playback"] == seen["a_processing_job"] == 200
     assert seen["a_job_unchanged_after_b_retry"] and not seen["b_lists_a_job"]
@@ -106,6 +107,20 @@ def test_the_execute_api_url_is_documented_as_reachable_with_the_authorizer_in_f
     seen = public(security.run(build(tmp_path), fixture=fixture), "execute-api-direct")
     assert seen["classification"] == "reachable_authorizer_enforced"
     assert seen["a_reads_own_job_status"] == 200 and seen["b_reads_a_job_status"] == 404
+
+
+def test_on_an_always_on_stack_the_launcher_encodes_the_clip_and_the_harness_starts_none(
+        tmp_path, fixture, monkeypatch):
+    ctx = build(tmp_path, launcher=True)
+    sim.opt_in_launcher(ctx)
+
+    def refuse(*_args, **_kwargs):
+        raise AssertionError("the harness must not start an encoder when the launcher owns it")
+
+    monkeypatch.setattr(security.capacity, "refill", refuse)
+    proof = security.run(ctx, fixture=fixture, only={"setup-job", "cross-owner"})
+    assert statuses(proof)["setup-job"] == PASS and statuses(proof)["cross-owner"] == PASS
+    assert public(proof, "setup-job")["encoders_left_running"] == 0
 
 
 # ---- each open boundary fails exactly its own step ----------------------------------------

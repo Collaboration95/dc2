@@ -2,7 +2,8 @@
 
 User A uploads one short clip and the encoder finishes it. Then, through the public origins only:
 
-* `cross-owner`: user B gets 404 on A's job, retry, playback and Processing job, and A's job is
+* `cross-owner`: user B gets 404 on A's job (read, retry, edit, delete), playback and the
+  Processing job (read, retry, cancel), and A's job is
   unchanged afterwards. A's own reads are the control (200), so a 404 cannot mean a dead route.
 * `unauthenticated`: every protected route answers exactly 401 with no session on both CloudFront
   and the execute-api origin; a forged token and a token with a changed signature are denied
@@ -300,7 +301,11 @@ def setup_job(ctx, proof, fixture, *, timeout, minutes):
     except BaseException:
         capacity.stop_ours(ctx, intent["tasks"], "dc2 evidence: security step aborted")
         raise
-    left = len(workflow.live_tasks(ctx))
+    running = workflow.live_tasks(ctx)
+    if workflow.launcher_owns_workers(ctx):
+        # Other users' encoders may run on the always-on environment; only this job's count.
+        running = {arn: t for arn, t in running.items() if arn in intent["tasks"]}
+    left = len(running)
     status = final["status"] if final else None
     public = {
         "users_registered": 2, "job_status": status, "bytes": row.get("bytes"),
@@ -334,6 +339,14 @@ def cross_owner(ctx, proof):
         "playback_master": ask(ctx, b, "GET", paths["master"]),
         "playback_segment": ask(ctx, b, "GET", paths["segment"]),
         "processing_job": ask(ctx, b, "GET", f"/api/processing/jobs/{pid}"),
+        # A valid body, so a 404 is the owner check and not a 422 from validation.
+        "edit": ask(ctx, b, "POST", f"/api/media/jobs/{job_id}/edit", body={
+            "operations": [{"operation": "downscale", "params": {"height": 120}}]}),
+        "processing_retry": ask(ctx, b, "POST", f"/api/processing/jobs/{pid}/retry",
+                                body={"retry_request_id": str(uuid.uuid4())}),
+        # The destructive calls go last: if one wrongly succeeded, A's job is what shows it.
+        "processing_cancel": ask(ctx, b, "DELETE", f"/api/processing/jobs/{pid}"),
+        "delete": ask(ctx, b, "DELETE", f"/api/media/jobs/{job_id}"),
     }
     listing = ask(ctx, b, "GET", "/api/media/jobs")
     by_asset = ask(ctx, b, "GET", f"/api/processing/jobs?asset_ids={job_id}")
