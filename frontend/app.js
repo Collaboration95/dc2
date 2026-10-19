@@ -86,6 +86,7 @@ const el = {
   viewLibrary: document.getElementById("view-library"),
   libraryFilters: document.getElementById("library-filters"),
   libraryStatus: document.getElementById("library-status"),
+  libraryRetry: document.getElementById("library-retry"),
   libraryGrid: document.getElementById("library-grid"),
   libraryEmpty: document.getElementById("library-empty"),
   libraryPrev: document.getElementById("library-prev"),
@@ -95,6 +96,7 @@ const el = {
   viewAdmin: document.getElementById("view-admin"),
   adminFilters: document.getElementById("admin-filters"),
   adminStatus: document.getElementById("admin-status"),
+  adminRetry: document.getElementById("admin-retry"),
   adminTbody: document.getElementById("admin-tbody"),
   adminEmpty: document.getElementById("admin-empty"),
   adminPrev: document.getElementById("admin-prev"),
@@ -177,6 +179,7 @@ function applyAuthMode() {
 
 function showSignedIn(user) {
   sessionGeneration += 1;
+  resetOwnerViews();
   currentUser = user;
   el.who.textContent = user.email;
   el.operatorTag.hidden = user.role !== "operator";
@@ -207,6 +210,7 @@ function showSignedIn(user) {
 
 function showSignedOut() {
   sessionGeneration += 1;
+  resetOwnerViews();
   currentUser = null;
   pendingUpload = pendingRetry = pendingEdit = null;
   retrying = editSubmitting = false;
@@ -556,8 +560,10 @@ async function deleteActiveJob() {
   if (!window.confirm(`Delete "${filename}"? This cannot be undone.`)) return;
 
   const jobId = activeJobId;
+  const session = sessionGeneration;
   try {
     const res = await fetch(`${API}/jobs/${jobId}`, { method: "DELETE" });
+    if (session !== sessionGeneration) return;
 
     if (res.status === 401) {
       showSignedOut();
@@ -567,6 +573,7 @@ async function deleteActiveJob() {
 
     if (!res.ok && res.status !== 204) {
       const data = await res.json().catch(() => ({}));
+      if (session !== sessionGeneration) return;
       setStatus(`Could not delete "${filename}": ${data.error ?? res.status}`);
       return;
     }
@@ -579,6 +586,7 @@ async function deleteActiveJob() {
     pendingUpload = pendingRetry = null;
     setStatus("Video deleted.");
   } catch (err) {
+    if (session !== sessionGeneration) return;
     setStatus(`Request failed: ${err.message}`);
   }
 }
@@ -618,6 +626,8 @@ async function handleFile(file) {
       res = await intentRequest(`${API}/upload`, { method: "POST", body }, intent.key);
     } else {
       const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+      // Reading and hashing can outlive the session; never send A's file under B's cookie.
+      if (!ownsCard()) return;
       const sha256 = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
       const reserved = await intentRequest(`${API}/uploads/reservations`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -629,6 +639,7 @@ async function handleFile(file) {
         res = reserved;
       } else {
         const reservation = await reserved.json();
+        if (!ownsCard()) return;
         if (reservation.upload) {
           const body = new FormData();
           for (const [name, value] of Object.entries(reservation.upload.fields)) body.append(name, value);
@@ -1165,6 +1176,18 @@ function closeEditor() {
   editingJob = null;
 }
 
+// closeEditor ends the session but leaves the last text on screen; on an owner
+// change that text (and the signed download link) belongs to the old owner.
+function clearEditorOwnerState() {
+  el.editSource.textContent = "";
+  el.editResultName.textContent = "";
+  el.editResultDownload.removeAttribute("href");
+  el.editResultDownload.removeAttribute("download");
+  el.editResult.hidden = true;
+  el.editProgress.hidden = true;
+  setEditStatus("");
+}
+
 function showEditResult(job) {
   el.editProgress.hidden = true;
   setEditStatus("Done — the result is a new library entry.");
@@ -1300,6 +1323,8 @@ el.editForm.addEventListener("submit", async (event) => {
 let libraryOffset = 0;
 let libraryFilter = "all";
 let libraryJobs = [];
+let libraryFailed = false;
+let libraryRequest = 0;
 
 // The dot's colour comes from `currentColor` on the badge's own class -- it
 // does not need to know which status it is drawing.
@@ -1325,7 +1350,7 @@ function renderLibrary() {
   el.libraryGrid.replaceChildren();
   const visible = libraryJobs.filter((j) => libraryFilter === "all" || j.status === libraryFilter);
 
-  el.libraryEmpty.hidden = visible.length > 0;
+  el.libraryEmpty.hidden = visible.length > 0 || libraryFailed;
   el.libraryGrid.hidden = visible.length === 0;
 
   for (const job of visible) {
@@ -1458,8 +1483,10 @@ function makeEditButton(job) {
 async function deleteJob(job) {
   if (!window.confirm(`Delete "${job.filename}"? This cannot be undone.`)) return;
 
+  const session = sessionGeneration;
   try {
     const res = await fetch(`${API}/jobs/${job.id}`, { method: "DELETE" });
+    if (session !== sessionGeneration) return;
 
     if (res.status === 401) {
       showSignedOut();
@@ -1469,6 +1496,7 @@ async function deleteJob(job) {
 
     if (!res.ok && res.status !== 204) {
       const data = await res.json().catch(() => ({}));
+      if (session !== sessionGeneration) return;
       setLibraryStatus(`Could not delete "${job.filename}": ${data.error ?? res.status}`);
       return;
     }
@@ -1476,6 +1504,7 @@ async function deleteJob(job) {
     libraryJobs = libraryJobs.filter((j) => j.id !== job.id);
     renderLibrary();
   } catch (err) {
+    if (session !== sessionGeneration) return;
     setLibraryStatus(`Request failed: ${err.message}`);
   }
 }
@@ -1511,20 +1540,66 @@ function toggleInlinePlayer(container, job) {
   container.classList.add("expanded");
 }
 
+// Everything the Library and Admin views show belongs to one owner. Drop it
+// (cards hold the owner's job document, including its signed playback URL)
+// whenever the identity changes, and orphan any list request still in flight.
+function resetOwnerViews() {
+  libraryRequest += 1;
+  adminRequest += 1;
+  closeEditor();
+  clearEditorOwnerState();
+  libraryJobs = [];
+  adminJobs = [];
+  libraryFailed = adminFailed = false;
+  libraryOffset = adminOffset = 0;
+  libraryFilter = adminFilter = "all";
+  for (const filters of [el.libraryFilters, el.adminFilters]) {
+    for (const b of filters.querySelectorAll("[data-status]")) {
+      b.classList.toggle("active", b.dataset.status === "all");
+    }
+  }
+  el.libraryStatus.hidden = true;
+  el.libraryRetry.hidden = true;
+  el.adminStatus.hidden = true;
+  el.adminRetry.hidden = true;
+  renderLibrary();
+  renderAdmin();
+}
+
 async function loadLibrary() {
+  const session = sessionGeneration;
+  const request = ++libraryRequest;
+  // A response is applied only if neither the identity nor a newer request has
+  // moved on; checked after every await, including body parsing.
+  const current = () => session === sessionGeneration && request === libraryRequest;
+  let jobs;
   try {
     const res = await fetch(`${API}/jobs?limit=${PAGE_SIZE}&offset=${libraryOffset}`);
+    if (!current()) return;
     if (res.status === 401) {
       showSignedOut();
       setAuthStatus("Your session expired. Sign in again.");
       return;
     }
-    libraryJobs = res.ok ? await res.json() : [];
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    jobs = await res.json();
+    if (!current()) return;
+    if (!Array.isArray(jobs)) throw new Error("malformed list");
+    libraryFailed = false;
+    el.libraryStatus.hidden = true;
+    el.libraryRetry.hidden = true;
   } catch {
-    libraryJobs = [];
+    if (!current()) return;
+    jobs = [];
+    libraryFailed = true;
+    setLibraryStatus("Could not load your videos. Please try again.");
+    el.libraryRetry.hidden = false;
   }
+  libraryJobs = jobs;
   renderLibrary();
 }
+
+el.libraryRetry.addEventListener("click", loadLibrary);
 
 for (const button of el.libraryFilters.querySelectorAll("[data-status]")) {
   button.addEventListener("click", () => {
@@ -1553,13 +1628,15 @@ el.libraryNext.addEventListener("click", () => {
 let adminOffset = 0;
 let adminFilter = "all";
 let adminJobs = [];
+let adminFailed = false;
+let adminRequest = 0;
 
 function renderAdmin() {
   unmountPlayersIn(el.adminTbody);
   el.adminTbody.replaceChildren();
   const visible = adminJobs.filter((j) => adminFilter === "all" || j.status === adminFilter);
 
-  el.adminEmpty.hidden = visible.length > 0;
+  el.adminEmpty.hidden = visible.length > 0 || adminFailed;
   el.adminTbody.parentElement.hidden = visible.length === 0;
 
   for (const job of visible) {
@@ -1619,11 +1696,13 @@ function makeAdminDeleteButton(job) {
 async function deleteJobAsAdmin(job) {
   if (!window.confirm(`Delete "${job.filename}"? This cannot be undone.`)) return;
 
+  const session = sessionGeneration;
   try {
     // Unscoped: an operator can delete any user's job, not just their own --
     // the same "identify what this upload is" story the inline preview
     // above exists for.
     const res = await fetch(`${API}/admin/jobs/${job.id}`, { method: "DELETE" });
+    if (session !== sessionGeneration) return;
 
     if (res.status === 401) {
       showSignedOut();
@@ -1636,6 +1715,7 @@ async function deleteJobAsAdmin(job) {
     }
     if (!res.ok && res.status !== 204) {
       const data = await res.json().catch(() => ({}));
+      if (session !== sessionGeneration) return;
       setAdminStatus(`Could not delete "${job.filename}": ${data.error ?? res.status}`);
       return;
     }
@@ -1643,6 +1723,7 @@ async function deleteJobAsAdmin(job) {
     adminJobs = adminJobs.filter((j) => j.id !== job.id);
     renderAdmin();
   } catch (err) {
+    if (session !== sessionGeneration) return;
     setAdminStatus(`Request failed: ${err.message}`);
   }
 }
@@ -1653,8 +1734,13 @@ function setAdminStatus(message) {
 }
 
 async function loadAdmin() {
+  const session = sessionGeneration;
+  const request = ++adminRequest;
+  const current = () => session === sessionGeneration && request === adminRequest;
+  let jobs;
   try {
     const res = await fetch(`${API}/admin/jobs?limit=${PAGE_SIZE}&offset=${adminOffset}`);
+    if (!current()) return;
     if (res.status === 401) {
       showSignedOut();
       setAuthStatus("Your session expired. Sign in again.");
@@ -1664,12 +1750,25 @@ async function loadAdmin() {
       switchView("upload");
       return;
     }
-    adminJobs = res.ok ? await res.json() : [];
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    jobs = await res.json();
+    if (!current()) return;
+    if (!Array.isArray(jobs)) throw new Error("malformed list");
+    adminFailed = false;
+    el.adminStatus.hidden = true;
+    el.adminRetry.hidden = true;
   } catch {
-    adminJobs = [];
+    if (!current()) return;
+    jobs = [];
+    adminFailed = true;
+    setAdminStatus("Could not load the job list. Please try again.");
+    el.adminRetry.hidden = false;
   }
+  adminJobs = jobs;
   renderAdmin();
 }
+
+el.adminRetry.addEventListener("click", loadAdmin);
 
 for (const button of el.adminFilters.querySelectorAll("[data-status]")) {
   button.addEventListener("click", () => {

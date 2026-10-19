@@ -250,8 +250,10 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   `closeout/pipeline`). The live receipt `r1017b` came from the operator CLI, not from this workflow.
   Update, 18 October: `r1018a` and `r1018b` ran through `cd.yml` (OIDC). `r1018b` deploy succeeded
   (26.5 min, smoke PASS) and releases promoted, but the post-release smoke failed in all five runs that
-  reached it and both teardown dispatches failed at `td-session-close`. Not yet green end to end:
-  pending `r1019a` (#182, #223, #225).
+  reached it and both teardown dispatches failed at `td-session-close`. Later on 18 October `r1019a`
+  went green end to end through `cd.yml`: deploy (run 39085599276), Processing release with a passing
+  upload-to-playback smoke (39087966647) and a `CLEAN` teardown (39089615147). The earlier failures
+  stand; the deliberate bad-candidate dispatch (39089045496) was cancelled and has no result.
 
 ### AD-18 Network: private Lambda subnets, IPv6 egress-only, S3 gateway endpoint, no NAT
 
@@ -436,6 +438,13 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   other is attested additive; for the same reason the launcher may keep starting the previous
   worker until the release is adopted into the stack. The idle markers are best effort: a lost
   touch delays a repair by at most 30 minutes, after which every tick runs a full SQL pass.
+  The original 120 s (lost work) and 300 s (worker interruption) targets stay as the comparison
+  target for healthy markers only. A failed marker write followed by a healthy read of the old
+  quiet snapshot can delay discovery until that snapshot ages out (30 minutes plus tick alignment
+  and invocation time); an SSM read failure fails open to SQL instead. This is distinct from a
+  missing writer (the public Processing API, #244), which needs no SSM failure and is fixed by
+  wiring `ProcessingApi` as a writer; that fix does not close this case. A local test with a
+  controlled clock and fake SSM exercises it; no AWS failure injection has been run (NOT_RUN).
   Code reaches an alias only through a release or through a stack update that replaces the
   function's version (its description names the image digest, a digest of the definition, and
   the parameters, conditions and task definitions it resolves).
@@ -460,10 +469,10 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
 | Each service deployed on its own (section 2.5) | Code releases are independent per owner (Lambda aliases), with path-filtered per-service CI lanes that build and check only that owner's images (#204, CODEOWNERS). **Infrastructure is one CloudFormation stack** for both. | Effort; recorded as an accepted trade-off in #195 | [AWS] `promote-good` peer unchanged; [Code] AD-23, `.github/workflows/ci.yml`, `.github/CODEOWNERS` |
 | One PostgreSQL server (AD-02) | Kept, which makes the **shared Aurora cluster one failure and capacity boundary** | Cost; separate clusters are a [NOT_RUN] experiment (#94) | [Code]; `docs/execution/aws/v2/database-topology.md` |
 | Pipeline deploys then the Publisher CLI runs the smoke test (section 2.5) | CD smoke uses the evidence harness (`evidence gateway --only direct-upload-e2e`), not Publisher | Encoders are operator-started, so a Publisher job would stay queued | `deploy-runbook.md` "CD workflow"; Publisher is exercised by CI (`publisher-https`) [Local] |
-| Automated pipeline builds, tests, scans, deploys | CI (lint, unit, per-service lanes, Trivy, Sonar, secret scan, ZAP workflow) is automatic. **CD is manual dispatch; it ran for `r1018a` and `r1018b` and is not yet green end to end.** | Cost guard and operator-gated sessions | [Code] workflows; [AWS] `r1018b` CD runs, see [`docs/evidence-index.md`](../evidence-index.md) |
-| Scalability target: 30 identical 60 s clips, 1, 2, 3 workers, jobs/min ratios (section 3.4) | AWS `r1018b` ran a backlog of **6** clips (36 MB fixture) at cap 1, 2 and 3: 0.483 / 0.700 / 1.134 jobs/min, so 1.449x (**FAIL**, target 1.6x) and 2.347x (PASS, target 2.1x). The 30-clip, three-repeat design ran only locally on the pre-V1 design (2.03x and 2.89x) | Cost and time; the Fargate quota caps the run at 3 encoders | [AWS] `cloud-proof-r1018b.json` `#185`; [Local] `reviews/scaling-validation.md`. Detail and likely cause: [`docs/evidence-index.md`](../evidence-index.md) |
+| Automated pipeline builds, tests, scans, deploys | CI (lint, unit, per-service lanes, Trivy, Sonar, secret scan, ZAP workflow) is automatic. **CD ran by manual dispatch for `r1018a`, `r1018b` (post-release smoke and teardown failed) and `r1019a` (deploy, release with smoke and teardown green); since AD-27 it also runs after every green CI on Main.** | Cost guard and operator-gated sessions | [Code] workflows; [AWS] `r1018b` CD runs, see [`docs/evidence-index.md`](../evidence-index.md) |
+| Scalability target: 30 identical 60 s clips, 1, 2, 3 workers, jobs/min ratios (section 3.4) | AWS `r1018b` ran a backlog of **6** clips (36 MB fixture) at cap 1, 2 and 3: 0.483 / 0.700 / 1.134 jobs/min, so 1.449x (**FAIL**, target 1.6x) and 2.347x (PASS, target 2.1x). The proposal's 30-clip backlog ran only locally, on the pre-V1 design, with three rotated repeats (the team's local protocol): 2.03x and 2.89x | Cost and time; the Fargate quota caps the run at 3 encoders | [AWS] `cloud-proof-r1018b.json` `#185`; [Local] `reviews/scaling-validation.md`. Detail and likely cause: [`docs/evidence-index.md`](../evidence-index.md) |
 | Status p90 at most 700 ms (50 users, 3 min); login p90 under 2 s | p90 58 ms and 178 ms, measured from a Fargate generator in the same region, not from users | Method fixed by the proof tooling | [AWS] `generator` (#66) |
-| Release Processing in 10 min or less | Promote plus smoke 322.5 s; rollback 250.7 s | | [AWS] `promote-good`, `rollback` |
+| Release Processing in 10 min or less | Operator-CLI promote step 322.5 s (`r1017b`, image build excluded); rollback 250.7 s. Through CD the `Release` step took 10.1 to 10.3 min in `r1018b` (**FAIL**, marginal) and 9m39s in `r1019a`, followed by a separate 5m59s upload-to-playback smoke; these are different timing boundaries and none shows an upload-smoked release inside 10 min | | [AWS] `promote-good`, `rollback`; evidence index Q7a, Q7b, Q7i |
 | Failed worker re-queued or failed within 5 min | Detected in 5.8 s. Lease expiry marks the attempt `abandoned` and the job `failed`; there is **no automatic requeue**, a retry makes a new attempt. | Design choice in `recovery.py:interrupt` | [AWS] `recovery`; [Code] |
 | Presigned, owner-checked playback for authorised viewers | Owners only; no viewer identity or sharing | Out of scope for V1 | [Code] `authorizer.py:gateway_role` |
 | Fresh data, no migration (AD-08) | As proposed | | |
@@ -504,5 +513,5 @@ Status on 18 October: rows 1, 2 and 3 were corrected in the source documents, an
 | Rollback is image-only | Schema is never reversed; destructive migrations are not supported by release tooling. | [AWS] `schema_rollback_attempted: false`; `release.py` |
 | Delivery is at-least-once | Duplicates, reordering and lost responses are expected and absorbed by fences. Poison messages stop in a DLQ and need an operator redrive (`dlq-runbook.md`). | [Local]; [AWS] `dlq` |
 | Evidence limits | Latency is from an in-region generator. Cost Explorer reported an estimate with no usable total (`total` about 0, `final: false`); no invoice. The AWS backlog ratio uses 6 clips, one run per cap. HLS output is best effort. | `cloud-proof-r1017b.json` and `cloud-proof-r1018b.json` "not_proven" |
-| CD not yet green end to end | `cd.yml` ran for `r1018a` and `r1018b`; deploy succeeded, but the post-release smoke and both teardowns failed (pending `r1019a`). Its role is `AdministratorAccess`. | AD-17 |
+| CD role is `AdministratorAccess`; the deliberate CD bad-candidate test has no result | `cd.yml` ran for `r1018a` and `r1018b` (the post-release smoke and both teardowns failed there) and went green end to end for `r1019a`. The dispatch with `bad_candidate=true` was cancelled, so rollback inside CD is not shown. | AD-17; evidence index Q7h, Q7i |
 | Legacy residue | The peer code moved to `legacy/` and is kept out of the images, but peer-era tables, columns and a few functions remain in V1 packages. | AD-26, section 5 |

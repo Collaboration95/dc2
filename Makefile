@@ -9,7 +9,7 @@ export npm_config_cache := $(CURDIR)/.cache/npm
 export RUFF_CACHE_DIR := $(CURDIR)/.cache/ruff
 export PLAYWRIGHT_BROWSERS_PATH := $(CURDIR)/.local/playwright
 
-.PHONY: help setup setup-browser doctor doctor-infra lint test test-python test-frontend coverage \
+.PHONY: help setup setup-v1 setup-browser doctor doctor-infra lint test test-python test-frontend coverage \
         coverage-report integration integration-coverage clean test-app test-processing test-media \
         test-media-engine test-publisher test-cli publisher up down logs smoke-infra images env status local-tls \
         browser browser-install browser-open browser-trust-smoke capacity-install capacity-start capacity-status capacity-stop capacity-env capacity-reap capacity-renew \
@@ -20,6 +20,9 @@ help: ## List project commands
 
 setup: ## Install locked Python/frontend dependencies locally; preserve .env
 	$(BOOTSTRAP_PYTHON) -m scripts.dev.setup
+
+setup-v1: ## Setup plus pinned Moto (.cache/v1-moto) and Chromium for the V1 local runtime
+	$(BOOTSTRAP_PYTHON) -m scripts.dev.setup --v1 $(if $(filter 1,$(WITH_DEPS)),--with-deps,)
 
 setup-browser: setup browser-install ## Setup plus the pinned project browser
 
@@ -155,7 +158,10 @@ test-aws: ## Offline AWS control-plane suite incl. AWS2 legacy tests (needs the 
 	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest tests/aws -m "not integration and not e2e" -q \
 		-p scripts.dev.pytest_plugin --offline-fast
 
-.PHONY: v1-serve
+.PHONY: v1-serve v1-demo
+v1-demo: ## Foreground interactive web UI + work pump on the V1 namespace; OPEN=1 launches Chromium
+	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_demo --run-id "$(V1_RUN_ID)" $(if $(filter 1,$(OPEN)),--open,)
+
 v1-serve: ## Foreground loopback Gateway bridge to integrated actual handlers; V1_PORT=0 allocates
 	PYTHONPATH="$(CURDIR)" $(PYTHON) -m scripts.dev.v1_gateway --run-id "$(V1_RUN_ID)" --port "$(or $(V1_PORT),0)"
 

@@ -9,13 +9,16 @@ Aurora networking/pause, normal public TLS or billing.
 
 ## Commands
 
-Run from the implementation checkout. Use the locked environment installed by
-the coordinator; a worker may use `PYTHON=/absolute/shared/.venv/bin/python`
-without installing or editing shared dependencies. Every target exports this
-checkout as `PYTHONPATH`. Set `V1_MOTO_PYTHON` to a Python environment containing
-`moto[server]==5.2.4`, or use the existing `.cache/aws-test-tools/bin/python` in
-the primary repository (automatically located through the shared Git directory).
-Docker Compose and FFmpeg/FFprobe must be installed.
+Run from the implementation checkout. `make setup-v1` is the clean-clone recipe: it runs the
+locked `make setup`, creates `.cache/v1-moto` with `moto[server]==5.2.4` (the CI choice, outside
+`uv.lock` and the production images) and installs Chromium under `.local/playwright`. The Moto
+environment is found automatically; `V1_MOTO_PYTHON` overrides it, and the primary repository's
+`.cache/aws-test-tools` remains a fallback. A worker may use
+`PYTHON=/absolute/shared/.venv/bin/python` without installing or editing shared dependencies. Every
+target exports this checkout as `PYTHONPATH`. Chromium needs system libraries on Linux:
+`make setup-v1 WITH_DEPS=1` installs them with apt (root, disposable hosts only), otherwise install
+them yourself. `make browser-install` is the legacy trust-test installer (Firefox on Linux) and does
+not satisfy the V1 browser leg. Docker Compose and FFmpeg/FFprobe must be installed.
 
 ```sh
 make test-v1
@@ -76,8 +79,7 @@ schema and bucket. Docker Desktop's VM disk can fill; PostgreSQL then fails with
   Chromium over local HTTPS registers, signs out and in, uploads straight to the object
   store, waits for a real encode, plays the HLS ladder twice (hls.js with native HLS hidden, then the browser's
   own native HLS), reads the MP4 by range under CORS and deletes. The buckets get the CORS
-  rules from `deploy/aws/v1/template.json`, not a permissive stand-in. Install the browser first (`make browser-install`
-  or `playwright install chromium`). Without the flag the browser leg is recorded
+  rules from `deploy/aws/v1/template.json`, not a permissive stand-in. Install the browser first (`make setup-v1`). Without the flag the browser leg is recorded
   `NOT_RUN` and `complete_v1_acceptance` stays `NOT_RUN`; with the flag a missing browser
   fails.
   Native HLS: the facade 307-redirects each segment to a presigned URL on the object
@@ -275,6 +277,21 @@ verifies TLS in the real SQL probe. It installs no system trust. Runtime `up`
 creates two versioned Moto buckets and three queues plus DLQs. The child
 environment selects those exact queue/store endpoints and local fake native
 credentials; no inherited AWS profile or metadata fallback is used.
+
+### Interactive web and worker
+
+`make v1-demo V1_RUN_ID=<id>` (after `make v1-up`) is the foreground entry point for a human. It
+serves the allowlisted frontend files (`index.html`, `app.js`, `style.css`, `vendor/`) and `/api`
+over one local HTTPS origin, applies the shipped bucket CORS rules for that origin, and runs the
+acceptance `WorkPump`: outbox and SQS delivery plus one finite `processing.v1_worker` FFmpeg encode
+per queued job. Register, upload a short video, watch the status reach done and play the MP4/HLS
+output. Cookies, CORS, TLS verification and owner checks are the same as in the browser acceptance
+test. `OPEN=1` launches a headed Chromium trusting only the generated certificate (pinned key); `Ctrl-C`
+stops the server and pump, and `make v1-down` stops the dependencies.
+
+Limits: emulated Gateway, Moto and local FFmpeg (not Lambda, Fargate, IAM or Aurora evidence); one
+encode at a time; each start resets the run's buckets and queues; the certificate is local only, so
+other browsers need the printed SPKI flag. `make v1-serve` stays API-only.
 
 After cherry-pick, the coordinator can attach tests/serve from its integration
 checkout to Lead C's existing dependencies without starting another stack:

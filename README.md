@@ -12,8 +12,31 @@ link. Applications use one documented HTTP API and never touch storage, queues o
 exist: the FlickPond web app (`frontend/`) and an independent Publisher CLI (`publisher/`).
 
 It runs on AWS in one region (ap-southeast-1): CloudFront, API Gateway, Lambda container images, SQS,
-Aurora PostgreSQL Serverless v2, S3, and finite Fargate tasks for the encoder. Nothing runs while it is
-idle except storage; the stack is operated as booked sessions.
+Aurora PostgreSQL Serverless v2, S3, and finite Fargate tasks for the encoder.
+
+**Two operating modes exist; the text below says which one it means.**
+
+- **V1 as accepted (`project2-v1`, immutable): per-run stacks.** One stack per run id, closed outside a
+  booked session, deleted afterwards. Nothing runs while it is idle except storage. The AWS proofs
+  (`r1017b`, `r1018b`, `r1019a`) were run this way.
+- **V2-live on Main (AD-27): one persistent, always-on environment.** Stack `dc2-live`, deployed once
+  and updated in place after every green CI run on Main; it scales to zero when idle (about 3 to 5 USD a
+  month fixed, by design, not yet measured). The API prefixes are the same (`/api/media/*`,
+  `/api/processing/*`); the difference is operations, not the contract.
+
+**Status snapshot, 18 October 2026** (Main `d2070db`, source of every row linked):
+
+| Item | Status | Source |
+|---|---|---|
+| `project2-v1` tag | Accepted, immutable | [V1 README, "What remains"](docs/execution/aws/v1/README.md) |
+| `r1017b`, `r1018b` AWS runs | Proved V1; results include two FAILs (2-worker 1.449x vs 1.6x; Processing release 10.1 to 10.3 min vs 10 min) | [evidence index](docs/evidence-index.md) |
+| `r1019a` CD run | Deploy, Processing release with upload smoke and teardown `CLEAN` all **succeeded** | runs [39085599276](https://github.com/Collaboration95/dc2/actions/runs/39085599276), [39087966647](https://github.com/Collaboration95/dc2/actions/runs/39087966647), [39089615147](https://github.com/Collaboration95/dc2/actions/runs/39089615147); [archive](docs/execution/aws/v1/evidence/archive-20261018/README.md) |
+| CD bad-candidate rollback test | Dispatched, **cancelled**, no result | run [39089045496](https://github.com/Collaboration95/dc2/actions/runs/39089045496) |
+| V2-live deploy from Main | Succeeded with an upload-to-playback smoke; **not** all of #238 (in-place update, scaling, pause, idle cost), and #229 AWS security negatives are NOT_RUN | run [39105817431](https://github.com/Collaboration95/dc2/actions/runs/39105817431) |
+| Full CI on Main | Success; Sonar advisory and skipped; DAST findings report-only | run [39107762106](https://github.com/Collaboration95/dc2/actions/runs/39107762106) |
+| Actual versus target | One table and figure, misses and unmeasured items stated | [`docs/results/actual-vs-target.md`](docs/results/actual-vs-target.md) |
+
+Whether `dc2-live` is running at this moment is not recorded in the repository.
 
 ## Architecture
 
@@ -48,26 +71,42 @@ Why these are microservices and not one app split into folders (each point has a
 - The published language is [`contracts/`](contracts/README.md) with a versioning policy and
   consumer-driven tests.
 
-Honest limits: one CloudFormation stack, one Aurora cluster (a shared failure and capacity boundary),
-a monorepo with one lockfile, and `contracts/` copied into both images. See
+Honest limits: one CloudFormation stack, a monorepo with one lockfile, and **three** source directories
+copied into every image (`contracts/`, `delivery/` and `runtime_support/`, see the Dockerfiles in
+[`deploy/v1/`](deploy/v1/)). Database ownership is logical: Media and Processing each own a database and
+migrations, but both live on **one Aurora cluster**, which is a shared failure and capacity boundary
+that role separation does not remove. Processing also depends on the **Media-owned Lambda authorizer**
+for caller identity (AD-09): every Processing request is authenticated by Media's code, although Processing holds neither Media's secret nor its database. See
 [limitations](docs/architecture/decisions.md#6-architectural-limitations).
 
 ## Run it locally
 
 Local V1 uses real PostgreSQL 16, FFmpeg and Docker, with Moto standing in for S3 and SQS and an
 in-process API Gateway bridge. It does not exercise IAM, Lambda, Fargate or Aurora. Prerequisites:
-Docker Compose, FFmpeg/FFprobe and the locked Python environment (`make setup`). Details and what is
-emulated: [`local-runtime.md`](docs/execution/aws/v1/local-runtime.md).
+Docker Compose, FFmpeg/FFprobe, `uv` and Node 20+. `make setup-v1` installs the locked environment, an isolated
+`moto[server]==5.2.4` environment in `.cache/v1-moto` (found automatically; override with
+`V1_MOTO_PYTHON`) and the Chromium that the V1 browser leg launches. On a disposable Linux host add
+`WITH_DEPS=1` (apt, needs root) for Chromium's system libraries; otherwise install them yourself.
+`make browser-install` alone is the legacy trust workflow and installs Firefox on Linux. Details and
+what is emulated: [`local-runtime.md`](docs/execution/aws/v1/local-runtime.md).
 
 ```sh
-make setup
+make setup-v1
 make test-v1                                                     # offline contract tests, no services
 make v1-up V1_RUN_ID=demo1                                       # PostgreSQL + loopback Moto
 make verify-v1 V1_RUN_ID=demo1 FLOW=all V1_BROWSER=1             # every flow plus the browser leg
-make v1-serve V1_RUN_ID=demo1                                    # loopback Gateway bridge to the real handlers
+make v1-demo V1_RUN_ID=demo1 OPEN=1                              # interactive web UI + work pump (Ctrl-C stops)
+make v1-serve V1_RUN_ID=demo1                                    # API-only loopback Gateway bridge (no UI, no pump)
 make v1-down V1_RUN_ID=demo1 DELETE_DATA=1                       # remove only this run's data
 make help                                                        # every target
 ```
+
+`make v1-demo` prints an `https://127.0.0.1:<port>` URL serving the shipped frontend, the Media and
+Processing handlers and a pump that delivers queue messages and runs one real FFmpeg encode per job.
+Its certificate is generated locally, so a normal browser warns; `OPEN=1` opens a Chromium that trusts
+only that certificate, or start Chrome with the printed `--ignore-certificate-errors-spki-list=` flag
+and a throwaway `--user-data-dir`. It is emulated, not AWS evidence, and each start resets that run's
+buckets and queues. It does not keep Moto state across restarts or start dependencies for you.
 
 Other useful targets: `make lint`, `make test` (fast Python and frontend suites), `make lint-cfn`
 (renders and lints the CloudFormation template offline), `make v1-images` (builds and verifies the three
@@ -75,23 +114,31 @@ images; local evidence only).
 
 ## Deploy to AWS
 
-Deployment is operator-run and costs money. Nothing is applied unless `execute=true`.
+Deployment is operator-run and costs money. Nothing is applied unless `execute=true`. Cloud sessions
+use an explicit AWS profile, never `default`: `dc2-agent` (the dedicated agent user) for agent-run work or
+the operator's `dc2-project2-mfa` session; see the profile note in the
+[runbook](docs/execution/aws/v1/deploy-runbook.md).
 
 - **Pipeline:** the CD workflow [`.github/workflows/cd.yml`](.github/workflows/cd.yml) (preflight,
   deploy, release, teardown) over a GitHub OIDC role
   ([`deploy/aws/v1/github-oidc.yaml`](deploy/aws/v1/github-oidc.yaml)). It refuses a commit without green
-  CI. Example: `gh workflow run cd.yml -f operation=preflight -f run_id=<run id>`.
+  CI. Current inputs target the persistent environment (`environment`, default `live`), for example
+  `gh workflow run cd.yml -f operation=preflight` (read-only). The `run_id` input of the per-run
+  `r1017b` to `r1019a` proofs no longer exists; the runbook keeps those examples labelled historical.
 - **Runbook:** [`deploy-runbook.md`](docs/execution/aws/v1/deploy-runbook.md) covers the deploy ladder,
   sessions, the cloud proof steps, release and rollback, teardown, and the section
   "Operator handoff: CD deploy, then session and evidence from a laptop".
 - **Template:** `scripts/aws/v1/definitions.py` renders `deploy/aws/v1/template.json`;
   [`deploy/aws/v1/README.md`](deploy/aws/v1/README.md) explains the two phases and the closed-by-default
   session model. Account, quotas and authorization: [`account-receipt-20261017.md`](docs/execution/aws/v1/account-receipt-20261017.md).
-- **Status:** two live runs, both torn down. `r1017b` (17 October, operator CLI) proved V1 on AWS.
-  `r1018b` (17 to 18 October, deployed through the CD workflow) added backlog scaling, independent
-  releases, the Processing-down proof and the unattended launcher. Results include two FAILs reported
-  as FAILs: 2-worker scaling at 1.449x against 1.6x, and Processing release at 10.1 to 10.3 min against
-  10 min. The CD pipeline is not yet green end to end (pending run `r1019a`). See the evidence index.
+- **Status:** per-run V1 stacks `r1017b`, `r1018b` and `r1019a` were all torn down. `r1017b` (17 October,
+  operator CLI) proved V1 on AWS. `r1018b` (17 to 18 October, deployed through the CD workflow) added
+  backlog scaling, independent releases, the Processing-down proof and the unattended launcher; its
+  results include two FAILs reported as FAILs (2-worker scaling at 1.449x against 1.6x; Processing
+  release at 10.1 to 10.3 min against 10 min) and a post-release smoke that never passed. `r1019a`
+  (18 October) then ran CD green end to end: deploy, Processing release with a passing upload smoke
+  (`Release` step 9m39s, smoke 5m59s, separate steps) and a `CLEAN` teardown. See the status snapshot
+  above and the evidence index.
 
 ## API specifications
 
@@ -104,7 +151,10 @@ Deployment is operator-run and costs money. Nothing is applied unless `execute=t
 ## Evidence
 
 - Live AWS receipts (runs `r1017b` and `r1018b`, redacted): [`docs/execution/aws/v1/evidence/`](docs/execution/aws/v1/evidence/).
-  Each receipt lists what it does not prove.
+  Each receipt lists what it does not prove. The `r1019a`, V2-live smoke and exact-source CI receipts,
+  with hashes and source SHAs, are in
+  [`evidence/archive-20261018/`](docs/execution/aws/v1/evidence/archive-20261018/README.md).
+- Actual against target, one table and figure: [`docs/results/actual-vs-target.md`](docs/results/actual-vs-target.md).
 - Local image receipts are in the same folder; local acceptance output is described in
   [`local-runtime.md`](docs/execution/aws/v1/local-runtime.md). Local results are not AWS results.
 - Quality scenarios and security controls against the proposal targets, with local and cloud results
@@ -120,8 +170,8 @@ waits in the queue until a batch is started.
 
 ```sh
 make publisher ARGS='--help'
-python -m publisher --base-url https://<cloudfront-domain>/api --json login you@example.com
-python -m publisher --base-url https://<cloudfront-domain>/api --json publish ./videos --wait
+python -m publisher --base-url https://<frontend-host>/api/media --json login you@example.com
+python -m publisher --base-url https://<frontend-host>/api/media --json publish ./videos --wait --max-polls 180 --interval 2
 ```
 
 ## Repository map
@@ -150,3 +200,27 @@ Planning packets, local-delivery records, Project 1 sprint documents and the old
 for provenance and carry a "Historical" banner on their first line. Index: [`docs/README.md`](docs/README.md).
 The old root README, with the Project 1 architecture and the pre-AWS local stack commands, is
 [`docs/history/README-project1-and-pre-aws-local-stack.md`](docs/history/README-project1-and-pre-aws-local-stack.md).
+
+## Project wrap-up timeline — Team 17
+
+Only course dates are shown. The other activities are listed in sequence for the team to schedule.
+
+| Course date | Milestone | Work to complete |
+| --- | --- | --- |
+| — | Finish and review | Complete the final code changes, review the integrated workflow and resolve submission-critical defects. Draft the deck, report outline and member-effort ledger in parallel. |
+| — | Feature freeze | Stop adding capabilities. Decide whether the always-on environment changes make the demo release; defer unfinished additions and retain the working V1 baseline. |
+| — | Capture evidence | Finish cloud proof, scaling and recovery results, security checks, and pipeline deploy, release and rollback receipts. Record the web and CLI demo; link each claim to its evidence. |
+| — | Code and demo release freeze | Pin the tested commit, images, configuration and fixtures. Save the demo recording and rollback path. Only a blocker fix can reopen this release; rerun affected checks and refresh its evidence. |
+| — | Rehearse and package | Finish slides and speaker ownership. Run a timed full-team rehearsal, including the demo fallback and Q&A. Verify submission links and upload instructions. |
+| 26 October 2026, 14:35–15:15 | Team 17 presentation | The allocated 40 minutes include Q&A. Present the frozen release, actual results, known limitations and each member's contribution. |
+| — | Complete report draft | Incorporate presentation feedback and assemble the complete report using the course template. |
+| — | Review report and evidence | Check the architecture against the delivered system, reconcile effort and results, test repository and recording links, and have every member review the report. |
+| — | Report and submission freeze | Lock the report, code reference, scripts and evidence index. Check the exported document and final submission package. |
+| — | Submit early | Upload the final package and retain the submission receipt, allowing time to resolve upload problems before the course deadline. |
+| 16 November 2026 | Final report due | Submit the final project report, incorporating presentation feedback. |
+
+Sources: [presentation guidelines and schedule](project-documentation/original-reference/04%20Project%20Presentation%20Guidelines%20%26%20Schedule.pdf) and [course briefing](project-documentation/original-reference/01%20Briefing.pdf).
+
+The supplied course documents do not specify a separate code-freeze date or exact upload cutoffs. Refer to Canvas for current submission instructions, including any separate code or slide deadlines.
+
+Also check the progress-report receipt and the individual peer-assessment deadline in NUS email.

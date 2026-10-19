@@ -988,7 +988,8 @@ def main():
         "aws": "NOT_RUN",
         "limitations": [
             "Local config IDs are not registry digests and embed the build timestamp",
-            "No vulnerability scan performed",
+            "No vulnerability scan performed by this script; CI scans the images separately "
+            "(v1-image-scans artifact)",
             "No registry manifest/publication proof; no AWS call of any kind",
             "RIE emulates the invoke protocol only: no IAM, VPC, API Gateway, SQS or RDS TLS",
             "Handlers ran without a reachable database. Only the Processing ready probe and "

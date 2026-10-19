@@ -184,10 +184,24 @@ def main():
     parser.add_argument("action", choices=["install", "trust-smoke", "open"])
     parser.add_argument("--run-id", default="dc2")
     parser.add_argument("--url")
+    parser.add_argument(
+        "--chromium",
+        action="store_true",
+        help="install: Chromium on every OS (what the V1 browser leg launches)",
+    )
+    parser.add_argument(
+        "--with-deps",
+        action="store_true",
+        help="install: also apt-install Linux system libraries (needs root; disposable hosts)",
+    )
     args = parser.parse_args()
     if args.action == "install":
         env = {**os.environ, "PLAYWRIGHT_BROWSERS_PATH": str(ROOT / ".local/playwright")}
-        selection = ["chromium", "--no-shell"] if sys.platform == "darwin" else ["firefox"]
+        # Without --chromium, Linux keeps its legacy Firefox trust workflow.
+        chromium = args.chromium or sys.platform == "darwin"
+        selection = ["chromium", "--no-shell"] if chromium else ["firefox"]
+        if args.with_deps:
+            selection.insert(0, "--with-deps")
         subprocess.run(
             [sys.executable, "-m", "playwright", "install", *selection], check=True, env=env
         )

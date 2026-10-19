@@ -1,0 +1,33 @@
+{
+  "owner": "processing",
+  "release": "g39087966647x1",
+  "outcome": "promoted",
+  "smoke": {
+    "owner": "processing",
+    "versions": {
+      "dc2-v1-r1019a-ProcessingApi-DAdAqs5itXVS": "2",
+      "dc2-v1-r1019a-ProcessingCommands-67QFH8NUFIiL": "2",
+      "dc2-v1-r1019a-ProcessingRepair-JFJd6XpQiVG9": "2",
+      "dc2-v1-r1019a-ProcessingEcsEvents-BWVz5c8BfvAI": "2",
+      "dc2-v1-r1019a-ProcessingS3Events-orGJrPMzCqsT": "2",
+      "dc2-v1-r1019a-ProcessingLauncher-QIyo29fi3kKj": "2"
+    },
+    "checks": {
+      "media-health": "PASS",
+      "processing-health": "PASS",
+      "anonymous-denied": "PASS",
+      "login": "PASS",
+      "media-jobs": "PASS",
+      "processing-jobs": "PASS"
+    },
+    "failures": []
+  },
+  "versions": {
+    "dc2-v1-r1019a-ProcessingApi-DAdAqs5itXVS": "2",
+    "dc2-v1-r1019a-ProcessingCommands-67QFH8NUFIiL": "2",
+    "dc2-v1-r1019a-ProcessingRepair-JFJd6XpQiVG9": "2",
+    "dc2-v1-r1019a-ProcessingEcsEvents-BWVz5c8BfvAI": "2",
+    "dc2-v1-r1019a-ProcessingS3Events-orGJrPMzCqsT": "2",
+    "dc2-v1-r1019a-ProcessingLauncher-QIyo29fi3kKj": "2"
+  }
+}

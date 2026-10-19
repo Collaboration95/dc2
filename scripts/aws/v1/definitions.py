@@ -23,7 +23,10 @@ OPTIONAL_FUNCTIONS = (LAUNCHER, SHORT_ENCODER)
 # launcher only reads.
 ACTIVITY_ROLES = {
     "Media": {"writers": ("MediaApi", "MediaResults"), "repair": "MediaRepair"},
-    "Processing": {"writers": ("ProcessingCommands",), "repair": "ProcessingRepair"},
+    "Processing": {
+        "writers": ("ProcessingApi", "ProcessingCommands"),
+        "repair": "ProcessingRepair",
+    },
 }
 # The Processing functions that publish work onto processing-work, and so wake the launcher.
 WORK_PUBLISHERS = ("ProcessingCommands", "ProcessingRepair", "ProcessingEcsEvents",
@@ -1306,8 +1309,9 @@ def template(database=None):
                 "AlarmName": sub(f"${{EnvironmentId}}-{name}-errors"),
                 "AlarmDescription": (
                     f"{owner}: the {name} function returned an error (unhandled exception, "
-                    "timeout or out-of-memory). A message batch it was reading is retried "
-                    "and, after five receives, lands in its dead-letter queue."
+                    "timeout or out-of-memory). A message batch a consumer was reading is "
+                    "retried and, after five receives, lands in its dead-letter queue; a "
+                    "scheduled tick simply runs again a minute later."
                 ),
                 "Namespace": "AWS/Lambda",
                 "MetricName": "Errors",

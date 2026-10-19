@@ -230,6 +230,8 @@ jobs:
         run: scripts/ci/cd.sh state-push
 
       # Only the reduced, secret-free files in cd-out/public. The repository is public.
+      # 60 days (repository maximum is 90) so these receipts outlive the 16 November report and its
+      # review; the same horizon is set on the other small, final-claim CI artifacts (#250).
       - name: Upload the redacted results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -237,4 +239,4 @@ jobs:
           name: cd-${{ env.CD_OPERATION }}-${{ env.CD_ENVIRONMENT }}-${{ github.run_id }}
           path: ${{ runner.temp }}/cd-out/public/
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 60

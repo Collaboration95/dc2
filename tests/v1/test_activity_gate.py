@@ -196,3 +196,102 @@ async def test_a_mutating_media_request_is_recorded_and_a_read_is_not(quiet_mark
         assert quiet_markers.puts == []
         await client.post("/auth/logout")
     assert [name for name, _ in quiet_markers.puts] == [TOUCHED]
+
+
+# ---- #244: the public Processing API is a marker writer --------------------------------
+def processing_event(method, path, body=None, owner=None):
+    from uuid import uuid4
+
+    from contracts.v1 import Actor
+
+    actor = Actor(str(owner or uuid4()), "publisher")
+    return {
+        "version": "2.0", "rawPath": "/api/processing" + path, "rawQueryString": "",
+        "headers": {"content-type": "application/json"},
+        "requestContext": {"http": {"method": method},
+                           "authorizer": {"lambda": actor.to_context()}},
+        "body": body,
+    }
+
+
+@pytest.mark.parametrize(("method", "path", "body", "status"), [
+    ("POST", "/jobs/{id}/retry", '{"retry_request_id": "%s"}', 202),
+    ("DELETE", "/jobs/{id}", None, 204),
+])
+async def test_a_direct_processing_mutation_touches_before_it_commits_and_repair_then_runs_sql(
+        monkeypatch, quiet_markers, method, path, body, status):
+    from unittest.mock import AsyncMock
+    from uuid import uuid4
+
+    from contracts.gateway import GatewayAdapter
+    from processing import handlers, v1_api
+    from processing.database import get_v1_session
+
+    order = []
+
+    async def mutation(*_args):
+        order.append(("mutation", [name for name, _ in quiet_markers.puts]))
+
+    monkeypatch.setattr(v1_api, "retry_owned" if method == "POST" else "cancel_owned",
+                        AsyncMock(side_effect=mutation))
+    deny_database(monkeypatch, handlers)
+    assert await handlers.invoke({}, None, "repair") == {"skipped": "idle"}  # quiet start
+    event = processing_event(method, path.format(id=uuid4()), body % uuid4() if body else None)
+    app = v1_api.create_app()
+    app.dependency_overrides[get_v1_session] = lambda: None  # the mutation is stubbed
+    response = await GatewayAdapter(app, service="processing").invoke(event)
+    assert response["statusCode"] == status
+    assert order == [("mutation", [TOUCHED])]  # the marker was written before the mutation ran
+    with pytest.raises(NoDatabase):  # the very next repair tick no longer trusts the old quiet
+        await handlers.invoke({}, None, "repair")
+
+
+async def test_processing_reads_and_health_write_no_marker(quiet_markers):
+    from contracts.gateway import GatewayAdapter
+    from processing import v1_api
+
+    app = v1_api.create_app()
+    for path in ("/health", "/jobs"):
+        await GatewayAdapter(app, service="processing").invoke(processing_event("GET", path))
+    assert quiet_markers.puts == []
+
+
+# ---- #256: a lost marker write is bounded by the sweep, not by the next tick -----------
+@pytest.fixture
+def clocked(monkeypatch, quiet_markers):
+    """Repair ticks read a controllable clock; the quiet snapshot is 600 s old at the start."""
+    now = [100_000.0]
+    build = Activity.from_environ.__func__
+    monkeypatch.setattr(Activity, "from_environ", classmethod(
+        lambda cls, prefix, environ=None, **kw: build(
+            cls, prefix, environ, clock=lambda: now[0], **kw)))
+    quiet_markers.values[QUIET] = f"{int(now[0]) - 600} 99999999999"
+    return now
+
+
+async def test_a_lost_touch_leaves_early_ticks_skipping_until_the_snapshot_ages_out(
+        monkeypatch, quiet_markers, clocked):
+    # Local, simulated clock and fake SSM: this is not AWS timing evidence (see AD-27).
+    from processing import handlers
+
+    deny_database(monkeypatch, handlers)
+    checked = clocked[0] - 600
+    # A correctly wired writer's put fails; the request and its SQL commit proceed regardless.
+    quiet_markers.fail = True
+    Activity.from_environ("PROCESSING").touch()
+    quiet_markers.fail = False  # SSM recovers and serves the old, still valid quiet snapshot
+    assert quiet_markers.puts == []
+    for offset in (60, 120, 600):
+        clocked[0] = 100_000.0 + offset
+        assert await handlers.invoke({}, None, "repair") == {"skipped": "idle"}
+    # A failed put is not cached as a touch, so the next request can still record activity.
+    clocked[0] = 100_000.0 + 601
+    Activity.from_environ("PROCESSING").touch()
+    assert [name for name, _ in quiet_markers.puts] == [TOUCHED]
+    # Suppose no later request ever arrives: the unconditional sweep is the only discovery.
+    quiet_markers.values[TOUCHED] = "0"
+    clocked[0] = checked + MAX_QUIET_SECONDS - 1
+    assert await handlers.invoke({}, None, "repair") == {"skipped": "idle"}
+    clocked[0] = checked + MAX_QUIET_SECONDS
+    with pytest.raises(NoDatabase):
+        await handlers.invoke({}, None, "repair")

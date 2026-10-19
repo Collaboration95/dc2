@@ -1,9 +1,14 @@
 # Service contracts
 
 `contracts/` is the **published language** that Media Management and Processing share. It is
-also a **shared kernel** in the Domain-Driven Design sense: both services are built with a copy
-of this directory, and only this directory. Nothing else is shared between them: no
-database, no domain package, no HTTP call. The services communicate through SQS messages
+also a **shared kernel** in the Domain-Driven Design sense. The V1 images (`deploy/v1/*.Dockerfile`)
+copy three shared directories into both services: `contracts/` (this published language),
+`delivery/` (outbox, inbox and the SQS adapter) and `runtime_support/` (Lambda runtime helpers). The
+versioning policy below governs `contracts/`; `delivery/` and `runtime_support/` are shared code that
+moves with whichever service image is rebuilt. No domain package is shared between the services, they
+make no HTTP call to each other, and each owns its own database (both on one Aurora cluster, which
+is a shared failure and capacity boundary). Processing also trusts the identity that the Media-owned
+API Gateway authorizer attaches to a request. The services communicate through SQS messages
 (`submit`, `retry`, `cancel` from Media; `work` and `result` from Processing) and through the
 trusted actor that API Gateway's Media authorizer attaches to a request.
 

@@ -10,18 +10,25 @@ From the repository, run `python -m publisher --help`. Install separately with
 builds as a standalone wheel with `uv build --wheel ./publisher`. Root packaging
 can optionally expose `publisher = "publisher.cli:main"`.
 
-Use the HTTPS public origin **including `/api`**, the project-generated CA, and a
+Use the HTTPS public origin **including `/api/media`** (the V1 Media base), the project-generated CA, and a
 private cookie jar dedicated to that local run. All global options precede the
 command. Replace the port/CA paths below with the runtime helper's safe state.
 
 ```sh
-python -m publisher --base-url https://localhost:PORT/api --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json register 22222222-2222-4222-8222-222222222222@example.com
-python -m publisher --base-url https://localhost:PORT/api --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json login 22222222-2222-4222-8222-222222222222@example.com
-python -m publisher --base-url https://localhost:PORT/api --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json publish ./videos --wait --max-polls 60 --interval 2
-python -m publisher --base-url https://localhost:PORT/api --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json status ASSET_UUID
-python -m publisher --base-url https://localhost:PORT/api --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json output ASSET_UUID
-python -m publisher --base-url https://localhost:PORT/api --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json retry ASSET_UUID --wait
+python -m publisher --base-url https://localhost:PORT/api/media --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json register 22222222-2222-4222-8222-222222222222@example.com
+python -m publisher --base-url https://localhost:PORT/api/media --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json login 22222222-2222-4222-8222-222222222222@example.com
+python -m publisher --base-url https://localhost:PORT/api/media --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json publish ./videos --wait --max-polls 180 --interval 2
+python -m publisher --base-url https://localhost:PORT/api/media --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json status ASSET_UUID
+python -m publisher --base-url https://localhost:PORT/api/media --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json output ASSET_UUID
+python -m publisher --base-url https://localhost:PORT/api/media --ca-file .local/runs/RUN/tls/ca.crt --cookie-jar .local/publisher/RUN/cookies.txt --json retry ASSET_UUID --wait
 ```
+
+`--wait` is bounded: it makes `--max-polls` status requests (default 60) `--interval`
+seconds apart, so roughly two minutes of sleeping plus request time, not a wall-clock
+deadline. Cloud jobs (intake, queueing, startup) can take longer, hence the `--max-polls 180`
+above. Running out of polls does not mean the job failed. Resume watching the accepted job with
+`status ASSET_UUID --wait --max-polls 180 --interval 2` using the job ID that `publish`
+printed; do not republish the file, which would be a new upload intent.
 
 Passwords are prompted with echo disabled. For automation, `register` and `login`
 accept `--password-stdin`, which reads one line without putting a password in argv.

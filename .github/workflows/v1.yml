@@ -160,7 +160,7 @@ jobs:
           name: v1-local-${{ github.sha }}-${{ github.run_attempt }}
           path: .cache/v1-runtime/${{ env.V1_RUN_ID }}/evidence-*/manifest.json
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 60
       # A failing test is also named, with its assertion, in the job log (annotations) and in
       # manifest.json's failed_tests. This adds what a log line cannot carry. Everything here
       # went through scripts/dev/v1_redact.py: no cookie values, JWTs or URL query strings.
@@ -218,6 +218,51 @@ jobs:
         with:
           python-version-file: .python-version
       - run: make v1-images
+      - id: short
+        if: always()
+        run: echo "sha12=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - name: Scan the built media image (report only; the gate step decides)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: dc2-v1-media:local-${{ steps.short.outputs.sha12 }}
+          format: json
+          output: trivy-media.json
+          exit-code: '0'
+          severity: CRITICAL,HIGH
+      - name: Scan the built processing image (report only; the gate step decides)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: dc2-v1-processing:local-${{ steps.short.outputs.sha12 }}
+          format: json
+          output: trivy-processing.json
+          exit-code: '0'
+          severity: CRITICAL,HIGH
+      - name: Scan the built worker image (report only; the gate step decides)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: dc2-v1-worker:local-${{ steps.short.outputs.sha12 }}
+          format: json
+          output: trivy-worker.json
+          exit-code: '0'
+          severity: CRITICAL,HIGH
+      # Same policy as the inherited scan (zero fixable HIGH/CRITICAL), applied to the exact
+      # images above and tied to the receipt's source SHA and local config IDs.
+      - name: Gate fixable HIGH/CRITICAL findings per image
+        if: always()
+        run: python3 -m scripts.ci.v1_scan
+      - name: Retain scan reports and identity (also on failure)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1-image-scans-${{ github.sha }}
+          path: |
+            trivy-*.json
+            v1-scan-summary.json
+          if-no-files-found: error
+          retention-days: 60
       - name: Retain the image receipt (config IDs, checks; no secrets)
         if: always()
         uses: actions/upload-artifact@v4
@@ -225,7 +270,7 @@ jobs:
           name: v1-images-${{ github.sha }}
           path: docs/execution/aws/v1/evidence/local-images-*.json
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 60
 
   v1-result:
     name: V1 requested checks

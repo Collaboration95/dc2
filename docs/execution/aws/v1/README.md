@@ -58,7 +58,7 @@ manifest; without the browser flag it stays `NOT_RUN`. `cloud_acceptance` is alw
 ### What remains
 
 1. Done (17-18 October): cloud proof #45 and #63-#67 (run `r1017b`), epics closed, `project2-v1` tagged.
-2. Done (18 October): run `r1018b` (#186) and the evidence index (#189). Pending: the CD end-to-end green run `r1019a` (#182, #223, #225).
+2. Done (18 October): run `r1018b` (#186) and the evidence index (#189). Done (18 October): the CD end-to-end green run `r1019a` (#182, #223, #225): deploy, Processing release with upload smoke and teardown `CLEAN`; receipts in [`evidence/archive-20261018/`](evidence/archive-20261018/README.md). Not done: the deliberate CD bad-candidate test (its dispatch was cancelled), #229 AWS security negatives and the remaining #238 acceptance.
 3. V2 experiments (#80, #93, #94, #68) start only after the tag. #93 and #94 were closed on 18 October (parked, listed as future work); #68 stays opt-in and off by default. Exception, by owner decision:
    the opt-in unattended launcher (#68) is developed in parallel and stays off by default; see
    [`../v2/unattended-launch.md`](../v2/unattended-launch.md) (cloud evidence NOT_RUN).
