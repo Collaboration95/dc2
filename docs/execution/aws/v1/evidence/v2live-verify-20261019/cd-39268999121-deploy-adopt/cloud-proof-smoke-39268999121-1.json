@@ -1,0 +1,59 @@
+{
+  "closes": "nothing by itself: an issue closes only when its acceptance list is met by the receipts and a reviewer accepts them",
+  "document_kind": "V1_CLOUD_PROOF_SUMMARY_REDACTED",
+  "generated_at": "2026-10-19T14:42:55Z",
+  "issues": {
+    "#185": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#196": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#229": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#63": {
+      "overall": "FAIL",
+      "steps": {
+        "direct-upload-e2e": {
+          "public": {
+            "error": "The ProcessingWork queue still holds 10 message(s) 60 s after the run started: an earlier run left work behind. Let an encoder drain it or tear the stack down; this run would encode it instead of its own job."
+          },
+          "seconds": 66.502,
+          "status": "FAIL"
+        }
+      }
+    },
+    "#64": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#65": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#66": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#67": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#68": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    }
+  },
+  "mode": "live",
+  "not_proven": [
+    "Invoice lines: Cost Explorer lags about a day and is an estimate, not a bill.",
+    "A rollback of a good promotion is an image rollback; no schema is reversed.",
+    "Latency was measured from a Fargate generator in the same region, not from users.",
+    "Local fakes, emulators and hosted CI are not AWS evidence and are excluded here."
+  ],
+  "run_id": "smoke-39268999121-1"
+}
