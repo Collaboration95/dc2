@@ -1,0 +1,276 @@
+{
+  "closes": "nothing by itself: an issue closes only when its acceptance list is met by the receipts and a reviewer accepts them",
+  "document_kind": "V1_CLOUD_PROOF_SUMMARY_REDACTED",
+  "generated_at": "2026-10-19T13:24:32Z",
+  "issues": {
+    "#185": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#196": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#229": {
+      "overall": "PASS",
+      "steps": {
+        "cross-owner": {
+          "public": {
+            "a_job_unchanged_after_b_retry": true,
+            "a_playback": 200,
+            "a_processing_job": 200,
+            "a_read": 200,
+            "b_delete": 404,
+            "b_edit": 404,
+            "b_listing_status": 200,
+            "b_lists_a_job": false,
+            "b_playback_master": 404,
+            "b_playback_segment": 404,
+            "b_processing_by_asset_leaks": false,
+            "b_processing_by_asset_status": 200,
+            "b_processing_cancel": 404,
+            "b_processing_job": 404,
+            "b_processing_retry": 404,
+            "b_read": 404,
+            "b_retry": 404,
+            "b_sees_output_or_playback_urls": false
+          },
+          "seconds": 8.146,
+          "status": "PASS"
+        },
+        "execute-api-direct": {
+          "public": {
+            "a_reads_own_job_status": 200,
+            "b_reads_a_job_status": 404,
+            "classification": "reachable_authorizer_enforced",
+            "note": "The execute-api URL answers without CloudFront; the authorizer is the control.",
+            "statuses": {
+              "admin_jobs": 401,
+              "health": 200,
+              "media_jobs": 401,
+              "processing_jobs": 401
+            }
+          },
+          "seconds": 2.454,
+          "status": "PASS"
+        },
+        "oversize-100mib": {
+          "public": {
+            "adopted": false,
+            "finalize_status": 503,
+            "limit_bytes": 104857600,
+            "refused_only_at_finalize": false,
+            "sent_bytes": 104857601,
+            "storage_connection_closed": false,
+            "storage_rejected_oversize": true,
+            "storage_status": 400
+          },
+          "seconds": 6.794,
+          "status": "PASS"
+        },
+        "oversized-upload": {
+          "public": {
+            "adopted": false,
+            "finalize_status": 503,
+            "limit_bytes": 104857600,
+            "refused_only_at_finalize": false,
+            "reservation_over_limit_granted_upload": false,
+            "reservation_over_limit_status": 422,
+            "reserved_bytes": 1024,
+            "sent_bytes": 2048,
+            "storage_rejected_oversize": true,
+            "storage_status": 400
+          },
+          "seconds": 1.064,
+          "status": "PASS"
+        },
+        "playback-url-expiry": {
+          "public": {
+            "control_status": 206,
+            "signed_lifetime_seconds": 900,
+            "status_after_expiry": 403,
+            "waited_seconds": 909.9
+          },
+          "seconds": 911.613,
+          "status": "PASS"
+        },
+        "port-scan": {
+          "public": {
+            "addresses_scanned": 4,
+            "connect_timeout_seconds": 3.0,
+            "ipv6_scanned": false,
+            "method": "tcp connect, python sockets",
+            "only_80_and_443_open": true,
+            "open_ports": [
+              80,
+              443
+            ],
+            "plain_http_redirects_to_https": true,
+            "plain_http_status": 301,
+            "port_states": {
+              "21": "filtered",
+              "22": "filtered",
+              "25": "filtered",
+              "3306": "filtered",
+              "443": "open",
+              "5432": "filtered",
+              "6379": "filtered",
+              "80": "open",
+              "8000": "filtered",
+              "8080": "filtered",
+              "8443": "filtered",
+              "9000": "filtered"
+            },
+            "ports_scanned": [
+              21,
+              22,
+              25,
+              80,
+              443,
+              3306,
+              5432,
+              6379,
+              8000,
+              8080,
+              8443,
+              9000
+            ]
+          },
+          "seconds": 9.21,
+          "status": "PASS"
+        },
+        "s3-direct-denied": {
+          "public": {
+            "all_denied": true,
+            "staged_object_stored": true,
+            "statuses": {
+              "output_list": 403,
+              "output_object": 403,
+              "output_versions": 403,
+              "source_list": 403,
+              "source_object": 403,
+              "source_put": 403,
+              "source_versions": 403
+            }
+          },
+          "seconds": 2.033,
+          "status": "PASS"
+        },
+        "setup-job": {
+          "public": {
+            "bytes": 42953,
+            "encoder_billed_seconds": [
+              43.671
+            ],
+            "encoders_left_running": 0,
+            "encoders_started": 1,
+            "finalize_status": 202,
+            "job_status": "done",
+            "storage_host_is_s3": true,
+            "upload_status": 204,
+            "users_registered": 2
+          },
+          "seconds": 102.786,
+          "status": "PASS"
+        },
+        "tampered-urls": {
+          "public": {
+            "all_controls_worked": true,
+            "all_tampering_rejected": true,
+            "mp4_checked": true,
+            "mp4_control_status": 206,
+            "mp4_key_changed": 403,
+            "mp4_lifetime_extended": 403,
+            "mp4_signature_changed": 403,
+            "mp4_signature_removed": 400,
+            "mp4_unsigned": 403,
+            "segment_control_status": 206,
+            "segment_key_changed": 403,
+            "segment_lifetime_extended": 403,
+            "segment_signature_changed": 403,
+            "segment_signature_removed": 400,
+            "segment_unsigned": 403,
+            "upload_content_type_changed": 403,
+            "upload_control_status": 204,
+            "upload_key_changed": 403,
+            "upload_policy_changed": 403,
+            "upload_signature_changed": 403,
+            "upload_signature_removed": 400
+          },
+          "seconds": 2.556,
+          "status": "PASS"
+        },
+        "unauthenticated": {
+          "public": {
+            "absent_session_all_401": true,
+            "all_401": false,
+            "forged_token_denied": true,
+            "statuses": {
+              "forged_alg_none_jobs": 403,
+              "forged_signature_changed_jobs": 403,
+              "frontend_finalize": 401,
+              "frontend_job": 401,
+              "frontend_jobs": 401,
+              "frontend_me": 401,
+              "frontend_playback": 401,
+              "frontend_processing_job": 401,
+              "frontend_reserve": 401,
+              "frontend_retry": 401,
+              "gateway_finalize": 401,
+              "gateway_job": 401,
+              "gateway_jobs": 401,
+              "gateway_me": 401,
+              "gateway_playback": 401,
+              "gateway_processing_job": 401,
+              "gateway_reserve": 401,
+              "gateway_retry": 401
+            }
+          },
+          "seconds": 6.507,
+          "status": "PASS"
+        },
+        "upload-url-expiry": {
+          "public": {
+            "control_status": 204,
+            "status_after_expiry": 403,
+            "waited_seconds": 910.0
+          },
+          "seconds": 915.168,
+          "status": "PASS"
+        }
+      }
+    },
+    "#63": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#64": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#65": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#66": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#67": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    },
+    "#68": {
+      "overall": "NOT_RUN",
+      "steps": {}
+    }
+  },
+  "mode": "live",
+  "not_proven": [
+    "Invoice lines: Cost Explorer lags about a day and is an estimate, not a bill.",
+    "A rollback of a good promotion is an image rollback; no schema is reversed.",
+    "Latency was measured from a Fargate generator in the same region, not from users.",
+    "Local fakes, emulators and hosted CI are not AWS evidence and are excluded here."
+  ],
+  "run_id": "s229live"
+}
