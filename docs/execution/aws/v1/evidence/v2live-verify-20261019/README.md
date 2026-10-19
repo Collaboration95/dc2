@@ -86,6 +86,32 @@ aws cloudwatch get-metric-statistics --profile dc2-agent --region ap-southeast-1
   --start-time 2026-10-19T14:50:00Z --end-time <now> --period 60 --statistics Maximum
 ```
 
+## Re-test of F3 after the #272 fix (19 October, 17:06 to 17:12 UTC)
+
+Source `daee44b` (CD run [39286933644](https://github.com/Collaboration95/dc2/actions/runs/39286933644))
+on `dc2-live`. Same method as the first 9-clip run: nine Publisher processes, one cookie jar each, one
+ordinary-user account made for this check, nine copies of one 303,113-byte synthetic clip. Receipt:
+[`burst-270-recheck.json`](burst-270-recheck.json).
+
+| Measure | Before (run of the first session) | After the fix |
+|---|---|---|
+| Jobs done | 9 of 9 | 9 of 9 (last seen done 17:11:09Z, burst start 17:06:56Z) |
+| `NumberOfMessagesSent` to `ProcessingWork` | 21 | **18** (4, 11 and 3 in the three busy minutes) |
+| Visible after the last job | 10 stale messages, stuck | **0** (first both-zero sample 17:11:01Z, before the last job was seen done; zero on three more 30 s samples to 17:12:32Z) |
+| In flight after the last job | 0 | 0 |
+| Purge used | yes, to unblock the smoke | **no** |
+| Encoder tasks | 9, peak 3 | 9, peak 3, all exit code 0 |
+
+Peak queue depth seen by the 30 s sampler was 12 visible (`17:09:00Z`), draining 10, 10, 6, 0 over the
+next three samples while the second and third waves finished and swept their stale copies. Verdict:
+**PASS** (target: both zero within about 2 minutes of the last job finishing without a purge).
+
+Limits: one run; the sampler reads `get-queue-attributes` (approximate counts). Duplicates are still
+sent (18 sends for 9 jobs, the designed repair cadence, PR #272 says so); they are now deleted, not
+prevented. The encoder writes no log lines, so every `Worker/*` stream in `/dc2/dc2-live/tasks` is
+empty and there is no log-side drain evidence; the proof is queue depth plus task exit codes. The
+deploy smoke's empty-queue guard was not re-run here.
+
 ## Run index
 
 | Run | What | Result |
@@ -95,3 +121,4 @@ aws cloudwatch get-metric-statistics --profile dc2-agent --region ap-southeast-1
 | [39265004564](https://github.com/Collaboration95/dc2/actions/runs/39265004564) | Processing release, source `79b5d12` | promoted, smoke PASS; job FAIL at adoption (F2) |
 | [39268999121](https://github.com/Collaboration95/dc2/actions/runs/39268999121) | `deploy` to finish adoption, source `7928b7c`; also auto-released Media | deploy step PASS, Media promoted, smoke FAIL (F3), job FAIL |
 | [39271754470](https://github.com/Collaboration95/dc2/actions/runs/39271754470) | `release processing bad_candidate=true`, source `7928b7c` | outcome `restored`, job PASS |
+| [39286933644](https://github.com/Collaboration95/dc2/actions/runs/39286933644) | Automatic CD of `daee44b` (includes #272, #273), then the 9-clip re-test above | deploy PASS, re-test PASS |
