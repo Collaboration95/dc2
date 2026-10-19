@@ -59,7 +59,8 @@ Exports in media.services.direct_intake:
   and preserves the adopted version. It retains the ledger and repeats deletion
   because a POST begun before expiry can finish late, but on a schedule: batches are
   ordered by `cleanup_next_at`, each scan reserves its row for 60s, rescans back off
-  60s doubling to 1h, and a clean scan at least a day after expiry sets
+  60s doubling to a 6h cap (the capped tail snaps to a shared 6h grid so waiting rows share one
+  database wake-up, AD-27), and a clean scan at least a day after expiry sets
   `cleanup_retired_at` (Media migration `media_0008`). A failed scan never retires a
   row. Storage calls occur outside SQL locks. Tombstone cleanup must explicitly delete all source object versions;
   creating a delete marker alone does not reclaim pinned source bytes.
