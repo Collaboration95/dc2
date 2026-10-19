@@ -1,0 +1,30 @@
+{
+  "owner": "media",
+  "release": "g39268999121x1",
+  "outcome": "promoted",
+  "smoke": {
+    "owner": "media",
+    "versions": {
+      "dc2-live-MediaApi-dIhvUhrRl6vK": "2",
+      "dc2-live-MediaAuthorizer-AFIZjqGLFM7K": "2",
+      "dc2-live-MediaResults-k0tWVFCrG00Z": "2",
+      "dc2-live-MediaRepair-9a7msxztPxVn": "2"
+    },
+    "checks": {
+      "media-health": "PASS",
+      "processing-health": "PASS",
+      "anonymous-denied": "PASS",
+      "login": "PASS",
+      "media-jobs": "PASS",
+      "processing-jobs": "PASS",
+      "upload-reserve": "PASS"
+    },
+    "failures": []
+  },
+  "versions": {
+    "dc2-live-MediaApi-dIhvUhrRl6vK": "2",
+    "dc2-live-MediaAuthorizer-AFIZjqGLFM7K": "2",
+    "dc2-live-MediaResults-k0tWVFCrG00Z": "2",
+    "dc2-live-MediaRepair-9a7msxztPxVn": "2"
+  }
+}

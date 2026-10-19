@@ -1,0 +1,28 @@
+{
+  "owner": "processing",
+  "release": "g39271754470x1",
+  "outcome": "restored",
+  "smoke": {
+    "owner": "processing",
+    "versions": {
+      "dc2-live-ProcessingApi-BtWaSh35nXin": "5",
+      "dc2-live-ProcessingCommands-F463dvM5FvHW": "4",
+      "dc2-live-ProcessingRepair-eaHk0u5KAjZj": "4",
+      "dc2-live-ProcessingEcsEvents-Dh8TwTw7ucpe": "4",
+      "dc2-live-ProcessingS3Events-v30PRnnANRdc": "4",
+      "dc2-live-ProcessingLauncher-UDHLVDRz5xuI": "4"
+    },
+    "checks": {
+      "media-health": "PASS",
+      "processing-health": "PASS",
+      "anonymous-denied": "PASS",
+      "login": "PASS",
+      "media-jobs": "PASS",
+      "processing-jobs": "FAIL"
+    },
+    "failures": [
+      "processing-jobs:503"
+    ]
+  },
+  "versions": null
+}
