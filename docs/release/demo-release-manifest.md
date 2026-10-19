@@ -80,7 +80,7 @@ policy is in `contracts/README.md`. Both databases are on one Aurora Serverless 
 | #229 AWS security negatives | **PASS** | PR #266; [`s229-live-results.md`](../execution/aws/v1/evidence/s229-live-results.md), [`cloud-proof-s229live.json`](../execution/aws/v1/evidence/cloud-proof-s229live.json); evidence-index S11 | Run on `dc2-live` before the final deploy of `daee44b`; not repeated on this exact SHA |
 | #238 scale 0 to 3 to 0 | **PASS** | PR #268; evidence-index Q7m; [`scaling-and-backlog.json`](../execution/aws/v1/evidence/v2live-verify-20261019/scaling-and-backlog.json) | Measured on earlier sources (before #272 and #273), not on `daee44b` |
 | #237 queue wait target of 20 s | **FAIL (honest miss)** | Same receipt: queued to processing about 37 s, of which Fargate start 25.6 s median (n=12) | Target not revised |
-| #238 Aurora auto-pause | **PENDING re-verification** | Not observed at 0.5 ACU for about 2 h (Q7n). Fix PR #273 (upload-cleanup rescans) is in `daee44b`; whether the cluster now reaches 0 ACU is **unknown** | A background watch was running at population time |
+| #238 Aurora auto-pause | **PASS** | Before #273 the cluster sat at 0.5 ACU for about 2 h (Q7n). On `daee44b`, `ServerlessDatabaseCapacity` (1-min max) read 0.0 at 18:07Z on 19 Oct, about 56 min after the #270 burst's last upload, as the first-hour rescan backoff predicts | Coordinator's CloudWatch poll every 3 min. New uploads keep it awake for about an hour after their grants expire; the few mid-backoff rescans after that (64 min, 128 min, 256 min) still wake it briefly before the 6 h grid (#273) takes over |
 | #186 backlog scaling | PASS at cap 3 only | 9 clips, 239 s, 2.26 jobs/min, peak 3 (Q7m) | One run, fixed cap, no 1/2/3 comparison; the 2.5x speedup is against a calculated serial baseline. The V1 2-worker FAIL (1.449x against 1.6x) is unchanged |
 | #186 rollback proof | **PASS (restored)** | CD run [39271754470](https://github.com/Collaboration95/dc2/actions/runs/39271754470), `bad_candidate=true`, outcome `restored`; [receipt](../execution/aws/v1/evidence/v2live-verify-20261019/cd-39271754470-bad-candidate-rollback/release-processing.json) (Q7l) | Proven on source `7928b7c`, **not** on `daee44b` |
 | #270 stale duplicate work messages | **PASS** | PR #272 fix; re-test on `daee44b`: 9 of 9 done, 18 sends, ProcessingWork 0 visible and 0 in flight at 17:11:01Z with no purge (Q7o); [`burst-270-recheck.json`](../execution/aws/v1/evidence/v2live-verify-20261019/burst-270-recheck.json) | One run; duplicates are still sent, now deleted; the worker writes no log lines; the deploy smoke's empty-queue guard was not re-run |
@@ -105,7 +105,7 @@ policy is in `contracts/README.md`. Both databases are on one Aurora Serverless 
 
 - #271 (open): Media finalize returns 503 when S3 refused an oversized upload; it should be a 4xx. The
   oversize upload is still refused and not adopted (#229).
-- Queue wait (about 37 s) misses the 20 s target; Aurora pause is unproven (above).
+- Queue wait (about 37 s) misses the 20 s target; Aurora pauses about an hour after the last upload (above).
 - Backlog scaling has one measurement at a fixed cap of 3.
 - Duplicate `ProcessingWork` sends (repair cadence 45 s) are expected under load; they are now drained.
 - Parallel Publisher processes need one cookie jar each (client property).
@@ -123,7 +123,7 @@ Status of every line: **prepared, not yet team-accepted.**
 |---|---|---|
 | 1 | #243 and #244 resolved; relevant regressions verified | Both issues are closed; regression runs are in the CI above |
 | 2 | One integrated candidate (`daee44b`) with exact-source CI and CD | Done (runs above) |
-| 3 | #229 and #238 acceptance, or an explicit limitation | #229 PASS; #238 partial (Aurora pause pending, queue-wait miss) |
+| 3 | #229 and #238 acceptance, or an explicit limitation | #229 PASS; #238 PASS except the queue-wait miss (#237) |
 | 4 | Demo playback and fallback confirmed; manifest, images, config and fixture agree | Not done |
 | 5 | Team release acceptance recorded; any extra tag through the normal authorized path | Not done |
 | 6 | After freeze, only blocker repairs with affected verification and an updated manifest | Not started |
