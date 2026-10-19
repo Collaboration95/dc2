@@ -1,0 +1,33 @@
+{
+  "owner": "processing",
+  "release": "g39265004564x1",
+  "outcome": "promoted",
+  "smoke": {
+    "owner": "processing",
+    "versions": {
+      "dc2-live-ProcessingApi-BtWaSh35nXin": "3",
+      "dc2-live-ProcessingCommands-F463dvM5FvHW": "2",
+      "dc2-live-ProcessingRepair-eaHk0u5KAjZj": "2",
+      "dc2-live-ProcessingEcsEvents-Dh8TwTw7ucpe": "2",
+      "dc2-live-ProcessingS3Events-v30PRnnANRdc": "2",
+      "dc2-live-ProcessingLauncher-UDHLVDRz5xuI": "2"
+    },
+    "checks": {
+      "media-health": "PASS",
+      "processing-health": "PASS",
+      "anonymous-denied": "PASS",
+      "login": "PASS",
+      "media-jobs": "PASS",
+      "processing-jobs": "PASS"
+    },
+    "failures": []
+  },
+  "versions": {
+    "dc2-live-ProcessingApi-BtWaSh35nXin": "3",
+    "dc2-live-ProcessingCommands-F463dvM5FvHW": "2",
+    "dc2-live-ProcessingRepair-eaHk0u5KAjZj": "2",
+    "dc2-live-ProcessingEcsEvents-Dh8TwTw7ucpe": "2",
+    "dc2-live-ProcessingS3Events-v30PRnnANRdc": "2",
+    "dc2-live-ProcessingLauncher-UDHLVDRz5xuI": "2"
+  }
+}
