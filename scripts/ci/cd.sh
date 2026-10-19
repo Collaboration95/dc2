@@ -515,9 +515,11 @@ release_owner() { # owner build-evidence automatic rebuilt-image...
     --release-dir "$CD_STATE/release" --release-tag "$rel" >"$CD_OUT/adopt-$owner.json" ||
     fail "Adopting the $owner release failed: $(jq -r '.error // empty' "$CD_OUT/adopt-$owner.json")"
   local merged="$CD_STATE/build-baseline.next.json"
-  jq --slurpfile built "$good" --args '.images += ($built[0].images
+  # Same `--args` ordering as the good-evidence merge above: the baseline file comes first.
+  jq --slurpfile built "$good" '.images += ($built[0].images
       | with_entries(select(.key as $k | $ARGS.positional | index($k))))' \
-    "$baseline" "${names[@]}" >"$merged"
+    "$baseline" --args "${names[@]}" >"$merged"
+  [ -s "$merged" ] || fail "The merged baseline is empty; keeping the previous one"
   chmod 600 "$merged"
   mv "$merged" "$baseline"
   deploy_cli deploy --state-dir "$CD_STATE" --images "$baseline" --seed-email "$CD_SEED_EMAIL" \
