@@ -593,3 +593,89 @@ async def test_shutdown_during_poll_does_not_claim_new_work():
     )
     execute.assert_not_awaited()
     client.delete_message.assert_not_called()
+
+
+def drained(client, verdicts, **overrides):
+    """Run one task whose single encode succeeds, then let it sweep with ``verdicts``."""
+    seen = []
+
+    async def disposition(_factory, _job, _attempt):
+        seen.append(1)
+        return verdicts[len(seen) - 1]
+
+    return sqs.run(
+        None,
+        settings(),
+        client,
+        "local",
+        end_epoch=time.time() + 60,
+        name="task",
+        decode=lambda _: envelope(),
+        execute=AsyncMock(return_value=True),
+        drain_disposition=disposition,
+        **overrides,
+    )
+
+
+async def test_a_finished_task_deletes_the_stale_duplicates_still_visible():
+    client = Mock()
+    client.receive_message.side_effect = [*receipts("work", "dup-1", "dup-2"), {}]
+    assert await drained(client, ["stale", "stale"]) == 0
+    assert [c.kwargs["ReceiptHandle"] for c in client.delete_message.call_args_list] == [
+        "work",
+        "dup-1",
+        "dup-2",
+    ]
+
+
+async def test_a_finished_task_hands_back_work_that_can_still_be_claimed_and_stops():
+    client = Mock()
+    client.receive_message.side_effect = receipts("work", "dup", "fresh", "never-read")
+    assert await drained(client, ["stale", "pending"]) == 0
+    assert [c.kwargs["ReceiptHandle"] for c in client.delete_message.call_args_list] == [
+        "work",
+        "dup",
+    ]
+    assert client.change_message_visibility.call_args.kwargs["ReceiptHandle"] == "fresh"
+    assert client.change_message_visibility.call_args.kwargs["VisibilityTimeout"] == 0
+    assert client.receive_message.call_count == 3
+
+
+async def test_a_finished_task_keeps_the_receipt_of_work_sql_cannot_place():
+    client = Mock()
+    client.receive_message.side_effect = [*receipts("work", "orphan"), {}]
+    assert await drained(client, ["unknown"]) == 0
+    assert [c.kwargs["ReceiptHandle"] for c in client.delete_message.call_args_list] == ["work"]
+
+
+async def test_the_post_encode_sweep_is_bounded_by_the_stale_allowance():
+    client = Mock()
+    client.receive_message.side_effect = receipts("work", *["dup"] * 10)
+    await drained(client, ["stale"] * 10, max_stale=3)
+    assert client.delete_message.call_count == 4
+
+
+async def test_a_failed_sweep_does_not_change_the_tasks_successful_outcome():
+    client = Mock()
+    client.receive_message.side_effect = [*receipts("work"), RuntimeError("queue down")]
+    assert await drained(client, []) == 0
+
+
+async def test_an_uncertain_encode_does_not_sweep_the_queue():
+    client = Mock()
+    client.receive_message.return_value = {"Messages": [{"Body": "w", "ReceiptHandle": "w"}]}
+    assert (
+        await sqs.run(
+            None,
+            settings(),
+            client,
+            "local",
+            end_epoch=time.time() + 60,
+            name="task",
+            decode=lambda _: envelope(),
+            execute=AsyncMock(return_value=False),
+            drain_disposition=AsyncMock(),
+        )
+        == 1
+    )
+    assert client.receive_message.call_count == 1
