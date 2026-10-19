@@ -431,9 +431,11 @@ release_owner() { # owner build-evidence automatic rebuilt-image...
   unset DOCKER_CONFIG
   # The release's evidence: the rebuilt images from this build, the kept ones as they were built.
   local good="$CD_STATE/release/good-$rel-$owner.json"
-  jq --slurpfile base "$baseline" --args '.images += ($base[0].images
+  # `--args` goes after the file: before it, jq takes the file as one more positional string and
+  # reads an empty stdin, which release-plan then rejects as unreadable JSON.
+  jq --slurpfile base "$baseline" '.images += ($base[0].images
       | with_entries(select(.key as $k | $ARGS.positional | index($k))))' \
-    "$build" ${kept[@]+"${kept[@]}"} >"$good"
+    "$build" --args ${kept[@]+"${kept[@]}"} >"$good"
   chmod 600 "$good"
 
   # Attested by the green CI gate; the number is what the bundle records.
