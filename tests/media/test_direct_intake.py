@@ -1,7 +1,7 @@
 """Offline direct-intake ownership, replay, immutable-byte and failure tests."""
 
 import hashlib
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -402,7 +402,20 @@ async def test_cleanup_backs_off_between_rescans_and_caps_the_interval(scan, sto
         await intake.cleanup_expired_uploads(scan, storage)
         waits.append(round((reservation.cleanup_next_at - before).total_seconds() / 10) * 10)
         reservation.cleanup_next_at = now() - timedelta(seconds=1)
-    assert waits == [60, 120, 240, 480, 960, 1920, 3600, 3600, 3600]
+    assert waits[:9] == [60, 120, 240, 480, 960, 1920, 3840, 7680, 15360]
+
+
+def test_cleanup_tail_is_slow_and_snaps_to_a_grid_shared_by_every_waiting_row():
+    cap = intake.CLEANUP_CAP_SECONDS
+    assert intake.cleanup_delay(500) == cap
+    first = datetime(2026, 10, 19, 13, 17, 5, tzinfo=UTC)
+    second = datetime(2026, 10, 19, 13, 41, 50, tzinfo=UTC)
+    # Scanned at different minutes, they still fall due in the same instant.
+    assert intake.cleanup_due(first, 10) == intake.cleanup_due(second, 10)
+    assert intake.cleanup_due(first, 10) >= first + timedelta(seconds=cap)
+    assert intake.cleanup_due(first, 10).timestamp() % cap == 0
+    # The early, latency-sensitive rescans keep their exact backoff.
+    assert intake.cleanup_due(first, 2) == first + timedelta(seconds=120)
 
 
 async def test_cleanup_retires_only_after_a_clean_scan_past_the_horizon(scan, storage, reservation):

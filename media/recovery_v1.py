@@ -17,7 +17,7 @@ from media.models import Asset, CleanupIntent, StagedObject, now
 from media.projections import source_for_asset
 from media.services.direct_intake import (
     CLEANUP_HORIZON,
-    cleanup_delay,
+    cleanup_due,
     cleanup_expired_uploads,
 )
 from media.upload_models import UploadReservation
@@ -114,7 +114,7 @@ async def cleanup_tombstones(
                 and intent.processing_deleted_at
             ):
                 intent.last_error = error
-                intent.next_try_at = now() + timedelta(seconds=cleanup_delay(intent.attempts))
+                intent.next_try_at = cleanup_due(now(), intent.attempts)
                 if error is None:
                     intent.source_deleted_at = now()
     return cleaned
