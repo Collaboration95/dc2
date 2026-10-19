@@ -1,0 +1,102 @@
+{
+  "issue": "#270",
+  "fix_pr": "#272",
+  "environment": "dc2-live (ap-southeast-1)",
+  "source_sha": "daee44b61a6e8eef3f62505df69f8bfd076d68b8",
+  "cd_run": "39286933644",
+  "fixture": {
+    "file": "clip400.mp4 (synthetic 20 s 640x360 testsrc + sine)",
+    "bytes": 303113,
+    "sha256": "d71114c2384828ef7f70af372aa383d4e694ae74e7005f6364b7ada5b1d36987",
+    "copies": 9
+  },
+  "method": "9 Publisher processes, one cookie jar each, one ordinary-user account created for this check; publish --wait",
+  "burst_start_utc": "2026-10-19T17:06:56Z",
+  "all_jobs_done_utc": "2026-10-19T17:11:09Z",
+  "jobs_done": 9,
+  "jobs_total": 9,
+  "queue_samples_every_30s": [
+    {
+      "utc": "17:06:59",
+      "visible": 0,
+      "not_visible": 0
+    },
+    {
+      "utc": "17:07:29",
+      "visible": 0,
+      "not_visible": 0
+    },
+    {
+      "utc": "17:07:59",
+      "visible": 4,
+      "not_visible": 0
+    },
+    {
+      "utc": "17:08:29",
+      "visible": 8,
+      "not_visible": 0
+    },
+    {
+      "utc": "17:09:00",
+      "visible": 12,
+      "not_visible": 0
+    },
+    {
+      "utc": "17:09:30",
+      "visible": 10,
+      "not_visible": 1
+    },
+    {
+      "utc": "17:10:00",
+      "visible": 10,
+      "not_visible": 0
+    },
+    {
+      "utc": "17:10:30",
+      "visible": 6,
+      "not_visible": 0
+    },
+    {
+      "utc": "17:11:01",
+      "visible": 0,
+      "not_visible": 0
+    },
+    {
+      "utc": "17:11:31",
+      "visible": 0,
+      "not_visible": 0
+    },
+    {
+      "utc": "17:12:01",
+      "visible": 0,
+      "not_visible": 0
+    },
+    {
+      "utc": "17:12:32",
+      "visible": 0,
+      "not_visible": 0
+    }
+  ],
+  "first_sample_both_zero_after_burst": "17:11:01",
+  "seconds_from_all_jobs_done_to_zero": 0,
+  "consecutive_zero_samples_after": 3,
+  "purge_used": false,
+  "cloudwatch_number_of_messages_sent": {
+    "minute_sums_utc": {
+      "17:07": 4,
+      "17:08": 11,
+      "17:09": 3
+    },
+    "total": 18,
+    "previous_run_total": 21,
+    "jobs": 9
+  },
+  "cloudwatch_visible_max_1min": 10,
+  "ecs_tasks": {
+    "started": 9,
+    "peak": 3,
+    "all_exit_code_0": true
+  },
+  "encoder_logs": "The worker writes no log events: all Worker/* streams in /dc2/dc2-live/tasks are empty, so the drain is shown by queue depth and task exit codes, not by log lines",
+  "verdict": "PASS"
+}
