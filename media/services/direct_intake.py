@@ -1,8 +1,9 @@
 """Reserve outside byte transport; atomically adopt a verified immutable version."""
 
 import asyncio
+import math
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 from uuid import UUID, uuid4
 
@@ -204,13 +205,31 @@ async def finalize(session, storage, owner_id, reservation_id, request, *, enque
 
 
 CLEANUP_BASE_SECONDS = 60
-CLEANUP_CAP_SECONDS = 3600
+# The late-write window is minutes, so the tail only has to be a slow safety net. It is also
+# what keeps Aurora paused: every rescan is a database connection (AD-27).
+CLEANUP_CAP_SECONDS = 6 * 3600
 CLEANUP_HORIZON = timedelta(days=1)
 
 
 def cleanup_delay(attempts):
-    """Early rescans catch the likely late write; later ones thin out to hourly."""
-    return min(CLEANUP_CAP_SECONDS, CLEANUP_BASE_SECONDS * 2 ** min(max(attempts - 1, 0), 6))
+    """Early rescans catch the likely late write; later ones thin out to the cap."""
+    return min(CLEANUP_CAP_SECONDS, CLEANUP_BASE_SECONDS * 2 ** min(max(attempts - 1, 0), 20))
+
+
+def cleanup_due(finished, attempts):
+    """When the next rescan is due: the backoff, with the slow tail snapped to a shared grid.
+
+    Rows scanned at different moments would otherwise each fall due at its own minute and, being
+    spread over a day, wake the paused database all day long. Snapping the capped tail up to
+    a multiple of the cap lets every row that is waiting share one wake-up. Never earlier than
+    the backoff asks.
+    """
+    delay = cleanup_delay(attempts)
+    due = finished + timedelta(seconds=delay)
+    if delay < CLEANUP_CAP_SECONDS:
+        return due
+    slot = math.ceil(due.timestamp() / CLEANUP_CAP_SECONDS) * CLEANUP_CAP_SECONDS
+    return datetime.fromtimestamp(slot, tz=due.tzinfo)
 
 
 async def cleanup_expired_uploads(
@@ -273,7 +292,7 @@ async def cleanup_expired_uploads(
                 continue
             finished = now()
             row.cleanup_checked_at = finished
-            row.cleanup_next_at = finished + timedelta(seconds=cleanup_delay(scan))
+            row.cleanup_next_at = cleanup_due(finished, scan)
             if not failed and finished >= expires_at + horizon:
                 row.cleanup_retired_at = finished
     return completed
