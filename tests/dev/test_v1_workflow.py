@@ -1,5 +1,6 @@
 """The V1 verification entry stays wired into CI and cannot quietly weaken."""
 
+import os
 from pathlib import Path
 
 import pytest
@@ -92,31 +93,48 @@ def test_make_test_v1_uses_the_same_offline_guard_as_make_test():
     assert "-p scripts.dev.pytest_plugin --offline-fast" in recipe
 
 
-def test_v1_registry_selects_core_support_and_password_cases_without_short_lane():
-    registry = v1_verify.validate_integration_registry(ROOT)
-    assert len(registry["required_core_suites"]) == 9
-    assert len(registry["required_support_suites"]) == 2
-    assert v1_verify.AUDIT_CORE_CASES == 93
-    assert v1_verify.EXPECTED_CORE_CASES == 95
-    assert registry["required_regression_node"] == v1_verify.CREDENTIAL_ROTATION_REGRESSION
-    assert len(v1_verify.REQUIRED_INTEGRATION_SELECTORS) == 13
-    assert set(v1_verify.integration_test_nodes(ROOT)) == {
-        *v1_verify.SUPPORT_INTEGRATION_SELECTORS,
-        v1_verify.CREDENTIAL_ROTATION_REGRESSION,
-    }
-    assert "tests/v1/test_short_encoder_sql.py" in registry["optional_dispositions"]
-    assert registry["optional_dispositions"]["tests/v1/test_short_encoder_sql.py"]["cases"] == 13
-    assert "tests/v1/test_short_encoder_sql.py" not in v1_verify.REQUIRED_INTEGRATION_SELECTORS
-
-
-def test_new_integration_file_cannot_escape_the_v1_registry(tmp_path):
+def test_new_marked_tests_run_automatically_and_separate_flows_remain_excluded(
+    tmp_path, monkeypatch
+):
     directory = tmp_path / "tests/v1"
     directory.mkdir(parents=True)
-    (directory / "test_unregistered.py").write_text(
-        "import pytest\n\n@pytest.mark.integration\ndef test_live():\n    pass\n"
+    # Use aliases, a marked class and parametrization: native pytest knows all these shapes.
+    (directory / "test_new.py").write_text(
+        "from pytest import mark\n\n"
+        "@mark.integration\ndef test_new_case():\n    pass\n\n"
+        "@mark.integration\nclass TestNew:\n"
+        "    @mark.parametrize('value', [1, 2])\n"
+        "    def test_parameters(self, value):\n        assert value > 0\n\n"
+        "def test_unit_not_in_this_tier():\n    assert False\n"
     )
-    with pytest.raises(ValueError, match="test_unregistered.py"):
-        v1_verify.validate_integration_registry(tmp_path)
+    for path in (
+        *v1_verify.EXISTING_INTEGRATION_SUITES,
+        *v1_verify.OPTIONAL_INTEGRATION_DISPOSITIONS,
+    ):
+        (tmp_path / path).write_text(
+            "import pytest\npytestmark = pytest.mark.integration\n"
+            "def test_owned_by_another_flow():\n    assert False\n"
+        )
+    monkeypatch.setattr(v1_verify, "ROOT", tmp_path)
+    monkeypatch.setattr(
+        v1_verify,
+        "local_environment",
+        lambda *args, **kwargs: dict(os.environ, PYTHONPATH=str(ROOT)),
+    )
+    result = v1_verify.selected_tests(
+        ["tests/v1"],
+        tmp_path,
+        {},
+        require_integration=True,
+        pytest_options=v1_verify.REQUIRED_INTEGRATION_ARGS,
+    )
+    assert result["status"] == "PASS", result
+    assert result["counts"] == {"tests": 3, "errors": 0, "failures": 0, "skipped": 0}
+    assert set(result["node_ids"]) == {
+        "tests/v1/test_new.py::test_new_case",
+        "tests/v1/test_new.py::TestNew::test_parameters[1]",
+        "tests/v1/test_new.py::TestNew::test_parameters[2]",
+    }
 
 
 def test_explicit_local_test_environment_contains_owned_admin_dsns_endpoints_and_tls(

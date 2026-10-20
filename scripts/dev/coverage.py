@@ -28,7 +28,7 @@ RISK_MODULES = (
     "media/recovery_v1.py",
     "processing/recovery_v1.py",
     "processing/messaging.py",
-    "processing/storage_credentials.py",
+    "runtime_support/storage_credentials.py",
 )
 COMPLETE_BACKEND_TIERS = {
     "fast",

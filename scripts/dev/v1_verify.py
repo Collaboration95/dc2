@@ -6,7 +6,6 @@ C = session failure contracts plus independent release adapter selection.
 Absent acceptance tests are INCOMPLETE, never a skip converted to PASS.
 """
 
-import ast
 import asyncio
 import hashlib
 import json
@@ -33,10 +32,6 @@ CORE_INTEGRATION_SUITES = (
     "tests/v1/test_sqs_emulator.py",
     "tests/v1/test_upload_cleanup_sql.py",
 )
-SUPPORT_INTEGRATION_SUITES = (
-    "tests/v1/test_dlq.py",
-    "tests/v1/test_local_gateway.py",
-)
 SUPPORT_INTEGRATION_SELECTORS = (
     "tests/v1/test_dlq.py::test_quarantined_message_in_emulator_dlq_is_inspectable",
     "tests/v1/test_dlq.py::test_emulator_redrive_returns_a_quarantined_envelope_and_keeps_the_invalid_one",
@@ -44,7 +39,6 @@ SUPPORT_INTEGRATION_SELECTORS = (
 )
 AUDIT_CORE_CASES = 93
 ADDITIONAL_RECOVERY_CASES = 2
-EXPECTED_CORE_CASES = AUDIT_CORE_CASES + ADDITIONAL_RECOVERY_CASES
 EXISTING_INTEGRATION_SUITES = (
     "tests/v1/test_browser_acceptance.py",
     "tests/v1/test_launcher_sql.py",
@@ -62,124 +56,16 @@ CREDENTIAL_ROTATION_REGRESSION = (
     "tests/v1/test_credential_rotation.py::"
     "test_a_real_wrong_password_is_recognised_as_a_login_refusal"
 )
-REQUIRED_INTEGRATION_SELECTORS = (
-    *CORE_INTEGRATION_SUITES,
-    *SUPPORT_INTEGRATION_SELECTORS,
-    CREDENTIAL_ROTATION_REGRESSION,
+# Use pytest's own collection and markers; new marked V1 cases run by default. These
+# exclusions already run in their owning flows or are explicitly deferred optional code.
+REQUIRED_INTEGRATION_ARGS = (
+    "-m",
+    "integration",
+    *[
+        f"--ignore={path}"
+        for path in (*EXISTING_INTEGRATION_SUITES, *OPTIONAL_INTEGRATION_DISPOSITIONS)
+    ],
 )
-
-
-def _attribute_path(node):
-    if isinstance(node, ast.Name):
-        return node.id
-    if isinstance(node, ast.Attribute):
-        parent = _attribute_path(node.value)
-        return f"{parent}.{node.attr}" if parent else None
-    return None
-
-
-def _has_integration_marker(node):
-    if node is None:
-        return False
-    return any(
-        isinstance(child, ast.Attribute)
-        and child.attr == "integration"
-        and _attribute_path(child) == "pytest.mark.integration"
-        for child in ast.walk(node)
-    )
-
-
-def _assigns_pytestmark(node):
-    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-    return any(isinstance(target, ast.Name) and target.id == "pytestmark" for target in targets)
-
-
-def integration_test_files(root=ROOT):
-    """Find V1 files with a module or function integration marker."""
-    found = []
-    for path in sorted((root / "tests/v1").glob("test_*.py")):
-        tree = ast.parse(path.read_text(), filename=str(path))
-        if _has_integration_marker(tree):
-            found.append(str(path.relative_to(root)))
-    return tuple(found)
-
-
-def integration_test_nodes(root=ROOT):
-    """Find individually marked tests in modules without a file-level integration mark."""
-    found = []
-    for path in sorted((root / "tests/v1").glob("test_*.py")):
-        tree = ast.parse(path.read_text(), filename=str(path))
-        module_marked = any(
-            isinstance(node, (ast.Assign, ast.AnnAssign))
-            and _assigns_pytestmark(node)
-            and _has_integration_marker(node.value)
-            for node in tree.body
-        )
-        if module_marked:
-            continue
-        relative = str(path.relative_to(root))
-        for node in tree.body:
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                if node.name.startswith("test_") and _has_integration_marker(
-                    ast.Module(body=node.decorator_list, type_ignores=[])
-                ):
-                    found.append(f"{relative}::{node.name}")
-            elif isinstance(node, ast.ClassDef):
-                class_marked = _has_integration_marker(
-                    ast.Module(body=node.decorator_list, type_ignores=[])
-                )
-                for method in node.body:
-                    if (
-                        isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
-                        and method.name.startswith("test_")
-                        and (
-                            class_marked
-                            or _has_integration_marker(
-                                ast.Module(body=method.decorator_list, type_ignores=[])
-                            )
-                        )
-                    ):
-                        found.append(f"{relative}::{node.name}::{method.name}")
-    return tuple(found)
-
-
-def validate_integration_registry(root=ROOT):
-    """Fail when any marked V1 integration file has no execution or explicit disposition."""
-    registered = {
-        *CORE_INTEGRATION_SUITES,
-        *SUPPORT_INTEGRATION_SUITES,
-        *EXISTING_INTEGRATION_SUITES,
-        *OPTIONAL_INTEGRATION_DISPOSITIONS,
-        "tests/v1/test_credential_rotation.py",
-    }
-    discovered = set(integration_test_files(root))
-    exact_registered_nodes = {
-        *SUPPORT_INTEGRATION_SELECTORS,
-        CREDENTIAL_ROTATION_REGRESSION,
-    }
-    exact_discovered_nodes = set(integration_test_nodes(root))
-    unregistered_suites = sorted(discovered - registered)
-    stale_suites = sorted(registered - discovered)
-    unregistered_nodes = sorted(exact_discovered_nodes - exact_registered_nodes)
-    stale_nodes = sorted(exact_registered_nodes - exact_discovered_nodes)
-    if unregistered_suites or stale_suites or unregistered_nodes or stale_nodes:
-        raise ValueError(
-            "V1 integration registry mismatch; "
-            f"unregistered suites={unregistered_suites}, stale suites={stale_suites}, "
-            f"unregistered nodes={unregistered_nodes}, stale nodes={stale_nodes}"
-        )
-    if CREDENTIAL_ROTATION_REGRESSION.split("::", 1)[0] not in discovered:
-        raise ValueError("The real-password credential regression must be marked and selected")
-    for path in (*CORE_INTEGRATION_SUITES, *SUPPORT_INTEGRATION_SUITES):
-        if not (root / path).is_file():
-            raise ValueError(f"Required V1 integration suite is missing: {path}")
-    return {
-        "required_core_suites": list(CORE_INTEGRATION_SUITES),
-        "required_support_suites": list(SUPPORT_INTEGRATION_SUITES),
-        "required_regression_node": CREDENTIAL_ROTATION_REGRESSION,
-        "already_selected_suites": list(EXISTING_INTEGRATION_SUITES),
-        "optional_dispositions": OPTIONAL_INTEGRATION_DISPOSITIONS,
-    }
 
 
 def digest(path):
@@ -603,7 +489,11 @@ def resolve_test_selectors(selectors, root=ROOT):
     for selector in selectors:
         path, separator, node = selector.partition("::")
         candidates = sorted(root.glob(path)) if any(c in path for c in "*?[") else [root / path]
-        candidates = [candidate for candidate in candidates if candidate.is_file()]
+        candidates = [
+            candidate
+            for candidate in candidates
+            if candidate.is_file() or (not separator and candidate.is_dir())
+        ]
         if not candidates or (separator and len(candidates) != 1):
             return []
         for candidate in candidates:
@@ -621,8 +511,9 @@ def selected_tests(
     timeout=180,
     require_integration=False,
     storage_mode="lambda",
+    pytest_options=(),
 ):
-    tests = resolve_test_selectors(patterns)
+    tests = resolve_test_selectors(patterns, root=ROOT)
     if not tests:
         return {"status": "INCOMPLETE", "reason": "Owning acceptance tests not integrated"}
     report = output / f"{tag}.xml"
@@ -630,7 +521,16 @@ def selected_tests(
     # Tests that can capture a screenshot or page state on failure write it here. Only
     # redacted files are meant to leave the runtime directory (see the CI artifact step).
     env["V1_FAILURE_DIR"] = str(output / f"failure-{tag}")
-    command = [sys.executable, "-m", "pytest", *tests, "-q", "--junitxml", str(report)]
+    command = [
+        sys.executable,
+        "-m",
+        "pytest",
+        *tests,
+        *pytest_options,
+        "-q",
+        "--junitxml",
+        str(report),
+    ]
     if require_integration:
         # The existing plugin and JUnit result both reject missing fixture resources/skips.
         command += ["-p", "scripts.dev.pytest_plugin", "--require-integration"]
@@ -691,6 +591,15 @@ def selected_tests(
     }
 
 
+def junit_node_id(case):
+    parts = case.get("classname", "").split(".")
+    for count in range(len(parts), 0, -1):
+        source = Path(*parts[:count]).with_suffix(".py")
+        if (ROOT / source).is_file():
+            return "::".join([str(source), *parts[count:], case.get("name", "")])
+    return f"{case.get('classname', '').replace('.', '/')}.py::{case.get('name', '')}"
+
+
 def read_junit(report):
     """(counts, failed, skipped) from a junit file. Messages are redacted and bounded."""
     from xml.etree import ElementTree as ET
@@ -703,8 +612,7 @@ def read_junit(report):
     }
     failed, skipped = [], []
     for case in root.iter("testcase"):
-        # classname "tests.v1.test_browser_acceptance" -> tests/v1/test_browser_acceptance.py
-        identity = f"{case.get('classname', '').replace('.', '/')}.py::{case.get('name', '')}"
+        identity = junit_node_id(case)
         for outcome in case:
             if outcome.tag in {"failure", "error"}:
                 message = outcome.get("message") or outcome.text or ""
@@ -721,10 +629,7 @@ def junit_test_ids(report):
     from xml.etree import ElementTree as ET
 
     root = ET.parse(report).getroot()
-    return [
-        f"{case.get('classname', '').replace('.', '/')}.py::{case.get('name', '')}"
-        for case in root.iter("testcase")
-    ]
+    return [junit_node_id(case) for case in root.iter("testcase")]
 
 
 def summarize_required_nodes(result):
@@ -861,10 +766,11 @@ def run_flow(name, data, phase):
         ["tests/v1/test_session.py", "tests/v1/test_launcher_sql.py"], phase, data, tag="session"
     )
     required = selected_tests(
-        REQUIRED_INTEGRATION_SELECTORS,
+        ["tests/v1"],
         phase,
         data,
         tag="required-integration",
+        pytest_options=REQUIRED_INTEGRATION_ARGS,
         timeout=900,
         require_integration=True,
         storage_mode="static",
@@ -895,10 +801,8 @@ def run_flow(name, data, phase):
         "bootstrap_coverage": bootstrap,
         "release": release,
         "suite_registry": {
-            "core_cases_expected": EXPECTED_CORE_CASES,
             "audit_core_cases": AUDIT_CORE_CASES,
             "additional_recovery_cases": ADDITIONAL_RECOVERY_CASES,
-            "support_cases_expected": len(SUPPORT_INTEGRATION_SELECTORS),
             "real_password_regression": CREDENTIAL_ROTATION_REGRESSION,
             "optional_cases_deferred": 13,
             "optional_disposition": OPTIONAL_INTEGRATION_DISPOSITIONS[
@@ -929,7 +833,11 @@ def verify(run_id, flow):
         "tracked_dirty": provenance["source"]["dirty"],
         **provenance,
         "browser_requested": browser_requested(),
-        "integration_registry": validate_integration_registry(),
+        "integration_selection": {
+            "scope": "pytest tests/v1 -m integration",
+            "separate_flow_suites": list(EXISTING_INTEGRATION_SUITES),
+            "optional_dispositions": OPTIONAL_INTEGRATION_DISPOSITIONS,
+        },
         "flows": {},
     }
     for name in ["a", "b", "c"] if flow == "all" else [flow]:
