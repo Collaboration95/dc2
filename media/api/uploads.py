@@ -11,7 +11,7 @@ from media.services.storage import Store
 router = APIRouter(tags=["upload"])
 Key = Annotated[UUID | None, Header(alias="Idempotency-Key")]
 
-# V1 never accepts media bytes through the API integration: sources are PUT straight to S3
+# V1 never accepts media bytes through the API integration: sources are POSTed straight to S3
 # against a reservation, then finalized here.
 
 
@@ -23,7 +23,15 @@ async def reserve_upload(
 
 
 @router.post(
-    "/uploads/reservations/{reservation_id}/finalize", status_code=202, response_model=Accepted
+    "/uploads/reservations/{reservation_id}/finalize",
+    status_code=202,
+    response_model=Accepted,
+    responses={
+        404: {"description": "Reservation not found for this owner"},
+        409: {"description": "Upload is incomplete or reservation input conflicts"},
+        410: {"description": "Upload reservation expired"},
+        503: {"description": "Source storage unavailable; retry finalization later"},
+    },
 )
 async def finalize_upload(
     reservation_id: UUID,

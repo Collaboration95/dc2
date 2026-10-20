@@ -1191,6 +1191,15 @@
             },
             "description": "Successful Response"
           },
+          "404": {
+            "description": "Reservation not found for this owner"
+          },
+          "409": {
+            "description": "Upload is incomplete or reservation input conflicts"
+          },
+          "410": {
+            "description": "Upload reservation expired"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -1200,6 +1209,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "503": {
+            "description": "Source storage unavailable; retry finalization later"
           }
         },
         "security": [
