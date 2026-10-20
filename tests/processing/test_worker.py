@@ -139,8 +139,22 @@ async def test_heartbeat_revokes_on_failure(monkeypatch, alive, caplog):
         await asyncio.wait_for(sup.lost.wait(), 0.5)
         with pytest.raises(LeaseLost):
             sup.check()
-    assert "encoder authority revoked: LeaseLost" in caplog.text
+    assert '"event":"authority_revoked"' in caplog.text
+    assert '"error_class":"LeaseLost"' in caplog.text
     assert "secret" not in caplog.text
+
+
+async def test_heartbeat_timeout_revokes_even_when_logging_fails(monkeypatch):
+    stalled = asyncio.Event()
+    monkeypatch.setattr("processing.worker.supervisor.heartbeat", lambda *_: stalled.wait())
+    monkeypatch.setattr(
+        "processing.worker.supervisor.logger.log", Mock(side_effect=RuntimeError("sink failed"))
+    )
+    async with Supervisor(None, work(), cfg(heartbeat_seconds=0.01)) as sup:
+        await asyncio.wait_for(sup.lost.wait(), 0.5)
+        with pytest.raises(LeaseLost):
+            sup.check()
+        await sup.task
 
 
 async def test_output_put_acknowledgment_without_head(monkeypatch, tmp_path):

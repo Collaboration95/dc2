@@ -8,6 +8,7 @@ import time
 from contextlib import suppress
 
 from processing.lifecycle import heartbeat
+from runtime_support.errors import log_safe_event
 
 logger = logging.getLogger(__name__)
 
@@ -76,8 +77,16 @@ class Supervisor:
                 await asyncio.sleep(min(self.settings.heartbeat_seconds, remaining))
         except Exception as error:
             # Infrastructure uncertainty revokes authority rather than extending a lease.
-            logger.warning("encoder authority revoked: %s", type(error).__name__)
-        self.lost.set()
+            log_safe_event(
+                logger,
+                level=logging.WARNING,
+                event="authority_revoked",
+                operation="encoder_heartbeat",
+                error_class=type(error).__name__,
+                outcome="retry",
+            )
+        finally:
+            self.lost.set()
 
     async def guard(self, awaitable):
         task = asyncio.ensure_future(awaitable)

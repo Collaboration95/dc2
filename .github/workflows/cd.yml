@@ -180,7 +180,8 @@ jobs:
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.8.17'
-      - run: uv sync --locked --extra dev
+      # Release checks collect the Media authentication tests as well as operator tooling.
+      - run: uv sync --locked --extra dev --extra v1-media
 
       # Same Trivy version/setup used by the existing v0.36.0 scan action. Scan the selected
       # CD candidate config IDs before push; retained companions are rescanned by digest.

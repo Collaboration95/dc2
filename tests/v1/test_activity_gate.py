@@ -121,8 +121,24 @@ def test_a_pass_records_quiet_only_when_nothing_is_due_now_and_never_for_long(ca
     assert ssm.puts == [(QUIET, "9000 9500"), (QUIET, f"9000 {9_000 + MAX_QUIET_SECONDS}")]
     ssm.fail = True
     gate(ssm).record(9_000, None)  # a failed write only costs SQL
-    assert "activity quiet marker write failed: TimeoutError" in caplog.text
+    assert '"event":"activity_quiet_write_failed"' in caplog.text
+    assert '"error_class":"TimeoutError"' in caplog.text
     assert "ssm unreachable" not in caplog.text
+
+
+def test_marker_failures_remain_best_effort_when_logging_also_fails(monkeypatch):
+    def broken_log(*_args, **_kwargs):
+        raise RuntimeError("log sink unavailable")
+
+    monkeypatch.setattr(activity.logger, "log", broken_log)
+    activity._last_touch.clear()
+    ssm = Ssm()
+    ssm.fail = True
+    gate(ssm).touch()
+    gate(ssm).record(9_000, None)
+    assert ssm.puts == []
+    assert TOUCHED not in activity._last_touch
+    assert not gate(ssm).quiet()
 
 
 def test_the_gate_exists_only_where_the_stack_deployed_its_markers():
