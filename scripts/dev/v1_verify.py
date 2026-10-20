@@ -6,6 +6,7 @@ C = session failure contracts plus independent release adapter selection.
 Absent acceptance tests are INCOMPLETE, never a skip converted to PASS.
 """
 
+import ast
 import asyncio
 import hashlib
 import json
@@ -20,6 +21,165 @@ from urllib.parse import urlsplit
 
 from scripts.dev.v1_redact import first_lines, redact
 from scripts.dev.v1_runtime import ROOT, directory, load, moto_python, run, save
+
+CORE_INTEGRATION_SUITES = (
+    "tests/v1/test_delivery_recovery_sql.py",
+    "tests/v1/test_direct_intake_s3.py",
+    "tests/v1/test_domain_sql_boundary.py",
+    "tests/v1/test_media_cleanup_sql.py",
+    "tests/v1/test_media_messaging_sql.py",
+    "tests/v1/test_messaging_sql.py",
+    "tests/v1/test_processing_activity_sql.py",
+    "tests/v1/test_sqs_emulator.py",
+    "tests/v1/test_upload_cleanup_sql.py",
+)
+SUPPORT_INTEGRATION_SUITES = (
+    "tests/v1/test_dlq.py",
+    "tests/v1/test_local_gateway.py",
+)
+SUPPORT_INTEGRATION_SELECTORS = (
+    "tests/v1/test_dlq.py::test_quarantined_message_in_emulator_dlq_is_inspectable",
+    "tests/v1/test_dlq.py::test_emulator_redrive_returns_a_quarantined_envelope_and_keeps_the_invalid_one",
+    "tests/v1/test_local_gateway.py::test_real_http_bridge_preserves_multiple_set_cookie_and_binary_response",
+)
+AUDIT_CORE_CASES = 93
+ADDITIONAL_RECOVERY_CASES = 2
+EXPECTED_CORE_CASES = AUDIT_CORE_CASES + ADDITIONAL_RECOVERY_CASES
+EXISTING_INTEGRATION_SUITES = (
+    "tests/v1/test_browser_acceptance.py",
+    "tests/v1/test_launcher_sql.py",
+    "tests/v1/test_release_acceptance.py",
+    "tests/v1/test_workflow_acceptance.py",
+)
+OPTIONAL_INTEGRATION_DISPOSITIONS = {
+    "tests/v1/test_short_encoder_sql.py": {
+        "cases": 13,
+        "status": "DEFERRED_OPTIONAL_V2",
+        "reason": ("Optional short-encoder lane; its tests do not enable the lane in runtime."),
+    }
+}
+CREDENTIAL_ROTATION_REGRESSION = (
+    "tests/v1/test_credential_rotation.py::"
+    "test_a_real_wrong_password_is_recognised_as_a_login_refusal"
+)
+REQUIRED_INTEGRATION_SELECTORS = (
+    *CORE_INTEGRATION_SUITES,
+    *SUPPORT_INTEGRATION_SELECTORS,
+    CREDENTIAL_ROTATION_REGRESSION,
+)
+
+
+def _attribute_path(node):
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        parent = _attribute_path(node.value)
+        return f"{parent}.{node.attr}" if parent else None
+    return None
+
+
+def _has_integration_marker(node):
+    if node is None:
+        return False
+    return any(
+        isinstance(child, ast.Attribute)
+        and child.attr == "integration"
+        and _attribute_path(child) == "pytest.mark.integration"
+        for child in ast.walk(node)
+    )
+
+
+def _assigns_pytestmark(node):
+    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+    return any(isinstance(target, ast.Name) and target.id == "pytestmark" for target in targets)
+
+
+def integration_test_files(root=ROOT):
+    """Find V1 files with a module or function integration marker."""
+    found = []
+    for path in sorted((root / "tests/v1").glob("test_*.py")):
+        tree = ast.parse(path.read_text(), filename=str(path))
+        if _has_integration_marker(tree):
+            found.append(str(path.relative_to(root)))
+    return tuple(found)
+
+
+def integration_test_nodes(root=ROOT):
+    """Find individually marked tests in modules without a file-level integration mark."""
+    found = []
+    for path in sorted((root / "tests/v1").glob("test_*.py")):
+        tree = ast.parse(path.read_text(), filename=str(path))
+        module_marked = any(
+            isinstance(node, (ast.Assign, ast.AnnAssign))
+            and _assigns_pytestmark(node)
+            and _has_integration_marker(node.value)
+            for node in tree.body
+        )
+        if module_marked:
+            continue
+        relative = str(path.relative_to(root))
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if node.name.startswith("test_") and _has_integration_marker(
+                    ast.Module(body=node.decorator_list, type_ignores=[])
+                ):
+                    found.append(f"{relative}::{node.name}")
+            elif isinstance(node, ast.ClassDef):
+                class_marked = _has_integration_marker(
+                    ast.Module(body=node.decorator_list, type_ignores=[])
+                )
+                for method in node.body:
+                    if (
+                        isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
+                        and method.name.startswith("test_")
+                        and (
+                            class_marked
+                            or _has_integration_marker(
+                                ast.Module(body=method.decorator_list, type_ignores=[])
+                            )
+                        )
+                    ):
+                        found.append(f"{relative}::{node.name}::{method.name}")
+    return tuple(found)
+
+
+def validate_integration_registry(root=ROOT):
+    """Fail when any marked V1 integration file has no execution or explicit disposition."""
+    registered = {
+        *CORE_INTEGRATION_SUITES,
+        *SUPPORT_INTEGRATION_SUITES,
+        *EXISTING_INTEGRATION_SUITES,
+        *OPTIONAL_INTEGRATION_DISPOSITIONS,
+        "tests/v1/test_credential_rotation.py",
+    }
+    discovered = set(integration_test_files(root))
+    exact_registered_nodes = {
+        *SUPPORT_INTEGRATION_SELECTORS,
+        CREDENTIAL_ROTATION_REGRESSION,
+    }
+    exact_discovered_nodes = set(integration_test_nodes(root))
+    unregistered_suites = sorted(discovered - registered)
+    stale_suites = sorted(registered - discovered)
+    unregistered_nodes = sorted(exact_discovered_nodes - exact_registered_nodes)
+    stale_nodes = sorted(exact_registered_nodes - exact_discovered_nodes)
+    if unregistered_suites or stale_suites or unregistered_nodes or stale_nodes:
+        raise ValueError(
+            "V1 integration registry mismatch; "
+            f"unregistered suites={unregistered_suites}, stale suites={stale_suites}, "
+            f"unregistered nodes={unregistered_nodes}, stale nodes={stale_nodes}"
+        )
+    if CREDENTIAL_ROTATION_REGRESSION.split("::", 1)[0] not in discovered:
+        raise ValueError("The real-password credential regression must be marked and selected")
+    for path in (*CORE_INTEGRATION_SUITES, *SUPPORT_INTEGRATION_SUITES):
+        if not (root / path).is_file():
+            raise ValueError(f"Required V1 integration suite is missing: {path}")
+    return {
+        "required_core_suites": list(CORE_INTEGRATION_SUITES),
+        "required_support_suites": list(SUPPORT_INTEGRATION_SUITES),
+        "required_regression_node": CREDENTIAL_ROTATION_REGRESSION,
+        "already_selected_suites": list(EXISTING_INTEGRATION_SUITES),
+        "optional_dispositions": OPTIONAL_INTEGRATION_DISPOSITIONS,
+    }
 
 
 def digest(path):
@@ -330,8 +490,10 @@ def objects_and_encode(data, output, probe_id):
     }
 
 
-def local_environment(data):
+def local_environment(data, *, storage_mode="lambda"):
     """Explicit local-only child environment; no inherited AWS profiles/credentials."""
+    if storage_mode not in {"lambda", "static"}:
+        raise ValueError("V1 local test storage mode must be lambda or static")
     env = {key: value for key, value in os.environ.items() if not key.startswith("AWS_")}
     env.update(
         PYTHONPATH=str(ROOT),
@@ -361,13 +523,23 @@ def local_environment(data):
         S3_ENDPOINT_URL=data["endpoint_url"],
     )
     resources = data.get("resources") or provision_local_objects(data)
-    endpoint = urlsplit(data["endpoint_url"]).netloc
+    endpoint = urlsplit(data["endpoint_url"])
+    if (
+        endpoint.scheme != "http"
+        or endpoint.hostname != "127.0.0.1"
+        or not endpoint.port
+        or endpoint.username
+        or endpoint.password
+        or endpoint.query
+        or endpoint.fragment
+    ):
+        raise ValueError("V1 tests require the explicitly owned loopback emulator")
     env.update(
         MEDIA_RUNTIME_MODE="lambda",
-        MEDIA_STORAGE_CREDENTIAL_MODE="lambda",
-        MEDIA_MINIO_ENDPOINT=endpoint,
+        MEDIA_STORAGE_CREDENTIAL_MODE=storage_mode,
+        MEDIA_MINIO_ENDPOINT=endpoint.netloc,
         MEDIA_MINIO_USE_SSL="false",
-        MEDIA_MINIO_PUBLIC_ENDPOINT=endpoint,
+        MEDIA_MINIO_PUBLIC_ENDPOINT=endpoint.netloc,
         MEDIA_MINIO_PUBLIC_USE_SSL="false",
         MEDIA_MINIO_SOURCE_BUCKET=resources["buckets"]["source"],
         MEDIA_MINIO_OUTPUT_BUCKET=resources["buckets"]["output"],
@@ -379,11 +551,22 @@ def local_environment(data):
         MEDIA_RESULTS_QUEUE_URL=resources["queues"]["results"],
         WORK_QUEUE_URL=resources["queues"]["work"],
     )
-    # Schema-per-test SQL suites (the opt-in launcher's) need an admin role to create schemas.
-    env["V1_TEST_PROCESSING_DSN"] = (
-        f"postgresql+asyncpg://postgres:local_v1_admin@127.0.0.1:{data['postgres_port']}"
-        "/processing_db"
-    )
+    tls_ca = Path(data["root"]) / ".cache/v1-runtime" / data["run_id"] / "tls/server.crt"
+    env["PGSSLROOTCERT"] = str(tls_ca)
+
+    def admin_dsn(database):
+        # Schema-per-test fixtures use the disposable stack's admin login, and verify its
+        # loopback certificate just like the owner runtime connections do.
+        query = "ssl=verify-full"
+        return (
+            f"postgresql+asyncpg://postgres:local_v1_admin@127.0.0.1:{data['postgres_port']}"
+            f"/{database}?{query}"
+        )
+
+    env["V1_TEST_MEDIA_DSN"] = admin_dsn("media_db")
+    env["V1_TEST_PROCESSING_DSN"] = admin_dsn("processing_db")
+    env["V1_TEST_S3_ENDPOINT"] = data["endpoint_url"]
+    env["V1_TEST_SQS_ENDPOINT"] = data["endpoint_url"]
     for owner in ("media", "processing"):
         env[owner.upper() + "_POSTGRES_DSN"] = (
             f"postgresql+asyncpg://{owner}_runtime:local_v1_{owner}"
@@ -392,36 +575,75 @@ def local_environment(data):
     return env
 
 
-COVERAGE_RC = """[run]
-branch = True
-parallel = True
-relative_files = True
-patch = subprocess
-source =
-{sources}
-"""
+def coverage_rc():
+    """Use the pyproject omit list in V1 subprocess coverage as in every other tier."""
+    from scripts.dev.common import V1_BOOTSTRAP_SOURCE, coverage_omit_patterns, packages
+
+    sources = [*packages(), V1_BOOTSTRAP_SOURCE]
+    omit = coverage_omit_patterns()
+    return "\n".join(
+        [
+            "[run]",
+            "branch = True",
+            "parallel = True",
+            "relative_files = True",
+            "patch = subprocess",
+            "source =",
+            *[f"    {source}" for source in sources],
+            "omit =",
+            *[f"    {pattern}" for pattern in omit],
+            "",
+        ]
+    )
 
 
-def selected_tests(patterns, output, data, *, tag="tests", timeout=180):
-    tests = sorted({str(p.relative_to(ROOT)) for pattern in patterns for p in ROOT.glob(pattern)})
+def resolve_test_selectors(selectors, root=ROOT):
+    """Resolve paths or one exact pytest node per path without widening the selection."""
+    tests = set()
+    for selector in selectors:
+        path, separator, node = selector.partition("::")
+        candidates = sorted(root.glob(path)) if any(c in path for c in "*?[") else [root / path]
+        candidates = [candidate for candidate in candidates if candidate.is_file()]
+        if not candidates or (separator and len(candidates) != 1):
+            return []
+        for candidate in candidates:
+            selected = str(candidate.relative_to(root))
+            tests.add(f"{selected}::{node}" if separator else selected)
+    return sorted(tests)
+
+
+def selected_tests(
+    patterns,
+    output,
+    data,
+    *,
+    tag="tests",
+    timeout=180,
+    require_integration=False,
+    storage_mode="lambda",
+):
+    tests = resolve_test_selectors(patterns)
     if not tests:
         return {"status": "INCOMPLETE", "reason": "Owning acceptance tests not integrated"}
     report = output / f"{tag}.xml"
-    env = local_environment(data)
+    env = local_environment(data, storage_mode=storage_mode)
     # Tests that can capture a screenshot or page state on failure write it here. Only
     # redacted files are meant to leave the runtime directory (see the CI artifact step).
     env["V1_FAILURE_DIR"] = str(output / f"failure-{tag}")
     command = [sys.executable, "-m", "pytest", *tests, "-q", "--junitxml", str(report)]
+    if require_integration:
+        # The existing plugin and JUnit result both reject missing fixture resources/skips.
+        command += ["-p", "scripts.dev.pytest_plugin", "--require-integration"]
     if os.environ.get("V1_COVERAGE") == "1":
         # The encoder, alembic and watchdog run as child processes, so measure those too
         # (patch = subprocess). Each invocation writes its own fragment for later combining.
-        from scripts.dev.common import packages
+        from scripts.dev.common import V1_BOOTSTRAP_SOURCE, packages
 
         rc = output / f"coveragerc-{tag}"
-        rc.write_text(COVERAGE_RC.format(sources="\n".join("    " + p for p in packages())))
+        rc.write_text(coverage_rc())
         env["COVERAGE_FILE"] = str(output / f".coverage.{tag}")
         command += [f"--cov-config={rc}", "--cov-report=", "--cov-fail-under=0"]
-        command += [f"--cov={name}" for name in packages()]
+        command += [f"--cov={name}" for name in (*packages(), V1_BOOTSTRAP_SOURCE)]
     reason = None
     try:
         result = subprocess.run(
@@ -443,6 +665,7 @@ def selected_tests(patterns, output, data, *, tag="tests", timeout=180):
         run_failure = {"id": " ".join(tests), "kind": "run", "message": reason}
         return {"status": "FAIL", "reason": reason, "failed_tests": [run_failure]}
     counts, failed, skipped = read_junit(report)
+    node_ids = junit_test_ids(report)
     if reason:
         failed.append({"id": " ".join(tests), "kind": "run", "message": reason})
     # The raw report may quote request headers; only this redacted copy is published.
@@ -459,6 +682,8 @@ def selected_tests(patterns, output, data, *, tag="tests", timeout=180):
         "counts": counts,
         "junit_sha256": digest(report),
         "tests": tests,
+        "node_ids": node_ids,
+        "passed": max(0, len(node_ids) - len(failed) - len(skipped)),
         # Counts alone cannot say which test flaked, so name the failing ones.
         "failed_tests": failed,
         "skipped_tests": skipped,
@@ -489,6 +714,45 @@ def read_junit(report):
             elif outcome.tag == "skipped":
                 skipped.append(identity)
     return counts, failed, skipped
+
+
+def junit_test_ids(report):
+    """Return the exact collected pytest node IDs recorded in this execution report."""
+    from xml.etree import ElementTree as ET
+
+    root = ET.parse(report).getroot()
+    return [
+        f"{case.get('classname', '').replace('.', '/')}.py::{case.get('name', '')}"
+        for case in root.iter("testcase")
+    ]
+
+
+def summarize_required_nodes(result):
+    """Count exact selected, passed, skipped and failed nodes by registry group."""
+    node_ids = result.get("node_ids", [])
+    failed = {item["id"] for item in result.get("failed_tests", [])}
+    skipped = set(result.get("skipped_tests", []))
+
+    def summarize(selectors):
+        selected = set()
+        for selector in selectors:
+            path, separator, node = selector.partition("::")
+            if separator:
+                selected.update(item for item in node_ids if item == f"{path}::{node}")
+            else:
+                selected.update(item for item in node_ids if item.startswith(f"{path}::"))
+        return {
+            "selected": len(selected),
+            "passed": len(selected - failed - skipped),
+            "skipped": len(selected & skipped),
+            "failed": len(selected & failed),
+        }
+
+    return {
+        "core": summarize(CORE_INTEGRATION_SUITES),
+        "support": summarize(SUPPORT_INTEGRATION_SELECTORS),
+        "real_password": summarize([CREDENTIAL_ROTATION_REGRESSION]),
+    }
 
 
 def failed_tests(flows):
@@ -526,7 +790,12 @@ def combine_coverage(output, run_id):
     """Merge every fragment of this run into one tier the CI coverage gate can consume."""
     from coverage import Coverage
 
-    from scripts.dev.common import fingerprint, packages
+    from scripts.dev.common import (
+        V1_BOOTSTRAP_SOURCE,
+        coverage_omit_patterns,
+        fingerprint,
+        packages,
+    )
 
     fragments = sorted(
         str(path) for path in output.rglob(".coverage.*") if not path.name.endswith(".json")
@@ -541,10 +810,24 @@ def combine_coverage(output, run_id):
     merged.combine(data_paths=fragments, strict=True, keep=True)
     merged.save()
     target.with_suffix(target.suffix + ".json").write_text(
-        json.dumps({"fingerprint": fingerprint(), "tier": "v1-integration", "packages": packages()})
+        json.dumps(
+            {
+                "fingerprint": fingerprint(),
+                "tier": "v1-integration",
+                "packages": packages(),
+                "coverage_sources": [*packages(), V1_BOOTSTRAP_SOURCE],
+                "omit": coverage_omit_patterns(),
+            }
+        )
         + "\n"
     )
-    return {"status": "COLLECTED", "fragments": len(fragments), "tier": "v1-integration"}
+    return {
+        "status": "COLLECTED",
+        "fragments": len(fragments),
+        "tier": "v1-integration",
+        "omit": coverage_omit_patterns(),
+        "bootstrap_source": V1_BOOTSTRAP_SOURCE,
+    }
 
 
 def run_flow(name, data, phase):
@@ -577,21 +860,52 @@ def run_flow(name, data, phase):
     session = selected_tests(
         ["tests/v1/test_session.py", "tests/v1/test_launcher_sql.py"], phase, data, tag="session"
     )
+    required = selected_tests(
+        REQUIRED_INTEGRATION_SELECTORS,
+        phase,
+        data,
+        tag="required-integration",
+        timeout=900,
+        require_integration=True,
+        storage_mode="static",
+    )
+    bootstrap = selected_tests(
+        ["tests/aws/v1/test_bootstrap.py"],
+        phase,
+        data,
+        tag="bootstrap-coverage",
+        timeout=180,
+    )
     release_path = ROOT / "tests/v1/test_release_acceptance.py"
-    result = {
+    release = {
         "status": "INCOMPLETE",
-        "sessions": session,
-        "release": "NOT_RUN: owning real SQL release acceptance not integrated",
+        "reason": "Owning real SQL release acceptance is not integrated",
     }
     if release_path.exists():
         release = selected_tests(
             ["tests/v1/test_release_acceptance.py"], phase, data, tag="release"
         )
-        result.update(
-            release=release,
-            status="PASS" if session["status"] == release["status"] == "PASS" else "FAIL",
-        )
-    return result
+    statuses = {session["status"], required["status"], bootstrap["status"], release["status"]}
+    status = "FAIL" if "FAIL" in statuses else "INCOMPLETE" if "INCOMPLETE" in statuses else "PASS"
+    return {
+        "status": status,
+        "sessions": session,
+        "required_integration": required,
+        "required_integration_counts": summarize_required_nodes(required),
+        "bootstrap_coverage": bootstrap,
+        "release": release,
+        "suite_registry": {
+            "core_cases_expected": EXPECTED_CORE_CASES,
+            "audit_core_cases": AUDIT_CORE_CASES,
+            "additional_recovery_cases": ADDITIONAL_RECOVERY_CASES,
+            "support_cases_expected": len(SUPPORT_INTEGRATION_SELECTORS),
+            "real_password_regression": CREDENTIAL_ROTATION_REGRESSION,
+            "optional_cases_deferred": 13,
+            "optional_disposition": OPTIONAL_INTEGRATION_DISPOSITIONS[
+                "tests/v1/test_short_encoder_sql.py"
+            ],
+        },
+    }
 
 
 def verify(run_id, flow):
@@ -615,6 +929,7 @@ def verify(run_id, flow):
         "tracked_dirty": provenance["source"]["dirty"],
         **provenance,
         "browser_requested": browser_requested(),
+        "integration_registry": validate_integration_registry(),
         "flows": {},
     }
     for name in ["a", "b", "c"] if flow == "all" else [flow]:

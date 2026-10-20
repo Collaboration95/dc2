@@ -21,6 +21,7 @@ from scripts.ci.policy import (
     image_inputs,
     validate_gate,
 )
+from scripts.dev.common import coverage_omit_patterns
 
 ROOT = Path(__file__).resolve().parents[2]
 SHA = "a" * 40
@@ -448,8 +449,10 @@ class FullCoverageTests(unittest.TestCase):
             "argparse": argparse,
             "Path": Path,
             "json": json,
+            "ROOT": ROOT,
             "fingerprint": lambda: "same",
             "packages": lambda: ["media"],
+            "coverage_omit_patterns": coverage_omit_patterns,
         }
         exec(
             compile(ast.Module(body=[function], type_ignores=[]), "coverage-evidence-gate", "exec"),
@@ -473,7 +476,13 @@ class FullCoverageTests(unittest.TestCase):
                     for path, tier in zip(paths, tiers, strict=True):
                         path.write_text("placeholder")
                         Path(str(path) + ".json").write_text(
-                            json.dumps({"tier": tier, "fingerprint": "same"})
+                            json.dumps(
+                                {
+                                    "tier": tier,
+                                    "fingerprint": "same",
+                                    "omit": coverage_omit_patterns(ROOT),
+                                }
+                            )
                         )
                     Path(str(missing) + ".json" if metadata_missing else missing).unlink()
                     with self.subTest(missing=missing.name, metadata=metadata_missing):

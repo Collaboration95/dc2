@@ -116,7 +116,7 @@ def test_a_killed_test_run_is_reported_as_a_failed_run_not_a_silent_one(tmp_path
     def expire(*args, **kwargs):
         raise subprocess.TimeoutExpired(args[0], 1, output=b"partial out", stderr=None)
 
-    monkeypatch.setattr(v1_verify, "local_environment", lambda data: {})
+    monkeypatch.setattr(v1_verify, "local_environment", lambda data, **kwargs: {})
     monkeypatch.setattr(v1_verify.subprocess, "run", expire)
     result = v1_verify.selected_tests(
         ["tests/v1/test_browser_acceptance.py"], tmp_path, {}, tag="browser", timeout=1

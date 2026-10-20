@@ -6,7 +6,7 @@ on:
   workflow_call:
     inputs:
       flow:
-        description: a=dependencies/engine, b=clients, c=release/session, all=every flow
+        description: a=dependencies/engine, b=clients, c=release/session/core SQL suites, all=every flow
         type: string
         default: all
       run_offline:
@@ -28,7 +28,7 @@ on:
   workflow_dispatch:
     inputs:
       flow:
-        description: a=dependencies/engine, b=clients, c=release/session, all=every flow
+        description: a=dependencies/engine, b=clients, c=release/session/core SQL suites, all=every flow
         type: choice
         options: [all, a, b, c]
         default: all

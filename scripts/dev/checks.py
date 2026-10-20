@@ -5,7 +5,15 @@ import json
 import shutil
 from pathlib import Path
 
-from scripts.dev.common import PYTHON, ROOT, fingerprint, local_env, packages, run
+from scripts.dev.common import (
+    PYTHON,
+    ROOT,
+    coverage_omit_patterns,
+    fingerprint,
+    local_env,
+    packages,
+    run,
+)
 
 COVERAGE_DIR = ROOT / "artifacts/coverage"
 
@@ -69,6 +77,7 @@ def measure(command: list[str], tier: str, env: dict[str, str], timeout: int) ->
                 "fingerprint": fingerprint(),
                 "tier": tier,
                 "packages": packages(),
+                "omit": coverage_omit_patterns(),
             }
         )
         + "\n"

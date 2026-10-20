@@ -5,6 +5,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from scripts.dev import v1_verify
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -88,3 +90,81 @@ def test_make_test_v1_uses_the_same_offline_guard_as_make_test():
     makefile = (ROOT / "Makefile").read_text()
     recipe = makefile.split("\ntest-v1:", 1)[1].split("\n\n", 1)[0]
     assert "-p scripts.dev.pytest_plugin --offline-fast" in recipe
+
+
+def test_v1_registry_selects_core_support_and_password_cases_without_short_lane():
+    registry = v1_verify.validate_integration_registry(ROOT)
+    assert len(registry["required_core_suites"]) == 9
+    assert len(registry["required_support_suites"]) == 2
+    assert v1_verify.AUDIT_CORE_CASES == 93
+    assert v1_verify.EXPECTED_CORE_CASES == 95
+    assert registry["required_regression_node"] == v1_verify.CREDENTIAL_ROTATION_REGRESSION
+    assert len(v1_verify.REQUIRED_INTEGRATION_SELECTORS) == 13
+    assert set(v1_verify.integration_test_nodes(ROOT)) == {
+        *v1_verify.SUPPORT_INTEGRATION_SELECTORS,
+        v1_verify.CREDENTIAL_ROTATION_REGRESSION,
+    }
+    assert "tests/v1/test_short_encoder_sql.py" in registry["optional_dispositions"]
+    assert registry["optional_dispositions"]["tests/v1/test_short_encoder_sql.py"]["cases"] == 13
+    assert "tests/v1/test_short_encoder_sql.py" not in v1_verify.REQUIRED_INTEGRATION_SELECTORS
+
+
+def test_new_integration_file_cannot_escape_the_v1_registry(tmp_path):
+    directory = tmp_path / "tests/v1"
+    directory.mkdir(parents=True)
+    (directory / "test_unregistered.py").write_text(
+        "import pytest\n\n@pytest.mark.integration\ndef test_live():\n    pass\n"
+    )
+    with pytest.raises(ValueError, match="test_unregistered.py"):
+        v1_verify.validate_integration_registry(tmp_path)
+
+
+def test_explicit_local_test_environment_contains_owned_admin_dsns_endpoints_and_tls(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("AWS_PROFILE", "ambient-profile")
+    data = {
+        "root": str(tmp_path),
+        "run_id": "t3-local-test",
+        "endpoint_url": "http://127.0.0.1:49123",
+        "postgres_port": 49124,
+        "resources": {
+            "buckets": {"source": "owned-source", "output": "owned-output"},
+            "queues": {
+                "commands": "owned-commands",
+                "work": "owned-work",
+                "results": "owned-results",
+            },
+        },
+    }
+
+    env = v1_verify.local_environment(data)
+
+    assert "AWS_PROFILE" not in env
+    assert "/media_db?ssl=verify-full" in env["V1_TEST_MEDIA_DSN"]
+    assert "/processing_db?ssl=verify-full" in env["V1_TEST_PROCESSING_DSN"]
+    assert env["PGSSLROOTCERT"].endswith("/tls/server.crt")
+    assert env["V1_TEST_S3_ENDPOINT"] == data["endpoint_url"]
+    assert env["V1_TEST_SQS_ENDPOINT"] == data["endpoint_url"]
+    assert env["MEDIA_POSTGRES_SSL_CA"].endswith("/tls/server.crt")
+    assert env["PROCESSING_DATABASE_TLS"] == "true"
+    assert env["PROCESSING_DATABASE_CA_FILE"].endswith("/tls/server.crt")
+    assert env["MEDIA_MINIO_ENDPOINT"] == "127.0.0.1:49123"
+    assert "local_v1_admin@127.0.0.1:49124" in env["V1_TEST_MEDIA_DSN"]
+    assert env["MEDIA_STORAGE_CREDENTIAL_MODE"] == "lambda"
+    assert (
+        v1_verify.local_environment(data, storage_mode="static")["MEDIA_STORAGE_CREDENTIAL_MODE"]
+        == "static"
+    )
+
+
+def test_local_test_environment_rejects_non_loopback_emulator(tmp_path):
+    data = {
+        "root": str(tmp_path),
+        "run_id": "t3-local-test",
+        "endpoint_url": "https://example.invalid",
+        "postgres_port": 49124,
+        "resources": {"buckets": {}, "queues": {}},
+    }
+    with pytest.raises(ValueError, match="owned loopback emulator"):
+        v1_verify.local_environment(data)
