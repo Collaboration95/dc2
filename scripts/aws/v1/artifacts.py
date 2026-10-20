@@ -25,8 +25,11 @@ def validate_bundle(bundle, *, owner, deployed=False):
     # every rebuilt artifact shares one frozen source, and at least one must be rebuilt.
     if any(type(proof.get("retained", False)) is not bool for proof in bundle.values()):
         raise OperationError("Retained must be a boolean")
-    fresh = {} if deployed else {
-        kind: proof for kind, proof in bundle.items() if not proof.get("retained")}
+    fresh = (
+        {}
+        if deployed
+        else {kind: proof for kind, proof in bundle.items() if not proof.get("retained")}
+    )
     if not fresh and not deployed:
         raise OperationError("A release needs at least one rebuilt artifact")
     source = next(iter(fresh.values()))["source_sha"] if fresh else None
@@ -54,8 +57,7 @@ class ScanPending(OperationError):
 
 def registry_scan(aws, repository, digest, tag, accept_ids=()):
     """The same completed ECR policy for first deploy, resume and owner release."""
-    request = {"repositoryName": repository.split("/", 1)[1],
-               "imageId": {"imageDigest": digest}}
+    request = {"repositoryName": repository.split("/", 1)[1], "imageId": {"imageDigest": digest}}
     reply = aws("ecr", "describe-image-scan-findings", request)
     if not isinstance(reply, dict):
         raise OperationError(f"The scan of {tag} returned no report")
@@ -71,8 +73,9 @@ def registry_scan(aws, repository, digest, tag, accept_ids=()):
     data = reply.get("imageScanFindings")
     counts = data.get("findingSeverityCounts") if isinstance(data, dict) else None
     if not isinstance(counts, dict) or any(type(v) is not int or v < 0 for v in counts.values()):
-        raise OperationError(f"The scan of {tag} severity counts are missing/invalid; "
-                             "cannot be matched to findings")
+        raise OperationError(
+            f"The scan of {tag} severity counts are missing/invalid; cannot be matched to findings"
+        )
     total = counts.get("HIGH", 0) + counts.get("CRITICAL", 0)
     merged = json.loads(json.dumps(reply, default=str))
     merged["imageScanFindings"].setdefault("findings", [])
@@ -84,10 +87,13 @@ def registry_scan(aws, repository, digest, tag, accept_ids=()):
         if pages > 200:
             raise OperationError(f"The scan findings of {tag} do not end")
         page = aws("ecr", "describe-image-scan-findings", {**request, "nextToken": token})
-        if (not isinstance(page, dict) or not isinstance(page.get("imageScanStatus"), dict)
-                or not isinstance(page.get("imageId"), dict)
-                or page["imageScanStatus"].get("status") != "COMPLETE"
-                or page.get("imageId", {}).get("imageDigest") != digest):
+        if (
+            not isinstance(page, dict)
+            or not isinstance(page.get("imageScanStatus"), dict)
+            or not isinstance(page.get("imageId"), dict)
+            or page["imageScanStatus"].get("status") != "COMPLETE"
+            or page.get("imageId", {}).get("imageDigest") != digest
+        ):
             raise OperationError(f"The scan findings of {tag} changed during pagination")
         page_data = page.get("imageScanFindings")
         if not isinstance(page_data, dict) or not isinstance(page_data.get("findings", []), list):
@@ -97,29 +103,40 @@ def registry_scan(aws, repository, digest, tag, accept_ids=()):
             merged["imageScanFindings"]["enhancedFindings"] = True
         token = page.get("nextToken")
     if merged["imageScanFindings"].get("enhancedFindings"):
-        raise OperationError(f"The scan of {tag} uses enhanced findings, which this policy "
-                             "cannot match")
+        raise OperationError(
+            f"The scan of {tag} uses enhanced findings, which this policy cannot match"
+        )
     findings = merged["imageScanFindings"]["findings"]
     if not isinstance(findings, list) or any(not isinstance(f, dict) for f in findings):
         raise OperationError(f"The scan findings of {tag} are malformed")
     serious = [f for f in findings if f.get("severity") in ("HIGH", "CRITICAL")]
     if not accept_ids and (total or serious):
-        raise OperationError(f"{tag} has {max(total, len(serious))} HIGH/CRITICAL scan findings; "
-                             "the release gate blocks it")
+        raise OperationError(
+            f"{tag} has {max(total, len(serious))} HIGH/CRITICAL scan findings; "
+            "the release gate blocks it"
+        )
     accepted = []
     if accept_ids:
         if len(serious) != total:
-            raise OperationError(f"The scan of {tag} counts {total} HIGH/CRITICAL findings but "
-                                 f"lists {len(serious)}, so they cannot be matched to the "
-                                 "accept list")
+            raise OperationError(
+                f"The scan of {tag} counts {total} HIGH/CRITICAL findings but "
+                f"lists {len(serious)}, so they cannot be matched to the "
+                "accept list"
+            )
         names = {str(f.get("name")) for f in serious}
         blocked = sorted(names - set(accept_ids))
         if blocked:
             shown = ", ".join(blocked[:10]) + (" ..." if len(blocked) > 10 else "")
-            raise OperationError(f"{tag} has {len(blocked)} HIGH/CRITICAL scan finding(s) not "
-                                 f"on the accept list: {shown}")
+            raise OperationError(
+                f"{tag} has {len(blocked)} HIGH/CRITICAL scan finding(s) not "
+                f"on the accept list: {shown}"
+            )
         accepted = sorted(names)
-    return {"status": "COMPLETE", "severity_counts": counts,
-            "blocking_high_critical": 0, "accepted_high_critical": accepted,
-            "report_sha256": "sha256:" + hashlib.sha256(
-                json.dumps(merged, sort_keys=True, default=str).encode()).hexdigest()}
+    return {
+        "status": "COMPLETE",
+        "severity_counts": counts,
+        "blocking_high_critical": 0,
+        "accepted_high_critical": accepted,
+        "report_sha256": "sha256:"
+        + hashlib.sha256(json.dumps(merged, sort_keys=True, default=str).encode()).hexdigest(),
+    }

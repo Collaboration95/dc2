@@ -307,9 +307,7 @@ def refusal():
 
 
 @pytest.mark.parametrize("service", ["media", "processing"])
-def test_the_ready_invocation_reports_unavailable_and_forgets_a_refused_dsn(
-    monkeypatch, service
-):
+def test_the_ready_invocation_reports_unavailable_and_forgets_a_refused_dsn(monkeypatch, service):
     from contextlib import asynccontextmanager
 
     if service == "media":
@@ -336,9 +334,9 @@ def test_the_ready_invocation_reports_unavailable_and_forgets_a_refused_dsn(
                 return False
 
         monkeypatch.setattr(
-            database_module, "create_async_engine", lambda *a, **k: SimpleNamespace(
-                connect=Refusing, dispose=AsyncMock()
-            )
+            database_module,
+            "create_async_engine",
+            lambda *a, **k: SimpleNamespace(connect=Refusing, dispose=AsyncMock()),
         )
     first = get_settings()
     assert get_settings() is first

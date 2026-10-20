@@ -390,9 +390,7 @@ def gateway_request(service, path, authorizer_result, cookie, method="GET", head
     return request
 
 
-async def test_media_authorizer_context_is_accepted_by_the_media_adapter(
-    media_config, monkeypatch
-):
+async def test_media_authorizer_context_is_accepted_by_the_media_adapter(media_config, monkeypatch):
     user = User(id=uuid4(), email="a@example.com", password_hash="x", role="operator")
     install_user(monkeypatch, media_config, {"role": "operator"}, user.id)
     token = issue_token(user.id, media_config)

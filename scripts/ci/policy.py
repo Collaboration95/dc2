@@ -53,11 +53,7 @@ V1_INPUTS = (
 # so a Media-only change never rebuilds Processing's images and vice versa. Anything shared by
 # both owners selects both.
 SERVICE_INPUTS = {
-    "media-service": (
-        "media/",
-        "tests/media/",
-        "deploy/v1/media.Dockerfile",
-    ),
+    "media-service": ("media/", "tests/media/", "deploy/v1/media.Dockerfile"),
     # The finite worker is part of Processing's release unit: it copies processing/ and
     # media_engine/ and carries the database bootstrap.
     "processing-service": (
@@ -100,16 +96,8 @@ _RUNTIME_INPUTS = (
     "deploy/v1/check_runtime.py",
 )
 IMAGE_BUILD_INPUTS = {
-    "media": (
-        *_RUNTIME_INPUTS,
-        "media/",
-        "deploy/v1/media.Dockerfile",
-    ),
-    "processing": (
-        *_RUNTIME_INPUTS,
-        "processing/",
-        "deploy/v1/processing.Dockerfile",
-    ),
+    "media": (*_RUNTIME_INPUTS, "media/", "deploy/v1/media.Dockerfile"),
+    "processing": (*_RUNTIME_INPUTS, "processing/", "deploy/v1/processing.Dockerfile"),
     "worker": (
         *_RUNTIME_INPUTS,
         "processing/",

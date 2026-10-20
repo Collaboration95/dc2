@@ -29,8 +29,12 @@ ACTIVITY_ROLES = {
     },
 }
 # The Processing functions that publish work onto processing-work, and so wake the launcher.
-WORK_PUBLISHERS = ("ProcessingCommands", "ProcessingRepair", "ProcessingEcsEvents",
-                   "ProcessingS3Events")
+WORK_PUBLISHERS = (
+    "ProcessingCommands",
+    "ProcessingRepair",
+    "ProcessingEcsEvents",
+    "ProcessingS3Events",
+)
 
 
 # Opt-in V2 experiment (#94). The database layout is chosen when the template is rendered, not by
@@ -71,8 +75,11 @@ class DatabaseOptions:
             raise ValueError(f"Auto-pause is {low} to {high} seconds")
         low, high = MAX_CAPACITY_RANGE
         capacity = self.max_capacity
-        if (type(capacity) not in (int, float) or not low <= capacity <= high
-                or capacity * 2 != int(capacity * 2)):
+        if (
+            type(capacity) not in (int, float)
+            or not low <= capacity <= high
+            or capacity * 2 != int(capacity * 2)
+        ):
             raise ValueError(f"Maximum capacity is {low} to {high} ACU in steps of 0.5")
         if type(capacity) is float and capacity == int(capacity):
             object.__setattr__(self, "max_capacity", int(capacity))  # 2.0 renders as 2
@@ -174,8 +181,11 @@ def version_description(domain, image, properties, parameters, resources):
     digest = hashlib.sha256(json.dumps(properties, sort_keys=True).encode()).hexdigest()[:12]
     parts = [domain, {"Fn::Select": [1, {"Fn::Split": ["@", ref(f"{image}ImageUri")]}]}, digest]
     for name in sorted(found):
-        if name in parameters and name not in FIXED_PARAMETERS and not name.endswith(
-                ("ImageUri", "ParameterArn")):
+        if (
+            name in parameters
+            and name not in FIXED_PARAMETERS
+            and not name.endswith(("ImageUri", "ParameterArn"))
+        ):
             parts.append(ref(name))
         elif resources.get(name, {}).get("Type") == "AWS::ECS::TaskDefinition":
             # family:revision, which a replacement always changes
@@ -220,18 +230,10 @@ def template(database=None):
         },
         # V2-live (#236): the persistent environment deploys open. False keeps V1's closed
         # template, where only a booked session opens the API, consumers and schedules.
-        "AlwaysOn": {
-            "Type": "String",
-            "Default": "false",
-            "AllowedValues": ["true", "false"],
-        },
+        "AlwaysOn": {"Type": "String", "Default": "false", "AllowedValues": ["true", "false"]},
         # The gates (stage throttle, consumers, schedules) of an always-on environment. False
         # while the kill switch is on, so a stack update keeps closed gates closed.
-        "GatesOpen": {
-            "Type": "String",
-            "Default": "true",
-            "AllowedValues": ["true", "false"],
-        },
+        "GatesOpen": {"Type": "String", "Default": "true", "AllowedValues": ["true", "false"]},
         "StageRateLimit": {"Type": "Number", "Default": 20, "MinValue": 1, "MaxValue": 1000},
         "StageBurstLimit": {"Type": "Number", "Default": 50, "MinValue": 1, "MaxValue": 2000},
         "MonthlyBudgetUsd": {"Type": "Number", "Default": 20, "MinValue": 1, "MaxValue": 1000},
@@ -687,9 +689,7 @@ def template(database=None):
     output_write = allow(["s3:PutObject", "s3:AbortMultipartUpload"], [output_objects])
     source_versions = [
         allow(
-            ["s3:ListBucketVersions"],
-            [attr("SourceBucket")],
-            prefixes("sources/*", "staging/*"),
+            ["s3:ListBucketVersions"], [attr("SourceBucket")], prefixes("sources/*", "staging/*")
         ),
         allow(["s3:DeleteObjectVersion"], [source_objects]),
     ]
@@ -773,19 +773,11 @@ def template(database=None):
             ),
             allow(["sqs:GetQueueAttributes"], [queue_arn("ProcessingWork")]),
         ],
-        "Worker": [
-            source_read,
-            output_write,
-            allow(receive, [queue_arn("ProcessingWork")]),
-        ],
+        "Worker": [source_read, output_write, allow(receive, [queue_arn("ProcessingWork")])],
         # The Lambda twin of "Worker": the same two S3 grants and the same queue verbs, on the
         # short queue instead. It cannot send, list, delete outputs, or reach any other queue,
         # and its DSN parameter is the Processing runtime one added below like every handler's.
-        SHORT_ENCODER: [
-            source_read,
-            output_write,
-            allow(receive, [queue_arn(SHORT_QUEUE)]),
-        ],
+        SHORT_ENCODER: [source_read, output_write, allow(receive, [queue_arn(SHORT_QUEUE)])],
         "MediaMigration": [],
         "ProcessingMigration": [],
     }
@@ -915,10 +907,12 @@ def template(database=None):
             {
                 "PolicyName": "activity-quiet",
                 "Roles": [ref(f"{roles['repair']}Role")],
-                "PolicyDocument": policy([
-                    allow(["ssm:GetParameter"], [marker("Touched"), marker("Quiet")]),
-                    allow(["ssm:PutParameter"], [marker("Quiet")]),
-                ]),
+                "PolicyDocument": policy(
+                    [
+                        allow(["ssm:GetParameter"], [marker("Touched"), marker("Quiet")]),
+                        allow(["ssm:PutParameter"], [marker("Quiet")]),
+                    ]
+                ),
             },
             gate="AlwaysOnEnv",
         )
@@ -928,12 +922,23 @@ def template(database=None):
         {
             "PolicyName": "activity-read",
             "Roles": [ref(f"{LAUNCHER}Role")],
-            "PolicyDocument": policy([allow(["ssm:GetParameter"], [
-                sub("arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter"
-                    "${ProcessingActivityTouched}"),
-                sub("arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter"
-                    "${ProcessingActivityQuiet}"),
-            ])]),
+            "PolicyDocument": policy(
+                [
+                    allow(
+                        ["ssm:GetParameter"],
+                        [
+                            sub(
+                                "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter"
+                                "${ProcessingActivityTouched}"
+                            ),
+                            sub(
+                                "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter"
+                                "${ProcessingActivityQuiet}"
+                            ),
+                        ],
+                    )
+                ]
+            ),
         },
         gate="AlwaysOnLauncher",
     )
@@ -963,8 +968,11 @@ def template(database=None):
     add(
         "BudgetAlertSubscription",
         "SNS::Subscription",
-        {"TopicArn": ref("BudgetAlertTopic"), "Protocol": "email",
-         "Endpoint": ref("BudgetAlertEmail")},
+        {
+            "TopicArn": ref("BudgetAlertTopic"),
+            "Protocol": "email",
+            "Endpoint": ref("BudgetAlertEmail"),
+        },
         gate="BudgetEmail",
     )
     add(
@@ -1096,16 +1104,20 @@ def template(database=None):
         domain = "Media" if name.startswith("Media") else "Processing"
         prefix = domain.upper()
         queues = {v: ref(f"{queue_of[v]}Queue") for v in queue_env.get(name, ())}
-        env = common_env | queues | {
-            f"{prefix}_POSTGRES_DSN_PARAMETER_ARN": ref(f"{domain}RuntimeDsnParameterArn"),
-            f"{prefix}_STORAGE_CREDENTIAL_MODE": "lambda",
-            f"{prefix}_RUNTIME_MODE": "lambda",
-            **db_ca_env(domain),
-            f"{prefix}_MINIO_ENDPOINT": sub("s3.${AWS::Region}.amazonaws.com"),
-            f"{prefix}_MINIO_USE_SSL": "true",
-            f"{prefix}_MINIO_REGION": ref("AWS::Region"),
-            f"{prefix}_MINIO_OUTPUT_BUCKET": ref("OutputBucket"),
-        }
+        env = (
+            common_env
+            | queues
+            | {
+                f"{prefix}_POSTGRES_DSN_PARAMETER_ARN": ref(f"{domain}RuntimeDsnParameterArn"),
+                f"{prefix}_STORAGE_CREDENTIAL_MODE": "lambda",
+                f"{prefix}_RUNTIME_MODE": "lambda",
+                **db_ca_env(domain),
+                f"{prefix}_MINIO_ENDPOINT": sub("s3.${AWS::Region}.amazonaws.com"),
+                f"{prefix}_MINIO_USE_SSL": "true",
+                f"{prefix}_MINIO_REGION": ref("AWS::Region"),
+                f"{prefix}_MINIO_OUTPUT_BUCKET": ref("OutputBucket"),
+            }
+        )
         if name == LAUNCHER:
             env |= {
                 "PROCESSING_LAUNCHER_CLUSTER": attr("Cluster"),
@@ -2058,7 +2070,7 @@ def template(database=None):
                     }
                     for d in ("Media", "Processing", "Worker")
                 ],
-            },
+            }
         },
         "Resources": resources,
         "Outputs": {name: {"Value": value} for name, value in outputs.items()},
@@ -2066,10 +2078,7 @@ def template(database=None):
     for name in handlers:
         gate = gate_of(name)
         result["Outputs"][f"{name}FunctionName"] = {"Condition": gate, "Value": ref(name)}
-        result["Outputs"][f"{name}AliasArn"] = {
-            "Condition": gate,
-            "Value": ref(f"{name}Alias"),
-        }
+        result["Outputs"][f"{name}AliasArn"] = {"Condition": gate, "Value": ref(f"{name}Alias")}
     for name in ("Worker", "MediaMigration", "ProcessingMigration", "Bootstrap"):
         result["Outputs"][f"{name}TaskDefinitionArn"] = {
             "Condition": "Applications",
@@ -2118,13 +2127,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--database-topology", choices=(SHARED, SEPARATE), default=SHARED)
-    parser.add_argument("--database-auto-pause-seconds", type=int,
-                        default=DEFAULT_AUTO_PAUSE_SECONDS)
+    parser.add_argument(
+        "--database-auto-pause-seconds", type=int, default=DEFAULT_AUTO_PAUSE_SECONDS
+    )
     parser.add_argument("--database-max-capacity", type=float, default=DEFAULT_MAX_CAPACITY)
     args = parser.parse_args()
     try:
-        database = DatabaseOptions(args.database_topology, args.database_auto_pause_seconds,
-                                   args.database_max_capacity)
+        database = DatabaseOptions(
+            args.database_topology, args.database_auto_pause_seconds, args.database_max_capacity
+        )
     except ValueError as error:
         parser.error(str(error))
     args.output.parent.mkdir(parents=True, exist_ok=True)

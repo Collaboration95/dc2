@@ -168,9 +168,7 @@ def arrange_active_work(runner, monkeypatch):
     monkeypatch.setattr(runner, "active_attempts", lambda: [active])
     monkeypatch.setattr(runner, "attempt_states", lambda ids: [terminal])
     monkeypatch.setattr(
-        runner,
-        "drain",
-        lambda **kw: release.Runner.drain(runner, **kw) if kw else None,
+        runner, "drain", lambda **kw: release.Runner.drain(runner, **kw) if kw else None
     )
 
 
@@ -1374,8 +1372,7 @@ def test_public_failed_outcome_requires_visible_error(runner, monkeypatch):
         "attempt_error": "interrupted",
     }
     runner.operation.update(
-        active_work={"attempt_id": ATTEMPT, "asset_id": ASSET},
-        drain={"attempts_after": [terminal]},
+        active_work={"attempt_id": ATTEMPT, "asset_id": ASSET}, drain={"attempts_after": [terminal]}
     )
     with pytest.raises(release.ReleaseError, match="does not match"):
         release.public_drain_outcome(runner, lambda *a, **kw: {"status": "failed", "error": None})

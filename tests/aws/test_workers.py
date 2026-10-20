@@ -263,8 +263,15 @@ def test_a_forgotten_stopped_launch_with_a_complete_drain_lets_close_proceed(
     del fake.tasks[arn]
     with journal.locked() as state:
         receipt = drain(
-            config, fake, journal, state, observe=lambda *a, **kw: {},
-            warm_shutdown=lambda *a, **kw: True, deadline=1000, clock=clock, sleep=clock.sleep,
+            config,
+            fake,
+            journal,
+            state,
+            observe=lambda *a, **kw: {},
+            warm_shutdown=lambda *a, **kw: True,
+            deadline=1000,
+            clock=clock,
+            sleep=clock.sleep,
         )
     assert receipt == {"status": "complete", "tasks": []}
 

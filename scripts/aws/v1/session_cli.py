@@ -19,21 +19,24 @@ import time
 from scripts.aws.journal import Journal
 from scripts.aws.transport import OperationError
 from scripts.aws.v1 import operations
-from scripts.aws.v1.hooks import (
-    AttemptCounts,
-    LauncherHooks,
-    OwnerHooks,
-    file_reader,
-    sql_reader,
-)
+from scripts.aws.v1.hooks import AttemptCounts, LauncherHooks, OwnerHooks, file_reader, sql_reader
 from scripts.aws.v1.session import CLOSE_RETRY_SECONDS, Session
 from scripts.aws.v1.vpc_reader import VpcReader
 
 ZERO = dict.fromkeys(("queued", "processing", "succeeded", "failed", "abandoned", "cancelled"), 0)
 
 
-def build_hooks(data, hook_names, transport, *, dry_run, config=None, in_vpc=False,
-                clock=time.monotonic, sleep=time.sleep):
+def build_hooks(
+    data,
+    hook_names,
+    transport,
+    *,
+    dry_run,
+    config=None,
+    in_vpc=False,
+    clock=time.monotonic,
+    sleep=time.sleep,
+):
     """Real hooks over the transport; dry-run swaps only the counts reader for zero counts."""
     owner = OwnerHooks(transport, **hook_names, clock=clock, sleep=sleep)
     if dry_run:
@@ -49,11 +52,19 @@ def build_hooks(data, hook_names, transport, *, dry_run, config=None, in_vpc=Fal
     return owner, AttemptCounts(reader, clock=clock, sleep=sleep) if reader else None
 
 
-def run_action(args, session, data, hook_names, transport, deadline, *, clock=time.monotonic,
-               sleep=time.sleep):
+def run_action(
+    args, session, data, hook_names, transport, deadline, *, clock=time.monotonic, sleep=time.sleep
+):
     owner, counts = build_hooks(
-        data, hook_names, transport, dry_run=args.dry_run, config=session.config,
-        in_vpc=args.in_vpc_counts, clock=clock, sleep=sleep)
+        data,
+        hook_names,
+        transport,
+        dry_run=args.dry_run,
+        config=session.config,
+        in_vpc=args.in_vpc_counts,
+        clock=clock,
+        sleep=sleep,
+    )
     if args.action in {"open", "window"}:
         unattended = args.action == "open" and args.unattended
         return session.open(
@@ -68,14 +79,18 @@ def run_action(args, session, data, hook_names, transport, deadline, *, clock=ti
     if args.action == "close":
         if counts is None:
             raise OperationError(
-                "Close needs SQL or operator counts (config sql/counts_file), or --in-vpc-counts")
+                "Close needs SQL or operator counts (config sql/counts_file), or --in-vpc-counts"
+            )
         return session.close(
             drain=counts.drain,
             outcomes=counts.outcomes,
             deadline=deadline,
             # Whenever the stack has a launcher, close disables its flag, not only its rule.
-            launcher=(LauncherHooks(owner, clock=clock, sleep=sleep)
-                      if session.config.get("launcher") else None),
+            launcher=(
+                LauncherHooks(owner, clock=clock, sleep=sleep)
+                if session.config.get("launcher")
+                else None
+            ),
         )
     if args.action == "status":
         return session.status(deadline=deadline)
@@ -111,8 +126,16 @@ def run_dlq(args, urls, sqs_factory, scope):
     return dlq.status(client, target["arn"])
 
 
-def main(argv=None, *, environ=None, transport_factory=None, sqs_factory=None, stdout=None,
-         clock=time.monotonic, sleep=time.sleep):
+def main(
+    argv=None,
+    *,
+    environ=None,
+    transport_factory=None,
+    sqs_factory=None,
+    stdout=None,
+    clock=time.monotonic,
+    sleep=time.sleep,
+):
     environ = os.environ if environ is None else environ
     stdout = stdout or sys.stdout
     parser = argparse.ArgumentParser(prog="scripts.aws.v1.session", description=__doc__)
@@ -130,9 +153,12 @@ def main(argv=None, *, environ=None, transport_factory=None, sqs_factory=None, s
     parser.add_argument("--dlq-command", choices=["inspect", "status", "redrive"], default="status")
     parser.add_argument("--limit", type=int, default=10, help="dlq inspect: messages (1..50)")
     parser.add_argument("--confirm-redrive", action="store_true", help="dlq redrive writes")
-    parser.add_argument("--in-vpc-counts", action="store_true",
-                        help="close: read attempt counts with a finite in-VPC task, not a "
-                             "SQL station or an attested counts file")
+    parser.add_argument(
+        "--in-vpc-counts",
+        action="store_true",
+        help="close: read attempt counts with a finite in-VPC task, not a "
+        "SQL station or an attested counts file",
+    )
     parser.add_argument("--confirm-empty", action="store_true", help="init: inventory is empty")
     parser.add_argument("--confirm-exclusive", action="store_true", help="init: sole station")
     operations.add_scope_arguments(parser)
@@ -171,8 +197,9 @@ def main(argv=None, *, environ=None, transport_factory=None, sqs_factory=None, s
             if not args.dry_run:
                 session.close_retry_seconds = CLOSE_RETRY_SECONDS
             deadline = clock() + args.deadline_seconds
-            result = run_action(args, session, data, hook_names, transport, deadline, clock=clock,
-                                sleep=sleep)
+            result = run_action(
+                args, session, data, hook_names, transport, deadline, clock=clock, sleep=sleep
+            )
     except OperationError as error:
         print(json.dumps({"ok": False, "error": str(error)}), file=stdout)
         return 1

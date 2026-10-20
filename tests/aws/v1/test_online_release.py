@@ -9,8 +9,10 @@ from scripts.aws.v1.definitions import LAUNCHER
 from scripts.aws.v1.hooks import owner_online
 from scripts.aws.v1.operations import PlanTransport, config_from_outputs
 
-OUTPUTS = outputs() | {f"{LAUNCHER}FunctionName": "fn-launcher",
-                       f"{LAUNCHER}RuleName": "rule-launcher"}
+OUTPUTS = outputs() | {
+    f"{LAUNCHER}FunctionName": "fn-launcher",
+    f"{LAUNCHER}RuleName": "rule-launcher",
+}
 
 
 def environment(*, enabled=True):
@@ -50,9 +52,18 @@ def test_the_launcher_rule_counts_among_processing_consumers():
 def test_online_promotes_only_by_flag_and_closed_releases_keep_quiescence(monkeypatch):
     from scripts.aws.v1 import release_cli
 
-    args = type("Args", (), {"online": True, "owner": None, "migration_definition": None,
-                             "smoke_url": None, "smoke_credentials": None,
-                             "no_reserve": False})()
+    args = type(
+        "Args",
+        (),
+        {
+            "online": True,
+            "owner": None,
+            "migration_definition": None,
+            "smoke_url": None,
+            "smoke_credentials": None,
+            "no_reserve": False,
+        },
+    )()
     data = {"sql": {"ca_file": "ca", "media_dsn_file": "m", "processing_dsn_file": "p"}}
     config, transport = environment()
     online, *_ = release_cli.hooks_for(config, data, transport, args, None)

@@ -62,9 +62,7 @@ def test_a_180_second_window_may_overshoot_by_float_noise_but_not_by_more(oversh
     # a 1e-7 residue, which must not make an honestly booked 180 s window ineligible.
     window = {**WINDOW, "ended_at": 180 + overshoot}
     samples = [sample(u, at=t) for t in range(180) for u in range(50)]
-    result = summarize(
-        samples, users=50, duration_seconds=180, measurement="status", window=window
-    )
+    result = summarize(samples, users=50, duration_seconds=180, measurement="status", window=window)
     assert result["eligible"] is eligible
 
 

@@ -48,9 +48,7 @@ def test_prices_come_from_the_captured_price_files():
 
 def test_lambda_cost_is_gb_seconds_plus_ephemeral_above_the_free_tier_plus_a_request():
     prices = short_encode.load_prices()
-    cost = short_encode.lambda_cost(
-        10_000, memory_mb=3584, ephemeral_mb=2048, prices=prices
-    )
+    cost = short_encode.lambda_cost(10_000, memory_mb=3584, ephemeral_mb=2048, prices=prices)
     expected = (
         10 * 3584 / 1024 * prices["lambda_gb_second"]
         + 10 * (2048 - 512) / 1024 * prices["lambda_storage_gb_second"]
@@ -88,15 +86,27 @@ WARM = (
 
 
 def encode_line(job, request, outcome="finished", cold=False):
-    payload = {"event": "short_encode", "job_id": job, "request_id": request,
-               "outcome": outcome, "cold": cold, "seconds": 1.0}
+    payload = {
+        "event": "short_encode",
+        "job_id": job,
+        "request_id": request,
+        "outcome": outcome,
+        "cold": cold,
+        "seconds": 1.0,
+    }
     return "[INFO]\t2026-10-17T10:00:00Z\tabc\tdc2.short_encode " + json.dumps(payload)
 
 
 def test_report_lines_yield_billed_init_and_memory_and_other_lines_yield_nothing():
     cold = short_encode.parse_report(COLD)
-    assert cold == {"request_id": "aaaa1111", "duration_ms": 8123.45, "billed_ms": 8124,
-                    "memory_mb": 3584, "max_memory_mb": 912, "init_ms": 1650.2}
+    assert cold == {
+        "request_id": "aaaa1111",
+        "duration_ms": 8123.45,
+        "billed_ms": 8124,
+        "memory_mb": 3584,
+        "max_memory_mb": 912,
+        "init_ms": 1650.2,
+    }
     assert short_encode.parse_report(WARM)["init_ms"] is None
     assert short_encode.parse_report("START RequestId: x Version: $LATEST") is None
 
@@ -122,13 +132,23 @@ def test_invocations_are_grouped_by_job_and_joined_to_their_report_by_request_id
 
 
 def row(phase, seconds, *, success=True, status="done", retries=0):
-    return {"phase": phase, "seconds": seconds, "success": success, "status": status,
-            "retries": retries, "regressions": 0}
+    return {
+        "phase": phase,
+        "seconds": seconds,
+        "success": success,
+        "status": status,
+        "retries": retries,
+        "regressions": 0,
+    }
 
 
 def test_summaries_keep_failures_in_the_denominator_and_split_cold_from_warm():
-    rows = [row("cold", 40.0), row("warm", 20.0), row("warm", 30.0),
-            row("warm", 99.0, success=False, status="failed")]
+    rows = [
+        row("cold", 40.0),
+        row("warm", 20.0),
+        row("warm", 30.0),
+        row("warm", 99.0, success=False, status="failed"),
+    ]
     summary = short_encode.summarize(rows, arm="x", costs=[0.01, 0.01, 0.01, 0.01])
     assert (summary["jobs"], summary["successes"], summary["failures"]) == (4, 3, 1)
     assert summary["cold"]["median_seconds"] == 40.0
@@ -143,8 +163,12 @@ def test_summaries_keep_failures_in_the_denominator_and_split_cold_from_warm():
 def test_status_regressions_count_only_backwards_moves():
     forward = [(0, "queued"), (5, "processing"), (30, "done")]
     assert short_encode.regressions(forward) == 0
-    assert short_encode.regressions([(0, "queued"), (5, "processing"), (9, "queued"),
-                                     (20, "processing"), (30, "done")]) == 1
+    assert (
+        short_encode.regressions(
+            [(0, "queued"), (5, "processing"), (9, "queued"), (20, "processing"), (30, "done")]
+        )
+        == 1
+    )
 
 
 # --- The arms against the simulation ---------------------------------------------------------
@@ -158,8 +182,9 @@ def run_both(tmp_path, fixture, *, lambda_world=None, fargate_world=None):
     (second.evidence_dir / "evidence-93-t.json").write_bytes(
         (first.evidence_dir / "evidence-93-t.json").read_bytes()
     )
-    short_encode.run(second, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=3,
-                     idle_minutes=0)
+    short_encode.run(
+        second, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=3, idle_minutes=0
+    )
     return short_encode.run(second, arm="compare"), first, second
 
 
@@ -206,8 +231,9 @@ def test_the_fargate_arm_refuses_a_stack_that_has_the_lane(tmp_path, fixture):
 
 def test_the_lambda_arm_refuses_a_stack_without_the_lane(tmp_path, fixture):
     ctx = build(tmp_path, "plain")
-    proof = short_encode.run(ctx, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=2,
-                             idle_minutes=0)
+    proof = short_encode.run(
+        ctx, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=2, idle_minutes=0
+    )
     assert statuses(proof)["lambda"] == FAIL
     assert "no Lambda lane" in proof.doc["steps"]["lambda"]["public"]["error"]
 
@@ -215,8 +241,9 @@ def test_the_lambda_arm_refuses_a_stack_without_the_lane(tmp_path, fixture):
 def test_the_lambda_arm_refuses_while_its_mapping_is_closed(tmp_path, fixture):
     ctx = build(tmp_path, "closed", lambda_lane=True)
     ctx.world.plan.mappings.clear()  # no session open has enabled it
-    proof = short_encode.run(ctx, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=2,
-                             idle_minutes=0)
+    proof = short_encode.run(
+        ctx, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=2, idle_minutes=0
+    )
     assert statuses(proof)["lambda"] == FAIL
     assert "not enabled" in proof.doc["steps"]["lambda"]["public"]["error"]
 
@@ -259,11 +286,13 @@ def test_a_fixture_over_the_size_bound_is_refused(tmp_path):
 
 def test_a_rerun_of_a_finished_arm_repeats_nothing(tmp_path, fixture):
     ctx = build(tmp_path, "again", lambda_lane=True)
-    short_encode.run(ctx, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=2,
-                     idle_minutes=0)
+    short_encode.run(
+        ctx, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=2, idle_minutes=0
+    )
     invocations = len(ctx.world.invocations)
-    again = short_encode.run(ctx, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=2,
-                             idle_minutes=0)
+    again = short_encode.run(
+        ctx, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=2, idle_minutes=0
+    )
     assert again.ran == [] and len(ctx.world.invocations) == invocations
 
 
@@ -277,8 +306,9 @@ def test_a_lambda_job_that_was_redirected_or_retried_is_not_a_success(tmp_path, 
         return {"events": reply["events"] * 2}
 
     ctx.world.logs_filter_log_events = twice
-    proof = short_encode.run(ctx, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=2,
-                             idle_minutes=0)
+    proof = short_encode.run(
+        ctx, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=2, idle_minutes=0
+    )
     public = proof.doc["steps"]["lambda"]["public"]
     assert statuses(proof)["lambda"] == FAIL and public["retries"] == 2
     assert public["successes"] == 0
@@ -289,22 +319,69 @@ def test_a_lambda_job_that_was_redirected_or_retried_is_not_a_success(tmp_path, 
 
 def test_the_evidence_cli_has_a_short_encode_subcommand_and_requires_a_fixture_for_an_arm(tmp_path):
     parser = evidence.build_parser()
-    args = parser.parse_args(["short-encode", "--arm", "lambda", "--profile", "p", "--region",
-                              "r", "--account", "1", "--run-id", "x", "--dry-run"])
+    args = parser.parse_args(
+        [
+            "short-encode",
+            "--arm",
+            "lambda",
+            "--profile",
+            "p",
+            "--region",
+            "r",
+            "--account",
+            "1",
+            "--run-id",
+            "x",
+            "--dry-run",
+        ]
+    )
     assert (args.arm, args.jobs, args.idle_minutes) == ("lambda", 5, 20)
     out = io.StringIO()
-    code = evidence.main(["short-encode", "--arm", "fargate", "--profile", "dc2-agent",
-                          "--region", "ap-southeast-1", "--account", "123456789012",
-                          "--run-id", "t", "--dry-run"], stdout=out)
+    code = evidence.main(
+        [
+            "short-encode",
+            "--arm",
+            "fargate",
+            "--profile",
+            "dc2-agent",
+            "--region",
+            "ap-southeast-1",
+            "--account",
+            "123456789012",
+            "--run-id",
+            "t",
+            "--dry-run",
+        ],
+        stdout=out,
+    )
     assert code == 1 and "--fixture" in out.getvalue()
 
 
 def test_a_dry_run_of_the_fargate_arm_completes_against_the_simulation(tmp_path, fixture):
     out = io.StringIO()
-    code = evidence.main(["short-encode", "--arm", "fargate", "--fixture", str(fixture),
-                          "--fixture-seconds", "24", "--jobs", "2", "--profile", "dc2-agent",
-                          "--region", "ap-southeast-1", "--account", "123456789012",
-                          "--run-id", "t", "--dry-run"], stdout=out)
+    code = evidence.main(
+        [
+            "short-encode",
+            "--arm",
+            "fargate",
+            "--fixture",
+            str(fixture),
+            "--fixture-seconds",
+            "24",
+            "--jobs",
+            "2",
+            "--profile",
+            "dc2-agent",
+            "--region",
+            "ap-southeast-1",
+            "--account",
+            "123456789012",
+            "--run-id",
+            "t",
+            "--dry-run",
+        ],
+        stdout=out,
+    )
     report = json.loads(out.getvalue())
     assert code == 0 and report["overall"] == "SIMULATED"
     assert report["steps"]["fargate"]["status"] == PASS

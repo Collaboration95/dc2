@@ -29,7 +29,9 @@ from urllib.parse import urlsplit
 RESULT, SAMPLES = "DC2-RESULT", "DC2-SAMPLES"
 STATUS_ROUTE = "/api/media/jobs"
 OTHER_ROUTES = (
-    "/api/media/health", "/api/processing/health", "/api/media/auth/me",
+    "/api/media/health",
+    "/api/processing/health",
+    "/api/media/auth/me",
     "/api/processing/jobs?asset_ids={random}",
 )
 CHUNK = 120_000  # compressed bytes per log event; CloudWatch's limit is 256 KB
@@ -45,9 +47,12 @@ def describe(rows):
     ms = [r["elapsed_ms"] for r in rows]
     bad = sum(1 for r in rows if r["status_code"] != 200 or r["error"])
     return {
-        "count": len(rows), "errors": bad,
-        "p50_ms": percentile(ms, 0.50), "p90_ms": percentile(ms, 0.90),
-        "p95_ms": percentile(ms, 0.95), "p99_ms": percentile(ms, 0.99),
+        "count": len(rows),
+        "errors": bad,
+        "p50_ms": percentile(ms, 0.50),
+        "p90_ms": percentile(ms, 0.90),
+        "p95_ms": percentile(ms, 0.95),
+        "p99_ms": percentile(ms, 0.99),
         "max_ms": max(ms) if ms else None,
     }
 
@@ -64,7 +69,8 @@ class Requester:
     def connection(self, user):
         if user not in self.pool:
             self.pool[user] = http.client.HTTPSConnection(
-                self.host, self.port, timeout=10, context=self.context)
+                self.host, self.port, timeout=10, context=self.context
+            )
         return self.pool, self.pool[user]
 
     def __call__(self, user, method, path, cookie=None, body=None):
@@ -90,8 +96,21 @@ class Requester:
         return status, (time.perf_counter() - before) * 1000, cookies, payload
 
 
-def window_rounds(request, clock, sleep, pool, *, users, seconds, route, cookie, phase, rows,
-                  label, not_before=None):
+def window_rounds(
+    request,
+    clock,
+    sleep,
+    pool,
+    *,
+    users,
+    seconds,
+    route,
+    cookie,
+    phase,
+    rows,
+    label,
+    not_before=None,
+):
     """Whole rounds of one request per user, one round a second, until the window is spent.
 
     `end - start` may differ from `seconds` by a few float ulps; the eligibility test allows
@@ -116,9 +135,18 @@ def window_rounds(request, clock, sleep, pool, *, users, seconds, route, cookie,
         began = clock()
         done = list(pool.map(lambda u: (u, request(u, "GET", route, cookie)), range(users)))
         for user, (status, elapsed, _, _) in done:
-            rows.append({"route": label, "phase": phase, "user": user, "started_at": began,
-                         "elapsed_ms": elapsed, "ended_at": began + elapsed / 1000,
-                         "status_code": status, "error": None if status else "request_failed"})
+            rows.append(
+                {
+                    "route": label,
+                    "phase": phase,
+                    "user": user,
+                    "started_at": began,
+                    "elapsed_ms": elapsed,
+                    "ended_at": began + elapsed / 1000,
+                    "status_code": status,
+                    "error": None if status else "request_failed",
+                }
+            )
     return start, end
 
 
@@ -138,47 +166,111 @@ def run(config, request, clock, sleep, emit):
     cookie = "; ".join(c.split(";", 1)[0] for c in cookies)
     pool = ThreadPoolExecutor(max_workers=max(users, config["logins"]))
     warm_start, warm_end = window_rounds(
-        request, clock, sleep, pool, users=users, seconds=config["warmup"], route=STATUS_ROUTE,
-        cookie=cookie, phase="warmup", rows=rows, label="status")
+        request,
+        clock,
+        sleep,
+        pool,
+        users=users,
+        seconds=config["warmup"],
+        route=STATUS_ROUTE,
+        cookie=cookie,
+        phase="warmup",
+        rows=rows,
+        label="status",
+    )
     s_start, s_end = window_rounds(
-        request, clock, sleep, pool, users=users, seconds=config["seconds"], route=STATUS_ROUTE,
-        cookie=cookie, phase="timed", rows=rows, label="status", not_before=warm_end)
+        request,
+        clock,
+        sleep,
+        pool,
+        users=users,
+        seconds=config["seconds"],
+        route=STATUS_ROUTE,
+        cookie=cookie,
+        phase="timed",
+        rows=rows,
+        label="status",
+        not_before=warm_end,
+    )
     for route in OTHER_ROUTES:
         path = route.format(random=uuid.uuid4())
-        window_rounds(request, clock, sleep, pool, users=10, seconds=config["other_seconds"],
-                      route=path, cookie=cookie, phase="timed", rows=rows,
-                      label=route.split("?")[0])
+        window_rounds(
+            request,
+            clock,
+            sleep,
+            pool,
+            users=10,
+            seconds=config["other_seconds"],
+            route=path,
+            cookie=cookie,
+            phase="timed",
+            rows=rows,
+            label=route.split("?")[0],
+        )
     began = clock()
-    logins = list(pool.map(
-        lambda u: (u, request(u, "POST", "/api/media/auth/login", None, credentials)),
-        range(config["logins"])))
+    logins = list(
+        pool.map(
+            lambda u: (u, request(u, "POST", "/api/media/auth/login", None, credentials)),
+            range(config["logins"]),
+        )
+    )
     for user, (code, elapsed, _, _) in logins:
-        rows.append({"route": "login", "phase": "timed", "user": user, "started_at": began,
-                     "elapsed_ms": elapsed, "ended_at": began + elapsed / 1000,
-                     "status_code": code, "error": None if code else "request_failed"})
+        rows.append(
+            {
+                "route": "login",
+                "phase": "timed",
+                "user": user,
+                "started_at": began,
+                "elapsed_ms": elapsed,
+                "ended_at": began + elapsed / 1000,
+                "status_code": code,
+                "error": None if code else "request_failed",
+            }
+        )
     l_end = max(r["ended_at"] for r in rows if r["route"] == "login")
     pool.shutdown()
     text = "".join(
         f"{r['route']},{r['phase']},{r['user']},{r['started_at']:.10f},{r['ended_at']:.10f},"
-        f"{r['elapsed_ms']:.3f},{r['status_code'] or 0},{r['error'] or ''}\n" for r in rows)
+        f"{r['elapsed_ms']:.3f},{r['status_code'] or 0},{r['error'] or ''}\n"
+        for r in rows
+    )
     packed = base64.b64encode(zlib.compress(text.encode(), 9)).decode()
-    chunks = [packed[i:i + CHUNK] for i in range(0, len(packed), CHUNK)] or [""]
+    chunks = [packed[i : i + CHUNK] for i in range(0, len(packed), CHUNK)] or [""]
     for index, chunk in enumerate(chunks):
         print(f"{SAMPLES} {index} {len(chunks)} {chunk}", flush=True)
     timed = [r for r in rows if r["phase"] == "timed"]
-    emit(RESULT, {
-        "ok": True, "samples_sha256": hashlib.sha256(text.encode()).hexdigest(),
-        "samples_length": len(text), "chunks": len(chunks), "users": users,
-        "routes": {label: describe([r for r in timed if r["route"] == label])
-                   for label in sorted({r["route"] for r in timed})},
-        "windows": {
-            "status": {"started_at": s_start, "ended_at": s_end, "warmup_started_at": warm_start,
-                       "warmup_ended_at": warm_end, "booked_deadline": s_end + 600},
-            "login": {"started_at": began, "ended_at": l_end, "warmup_started_at": began,
-                      "warmup_ended_at": began, "booked_deadline": l_end + 600},
+    emit(
+        RESULT,
+        {
+            "ok": True,
+            "samples_sha256": hashlib.sha256(text.encode()).hexdigest(),
+            "samples_length": len(text),
+            "chunks": len(chunks),
+            "users": users,
+            "routes": {
+                label: describe([r for r in timed if r["route"] == label])
+                for label in sorted({r["route"] for r in timed})
+            },
+            "windows": {
+                "status": {
+                    "started_at": s_start,
+                    "ended_at": s_end,
+                    "warmup_started_at": warm_start,
+                    "warmup_ended_at": warm_end,
+                    "booked_deadline": s_end + 600,
+                },
+                "login": {
+                    "started_at": began,
+                    "ended_at": l_end,
+                    "warmup_started_at": began,
+                    "warmup_ended_at": began,
+                    "booked_deadline": l_end + 600,
+                },
+            },
+            "python": sys.version.split()[0],
+            "cpus": os.cpu_count(),
         },
-        "python": sys.version.split()[0], "cpus": os.cpu_count(),
-    })
+    )
     return 0
 
 
@@ -188,11 +280,13 @@ def emit(marker, payload):
 
 def main():
     base = os.environ["DC2_BASE_URL"]
-    config = {"users": int(os.environ.get("DC2_USERS", "50")),
-              "seconds": int(os.environ.get("DC2_SECONDS", "180")),
-              "warmup": int(os.environ.get("DC2_WARMUP", "5")),
-              "other_seconds": int(os.environ.get("DC2_OTHER_SECONDS", "20")),
-              "logins": int(os.environ.get("DC2_LOGINS", "20"))}
+    config = {
+        "users": int(os.environ.get("DC2_USERS", "50")),
+        "seconds": int(os.environ.get("DC2_SECONDS", "180")),
+        "warmup": int(os.environ.get("DC2_WARMUP", "5")),
+        "other_seconds": int(os.environ.get("DC2_OTHER_SECONDS", "20")),
+        "logins": int(os.environ.get("DC2_LOGINS", "20")),
+    }
     return run(config, Requester(base), time.monotonic, time.sleep, emit)
 
 

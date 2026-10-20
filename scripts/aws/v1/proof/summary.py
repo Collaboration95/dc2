@@ -9,13 +9,7 @@ file must never be able to pass a rehearsal off as AWS evidence.
 import json
 from pathlib import Path
 
-from scripts.aws.v1.proof.core import (
-    PASS,
-    ProofError,
-    check_public,
-    private_write,
-    stamp,
-)
+from scripts.aws.v1.proof.core import PASS, ProofError, check_public, private_write, stamp
 
 ROOT = Path(__file__).resolve().parents[4]
 EVIDENCE_DIR = ROOT / "docs/execution/aws/v1/evidence"
@@ -58,20 +52,30 @@ def build(docs, required, run_id, *, wall):
         if doc.get("mode") != "live" or doc.get("run_id") != run_id:
             raise ProofError(
                 f"Receipt for #{issue} is not a live receipt of this run; "
-                "a rehearsal can never be summarized for the repository")
+                "a rehearsal can never be summarized for the repository"
+            )
         issues[f"#{issue}"] = {
             "overall": overall(doc, required[issue]),
-            "steps": {name: {"status": step["status"], "seconds": step["seconds"],
-                             "public": step["public"]} for name, step in doc["steps"].items()},
+            "steps": {
+                name: {
+                    "status": step["status"],
+                    "seconds": step["seconds"],
+                    "public": step["public"],
+                }
+                for name, step in doc["steps"].items()
+            },
         }
     for issue in ISSUES:
         issues.setdefault(f"#{issue}", {"overall": "NOT_RUN", "steps": {}})
     summary = {
-        "document_kind": "V1_CLOUD_PROOF_SUMMARY_REDACTED", "run_id": run_id,
-        "generated_at": stamp(wall()), "mode": "live",
+        "document_kind": "V1_CLOUD_PROOF_SUMMARY_REDACTED",
+        "run_id": run_id,
+        "generated_at": stamp(wall()),
+        "mode": "live",
         "closes": "nothing by itself: an issue closes only when its acceptance list is met "
-                  "by the receipts and a reviewer accepts them",
-        "issues": issues, "not_proven": list(NOT_PROVEN),
+        "by the receipts and a reviewer accepts them",
+        "issues": issues,
+        "not_proven": list(NOT_PROVEN),
     }
     check_public(summary, "summary")
     return summary
@@ -91,8 +95,9 @@ def counts(docs):
     terminal. The operator attests that nothing else ran against this stack; that attestation
     is stated in the output, not hidden in a file.
     """
-    result = dict.fromkeys(("queued", "processing", "succeeded", "failed", "abandoned",
-                            "cancelled"), 0)
+    result = dict.fromkeys(
+        ("queued", "processing", "succeeded", "failed", "abandoned", "cancelled"), 0
+    )
     for issue, doc in docs.items():
         if doc.get("mode") != "live":
             raise ProofError("Counts come from live receipts only")
@@ -105,7 +110,8 @@ def counts(docs):
                 result["failed"] += public.get("outcomes", {}).get("failed", 0)
                 result["cancelled"] += public.get("outcomes", {}).get("cancelled", 0)
             if (issue == "185" and name.startswith("backlog-") and name != "backlog-compare") or (
-                    issue == "68" and name == "launcher-backlog"):
+                issue == "68" and name == "launcher-backlog"
+            ):
                 outcomes = public.get("outcomes", {})
                 result["succeeded"] += outcomes.get("done", 0)
                 result["failed"] += outcomes.get("failed", 0)
@@ -135,4 +141,3 @@ def write_counts(state_dir, docs):
     config["counts_file"] = path.name  # relative to the config: see operations.STATE_PATH_KEYS
     private_write(config_path, json.dumps(config, indent=2))
     return path
-

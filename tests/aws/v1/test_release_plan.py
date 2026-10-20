@@ -15,20 +15,32 @@ from scripts.aws.v1.proof import release, release_plan, sim
 from scripts.aws.v1.proof.core import ProofError
 
 pytestmark = pytest.mark.unmeasured
-GOOD_IDS = {"media": "sha256:" + "4" * 64, "processing": "sha256:" + "5" * 64,
-            "worker": "sha256:" + "6" * 64}
-BAD_IDS = {"media": "sha256:" + "7" * 64, "processing": "sha256:" + "8" * 64,
-           "worker": "sha256:" + "9" * 64}
+GOOD_IDS = {
+    "media": "sha256:" + "4" * 64,
+    "processing": "sha256:" + "5" * 64,
+    "worker": "sha256:" + "6" * 64,
+}
+BAD_IDS = {
+    "media": "sha256:" + "7" * 64,
+    "processing": "sha256:" + "8" * 64,
+    "worker": "sha256:" + "9" * 64,
+}
 
 
 def stack(tmp_path, *faults):
     world = sim.SimWorld(faults=faults)
-    ctx = sim.build(argparse.Namespace(run_id="t", dry_run=True), session="closed", sql=False,
-                    tmp=tmp_path / "state", world=world)
+    ctx = sim.build(
+        argparse.Namespace(run_id="t", dry_run=True),
+        session="closed",
+        sql=False,
+        tmp=tmp_path / "state",
+        world=world,
+    )
     builds = {
         "baseline": sim.build_evidence(tmp_path / "baseline.json", source_sha="a" * 40),
-        "good": sim.build_evidence(tmp_path / "good.json", source_sha="b" * 40,
-                                   config_ids=GOOD_IDS),
+        "good": sim.build_evidence(
+            tmp_path / "good.json", source_sha="b" * 40, config_ids=GOOD_IDS
+        ),
         "bad": sim.build_evidence(tmp_path / "bad.json", source_sha="c" * 40, config_ids=BAD_IDS),
     }
     world.register_build("g1", builds["good"])
@@ -38,12 +50,17 @@ def stack(tmp_path, *faults):
 
 def make(ctx, builds, tmp_path, owner="media", *, bad=False, **changes):
     options = {
-        "owner": owner, "baseline_evidence": builds["baseline"],
+        "owner": owner,
+        "baseline_evidence": builds["baseline"],
         "good": {"run_id": "g1", "evidence": builds["good"]},
-        "bad": bad if isinstance(bad, dict) else (
-            {"run_id": "b1", "evidence": builds["bad"]} if bad else None),
-        "tests_passed": 12, "target_revision": "m0007", "attest_schema_unchanged": True,
-        "out": tmp_path / "plan"}
+        "bad": bad
+        if isinstance(bad, dict)
+        else ({"run_id": "b1", "evidence": builds["bad"]} if bad else None),
+        "tests_passed": 12,
+        "target_revision": "m0007",
+        "attest_schema_unchanged": True,
+        "out": tmp_path / "plan",
+    }
     options.update(changes)
     return release_plan.run(ctx, **options)
 
@@ -53,7 +70,8 @@ def plan_of(tmp_path):
 
 
 def test_a_media_plan_names_the_deployed_baseline_and_a_new_good_image_with_its_own_definition(
-        tmp_path):
+    tmp_path,
+):
     world, ctx, builds = stack(tmp_path)
     summary = make(ctx, builds, tmp_path)
     plan = plan_of(tmp_path)
@@ -61,8 +79,9 @@ def test_a_media_plan_names_the_deployed_baseline_and_a_new_good_image_with_its_
     assert release.load_plan(tmp_path / "plan" / "plan.json")["owner"] == "media"
     deployed = f"{world.repository('media')}@{sim.BASELINE_DIGEST['media']}"
     assert plan["baseline"]["image_uri"] == deployed
-    assert plan["baseline"]["migration_definition"] == ctx.outputs[
-        "MediaMigrationTaskDefinitionArn"]
+    assert (
+        plan["baseline"]["migration_definition"] == ctx.outputs["MediaMigrationTaskDefinitionArn"]
+    )
     assert plan["good"]["migration_definition"] != plan["baseline"]["migration_definition"]
     assert plan["registered_definitions"] == [plan["good"]["migration_definition"]]
     assert "bad" not in plan and "worker_definition" not in plan["good"]
@@ -74,13 +93,16 @@ def test_the_registered_definition_is_the_deployed_one_with_only_its_image_swapp
     good = plan_of(tmp_path)["good"]
     registered = world.definitions[good["migration_definition"]]
     deployed = world.ecs_describe_task_definition(
-        {"taskDefinition": ctx.outputs["MediaMigrationTaskDefinitionArn"]})["taskDefinition"]
+        {"taskDefinition": ctx.outputs["MediaMigrationTaskDefinitionArn"]}
+    )["taskDefinition"]
     assert registered["family"] == deployed["family"]
     assert registered["taskRoleArn"] == deployed["taskRoleArn"]
     assert registered["executionRoleArn"] == deployed["executionRoleArn"]
     assert registered["containerDefinitions"][0]["image"] == good["image_uri"]
-    assert registered["containerDefinitions"][0]["logConfiguration"] == deployed[
-        "containerDefinitions"][0]["logConfiguration"]
+    assert (
+        registered["containerDefinitions"][0]["logConfiguration"]
+        == deployed["containerDefinitions"][0]["logConfiguration"]
+    )
 
 
 def test_every_bundle_passes_the_release_gate_and_every_file_is_private(tmp_path):
@@ -89,8 +111,10 @@ def test_every_bundle_passes_the_release_gate_and_every_file_is_private(tmp_path
     plan = plan_of(tmp_path)
     for role in ("baseline", "good", "bad"):
         bundle = json.loads((tmp_path / "plan" / f"bundle-{role}.json").read_text())
-        assert validate_bundle(bundle, owner="media")["api"]["manifest_digest"] == plan[role][
-            "image_uri"].split("@")[1]
+        assert (
+            validate_bundle(bundle, owner="media")["api"]["manifest_digest"]
+            == plan[role]["image_uri"].split("@")[1]
+        )
         compat = json.loads((tmp_path / "plan" / f"compat-{role}.json").read_text())
         assert compat["source_sha"] == bundle["api"]["source_sha"]
         assert compat["target_revision"] == "m0007" and compat["additive_only"] is True
@@ -108,16 +132,20 @@ def test_a_processing_plan_carries_worker_images_and_worker_definitions(tmp_path
         worker = world.definitions[plan[role]["worker_definition"]]
         bundle = json.loads((tmp_path / "plan" / f"bundle-{role}.json").read_text())
         assert worker["containerDefinitions"][0]["image"].endswith(
-            bundle["worker"]["manifest_digest"])
+            bundle["worker"]["manifest_digest"]
+        )
         assert set(bundle) == {"api", "worker"}
     assert release.load_plan(tmp_path / "plan" / "plan.json")["bad"]["image_uri"]
 
 
-@pytest.mark.parametrize(("changes", "message"), [
-    ({"attest_schema_unchanged": False}, "attest-schema-unchanged"),
-    ({"tests_passed": 0}, "tests-passed"),
-    ({"tests_passed": True}, "tests-passed"),
-])
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"attest_schema_unchanged": False}, "attest-schema-unchanged"),
+        ({"tests_passed": 0}, "tests-passed"),
+        ({"tests_passed": True}, "tests-passed"),
+    ],
+)
 def test_unattested_inputs_are_refused_before_anything_is_read(tmp_path, changes, message):
     world, ctx, builds = stack(tmp_path)
     with pytest.raises(ProofError, match=message):
@@ -133,8 +161,12 @@ def test_build_evidence_of_a_different_build_than_the_deployed_one_is_refused(tm
 
 def test_failed_build_evidence_is_refused(tmp_path):
     _, ctx, builds = stack(tmp_path)
-    failed = sim.build_evidence(tmp_path / "failed.json", source_sha="d" * 40,
-                                config_ids=GOOD_IDS, failures=["media: image builds"])
+    failed = sim.build_evidence(
+        tmp_path / "failed.json",
+        source_sha="d" * 40,
+        config_ids=GOOD_IDS,
+        failures=["media: image builds"],
+    )
     with pytest.raises(ProofError, match="LOCAL_ARTIFACT_PASS"):
         make(ctx, builds, tmp_path, good={"run_id": "g1", "evidence": failed})
 
@@ -153,8 +185,11 @@ def test_a_scan_with_a_high_finding_blocks_the_plan(tmp_path):
 
 
 def accept_file(tmp_path, *ids, **changes):
-    entry = {"package": "glibc", "reason": "no fixed version in Debian 13",
-             "reviewed_on": "2026-10-17"}
+    entry = {
+        "package": "glibc",
+        "reason": "no fixed version in Debian 13",
+        "reviewed_on": "2026-10-17",
+    }
     body = {"accepted": [{"id": i, **entry} for i in ids], "verified_by": "apt list --upgradable"}
     body.update(changes)
     path = tmp_path / "accepted.json"
@@ -224,16 +259,21 @@ def test_findings_that_cannot_be_matched_to_the_counts_are_refused(tmp_path):
 
 def serve_findings(world, findings, counts, *, pages=1):
     """Make the simulated registry answer with these raw findings and counts (None: no counts)."""
+
     def reply(payload):
         start = int(payload.get("nextToken") or 0)
         size = max(1, -(-len(findings) // pages))
-        body = {"imageId": payload["imageId"], "imageScanStatus": {"status": "COMPLETE"},
-                "imageScanFindings": {"findings": findings[start:start + size]}}
+        body = {
+            "imageId": payload["imageId"],
+            "imageScanStatus": {"status": "COMPLETE"},
+            "imageScanFindings": {"findings": findings[start : start + size]},
+        }
         if counts is not None:
             body["imageScanFindings"]["findingSeverityCounts"] = counts
         if start + size < len(findings):
             body["nextToken"] = str(start + size)
         return body
+
     world.ecr_describe_image_scan_findings = reply
 
 
@@ -273,6 +313,7 @@ def test_enhanced_findings_are_not_matchable_so_they_are_refused(tmp_path):
         body = plain(payload)
         body["imageScanFindings"]["enhancedFindings"] = [{"severity": "HIGH"}]
         return body
+
     world.ecr_describe_image_scan_findings = enhanced
     with pytest.raises(ProofError, match="enhanced findings"):
         make(ctx, builds, tmp_path, accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
@@ -286,20 +327,29 @@ def test_the_worker_image_is_reconciled_like_the_api_image(tmp_path):
 
     def per_repository(payload):
         return hiding(payload) if "worker" in payload["repositoryName"] else plain(payload)
+
     world.ecr_describe_image_scan_findings = per_repository
     with pytest.raises(ProofError, match="cannot be matched"):
-        make(ctx, builds, tmp_path, "processing", target_revision="p0005",
-             accept_unfixed=accept_file(tmp_path, "CVE-2026-1"))
+        make(
+            ctx,
+            builds,
+            tmp_path,
+            "processing",
+            target_revision="p0005",
+            accept_unfixed=accept_file(tmp_path, "CVE-2026-1"),
+        )
 
 
 @pytest.mark.parametrize("where", ["top", "entry"])
-def test_repeated_keys_in_the_accept_file_are_refused_before_the_registry_is_asked(
-        tmp_path, where):
+def test_repeated_keys_in_the_accept_file_are_refused_before_the_registry_is_asked(tmp_path, where):
     world, ctx, builds = stack(tmp_path)
-    entry = ('{"id": "CVE-2026-1", "package": "p", "reason": "r", "reviewed_on": "2026-10-17"')
+    entry = '{"id": "CVE-2026-1", "package": "p", "reason": "r", "reviewed_on": "2026-10-17"'
     text = {
-        "top": '{"accepted": [' + entry + '}], "accepted": [' + entry.replace("-1", "-2")
-               + '}], "verified_by": "v"}',
+        "top": '{"accepted": ['
+        + entry
+        + '}], "accepted": ['
+        + entry.replace("-1", "-2")
+        + '}], "verified_by": "v"}',
         "entry": '{"accepted": [' + entry + ', "reason": "other"}], "verified_by": "v"}',
     }[where]
     path = tmp_path / "accepted.json"
@@ -310,9 +360,21 @@ def test_repeated_keys_in_the_accept_file_are_refused_before_the_registry_is_ask
     assert len(world.calls) == calls
 
 
-@pytest.mark.parametrize("change", ["not-json", "list", "no-entries", "extra-key", "bad-id",
-                                    "duplicate", "missing-field", "bad-date", "unknown-entry-key",
-                                    "no-verified-by"])
+@pytest.mark.parametrize(
+    "change",
+    [
+        "not-json",
+        "list",
+        "no-entries",
+        "extra-key",
+        "bad-id",
+        "duplicate",
+        "missing-field",
+        "bad-date",
+        "unknown-entry-key",
+        "no-verified-by",
+    ],
+)
 def test_a_malformed_accept_file_is_refused_before_the_registry_is_asked(tmp_path, change):
     world, ctx, builds = stack(tmp_path)
     path = accept_file(tmp_path, "CVE-2026-1")
@@ -347,19 +409,31 @@ def test_a_malformed_accept_file_is_refused_before_the_registry_is_asked(tmp_pat
 
 
 def test_the_committed_accept_file_is_valid_and_names_each_cve_once():
-    ids, _ = release_plan.load_accept(
-        "docs/execution/aws/v1/scan-accepted-unfixed-20261017.json")
+    ids, _ = release_plan.load_accept("docs/execution/aws/v1/scan-accepted-unfixed-20261017.json")
     assert len(ids) == 14 and "CVE-2026-52490" in ids
 
 
 def test_the_command_passes_the_accept_file_through(tmp_path):
     world, ctx, builds = stack(tmp_path)
     scanned(world, ("CVE-2026-1", "HIGH"))
-    code, out = cli(ctx, "--owner", "media", "--baseline-evidence", str(builds["baseline"]),
-                    "--good-run-id", "g1", "--good-evidence", str(builds["good"]),
-                    "--tests-passed", "12", "--target-revision", "m0007",
-                    "--attest-schema-unchanged",
-                    "--accept-unfixed", str(accept_file(tmp_path, "CVE-2026-1")))
+    code, out = cli(
+        ctx,
+        "--owner",
+        "media",
+        "--baseline-evidence",
+        str(builds["baseline"]),
+        "--good-run-id",
+        "g1",
+        "--good-evidence",
+        str(builds["good"]),
+        "--tests-passed",
+        "12",
+        "--target-revision",
+        "m0007",
+        "--attest-schema-unchanged",
+        "--accept-unfixed",
+        str(accept_file(tmp_path, "CVE-2026-1")),
+    )
     assert code == 0 and out["accepted_unused"] == []
 
 
@@ -381,8 +455,12 @@ def test_a_stack_whose_definition_was_updated_since_the_deploy_is_refused(tmp_pa
 
 def test_a_failure_after_registering_retires_the_revisions_it_created(tmp_path):
     world, ctx, builds = stack(tmp_path)
-    failed = sim.build_evidence(tmp_path / "failed.json", source_sha="d" * 40,
-                                config_ids=BAD_IDS, failures=["media: image builds"])
+    failed = sim.build_evidence(
+        tmp_path / "failed.json",
+        source_sha="d" * 40,
+        config_ids=BAD_IDS,
+        failures=["media: image builds"],
+    )
     with pytest.raises(ProofError, match="LOCAL_ARTIFACT_PASS"):
         make(ctx, builds, tmp_path, bad={"run_id": "b1", "evidence": failed})
     registered = [d for d in world.definitions.values() if d["family"].endswith("migration")]
@@ -402,19 +480,45 @@ def test_deregister_retires_exactly_the_revisions_the_plan_lists(tmp_path):
 # ---- command line ----------------------------------------------------------------------------
 def cli(ctx, *argv):
     out = io.StringIO()
-    code = evidence.main(["release-plan", "--profile", "dc2-agent", "--region", "ap-southeast-1",
-                          "--account", "123456789012", "--run-id", "r",
-                          "--state-dir", str(ctx.state_dir), *argv],
-                         stdout=out, factory=lambda args: ctx)
+    code = evidence.main(
+        [
+            "release-plan",
+            "--profile",
+            "dc2-agent",
+            "--region",
+            "ap-southeast-1",
+            "--account",
+            "123456789012",
+            "--run-id",
+            "r",
+            "--state-dir",
+            str(ctx.state_dir),
+            *argv,
+        ],
+        stdout=out,
+        factory=lambda args: ctx,
+    )
     return code, json.loads(out.getvalue())
 
 
 def test_the_command_writes_the_plan_next_to_the_state_directory_by_default(tmp_path):
     _, ctx, builds = stack(tmp_path)
-    code, out = cli(ctx, "--owner", "media", "--baseline-evidence", str(builds["baseline"]),
-                    "--good-run-id", "g1", "--good-evidence", str(builds["good"]),
-                    "--tests-passed", "12", "--target-revision", "m0007",
-                    "--attest-schema-unchanged")
+    code, out = cli(
+        ctx,
+        "--owner",
+        "media",
+        "--baseline-evidence",
+        str(builds["baseline"]),
+        "--good-run-id",
+        "g1",
+        "--good-evidence",
+        str(builds["good"]),
+        "--tests-passed",
+        "12",
+        "--target-revision",
+        "m0007",
+        "--attest-schema-unchanged",
+    )
     assert code == 0 and out["plan"] == str(ctx.state_dir / "release" / "plan.json")
     assert set(out["images"]) == {"baseline", "good"}
 
@@ -427,8 +531,21 @@ def test_the_command_lists_what_is_missing_instead_of_guessing(tmp_path):
 
 def test_the_command_has_no_simulation_of_its_own(tmp_path):
     out = io.StringIO()
-    code = evidence.main(["release-plan", "--profile", "dc2-agent", "--region", "ap-southeast-1",
-                          "--account", "123456789012", "--run-id", "r", "--dry-run"], stdout=out)
+    code = evidence.main(
+        [
+            "release-plan",
+            "--profile",
+            "dc2-agent",
+            "--region",
+            "ap-southeast-1",
+            "--account",
+            "123456789012",
+            "--run-id",
+            "r",
+            "--dry-run",
+        ],
+        stdout=out,
+    )
     assert code == 1 and "rehearse" in json.loads(out.getvalue())["error"]
 
 
@@ -438,31 +555,50 @@ def test_a_worker_only_then_an_api_only_release_each_plan_against_the_mixed_base
     from scripts.aws.v1 import deploy
 
     world, ctx, builds = stack(tmp_path)
-    journal = deploy.DeployJournal(ctx.state_dir / "deploy-journal.json",
-                                   station=ctx.data["operator_station"],
-                                   environment=ctx.data["environment_id"])
+    journal = deploy.DeployJournal(
+        ctx.state_dir / "deploy-journal.json",
+        station=ctx.data["operator_station"],
+        environment=ctx.data["environment_id"],
+    )
 
     def release_keeping(number, kept, rebuilt, baseline_path, source):
         """One release as cd.sh runs it: `kept` retagged as it runs, `rebuilt` from `source`."""
         run_id, deployed = f"g{number}", journal.view()["images"]
         world.retagged[(world.repository(kept), f"{run_id}-{kept}")] = deployed[kept]["digest"]
         evidence = json.loads(baseline_path.read_text())
-        evidence["images"][rebuilt] = {**evidence["images"][rebuilt], "source_sha": source,
-                                       "config_id": "sha256:" + str(number + 6) * 64}
+        evidence["images"][rebuilt] = {
+            **evidence["images"][rebuilt],
+            "source_sha": source,
+            "config_id": "sha256:" + str(number + 6) * 64,
+        }
         from scripts.ci.v1_scan import scan_receipt
 
         config_id = evidence["images"][rebuilt]["config_id"]
-        evidence["images"][rebuilt]["trivy_scan"] = scan_receipt(json.dumps({
-            "Metadata": {"ImageID": config_id}, "Results": [
-                {"Class": "os-pkgs", "Type": "debian"},
-                {"Class": "lang-pkgs", "Type": "python-pkg"}]}).encode(),
-            config_id=config_id, source_sha=source)
+        evidence["images"][rebuilt]["trivy_scan"] = scan_receipt(
+            json.dumps(
+                {
+                    "Metadata": {"ImageID": config_id},
+                    "Results": [
+                        {"Class": "os-pkgs", "Type": "debian"},
+                        {"Class": "lang-pkgs", "Type": "python-pkg"},
+                    ],
+                }
+            ).encode(),
+            config_id=config_id,
+            source_sha=source,
+        )
         good = tmp_path / f"good-{number}.json"
         good.write_text(json.dumps(evidence))
         world.register_build(run_id, good, only=[rebuilt])
-        make(ctx, {"baseline": baseline_path, "good": good}, tmp_path, "processing",
-             good={"run_id": run_id, "evidence": good}, target_revision="p0005",
-             out=tmp_path / f"plan-{number}")
+        make(
+            ctx,
+            {"baseline": baseline_path, "good": good},
+            tmp_path,
+            "processing",
+            good={"run_id": run_id, "evidence": good},
+            target_revision="p0005",
+            out=tmp_path / f"plan-{number}",
+        )
         bundle = json.loads((tmp_path / f"plan-{number}" / "bundle-good.json").read_text())
         kinds = {"processing": "api", "worker": "worker"}
         assert bundle[kinds[kept]]["retained"] is True
@@ -470,9 +606,11 @@ def test_a_worker_only_then_an_api_only_release_each_plan_against_the_mixed_base
         # Adopted: the journal and the stack's definitions now name what was released.
         for name in (kept, rebuilt):
             digest = world.image_digest(world.repository(name), f"{run_id}-{name}")
-            journal.mutate(lambda d, n=name, g=digest: d["images"][n].update(
-                tag=f"{run_id}-{n}", digest=g,
-                local_id=evidence["images"][n]["config_id"]))
+            journal.mutate(
+                lambda d, n=name, g=digest: d["images"][n].update(
+                    tag=f"{run_id}-{n}", digest=g, local_id=evidence["images"][n]["config_id"]
+                )
+            )
             world.stack_digests[name] = digest
         return good
 
@@ -487,10 +625,11 @@ def test_a_worker_only_then_an_api_only_release_each_plan_against_the_mixed_base
     assert validate_bundle(baseline, owner="processing", deployed=True)
 
 
-@pytest.mark.parametrize("fault", ["wrong-config", "raw-hash", "index", "missing", "ambiguous",
-                                   "wrong-selected", "malformed"])
-def test_release_requires_the_fetched_single_manifest_to_bind_to_the_tested_config(
-        tmp_path, fault):
+@pytest.mark.parametrize(
+    "fault",
+    ["wrong-config", "raw-hash", "index", "missing", "ambiguous", "wrong-selected", "malformed"],
+)
+def test_release_requires_the_fetched_single_manifest_to_bind_to_the_tested_config(tmp_path, fault):
     world, ctx, builds = stack(tmp_path)
     base = world.ecr_batch_get_image
 
@@ -514,8 +653,9 @@ def test_release_requires_the_fetched_single_manifest_to_bind_to_the_tested_conf
             else:
                 manifest["extra"] = "same config, different selected bytes"
             image["imageManifest"] = json.dumps(manifest)
-            image["imageId"]["imageDigest"] = "sha256:" + hashlib.sha256(
-                image["imageManifest"].encode()).hexdigest()
+            image["imageId"]["imageDigest"] = (
+                "sha256:" + hashlib.sha256(image["imageManifest"].encode()).hexdigest()
+            )
         return result
 
     world.ecr_batch_get_image = reply
@@ -525,8 +665,9 @@ def test_release_requires_the_fetched_single_manifest_to_bind_to_the_tested_conf
     assert not (tmp_path / "plan" / "plan.json").exists()
 
 
-@pytest.mark.parametrize("fault", ["missing", "wrong-source", "wrong-config", "fixable", "expired",
-                                   "wrong-scope"])
+@pytest.mark.parametrize(
+    "fault", ["missing", "wrong-source", "wrong-config", "fixable", "expired", "wrong-scope"]
+)
 def test_release_requires_a_fresh_exact_cd_image_os_and_python_scan(tmp_path, fault):
     _, ctx, builds = stack(tmp_path)
     data = json.loads(builds["good"].read_text())

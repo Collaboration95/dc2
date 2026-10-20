@@ -230,12 +230,7 @@ def submit_and_wait(ctx, proof, api, fixture, row, timeout):
         proof.save()
     started = ctx.clock()
     transitions, job = workflow.poll_job(
-        ctx,
-        api,
-        row["job_id"],
-        timeout=timeout,
-        interval=POLL_SECONDS,
-        checkpoint=proof.checkpoint,
+        ctx, api, row["job_id"], timeout=timeout, interval=POLL_SECONDS, checkpoint=proof.checkpoint
     )
     row.update(
         status=job["status"],
@@ -299,9 +294,7 @@ def fargate_arm(ctx, proof, intent, *, fixture, jobs, minutes, timeout):
             row["tasks"] = workflow.start_workers(ctx, 1, minutes)  # after the job exists
             proof.save()
         submit_and_wait(ctx, proof, api, fixture, row, timeout)
-        final = workflow.wait_stopped(
-            ctx, row["tasks"], timeout=600, checkpoint=proof.checkpoint
-        )
+        final = workflow.wait_stopped(ctx, row["tasks"], timeout=600, checkpoint=proof.checkpoint)
         described = [tasks.summary(t) for t in final.values()]
         row["billed_seconds"] = sum(d["billed_seconds"] or 0 for d in described)
         row["task_exit_codes"] = [c for d in described for c in d["exit_codes"]]
@@ -347,7 +340,9 @@ def lambda_arm(ctx, proof, intent, *, fixture, jobs, timeout, idle_minutes):
     if not name or not mapping:
         raise ProofError("This stack has no Lambda lane; deploy with LambdaShortEncodes=true")
     state = ctx.aws.call(
-        "lambda", "get-event-source-mapping", {"UUID": mapping},
+        "lambda",
+        "get-event-source-mapping",
+        {"UUID": mapping},
         deadline=ctx.deadline(LAMBDA_CALL_SECONDS),
     ).get("State")
     if state != "Enabled":

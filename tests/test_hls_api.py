@@ -225,9 +225,7 @@ async def test_hls_parts_are_signed_inline_not_as_attachments(
 
 
 @pytest.mark.asyncio
-async def test_another_owners_ladder_is_404(
-    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
-):
+async def test_another_owners_ladder_is_404(client: AsyncClient, monkeypatch: pytest.MonkeyPatch):
     """`get_job` returns None for a job this caller does not own, and the
     route must not distinguish that from an unknown id -- a 403 would
     confirm the id exists.
@@ -327,8 +325,7 @@ def test_safe_hls_path_refuses_anything_outside_a_ladder(path: str):
 
 
 @pytest.mark.parametrize(
-    "path",
-    ["master.m3u8", "v0/index.m3u8", "v0/seg00001.ts", "v12/seg99999.ts"],
+    "path", ["master.m3u8", "v0/index.m3u8", "v0/seg00001.ts", "v12/seg99999.ts"]
 )
 def test_safe_hls_path_allows_what_ffmpeg_actually_writes(path: str):
     assert safe_hls_path(path) == path

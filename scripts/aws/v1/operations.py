@@ -212,8 +212,9 @@ def load_operator_config(path):
 
 
 def add_scope_arguments(parser):
-    parser.add_argument("--profile", required=True,
-                        help="explicit AWS profile, e.g. dc2-agent; never default")
+    parser.add_argument(
+        "--profile", required=True, help="explicit AWS profile, e.g. dc2-agent; never default"
+    )
     parser.add_argument("--region", required=True, help="must be " + REGION)
     parser.add_argument("--account", help="12-digit account (or DC2_AWS_ACCOUNT)")
     parser.add_argument("--dry-run", action="store_true", help="print planned calls; no AWS")
@@ -247,8 +248,11 @@ def _verified_session(scope, boto3_module):
         identity = session.client("sts", config=quick).get_caller_identity()
     except Exception:
         # An expired MFA session is the commonest cause on a long cloud-proof day.
-        hint = ": an MFA session may have expired; run scripts.aws.v1.mfa_session" if (
-            scope["profile"].endswith("-mfa")) else ""
+        hint = (
+            ": an MFA session may have expired; run scripts.aws.v1.mfa_session"
+            if (scope["profile"].endswith("-mfa"))
+            else ""
+        )
         raise OperationError("STS identity verification failed" + hint) from None
     if identity.get("Account") != scope["account"]:
         raise OperationError("Profile resolves to a different account; no calls made")
@@ -324,11 +328,17 @@ class PlanTransport:
         elif operation == "invoke":
             if payload["Payload"].get("dc2_operation") == "launcher":
                 action = payload["Payload"].get("action")
-                self.launcher = {**self.launcher, "enabled": action == "enable"} if (
-                    action in {"enable", "disable"}
-                ) else self.launcher
-                reply = {"service": "processing-launcher", "action": action, "ambiguous": 0,
-                         **self.launcher}
+                self.launcher = (
+                    {**self.launcher, "enabled": action == "enable"}
+                    if (action in {"enable", "disable"})
+                    else self.launcher
+                )
+                reply = {
+                    "service": "processing-launcher",
+                    "action": action,
+                    "ambiguous": 0,
+                    **self.launcher,
+                }
             elif payload["Payload"].get("dc2_operation") == "ready":
                 service = "media" if "Media" in payload["FunctionName"] else "processing"
                 reply = {"service": service, "ready": True}

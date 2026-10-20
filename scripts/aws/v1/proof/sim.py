@@ -30,16 +30,21 @@ from scripts.aws.v1.proof.core import stamp
 from scripts.aws.v1.transport import REGION
 from scripts.ci.v1_scan import scan_receipt
 
-LOCAL_ID = {"media": "sha256:" + "11" * 32, "processing": "sha256:" + "22" * 32,
-            "worker": "sha256:" + "33" * 32}
+LOCAL_ID = {
+    "media": "sha256:" + "11" * 32,
+    "processing": "sha256:" + "22" * 32,
+    "worker": "sha256:" + "33" * 32,
+}
 
 
 def image_manifest(config_id):
     return json.dumps({"schemaVersion": 2, "config": {"digest": config_id}}, indent=2)
 
 
-BASELINE_DIGEST = {name: "sha256:" + hashlib.sha256(image_manifest(config).encode()).hexdigest()
-                   for name, config in LOCAL_ID.items()}
+BASELINE_DIGEST = {
+    name: "sha256:" + hashlib.sha256(image_manifest(config).encode()).hexdigest()
+    for name, config in LOCAL_ID.items()
+}
 EPOCH = 1_792_233_600.0  # 2026-10-17T10:40:00Z, an arbitrary fixed wall-clock origin
 ACCOUNT = "123456789012"
 FRONTEND = "https://d111111abcdef8.cloudfront.net"
@@ -93,14 +98,23 @@ class FakeSqs:
         if not QueueUrl.endswith("Dlq"):
             # A main queue: the commands queue holds what Media published and Processing has
             # not consumed; the others are not modelled and read empty.
-            depth = {"ProcessingCommands": self.world.commands_waiting(),
-                     "ProcessingWork": self.world.stale_work}.get(name, 0)
-            return {"Attributes": {"ApproximateNumberOfMessages": str(depth),
-                                   "ApproximateNumberOfMessagesNotVisible": "0",
-                                   "ApproximateNumberOfMessagesDelayed": "0"}}
-        return {"Attributes": {
-            "ApproximateNumberOfMessages": str(len(self.world.dlq.get(name, []))),
-            "ApproximateNumberOfMessagesNotVisible": "0"}}
+            depth = {
+                "ProcessingCommands": self.world.commands_waiting(),
+                "ProcessingWork": self.world.stale_work,
+            }.get(name, 0)
+            return {
+                "Attributes": {
+                    "ApproximateNumberOfMessages": str(depth),
+                    "ApproximateNumberOfMessagesNotVisible": "0",
+                    "ApproximateNumberOfMessagesDelayed": "0",
+                }
+            }
+        return {
+            "Attributes": {
+                "ApproximateNumberOfMessages": str(len(self.world.dlq.get(name, []))),
+                "ApproximateNumberOfMessagesNotVisible": "0",
+            }
+        }
 
     def send_message(self, QueueUrl, MessageBody):
         self.world.poison.append((self.world.clock.t, MessageBody))
@@ -109,9 +123,15 @@ class FakeSqs:
     def receive_message(self, QueueUrl, **kwargs):
         self.world.move_poison()
         name = self.world.queue_of(QueueUrl)
-        messages = [{"MessageId": uuid.uuid4().hex, "Body": body, "ReceiptHandle": f"h-{i}",
-                     "Attributes": {"ApproximateReceiveCount": "5"}}
-                    for i, body in enumerate(self.world.dlq[name])]
+        messages = [
+            {
+                "MessageId": uuid.uuid4().hex,
+                "Body": body,
+                "ReceiptHandle": f"h-{i}",
+                "Attributes": {"ApproximateReceiveCount": "5"},
+            }
+            for i, body in enumerate(self.world.dlq[name])
+        ]
         return {"Messages": messages}
 
     def delete_message(self, QueueUrl, ReceiptHandle):
@@ -120,13 +140,35 @@ class FakeSqs:
 
 
 class SimWorld:
-    def __init__(self, *, env="dc2-v1-sim", encode_seconds=45.0, start_seconds=20.0,
-                 repair_seconds=90.0, requeue=True, awake=False, slow=1.0, faults=(),
-                 poison_seconds=300.0, lambda_lane=False, lambda_cold_seconds=9.0,
-                 lambda_warm_seconds=4.0, database=None, resume_seconds=30.0, probe_ms=45.0,
-                 shared_load_slowdown=1.8, auto_pause_seconds=300, max_acu=2.0,
-                 one_job_per_task=True, fail_claims=(), outbox_seconds=0.0, launcher=False,
-                 launcher_tick_seconds=60.0, dud_encoders=0, stale_work=0):
+    def __init__(
+        self,
+        *,
+        env="dc2-v1-sim",
+        encode_seconds=45.0,
+        start_seconds=20.0,
+        repair_seconds=90.0,
+        requeue=True,
+        awake=False,
+        slow=1.0,
+        faults=(),
+        poison_seconds=300.0,
+        lambda_lane=False,
+        lambda_cold_seconds=9.0,
+        lambda_warm_seconds=4.0,
+        database=None,
+        resume_seconds=30.0,
+        probe_ms=45.0,
+        shared_load_slowdown=1.8,
+        auto_pause_seconds=300,
+        max_acu=2.0,
+        one_job_per_task=True,
+        fail_claims=(),
+        outbox_seconds=0.0,
+        launcher=False,
+        launcher_tick_seconds=60.0,
+        dud_encoders=0,
+        stale_work=0,
+    ):
         self.env, self.faults = env, set(faults)
         # The first `dud_encoders` worker tasks exit 0 a few seconds after starting without
         # claiming anything (r1018b: an encoder that long-polled before the command arrived).
@@ -151,8 +193,9 @@ class SimWorld:
         # A release that keeps an image retags its running manifest; an adopted release is what
         # the stack's own definitions then hold (V2-live).
         self.retagged, self.stack_digests = {}, dict(BASELINE_DIGEST)
-        self.manifests = {BASELINE_DIGEST[name]: image_manifest(config)
-                          for name, config in LOCAL_ID.items()}
+        self.manifests = {
+            BASELINE_DIGEST[name]: image_manifest(config) for name, config in LOCAL_ID.items()
+        }
         self.definitions, self.logs, self.calls = {}, {}, []
         self.dlq = {q: [] for q in operations.QUEUES}
         self.poison = []
@@ -164,8 +207,10 @@ class SimWorld:
         self.scan_findings, self.scan_page = None, 100
         # The opt-in Lambda short-encode lane (#93): a stack WITH it runs queued jobs in
         # invocations (two at once, like the mapping), a stack without it never does.
-        self.lambda_lane, self.lambda_seconds = lambda_lane, (lambda_cold_seconds,
-                                                              lambda_warm_seconds)
+        self.lambda_lane, self.lambda_seconds = (
+            lambda_lane,
+            (lambda_cold_seconds, lambda_warm_seconds),
+        )
         self.invocations, self.last_invocation = [], None
         # The opt-in database layout (#94). None keeps the older harnesses' single always-on
         # cluster model; "shared" or "separate" gives each cluster its own pause, resume and
@@ -177,8 +222,14 @@ class SimWorld:
         # What the in-VPC reader (#150) finds: each owner's Alembic head and Processing's
         # attempt counts, read by a finite task that runs the owner's migration definition.
         self.schema = {"media": "m0007", "processing": "p0005"}
-        self.attempt_counts = {"queued": 0, "processing": 0, "succeeded": 3, "failed": 1,
-                               "abandoned": 0, "cancelled": 0}
+        self.attempt_counts = {
+            "queued": 0,
+            "processing": 0,
+            "succeeded": 3,
+            "failed": 1,
+            "abandoned": 0,
+            "cancelled": 0,
+        }
         self.vpc_reads = []
         # The security proof (#229): the upload limit the simulated Media enforces, and the
         # addresses and ports the simulated CloudFront edge answers on.
@@ -186,7 +237,8 @@ class SimWorld:
         self.open_ports = {80, 443} | ({8080} if "port-8080-open" in self.faults else set())
         if lambda_lane:  # a full `session open` has enabled every mapping
             self.plan.mappings[str(uuid.uuid5(uuid.NAMESPACE_URL, "ProcessingShortEncoder"))] = (
-                "Enabled")
+                "Enabled"
+            )
 
     # ---- plumbing --------------------------------------------------------------------
     def queue_of(self, url):
@@ -209,15 +261,18 @@ class SimWorld:
 
     def touch(self, cluster, start=None, end=None):
         now = self.clock.t
-        self.busy.setdefault(cluster, []).append((now if start is None else start,
-                                                  now if end is None else end))
+        self.busy.setdefault(cluster, []).append(
+            (now if start is None else start, now if end is None else end)
+        )
 
     def awake(self, cluster, moment):
         """In use now or inside the pause timer after the last use (loads are open intervals)."""
         if any(self.cluster_of(domain) == cluster for domain in self.loads):
             return True
-        return any(start <= moment < end + self.auto_pause_seconds + 30
-                   for start, end in self.busy.get(cluster, []))
+        return any(
+            start <= moment < end + self.auto_pause_seconds + 30
+            for start, end in self.busy.get(cluster, [])
+        )
 
     def begin_load(self, domain, concurrency):
         self.loads[domain] = (concurrency, self.clock.t)
@@ -240,25 +295,37 @@ class SimWorld:
             self.touch(cluster)
             if now < self.resuming[cluster]:
                 self.clock.sleep(8)  # a probe that rides a resume waits, then reports not ready
-                return {"StatusCode": 200, "FunctionError": False,
-                        "Payload": {"service": domain, "ready": False}}
+                return {
+                    "StatusCode": 200,
+                    "FunctionError": False,
+                    "Payload": {"service": domain, "ready": False},
+                }
             del self.resuming[cluster]
         self.touch(cluster)
         self.probes += 1
         jitter = 1 + (crc("probe", self.probes) % 21) / 100
         peer = "processing" if domain == "media" else "media"
         coupled = self.database == "shared" and peer in self.loads
-        self.clock.sleep(self.probe_ms / 1000 * jitter * (self.shared_load_slowdown
-                                                          if coupled else 1.0))
-        return {"StatusCode": 200, "FunctionError": False,
-                "Payload": {"service": domain, "ready": True}}
+        self.clock.sleep(
+            self.probe_ms / 1000 * jitter * (self.shared_load_slowdown if coupled else 1.0)
+        )
+        return {
+            "StatusCode": 200,
+            "FunctionError": False,
+            "Payload": {"service": domain, "ready": True},
+        }
 
     def journal_resources(self):
         ids = self.cluster_ids() if self.database else {"cluster": "sim-cluster"}
-        logical = {"cluster": "DatabaseCluster", "media": "MediaDatabaseCluster",
-                   "processing": "ProcessingDatabaseCluster"}
-        return {"db_clusters": list(ids.values()),
-                "db_logical": {cid: logical[label] for label, cid in ids.items()}}
+        logical = {
+            "cluster": "DatabaseCluster",
+            "media": "MediaDatabaseCluster",
+            "processing": "ProcessingDatabaseCluster",
+        }
+        return {
+            "db_clusters": list(ids.values()),
+            "db_logical": {cid: logical[label] for label, cid in ids.items()},
+        }
 
     def move_poison(self):
         for sent, body in list(self.poison):
@@ -273,40 +340,52 @@ class SimWorld:
             queues[f"{q}DlqUrl"] = f"https://sqs.{REGION}.amazonaws.com/{ACCOUNT}/{q}Dlq"
             queues[f"{q}DlqArn"] = f"arn:aws:sqs:{REGION}:{ACCOUNT}:{q}Dlq"
         names = {f"{h}FunctionName": f"{self.env}-{h}" for h in operations.HANDLERS}
-        names |= {f"{h}MappingId": str(uuid.uuid5(uuid.NAMESPACE_URL, h))
-                  for h in operations.MAPPINGS}
+        names |= {
+            f"{h}MappingId": str(uuid.uuid5(uuid.NAMESPACE_URL, h)) for h in operations.MAPPINGS
+        }
         names |= {f"{h}RuleName": f"{self.env}-{h}" for h in operations.RULES}
         if self.lambda_lane:
             names |= {
                 "ProcessingShortEncoderFunctionName": f"{self.env}-ProcessingShortEncoder",
                 "ProcessingShortEncoderMappingId": str(
-                    uuid.uuid5(uuid.NAMESPACE_URL, "ProcessingShortEncoder")),
-                "ProcessingShortWorkQueueUrl":
-                    f"https://sqs.{REGION}.amazonaws.com/{ACCOUNT}/ProcessingShortWorkQueue",
-                "ProcessingShortWorkDlqUrl":
-                    f"https://sqs.{REGION}.amazonaws.com/{ACCOUNT}/ProcessingShortWorkDlq",
+                    uuid.uuid5(uuid.NAMESPACE_URL, "ProcessingShortEncoder")
+                ),
+                "ProcessingShortWorkQueueUrl": f"https://sqs.{REGION}.amazonaws.com/{ACCOUNT}/ProcessingShortWorkQueue",
+                "ProcessingShortWorkDlqUrl": f"https://sqs.{REGION}.amazonaws.com/{ACCOUNT}/ProcessingShortWorkDlq",
             }
         if self.launcher:
-            names |= {"ProcessingLauncherFunctionName": f"{self.env}-ProcessingLauncher",
-                      "ProcessingLauncherRuleName": f"{self.env}-ProcessingLauncher-rule"}
+            names |= {
+                "ProcessingLauncherFunctionName": f"{self.env}-ProcessingLauncher",
+                "ProcessingLauncherRuleName": f"{self.env}-ProcessingLauncher-rule",
+            }
         if self.database == "separate":
-            names |= {"DatabaseTopology": "separate",
-                      "MediaDatabaseEndpoint": "media.cluster-sim.invalid",
-                      "ProcessingDatabaseEndpoint": "processing.cluster-sim.invalid"}
+            names |= {
+                "DatabaseTopology": "separate",
+                "MediaDatabaseEndpoint": "media.cluster-sim.invalid",
+                "ProcessingDatabaseEndpoint": "processing.cluster-sim.invalid",
+            }
         elif self.database == "shared":
             names["DatabaseEndpoint"] = "shared.cluster-sim.invalid"
         return {
-            **queues, **names, "OutputBucketName": "dc2-sim-output",
-            "HttpApiId": "abc123def4", "HttpApiUrl": GATEWAY,
-            "FrontendUrl": FRONTEND, "DistributionId": "E1SIMULATED",
+            **queues,
+            **names,
+            "OutputBucketName": "dc2-sim-output",
+            "HttpApiId": "abc123def4",
+            "HttpApiUrl": GATEWAY,
+            "FrontendUrl": FRONTEND,
+            "DistributionId": "E1SIMULATED",
             "SourceBucketName": "dc2-sim-source",
             "ClusterArn": f"arn:aws:ecs:{REGION}:{ACCOUNT}:cluster/{self.env}",
-            "WorkerTaskDefinitionArn":
-                f"arn:aws:ecs:{REGION}:{ACCOUNT}:task-definition/{self.env}-worker:1",
-            "PublicTaskSubnetIds": "subnet-0a,subnet-0b", "WorkerSecurityGroupId": "sg-0w",
+            "WorkerTaskDefinitionArn": (
+                f"arn:aws:ecs:{REGION}:{ACCOUNT}:task-definition/{self.env}-worker:1"
+            ),
+            "PublicTaskSubnetIds": "subnet-0a,subnet-0b",
+            "WorkerSecurityGroupId": "sg-0w",
             "MigrationSecurityGroupId": "sg-0m",
-            **{f"{owner.title()}MigrationTaskDefinitionArn": self.migration_definition(owner)
-               for owner in ("media", "processing")},
+            **{
+                f"{owner.title()}MigrationTaskDefinitionArn": self.migration_definition(owner)
+                for owner in ("media", "processing")
+            },
         }
 
     def migration_definition(self, owner):
@@ -337,15 +416,22 @@ class SimWorld:
 
     def journal_images(self):
         """What `deploy` recorded when it pushed the three images."""
-        return {owner: {"local_id": LOCAL_ID[owner], "tag": f"{self.env}-{owner}",
-                        "digest": BASELINE_DIGEST[owner],
-                        "uri": f"{self.repository(owner)}@{BASELINE_DIGEST[owner]}",
-                        "scan_severity_counts": {"MEDIUM": 1}}
-                for owner in ("media", "processing", "worker")}
+        return {
+            owner: {
+                "local_id": LOCAL_ID[owner],
+                "tag": f"{self.env}-{owner}",
+                "digest": BASELINE_DIGEST[owner],
+                "uri": f"{self.repository(owner)}@{BASELINE_DIGEST[owner]}",
+                "scan_severity_counts": {"MEDIUM": 1},
+            }
+            for owner in ("media", "processing", "worker")
+        }
 
     def journal_outputs(self):
-        return {f"{owner.title()}RepositoryUri": self.repository(owner)
-                for owner in ("media", "processing", "worker")}
+        return {
+            f"{owner.title()}RepositoryUri": self.repository(owner)
+            for owner in ("media", "processing", "worker")
+        }
 
     # ---- public API over HTTP -----------------------------------------------------------
     def http(self, method, url, headers, body, timeout):
@@ -362,8 +448,9 @@ class SimWorld:
         if parts.scheme == "http":  # the edge redirects to HTTPS; execute-api has no port 80
             if origin != "cloudfront":
                 raise ConnectionRefusedError
-            return self.reply(301, raw=b"", headers={"location": f"https://{host}{path}"},
-                              origin=origin)
+            return self.reply(
+                301, raw=b"", headers={"location": f"https://{host}{path}"}, origin=origin
+            )
         return self.api(method, origin, path, parse_qs(parts.query), headers, body)
 
     # ---- the network edge, for the port scan (#229) ---------------------------------------
@@ -378,9 +465,12 @@ class SimWorld:
     def signed(self, path, *, key=None):
         """A presigned GET for `path`: the signature binds path, date and lifetime."""
         date = dt.datetime.fromtimestamp(self.clock.wall(), dt.UTC).strftime("%Y%m%dT%H%M%SZ")
-        query = {"X-Amz-Algorithm": "AWS4-HMAC-SHA256", "X-Amz-Date": date,
-                 "X-Amz-Expires": SIGNED_SECONDS,
-                 "X-Amz-Signature": f"sim{crc(key or path, date, SIGNED_SECONDS):08x}"}
+        query = {
+            "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
+            "X-Amz-Date": date,
+            "X-Amz-Expires": SIGNED_SECONDS,
+            "X-Amz-Signature": f"sim{crc(key or path, date, SIGNED_SECONDS):08x}",
+        }
         return f"https://{S3_HOST}{path}?{urlencode(query)}"
 
     def reply(self, status, payload=None, headers=None, raw=None, origin="gateway"):
@@ -402,8 +492,9 @@ class SimWorld:
             return reply(200, {"status": "ok", "service": "media"})
         if path == "/api/processing/health":
             return reply(200, {"status": "ok", "service": "processing", "schema_version": 1})
-        data = json.loads(body) if body and headers.get("content-type") == "application/json" \
-            else {}
+        data = (
+            json.loads(body) if body and headers.get("content-type") == "application/json" else {}
+        )
         if path == "/api/media/auth/register":
             self.use_database()
             if data["email"] in self.users:
@@ -440,34 +531,66 @@ class SimWorld:
         if path == "/api/processing/jobs":
             return reply(200, [])
         if path.startswith("/api/processing/jobs/"):
-            job = next((j for j in self.jobs.values()
-                        if j["pid"] == path.rsplit("/", 1)[-1] and j["owner"] == user["id"]
-                        and j.get("delivered", True)), None)
-            return reply(200, self.processing_view(job)) if job else reply(
-                404, {"error": "not found"})
+            job = next(
+                (
+                    j
+                    for j in self.jobs.values()
+                    if j["pid"] == path.rsplit("/", 1)[-1]
+                    and j["owner"] == user["id"]
+                    and j.get("delivered", True)
+                ),
+                None,
+            )
+            return (
+                reply(200, self.processing_view(job)) if job else reply(404, {"error": "not found"})
+            )
         if path == "/api/media/uploads/reservations":
             # Like Media, a reservation is idempotent on (owner, request_id) and a replay of a
             # finalized one carries no upload grant.
-            rid = next((r for r, found in self.reservations.items()
-                        if found["owner"] == user["id"]
-                        and found["request"]["request_id"] == data["request_id"]), None)
+            rid = next(
+                (
+                    r
+                    for r, found in self.reservations.items()
+                    if found["owner"] == user["id"]
+                    and found["request"]["request_id"] == data["request_id"]
+                ),
+                None,
+            )
             if rid is None:
                 if data["size_bytes"] > self.max_bytes and "oversize-open" not in self.faults:
                     return reply(422, {"error": "size_bytes too large"})
                 rid = str(uuid.uuid4())
-                self.reservations[rid] = {"owner": user["id"], "request": data,
-                                          "uploaded": False,
-                                          "expires_t": self.clock.t + GRANT_SECONDS}
+                self.reservations[rid] = {
+                    "owner": user["id"],
+                    "request": data,
+                    "uploaded": False,
+                    "expires_t": self.clock.t + GRANT_SECONDS,
+                }
             found = self.reservations[rid]
-            grant = None if found.get("job") else {
-                "url": f"https://{S3_HOST}/", "fields": {
-                    "key": f"staging/{found['owner']}/{rid}/source",
-                    "Content-Type": found["request"]["content_type"],
-                    "policy": f"policy-{rid}", "x-amz-signature": f"sig-{rid}",
-                    "x-amz-credential": "sim", "x-amz-date": "20261017T000000Z"}}
-            return reply(201, {
-                "reservation_id": rid, "expires_at": iso(self.wall_of(found["expires_t"])),
-                "finalize_url": f"/uploads/reservations/{rid}/finalize", "upload": grant})
+            grant = (
+                None
+                if found.get("job")
+                else {
+                    "url": f"https://{S3_HOST}/",
+                    "fields": {
+                        "key": f"staging/{found['owner']}/{rid}/source",
+                        "Content-Type": found["request"]["content_type"],
+                        "policy": f"policy-{rid}",
+                        "x-amz-signature": f"sig-{rid}",
+                        "x-amz-credential": "sim",
+                        "x-amz-date": "20261017T000000Z",
+                    },
+                }
+            )
+            return reply(
+                201,
+                {
+                    "reservation_id": rid,
+                    "expires_at": iso(self.wall_of(found["expires_t"])),
+                    "finalize_url": f"/uploads/reservations/{rid}/finalize",
+                    "upload": grant,
+                },
+            )
         if path.startswith("/api/media/uploads/reservations/") and path.endswith("/finalize"):
             return self.finalize(path.split("/")[-2], user, reply)
         parts = path.split("/")
@@ -482,43 +605,67 @@ class SimWorld:
         if not found["uploaded"]:
             return reply(409, {"error": "no upload"})
         if found["stored_bytes"] > found["request"]["size_bytes"] and (
-                "adopts-oversize" not in self.faults):
+            "adopts-oversize" not in self.faults
+        ):
             return reply(422, {"error": "source size does not match reservation"})
         if "finalize-needs-processing" in self.faults and not self.commands_enabled():
             return reply(503, {"error": "processing unavailable"})
         job_id = found.get("job") or str(uuid.uuid4())
         found["job"] = job_id
-        self.jobs.setdefault(job_id, {
-            "id": job_id, "pid": str(uuid.uuid4()), "owner": user["id"],
-            "filename": found["request"]["filename"],
-            "status": "queued", "queued_at": self.clock.t, "task": None,
-            "submit_t": self.clock.t + self.outbox_seconds, "delivered": False})
+        self.jobs.setdefault(
+            job_id,
+            {
+                "id": job_id,
+                "pid": str(uuid.uuid4()),
+                "owner": user["id"],
+                "filename": found["request"]["filename"],
+                "status": "queued",
+                "queued_at": self.clock.t,
+                "task": None,
+                "submit_t": self.clock.t + self.outbox_seconds,
+                "delivered": False,
+            },
+        )
         self.deliver(self.clock.t)
         return reply(202, {"job_id": job_id})
 
     def processing_view(self, job):
         """Processing's public job: the current attempt's server-side queue and run stamps."""
         done = job["status"] in {"done", "failed"}
-        state = {"queued": "queued", "processing": "processing", "done": "succeeded",
-                 "failed": "failed"}[job["status"]]
+        state = {
+            "queued": "queued",
+            "processing": "processing",
+            "done": "succeeded",
+            "failed": "failed",
+        }[job["status"]]
         started, finished = job.get("started_t"), job.get("finished_t")
-        return {"job_id": job["pid"], "processing_job_id": job["pid"], "status": job["status"],
-                "current_attempt": {
-                    "attempt_id": str(uuid.uuid5(uuid.NAMESPACE_URL, job["pid"])), "number": 1,
-                    "state": state, "queued_at": iso_precise(self.wall_of(job["queued_at"])),
-                    "started_at": iso_precise(self.wall_of(started)) if started else None,
-                    "finished_at": iso_precise(self.wall_of(finished)) if done and finished
-                    else None,
-                    "error": None}}
+        return {
+            "job_id": job["pid"],
+            "processing_job_id": job["pid"],
+            "status": job["status"],
+            "current_attempt": {
+                "attempt_id": str(uuid.uuid5(uuid.NAMESPACE_URL, job["pid"])),
+                "number": 1,
+                "state": state,
+                "queued_at": iso_precise(self.wall_of(job["queued_at"])),
+                "started_at": iso_precise(self.wall_of(started)) if started else None,
+                "finished_at": iso_precise(self.wall_of(finished)) if done and finished else None,
+                "error": None,
+            },
+        }
 
     def job_view(self, job):
         published = self.clock.t >= job.get("submit_t", 0)
         status = job["status"]
         if not job.get("delivered", True) and not published:
             status = "accepted"  # still in Media's outbox
-        view = {"id": job["id"], "filename": job["filename"], "status": status,
-                "submission_status": "submitted" if published else "pending",
-                "processing_job_id": job.get("pid") if job.get("delivered", True) else None}
+        view = {
+            "id": job["id"],
+            "filename": job["filename"],
+            "status": status,
+            "submission_status": "submitted" if published else "pending",
+            "processing_job_id": job.get("pid") if job.get("delivered", True) else None,
+        }
         if job["status"] == "done":
             view["output_url"] = self.signed("/out.mp4")
             if "no-hls" not in self.faults:
@@ -535,11 +682,17 @@ class SimWorld:
         if job["status"] != "done":
             return reply(404, {"error": "not found"})
         if name == "master.m3u8":
-            return reply(200, raw=b"#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nv0/index.m3u8\n",
-                         headers={"cache-control": "private, no-store"})
+            return reply(
+                200,
+                raw=b"#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nv0/index.m3u8\n",
+                headers={"cache-control": "private, no-store"},
+            )
         if name == "v0/index.m3u8":
-            return reply(200, raw=b"#EXTM3U\n#EXTINF:2,\nseg0.ts\n#EXT-X-ENDLIST\n",
-                         headers={"cache-control": "private, no-store"})
+            return reply(
+                200,
+                raw=b"#EXTM3U\n#EXTINF:2,\nseg0.ts\n#EXT-X-ENDLIST\n",
+                headers={"cache-control": "private, no-store"},
+            )
         if name == "v0/seg0.ts":
             return reply(307, raw=b"", headers={"location": self.signed("/seg0.ts")})
         return reply(404, {"error": "not found"})
@@ -548,8 +701,14 @@ class SimWorld:
         if method == "OPTIONS":
             origin = headers.get("origin", "")
             if origin == FRONTEND or "cors-open" in self.faults:
-                return 200, {"access-control-allow-origin": [origin],
-                             "access-control-allow-methods": ["POST"]}, b""
+                return (
+                    200,
+                    {
+                        "access-control-allow-origin": [origin],
+                        "access-control-allow-methods": ["POST"],
+                    },
+                    b"",
+                )
             return 403, {}, b""
         if method == "POST":
             return self.s3_post(headers, body)
@@ -588,9 +747,10 @@ class SimWorld:
             return 403, {}, b""
         rid = found.group(1)
         if "tamper-open" not in self.faults and (
-                fields.get("x-amz-signature") != f"sig-{rid}"
-                or fields.get("policy") != f"policy-{rid}"
-                or fields.get("Content-Type") != reservation["request"]["content_type"]):
+            fields.get("x-amz-signature") != f"sig-{rid}"
+            or fields.get("policy") != f"policy-{rid}"
+            or fields.get("Content-Type") != reservation["request"]["content_type"]
+        ):
             return 403, {}, b"<Error><Code>SignatureDoesNotMatch</Code></Error>"
         if self.clock.t > reservation["expires_t"] and "expiry-open" not in self.faults:
             return 403, {}, b"<Error><Code>AccessDenied</Code></Error>"
@@ -598,7 +758,8 @@ class SimWorld:
         start = body.index(b"\r\n\r\n", body.index(b'name="file"')) + 4
         stored = body.rindex(f"\r\n--{boundary}--\r\n".encode()) - start
         if stored > reservation["request"]["size_bytes"] and (
-                "no-s3-limit" not in self.faults and "adopts-oversize" not in self.faults):
+            "no-s3-limit" not in self.faults and "adopts-oversize" not in self.faults
+        ):
             return 400, {}, b"<Error><Code>EntityTooLarge</Code></Error>"
         reservation["uploaded"], reservation["stored_bytes"] = True, stored
         self.clock.sleep(1.2)
@@ -630,37 +791,54 @@ class SimWorld:
             if task["kind"] != "worker" or task["stopped_at"] is not None:
                 continue
             if task["busy"] is None and now >= task["started_at"]:
-                queued = sorted((j for j in self.jobs.values()
-                                 if j["status"] == "queued" and j.get("delivered", True)),
-                                key=lambda j: j["queued_at"])
+                queued = sorted(
+                    (
+                        j
+                        for j in self.jobs.values()
+                        if j["status"] == "queued" and j.get("delivered", True)
+                    ),
+                    key=lambda j: j["queued_at"],
+                )
                 if queued:
                     job = queued[0]
                     # The attempt starts when the worker is up and the job is queued, not when
                     # this lazy tick happens to notice it: the API's timestamps are server-side.
                     begin = max(task["idle_since"], job["queued_at"])
                     self.claims += 1
-                    job.update(status="processing", task=task["arn"], claim_no=self.claims,
-                               started_t=begin, finished_t=None,
-                               finish_at=(begin if self.one_job_per_task
-                                          else max(now, task["started_at"])) + self.encode)
+                    job.update(
+                        status="processing",
+                        task=task["arn"],
+                        claim_no=self.claims,
+                        started_t=begin,
+                        finished_t=None,
+                        finish_at=(begin if self.one_job_per_task else max(now, task["started_at"]))
+                        + self.encode,
+                    )
                     task["busy"] = job["id"]
                 elif now >= task["idle_since"] + 40:
                     task["stopped_at"] = task["idle_since"] + 40
             if task["busy"] is None and task["stopped_at"] is None:
                 task["idle_since"] = max(task["idle_since"], task["started_at"])
         for task in self.tasks.values():
-            if task["kind"] != "worker" and task["stopped_at"] is None \
-                    and now >= task["started_at"] + task["script_seconds"]:
+            if (
+                task["kind"] != "worker"
+                and task["stopped_at"] is None
+                and now >= task["started_at"] + task["script_seconds"]
+            ):
                 task["stopped_at"] = task["started_at"] + task["script_seconds"]
 
     def commands_enabled(self):
         return "mapping-ignored" in self.faults or (
-            self.plan.mappings.get(self.commands_mapping) == "Enabled")
+            self.plan.mappings.get(self.commands_mapping) == "Enabled"
+        )
 
     def commands_waiting(self):
         """Commands Media has published that Processing's consumer has not taken yet."""
-        return sum(1 for j in self.jobs.values()
-                   if not j.get("delivered", True) and self.clock.t >= j["submit_t"])
+        return sum(
+            1
+            for j in self.jobs.values()
+            if not j.get("delivered", True) and self.clock.t >= j["submit_t"]
+        )
 
     def deliver(self, now):
         """The ProcessingCommands mapping hands published commands to Processing, if Enabled."""
@@ -685,11 +863,17 @@ class SimWorld:
             self.next_launch = now + self.launcher_tick
         while now >= self.next_launch:
             at, self.next_launch = self.next_launch, self.next_launch + self.launcher_tick
-            workers = [t for t in self.tasks.values() if t["kind"] == "worker"
-                       and (t["stopped_at"] is None or t["stopped_at"] > at)]
+            workers = [
+                t
+                for t in self.tasks.values()
+                if t["kind"] == "worker" and (t["stopped_at"] is None or t["stopped_at"] > at)
+            ]
             unclaimed = sum(1 for t in workers if t["busy"] is None)
-            queued = sum(1 for j in self.jobs.values()
-                         if j["status"] == "queued" and j.get("delivered", True))
+            queued = sum(
+                1
+                for j in self.jobs.values()
+                if j["status"] == "queued" and j.get("delivered", True)
+            )
             limit = 4 if "launcher-overshoot" in self.faults else 3
             starts = min(queued - unclaimed, limit - len(workers))
             if "launcher-respawn" in self.faults:  # an idle respawn: starts with nothing queued
@@ -697,11 +881,20 @@ class SimWorld:
             for _ in range(max(0, starts)):
                 arn = f"arn:aws:ecs:{REGION}:{ACCOUNT}:task/{self.env}/{uuid.uuid4().hex[:16]}"
                 self.tasks[arn] = {
-                    "arn": arn, "kind": "worker", "created_at": at, "started_at": at + self.start,
-                    "stopped_at": None, "busy": None, "idle_since": at + self.start,
-                    "interrupted": False, "script_seconds": 30, "cpu": "2048", "memory": "4096",
+                    "arn": arn,
+                    "kind": "worker",
+                    "created_at": at,
+                    "started_at": at + self.start,
+                    "stopped_at": None,
+                    "busy": None,
+                    "idle_since": at + self.start,
+                    "interrupted": False,
+                    "script_seconds": 30,
+                    "cpu": "2048",
+                    "memory": "4096",
                     "definition": f"arn:aws:ecs:{REGION}:{ACCOUNT}:task-definition/"
-                                  f"{self.env}-worker:1"}
+                    f"{self.env}-worker:1",
+                }
 
     def tick_lambda(self, now):
         """Complete running invocations, then start queued jobs while the mapping is enabled."""
@@ -711,41 +904,54 @@ class SimWorld:
                 job["status"] = "done"
         if self.plan.mappings.get(uuid_) != "Enabled":
             return
-        running = sum(1 for j in self.jobs.values()
-                      if j.get("lambda") and j["status"] == "processing")
-        for job in sorted((j for j in self.jobs.values()
-                           if j["status"] == "queued" and j.get("delivered", True)),
-                          key=lambda j: j["queued_at"]):
+        running = sum(
+            1 for j in self.jobs.values() if j.get("lambda") and j["status"] == "processing"
+        )
+        for job in sorted(
+            (j for j in self.jobs.values() if j["status"] == "queued" and j.get("delivered", True)),
+            key=lambda j: j["queued_at"],
+        ):
             if running >= 2:
                 break
             cold = self.last_invocation is None or now - self.last_invocation > 600
             seconds = self.lambda_seconds[0 if cold else 1]
             job.update(status="processing", **{"lambda": True}, finish_at=now + seconds)
             request = uuid.uuid4().hex[:16]
-            self.invocations.append({
-                "job": job["pid"], "request": request, "cold": cold, "at": now,
-                "seconds": seconds})
+            self.invocations.append(
+                {"job": job["pid"], "request": request, "cold": cold, "at": now, "seconds": seconds}
+            )
             self.last_invocation = now + seconds
             running += 1
 
     def task_view(self, task):
         now = self.clock.t
         stopped = task["stopped_at"] is not None and now >= task["stopped_at"]
-        status = "STOPPED" if stopped else (
-            "RUNNING" if now >= task["started_at"] else "PROVISIONING")
-        view = {"taskArn": task["arn"], "taskDefinitionArn": task["definition"],
-                "lastStatus": status, "cpu": task["cpu"], "memory": task["memory"],
-                "createdAt": iso(self.wall_of(task["created_at"])),
-                "pullStartedAt": iso(self.wall_of(task["created_at"] + 2)),
-                "containers": [{"name": "migration" if task["kind"] == "vpcread" else "worker",
-                                "exitCode": task.get("exit", 0) if stopped else None,
-                                "imageDigest": "sha256:" + "ab" * 32}]}
+        status = (
+            "STOPPED" if stopped else ("RUNNING" if now >= task["started_at"] else "PROVISIONING")
+        )
+        view = {
+            "taskArn": task["arn"],
+            "taskDefinitionArn": task["definition"],
+            "lastStatus": status,
+            "cpu": task["cpu"],
+            "memory": task["memory"],
+            "createdAt": iso(self.wall_of(task["created_at"])),
+            "pullStartedAt": iso(self.wall_of(task["created_at"] + 2)),
+            "containers": [
+                {
+                    "name": "migration" if task["kind"] == "vpcread" else "worker",
+                    "exitCode": task.get("exit", 0) if stopped else None,
+                    "imageDigest": "sha256:" + "ab" * 32,
+                }
+            ],
+        }
         if status != "PROVISIONING":
             view["startedAt"] = iso(self.wall_of(task["started_at"]))
         if stopped:
-            view.update(stoppedAt=iso(self.wall_of(task["stopped_at"])),
-                        stopCode="UserInitiated" if task.get("interrupted")
-                        else "EssentialContainerExited")
+            view.update(
+                stoppedAt=iso(self.wall_of(task["stopped_at"])),
+                stopCode="UserInitiated" if task.get("interrupted") else "EssentialContainerExited",
+            )
         return view
 
     def wall_of(self, monotonic):
@@ -766,8 +972,11 @@ class SimWorld:
     def ecs_run_task(self, payload):
         arn = f"arn:aws:ecs:{REGION}:{ACCOUNT}:task/{self.env}/{uuid.uuid4().hex[:16]}"
         definition = payload["taskDefinition"]
-        env = {e["name"]: e["value"] for c in payload.get("overrides", {}).get(
-            "containerOverrides", []) for e in c.get("environment", [])}
+        env = {
+            e["name"]: e["value"]
+            for c in payload.get("overrides", {}).get("containerOverrides", [])
+            for e in c.get("environment", [])
+        }
         spec = self.definitions.get(definition, {})
         kind = "worker"
         if "DC2_MODE" in env:
@@ -775,22 +984,33 @@ class SimWorld:
         elif "DC2_SCRIPT" in env or "DC2_SCRIPT" in json.dumps(spec):
             kind = "generator" if "DC2_BASE_URL" in json.dumps(spec) else "probe"
         now = self.clock.t
-        task = {"arn": arn, "definition": definition, "kind": kind, "created_at": now,
-                "started_at": now + self.start, "stopped_at": None, "busy": None,
-                "idle_since": now + self.start, "interrupted": False, "script_seconds": 30,
-                "cpu": payload.get("overrides", {}).get("cpu", spec.get("cpu", "2048")),
-                "memory": payload.get("overrides", {}).get("memory", spec.get("memory", "4096"))}
+        task = {
+            "arn": arn,
+            "definition": definition,
+            "kind": kind,
+            "created_at": now,
+            "started_at": now + self.start,
+            "stopped_at": None,
+            "busy": None,
+            "idle_since": now + self.start,
+            "interrupted": False,
+            "script_seconds": 30,
+            "cpu": payload.get("overrides", {}).get("cpu", spec.get("cpu", "2048")),
+            "memory": payload.get("overrides", {}).get("memory", spec.get("memory", "4096")),
+        }
         if kind == "worker":
             self.workers_started += 1
             if self.workers_started <= self.dud_encoders:
                 task.update(dud=True, stopped_at=now + self.start + 3.0)
         if kind == "generator":
             task["script_seconds"] = 330
-            self.logs[("/dc2/tasks", f"generator/generator/{arn.rsplit('/', 1)[-1]}")] = \
-                self.generator_lines  # computed on first read: it replays 5 minutes of load
+            self.logs[("/dc2/tasks", f"generator/generator/{arn.rsplit('/', 1)[-1]}")] = (
+                self.generator_lines
+            )  # computed on first read: it replays 5 minutes of load
         elif kind == "probe":
-            self.logs[("/dc2/tasks", f"Worker/worker/{arn.rsplit('/', 1)[-1]}")] = \
+            self.logs[("/dc2/tasks", f"Worker/worker/{arn.rsplit('/', 1)[-1]}")] = (
                 self.probe_lines()
+            )
         elif kind == "vpcread":
             self.start_vpc_read(task, env, definition)
         self.tasks[arn] = task
@@ -800,9 +1020,14 @@ class SimWorld:
         """The probe's run, as the log line it would print and how long it would take."""
         owner, mode = env["DC2_OWNER"], env["DC2_MODE"]
         self.vpc_reads.append((owner, mode, definition))
-        result = {"ok": True, "mode": mode, "owner": owner, "connect_attempts": 1,
-                  "connect_seconds": 1.2,
-                  "tls": {"verified": True, "server_reports_ssl": True, "protocol": "TLSv1.3"}}
+        result = {
+            "ok": True,
+            "mode": mode,
+            "owner": owner,
+            "connect_attempts": 1,
+            "connect_seconds": 1.2,
+            "tls": {"verified": True, "server_reports_ssl": True, "protocol": "TLSv1.3"},
+        }
         if mode == "schema":
             result.update(heads=1, revision=self.schema[owner])
         else:
@@ -824,17 +1049,24 @@ class SimWorld:
         lines = ["start", f"DC2-VPC-READ {json.dumps(result)}"]
         stream = task["arn"].rsplit("/", 1)[-1]
         self.logs[("/dc2/tasks", f"{prefix}/migration/{stream}")] = (
-            [] if "read-no-log" in self.faults else lines)
+            [] if "read-no-log" in self.faults else lines
+        )
 
     def ecs_describe_tasks(self, payload):
-        return {"tasks": [self.task_view(self.tasks[a]) for a in payload["tasks"]
-                          if a in self.tasks], "failures": []}
+        return {
+            "tasks": [self.task_view(self.tasks[a]) for a in payload["tasks"] if a in self.tasks],
+            "failures": [],
+        }
 
     def ecs_list_tasks(self, payload):
         want = payload.get("desiredStatus", "RUNNING")
-        return {"taskArns": [a for a, t in self.tasks.items()
-                             if (self.task_view(t)["lastStatus"] == "STOPPED") == (
-                                 want == "STOPPED")]}
+        return {
+            "taskArns": [
+                a
+                for a, t in self.tasks.items()
+                if (self.task_view(t)["lastStatus"] == "STOPPED") == (want == "STOPPED")
+            ]
+        }
 
     def ecs_stop_task(self, payload):
         task = self.tasks[payload["task"]]
@@ -850,33 +1082,63 @@ class SimWorld:
         arn = payload["taskDefinition"]
         if "migration" in arn:
             owner = "media" if "mediamigration" in arn else "processing"
-            return {"taskDefinition": {
-                "taskDefinitionArn": arn, "family": f"{self.env}-{owner}migration",
-                "cpu": "256", "memory": "512",
-                "executionRoleArn": f"arn:aws:iam::{ACCOUNT}:role/{self.env}-{owner}-exec",
-                "taskRoleArn": f"arn:aws:iam::{ACCOUNT}:role/{self.env}-{owner}-migration",
-                "networkMode": "awsvpc", "requiresCompatibilities": ["FARGATE"],
-                "runtimePlatform": {"cpuArchitecture": "X86_64",
-                                    "operatingSystemFamily": "LINUX"},
-                "containerDefinitions": [{
-                    "name": "migration",
-                    "image": f"{self.repository(owner)}@{self.stack_digests[owner]}",
-                    "logConfiguration": {"logDriver": "awslogs", "options": {
-                        "awslogs-group": group, "awslogs-region": REGION,
-                        "awslogs-stream-prefix": f"{owner.title()}Migration"}}}]}}
-        return {"taskDefinition": {
-            "taskDefinitionArn": payload["taskDefinition"], "family": f"{self.env}-worker",
-            "cpu": "2048", "memory": "4096",
-            "executionRoleArn": f"arn:aws:iam::{ACCOUNT}:role/{self.env}-exec",
-            "taskRoleArn": f"arn:aws:iam::{ACCOUNT}:role/{self.env}-worker",
-            "networkMode": "awsvpc", "requiresCompatibilities": ["FARGATE"],
-            "runtimePlatform": {"cpuArchitecture": "X86_64", "operatingSystemFamily": "LINUX"},
-            "containerDefinitions": [{
-                "name": "worker",
-                "image": f"{self.repository('worker')}@{self.stack_digests['worker']}",
-                "logConfiguration": {"logDriver": "awslogs", "options": {
-                    "awslogs-group": group, "awslogs-region": REGION,
-                    "awslogs-stream-prefix": "Worker"}}}]}}
+            return {
+                "taskDefinition": {
+                    "taskDefinitionArn": arn,
+                    "family": f"{self.env}-{owner}migration",
+                    "cpu": "256",
+                    "memory": "512",
+                    "executionRoleArn": f"arn:aws:iam::{ACCOUNT}:role/{self.env}-{owner}-exec",
+                    "taskRoleArn": f"arn:aws:iam::{ACCOUNT}:role/{self.env}-{owner}-migration",
+                    "networkMode": "awsvpc",
+                    "requiresCompatibilities": ["FARGATE"],
+                    "runtimePlatform": {
+                        "cpuArchitecture": "X86_64",
+                        "operatingSystemFamily": "LINUX",
+                    },
+                    "containerDefinitions": [
+                        {
+                            "name": "migration",
+                            "image": f"{self.repository(owner)}@{self.stack_digests[owner]}",
+                            "logConfiguration": {
+                                "logDriver": "awslogs",
+                                "options": {
+                                    "awslogs-group": group,
+                                    "awslogs-region": REGION,
+                                    "awslogs-stream-prefix": f"{owner.title()}Migration",
+                                },
+                            },
+                        }
+                    ],
+                }
+            }
+        return {
+            "taskDefinition": {
+                "taskDefinitionArn": payload["taskDefinition"],
+                "family": f"{self.env}-worker",
+                "cpu": "2048",
+                "memory": "4096",
+                "executionRoleArn": f"arn:aws:iam::{ACCOUNT}:role/{self.env}-exec",
+                "taskRoleArn": f"arn:aws:iam::{ACCOUNT}:role/{self.env}-worker",
+                "networkMode": "awsvpc",
+                "requiresCompatibilities": ["FARGATE"],
+                "runtimePlatform": {"cpuArchitecture": "X86_64", "operatingSystemFamily": "LINUX"},
+                "containerDefinitions": [
+                    {
+                        "name": "worker",
+                        "image": f"{self.repository('worker')}@{self.stack_digests['worker']}",
+                        "logConfiguration": {
+                            "logDriver": "awslogs",
+                            "options": {
+                                "awslogs-group": group,
+                                "awslogs-region": REGION,
+                                "awslogs-stream-prefix": "Worker",
+                            },
+                        },
+                    }
+                ],
+            }
+        }
 
     def ecs_register_task_definition(self, payload):
         self.registered += 1
@@ -898,8 +1160,10 @@ class SimWorld:
             if self.generated is None:
                 self.generated = lines()
             lines = self.generated
-        return {"events": [{"timestamp": 0, "message": m} for m in lines],
-                "nextForwardToken": "end"}
+        return {
+            "events": [{"timestamp": 0, "message": m} for m in lines],
+            "nextForwardToken": "end",
+        }
 
     def logs_filter_log_events(self, payload):
         """The encoder's own line and Lambda's REPORT line for each simulated invocation."""
@@ -907,14 +1171,26 @@ class SimWorld:
         for call in self.invocations:
             if "REPORT" in payload.get("filterPattern", ""):
                 init = f"\tInit Duration: {call['seconds'] * 100:.2f} ms" if call["cold"] else ""
-                events.append({"message": (
-                    f"REPORT RequestId: {call['request']}\tDuration: {call['seconds'] * 1000:.2f}"
-                    f" ms\tBilled Duration: {int(call['seconds'] * 1000) + 1} ms\tMemory Size: "
-                    f"3584 MB\tMax Memory Used: 410 MB{init}")})
+                events.append(
+                    {
+                        "message": (
+                            f"REPORT RequestId: {call['request']}"
+                            f"\tDuration: {call['seconds'] * 1000:.2f} ms"
+                            f"\tBilled Duration: {int(call['seconds'] * 1000) + 1} ms"
+                            f"\tMemory Size: "
+                            f"3584 MB\tMax Memory Used: 410 MB{init}"
+                        )
+                    }
+                )
             else:
-                line = {"event": "short_encode", "outcome": "finished", "cold": call["cold"],
-                        "job_id": call["job"], "request_id": call["request"],
-                        "seconds": call["seconds"]}
+                line = {
+                    "event": "short_encode",
+                    "outcome": "finished",
+                    "cold": call["cold"],
+                    "job_id": call["job"],
+                    "request_id": call["request"],
+                    "seconds": call["seconds"],
+                }
                 events.append({"message": "dc2.short_encode " + json.dumps(line)})
         return {"events": events}
 
@@ -927,8 +1203,11 @@ class SimWorld:
         digest = payload["imageIds"][0]["imageDigest"]
         if digest not in self.manifests:
             return {"images": [], "failures": [{"failureCode": "ImageNotFound"}]}
-        return {"images": [{"imageId": {"imageDigest": digest},
-                            "imageManifest": self.manifests[digest]}]}
+        return {
+            "images": [
+                {"imageId": {"imageDigest": digest}, "imageManifest": self.manifests[digest]}
+            ]
+        }
 
     def repository_of(self, name):
         return f"{ACCOUNT}.dkr.ecr.{REGION}.amazonaws.com/{name}"
@@ -939,16 +1218,26 @@ class SimWorld:
             counts["HIGH"] = 1
         status = "IN_PROGRESS" if "scan-pending" in self.faults else "COMPLETE"
         if self.scan_findings is None:
-            return {"imageId": payload["imageId"], "imageScanStatus": {"status": status},
-                    "imageScanFindings": {"findingSeverityCounts": counts}}
+            return {
+                "imageId": payload["imageId"],
+                "imageScanStatus": {"status": status},
+                "imageScanFindings": {"findingSeverityCounts": counts},
+            }
         counts = {}
         for _, severity in self.scan_findings:
             counts[severity] = counts.get(severity, 0) + 1
         start = int(payload.get("nextToken") or 0)
         end = start + self.scan_page
-        reply = {"imageId": payload["imageId"], "imageScanStatus": {"status": status},
-                 "imageScanFindings": {"findingSeverityCounts": counts, "findings": [
-                     {"name": n, "severity": sev} for n, sev in self.scan_findings[start:end]]}}
+        reply = {
+            "imageId": payload["imageId"],
+            "imageScanStatus": {"status": status},
+            "imageScanFindings": {
+                "findingSeverityCounts": counts,
+                "findings": [
+                    {"name": n, "severity": sev} for n, sev in self.scan_findings[start:end]
+                ],
+            },
+        }
         if end < len(self.scan_findings):
             reply["nextToken"] = str(end)
         return reply
@@ -957,16 +1246,19 @@ class SimWorld:
         job = payload["Prefix"].split("/")[1]
         done = any(j["pid"] == job and j["status"] == "done" for j in self.jobs.values())
         key = f"{payload['Prefix']}{uuid.uuid5(uuid.NAMESPACE_URL, job)}/primary.mp4"
-        return {"Versions": [{"Key": key, "VersionId": "v1"}] if done else [],
-                "IsTruncated": False}
+        return {"Versions": [{"Key": key, "VersionId": "v1"}] if done else [], "IsTruncated": False}
 
     def probe_lines(self):
-        result = {"own_database": "connected", "own_ddl": "denied:InsufficientPrivilegeError",
-                  "other_database": "connect-denied:InvalidAuthorizationSpecificationError",
-                  "other_database_read": None}
+        result = {
+            "own_database": "connected",
+            "own_ddl": "denied:InsufficientPrivilegeError",
+            "other_database": "connect-denied:InvalidAuthorizationSpecificationError",
+            "other_database_read": None,
+        }
         if "crossdb-open" in self.faults:
-            result.update(own_ddl="ALLOWED", other_database="reached",
-                          other_database_read="ALLOWED")
+            result.update(
+                own_ddl="ALLOWED", other_database="reached", other_database_read="ALLOWED"
+            )
         if "db-unreachable" in self.faults:
             result = {"own_database": "connect-denied:TimeoutError"}
         return ["start", "DC2-RESULT " + json.dumps(result)]
@@ -997,7 +1289,11 @@ class SimWorld:
         with contextlib.redirect_stdout(sink):
             generator.run(
                 {"users": 50, "seconds": 180, "warmup": 5, "other_seconds": 20, "logins": 20},
-                request, clock.monotonic, clock.sleep, generator.emit)
+                request,
+                clock.monotonic,
+                clock.sleep,
+                generator.emit,
+            )
         return sink.getvalue().splitlines()
 
     def capacity_at(self, minute, cluster=None):
@@ -1019,23 +1315,46 @@ class SimWorld:
         for minute in range(start - start % 60 + 60, end, 60):
             if minute <= now:
                 value = self.capacity_at(minute, cluster)
-                points.append({"Timestamp": iso(minute), "Minimum": value, "Maximum": value,
-                               "Average": value})
+                points.append(
+                    {"Timestamp": iso(minute), "Minimum": value, "Maximum": value, "Average": value}
+                )
         return {"Datapoints": points, "Label": "ServerlessDatabaseCapacity"}
 
     def rds_describe_db_clusters(self, payload):
-        return {"DBClusters": [{"ServerlessV2ScalingConfiguration": {
-            "MinCapacity": 0.0, "MaxCapacity": self.max_acu,
-            "SecondsUntilAutoPause": self.auto_pause_seconds}}]}
+        return {
+            "DBClusters": [
+                {
+                    "ServerlessV2ScalingConfiguration": {
+                        "MinCapacity": 0.0,
+                        "MaxCapacity": self.max_acu,
+                        "SecondsUntilAutoPause": self.auto_pause_seconds,
+                    }
+                }
+            ]
+        }
 
     def ce_get_cost_and_usage(self, payload):
-        groups = {"Amazon Relational Database Service": "1.62", "Amazon Elastic Container Service":
-                  "0.41", "AWS Lambda": "0.03", "Amazon CloudFront": "0.0", "Amazon Simple "
-                  "Storage Service": "0.02", "EC2 - Other": "0.11", "Amazon Simple Queue "
-                  "Service": "0.0", "AWS Secrets Manager": "0.2"}
-        return {"ResultsByTime": [{"Estimated": True, "Groups": [
-            {"Keys": [k], "Metrics": {"UnblendedCost": {"Amount": v, "Unit": "USD"}}}
-            for k, v in groups.items()]}]}
+        groups = {
+            "Amazon Relational Database Service": "1.62",
+            "Amazon Elastic Container Service": "0.41",
+            "AWS Lambda": "0.03",
+            "Amazon CloudFront": "0.0",
+            "Amazon Simple Storage Service": "0.02",
+            "EC2 - Other": "0.11",
+            "Amazon Simple Queue Service": "0.0",
+            "AWS Secrets Manager": "0.2",
+        }
+        return {
+            "ResultsByTime": [
+                {
+                    "Estimated": True,
+                    "Groups": [
+                        {"Keys": [k], "Metrics": {"UnblendedCost": {"Amount": v, "Unit": "USD"}}}
+                        for k, v in groups.items()
+                    ],
+                }
+            ]
+        }
 
 
 def parse_epoch(text):
@@ -1055,24 +1374,39 @@ def build(args, *, session="open", world=None, sql=True, tmp=None, unattended=Fa
     (folder / "session").mkdir(mode=0o700, exist_ok=True)
     outputs = world.outputs()
     (folder / "outputs.json").write_text(json.dumps(outputs))
-    config = {"operator_station": "sim-station", "environment_id": world.env,
-              "journal": str(folder / "session" / "journal.json"),
-              "outputs_file": str(folder / "outputs.json"), "edge_open": dict(EDGE_OPEN)}
+    config = {
+        "operator_station": "sim-station",
+        "environment_id": world.env,
+        "journal": str(folder / "session" / "journal.json"),
+        "outputs_file": str(folder / "outputs.json"),
+        "edge_open": dict(EDGE_OPEN),
+    }
     if sql:
-        config["sql"] = {"ca_file": "/dev/null", "media_dsn_file": "/dev/null",
-                         "processing_dsn_file": "/dev/null"}
+        config["sql"] = {
+            "ca_file": "/dev/null",
+            "media_dsn_file": "/dev/null",
+            "processing_dsn_file": "/dev/null",
+        }
     (folder / "operator-config.json").write_text(json.dumps(config))
     creds = folder / "smoke-credentials.json"
     creds.write_text(json.dumps({"email": "smoke@example.com", "password": "sim-password"}))
     creds.chmod(0o600)
     world.users["smoke@example.com"] = {"id": "smoke-user", "password": "sim-password"}
     data, cfg, hooks, urls, outputs, journal = load_state(folder)
-    deploy_journal = DeployJournal(folder / "deploy-journal.json", station="sim-station",
-                                   environment=world.env)
-    deploy_journal.create({"run_id": "sim", "env": world.env, "steps": {},
-                           "outputs": world.journal_outputs(),
-                           "images": world.journal_images(), "events": [],
-                           "resources": world.journal_resources()})
+    deploy_journal = DeployJournal(
+        folder / "deploy-journal.json", station="sim-station", environment=world.env
+    )
+    deploy_journal.create(
+        {
+            "run_id": "sim",
+            "env": world.env,
+            "steps": {},
+            "outputs": world.journal_outputs(),
+            "images": world.journal_images(),
+            "events": [],
+            "resources": world.journal_resources(),
+        }
+    )
     journal.initialize(verified_empty=True, exclusive_station=True)
     if session != "closed":
         with journal.locked() as state:
@@ -1086,13 +1420,26 @@ def build(args, *, session="open", world=None, sql=True, tmp=None, unattended=Fa
             world.plan.rules[f"{world.env}-ProcessingLauncher-rule"] = "ENABLED"
     return Context(
         scope={"profile": "dc2-project2-mfa", "region": REGION, "account": ACCOUNT},
-        state_dir=folder, run_id=getattr(args, "run_id", "sim"), simulated=True,
-        outputs=outputs, config=cfg, hooks=hooks, urls=urls, data=data, journal=journal,
-        aws=world, http=world.http, clock=world.clock.monotonic, sleep=world.clock.sleep,
+        state_dir=folder,
+        run_id=getattr(args, "run_id", "sim"),
+        simulated=True,
+        outputs=outputs,
+        config=cfg,
+        hooks=hooks,
+        urls=urls,
+        data=data,
+        journal=journal,
+        aws=world,
+        http=world.http,
+        clock=world.clock.monotonic,
+        sleep=world.clock.sleep,
         wall=world.clock.wall,
-        credentials=lambda: json.loads(creds.read_text()), sqs=lambda: FakeSqs(world),
-        sdk=lambda scope: world, release_main=release_cli.main, world=world)
-
+        credentials=lambda: json.loads(creds.read_text()),
+        sqs=lambda: FakeSqs(world),
+        sdk=lambda scope: world,
+        release_main=release_cli.main,
+        world=world,
+    )
 
 
 def reopen(ctx, session):
@@ -1115,18 +1462,38 @@ def opt_in_launcher(ctx):
 def build_evidence(path, *, source_sha, config_ids=None, failures=()):
     """A build_and_verify evidence file for the three images, as `deploy/v1` would write it."""
     config_ids = config_ids or LOCAL_ID
-    images = {owner: {
-        "tag": f"dc2-v1-{owner}:local-{source_sha[:12]}", "build_exit_code": 0,
-        "config_id": config_ids[owner], "source_sha": source_sha,
-        "runtime_contents": {"ffmpeg": owner == "worker", "redis": False, "rq": False}}
-        for owner in ("media", "processing", "worker")}
+    images = {
+        owner: {
+            "tag": f"dc2-v1-{owner}:local-{source_sha[:12]}",
+            "build_exit_code": 0,
+            "config_id": config_ids[owner],
+            "source_sha": source_sha,
+            "runtime_contents": {"ffmpeg": owner == "worker", "redis": False, "rq": False},
+        }
+        for owner in ("media", "processing", "worker")
+    }
     for image in images.values():
-        image["trivy_scan"] = scan_receipt(json.dumps({
-            "Metadata": {"ImageID": image["config_id"]}, "Results": [
-                {"Class": "os-pkgs", "Type": "debian"},
-                {"Class": "lang-pkgs", "Type": "python-pkg"}]}).encode(),
-            config_id=image["config_id"], source_sha=source_sha)
-    Path(path).write_text(json.dumps({
-        "status": "LOCAL_ARTIFACT_FAIL" if failures else "LOCAL_ARTIFACT_PASS",
-        "source_sha": source_sha, "images": images, "failures": list(failures)}))
+        image["trivy_scan"] = scan_receipt(
+            json.dumps(
+                {
+                    "Metadata": {"ImageID": image["config_id"]},
+                    "Results": [
+                        {"Class": "os-pkgs", "Type": "debian"},
+                        {"Class": "lang-pkgs", "Type": "python-pkg"},
+                    ],
+                }
+            ).encode(),
+            config_id=image["config_id"],
+            source_sha=source_sha,
+        )
+    Path(path).write_text(
+        json.dumps(
+            {
+                "status": "LOCAL_ARTIFACT_FAIL" if failures else "LOCAL_ARTIFACT_PASS",
+                "source_sha": source_sha,
+                "images": images,
+                "failures": list(failures),
+            }
+        )
+    )
     return Path(path)

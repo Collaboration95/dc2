@@ -263,11 +263,7 @@ def promote(
     stop/drain any finite test workers before returning. No fixture is AWS proof.
     """
     digest = validate_inputs(
-        config,
-        owner=owner,
-        bundle=bundle,
-        image_uri=image_uri,
-        worker_definition=worker_definition,
+        config, owner=owner, bundle=bundle, image_uri=image_uri, worker_definition=worker_definition
     )
     journal.check_context(config)
     with journal.locked() as state:
@@ -542,9 +538,7 @@ def _describe_or_forgotten(config, transport, arn, deadline):
     return describe_tasks(config, transport, [arn], deadline=deadline)
 
 
-def abandon(
-    config, transport, journal, *, schema_revision, quiescent, deadline, reason=None
-):
+def abandon(config, transport, journal, *, schema_revision, quiescent, deadline, reason=None):
     """Clear a pending release that provably changed nothing; restore would refuse it.
 
     A candidate whose migration task fails leaves `migration_complete` false and no alias

@@ -34,8 +34,10 @@ def test_exact_registry_provenance(owner):
         artifact_test=proof["artifact_test"],
         trivy={
             "Metadata": {"ImageID": config_id},
-            "Results": [{"Class": "os-pkgs", "Type": "debian", "Vulnerabilities": []},
-                        {"Class": "lang-pkgs", "Type": "python-pkg"}],
+            "Results": [
+                {"Class": "os-pkgs", "Type": "debian", "Vulnerabilities": []},
+                {"Class": "lang-pkgs", "Type": "python-pkg"},
+            ],
         },
     )
     assert made["manifest_digest"] == "sha256:" + hashlib.sha256(raw).hexdigest()

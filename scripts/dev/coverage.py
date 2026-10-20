@@ -210,10 +210,7 @@ def main() -> None:
             "packages": package_goals,
             "recovery_modules": recovery_goals,
         },
-        "risk_modules": {
-            **recovery_reports,
-            **risk_modules,
-        },
+        "risk_modules": {**recovery_reports, **risk_modules},
     }
     (output / "gate.json").write_text(json.dumps(gate, indent=2) + "\n")
     if failures:

@@ -110,8 +110,19 @@ def sha256_text(text):
 class Proof:
     """One issue's receipt for one run id: ordered steps, resumable intents, an overall verdict."""
 
-    def __init__(self, issue, *, directory, run_id, simulated, scope, required=(), guard=None,
-                 wall=time.time, fresh=None):
+    def __init__(
+        self,
+        issue,
+        *,
+        directory,
+        run_id,
+        simulated,
+        scope,
+        required=(),
+        guard=None,
+        wall=time.time,
+        fresh=None,
+    ):
         self.issue, self.run_id, self.simulated = issue, run_id, simulated
         self.required, self.guard, self.wall = tuple(required), guard, wall
         # `fresh` is None (PASS and NOT_RUN stay final), True (every step) or a set of step names
@@ -119,8 +130,14 @@ class Proof:
         self.fresh, self.archived = fresh, set()
         self.ran = []  # steps whose action ran in this process (not skipped as already passed)
         self.path = Path(directory) / f"evidence-{issue}-{run_id}.json"
-        self.doc = {"issue": f"#{issue}", "run_id": run_id, "scope": scope, "steps": {},
-                    "intents": {}, "mode": SIMULATED.lower() if simulated else "live"}
+        self.doc = {
+            "issue": f"#{issue}",
+            "run_id": run_id,
+            "scope": scope,
+            "steps": {},
+            "intents": {},
+            "mode": SIMULATED.lower() if simulated else "live",
+        }
         if self.path.exists():
             try:
                 self.doc = json.loads(self.path.read_text())
@@ -141,7 +158,8 @@ class Proof:
 
     def wants_fresh(self, name):
         return name not in self.archived and (
-            self.fresh is True or (bool(self.fresh) and name in self.fresh))
+            self.fresh is True or (bool(self.fresh) and name in self.fresh)
+        )
 
     def archive(self, name):
         """Move a step's entry and intent to `attempts` so the step reruns and mints a new intent.
@@ -155,8 +173,14 @@ class Proof:
         if step is None and intent is None:
             return
         history = self.doc.setdefault("attempts", {}).setdefault(name, [])
-        history.append({"attempt": len(history) + 1, "step": step, "intent": intent,
-                        "archived_at": stamp(self.wall())})
+        history.append(
+            {
+                "attempt": len(history) + 1,
+                "step": step,
+                "intent": intent,
+                "archived_at": stamp(self.wall()),
+            }
+        )
         self.save()
 
     def checkpoint(self, kind):
@@ -200,8 +224,12 @@ class Proof:
         except ProofError:
             status, public = FAIL, {"error": "the step's public view was withheld by the screen"}
         self.doc["steps"][name] = {
-            "status": status, "started_at": stamp(started), "ended_at": stamp(self.wall()),
-            "seconds": round(self.wall() - started, 3), "public": public, "private": private,
+            "status": status,
+            "started_at": stamp(started),
+            "ended_at": stamp(self.wall()),
+            "seconds": round(self.wall() - started, 3),
+            "public": public,
+            "private": private,
         }
         self.save()
         return self.doc["steps"][name]
@@ -225,10 +253,14 @@ class Proof:
     def report(self):
         """What a command prints: statuses and public numbers only."""
         return {
-            "issue": self.doc["issue"], "run_id": self.run_id, "mode": self.doc["mode"],
+            "issue": self.doc["issue"],
+            "run_id": self.run_id,
+            "mode": self.doc["mode"],
             "overall": self.overall(),
-            "steps": {n: {"status": s["status"], "seconds": s["seconds"], **s["public"]}
-                      for n, s in self.doc["steps"].items()},
+            "steps": {
+                n: {"status": s["status"], "seconds": s["seconds"], **s["public"]}
+                for n, s in self.doc["steps"].items()
+            },
             "receipt": str(self.path),
         }
 
@@ -236,17 +268,24 @@ class Proof:
 def stage_throttle(aws, gate):
     """The Gateway stage's live default-route throttle, as `session status` reads it
     ({"ThrottlingRateLimit", "ThrottlingBurstLimit"}; empty when the stage reports none)."""
-    stage = aws.call("apigatewayv2", "get-stage",
-                     {"ApiId": gate["api_id"], "StageName": gate["stage"]},
-                     deadline=time.monotonic() + 30)
+    stage = aws.call(
+        "apigatewayv2",
+        "get-stage",
+        {"ApiId": gate["api_id"], "StageName": gate["stage"]},
+        deadline=time.monotonic() + 30,
+    )
     return stage.get("DefaultRouteSettings", {})
 
 
 class SessionGuard:
     """Refuses a step when the session journal (and the live Gateway throttle) disagree."""
 
-    NEEDS = {"open": {"open"}, "window": {"window"}, "active": {"open", "window"},
-             "closed": {"closed"}}
+    NEEDS = {
+        "open": {"open"},
+        "window": {"window"},
+        "active": {"open", "window"},
+        "closed": {"closed"},
+    }
 
     def __init__(self, journal, aws, config):
         self.journal, self.aws, self.config = journal, aws, config
@@ -260,14 +299,16 @@ class SessionGuard:
             raise SessionRefused(
                 f"Session is {session}; this step needs {kind}. Run "
                 f"`python -m scripts.aws.v1.session {'window' if kind == 'window' else 'open'} "
-                "--config ...` first (a closed session means a closed window)")
+                "--config ...` first (a closed session means a closed window)"
+            )
         gate = self.config.get("gateway")
         if gate and kind != "closed":
             limits = stage_throttle(self.aws, gate)
             if not limits.get("ThrottlingRateLimit"):
                 raise SessionRefused(
                     f"Session is {session} but the Gateway throttle is 0: the edge is shut, "
-                    "so this step needs an open session window")
+                    "so this step needs an open session window"
+                )
 
 
 # ---- HTTP ----------------------------------------------------------------------------------
@@ -328,11 +369,16 @@ def multipart(fields, filename, data, content_type):
     parts = []
     for key, value in fields.items():
         parts.append(
-            f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'
-            .encode())
+            (
+                f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'
+            ).encode()
+        )
     parts.append(
         f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{filename}"\r\n'
-        f"Content-Type: {content_type}\r\n\r\n".encode() + data + b"\r\n")
+        f"Content-Type: {content_type}\r\n\r\n".encode()
+        + data
+        + b"\r\n"
+    )
     parts.append(f"--{boundary}--\r\n".encode())
     return f"multipart/form-data; boundary={boundary}", b"".join(parts)
 

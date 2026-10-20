@@ -9,12 +9,7 @@ from app.services.minio_client import bucket, internal_client
 
 
 class StorageService:
-    def __init__(
-        self,
-        client: Minio,
-        *,
-        bucket: str,
-    ) -> None:
+    def __init__(self, client: Minio, *, bucket: str) -> None:
         self._client = client
         self._bucket = bucket
 
@@ -26,40 +21,16 @@ class StorageService:
         the contract budgets under one second (N1) -- and the bucket does not
         disappear between requests.
         """
-        exists = await run_in_threadpool(
-            self._client.bucket_exists,
-            self._bucket,
-        )
+        exists = await run_in_threadpool(self._client.bucket_exists, self._bucket)
 
         if not exists:
-            await run_in_threadpool(
-                self._client.make_bucket,
-                self._bucket,
-            )
+            await run_in_threadpool(self._client.make_bucket, self._bucket)
 
-    async def upload_file(
-        self,
-        local_path: str,
-        object_key: str,
-    ) -> None:
-        await run_in_threadpool(
-            self._client.fput_object,
-            self._bucket,
-            object_key,
-            local_path,
-        )
+    async def upload_file(self, local_path: str, object_key: str) -> None:
+        await run_in_threadpool(self._client.fput_object, self._bucket, object_key, local_path)
 
-    async def download_file(
-        self,
-        object_key: str,
-        local_path: str,
-    ) -> None:
-        await run_in_threadpool(
-            self._client.fget_object,
-            self._bucket,
-            object_key,
-            local_path,
-        )
+    async def download_file(self, object_key: str, local_path: str) -> None:
+        await run_in_threadpool(self._client.fget_object, self._bucket, object_key, local_path)
 
     async def read_object(self, object_key: str) -> bytes:
         """The whole object, in memory -- only for small objects.
@@ -85,9 +56,7 @@ class StorageService:
         def collect() -> list[tuple[str, datetime | None]]:
             return [
                 (item.object_name, item.last_modified)
-                for item in self._client.list_objects(
-                    self._bucket, prefix=prefix, recursive=True
-                )
+                for item in self._client.list_objects(self._bucket, prefix=prefix, recursive=True)
             ]
 
         return await run_in_threadpool(collect)

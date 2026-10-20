@@ -77,9 +77,7 @@ async def test_edit_rejects_a_source_that_is_not_done(edit_app):
     source.status = JobStatus.PROCESSING.value
 
     response = await post_edit(
-        application,
-        source.id,
-        [{"operation": "downscale", "params": {"height": 480}}],
+        application, source.id, [{"operation": "downscale", "params": {"height": 480}}]
     )
 
     assert response.status_code == 409
@@ -93,9 +91,7 @@ async def test_unknown_or_unowned_source_is_404(edit_app):
     get_job.return_value = None
 
     response = await post_edit(
-        application,
-        source.id,
-        [{"operation": "convert", "params": {"format": "mp3"}}],
+        application, source.id, [{"operation": "convert", "params": {"format": "mp3"}}]
     )
 
     assert response.status_code == 404
@@ -126,9 +122,7 @@ async def test_queue_failure_removes_the_unstarted_row_and_returns_503(edit_app,
     enqueue.side_effect = RuntimeError("redis password and host")
 
     response = await post_edit(
-        application,
-        source.id,
-        [{"operation": "clip", "params": {"start": 0, "end": 1}}],
+        application, source.id, [{"operation": "clip", "params": {"start": 0, "end": 1}}]
     )
 
     assert response.status_code == 503

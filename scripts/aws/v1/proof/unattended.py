@@ -47,13 +47,16 @@ def baseline(ctx):
     """The operator-batch cap-3 step of this run's #185 receipt, or a refusal naming the fix."""
     path = Path(ctx.evidence_dir) / f"evidence-{capacity.BACKLOG_ISSUE}-{ctx.run_id}.json"
     if not path.exists():
-        raise ProofError("No #185 receipt for this run id; run `evidence capacity --backlog` "
-                         "first, on this stack, so the launcher has a baseline")
+        raise ProofError(
+            "No #185 receipt for this run id; run `evidence capacity --backlog` "
+            "first, on this stack, so the launcher has a baseline"
+        )
     doc = json.loads(path.read_text())
     step = doc.get("steps", {}).get("backlog-3")
     if (doc.get("mode") == "live") == ctx.simulated or not step or step["status"] != PASS:
-        raise ProofError("The #185 receipt has no passing backlog-3 step in this mode to "
-                         "compare against")
+        raise ProofError(
+            "The #185 receipt has no passing backlog-3 step in this mode to compare against"
+        )
     return step["public"]
 
 
@@ -66,22 +69,32 @@ def worker_tasks(ctx):
 def preflight(ctx, *, iam_simulated):
     """What can be verified before a job is uploaded; the IAM simulation is the operator's."""
     if not iam_simulated:
-        raise ProofError("Run `aws iam simulate-principal-policy` for the launcher role first "
-                         "(deploy-runbook, 'Unattended launcher') and pass --iam-simulated")
+        raise ProofError(
+            "Run `aws iam simulate-principal-policy` for the launcher role first "
+            "(deploy-runbook, 'Unattended launcher') and pass --iam-simulated"
+        )
     launcher = ctx.config.get("launcher")
     if not launcher:
         raise ProofError("This stack has no launcher; deploy it with `--unattended-launch`")
     with ctx.journal.locked() as state:
         unattended, session = bool(state.get("unattended")), state.get("session")
-    rule = ctx.sdk(ctx.scope).call("events", "describe-rule", {"Name": launcher["rule"]},
-                                   deadline=ctx.deadline(60)).get("State")
+    rule = (
+        ctx.sdk(ctx.scope)
+        .call("events", "describe-rule", {"Name": launcher["rule"]}, deadline=ctx.deadline(60))
+        .get("State")
+    )
     live = len(worker_tasks_alive(ctx))
     base = baseline(ctx)
-    public = {"launcher_in_stack": True, "session": session, "session_unattended": unattended,
-              "launcher_rule_state": rule, "encoders_running_at_start": live,
-              "baseline_backlog": base.get("backlog"),
-              "baseline_fixture_bytes": base.get("fixture_bytes"),
-              "iam_simulation": "attested by the operator, not verified by this harness"}
+    public = {
+        "launcher_in_stack": True,
+        "session": session,
+        "session_unattended": unattended,
+        "launcher_rule_state": rule,
+        "encoders_running_at_start": live,
+        "baseline_backlog": base.get("backlog"),
+        "baseline_fixture_bytes": base.get("fixture_bytes"),
+        "iam_simulation": "attested by the operator, not verified by this harness",
+    }
     return verdict(unattended and rule == "ENABLED" and live == 0, public)
 
 
@@ -142,9 +155,11 @@ def launcher_backlog(ctx, proof, fixture, size, *, timeout, settle):
     left = len(workflow.live_tasks(ctx))
     docs = []
     for row in jobs:
-        reply = (api.request("GET", f"/api/processing/jobs/{row['processing_job_id']}")
-                 if row.get("processing_job_id") and row.get("status") in workflow.TERMINAL
-                 else None)
+        reply = (
+            api.request("GET", f"/api/processing/jobs/{row['processing_job_id']}")
+            if row.get("processing_job_id") and row.get("status") in workflow.TERMINAL
+            else None
+        )
         docs.append(reply.json() if reply is not None and reply.status == 200 else None)
     stats = capacity.queue_stats(docs)
     described = [tasks.summary(t) for t in final.values()]
@@ -154,12 +169,19 @@ def launcher_backlog(ctx, proof, fixture, size, *, timeout, settle):
     ended = max(stamps) if len(stamps) == len(jobs) else ctx.wall()
     elapsed = ended - intent["submit_started"]
     # Claims are attempts that started: a retried job claims more than once.
-    claims = sum((d["current_attempt"].get("number") or 1) for d in docs
-                 if d and d["current_attempt"].get("started_at"))
-    queued = [parse_time(d["current_attempt"]["queued_at"]).timestamp() for d in docs
-              if d and d["current_attempt"].get("queued_at")]
-    created = sorted(parse_time(t["createdAt"]).timestamp() for t in final.values()
-                     if t.get("createdAt"))
+    claims = sum(
+        (d["current_attempt"].get("number") or 1)
+        for d in docs
+        if d and d["current_attempt"].get("started_at")
+    )
+    queued = [
+        parse_time(d["current_attempt"]["queued_at"]).timestamp()
+        for d in docs
+        if d and d["current_attempt"].get("queued_at")
+    ]
+    created = sorted(
+        parse_time(t["createdAt"]).timestamp() for t in final.values() if t.get("createdAt")
+    )
     first_queued = min(queued) if queued else None
     after_empty = sorted(set(new) - set(intent.get("known_when_empty", [])))
     unclaimed = max(0, len(new) - claims)
@@ -167,11 +189,14 @@ def launcher_backlog(ctx, proof, fixture, size, *, timeout, settle):
     billed = [d["billed_seconds"] for d in described]
     complete = not stats["missing_queue_wait"] and not stats["missing_processing_time"]
     public = {
-        "backlog": size, "fixture_bytes": jobs[0].get("bytes"),
+        "backlog": size,
+        "fixture_bytes": jobs[0].get("bytes"),
         "outcomes": {s: statuses.count(s) for s in sorted(set(map(str, statuses)))},
-        "jobs_done": done, "jobs_failed": statuses.count("failed"),
+        "jobs_done": done,
+        "jobs_failed": statuses.count("failed"),
         "jobs_not_terminal": sum(1 for s in statuses if s not in workflow.TERMINAL),
-        "timed_out": timed_out, "retried_jobs": stats["retried_jobs"],
+        "timed_out": timed_out,
+        "retried_jobs": stats["retried_jobs"],
         "elapsed_seconds": round(elapsed, 1),
         "jobs_per_minute": capacity.rounded(capacity.rate(done, elapsed)),
         "queue_wait_median_seconds": percentile(stats["waits"], 0.5),
@@ -181,25 +206,39 @@ def launcher_backlog(ctx, proof, fixture, size, *, timeout, settle):
         "processing_p90_seconds": percentile(stats["runs"], 0.9),
         "missing_queue_wait": stats["missing_queue_wait"],
         "missing_processing_time": stats["missing_processing_time"],
-        "encoders_started": len(new), "starts_per_job": round(len(new) / size, 2),
-        "jobs_claimed": claims, "unclaimed_encoders": unclaimed,
+        "encoders_started": len(new),
+        "starts_per_job": round(len(new) / size, 2),
+        "jobs_claimed": claims,
+        "unclaimed_encoders": unclaimed,
         "unclaimed_limit": UNCLAIMED_LIMIT,
         "first_start_after_first_queued_seconds": (
-            round(created[0] - first_queued, 1) if created and first_queued else None),
+            round(created[0] - first_queued, 1) if created and first_queued else None
+        ),
         "start_offsets_seconds": [round(c - first_queued, 1) for c in created]
-        if first_queued else [],
-        "starts_after_backlog_empty": len(after_empty), "settle_seconds": settle,
+        if first_queued
+        else [],
+        "starts_after_backlog_empty": len(after_empty),
+        "settle_seconds": settle,
         "encoder_billed_seconds": billed,
         "encoder_billed_seconds_total": round(sum(b for b in billed if b), 1),
         "peak_concurrent_from_task_stamps": peak,
-        "peak_concurrent_polled": intent.get("peak_polled", 0), "cap_limit": CAP,
-        "encoders_left_running": left, "poll_interval_seconds": POLL_SECONDS,
+        "peak_concurrent_polled": intent.get("peak_polled", 0),
+        "cap_limit": CAP,
+        "encoders_left_running": left,
+        "poll_interval_seconds": POLL_SECONDS,
         "encoder_nonzero_exits": sum(1 for d in described for c in d["exit_codes"] if c != 0),
         "cap_note": capacity.CAP_NOTE,
     }
-    ok = (done == size and not timed_out and complete and left == 0 and peak <= CAP
-          and public["peak_concurrent_polled"] <= CAP and not after_empty
-          and unclaimed <= UNCLAIMED_LIMIT)
+    ok = (
+        done == size
+        and not timed_out
+        and complete
+        and left == 0
+        and peak <= CAP
+        and public["peak_concurrent_polled"] <= CAP
+        and not after_empty
+        and unclaimed <= UNCLAIMED_LIMIT
+    )
     return verdict(ok, public, {"jobs": jobs, "tasks": described})
 
 
@@ -209,20 +248,30 @@ def compare(ctx, proof):
     unattended, operator = step["public"], baseline(ctx)
     keys = ("backlog", "fixture_bytes")
     comparable = all(unattended.get(k) == operator.get(k) for k in keys)
-    rates = (capacity.rate(unattended["jobs_done"], unattended["elapsed_seconds"]),
-             capacity.rate(operator["jobs_done"], operator["elapsed_seconds"]))
+    rates = (
+        capacity.rate(unattended["jobs_done"], unattended["elapsed_seconds"]),
+        capacity.rate(operator["jobs_done"], operator["elapsed_seconds"]),
+    )
 
     def pair(key, digits=1):
-        return {"operator_cap3": operator.get(key), "unattended": unattended.get(key),
-                "delta": capacity.rounded(unattended[key] - operator[key], digits)
-                if unattended.get(key) is not None and operator.get(key) is not None else None}
+        return {
+            "operator_cap3": operator.get(key),
+            "unattended": unattended.get(key),
+            "delta": capacity.rounded(unattended[key] - operator[key], digits)
+            if unattended.get(key) is not None and operator.get(key) is not None
+            else None,
+        }
 
     public = {
-        "backlog": unattended.get("backlog"), "comparable": comparable,
-        "jobs_per_minute": {"operator_cap3": capacity.rounded(rates[1]),
-                            "unattended": capacity.rounded(rates[0])},
+        "backlog": unattended.get("backlog"),
+        "comparable": comparable,
+        "jobs_per_minute": {
+            "operator_cap3": capacity.rounded(rates[1]),
+            "unattended": capacity.rounded(rates[0]),
+        },
         "throughput_ratio": (
-            capacity.rounded(rates[0] / rates[1]) if rates[0] and rates[1] else None),
+            capacity.rounded(rates[0] / rates[1]) if rates[0] and rates[1] else None
+        ),
         "queue_wait_median_seconds": pair("queue_wait_median_seconds"),
         "queue_wait_p90_seconds": pair("queue_wait_p90_seconds"),
         "encoder_billed_seconds_total": pair("encoder_billed_seconds_total"),
@@ -230,16 +279,24 @@ def compare(ctx, proof):
         "peak_concurrent_from_task_stamps": pair("peak_concurrent_from_task_stamps", 0),
         "unattended_step_passed": step["status"] == PASS,
         "verdict_rule": "PASS needs the unattended step PASS (every job done, peak concurrency "
-                        "at most 3, no start after the backlog emptied, at most 3 unclaimed "
-                        "encoders, nothing left running) and the same backlog and fixture as the "
-                        "operator-batch step. No speed target: the ratios are as measured.",
+        "at most 3, no start after the backlog emptied, at most 3 unclaimed "
+        "encoders, nothing left running) and the same backlog and fixture as the "
+        "operator-batch step. No speed target: the ratios are as measured.",
         "cap_note": capacity.CAP_NOTE,
     }
     return verdict(step["status"] == PASS and comparable, public)
 
 
-def run(ctx, *, fixture, backlog=None, drain_timeout=capacity.DRAIN_TIMEOUT,
-        settle=SETTLE_SECONDS, iam_simulated=False, only=None):
+def run(
+    ctx,
+    *,
+    fixture,
+    backlog=None,
+    drain_timeout=capacity.DRAIN_TIMEOUT,
+    settle=SETTLE_SECONDS,
+    iam_simulated=False,
+    only=None,
+):
     proof = ctx.proof(ISSUE, REQUIRED)
     base = baseline(ctx)
     size = backlog or base.get("backlog")
@@ -247,7 +304,8 @@ def run(ctx, *, fixture, backlog=None, drain_timeout=capacity.DRAIN_TIMEOUT,
     plan = {
         "launcher-preflight": lambda i: preflight(ctx, iam_simulated=iam_simulated),
         "launcher-backlog": lambda i: launcher_backlog(
-            ctx, proof, fixture, size, timeout=drain_timeout, settle=settle),
+            ctx, proof, fixture, size, timeout=drain_timeout, settle=settle
+        ),
         "launcher-compare": lambda i: compare(ctx, proof),
     }
     for name, action in plan.items():

@@ -129,9 +129,7 @@ async def process_job_async(
     # 3. Record success.
     async with session_factory() as session:
         try:
-            await mark_done(
-                session, job_id, output_key=result.output_key, hls_key=result.hls_key
-            )
+            await mark_done(session, job_id, output_key=result.output_key, hls_key=result.hls_key)
         except (JobNotFoundError, InvalidJobTransitionError) as write_exc:
             logger.error("job %s: could not record completion: %s", job_id, write_exc)
             return JobOutcome.SKIPPED
@@ -154,9 +152,7 @@ def process_job(job_id: str) -> str:
     parsed = UUID(job_id)
     outcome = asyncio.run(
         process_job_async(
-            parsed,
-            session_factory=get_worker_session_factory(),
-            step=get_processing_step(),
+            parsed, session_factory=get_worker_session_factory(), step=get_processing_step()
         )
     )
     return outcome.value

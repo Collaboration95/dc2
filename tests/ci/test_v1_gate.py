@@ -18,8 +18,10 @@ class V1GateTests(unittest.TestCase):
         }
         needs.update(altered or {})
         env = {
-            "RUN_OFFLINE": str(offline).lower(), "RUN_LIVE": str(live).lower(),
-            "IMAGES": str(images).lower(), "AUTO_IMAGES": str(auto).lower(),
+            "RUN_OFFLINE": str(offline).lower(),
+            "RUN_LIVE": str(live).lower(),
+            "IMAGES": str(images).lower(),
+            "AUTO_IMAGES": str(auto).lower(),
             "CI_NEEDS": json.dumps(needs),
         }
         with patch.dict(os.environ, env), patch("sys.argv", ["v1", "gate"]):
@@ -42,16 +44,24 @@ class V1GateTests(unittest.TestCase):
     def test_auto_selection_requires_valid_successful_selector(self):
         for result, changed in (("failure", "true"), ("skipped", None), ("success", "")):
             with self.subTest(result=result, changed=changed), self.assertRaises(SystemExit):
-                self.run_gate(images=False, auto=True, altered={
-                    "image-paths": {"result": result, "outputs": {"changed": changed}},
-                })
-        self.run_gate(images=False, auto=True, altered={
-            "image-paths": {"result": "success", "outputs": {"changed": "false"}},
-        })
-        self.run_gate(images=False, auto=True, altered={
-            "image-paths": {"result": "success", "outputs": {"changed": "true"}},
-            "images": {"result": "success"},
-        })
+                self.run_gate(
+                    images=False,
+                    auto=True,
+                    altered={"image-paths": {"result": result, "outputs": {"changed": changed}}},
+                )
+        self.run_gate(
+            images=False,
+            auto=True,
+            altered={"image-paths": {"result": "success", "outputs": {"changed": "false"}}},
+        )
+        self.run_gate(
+            images=False,
+            auto=True,
+            altered={
+                "image-paths": {"result": "success", "outputs": {"changed": "true"}},
+                "images": {"result": "success"},
+            },
+        )
 
 
 if __name__ == "__main__":

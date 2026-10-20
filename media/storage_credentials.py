@@ -5,9 +5,7 @@ from runtime_support.storage_credentials import (
     LambdaProvider,
     validate_container_environment,
 )
-from runtime_support.storage_credentials import (
-    credential_provider as _credential_provider,
-)
+from runtime_support.storage_credentials import credential_provider as _credential_provider
 
 __all__ = [
     "ContainerProvider",

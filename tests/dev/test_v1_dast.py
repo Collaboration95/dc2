@@ -33,10 +33,7 @@ def test_all_generated_operations_have_a_reviewed_scan_or_exclusion_decision():
     assert counts == {"media": 15, "processing": 5}
     assert all(row.get("operation_id") for row in rows)
     assert all(row.get("reason") for row in rows if row["scan"] == "excluded")
-    assert {row["service"] for row in rows if row["scan"] == "imported"} == {
-        "media",
-        "processing",
-    }
+    assert {row["service"] for row in rows if row["scan"] == "imported"} == {"media", "processing"}
 
 
 def test_active_scan_contract_contains_only_local_read_routes_with_owned_examples():
@@ -175,9 +172,7 @@ def test_gateway_blocks_excluded_mutations_before_the_real_handler():
     gateway = v1_dast.DastGateway(handler, handler, lambda *_: {"isAuthorized": True})
     gateway.begin_scan(request_cap=10)
     reply = gateway.invoke(
-        "DELETE",
-        "/api/media/jobs/11111111-1111-4111-8111-111111111111",
-        {"host": "127.0.0.1"},
+        "DELETE", "/api/media/jobs/11111111-1111-4111-8111-111111111111", {"host": "127.0.0.1"}
     )
     gateway.end_scan()
     evidence = gateway.scan_evidence()

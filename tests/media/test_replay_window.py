@@ -85,9 +85,7 @@ async def test_a_source_whose_key_differs_from_the_asset_is_refused(session, res
     assert refusal.value.status_code == 409
 
 
-async def test_legacy_signed_url_readers_receive_the_pinned_version(
-    session, reservation, asset
-):
+async def test_legacy_signed_url_readers_receive_the_pinned_version(session, reservation, asset):
     reservation.version_id = "pinned"
     reservation.finalized_at = now()
     asset.id, asset.source_key = reservation.asset_id, reservation.key

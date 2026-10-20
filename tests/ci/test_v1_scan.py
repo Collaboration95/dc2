@@ -19,8 +19,10 @@ def receipt():
 def report(owner, vulns=(), image_id=None):
     return {
         "Metadata": {"ImageID": image_id or f"sha256:{owner}"},
-        "Results": [{"Class": "os-pkgs", "Type": "debian", "Vulnerabilities": list(vulns)},
-                    {"Class": "lang-pkgs", "Type": "python-pkg"}],
+        "Results": [
+            {"Class": "os-pkgs", "Type": "debian", "Vulnerabilities": list(vulns)},
+            {"Class": "lang-pkgs", "Type": "python-pkg"},
+        ],
     }
 
 
@@ -84,9 +86,15 @@ class ScanGateTests(unittest.TestCase):
 
     def test_incomplete_reports_fail_for_each_recipe(self):
         for owner in OWNERS:
-            for results in (None, [], [{}], "bad", [1],
-                            [{"Class": "os-pkgs", "Type": "debian"}],
-                            [{"Class": "lang-pkgs", "Type": "python-pkg"}]):
+            for results in (
+                None,
+                [],
+                [{}],
+                "bad",
+                [1],
+                [{"Class": "os-pkgs", "Type": "debian"}],
+                [{"Class": "lang-pkgs", "Type": "python-pkg"}],
+            ):
                 with self.subTest(owner=owner, results=results):
                     reports = self.clean()
                     reports[owner]["Results"] = results

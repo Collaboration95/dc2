@@ -305,8 +305,7 @@ def test_template_is_closed_safe_and_never_requires_positive_reservations():
     # Every gate opens only under AlwaysOpen, which the per-run V1 stack never sets (#236).
     assert built["Parameters"]["AlwaysOn"]["Default"] == "false"
     assert rules and all(
-        r["Properties"]["State"] == {"Fn::If": ["AlwaysOpen", "ENABLED", "DISABLED"]}
-        for r in rules
+        r["Properties"]["State"] == {"Fn::If": ["AlwaysOpen", "ENABLED", "DISABLED"]} for r in rules
     )
     stage = resources["HttpStage"]["Properties"]["DefaultRouteSettings"]["Fn::If"]
     assert stage[0] == "AlwaysOpen"

@@ -98,21 +98,34 @@ def build(source=SOURCE, out=None):
         target = out / key
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
-        manifest.append({
-            "key": key, "path": str(target), "content_type": _content_type(Path(key)),
-            "cache_control": cache, "size": len(data), "sha256": _digest(data),
-            "md5": hashlib.md5(data, usedforsecurity=False).hexdigest(),
-        })
-    return {"files": manifest, "sha256": _digest(json.dumps(
-        [(f["key"], f["sha256"], f["content_type"], f["cache_control"]) for f in manifest]
-    ).encode()), "hashed": renames}
+        manifest.append(
+            {
+                "key": key,
+                "path": str(target),
+                "content_type": _content_type(Path(key)),
+                "cache_control": cache,
+                "size": len(data),
+                "sha256": _digest(data),
+                "md5": hashlib.md5(data, usedforsecurity=False).hexdigest(),
+            }
+        )
+    return {
+        "files": manifest,
+        "sha256": _digest(
+            json.dumps(
+                [(f["key"], f["sha256"], f["content_type"], f["cache_control"]) for f in manifest]
+            ).encode()
+        ),
+        "hashed": renames,
+    }
 
 
 def upload_order(manifest):
     """index.html last: it is the file that names the others, so it must never go first."""
     files = manifest["files"]
     return [f for f in files if f["key"] != "index.html"] + [
-        f for f in files if f["key"] == "index.html"]
+        f for f in files if f["key"] == "index.html"
+    ]
 
 
 def changed(manifest, existing):

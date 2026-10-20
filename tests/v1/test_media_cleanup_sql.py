@@ -731,9 +731,10 @@ async def test_staged_copy_with_versions_and_delete_marker_is_fully_released_wit
     try:
         assert len(versions_of(orphan)) == 3  # two versions plus the marker
         await stage_rows(factory, orphan, kept)
-        assert await cleanup_staged_objects(
-            factory, storage, bucket, grace_seconds=GRACE, limit=10
-        ) == 1
+        assert (
+            await cleanup_staged_objects(factory, storage, bucket, grace_seconds=GRACE, limit=10)
+            == 1
+        )
         assert not await asyncio.to_thread(versions_of, orphan)
         assert len(await asyncio.to_thread(versions_of, kept)) == 2  # adopted: untouched
         assert len(await asyncio.to_thread(versions_of, orphan + "-sibling")) == 1

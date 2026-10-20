@@ -53,4 +53,3 @@ def sqs_local():
         for url in reversed(all_urls):
             client.delete_queue(QueueUrl=url)
         client.close()
-

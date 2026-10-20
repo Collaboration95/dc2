@@ -90,8 +90,12 @@ async def test_sdk_upload_reads_output_once_with_matching_digest(monkeypatch, tm
     client._upload_part = Mock(side_effect=lambda *args: record(*args).etag)
     client._complete_multipart_upload = Mock(
         return_value=SimpleNamespace(
-            bucket_name="outputs", object_name="key", version_id=None, etag="ack",
-            http_headers={}, location=None,
+            bucket_name="outputs",
+            object_name="key",
+            version_id=None,
+            etag="ack",
+            http_headers={},
+            location=None,
         )
     )
     client.stat_object = Mock(side_effect=AssertionError("HEAD is forbidden"))
@@ -99,8 +103,11 @@ async def test_sdk_upload_reads_output_once_with_matching_digest(monkeypatch, tm
     client.put_object = Mock(wraps=client.put_object)
     output = await output_store(client).put("key", path, "video/mp4", "primary")
     assert output == {
-        "kind": "primary", "object_key": "key", "media_type": "video/mp4",
-        "size_bytes": size, "sha256": hashlib.sha256(content).hexdigest(),
+        "kind": "primary",
+        "object_key": "key",
+        "media_type": "video/mp4",
+        "size_bytes": size,
+        "sha256": hashlib.sha256(content).hexdigest(),
     }
     assert output["sha256"] == uploaded.hexdigest()
     assert counts == {"read_bytes": size, "opens": 1, "offloads": 1}
@@ -162,8 +169,12 @@ async def test_failed_multipart_aborts_and_fresh_retry_has_accurate_digest(tmp_p
         return_value="ack",
     )
     completed = SimpleNamespace(
-        bucket_name="outputs", object_name="key", version_id=None, etag="ack",
-        http_headers={}, location=None,
+        bucket_name="outputs",
+        object_name="key",
+        version_id=None,
+        etag="ack",
+        http_headers={},
+        location=None,
     )
     client._complete_multipart_upload = Mock(
         side_effect=OSError("completion failed") if failure == "completion" else None,

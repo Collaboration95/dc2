@@ -86,7 +86,7 @@ DEPLOY_STEPS = (
 # The persistent environment (#235) opens once and stays open: the booked window/close pair
 # becomes one `session-open` that runs on the first deploy only (#236).
 PERSISTENT_STEPS = (
-    *DEPLOY_STEPS[:DEPLOY_STEPS.index("session-window")],
+    *DEPLOY_STEPS[: DEPLOY_STEPS.index("session-window")],
     "session-open",
     "seed",
     "public-smoke",
@@ -113,7 +113,7 @@ BUCKET_DELETE_ATTEMPTS, BUCKET_RETRY_SECONDS = 5, 10
 MISSING_LOOKS = 3
 # Session close checks that cannot pass while an encoder task still runs.
 DRAIN_CHECKS = {"drain", "outcomes", "inventory"}
-AURORA_VERSION = "16.8" # the renderer's default; the observed orderable version
+AURORA_VERSION = "16.8"  # the renderer's default; the observed orderable version
 OWNERS = ("media", "processing")
 DEFINITIVE_MIGRATION_FAILURES = {"Migration task failed", "Owning schema revision mismatch"}
 # Prices: the receipt's cited ap-southeast-1 offer files (cloud-operator-20261015.md).
@@ -130,12 +130,21 @@ EXTRA_CLUSTER_MONTH_USD = 0.40 + 0.11
 # denied both.
 MFA_PROBE_ACTIONS = ["s3:CreateBucket", "cloudformation:CreateStack"]
 MFA_PROBE_CONTEXT = [
-    {"ContextKeyName": "aws:MultiFactorAuthPresent", "ContextKeyValues": ["false"],
-     "ContextKeyType": "boolean"},
-    {"ContextKeyName": "aws:ViaAWSService", "ContextKeyValues": ["false"],
-     "ContextKeyType": "boolean"},
-    {"ContextKeyName": "aws:RequestedRegion", "ContextKeyValues": [REGION],
-     "ContextKeyType": "string"},
+    {
+        "ContextKeyName": "aws:MultiFactorAuthPresent",
+        "ContextKeyValues": ["false"],
+        "ContextKeyType": "boolean",
+    },
+    {
+        "ContextKeyName": "aws:ViaAWSService",
+        "ContextKeyValues": ["false"],
+        "ContextKeyType": "boolean",
+    },
+    {
+        "ContextKeyName": "aws:RequestedRegion",
+        "ContextKeyValues": [REGION],
+        "ContextKeyType": "string",
+    },
 ]
 IAM_USER_ARN = re.compile(r"arn:aws:iam::[0-9]{12}:user/(?:.*/)?([^/]+)")
 
@@ -166,41 +175,82 @@ ALLOWED = {
     "resourcegroupstaggingapi": {"get-resources"},
     # Read-only existence checks the teardown receipt makes on tagging-API hits (#147).
     "ec2": {
-        "describe-vpcs", "describe-subnets", "describe-security-groups", "describe-route-tables",
-        "describe-internet-gateways", "describe-egress-only-internet-gateways",
+        "describe-vpcs",
+        "describe-subnets",
+        "describe-security-groups",
+        "describe-route-tables",
+        "describe-internet-gateways",
+        "describe-egress-only-internet-gateways",
         "describe-vpc-endpoints",
     },
     "cloudfront": {"create-invalidation", "get-invalidation"},
     "cloudformation": {
-        "describe-stacks", "create-change-set", "describe-change-set", "execute-change-set",
-        "describe-stack-events", "describe-stack-resources", "delete-stack",
+        "describe-stacks",
+        "create-change-set",
+        "describe-change-set",
+        "execute-change-set",
+        "describe-stack-events",
+        "describe-stack-resources",
+        "delete-stack",
     },
     "s3api": {
-        "head-bucket", "put-object", "get-bucket-tagging", "list-object-versions",
-        "list-objects-v2", "delete-objects", "list-multipart-uploads", "abort-multipart-upload",
+        "head-bucket",
+        "put-object",
+        "get-bucket-tagging",
+        "list-object-versions",
+        "list-objects-v2",
+        "delete-objects",
+        "list-multipart-uploads",
+        "abort-multipart-upload",
         "delete-bucket",
     },
     "ecr": {
-        "get-authorization-token", "describe-images", "describe-image-scan-findings",
+        "get-authorization-token",
+        "describe-images",
+        "describe-image-scan-findings",
         "batch-get-image",
-        "list-images", "batch-delete-image", "delete-repository", "list-tags-for-resource",
+        "list-images",
+        "batch-delete-image",
+        "delete-repository",
+        "list-tags-for-resource",
     },
     "rds": {
-        "describe-db-clusters", "describe-db-instances", "modify-db-cluster",
-        "delete-db-instance", "delete-db-cluster", "list-tags-for-resource",
+        "describe-db-clusters",
+        "describe-db-instances",
+        "modify-db-cluster",
+        "delete-db-instance",
+        "delete-db-cluster",
+        "list-tags-for-resource",
         "describe-db-engine-versions",
-        "add-tags-to-resource", "describe-db-cluster-snapshots",
+        "add-tags-to-resource",
+        "describe-db-cluster-snapshots",
     },
     "ssm": {
-        "describe-parameters", "put-parameter", "delete-parameter", "list-tags-for-resource",
+        "describe-parameters",
+        "put-parameter",
+        "delete-parameter",
+        "list-tags-for-resource",
         "get-parameters-by-path",
     },
     "secretsmanager": {"get-secret-value"},
-    "logs": {"describe-log-groups", "delete-log-group", "list-tags-for-resource",
-             "get-log-events", "filter-log-events"},
-    "ecs": {"run-task", "describe-tasks", "list-tasks", "stop-task", "describe-task-definition",
-            "register-task-definition", "deregister-task-definition",
-            "describe-clusters", "delete-task-definitions"},
+    "logs": {
+        "describe-log-groups",
+        "delete-log-group",
+        "list-tags-for-resource",
+        "get-log-events",
+        "filter-log-events",
+    },
+    "ecs": {
+        "run-task",
+        "describe-tasks",
+        "list-tasks",
+        "stop-task",
+        "describe-task-definition",
+        "register-task-definition",
+        "deregister-task-definition",
+        "describe-clusters",
+        "delete-task-definitions",
+    },
     # Read-only observations the cloud-proof harnesses make through this same transport.
     "cloudwatch": {"get-metric-statistics"},
     "apigatewayv2": {"get-stage"},
@@ -220,7 +270,9 @@ EC2_CHECKS = {
     "route-table": ("describe-route-tables", "RouteTableIds"),
     "internet-gateway": ("describe-internet-gateways", "InternetGatewayIds"),
     "egress-only-internet-gateway": (
-        "describe-egress-only-internet-gateways", "EgressOnlyInternetGatewayIds"),
+        "describe-egress-only-internet-gateways",
+        "EgressOnlyInternetGatewayIds",
+    ),
     "vpc-endpoint": ("describe-vpc-endpoints", "VpcEndpointIds"),
 }
 # A deregistered task definition stays listed as INACTIVE, costs nothing, and goes away once
@@ -239,19 +291,22 @@ def is_mutating(operation):
 
 
 def _id_list(low, high):
-    return lambda v: (isinstance(v, list) and low <= len(v) <= high
-                      and all(isinstance(i, str) and _RESOURCE_ID.fullmatch(i) for i in v))
+    return lambda v: (
+        isinstance(v, list)
+        and low <= len(v) <= high
+        and all(isinstance(i, str) and _RESOURCE_ID.fullmatch(i) for i in v)
+    )
 
 
 # Operations only the teardown receipt makes. They are checked here and deliberately not added to
 # the shared operator contract (scripts/aws/v1/transport.py), which the session and release
 # transports also use and which must not gain a deletion it has no need for.
-RECEIPT_CONTRACT = {
-    ("ec2", op): ({key: _id_list(1, 1)}, {}) for op, key in EC2_CHECKS.values()
-} | {
+RECEIPT_CONTRACT = {("ec2", op): ({key: _id_list(1, 1)}, {}) for op, key in EC2_CHECKS.values()} | {
     ("ecs", "describe-clusters"): ({"clusters": _id_list(1, 100)}, {}),
     ("ecs", "delete-task-definitions"): (
-        {"taskDefinitions": _id_list(1, TASK_DEFINITION_DELETE_BATCH)}, {}),
+        {"taskDefinitions": _id_list(1, TASK_DEFINITION_DELETE_BATCH)},
+        {},
+    ),
 }
 
 
@@ -261,8 +316,7 @@ def check_operation(service, operation, payload):
     contract = RECEIPT_CONTRACT.get((service, operation))
     if contract:
         required, _ = contract
-        if payload.keys() != required.keys() or not all(
-                required[k](v) for k, v in payload.items()):
+        if payload.keys() != required.keys() or not all(required[k](v) for k, v in payload.items()):
             raise DeployError("Operation arguments do not match the deploy pipeline's contract")
     elif service == "ecs":  # reuse the session/release argument contract for task operations
         validate_arguments(service, operation, payload)
@@ -287,9 +341,20 @@ def redact(service, operation, payload):
 def command_argv(scope, service, operation, payload, *, input_json):
     """The `aws` argv. `input_json` is a file:// reference live and the redacted JSON in plans."""
     argv = [
-        "aws", "--profile", scope["profile"], "--region", scope["region"], "--no-cli-pager",
-        "--output", "json", "--cli-connect-timeout", "10", "--cli-read-timeout", "60",
-        service, operation,
+        "aws",
+        "--profile",
+        scope["profile"],
+        "--region",
+        scope["region"],
+        "--no-cli-pager",
+        "--output",
+        "json",
+        "--cli-connect-timeout",
+        "10",
+        "--cli-read-timeout",
+        "60",
+        service,
+        operation,
     ]
     rest = {k: v for k, v in payload.items() if k != "Body"}
     if "Body" in payload:  # streaming blobs are file paths and cannot travel in input JSON
@@ -306,8 +371,9 @@ def display_command(scope, service, operation, payload):
         body = safe["TemplateBody"]
         digest = hashlib.sha256(body.encode()).hexdigest()[:12]
         safe["TemplateBody"] = f"<{len(body)} bytes sha256:{digest}>"
-    text = json.dumps({k: v for k, v in safe.items() if k != "Body"}, sort_keys=True,
-                      separators=(",", ":"))
+    text = json.dumps(
+        {k: v for k, v in safe.items() if k != "Body"}, sort_keys=True, separators=(",", ":")
+    )
     return shlex.join(command_argv(scope, service, operation, safe, input_json=text))
 
 
@@ -341,7 +407,11 @@ class CliTransport:
             )
             try:
                 done = self.runner(
-                    argv, env=self.env, capture_output=True, text=True, timeout=self.timeout,
+                    argv,
+                    env=self.env,
+                    capture_output=True,
+                    text=True,
+                    timeout=self.timeout,
                     check=False,
                 )
             except subprocess.TimeoutExpired:
@@ -369,8 +439,13 @@ class DockerCli:
     def __call__(self, argv, *, stdin=None):
         env = dict(sanitized_environment(), DOCKER_CONFIG=self.config_dir)
         done = self.runner(
-            ["docker", *argv], env=env, input=stdin, capture_output=True, text=True,
-            timeout=3600, check=False,
+            ["docker", *argv],
+            env=env,
+            input=stdin,
+            capture_output=True,
+            text=True,
+            timeout=3600,
+            check=False,
         )
         if done.returncode:
             raise DeployError(f"docker {argv[0]} failed (exit {done.returncode})")
@@ -398,11 +473,18 @@ class DeployJournal(Journal):
         with self._lock():
             if self.path.exists():
                 raise DeployError("A journal already exists for this run")
-            self.save({
-                "version": 1, "station": self.station, "environment": self.environment,
-                "launches": {}, "paused": True, "pending_release": None, "session": "closed",
-                "deploy": meta,
-            })
+            self.save(
+                {
+                    "version": 1,
+                    "station": self.station,
+                    "environment": self.environment,
+                    "launches": {},
+                    "paused": True,
+                    "pending_release": None,
+                    "session": "closed",
+                    "deploy": meta,
+                }
+            )
 
     def view(self):
         with self.locked() as state:
@@ -517,8 +599,10 @@ class Settings:
 
     @property
     def tags(self):
-        return [{"Key": PROJECT_KEY, "Value": PROJECT_VALUE},
-                {"Key": RUN_KEY, "Value": self.run_id}]
+        return [
+            {"Key": PROJECT_KEY, "Value": PROJECT_VALUE},
+            {"Key": RUN_KEY, "Value": self.run_id},
+        ]
 
     @property
     def bootstrap_stack(self):
@@ -543,7 +627,8 @@ def owned(tags, run_id):
 def remember_snapshot(deploy_state, name):
     """Add a final snapshot to the journal. `final_snapshot` stays the first, as in V1."""
     known = deploy_state.get("final_snapshots") or (
-        [deploy_state["final_snapshot"]] if deploy_state.get("final_snapshot") else [])
+        [deploy_state["final_snapshot"]] if deploy_state.get("final_snapshot") else []
+    )
     if name not in known:
         known.append(name)
     deploy_state["final_snapshots"], deploy_state["final_snapshot"] = known, known[0]
@@ -566,8 +651,19 @@ def planned_cost(hours, database=None):
 # ---------------------------------------------------------------------------- pipeline
 class Pipeline:
     def __init__(
-        self, settings, aws, journal, *, docker=None, http=None, session_main=None,
-        clock=time.monotonic, sleep=time.sleep, stderr=None, today=None, credential_probe=None,
+        self,
+        settings,
+        aws,
+        journal,
+        *,
+        docker=None,
+        http=None,
+        session_main=None,
+        clock=time.monotonic,
+        sleep=time.sleep,
+        stderr=None,
+        today=None,
+        credential_probe=None,
     ):
         self.s, self.aws_transport, self.journal = settings, aws, journal
         self.docker, self.http = docker, http or urllib_http
@@ -581,7 +677,8 @@ class Pipeline:
         self.simulated = bool(getattr(aws, "simulated", False))
         # A simulation has no credentials to classify; it answers like an MFA session.
         self.credential_probe = credential_probe or (
-            simulated_session if self.simulated else credentials.probe)
+            simulated_session if self.simulated else credentials.probe
+        )
 
     # ---- plumbing --------------------------------------------------------------
     def say(self, message):
@@ -590,10 +687,13 @@ class Pipeline:
     def aws(self, service, operation, payload=None, *, tolerate=()):
         """One CLI call, recorded in the plan. `tolerate` names error codes meaning 'absent'."""
         payload = payload or {}
-        self.plan.append({
-            "step": self.step, "mutating": is_mutating(operation),
-            "command": display_command(self.s.scope, service, operation, payload),
-        })
+        self.plan.append(
+            {
+                "step": self.step,
+                "mutating": is_mutating(operation),
+                "command": display_command(self.s.scope, service, operation, payload),
+            }
+        )
         if is_mutating(operation):
             self.event(service, operation, payload)
         try:
@@ -609,8 +709,11 @@ class Pipeline:
 
     def run_docker(self, argv, *, stdin=None):
         shown = shlex.join(["docker", *argv]) + (" # password on stdin" if stdin else "")
-        entry = {"step": self.step, "mutating": argv[0] in {"push", "login", "tag"},
-                 "command": shown}
+        entry = {
+            "step": self.step,
+            "mutating": argv[0] in {"push", "login", "tag"},
+            "command": shown,
+        }
         self.plan.append(entry)
         answer = self.docker(argv, stdin=stdin)
         # Only a simulated Docker says where an answer came from (observed vs simulated).
@@ -619,8 +722,17 @@ class Pipeline:
         return answer
 
     def event(self, service, operation, payload):
-        keys = ("StackName", "Bucket", "repositoryName", "DBClusterIdentifier", "Name",
-                "logGroupName", "LogGroupName", "cluster", "DBInstanceIdentifier")
+        keys = (
+            "StackName",
+            "Bucket",
+            "repositoryName",
+            "DBClusterIdentifier",
+            "Name",
+            "logGroupName",
+            "LogGroupName",
+            "cluster",
+            "DBInstanceIdentifier",
+        )
         target = next((str(payload[k]) for k in keys if k in payload), "")
         entry = {"at": now(), "step": self.step, "call": f"{service}.{operation}", "target": target}
         if self.journal_held:  # a caller holds the journal lock; write once it is released
@@ -662,6 +774,7 @@ class Pipeline:
         That is what makes a second deploy re-run `applications` as an UPDATE change set
         instead of skipping it as done. A first deploy that failed still resumes as before.
         """
+
         def change(d):
             if not d.get("established"):
                 return
@@ -726,11 +839,18 @@ class Pipeline:
         today = self.today()
         first = today.replace(day=1)
         month_end = (first + dt.timedelta(days=32)).replace(day=1)
-        spend = self.aws("ce", "get-cost-and-usage", {
-            "TimePeriod": {"Start": first.isoformat(),
-                           "End": (today + dt.timedelta(days=1)).isoformat()},
-            "Granularity": "MONTHLY", "Metrics": ["UnblendedCost"],
-        })
+        spend = self.aws(
+            "ce",
+            "get-cost-and-usage",
+            {
+                "TimePeriod": {
+                    "Start": first.isoformat(),
+                    "End": (today + dt.timedelta(days=1)).isoformat(),
+                },
+                "Granularity": "MONTHLY",
+                "Metrics": ["UnblendedCost"],
+            },
+        )
         mtd = sum(
             float(r["Total"]["UnblendedCost"]["Amount"]) for r in spend.get("ResultsByTime", [])
         )
@@ -740,10 +860,16 @@ class Pipeline:
         elif today >= month_end - dt.timedelta(days=1):
             forecast = 0.0  # no remaining days to forecast
         else:
-            result = self.aws("ce", "get-cost-forecast", {
-                "TimePeriod": {"Start": today.isoformat(), "End": month_end.isoformat()},
-                "Metric": "UNBLENDED_COST", "Granularity": "MONTHLY",
-            }, tolerate=("DataUnavailableException", "AccessDeniedException"))
+            result = self.aws(
+                "ce",
+                "get-cost-forecast",
+                {
+                    "TimePeriod": {"Start": today.isoformat(), "End": month_end.isoformat()},
+                    "Metric": "UNBLENDED_COST",
+                    "Granularity": "MONTHLY",
+                },
+                tolerate=("DataUnavailableException", "AccessDeniedException"),
+            )
             if result is None:
                 raise DeployError(
                     "Cost forecast unavailable; refusing (fail closed). Pass --forecast-usd "
@@ -751,12 +877,14 @@ class Pipeline:
                 )
             forecast = float(result["Total"]["Amount"])
         # Updating an environment that already runs adds nothing it does not already cost.
-        planned = 0.0 if self.established() else planned_cost(
-            self.s.planned_hours, self.s.database)
+        planned = 0.0 if self.established() else planned_cost(self.s.planned_hours, self.s.database)
         total = round(mtd + forecast + planned, 2)
         report = {
-            "month_to_date_usd": round(mtd, 2), "forecast_usd": round(forecast, 2),
-            "forecast_source": source, "planned_deploy_usd": planned, "total_usd": total,
+            "month_to_date_usd": round(mtd, 2),
+            "forecast_usd": round(forecast, 2),
+            "forecast_source": source,
+            "planned_deploy_usd": planned,
+            "total_usd": total,
             "budget_usd": self.s.budget_usd,
         }
         if total > self.s.budget_usd:
@@ -782,56 +910,93 @@ class Pipeline:
         self._credentials(record, arn)
         user = IAM_USER_ARN.fullmatch(arn)
         if user:
-            devices = self.aws("iam", "list-mfa-devices", {"UserName": user.group(1)},
-                               tolerate=("AccessDenied", "AccessDeniedException"))
+            devices = self.aws(
+                "iam",
+                "list-mfa-devices",
+                {"UserName": user.group(1)},
+                tolerate=("AccessDenied", "AccessDeniedException"),
+            )
             if devices is not None and not devices.get("MFADevices"):
                 # No device is only a problem for a principal the MFA deny applies to.
                 required = self.mfa_required(arn)
                 if required is False:
-                    record("mfa", "pass", detail="no MFA device, and the principal is not "
-                           "subject to an MFA deny (simulated)")
+                    record(
+                        "mfa",
+                        "pass",
+                        detail="no MFA device, and the principal is not "
+                        "subject to an MFA deny (simulated)",
+                    )
                 else:
-                    record("mfa", "blocker", detail="no MFA device: FlickPondRequireMFA denied "
-                           "s3:CreateBucket on 2026-10-15; use a profile that carries an MFA "
-                           "session" + ("" if required else " (whether a deny applies could not "
-                                        "be simulated, so it is assumed to)"))
+                    record(
+                        "mfa",
+                        "blocker",
+                        detail="no MFA device: FlickPondRequireMFA denied "
+                        "s3:CreateBucket on 2026-10-15; use a profile that carries an MFA "
+                        "session"
+                        + (
+                            ""
+                            if required
+                            else " (whether a deny applies could not "
+                            "be simulated, so it is assumed to)"
+                        ),
+                    )
             else:
                 record("mfa", "pass" if devices else "warn")
         else:
             record("mfa", "info", detail="assumed role or session; MFA state not inspectable")
 
         limits = self.aws("lambda", "get-account-settings")["AccountLimit"]
-        record("lambda-concurrency",
-               "pass" if limits.get("ConcurrentExecutions", 0) >= 10 else "blocker",
-               limit=limits.get("ConcurrentExecutions"),
-               unreserved=limits.get("UnreservedConcurrentExecutions"),
-               note="nothing is reserved: the account keeps 10 unreserved")
-        quota = self.aws("service-quotas", "get-service-quota", {
-            "ServiceCode": "fargate", "QuotaCode": FARGATE_VCPU_QUOTA_CODE})["Quota"]["Value"]
-        record("fargate-vcpu", "pass" if quota >= 6 else ("warn" if quota >= 2 else "blocker"),
-               quota=quota, note="three 2-vCPU encoders need 6; migration tasks must not overlap")
+        record(
+            "lambda-concurrency",
+            "pass" if limits.get("ConcurrentExecutions", 0) >= 10 else "blocker",
+            limit=limits.get("ConcurrentExecutions"),
+            unreserved=limits.get("UnreservedConcurrentExecutions"),
+            note="nothing is reserved: the account keeps 10 unreserved",
+        )
+        quota = self.aws(
+            "service-quotas",
+            "get-service-quota",
+            {"ServiceCode": "fargate", "QuotaCode": FARGATE_VCPU_QUOTA_CODE},
+        )["Quota"]["Value"]
+        record(
+            "fargate-vcpu",
+            "pass" if quota >= 6 else ("warn" if quota >= 2 else "blocker"),
+            quota=quota,
+            note="three 2-vCPU encoders need 6; migration tasks must not overlap",
+        )
 
-        engine = self.aws("rds", "describe-db-engine-versions", {
-            "Engine": "aurora-postgresql", "EngineVersion": AURORA_VERSION},
-            tolerate=("InvalidParameterValue",))
+        engine = self.aws(
+            "rds",
+            "describe-db-engine-versions",
+            {"Engine": "aurora-postgresql", "EngineVersion": AURORA_VERSION},
+            tolerate=("InvalidParameterValue",),
+        )
         versions = (engine or {}).get("DBEngineVersions", [])
         support = versions[0].get("ServerlessV2FeaturesSupport", {}) if versions else {}
-        record("aurora-engine",
-               "pass" if versions and support.get("MinCapacity") == 0 else "blocker",
-               version=AURORA_VERSION, min_acu=support.get("MinCapacity"),
-               max_acu=support.get("MaxCapacity"),
-               note="16.6 was unavailable on 2026-10-15; minimum 0 ACU is what allows pause")
+        record(
+            "aurora-engine",
+            "pass" if versions and support.get("MinCapacity") == 0 else "blocker",
+            version=AURORA_VERSION,
+            min_acu=support.get("MinCapacity"),
+            max_acu=support.get("MaxCapacity"),
+            note="16.6 was unavailable on 2026-10-15; minimum 0 ACU is what allows pause",
+        )
 
         budgets = self.aws("budgets", "describe-budgets", {"AccountId": self.s.account})
-        budget = next((b for b in budgets.get("Budgets", [])
-                       if b["BudgetName"] == self.s.budget_name), None)
+        budget = next(
+            (b for b in budgets.get("Budgets", []) if b["BudgetName"] == self.s.budget_name), None
+        )
         if budget is None:
             record("budget", "blocker", detail=f"no budget named {self.s.budget_name}")
         else:
             limit = float(budget["BudgetLimit"]["Amount"])
             ok = budget["BudgetLimit"]["Unit"] == "USD" and limit >= self.s.budget_usd
-            record("budget", "pass" if ok else "blocker", limit_usd=limit,
-                   detail="" if ok else "budget must be USD and not below --budget-usd")
+            record(
+                "budget",
+                "pass" if ok else "blocker",
+                limit_usd=limit,
+                detail="" if ok else "budget must be USD and not below --budget-usd",
+            )
         try:
             record("cost-guard", "pass", **self.cost_guard())
         except DeployError as error:
@@ -840,11 +1005,24 @@ class Pipeline:
             record("cost-guard", "info" if self.established() else "blocker", detail=str(error))
 
         self._collisions(record)
-        proof = ("sql" if self.s.sql_config else "counts-file" if self.s.counts_file
-                 else "attested-empty" if self.s.assume_empty_counts else None)
-        record("close-proof", "pass" if proof else "blocker", method=proof,
-               detail="" if proof else "pass --sql-config, --counts-file or --assume-empty-counts "
-               "now; discovering it at the session step would waste an hour of spend")
+        proof = (
+            "sql"
+            if self.s.sql_config
+            else "counts-file"
+            if self.s.counts_file
+            else "attested-empty"
+            if self.s.assume_empty_counts
+            else None
+        )
+        record(
+            "close-proof",
+            "pass" if proof else "blocker",
+            method=proof,
+            detail=""
+            if proof
+            else "pass --sql-config, --counts-file or --assume-empty-counts "
+            "now; discovering it at the session step would waste an hour of spend",
+        )
         if self.s.images_file:
             try:
                 load_images(self.s.images_file)
@@ -855,10 +1033,14 @@ class Pipeline:
             record("images-input", "warn", detail="--images is needed from the images step on")
         legacy = self.stack(LEGACY_BOOTSTRAP_STACK)
         if legacy:
-            record("legacy-bootstrap-stack", "info", stack_status=legacy["StackStatus"],
-                   decision="not reused, not touched",
-                   why="a ROLLBACK_COMPLETE stack cannot be updated and its template pins the "
-                       "old namespace; this run stages templates in its own bootstrap stack")
+            record(
+                "legacy-bootstrap-stack",
+                "info",
+                stack_status=legacy["StackStatus"],
+                decision="not reused, not touched",
+                why="a ROLLBACK_COMPLETE stack cannot be updated and its template pins the "
+                "old namespace; this run stages templates in its own bootstrap stack",
+            )
         if blockers:
             raise DeployError("Preflight blockers: " + ", ".join(blockers))
         return {"checks": checks}
@@ -876,13 +1058,22 @@ class Pipeline:
         answer = None
         if IAM_USER_ARN.fullmatch(principal_arn or ""):
             try:
-                result = self.aws("iam", "simulate-principal-policy", {
-                    "PolicySourceArn": principal_arn, "ActionNames": MFA_PROBE_ACTIONS,
-                    "ContextEntries": MFA_PROBE_CONTEXT})
+                result = self.aws(
+                    "iam",
+                    "simulate-principal-policy",
+                    {
+                        "PolicySourceArn": principal_arn,
+                        "ActionNames": MFA_PROBE_ACTIONS,
+                        "ContextEntries": MFA_PROBE_CONTEXT,
+                    },
+                )
             except AwsError:
                 result = None
-            decisions = [r.get("EvalDecision") for r in (result or {}).get("EvaluationResults", [])
-                         if isinstance(r, dict)]
+            decisions = [
+                r.get("EvalDecision")
+                for r in (result or {}).get("EvaluationResults", [])
+                if isinstance(r, dict)
+            ]
             if "explicitDeny" in decisions:
                 answer = True
             elif decisions and all(d == "allowed" for d in decisions):
@@ -898,9 +1089,16 @@ class Pipeline:
         """Long-term keys pass STS but fail every call CloudFormation makes for them."""
         info = self.credential_probe(self.s.profile)
         status, detail = credentials.assess(
-            self.s.profile, info, self._mfa_answer_for(info, principal_arn))
-        record("credentials", status, kind=info["kind"], expires_at=info["expires_at"],
-               simulated=self.simulated, **({"detail": detail} if detail else {}))
+            self.s.profile, info, self._mfa_answer_for(info, principal_arn)
+        )
+        record(
+            "credentials",
+            status,
+            kind=info["kind"],
+            expires_at=info["expires_at"],
+            simulated=self.simulated,
+            **({"detail": detail} if detail else {}),
+        )
 
     def _collisions(self, record):
         names = [self.s.env, self.s.bootstrap_stack]
@@ -912,8 +1110,11 @@ class Pipeline:
         prefix = f"/dc2/{self.s.env}/"
         params = self.aws("ssm", "get-parameters-by-path", {"Path": prefix, "Recursive": True})
         for param in params.get("Parameters", []):
-            tags = self.aws("ssm", "list-tags-for-resource", {
-                "ResourceType": "Parameter", "ResourceId": param["Name"]})
+            tags = self.aws(
+                "ssm",
+                "list-tags-for-resource",
+                {"ResourceType": "Parameter", "ResourceId": param["Name"]},
+            )
             if not owned(tags.get("TagList", []), self.s.run_id):
                 foreign.append(param["Name"])
         groups = self.aws("logs", "describe-log-groups", {"logGroupNamePrefix": prefix})
@@ -922,15 +1123,20 @@ class Pipeline:
             if not self._log_group_owned(group):
                 foreign.append(name)
         if self.bucket_state(self.s.artifacts_bucket) != "absent" and not self.stack(
-                self.s.bootstrap_stack):
+            self.s.bootstrap_stack
+        ):
             foreign.append(self.s.artifacts_bucket)
         record("name-collisions", "blocker" if foreign else "pass", foreign=foreign)
 
     def bucket_state(self, name):
         """absent | exists | forbidden (a 403 means the name belongs to another account)."""
         try:
-            found = self.aws("s3api", "head-bucket", {"Bucket": name},
-                             tolerate=("404", "NotFound", "NoSuchBucket"))
+            found = self.aws(
+                "s3api",
+                "head-bucket",
+                {"Bucket": name},
+                tolerate=("404", "NotFound", "NoSuchBucket"),
+            )
         except AwsError as error:
             if error.code in {"403", "Forbidden"}:
                 return "forbidden"
@@ -965,17 +1171,27 @@ class Pipeline:
         if kind == "UPDATE" and applied == change_set:
             return self._finish_stack(stack)
         request = {
-            "StackName": stack, "ChangeSetName": change_set, "ChangeSetType": kind,
-            "Parameters": parameters, "Capabilities": CAPABILITIES, "Tags": self.s.tags,
+            "StackName": stack,
+            "ChangeSetName": change_set,
+            "ChangeSetType": kind,
+            "Parameters": parameters,
+            "Capabilities": CAPABILITIES,
+            "Tags": self.s.tags,
             "Description": f"dc2-v1 {label} {digest[:12]}",
         }
         request.update(files or {"TemplateBody": body})
         # With no stack there is no change set to find, and AWS answers that describe with a
         # ValidationError ("Stack ... does not exist"), not ChangeSetNotFound (2026-10-17 run).
-        existing = None if current is None else self.aws(
-            "cloudformation", "describe-change-set",
-            {"StackName": stack, "ChangeSetName": change_set},
-            tolerate=("ChangeSetNotFound", "ChangeSetNotFoundException"))
+        existing = (
+            None
+            if current is None
+            else self.aws(
+                "cloudformation",
+                "describe-change-set",
+                {"StackName": stack, "ChangeSetName": change_set},
+                tolerate=("ChangeSetNotFound", "ChangeSetNotFoundException"),
+            )
+        )
         if existing is None:
             self.aws("cloudformation", "create-change-set", request)
             # Recorded at once: even a stack that later fails belongs to this run's teardown.
@@ -991,34 +1207,57 @@ class Pipeline:
         elif existing.get("ExecutionStatus") not in {None, "AVAILABLE"}:
             raise DeployError(f"Change set {change_set} is {existing['ExecutionStatus']}")
         description = self.poll(
-            lambda: self._change_set_ready(stack, change_set), what=f"change set {change_set}",
-            timeout=300, interval=5)
+            lambda: self._change_set_ready(stack, change_set),
+            what=f"change set {change_set}",
+            timeout=300,
+            interval=5,
+        )
         if description is None:
             self.mark(self.step, "started", change_set=change_set, no_changes=True)
             return self._finish_stack(stack)
         changes = review_changes(
-            description.get("Changes", []), kind, allow_replacement=self.s.allow_replacement)
-        self.mark(self.step, "started", change_set=change_set, change_kind=kind,
-                  template_sha256=digest, changes=summarize(changes))
+            description.get("Changes", []), kind, allow_replacement=self.s.allow_replacement
+        )
+        self.mark(
+            self.step,
+            "started",
+            change_set=change_set,
+            change_kind=kind,
+            template_sha256=digest,
+            changes=summarize(changes),
+        )
         for row in changes:
-            self.say("  {Action:7} {LogicalResourceId} ({ResourceType}) replace={Replacement}"
-                     .format(**row))
+            self.say(
+                "  {Action:7} {LogicalResourceId} ({ResourceType}) replace={Replacement}".format(
+                    **row
+                )
+            )
         if not self.s.execute and not self.s.dry_run:
             raise AwaitingExecute(
                 f"change set {change_set} described ({len(changes)} changes); re-run with "
-                "--execute to apply it")
+                "--execute to apply it"
+            )
         if not self.established():
             self.cost_guard()
-        self.aws("cloudformation", "execute-change-set", {
-            "StackName": stack, "ChangeSetName": change_set,
-            "ClientRequestToken": f"exec-{digest[:24]}"})
+        self.aws(
+            "cloudformation",
+            "execute-change-set",
+            {
+                "StackName": stack,
+                "ChangeSetName": change_set,
+                "ClientRequestToken": f"exec-{digest[:24]}",
+            },
+        )
         self._wait_stack(stack)
         self.mark(self.step, "started", applied=change_set)
         return self._finish_stack(stack)
 
     def _change_set_ready(self, stack, change_set):
-        described = self.aws("cloudformation", "describe-change-set", {
-            "StackName": stack, "ChangeSetName": change_set})
+        described = self.aws(
+            "cloudformation",
+            "describe-change-set",
+            {"StackName": stack, "ChangeSetName": change_set},
+        )
         status = described["Status"]
         if status == "CREATE_COMPLETE":
             return True, described
@@ -1043,15 +1282,32 @@ class Pipeline:
 
     def record_partial(self, stack):
         """A rolled-back stack may still hold Retain resources; teardown must know their ids."""
-        found = self.aws("cloudformation", "describe-stack-resources", {"StackName": stack},
-                         tolerate=("ValidationError",)) or {}
-        rows = [(r["ResourceType"], r["PhysicalResourceId"], r["LogicalResourceId"])
-                for r in found.get("StackResources", []) if r.get("PhysicalResourceId")]
+        found = (
+            self.aws(
+                "cloudformation",
+                "describe-stack-resources",
+                {"StackName": stack},
+                tolerate=("ValidationError",),
+            )
+            or {}
+        )
+        rows = [
+            (r["ResourceType"], r["PhysicalResourceId"], r["LogicalResourceId"])
+            for r in found.get("StackResources", [])
+            if r.get("PhysicalResourceId")
+        ]
         self.record_resources(stack, rows, {})
 
     def _failure_reasons(self, stack):
-        events = self.aws("cloudformation", "describe-stack-events", {"StackName": stack},
-                          tolerate=("ValidationError",)) or {}
+        events = (
+            self.aws(
+                "cloudformation",
+                "describe-stack-events",
+                {"StackName": stack},
+                tolerate=("ValidationError",),
+            )
+            or {}
+        )
         reasons = [
             f"{e['LogicalResourceId']}: {e.get('ResourceStatusReason', '')[:160]}"
             for e in events.get("StackEvents", [])
@@ -1063,13 +1319,17 @@ class Pipeline:
         current = self.stack(stack)
         outputs = {o["OutputKey"]: o["OutputValue"] for o in current.get("Outputs", [])}
         resources = self.aws("cloudformation", "describe-stack-resources", {"StackName": stack})
-        return outputs, [(r["ResourceType"], r["PhysicalResourceId"], r["LogicalResourceId"])
-                         for r in resources.get("StackResources", [])]
+        return outputs, [
+            (r["ResourceType"], r["PhysicalResourceId"], r["LogicalResourceId"])
+            for r in resources.get("StackResources", [])
+        ]
 
     def record_resources(self, stack, rows, outputs):
         kinds = {
-            "AWS::S3::Bucket": "buckets", "AWS::ECR::Repository": "repositories",
-            "AWS::RDS::DBCluster": "db_clusters", "AWS::RDS::DBInstance": "db_instances",
+            "AWS::S3::Bucket": "buckets",
+            "AWS::ECR::Repository": "repositories",
+            "AWS::RDS::DBCluster": "db_clusters",
+            "AWS::RDS::DBInstance": "db_instances",
             "AWS::Logs::LogGroup": "log_groups",
         }
 
@@ -1095,44 +1355,68 @@ class Pipeline:
         adopt = self.s.adopt_bootstrap
         if adopt:
             found = self.stack(adopt)
-            bucket = {o["OutputKey"]: o["OutputValue"] for o in (found or {}).get("Outputs", [])
-                      }.get("ArtifactsBucket")
+            bucket = {
+                o["OutputKey"]: o["OutputValue"] for o in (found or {}).get("Outputs", [])
+            }.get("ArtifactsBucket")
             if not found or found["StackStatus"] not in HEALTHY or not bucket:
                 raise DeployError(
                     f"{adopt} is not adoptable: it needs a healthy status and an "
-                    "ArtifactsBucket output")
-            self.journal.mutate(lambda d: d["resources"].update(
-                staging_bucket=bucket, bootstrap_adopted=adopt))
+                    "ArtifactsBucket output"
+                )
+            self.journal.mutate(
+                lambda d: d["resources"].update(staging_bucket=bucket, bootstrap_adopted=adopt)
+            )
             return {"decision": "adopted", "stack": adopt, "bucket": bucket, "owned": False}
         template = json.loads(BOOTSTRAP_TEMPLATE.read_text())
         # The staging template pins one old namespace; this run's namespace replaces it.
         template["Parameters"]["Namespace"]["AllowedValues"] = [self.s.env]
         body = json.dumps(template, sort_keys=True, separators=(",", ":"))
         outputs, rows = self.apply_stack(
-            "bootstrap", self.s.bootstrap_stack, body,
-            [{"ParameterKey": "Namespace", "ParameterValue": self.s.env}])
+            "bootstrap",
+            self.s.bootstrap_stack,
+            body,
+            [{"ParameterKey": "Namespace", "ParameterValue": self.s.env}],
+        )
         self.record_resources(self.s.bootstrap_stack, rows, outputs)
         self.journal.mutate(
-            lambda d: d["resources"].update(staging_bucket=outputs["ArtifactsBucket"]))
-        return {"decision": "created", "stack": self.s.bootstrap_stack, "owned": True,
-                "bucket": outputs["ArtifactsBucket"]}
+            lambda d: d["resources"].update(staging_bucket=outputs["ArtifactsBucket"])
+        )
+        return {
+            "decision": "created",
+            "stack": self.s.bootstrap_stack,
+            "owned": True,
+            "bucket": outputs["ArtifactsBucket"],
+        }
 
     def render(self, *, apps, images=None, cors="https://example.invalid"):
         prefix = f"arn:aws:ssm:{self.s.region}:{self.s.account}:parameter/dc2/{self.s.env}/"
         arns = {key: prefix + key for key in render_config.PARAMETERS}
-        parameters = render_config.parameters({
-            "schema_version": 1, "environment_id": self.s.env, "account_id": self.s.account,
-            "region": self.s.region, "source_cors_origin": cors, "deploy_applications": apps,
-            "parameter_arns": arns, "images": images or {},
-            **({"unattended_launch": True} if self.s.unattended_launch else {}),
-            **({"always_on": True, "gates_open": not self.kill_switch_on(),
-                "stage_rate_limit": self.s.stage_rate_limit,
-                "stage_burst_limit": self.s.stage_burst_limit,
-                "monthly_budget_usd": self.s.monthly_budget_usd,
-                "budget_alert_email": self.s.budget_alert_email} if self.s.persistent else {}),
-        })
-        body = json.dumps(render_template(self.s.database), sort_keys=True,
-                          separators=(",", ":"))
+        parameters = render_config.parameters(
+            {
+                "schema_version": 1,
+                "environment_id": self.s.env,
+                "account_id": self.s.account,
+                "region": self.s.region,
+                "source_cors_origin": cors,
+                "deploy_applications": apps,
+                "parameter_arns": arns,
+                "images": images or {},
+                **({"unattended_launch": True} if self.s.unattended_launch else {}),
+                **(
+                    {
+                        "always_on": True,
+                        "gates_open": not self.kill_switch_on(),
+                        "stage_rate_limit": self.s.stage_rate_limit,
+                        "stage_burst_limit": self.s.stage_burst_limit,
+                        "monthly_budget_usd": self.s.monthly_budget_usd,
+                        "budget_alert_email": self.s.budget_alert_email,
+                    }
+                    if self.s.persistent
+                    else {}
+                ),
+            }
+        )
+        body = json.dumps(render_template(self.s.database), sort_keys=True, separators=(",", ":"))
         return body, parameters
 
     def stage_template(self, body):
@@ -1146,10 +1430,20 @@ class Pipeline:
             Path(directory).chmod(0o700)
             path = Path(directory) / "template.json"
             path.write_text(body)
-            made = self.aws("s3api", "put-object", {
-                "Bucket": bucket, "Key": key, "Body": str(path),
-                "ServerSideEncryption": "AES256",
-                "Tagging": f"{PROJECT_KEY}={PROJECT_VALUE}&{RUN_KEY}={self.s.run_id}"}) or {}
+            made = (
+                self.aws(
+                    "s3api",
+                    "put-object",
+                    {
+                        "Bucket": bucket,
+                        "Key": key,
+                        "Body": str(path),
+                        "ServerSideEncryption": "AES256",
+                        "Tagging": f"{PROJECT_KEY}={PROJECT_VALUE}&{RUN_KEY}={self.s.run_id}",
+                    },
+                )
+                or {}
+            )
         # Each put of a versioned bucket creates a version; teardown removes exactly these.
         staged = {"bucket": bucket, "key": key, "version_id": made.get("VersionId")}
         self.journal.mutate(lambda d: remember(d["resources"], "staged_objects", staged))
@@ -1161,11 +1455,17 @@ class Pipeline:
             return {"skipped": "established environment; `applications` updates the stack"}
         body, parameters = self.render(apps=False)
         outputs, rows = self.apply_stack(
-            "foundation", self.s.env, body, parameters, files=self.stage_template(body))
+            "foundation", self.s.env, body, parameters, files=self.stage_template(body)
+        )
         self.record_resources(self.s.env, rows, outputs)
-        return {"stack": self.s.env, "outputs": len(outputs),
-                "repositories": [outputs[k] for k in (
-                    "MediaRepositoryUri", "ProcessingRepositoryUri", "WorkerRepositoryUri")]}
+        return {
+            "stack": self.s.env,
+            "outputs": len(outputs),
+            "repositories": [
+                outputs[k]
+                for k in ("MediaRepositoryUri", "ProcessingRepositoryUri", "WorkerRepositoryUri")
+            ],
+        }
 
     def step_images(self):
         if self.established():
@@ -1175,21 +1475,30 @@ class Pipeline:
         sources = load_images(self.s.images_file)
         for name, source in sources.items():
             recorded = self.meta()["images"].get(name, {})
-            if (recorded.get("source_sha") and recorded.get("local_id")
-                    and source.get("source_sha") != recorded["source_sha"]):
+            if (
+                recorded.get("source_sha")
+                and recorded.get("local_id")
+                and source.get("source_sha") != recorded["source_sha"]
+            ):
                 raise DeployError(f"{name} source changed since publishing began")
         if not self.simulated:
             for source in sources.values():
                 self.verify_trivy(source)
         outputs = self.meta()["outputs"]
         # Which commit each image was built from: what later deploys diff against (AD-27).
-        self.journal.mutate(lambda d: [d["images"].setdefault(o, {}).update(
-            source_sha=sources[o]["source_sha"]) for o in sources if sources[o].get("source_sha")])
+        self.journal.mutate(
+            lambda d: [
+                d["images"].setdefault(o, {}).update(source_sha=sources[o]["source_sha"])
+                for o in sources
+                if sources[o].get("source_sha")
+            ]
+        )
         registry = f"{self.s.account}.dkr.ecr.{self.s.region}.amazonaws.com"
         token = self.aws("ecr", "get-authorization-token", {})["authorizationData"][0]
         password = base64.b64decode(token["authorizationToken"]).decode().split(":", 1)[1]
-        self.run_docker(["login", "--username", "AWS", "--password-stdin", registry],
-                        stdin=password)
+        self.run_docker(
+            ["login", "--username", "AWS", "--password-stdin", registry], stdin=password
+        )
         pushed = {}
         for owner in ("media", "processing", "worker"):
             uri = outputs[f"{owner.title()}RepositoryUri"]
@@ -1202,9 +1511,15 @@ class Pipeline:
                 # checked below; resuming never requires rebuilding or loading its recipe.
                 platform, local_id = "linux/amd64", source.get("local_id")
             else:
-                platform, local_id = self.run_docker([
-                    "image", "inspect", "--format", "{{.Os}}/{{.Architecture}} {{.Id}}",
-                    source["source"]]).split()
+                platform, local_id = self.run_docker(
+                    [
+                        "image",
+                        "inspect",
+                        "--format",
+                        "{{.Os}}/{{.Architecture}} {{.Id}}",
+                        source["source"],
+                    ]
+                ).split()
             if platform != "linux/amd64":
                 raise DeployError(f"{owner} image is {platform}; V1 runs linux/amd64 only")
             verified = source.get("local_id")
@@ -1214,16 +1529,23 @@ class Pipeline:
             if recorded and recorded != local_id:
                 # Tags are immutable, so a resume would otherwise deploy the older push silently.
                 raise DeployError(f"{owner} image changed since it was pushed; use a new --run-id")
-            self.journal.mutate(lambda d, o=owner, i=local_id: d["images"].setdefault(
-                o, {}).update(local_id=i))
-            existing = self.aws("ecr", "describe-images", {
-                "repositoryName": repository, "imageIds": [{"imageTag": tag}]},
-                tolerate=("ImageNotFoundException",))
+            self.journal.mutate(
+                lambda d, o=owner, i=local_id: d["images"].setdefault(o, {}).update(local_id=i)
+            )
+            existing = self.aws(
+                "ecr",
+                "describe-images",
+                {"repositoryName": repository, "imageIds": [{"imageTag": tag}]},
+                tolerate=("ImageNotFoundException",),
+            )
             if existing is None:  # repositories are immutable-tag: only ever pushed once
                 self.run_docker(["tag", local_id, f"{uri}:{tag}"])
                 self.run_docker(["push", f"{uri}:{tag}"])
-                existing = self.aws("ecr", "describe-images", {
-                    "repositoryName": repository, "imageIds": [{"imageTag": tag}]})
+                existing = self.aws(
+                    "ecr",
+                    "describe-images",
+                    {"repositoryName": repository, "imageIds": [{"imageTag": tag}]},
+                )
             digest = existing["imageDetails"][0]["imageDigest"]
             if saved.get("digest") and saved["digest"] != digest:
                 raise DeployError(f"{owner} registry tag changed since it was pushed")
@@ -1238,8 +1560,11 @@ class Pipeline:
 
     def verify_trivy(self, source):
         try:
-            return validate_scan(source.get("trivy_scan"), config_id=source.get("local_id"),
-                                 source_sha=source.get("source_sha"))
+            return validate_scan(
+                source.get("trivy_scan"),
+                config_id=source.get("local_id"),
+                source_sha=source.get("source_sha"),
+            )
         except ValueError as error:
             raise DeployError(str(error)) from None
 
@@ -1247,24 +1572,31 @@ class Pipeline:
         """First use and every partial resume require exact-image and completed ECR scans."""
         from scripts.aws.v1.proof.release_plan import load_accept
 
-        accept_ids, accept_sha = load_accept(self.s.accept_unfixed) if self.s.accept_unfixed else (
-            set(), None)
+        accept_ids, accept_sha = (
+            load_accept(self.s.accept_unfixed) if self.s.accept_unfixed else (set(), None)
+        )
         sources = load_images(self.s.images_file) if self.s.images_file else {}
         for name in ("media", "processing", "worker"):
             image = self.meta()["images"].get(name, {})
             try:
                 if not self.simulated:
                     source = sources.get(name, {})
-                    if (source.get("local_id") != image.get("local_id")
-                            or source.get("source_sha") != image.get("source_sha")):
+                    if source.get("local_id") != image.get("local_id") or source.get(
+                        "source_sha"
+                    ) != image.get("source_sha"):
                         raise DeployError("Resume image evidence differs from the pushed image")
                     trivy = self.verify_trivy(source)
                     repository, selected = image["uri"].rsplit("@", 1)
                     if selected != image["digest"]:
                         raise DeployError("Journal image URI differs from the selected digest")
-                    response = self.aws("ecr", "batch-get-image", {
-                        "repositoryName": repository.split("/", 1)[1],
-                        "imageIds": [{"imageDigest": selected}]})
+                    response = self.aws(
+                        "ecr",
+                        "batch-get-image",
+                        {
+                            "repositoryName": repository.split("/", 1)[1],
+                            "imageIds": [{"imageDigest": selected}],
+                        },
+                    )
                     binding = manifest_receipt(image["local_id"], response)
                     if binding["manifest_digest"] != selected:
                         raise DeployError("Registry receipt differs from selected deploy digest")
@@ -1273,25 +1605,41 @@ class Pipeline:
                     trivy, binding = {"status": "SIMULATED"}, {"status": "SIMULATED"}
                 for attempt in range(10):
                     try:
-                        scan = registry_scan(self.aws, repository, image["digest"], image["tag"],
-                                             accept_ids)
+                        scan = registry_scan(
+                            self.aws, repository, image["digest"], image["tag"], accept_ids
+                        )
                         break
                     except ScanPending:
-                        self.journal.mutate(lambda d, n=name: d["images"][n].update(
-                            registry_gate={"status": "PENDING"}))
+                        self.journal.mutate(
+                            lambda d, n=name: d["images"][n].update(
+                                registry_gate={"status": "PENDING"}
+                            )
+                        )
                         if attempt == 9:
                             raise DeployError(
-                                "ECR scan did not finish in time (10 attempts)") from None
+                                "ECR scan did not finish in time (10 attempts)"
+                            ) from None
                         self.sleep(30)
-                proof = {"status": "PASS" if not self.simulated else "SIMULATED",
-                         "trivy": trivy, "registry": binding, "ecr_scan": scan,
-                         "accept_file_sha256": accept_sha}
-                self.journal.mutate(lambda d, n=name, p=proof, c=scan["severity_counts"]:
-                                    d["images"][n].update(registry_gate=p, scan_severity_counts=c))
+                proof = {
+                    "status": "PASS" if not self.simulated else "SIMULATED",
+                    "trivy": trivy,
+                    "registry": binding,
+                    "ecr_scan": scan,
+                    "accept_file_sha256": accept_sha,
+                }
+                self.journal.mutate(
+                    lambda d, n=name, p=proof, c=scan["severity_counts"]: d["images"][n].update(
+                        registry_gate=p, scan_severity_counts=c
+                    )
+                )
             except OperationError as error:
-                self.journal.mutate(lambda d, n=name, message=str(error):
-                                    d["images"].setdefault(n, {}).update(
-                                        registry_gate={"status": "FAIL", "error": message}))
+                self.journal.mutate(
+                    lambda d, n=name, message=str(error): (
+                        d["images"]
+                        .setdefault(n, {})
+                        .update(registry_gate={"status": "FAIL", "error": message})
+                    )
+                )
                 raise DeployError(str(error)) from None
 
     def changed_owners(self):
@@ -1315,16 +1663,23 @@ class Pipeline:
             paths = changed_paths(old, new)
             if paths is None or name in policy.changed_images(paths):
                 changed.add(name)
-        owners = [owner for owner, names in (("media", {"media"}),
-                                             ("processing", {"processing", "worker"}))
-                  if changed & names]
+        owners = [
+            owner
+            for owner, names in (("media", {"media"}), ("processing", {"processing", "worker"}))
+            if changed & names
+        ]
         for owner in owners:
-            paths = changed_paths(running.get(owner, {}).get("source_sha"),
-                                  built[owner].get("source_sha"))
+            paths = changed_paths(
+                running.get(owner, {}).get("source_sha"), built[owner].get("source_sha")
+            )
             if paths is None or any(p.startswith(f"{owner}/migrations/") for p in paths):
                 migrations.append(owner)
-        return {"pushed": False, "changed_owners": owners, "changed_images": sorted(changed),
-                "migrations_changed": migrations}
+        return {
+            "pushed": False,
+            "changed_owners": owners,
+            "changed_images": sorted(changed),
+            "migrations_changed": migrations,
+        }
 
     def step_applications(self):
         meta = self.meta()
@@ -1332,7 +1687,8 @@ class Pipeline:
         cors = meta["outputs"]["FrontendUrl"]
         body, parameters = self.render(apps=True, images=images, cors=cors)
         outputs, rows = self.apply_stack(
-            "applications", self.s.env, body, parameters, files=self.stage_template(body))
+            "applications", self.s.env, body, parameters, files=self.stage_template(body)
+        )
         self.record_resources(self.s.env, rows, outputs)
         self.write_private(self.s.state_dir / "outputs.json", json.dumps(outputs, indent=2))
         return {"stack": self.s.env, "outputs": len(outputs), "gateway": outputs["HttpApiUrl"]}
@@ -1357,32 +1713,59 @@ class Pipeline:
                 break
         todo = spa.changed(manifest, existing)
         for item in todo:
-            self.aws("s3api", "put-object", {
-                "Bucket": bucket, "Key": item["key"], "Body": item["path"],
-                "ContentType": item["content_type"], "CacheControl": item["cache_control"],
-                "ServerSideEncryption": "AES256",
-                "Tagging": f"{PROJECT_KEY}={PROJECT_VALUE}&{RUN_KEY}={self.s.run_id}"})
-        made = self.aws("cloudfront", "create-invalidation",
-                        spa.invalidation(distribution, manifest))
+            self.aws(
+                "s3api",
+                "put-object",
+                {
+                    "Bucket": bucket,
+                    "Key": item["key"],
+                    "Body": item["path"],
+                    "ContentType": item["content_type"],
+                    "CacheControl": item["cache_control"],
+                    "ServerSideEncryption": "AES256",
+                    "Tagging": f"{PROJECT_KEY}={PROJECT_VALUE}&{RUN_KEY}={self.s.run_id}",
+                },
+            )
+        made = self.aws(
+            "cloudfront", "create-invalidation", spa.invalidation(distribution, manifest)
+        )
         invalidation = made["Invalidation"]["Id"]
-        self.poll(lambda: (self.aws("cloudfront", "get-invalidation", {
-            "DistributionId": distribution, "Id": invalidation,
-        })["Invalidation"]["Status"] == "Completed", None),
-            what=f"CloudFront invalidation {invalidation}", timeout=900)
+        self.poll(
+            lambda: (
+                self.aws(
+                    "cloudfront",
+                    "get-invalidation",
+                    {"DistributionId": distribution, "Id": invalidation},
+                )["Invalidation"]["Status"]
+                == "Completed",
+                None,
+            ),
+            what=f"CloudFront invalidation {invalidation}",
+            timeout=900,
+        )
         served = "NOT_CHECKED (dry run)"
         if not self.s.dry_run:
             served = self.verify_frontend(outputs["FrontendUrl"], manifest)
-        return {"bucket": bucket, "files": len(manifest["files"]), "uploaded": len(todo),
-                "manifest_sha256": manifest["sha256"], "invalidation": invalidation,
-                "served_through_cloudfront": served, "api_base": "same-origin /api/media"}
+        return {
+            "bucket": bucket,
+            "files": len(manifest["files"]),
+            "uploaded": len(todo),
+            "manifest_sha256": manifest["sha256"],
+            "invalidation": invalidation,
+            "served_through_cloudfront": served,
+            "api_base": "same-origin /api/media",
+        }
 
     def verify_frontend(self, url, manifest):
         """Ask the distribution, not the bucket: the page it serves must name the new assets."""
         status, headers, body = self.http("GET", validate_base_url(url) + "/", {}, None, 15)
         names = [name for name in manifest["hashed"].values() if name.endswith(".js")]
         kind = (headers.get("content-type") or [""])[0]
-        if status != 200 or not kind.startswith("text/html") or not all(
-                n.encode() in body for n in names):
+        if (
+            status != 200
+            or not kind.startswith("text/html")
+            or not all(n.encode() in body for n in names)
+        ):
             raise DeployError("CloudFront does not serve the freshly uploaded index.html")
         return "PASS"
 
@@ -1407,9 +1790,16 @@ class Pipeline:
 
     def clear_task(self, label):
         """Forget a launch: its token, task and journaled verdict."""
-        self.mark(self.step, "started", **{
-            f"{label}_token": None, f"{label}_task": None, f"{label}_done": None,
-            f"{label}_retiring": None})
+        self.mark(
+            self.step,
+            "started",
+            **{
+                f"{label}_token": None,
+                f"{label}_task": None,
+                f"{label}_done": None,
+                f"{label}_retiring": None,
+            },
+        )
 
     def stop_unfinished(self, label, arn):
         """Stop every unfinished task of this label and wait (bounded) until all are STOPPED.
@@ -1442,10 +1832,16 @@ class Pipeline:
         def listed():
             arns, token = [], None
             for _ in range(10):  # a project cluster holds a handful of tasks
-                page = self.aws("ecs", "list-tasks", {
-                    "cluster": cluster, "desiredStatus": "RUNNING",
-                    **({"nextToken": token} if token else {})},
-                    tolerate=("ClusterNotFoundException",))
+                page = self.aws(
+                    "ecs",
+                    "list-tasks",
+                    {
+                        "cluster": cluster,
+                        "desiredStatus": "RUNNING",
+                        **({"nextToken": token} if token else {}),
+                    },
+                    tolerate=("ClusterNotFoundException",),
+                )
                 if page is None:
                     return None
                 arns += page.get("taskArns", [])
@@ -1463,8 +1859,11 @@ class Pipeline:
             described = {}
             candidates = list(dict.fromkeys([*retained, *running]))
             for start in range(0, len(candidates), 100):
-                answer = self.aws("ecs", "describe-tasks", {
-                    "cluster": cluster, "tasks": candidates[start:start + 100]})
+                answer = self.aws(
+                    "ecs",
+                    "describe-tasks",
+                    {"cluster": cluster, "tasks": candidates[start : start + 100]},
+                )
                 for failure in answer.get("failures", []):
                     if failure.get("reason") != "MISSING":
                         raise DeployError(f"Cannot confirm the {label} task stopped")
@@ -1479,17 +1878,27 @@ class Pipeline:
             for a in retained:
                 task = described.get(a)
                 if task and task["lastStatus"] != "STOPPED" and a not in requested:
-                    self.aws("ecs", "stop-task", {
-                        "cluster": cluster, "task": a,
-                        "reason": f"dc2-v1 deploy: replacing the {label} task"})
+                    self.aws(
+                        "ecs",
+                        "stop-task",
+                        {
+                            "cluster": cluster,
+                            "task": a,
+                            "reason": f"dc2-v1 deploy: replacing the {label} task",
+                        },
+                    )
                     requested.add(a)
-            unresolved = [a for a in retained
-                          if not (described.get(a) and described[a]["lastStatus"] == "STOPPED")
-                          and missing.get(a, 0) < MISSING_LOOKS]
+            unresolved = [
+                a
+                for a in retained
+                if not (described.get(a) and described[a]["lastStatus"] == "STOPPED")
+                and missing.get(a, 0) < MISSING_LOOKS
+            ]
             return not unresolved, None
 
-        self.poll(check, what=f"the previous {label} task to reach STOPPED", timeout=300,
-                  interval=10)
+        self.poll(
+            check, what=f"the previous {label} task to reach STOPPED", timeout=300, interval=10
+        )
         return retained
 
     def retire_task(self, label):
@@ -1499,8 +1908,10 @@ class Pipeline:
         """
         saved = self.detail(self.step)
         if not saved.get(f"{label}_done") and (
-                saved.get(f"{label}_task") or saved.get(f"{label}_token")
-                or saved.get(f"{label}_retiring")):
+            saved.get(f"{label}_task")
+            or saved.get(f"{label}_token")
+            or saved.get(f"{label}_retiring")
+        ):
             self.stop_unfinished(label, saved.get(f"{label}_task"))
         self.clear_task(label)
 
@@ -1523,13 +1934,25 @@ class Pipeline:
             self.mark(self.step, "started", **{f"{label}_token": token})
         arn = saved.get(f"{label}_task")
         if not arn:
-            result = self.aws("ecs", "run-task", {
-                "cluster": outputs["ClusterArn"], "taskDefinition": definition,
-                "launchType": "FARGATE", "count": 1, "clientToken": token,
-                "startedBy": self.started_by(label),
-                "networkConfiguration": {"awsvpcConfiguration": {
-                    "subnets": outputs["PublicTaskSubnetIds"].split(","),
-                    "securityGroups": [security_group], "assignPublicIp": "ENABLED"}}})
+            result = self.aws(
+                "ecs",
+                "run-task",
+                {
+                    "cluster": outputs["ClusterArn"],
+                    "taskDefinition": definition,
+                    "launchType": "FARGATE",
+                    "count": 1,
+                    "clientToken": token,
+                    "startedBy": self.started_by(label),
+                    "networkConfiguration": {
+                        "awsvpcConfiguration": {
+                            "subnets": outputs["PublicTaskSubnetIds"].split(","),
+                            "securityGroups": [security_group],
+                            "assignPublicIp": "ENABLED",
+                        }
+                    },
+                },
+            )
             if result.get("failures") or len(result.get("tasks", [])) != 1:
                 raise DeployError(f"{label} task launch unresolved")
             arn = result["tasks"][0]["taskArn"]
@@ -1537,8 +1960,9 @@ class Pipeline:
         misses = []
 
         def check():
-            described = self.aws("ecs", "describe-tasks", {
-                "cluster": outputs["ClusterArn"], "tasks": [arn]}).get("tasks", [])
+            described = self.aws(
+                "ecs", "describe-tasks", {"cluster": outputs["ClusterArn"], "tasks": [arn]}
+            ).get("tasks", [])
             if not described:  # MISSING: a few looks absorb launch-time lag, then give up
                 misses.append(1)
                 return len(misses) >= MISSING_LOOKS, None
@@ -1560,12 +1984,16 @@ class Pipeline:
         return {"task": arn, "exit_codes": codes}
 
     def put_parameter(self, name, value):
-        existing = self.aws("ssm", "describe-parameters", {
-            "ParameterFilters": [{"Key": "Name", "Option": "Equals", "Values": [name]}]})
+        existing = self.aws(
+            "ssm",
+            "describe-parameters",
+            {"ParameterFilters": [{"Key": "Name", "Option": "Equals", "Values": [name]}]},
+        )
         request = {"Name": name, "Value": value, "Type": "SecureString"}
         if existing.get("Parameters"):
-            tags = self.aws("ssm", "list-tags-for-resource", {
-                "ResourceType": "Parameter", "ResourceId": name})
+            tags = self.aws(
+                "ssm", "list-tags-for-resource", {"ResourceType": "Parameter", "ResourceId": name}
+            )
             if not owned(tags.get("TagList", []), self.s.run_id):
                 raise DeployError(f"Parameter {name} exists and is not owned by this run")
             request["Overwrite"] = True  # tags cannot be sent with an overwrite
@@ -1574,8 +2002,11 @@ class Pipeline:
         self.aws("ssm", "put-parameter", request)
 
     def parameter_exists(self, name):
-        found = self.aws("ssm", "describe-parameters", {
-            "ParameterFilters": [{"Key": "Name", "Option": "Equals", "Values": [name]}]})
+        found = self.aws(
+            "ssm",
+            "describe-parameters",
+            {"ParameterFilters": [{"Key": "Name", "Option": "Equals", "Values": [name]}]},
+        )
         return bool(found.get("Parameters"))
 
     def passwords_path(self):
@@ -1596,7 +2027,8 @@ class Pipeline:
         with contextlib.suppress(OSError, ValueError):
             saved = json.loads(path.read_text())
             if set(saved) == set(db_bootstrap.CREDENTIAL_ROLES) and all(
-                    isinstance(v, str) and v for v in saved.values()):
+                isinstance(v, str) and v for v in saved.values()
+            ):
                 return saved
         # Retire the old launch first: a task still running could reset the roles to its own
         # passwords after the new ones are published. Forgetting it before the file is written
@@ -1611,14 +2043,19 @@ class Pipeline:
         """{domain: (endpoint host, master secret ARN)} from the stack outputs."""
         try:
             if self.s.database.topology == SEPARATE:
-                return {domain: (outputs[f"{domain.title()}DatabaseEndpoint"],
-                                 outputs[f"{domain.title()}BootstrapSecretArn"])
-                        for domain in OWNERS}
+                return {
+                    domain: (
+                        outputs[f"{domain.title()}DatabaseEndpoint"],
+                        outputs[f"{domain.title()}BootstrapSecretArn"],
+                    )
+                    for domain in OWNERS
+                }
             pair = (outputs["DatabaseEndpoint"], outputs["BootstrapSecretArn"])
         except KeyError as error:
             raise DeployError(
                 f"The stack outputs lack {error.args[0]}: the stack was not rendered with "
-                f"database topology {self.s.database.topology}") from None
+                f"database topology {self.s.database.topology}"
+            ) from None
         return dict.fromkeys(OWNERS, pair)
 
     def step_db_bootstrap(self):
@@ -1642,9 +2079,14 @@ class Pipeline:
             masters[secret_arn] = json.loads(secret["SecretString"])
         passwords = self.bootstrap_passwords()
         connections = {
-            domain: {"host": host, "port": 5432, "user": masters[arn]["username"],
-                     "password": masters[arn]["password"]}
-            for domain, (host, arn) in endpoints.items()}
+            domain: {
+                "host": host,
+                "port": 5432,
+                "user": masters[arn]["username"],
+                "password": masters[arn]["password"],
+            }
+            for domain, (host, arn) in endpoints.items()
+        }
         if self.s.database.topology == SEPARATE:
             payload = {"databases": connections, "role_passwords": passwords}
         else:  # V1's input, unchanged: one connection serves both domains
@@ -1654,11 +2096,17 @@ class Pipeline:
         result = {}
         try:
             result = self.finite_task(
-                "bootstrap", outputs["BootstrapTaskDefinitionArn"],
-                outputs["MigrationSecurityGroupId"])
+                "bootstrap",
+                outputs["BootstrapTaskDefinitionArn"],
+                outputs["MigrationSecurityGroupId"],
+            )
         finally:
-            self.aws("ssm", "delete-parameter", {"Name": base + "bootstrap-input"},
-                     tolerate=("ParameterNotFound",))
+            self.aws(
+                "ssm",
+                "delete-parameter",
+                {"Name": base + "bootstrap-input"},
+                tolerate=("ParameterNotFound",),
+            )
         for key, (role, database) in {
             "media_runtime_dsn": ("media_runtime", "media_db"),
             "media_migration_dsn": ("media_migrator", "media_db"),
@@ -1668,17 +2116,21 @@ class Pipeline:
             # Each DSN names its own domain's cluster, so the migration tasks and the
             # runtime handlers that read these parameters need no topology knowledge.
             host = endpoints[database.removesuffix("_db")][0]
-            dsn = f"postgresql://{quote(role, safe='')}:{quote(passwords[role], safe='')}" \
-                  f"@{host}:5432/{database}"
+            dsn = (
+                f"postgresql://{quote(role, safe='')}:{quote(passwords[role], safe='')}"
+                f"@{host}:5432/{database}"
+            )
             self.put_parameter(base + key, dsn)
         # The signing key is stable across reruns: rotating it would end every session.
         if not self.parameter_exists(base + "jwt_secret"):
             self.put_parameter(base + "jwt_secret", secrets.token_urlsafe(48))
         # Only now, with every DSN in SSM, are the local copies unnecessary.
         self.passwords_path().unlink(missing_ok=True)
-        return {"bootstrap_task": result.get("task"),
-                "parameters": sorted(render_config.PARAMETERS),
-                "temporary_input_removed": True}
+        return {
+            "bootstrap_task": result.get("task"),
+            "parameters": sorted(render_config.PARAMETERS),
+            "temporary_input_removed": True,
+        }
 
     def target_revision(self, owner, override):
         if override:
@@ -1707,10 +2159,14 @@ class Pipeline:
             if owner in done:
                 continue
             definition = outputs[f"{owner.title()}MigrationTaskDefinitionArn"]
-            self.plan.append({
-                "step": self.step, "mutating": True,
-                "command": f"# scripts.aws.v1.migration.migrate owner={owner} "
-                           f"revision={targets[owner]} (ecs run-task, describe-tasks)"})
+            self.plan.append(
+                {
+                    "step": self.step,
+                    "mutating": True,
+                    "command": f"# scripts.aws.v1.migration.migrate owner={owner} "
+                    f"revision={targets[owner]} (ecs run-task, describe-tasks)",
+                }
+            )
             # migrate() journals through the shared state object, so the lock is held for its
             # duration; this pipeline's own audit events are written once it is released.
             self.journal_held = True
@@ -1721,9 +2177,18 @@ class Pipeline:
                         self.journal.save(state)
                     try:
                         migrate(
-                            config, self, self.journal, state, owner=owner, definition=definition,
-                            revision=targets[owner], schema_revision=reader,
-                            deadline=self.clock() + 1800, clock=self.clock, sleep=self.sleep)
+                            config,
+                            self,
+                            self.journal,
+                            state,
+                            owner=owner,
+                            definition=definition,
+                            revision=targets[owner],
+                            schema_revision=reader,
+                            deadline=self.clock() + 1800,
+                            clock=self.clock,
+                            sleep=self.sleep,
+                        )
                     except OperationError as error:
                         # A task that ran and failed is a verdict, not an ambiguous launch:
                         # forget it so a corrected rerun launches a fresh one. Anything else
@@ -1738,8 +2203,9 @@ class Pipeline:
                 self.journal_held = False
                 self.flush_events()
             done.append(owner)
-            self.mark(self.step, "started", owners_done=done,
-                      **{f"{owner}_revision": targets[owner]})
+            self.mark(
+                self.step, "started", owners_done=done, **{f"{owner}_revision": targets[owner]}
+            )
         return {"owners_done": done, "schema_check": mode}
 
     def schema_reader(self, targets):
@@ -1770,13 +2236,17 @@ class Pipeline:
         would spend the close's whole deadline before the mappings and rules were disabled.
         """
         path = self.s.state_dir / (
-            "operator-config-teardown.json" if teardown else "operator-config.json")
-        data = {"operator_station": self.s.station, "environment_id": self.s.env,
-                "journal": "session/journal.json", "outputs_file": "outputs.json"}
+            "operator-config-teardown.json" if teardown else "operator-config.json"
+        )
+        data = {
+            "operator_station": self.s.station,
+            "environment_id": self.s.env,
+            "journal": "session/journal.json",
+            "outputs_file": "outputs.json",
+        }
         if self.s.persistent:
             # `session open` (the kill switch off) and `status` must agree with the template.
-            data["edge_open"] = {"rate": self.s.stage_rate_limit,
-                                 "burst": self.s.stage_burst_limit}
+            data["edge_open"] = {"rate": self.s.stage_rate_limit, "burst": self.s.stage_burst_limit}
         sql = {} if teardown else self.sql_settings()
         counts = None if teardown else self.s.counts_file
         if sql:
@@ -1785,8 +2255,14 @@ class Pipeline:
             data["counts_file"] = self.state_relative(counts)
         elif self.s.assume_empty_counts or teardown:
             zero = self.s.state_dir / "attested-zero-counts.json"
-            self.write_private(zero, json.dumps(dict.fromkeys(
-                ("queued", "processing", "succeeded", "failed", "abandoned", "cancelled"), 0)))
+            self.write_private(
+                zero,
+                json.dumps(
+                    dict.fromkeys(
+                        ("queued", "processing", "succeeded", "failed", "abandoned", "cancelled"), 0
+                    )
+                ),
+            )
             data["counts_file"] = self.state_relative(zero)
         self.write_private(path, json.dumps(data, indent=2))
         return path
@@ -1794,13 +2270,26 @@ class Pipeline:
     def state_relative(self, path):
         """Relative to the state directory when inside it: the state is read on other machines."""
         path = Path(path)
-        return str(path.relative_to(self.s.state_dir)) if path.is_relative_to(
-            self.s.state_dir) else str(path)
+        return (
+            str(path.relative_to(self.s.state_dir))
+            if path.is_relative_to(self.s.state_dir)
+            else str(path)
+        )
 
     def run_session(self, action, *extra, teardown=False):
         ops = self.write_ops_config(teardown=teardown)
-        argv = [action, "--config", str(ops), "--profile", self.s.profile,
-                "--region", self.s.region, "--account", self.s.account, *extra]
+        argv = [
+            action,
+            "--config",
+            str(ops),
+            "--profile",
+            self.s.profile,
+            "--region",
+            self.s.region,
+            "--account",
+            self.s.account,
+            *extra,
+        ]
         if self.s.dry_run:
             argv.append("--dry-run")
         buffer = io.StringIO()
@@ -1811,9 +2300,15 @@ class Pipeline:
         except ValueError:
             raise DeployError(f"session {action} returned unparseable output") from None
         for call in payload.get("planned_calls", []):
-            self.plan.append({"step": self.step, "mutating": call.get("operation", "").startswith(
-                ("update", "put", "enable", "disable", "run", "stop", "delete")),
-                "command": "# sdk " + json.dumps(call, sort_keys=True)})
+            self.plan.append(
+                {
+                    "step": self.step,
+                    "mutating": call.get("operation", "").startswith(
+                        ("update", "put", "enable", "disable", "run", "stop", "delete")
+                    ),
+                    "command": "# sdk " + json.dumps(call, sort_keys=True),
+                }
+            )
         if code or not payload.get("ok"):
             raise DeployError(f"session {action} failed: {str(payload.get('error', ''))[:700]}")
         return payload.get("result", {})
@@ -1830,7 +2325,8 @@ class Pipeline:
             raise DeployError(
                 "Close needs attempt counts: pass --sql-config, --counts-file or "
                 "--assume-empty-counts (a first deploy has launched no worker). Refusing to "
-                "open a window that could not be closed")
+                "open a window that could not be closed"
+            )
         self.run_session("init", "--confirm-empty", "--confirm-exclusive")
         return {"session_journal": "initialized"}
 
@@ -1844,8 +2340,11 @@ class Pipeline:
             return state.get("session")
 
     def kill_switch_on(self):
-        return self.s.persistent and bool(self.meta().get("session_opened")) and (
-            self.session_recorded() not in (None, "open"))
+        return (
+            self.s.persistent
+            and bool(self.meta().get("session_opened"))
+            and (self.session_recorded() not in (None, "open"))
+        )
 
     def step_session_open(self):
         """Open the persistent environment once; afterwards an operator's close is respected.
@@ -1857,10 +2356,12 @@ class Pipeline:
         """
         if self.meta().get("session_opened"):
             recorded = self.session_recorded()
-            return {"session": recorded or "unknown", "opened": "earlier",
-                    "kill_switch": "on" if self.kill_switch_on() else "off"}
-        result = self.run_session("open", "--unattended", "--minutes",
-                                  str(ALWAYS_ON_OPEN_MINUTES))
+            return {
+                "session": recorded or "unknown",
+                "opened": "earlier",
+                "kill_switch": "on" if self.kill_switch_on() else "off",
+            }
+        result = self.run_session("open", "--unattended", "--minutes", str(ALWAYS_ON_OPEN_MINUTES))
         if not self.s.dry_run:
             self.journal.mutate(lambda d: d.update(session_opened=True))
         return {"session": result.get("session", "open"), "launcher": "enabled"}
@@ -1887,28 +2388,51 @@ class Pipeline:
             creds = {"email": self.s.seed_email, "password": secrets.token_urlsafe(24)}
             self.write_private(path, json.dumps(creds))
         if self.s.dry_run:
-            self.plan.append({"step": self.step, "mutating": True, "command":
-                              f"# POST {base}/api/media/auth/register (smoke account)"})
+            self.plan.append(
+                {
+                    "step": self.step,
+                    "mutating": True,
+                    "command": f"# POST {base}/api/media/auth/register (smoke account)",
+                }
+            )
             return {"registered": "planned", "role": "user"}
         status, _, _ = self.http(
-            "POST", f"{base}/api/media/auth/register",
+            "POST",
+            f"{base}/api/media/auth/register",
             {"accept": "application/json", "content-type": "application/json"},
-            json.dumps(creds).encode(), 15)
+            json.dumps(creds).encode(),
+            15,
+        )
         if status not in {201, 409}:
             raise DeployError(f"register returned HTTP {status}")
         # 409 means the address exists; with our own saved password the login check decides.
-        return {"registered": "created" if status == 201 else "already-exists", "role": "user",
-                "email_sha256": hashlib.sha256(creds["email"].encode()).hexdigest()[:12]}
+        return {
+            "registered": "created" if status == 201 else "already-exists",
+            "role": "user",
+            "email_sha256": hashlib.sha256(creds["email"].encode()).hexdigest()[:12],
+        }
 
     def step_public_smoke(self):
         if self.kill_switch_on():
             return {"checks": "skipped: the kill switch is on (`session open --unattended`)"}
         base = self.outputs()["HttpApiUrl"]
         if self.s.dry_run:
-            checks = ["media-health", "processing-health", "anonymous-denied", "login",
-                      "media-jobs", "processing-jobs", "upload-reserve"]
-            self.plan.append({"step": self.step, "mutating": False, "command":
-                              f"# PublicSmoke {base}: {', '.join(checks)}"})
+            checks = [
+                "media-health",
+                "processing-health",
+                "anonymous-denied",
+                "login",
+                "media-jobs",
+                "processing-jobs",
+                "upload-reserve",
+            ]
+            self.plan.append(
+                {
+                    "step": self.step,
+                    "mutating": False,
+                    "command": f"# PublicSmoke {base}: {', '.join(checks)}",
+                }
+            )
             return {"checks": dict.fromkeys(checks, "PLANNED")}
         creds = json.loads(self.credentials_path().read_text())
         smoke = PublicSmoke(base, creds, http=self.http, clock=self.clock)
@@ -1919,21 +2443,28 @@ class Pipeline:
 
     def step_session_close(self):
         result = self.run_session("close")
-        return {"session": result.get("session", "closed"),
-                "database_pause": result.get("database_pause", "NOT_OBSERVED")}
+        return {
+            "session": result.get("session", "closed"),
+            "database_pause": result.get("database_pause", "NOT_OBSERVED"),
+        }
 
     # ---- orchestration -------------------------------------------------------------------
     def deploy(self, *, stop_after=None, revisions=None):
         if self.s.persistent:
             return self.deploy_persistent(stop_after=stop_after, revisions=revisions)
         actions = {
-            "preflight": self.preflight, "bootstrap-stack": self.step_bootstrap_stack,
-            "foundation": self.step_foundation, "images": self.step_images,
-            "applications": self.step_applications, "frontend": self.step_frontend,
+            "preflight": self.preflight,
+            "bootstrap-stack": self.step_bootstrap_stack,
+            "foundation": self.step_foundation,
+            "images": self.step_images,
+            "applications": self.step_applications,
+            "frontend": self.step_frontend,
             "db-bootstrap": self.step_db_bootstrap,
             "migrations": lambda: self.step_migrations(revisions),
-            "session-init": self.step_session_init, "session-window": self.step_session_window,
-            "seed": self.step_seed, "public-smoke": self.step_public_smoke,
+            "session-init": self.step_session_init,
+            "session-window": self.step_session_window,
+            "seed": self.step_seed,
+            "public-smoke": self.step_public_smoke,
             "session-close": self.step_session_close,
         }
         results = {}
@@ -1953,8 +2484,11 @@ class Pipeline:
                     pass  # window stays journaled as open; the next run closes it first
                 else:
                     # Closed again: a rerun must reopen the window before it can seed or smoke.
-                    self.journal.mutate(lambda d: [d["steps"].pop(n, None) for n in (
-                        "session-window", "session-close")])
+                    self.journal.mutate(
+                        lambda d: [
+                            d["steps"].pop(n, None) for n in ("session-window", "session-close")
+                        ]
+                    )
             raise
         return results
 
@@ -1962,13 +2496,18 @@ class Pipeline:
         """Create the environment, or update it in place once it is established (#235)."""
         self.begin_invocation()
         actions = {
-            "preflight": self.preflight, "bootstrap-stack": self.step_bootstrap_stack,
-            "foundation": self.step_foundation, "images": self.step_images,
-            "applications": self.step_applications, "frontend": self.step_frontend,
+            "preflight": self.preflight,
+            "bootstrap-stack": self.step_bootstrap_stack,
+            "foundation": self.step_foundation,
+            "images": self.step_images,
+            "applications": self.step_applications,
+            "frontend": self.step_frontend,
             "db-bootstrap": self.step_db_bootstrap,
             "migrations": lambda: self.step_migrations(revisions),
-            "session-init": self.step_session_init, "session-open": self.step_session_open,
-            "seed": self.step_seed, "public-smoke": self.step_public_smoke,
+            "session-init": self.step_session_init,
+            "session-open": self.step_session_open,
+            "seed": self.step_seed,
+            "public-smoke": self.step_public_smoke,
         }
         results = {}
         for name in PERSISTENT_STEPS:
@@ -1987,35 +2526,53 @@ class Pipeline:
             found = self.stack(name)
             return (True, found.get("Tags", [])) if found else (False, [])
         if kind == "bucket":
-            result = self.aws("s3api", "get-bucket-tagging", {"Bucket": name},
-                              tolerate=("NoSuchBucket", "NoSuchTagSet"))
+            result = self.aws(
+                "s3api",
+                "get-bucket-tagging",
+                {"Bucket": name},
+                tolerate=("NoSuchBucket", "NoSuchTagSet"),
+            )
             if result is not None:
                 return True, result.get("TagSet", [])
             gone = self.aws("s3api", "head-bucket", {"Bucket": name}, tolerate=("404", "NotFound"))
             return (gone is not None), []
         if kind == "repository":
-            result = self.aws("ecr", "list-tags-for-resource", {
-                "resourceArn": f"arn:aws:ecr:{region}:{account}:repository/{name}"},
-                tolerate=("RepositoryNotFoundException",))
+            result = self.aws(
+                "ecr",
+                "list-tags-for-resource",
+                {"resourceArn": f"arn:aws:ecr:{region}:{account}:repository/{name}"},
+                tolerate=("RepositoryNotFoundException",),
+            )
             return (result is not None), (result or {}).get("tags", [])
         if kind in {"db_cluster", "db_instance"}:
             suffix = "cluster" if kind == "db_cluster" else "db"
-            result = self.aws("rds", "list-tags-for-resource", {
-                "ResourceName": f"arn:aws:rds:{region}:{account}:{suffix}:{name}"},
-                tolerate=("DBClusterNotFoundFault", *INSTANCE_NOT_FOUND))
+            result = self.aws(
+                "rds",
+                "list-tags-for-resource",
+                {"ResourceName": f"arn:aws:rds:{region}:{account}:{suffix}:{name}"},
+                tolerate=("DBClusterNotFoundFault", *INSTANCE_NOT_FOUND),
+            )
             return (result is not None), (result or {}).get("TagList", [])
         if kind == "log_group":
-            result = self.aws("logs", "list-tags-for-resource", {
-                "resourceArn": f"arn:aws:logs:{region}:{account}:log-group:{name}"},
-                tolerate=("ResourceNotFoundException",))
+            result = self.aws(
+                "logs",
+                "list-tags-for-resource",
+                {"resourceArn": f"arn:aws:logs:{region}:{account}:log-group:{name}"},
+                tolerate=("ResourceNotFoundException",),
+            )
             return (result is not None), (result or {}).get("tags", {})
         raise DeployError(f"Unknown resource kind {kind}")
 
     def td_inventory(self):
         resources = self.meta()["resources"]
-        plural = {"stack": "stacks", "bucket": "buckets", "repository": "repositories",
-                  "db_cluster": "db_clusters", "db_instance": "db_instances",
-                  "log_group": "log_groups"}
+        plural = {
+            "stack": "stacks",
+            "bucket": "buckets",
+            "repository": "repositories",
+            "db_cluster": "db_clusters",
+            "db_instance": "db_instances",
+            "log_group": "log_groups",
+        }
         mine, skipped, absent = {kind: [] for kind in plural}, [], []
         for kind, key in plural.items():
             for name in resources.get(key, []):
@@ -2025,22 +2582,36 @@ class Pipeline:
                 elif owned(tags, self.s.run_id):
                     mine[kind].append(name)
                 else:
-                    skipped.append({"kind": kind, "id": name,
-                                    "why": "recorded by this run but tags no longer match"})
+                    skipped.append(
+                        {
+                            "kind": kind,
+                            "id": name,
+                            "why": "recorded by this run but tags no longer match",
+                        }
+                    )
         if resources.get("bootstrap_adopted"):
-            skipped.append({"kind": "stack", "id": resources["bootstrap_adopted"],
-                            "why": "adopted pre-existing stack; never owned by this run"})
+            skipped.append(
+                {
+                    "kind": "stack",
+                    "id": resources["bootstrap_adopted"],
+                    "why": "adopted pre-existing stack; never owned by this run",
+                }
+            )
         self.journal.mutate(lambda d: d.update(ownership={"owned": mine, "skipped": skipped}))
-        return {"owned": {k: len(v) for k, v in mine.items()}, "skipped": len(skipped),
-                "already_absent": len(absent)}
+        return {
+            "owned": {k: len(v) for k, v in mine.items()},
+            "skipped": len(skipped),
+            "already_absent": len(absent),
+        }
 
     def owned_ids(self, kind):
         return self.meta().get("ownership", {}).get("owned", {}).get(kind, [])
 
     def session_failures(self):
         """Close steps the session journal recorded as failed by the last close attempt."""
-        journal = Journal(self.session_dir() / "journal.json", station=self.s.station,
-                          environment=self.s.env)
+        journal = Journal(
+            self.session_dir() / "journal.json", station=self.s.station, environment=self.s.env
+        )
         with journal.locked() as state:
             return list(state.get("session_failures", []))
 
@@ -2086,19 +2657,29 @@ class Pipeline:
         stopped = []
 
         def check():
-            listed = self.aws("ecs", "list-tasks", {"cluster": cluster, "desiredStatus": "RUNNING"},
-                              tolerate=("ClusterNotFoundException",))
+            listed = self.aws(
+                "ecs",
+                "list-tasks",
+                {"cluster": cluster, "desiredStatus": "RUNNING"},
+                tolerate=("ClusterNotFoundException",),
+            )
             if listed is None:
                 return True, None  # the cluster is already gone
             new = [t for t in listed.get("taskArns", []) if t not in stopped]
             for task in new:
-                self.aws("ecs", "stop-task", {
-                    "cluster": cluster, "task": task, "reason": "dc2-v1 teardown"})
+                self.aws(
+                    "ecs",
+                    "stop-task",
+                    {"cluster": cluster, "task": task, "reason": "dc2-v1 teardown"},
+                )
                 stopped.append(task)
             running = []
             for start in range(0, len(stopped), 100):
-                described = self.aws("ecs", "describe-tasks", {
-                    "cluster": cluster, "tasks": stopped[start:start + 100]})
+                described = self.aws(
+                    "ecs",
+                    "describe-tasks",
+                    {"cluster": cluster, "tasks": stopped[start : start + 100]},
+                )
                 running += [t for t in described.get("tasks", []) if t["lastStatus"] != "STOPPED"]
             return not new and not running, None
 
@@ -2109,26 +2690,41 @@ class Pipeline:
         """Delete every version and delete marker (the buckets are versioned) and abort uploads."""
         removed = 0
         for _ in range(1000):
-            listing = self.aws("s3api", "list-object-versions", {"Bucket": bucket},
-                               tolerate=("NoSuchBucket",))
+            listing = self.aws(
+                "s3api", "list-object-versions", {"Bucket": bucket}, tolerate=("NoSuchBucket",)
+            )
             if listing is None:
                 return removed
-            objects = [{"Key": v["Key"], "VersionId": v["VersionId"]}
-                       for v in listing.get("Versions", []) + listing.get("DeleteMarkers", [])]
+            objects = [
+                {"Key": v["Key"], "VersionId": v["VersionId"]}
+                for v in listing.get("Versions", []) + listing.get("DeleteMarkers", [])
+            ]
             if not objects:
                 break
             for start in range(0, len(objects), 1000):
-                self.aws("s3api", "delete-objects", {
-                    "Bucket": bucket,
-                    "Delete": {"Objects": objects[start:start + 1000], "Quiet": True}})
+                self.aws(
+                    "s3api",
+                    "delete-objects",
+                    {
+                        "Bucket": bucket,
+                        "Delete": {"Objects": objects[start : start + 1000], "Quiet": True},
+                    },
+                )
             removed += len(objects)
         else:
             raise DeployError(f"Bucket {bucket} did not empty within the bounded passes")
-        uploads = self.aws("s3api", "list-multipart-uploads", {"Bucket": bucket},
-                           tolerate=("NoSuchBucket",)) or {}
+        uploads = (
+            self.aws(
+                "s3api", "list-multipart-uploads", {"Bucket": bucket}, tolerate=("NoSuchBucket",)
+            )
+            or {}
+        )
         for upload in uploads.get("Uploads", []):
-            self.aws("s3api", "abort-multipart-upload", {
-                "Bucket": bucket, "Key": upload["Key"], "UploadId": upload["UploadId"]})
+            self.aws(
+                "s3api",
+                "abort-multipart-upload",
+                {"Bucket": bucket, "Key": upload["Key"], "UploadId": upload["UploadId"]},
+            )
         return removed
 
     def td_buckets(self):
@@ -2138,12 +2734,22 @@ class Pipeline:
     def td_images(self):
         deleted = 0
         for repository in self.owned_ids("repository"):
-            listed = self.aws("ecr", "list-images", {"repositoryName": repository},
-                              tolerate=("RepositoryNotFoundException",)) or {}
+            listed = (
+                self.aws(
+                    "ecr",
+                    "list-images",
+                    {"repositoryName": repository},
+                    tolerate=("RepositoryNotFoundException",),
+                )
+                or {}
+            )
             ids = listed.get("imageIds", [])
             for start in range(0, len(ids), 100):
-                self.aws("ecr", "batch-delete-image", {
-                    "repositoryName": repository, "imageIds": ids[start:start + 100]})
+                self.aws(
+                    "ecr",
+                    "batch-delete-image",
+                    {"repositoryName": repository, "imageIds": ids[start : start + 100]},
+                )
             deleted += len(ids)
         return {"images_deleted": deleted}
 
@@ -2152,8 +2758,9 @@ class Pipeline:
         separate layout needs its own, since a snapshot identifier is unique in the account."""
         logical = self.meta()["resources"].get("db_logical", {}).get(cluster, "")
         domain = {"MediaDatabaseCluster": "media", "ProcessingDatabaseCluster": "processing"}
-        return (f"{self.s.env}-{domain[logical]}-final" if logical in domain
-                else f"{self.s.env}-final")
+        return (
+            f"{self.s.env}-{domain[logical]}-final" if logical in domain else f"{self.s.env}-final"
+        )
 
     def td_database(self):
         """Instances first, then the clusters with deletion protection lifted.
@@ -2165,24 +2772,44 @@ class Pipeline:
         """
         instances = self.owned_ids("db_instance")
         for instance in instances:
-            self.aws("rds", "delete-db-instance", {"DBInstanceIdentifier": instance},
-                     tolerate=INSTANCE_NOT_FOUND)
+            self.aws(
+                "rds",
+                "delete-db-instance",
+                {"DBInstanceIdentifier": instance},
+                tolerate=INSTANCE_NOT_FOUND,
+            )
         for instance in instances:
-            self.poll(lambda i=instance: self._gone(
-                "rds", "describe-db-instances", {"DBInstanceIdentifier": i},
-                *INSTANCE_NOT_FOUND), what=f"instance {instance} deletion", timeout=1800)
+            self.poll(
+                lambda i=instance: self._gone(
+                    "rds", "describe-db-instances", {"DBInstanceIdentifier": i}, *INSTANCE_NOT_FOUND
+                ),
+                what=f"instance {instance} deletion",
+                timeout=1800,
+            )
         deleting = []
         for cluster in self.owned_ids("db_cluster"):
-            found = self.aws("rds", "describe-db-clusters", {"DBClusterIdentifier": cluster},
-                             tolerate=CLUSTER_NOT_FOUND)
+            found = self.aws(
+                "rds",
+                "describe-db-clusters",
+                {"DBClusterIdentifier": cluster},
+                tolerate=CLUSTER_NOT_FOUND,
+            )
             if found is None:
                 continue
             if found["DBClusters"][0].get("Status") != "deleting":
-                self.aws("rds", "modify-db-cluster", {
-                    "DBClusterIdentifier": cluster, "DeletionProtection": False,
-                    "ApplyImmediately": True})
-                request = {"DBClusterIdentifier": cluster,
-                           "SkipFinalSnapshot": self.s.skip_final_snapshot}
+                self.aws(
+                    "rds",
+                    "modify-db-cluster",
+                    {
+                        "DBClusterIdentifier": cluster,
+                        "DeletionProtection": False,
+                        "ApplyImmediately": True,
+                    },
+                )
+                request = {
+                    "DBClusterIdentifier": cluster,
+                    "SkipFinalSnapshot": self.s.skip_final_snapshot,
+                }
                 if not self.s.skip_final_snapshot:
                     request["FinalDBSnapshotIdentifier"] = self.snapshot_name(cluster)
                 self.aws("rds", "delete-db-cluster", request)
@@ -2192,20 +2819,31 @@ class Pipeline:
                     self.journal.mutate(lambda d, n=name: remember_snapshot(d, n))
             deleting.append(cluster)
         for cluster in deleting:
-            self.poll(lambda c=cluster: self._gone(
-                "rds", "describe-db-clusters", {"DBClusterIdentifier": c},
-                *CLUSTER_NOT_FOUND), what=f"cluster {cluster} deletion", timeout=3600)
+            self.poll(
+                lambda c=cluster: self._gone(
+                    "rds", "describe-db-clusters", {"DBClusterIdentifier": c}, *CLUSTER_NOT_FOUND
+                ),
+                what=f"cluster {cluster} deletion",
+                timeout=3600,
+            )
         # Every snapshot any attempt requested, so a resume tags the earlier attempt's too.
         snapshots = self.meta().get("final_snapshots") or []
         for snapshot in snapshots:
             self.tag_snapshot(snapshot)
-        return {"final_snapshot": snapshots[0] if snapshots else None,
-                "final_snapshots": snapshots, "skip_final_snapshot": self.s.skip_final_snapshot}
+        return {
+            "final_snapshot": snapshots[0] if snapshots else None,
+            "final_snapshots": snapshots,
+            "skip_final_snapshot": self.s.skip_final_snapshot,
+        }
 
     def tag_snapshot(self, snapshot):
         def available():
-            found = self.aws("rds", "describe-db-cluster-snapshots", {
-                "DBClusterSnapshotIdentifier": snapshot}, tolerate=SNAPSHOT_NOT_FOUND)
+            found = self.aws(
+                "rds",
+                "describe-db-cluster-snapshots",
+                {"DBClusterSnapshotIdentifier": snapshot},
+                tolerate=SNAPSHOT_NOT_FOUND,
+            )
             if found is None:  # the operator already deleted it; a resume has nothing to tag
                 return True, "gone"
             return found["DBClusterSnapshots"][0]["Status"] == "available", None
@@ -2223,11 +2861,18 @@ class Pipeline:
         found = self.aws("ssm", "get-parameters-by-path", {"Path": base, "Recursive": True})
         deleted, kept = [], []
         for param in found.get("Parameters", []):
-            tags = self.aws("ssm", "list-tags-for-resource", {
-                "ResourceType": "Parameter", "ResourceId": param["Name"]})
+            tags = self.aws(
+                "ssm",
+                "list-tags-for-resource",
+                {"ResourceType": "Parameter", "ResourceId": param["Name"]},
+            )
             if owned(tags.get("TagList", []), self.s.run_id):
-                self.aws("ssm", "delete-parameter", {"Name": param["Name"]},
-                         tolerate=("ParameterNotFound",))
+                self.aws(
+                    "ssm",
+                    "delete-parameter",
+                    {"Name": param["Name"]},
+                    tolerate=("ParameterNotFound",),
+                )
                 deleted.append(param["Name"])
             else:
                 kept.append(param["Name"])
@@ -2269,20 +2914,30 @@ class Pipeline:
             for staged in self.meta()["resources"].get("staged_objects", []):
                 if staged.get("version_id"):
                     by_bucket.setdefault(staged["bucket"], []).append(
-                        {"Key": staged["key"], "VersionId": staged["version_id"]})
+                        {"Key": staged["key"], "VersionId": staged["version_id"]}
+                    )
                 else:
                     kept.append(staged["key"])
             for bucket, objects in by_bucket.items():
                 removed += self.delete_object_versions(bucket, objects)
-        return {"stack": self.s.bootstrap_stack, "staged_versions_removed": removed,
-                "staged_without_version_id_kept": sorted(set(kept))}
+        return {
+            "stack": self.s.bootstrap_stack,
+            "staged_versions_removed": removed,
+            "staged_without_version_id_kept": sorted(set(kept)),
+        }
 
     def delete_object_versions(self, bucket, objects):
         """Delete exactly the named (key, version) pairs; S3 treats an absent version as done."""
         for start in range(0, len(objects), 1000):
-            result = self.aws("s3api", "delete-objects", {
-                "Bucket": bucket, "Delete": {"Objects": objects[start:start + 1000],
-                                             "Quiet": True}}, tolerate=("NoSuchBucket",))
+            result = self.aws(
+                "s3api",
+                "delete-objects",
+                {
+                    "Bucket": bucket,
+                    "Delete": {"Objects": objects[start : start + 1000], "Quiet": True},
+                },
+                tolerate=("NoSuchBucket",),
+            )
             if result and result.get("Errors"):
                 raise DeployError(f"Could not delete {len(result['Errors'])} staged versions")
         return len(objects)
@@ -2306,7 +2961,8 @@ class Pipeline:
                     raise
             self.sleep(BUCKET_RETRY_SECONDS)
         raise DeployError(
-            f"Bucket {bucket} kept receiving writes through {BUCKET_DELETE_ATTEMPTS} sweeps")
+            f"Bucket {bucket} kept receiving writes through {BUCKET_DELETE_ATTEMPTS} sweeps"
+        )
 
     def td_retained(self):
         """Retain-policy resources the stacks deliberately left behind, deleted by ownership."""
@@ -2315,15 +2971,24 @@ class Pipeline:
             self.delete_bucket(bucket)
             deleted["buckets"].append(bucket)
         for repository in self.owned_ids("repository"):
-            self.aws("ecr", "delete-repository", {"repositoryName": repository, "force": True},
-                     tolerate=("RepositoryNotFoundException",))
+            self.aws(
+                "ecr",
+                "delete-repository",
+                {"repositoryName": repository, "force": True},
+                tolerate=("RepositoryNotFoundException",),
+            )
             deleted["repositories"].append(repository)
-        groups = self.aws("logs", "describe-log-groups",
-                          {"logGroupNamePrefix": f"/dc2/{self.s.env}/"})
+        groups = self.aws(
+            "logs", "describe-log-groups", {"logGroupNamePrefix": f"/dc2/{self.s.env}/"}
+        )
         for group in groups.get("logGroups", []):
             if self._log_group_owned(group):
-                self.aws("logs", "delete-log-group", {"logGroupName": group["logGroupName"]},
-                         tolerate=("ResourceNotFoundException",))
+                self.aws(
+                    "logs",
+                    "delete-log-group",
+                    {"logGroupName": group["logGroupName"]},
+                    tolerate=("ResourceNotFoundException",),
+                )
                 deleted["log_groups"].append(group["logGroupName"])
         return {k: len(v) for k, v in deleted.items()}
 
@@ -2341,29 +3006,39 @@ class Pipeline:
             if current:
                 left("cloudformation-stack", stack, current["StackStatus"])
         for kind, key, label in (
-            ("bucket", "buckets", "s3-bucket"), ("repository", "repositories", "ecr-repository"),
+            ("bucket", "buckets", "s3-bucket"),
+            ("repository", "repositories", "ecr-repository"),
             ("db_cluster", "db_clusters", "aurora-cluster"),
             ("db_instance", "db_instances", "aurora-instance"),
         ):
             for name in resources.get(key, []):
                 if self.tags_of(kind, name)[0]:
                     left(label, name, "still exists")
-        params = self.aws("ssm", "get-parameters-by-path", {
-            "Path": f"/dc2/{self.s.env}/", "Recursive": True})
+        params = self.aws(
+            "ssm", "get-parameters-by-path", {"Path": f"/dc2/{self.s.env}/", "Recursive": True}
+        )
         for param in params.get("Parameters", []):
             left("ssm-parameter", param["Name"], "still exists")
-        groups = self.aws("logs", "describe-log-groups", {
-            "logGroupNamePrefix": f"/dc2/{self.s.env}/"})
+        groups = self.aws(
+            "logs", "describe-log-groups", {"logGroupNamePrefix": f"/dc2/{self.s.env}/"}
+        )
         for group in groups.get("logGroups", []):
             left("log-group", group["logGroupName"], "still exists")
         # One final snapshot per cluster; journals written before the separate topology hold one.
         snapshots = meta.get("final_snapshots") or (
-            [meta["final_snapshot"]] if meta.get("final_snapshot") else [])
+            [meta["final_snapshot"]] if meta.get("final_snapshot") else []
+        )
         for snapshot in snapshots:
-            left("aurora-snapshot", snapshot,
-                 "final snapshot kept by default; delete it once the data is not needed")
-        tagged = self.aws("resourcegroupstaggingapi", "get-resources", {
-            "TagFilters": [{"Key": RUN_KEY, "Values": [self.s.run_id]}]})
+            left(
+                "aurora-snapshot",
+                snapshot,
+                "final snapshot kept by default; delete it once the data is not needed",
+            )
+        tagged = self.aws(
+            "resourcegroupstaggingapi",
+            "get-resources",
+            {"TagFilters": [{"Key": RUN_KEY, "Values": [self.s.run_id]}]},
+        )
         known = {item["id"] for item in found}
         # The tagging API is eventually consistent, so a hit is a question for the owning
         # service and not a verdict: only what that service still reports is "remaining".
@@ -2375,16 +3050,32 @@ class Pipeline:
             row = self.confirm_tagged(arn)
             observed.append(row)
             if not row["gone"]:
-                left("tagged-resource", arn,
-                     f"listed by the tagging API and not confirmed gone: {row['observed']}")
+                left(
+                    "tagged-resource",
+                    arn,
+                    f"listed by the tagging API and not confirmed gone: {row['observed']}",
+                )
                 found[-1].update(resource_type=row["resource_type"], observed=row["observed"])
         self.delete_inactive_task_definitions(observed)
         legacy = self.stack(LEGACY_BOOTSTRAP_STACK)
-        untouched = [{"kind": "cloudformation-stack", "id": LEGACY_BOOTSTRAP_STACK,
-                      "status": legacy["StackStatus"]}] if legacy else []
+        untouched = (
+            [
+                {
+                    "kind": "cloudformation-stack",
+                    "id": LEGACY_BOOTSTRAP_STACK,
+                    "status": legacy["StackStatus"],
+                }
+            ]
+            if legacy
+            else []
+        )
         receipt = {
-            "issue": "#67", "run_id": self.s.run_id, "environment": self.s.env,
-            "account": self.s.account, "region": self.s.region, "generated_at": now(),
+            "issue": "#67",
+            "run_id": self.s.run_id,
+            "environment": self.s.env,
+            "account": self.s.account,
+            "region": self.s.region,
+            "generated_at": now(),
             "simulated": self.simulated,
             "status": "CLEAN" if not found else "ITEMS_REMAIN",
             "resources_remaining": found,
@@ -2394,15 +3085,20 @@ class Pipeline:
             "skipped_not_owned": meta.get("ownership", {}).get("skipped", []),
             "pre_existing_untouched": untouched,
             # `final_snapshot` keeps its single-cluster meaning (the first snapshot).
-            "final_snapshot": (snapshots[0] if snapshots else (
-                "skipped by operator" if self.s.skip_final_snapshot else None)),
+            "final_snapshot": (
+                snapshots[0]
+                if snapshots
+                else ("skipped by operator" if self.s.skip_final_snapshot else None)
+            ),
             "final_snapshots": snapshots,
             "billing_note": "Deleting stops new charges only; reconcile actual usage against "
-                            "Cost Explorer before closing #67.",
+            "Cost Explorer before closing #67.",
             "journal_steps": {k: v["status"] for k, v in meta["steps"].items()},
         }
-        self.write_private(self.s.state_dir / f"teardown-receipt-{self.s.run_id}.json",
-                           json.dumps(receipt, indent=2))
+        self.write_private(
+            self.s.state_dir / f"teardown-receipt-{self.s.run_id}.json",
+            json.dumps(receipt, indent=2),
+        )
         self.receipt = receipt
         return {"status": receipt["status"], "remaining": len(found)}
 
@@ -2427,8 +3123,12 @@ class Pipeline:
         the receipt and never hide a resource that costs money.
         """
         service, kind, ident = self.arn_parts(arn)
-        row = {"resource_type": f"{service}:{kind}", "id": arn, "observed": "unchecked",
-               "gone": False}
+        row = {
+            "resource_type": f"{service}:{kind}",
+            "id": arn,
+            "observed": "unchecked",
+            "gone": False,
+        }
 
         def gone(state):
             row.update(observed=state, gone=True)
@@ -2439,8 +3139,14 @@ class Pipeline:
             return row
 
         def first_item(described):
-            return next((v[0] for v in described.values()
-                         if isinstance(v, list) and v and isinstance(v[0], dict)), {})
+            return next(
+                (
+                    v[0]
+                    for v in described.values()
+                    if isinstance(v, list) and v and isinstance(v[0], dict)
+                ),
+                {},
+            )
 
         try:
             if service == "ec2" and kind in EC2_CHECKS:
@@ -2476,8 +3182,11 @@ class Pipeline:
                 operation, request, codes = {
                     "cluster": ("describe-db-clusters", "DBClusterIdentifier", CLUSTER_NOT_FOUND),
                     "db": ("describe-db-instances", "DBInstanceIdentifier", INSTANCE_NOT_FOUND),
-                    "cluster-snapshot": ("describe-db-cluster-snapshots",
-                                         "DBClusterSnapshotIdentifier", SNAPSHOT_NOT_FOUND),
+                    "cluster-snapshot": (
+                        "describe-db-cluster-snapshots",
+                        "DBClusterSnapshotIdentifier",
+                        SNAPSHOT_NOT_FOUND,
+                    ),
                 }[kind]
                 try:
                     described = self.aws("rds", operation, {request: ident})
@@ -2501,19 +3210,31 @@ class Pipeline:
         Errors are tolerated and recorded: an INACTIVE definition is free, and a failed delete
         must not turn a clean teardown into a failed one.
         """
-        wanted = [row for row in observed if row["resource_type"] == "ecs:task-definition"
-                  and row["observed"] == "INACTIVE"]
+        wanted = [
+            row
+            for row in observed
+            if row["resource_type"] == "ecs:task-definition" and row["observed"] == "INACTIVE"
+        ]
         for start in range(0, len(wanted), TASK_DEFINITION_DELETE_BATCH):
-            batch = wanted[start:start + TASK_DEFINITION_DELETE_BATCH]
+            batch = wanted[start : start + TASK_DEFINITION_DELETE_BATCH]
             try:
-                reply = self.aws("ecs", "delete-task-definitions",
-                                 {"taskDefinitions": [row["id"] for row in batch]}) or {}
+                reply = (
+                    self.aws(
+                        "ecs",
+                        "delete-task-definitions",
+                        {"taskDefinitions": [row["id"] for row in batch]},
+                    )
+                    or {}
+                )
             except AwsError as error:
                 reply = {"failures": [{"arn": row["id"], "reason": error.code} for row in batch]}
             failed = {f.get("arn"): f.get("reason", "failed") for f in reply.get("failures", [])}
             for row in batch:
-                row["deletion"] = (f"requested but failed: {failed[row['id']]}"
-                                   if row["id"] in failed else "requested")
+                row["deletion"] = (
+                    f"requested but failed: {failed[row['id']]}"
+                    if row["id"] in failed
+                    else "requested"
+                )
 
     def teardown(self):
         if self.s.execute and not self.s.dry_run and self.s.confirm_run_id != self.s.run_id:
@@ -2525,16 +3246,22 @@ class Pipeline:
                 if info["kind"] == "long-term":  # only then does the simulation matter
                     arn = self.aws("sts", "get-caller-identity").get("Arn", "")
                 credentials.require_mfa_session(
-                    self.s.profile, info, mfa_required=self._mfa_answer_for(info, arn))
+                    self.s.profile, info, mfa_required=self._mfa_answer_for(info, arn)
+                )
             except OperationError as error:
                 raise DeployError(str(error)) from None
         actions = {
-            "td-inventory": self.td_inventory, "td-session-close": self.td_session_close,
+            "td-inventory": self.td_inventory,
+            "td-session-close": self.td_session_close,
             "td-quiesce": self.td_quiesce,
-            "td-buckets-emptied": self.td_buckets, "td-images-deleted": self.td_images,
-            "td-database": self.td_database, "td-parameters": self.td_parameters,
-            "td-stack": self.td_stack, "td-bootstrap-stack": self.td_bootstrap_stack,
-            "td-retained": self.td_retained, "td-receipt": self.td_receipt,
+            "td-buckets-emptied": self.td_buckets,
+            "td-images-deleted": self.td_images,
+            "td-database": self.td_database,
+            "td-parameters": self.td_parameters,
+            "td-stack": self.td_stack,
+            "td-bootstrap-stack": self.td_bootstrap_stack,
+            "td-retained": self.td_retained,
+            "td-receipt": self.td_receipt,
         }
         results = {}
         for name in TEARDOWN_STEPS:
@@ -2543,28 +3270,41 @@ class Pipeline:
                 raise AwaitingExecute(
                     f"inventory complete (owned {counts}); nothing deleted. Re-run with "
                     f"--execute --confirm-run-id {self.s.run_id} to run: "
-                    + " -> ".join(TEARDOWN_STEPS[1:]))
+                    + " -> ".join(TEARDOWN_STEPS[1:])
+                )
             results[name] = self.run_step(name, actions[name], always=name == "td-inventory")
         return results
 
 
 # ------------------------------------------------------------------ change-set review
 STATEFUL = {
-    "AWS::RDS::DBCluster", "AWS::RDS::DBInstance", "AWS::S3::Bucket", "AWS::ECR::Repository",
-    "AWS::EC2::VPC", "AWS::EC2::Subnet", "AWS::SQS::Queue", "AWS::ECS::Cluster",
+    "AWS::RDS::DBCluster",
+    "AWS::RDS::DBInstance",
+    "AWS::S3::Bucket",
+    "AWS::ECR::Repository",
+    "AWS::EC2::VPC",
+    "AWS::EC2::Subnet",
+    "AWS::SQS::Queue",
+    "AWS::ECS::Cluster",
     "AWS::CloudFront::Distribution",
 }
 
 
 def changed_paths(old, new):
     """Files that differ between two commits of this checkout; None if that cannot be told."""
-    if not (old and new and re.fullmatch(r"[0-9a-f]{40}", old)
-            and re.fullmatch(r"[0-9a-f]{40}", new)):
+    if not (
+        old and new and re.fullmatch(r"[0-9a-f]{40}", old) and re.fullmatch(r"[0-9a-f]{40}", new)
+    ):
         return None
     if old == new:
         return []
-    done = subprocess.run(["git", "diff", "--name-only", old, new], cwd=ROOT,
-                          capture_output=True, text=True, check=False)
+    done = subprocess.run(
+        ["git", "diff", "--name-only", old, new],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
     return done.stdout.split() if done.returncode == 0 else None
 
 
@@ -2583,11 +3323,14 @@ def review_changes(changes, kind, *, allow_replacement=False):
     rows = []
     for change in changes:
         item = change.get("ResourceChange", {})
-        rows.append({
-            "Action": item.get("Action", "?"), "LogicalResourceId": item.get("LogicalResourceId"),
-            "ResourceType": item.get("ResourceType"),
-            "Replacement": item.get("Replacement", "False"),
-        })
+        rows.append(
+            {
+                "Action": item.get("Action", "?"),
+                "LogicalResourceId": item.get("LogicalResourceId"),
+                "ResourceType": item.get("ResourceType"),
+                "Replacement": item.get("Replacement", "False"),
+            }
+        )
     if not rows:
         raise DeployError("Change set contains no changes")
     if kind == "CREATE" and any(r["Action"] != "Add" for r in rows):
@@ -2599,7 +3342,8 @@ def review_changes(changes, kind, *, allow_replacement=False):
         if replaced and row["ResourceType"] in STATEFUL and not allow_replacement:
             raise DeployError(
                 f"Change set may replace stateful {row['LogicalResourceId']} "
-                f"({row['ResourceType']}); pass --allow-replacement only after review")
+                f"({row['ResourceType']}); pass --allow-replacement only after review"
+            )
     return rows
 
 
@@ -2618,12 +3362,15 @@ def load_images(path):
         if data["status"] != "LOCAL_ARTIFACT_PASS" or data.get("failures"):
             raise DeployError("The build evidence did not pass; refusing to push its images")
         try:
-            data = {owner: {"source": image["tag"], "local_id": image["config_id"],
-                            **({"trivy_scan": image["trivy_scan"]}
-                               if "trivy_scan" in image else {}),
-                            **({"source_sha": image["source_sha"]}
-                               if image.get("source_sha") else {})}
-                    for owner, image in data["images"].items()}
+            data = {
+                owner: {
+                    "source": image["tag"],
+                    "local_id": image["config_id"],
+                    **({"trivy_scan": image["trivy_scan"]} if "trivy_scan" in image else {}),
+                    **({"source_sha": image["source_sha"]} if image.get("source_sha") else {}),
+                }
+                for owner, image in data["images"].items()
+            }
         except (KeyError, TypeError):
             raise DeployError("Build evidence lacks image tags or config ids") from None
     if not isinstance(data, dict) or set(data) != {"media", "processing", "worker"}:
@@ -2645,67 +3392,119 @@ def load_images(path):
 
 # ------------------------------------------------------------------------------- CLI
 def build_parser():
-    p = argparse.ArgumentParser(prog="scripts.aws.v1.deploy", description=__doc__,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("action",
-                   choices=["deploy", "teardown", "rehearse", "status", "adopt-release"])
-    p.add_argument("--profile", required=True,
-                   help="explicit AWS profile, e.g. dc2-agent or dc2-project2-mfa; never 'default'")
+    p = argparse.ArgumentParser(
+        prog="scripts.aws.v1.deploy",
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument("action", choices=["deploy", "teardown", "rehearse", "status", "adopt-release"])
+    p.add_argument(
+        "--profile",
+        required=True,
+        help="explicit AWS profile, e.g. dc2-agent or dc2-project2-mfa; never 'default'",
+    )
     p.add_argument("--region", required=True, help="must be " + REGION)
     p.add_argument("--account", required=True, help="12-digit account; STS must agree")
     target = p.add_mutually_exclusive_group(required=True)
-    target.add_argument("--run-id", help="2-16 lowercase alphanumerics: one per-run stack "
-                        "dc2-v1-<id> (V1, historical)")
-    target.add_argument("--environment", help="2-16 lowercase alphanumerics: the persistent "
-                        "always-on stack dc2-<name> that every deploy updates in place (V2-live)")
-    p.add_argument("--state-dir", type=Path,
-                   help="private 0700 directory outside the repository (journal, outputs, receipt)")
+    target.add_argument(
+        "--run-id",
+        help="2-16 lowercase alphanumerics: one per-run stack dc2-v1-<id> (V1, historical)",
+    )
+    target.add_argument(
+        "--environment",
+        help="2-16 lowercase alphanumerics: the persistent "
+        "always-on stack dc2-<name> that every deploy updates in place (V2-live)",
+    )
+    p.add_argument(
+        "--state-dir",
+        type=Path,
+        help="private 0700 directory outside the repository (journal, outputs, receipt)",
+    )
     p.add_argument("--dry-run", action="store_true", help="offline simulation; print the commands")
     p.add_argument("--execute", action="store_true", help="apply change sets / delete resources")
-    p.add_argument("--accept-unfixed", type=Path,
-                   help="reviewed ECR exceptions, same as release-plan")
+    p.add_argument(
+        "--accept-unfixed", type=Path, help="reviewed ECR exceptions, same as release-plan"
+    )
     p.add_argument("--budget-usd", type=float, default=30.0)
     p.add_argument("--budget-name", default=DEFAULT_BUDGET_NAME)
     p.add_argument("--forecast-usd", type=float, help="when Cost Explorer has no forecast")
     p.add_argument("--planned-hours", type=float, default=3.0, help="window used for the estimate")
     p.add_argument("--images", type=Path, help="JSON of the three local amd64 image references")
-    p.add_argument("--adopt-bootstrap-stack",
-                   help="reuse a healthy staging stack (it is kept on teardown)")
+    p.add_argument(
+        "--adopt-bootstrap-stack", help="reuse a healthy staging stack (it is kept on teardown)"
+    )
     p.add_argument("--allow-replacement", action="store_true")
-    p.add_argument("--skip-final-snapshot", action="store_true",
-                   help="teardown: delete Aurora without a final snapshot (default takes one)")
-    p.add_argument("--confirm-run-id",
-                   help="teardown --execute: repeat the run id (or the environment name)")
+    p.add_argument(
+        "--skip-final-snapshot",
+        action="store_true",
+        help="teardown: delete Aurora without a final snapshot (default takes one)",
+    )
+    p.add_argument(
+        "--confirm-run-id", help="teardown --execute: repeat the run id (or the environment name)"
+    )
     p.add_argument("--seed-email", help="smoke account address (registered via the public API)")
     p.add_argument("--counts-file", type=Path, help="private 0600 attempt-count JSON for close")
-    p.add_argument("--assume-empty-counts", action="store_true",
-                   help="attest zero attempts (a first deploy launched no worker)")
+    p.add_argument(
+        "--assume-empty-counts",
+        action="store_true",
+        help="attest zero attempts (a first deploy launched no worker)",
+    )
     p.add_argument("--sql-config", type=Path, help="ca_file/media_dsn_file/processing_dsn_file")
     p.add_argument("--media-revision")
     p.add_argument("--processing-revision")
     p.add_argument("--stop-after", choices=list(dict.fromkeys(DEPLOY_STEPS + PERSISTENT_STEPS)))
-    p.add_argument("--stage-rate-limit", type=int, default=20,
-                   help="--environment: the Gateway's steady requests per second")
-    p.add_argument("--stage-burst-limit", type=int, default=50,
-                   help="--environment: the Gateway's burst")
-    p.add_argument("--monthly-budget-usd", type=int, default=20,
-                   help="--environment: the AWS Budget alerting at 50/80/100 %%")
-    p.add_argument("--budget-alert-email", default="",
-                   help="--environment: subscribe this address to the budget alerts (optional)")
+    p.add_argument(
+        "--stage-rate-limit",
+        type=int,
+        default=20,
+        help="--environment: the Gateway's steady requests per second",
+    )
+    p.add_argument(
+        "--stage-burst-limit", type=int, default=50, help="--environment: the Gateway's burst"
+    )
+    p.add_argument(
+        "--monthly-budget-usd",
+        type=int,
+        default=20,
+        help="--environment: the AWS Budget alerting at 50/80/100 %%",
+    )
+    p.add_argument(
+        "--budget-alert-email",
+        default="",
+        help="--environment: subscribe this address to the budget alerts (optional)",
+    )
     p.add_argument("--owner", choices=OWNERS, help="adopt-release: the released owner")
-    p.add_argument("--release-dir", type=Path,
-                   help="adopt-release: the release plan's directory (plan.json, bundles)")
+    p.add_argument(
+        "--release-dir",
+        type=Path,
+        help="adopt-release: the release plan's directory (plan.json, bundles)",
+    )
     p.add_argument("--release-tag", help="adopt-release: the release id its images were tagged")
-    p.add_argument("--database-topology", choices=("shared", "separate"), default="shared",
-                   help="V2 experiment (#94): one Aurora cluster for both databases (V1, default) "
-                        "or one per domain. Fixed for the run: a resume must repeat it")
-    p.add_argument("--database-auto-pause-seconds", type=int, default=300,
-                   help="idle seconds before Aurora pauses (300 to 86400; V1 uses 300)")
-    p.add_argument("--database-max-capacity", type=float, default=2,
-                   help="ACU ceiling of each cluster (1 to 256 in steps of 0.5; V1 uses 2)")
-    p.add_argument("--unattended-launch", action="store_true",
-                   help="V2 (#68): deploy the opt-in launcher (UnattendedLaunch=true); it stays "
-                        "off until `session open --unattended`")
+    p.add_argument(
+        "--database-topology",
+        choices=("shared", "separate"),
+        default="shared",
+        help="V2 experiment (#94): one Aurora cluster for both databases (V1, default) "
+        "or one per domain. Fixed for the run: a resume must repeat it",
+    )
+    p.add_argument(
+        "--database-auto-pause-seconds",
+        type=int,
+        default=300,
+        help="idle seconds before Aurora pauses (300 to 86400; V1 uses 300)",
+    )
+    p.add_argument(
+        "--database-max-capacity",
+        type=float,
+        default=2,
+        help="ACU ceiling of each cluster (1 to 256 in steps of 0.5; V1 uses 2)",
+    )
+    p.add_argument(
+        "--unattended-launch",
+        action="store_true",
+        help="V2 (#68): deploy the opt-in launcher (UnattendedLaunch=true); it stays "
+        "off until `session open --unattended`",
+    )
     p.add_argument("--station", default="dc2-deploy-station")
     p.add_argument("--plan-detail", choices=["mutating", "all"], default="mutating")
     p.add_argument("--json", action="store_true", help="include the full plan in JSON")
@@ -2744,8 +3543,20 @@ def prepare_state(args, dry):
     return state, None
 
 
-def main(argv=None, *, environ=None, transport=None, docker=None, http=None, session_main=None,
-         stdout=None, stderr=None, clock=time.monotonic, sleep=time.sleep, today=None):
+def main(
+    argv=None,
+    *,
+    environ=None,
+    transport=None,
+    docker=None,
+    http=None,
+    session_main=None,
+    stdout=None,
+    stderr=None,
+    clock=time.monotonic,
+    sleep=time.sleep,
+    today=None,
+):
     stdout = stdout or sys.stdout
     args = build_parser().parse_args(argv)
     temp = None
@@ -2756,28 +3567,46 @@ def main(argv=None, *, environ=None, transport=None, docker=None, http=None, ses
         dry = args.dry_run or rehearse
         state, temp = prepare_state(args, dry)
         try:
-            database = DatabaseOptions(args.database_topology, args.database_auto_pause_seconds,
-                                       args.database_max_capacity)
+            database = DatabaseOptions(
+                args.database_topology, args.database_auto_pause_seconds, args.database_max_capacity
+            )
         except ValueError as error:
             raise DeployError(str(error)) from None
         persistent = args.environment is not None
         settings = Settings(
-            profile=args.profile, region=args.region, account=args.account,
-            run_id=args.environment if persistent else args.run_id, persistent=persistent,
-            stage_rate_limit=args.stage_rate_limit, stage_burst_limit=args.stage_burst_limit,
+            profile=args.profile,
+            region=args.region,
+            account=args.account,
+            run_id=args.environment if persistent else args.run_id,
+            persistent=persistent,
+            stage_rate_limit=args.stage_rate_limit,
+            stage_burst_limit=args.stage_burst_limit,
             monthly_budget_usd=args.monthly_budget_usd,
             budget_alert_email=args.budget_alert_email,
-            state_dir=state, budget_usd=args.budget_usd, budget_name=args.budget_name,
-            forecast_usd=args.forecast_usd, planned_hours=args.planned_hours,
-            execute=args.execute or rehearse, dry_run=dry, images_file=args.images,
+            state_dir=state,
+            budget_usd=args.budget_usd,
+            budget_name=args.budget_name,
+            forecast_usd=args.forecast_usd,
+            planned_hours=args.planned_hours,
+            execute=args.execute or rehearse,
+            dry_run=dry,
+            images_file=args.images,
             accept_unfixed=args.accept_unfixed,
-            adopt_bootstrap=args.adopt_bootstrap_stack, allow_replacement=args.allow_replacement,
-            skip_final_snapshot=args.skip_final_snapshot, confirm_run_id=args.confirm_run_id,
-            seed_email=args.seed_email, counts_file=args.counts_file,
-            assume_empty_counts=args.assume_empty_counts or dry, sql_config=args.sql_config,
-            station=args.station, database=database, unattended_launch=args.unattended_launch)
-        journal = DeployJournal(state / "deploy-journal.json", station=settings.station,
-                                environment=settings.env)
+            adopt_bootstrap=args.adopt_bootstrap_stack,
+            allow_replacement=args.allow_replacement,
+            skip_final_snapshot=args.skip_final_snapshot,
+            confirm_run_id=args.confirm_run_id,
+            seed_email=args.seed_email,
+            counts_file=args.counts_file,
+            assume_empty_counts=args.assume_empty_counts or dry,
+            sql_config=args.sql_config,
+            station=args.station,
+            database=database,
+            unattended_launch=args.unattended_launch,
+        )
+        journal = DeployJournal(
+            state / "deploy-journal.json", station=settings.station, environment=settings.env
+        )
         if args.action == "status":
             print(json.dumps(journal.view(), indent=2, sort_keys=True), file=stdout)
             return 0
@@ -2800,16 +3629,35 @@ def main(argv=None, *, environ=None, transport=None, docker=None, http=None, ses
             settings.seed_email = settings.seed_email or "smoke@example.com"
             if not settings.images_file:
                 settings.images_file = state / "rehearsal-images.json"
-                settings.images_file.write_text(json.dumps({
-                    o: f"dc2-v1-{o}:rehearsal" for o in ("media", "processing", "worker")}))
+                settings.images_file.write_text(
+                    json.dumps(
+                        {o: f"dc2-v1-{o}:rehearsal" for o in ("media", "processing", "worker")}
+                    )
+                )
             if not docker:
-                docker = (deploy_sim.ObservingDocker(aws, verified_ids(settings.images_file))
-                          if not rehearse else deploy_sim.SimulatedDocker(aws))
+                docker = (
+                    deploy_sim.ObservingDocker(aws, verified_ids(settings.images_file))
+                    if not rehearse
+                    else deploy_sim.SimulatedDocker(aws)
+                )
         else:
             aws = transport or CliTransport(settings.scope, environ=environ)
             docker = docker or (DockerCli() if args.action == "deploy" else None)
-        return execute(settings, aws, journal, docker, http, session_main, args, seed, stdout,
-                       stderr, clock, sleep, today)
+        return execute(
+            settings,
+            aws,
+            journal,
+            docker,
+            http,
+            session_main,
+            args,
+            seed,
+            stdout,
+            stderr,
+            clock,
+            sleep,
+            today,
+        )
     except AwaitingExecute as waiting:
         print(json.dumps({"ok": True, "awaiting_execute": str(waiting)}), file=stdout)
         return 3
@@ -2831,8 +3679,11 @@ def verified_ids(path):
     report, not this lookup's.
     """
     try:
-        return {entry["source"]: entry["local_id"]
-                for entry in load_images(path).values() if entry.get("local_id")}
+        return {
+            entry["source"]: entry["local_id"]
+            for entry in load_images(path).values()
+            if entry.get("local_id")
+        }
     except DeployError:
         return {}
 
@@ -2840,8 +3691,10 @@ def verified_ids(path):
 def recorded_state(args):
     """Read-only view of a real run's journal, used to rehearse its teardown offline."""
     if not args.state_dir:
-        raise DeployError("teardown --dry-run needs --state-dir to read the run's journal; "
-                          "use 'rehearse' for a self-contained deploy+teardown simulation")
+        raise DeployError(
+            "teardown --dry-run needs --state-dir to read the run's journal; "
+            "use 'rehearse' for a self-contained deploy+teardown simulation"
+        )
     path = args.state_dir / "deploy-journal.json"
     persistent = args.environment is not None
     environment = env_name(args.environment if persistent else args.run_id, persistent=persistent)
@@ -2879,9 +3732,13 @@ def adopt_release(journal, owner, release_dir, tag):
             if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
                 raise DeployError(f"The {name} digest in the release bundle is malformed")
             d["images"].setdefault(name, {}).update(
-                tag=f"{tag}-{name}", digest=digest, uri=f"{repository}@{digest}",
-                local_id=image["config_id"], source_sha=image["source_sha"],
-                scan_severity_counts="see the release plan")
+                tag=f"{tag}-{name}",
+                digest=digest,
+                uri=f"{repository}@{digest}",
+                local_id=image["config_id"],
+                source_sha=image["source_sha"],
+                scan_severity_counts="see the release plan",
+            )
             adopted[name] = digest
 
     journal.mutate(change)
@@ -2900,19 +3757,48 @@ def check_database_layout(journal, wanted):
     if created.topology != wanted.topology:
         raise DeployError(
             f"This run was created with database topology {created.topology}; use a new "
-            "--run-id for another layout (a live stack's topology cannot be changed)")
+            "--run-id for another layout (a live stack's topology cannot be changed)"
+        )
     if created != wanted:
         journal.mutate(lambda d: d.update(database=wanted.as_dict()))
 
 
-def execute(settings, aws, journal, docker, http, session_main, args, seed, stdout, stderr,
-            clock, sleep, today):
-    meta = {"run_id": settings.run_id, "env": settings.env, "account": settings.account,
-            "region": settings.region, "created_at": now(), "steps": {}, "resources": {},
-            "outputs": {}, "images": {}, "events": [], "database": settings.database.as_dict()}
+def execute(
+    settings,
+    aws,
+    journal,
+    docker,
+    http,
+    session_main,
+    args,
+    seed,
+    stdout,
+    stderr,
+    clock,
+    sleep,
+    today,
+):
+    meta = {
+        "run_id": settings.run_id,
+        "env": settings.env,
+        "account": settings.account,
+        "region": settings.region,
+        "created_at": now(),
+        "steps": {},
+        "resources": {},
+        "outputs": {},
+        "images": {},
+        "events": [],
+        "database": settings.database.as_dict(),
+    }
     if seed:  # rehearsing a real run's teardown: start from what that run recorded
-        meta.update({k: copy.deepcopy(seed[k])
-                     for k in ("resources", "outputs", "images", "database") if k in seed})
+        meta.update(
+            {
+                k: copy.deepcopy(seed[k])
+                for k in ("resources", "outputs", "images", "database")
+                if k in seed
+            }
+        )
     if not journal.exists():
         if args.action == "teardown" and not settings.dry_run:
             raise DeployError("No journal for this run; nothing recorded to tear down")
@@ -2925,9 +3811,18 @@ def execute(settings, aws, journal, docker, http, session_main, args, seed, stdo
     plans, receipt = [], None
 
     def pipeline():
-        return Pipeline(settings, aws, journal, docker=docker, http=http,
-                        session_main=session_main, clock=clock, sleep=sleep, stderr=stderr,
-                        today=today)
+        return Pipeline(
+            settings,
+            aws,
+            journal,
+            docker=docker,
+            http=http,
+            session_main=session_main,
+            clock=clock,
+            sleep=sleep,
+            stderr=stderr,
+            today=today,
+        )
 
     with journal.run_lock():
         if args.action in {"deploy", "rehearse"}:
@@ -2943,13 +3838,19 @@ def execute(settings, aws, journal, docker, http, session_main, args, seed, stdo
             finally:
                 plans += down.plan
             receipt = down.receipt
-    out = {"ok": True, "mode": "dry-run" if settings.dry_run else "live",
-           "scope": settings.scope, "run_id": settings.run_id,
-           "steps": ordered_steps(journal.view())}
+    out = {
+        "ok": True,
+        "mode": "dry-run" if settings.dry_run else "live",
+        "scope": settings.scope,
+        "run_id": settings.run_id,
+        "steps": ordered_steps(journal.view()),
+    }
     if settings.dry_run:
-        out["simulated"] = ("offline simulation: ordering and request shape, not account facts; "
-                               "image ids may be observed from the local Docker daemon, "
-                               "see image_inspect")
+        out["simulated"] = (
+            "offline simulation: ordering and request shape, not account facts; "
+            "image ids may be observed from the local Docker daemon, "
+            "see image_inspect"
+        )
         out["plan_calls"] = len(plans)
         out["mutating_calls"] = sum(1 for p in plans if p["mutating"])
         by_step = {}

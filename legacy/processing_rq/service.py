@@ -82,11 +82,7 @@ async def submit_job(
             # nonnullable pointer and its attempt to be created atomically.
             await session.flush()
             attempt = Attempt(
-                id=attempt_id,
-                job_id=job_id,
-                attempt_number=1,
-                state="queued",
-                queued_at=now,
+                id=attempt_id, job_id=job_id, attempt_number=1, state="queued", queued_at=now
             )
             session.add(attempt)
             guard.job_id = job_id

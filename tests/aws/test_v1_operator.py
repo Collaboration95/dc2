@@ -1,4 +1,5 @@
 """No AWS calls: verify the operator's account and credential isolation boundary."""
+
 import json
 import os
 
@@ -19,9 +20,15 @@ def scope(monkeypatch):
 
 
 def test_inherited_aws_credentials_and_endpoints_are_removed(monkeypatch):
-    for key in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
-                "AWS_PROFILE", "AWS_CONFIG_FILE", "AWS_ENDPOINT_URL",
-                "AWS_WEB_IDENTITY_TOKEN_FILE"):
+    for key in (
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SESSION_TOKEN",
+        "AWS_PROFILE",
+        "AWS_CONFIG_FILE",
+        "AWS_ENDPOINT_URL",
+        "AWS_WEB_IDENTITY_TOKEN_FILE",
+    ):
         monkeypatch.setenv(key, "wrong-account-input")
     env = operator.sanitized_environment()
     assert "wrong-account-input" not in env.values()
@@ -29,13 +36,17 @@ def test_inherited_aws_credentials_and_endpoints_are_removed(monkeypatch):
     assert env["AWS_IGNORE_CONFIGURED_ENDPOINT_URLS"] == "true"
 
 
-@pytest.mark.parametrize("account,arn", [
-    ("330599756236", operator.OPERATOR),
-    (operator.ACCOUNT, f"arn:aws:iam::{DUMMY_ACCOUNT}:user/other"),
-])
+@pytest.mark.parametrize(
+    "account,arn",
+    [
+        ("330599756236", operator.OPERATOR),
+        (operator.ACCOUNT, f"arn:aws:iam::{DUMMY_ACCOUNT}:user/other"),
+    ],
+)
 def test_wrong_identity_stops_preflight(monkeypatch, account, arn):
-    monkeypatch.setattr(operator, "aws", lambda args: {
-        "returncode": 0, "data": {"Account": account, "Arn": arn}})
+    monkeypatch.setattr(
+        operator, "aws", lambda args: {"returncode": 0, "data": {"Account": account, "Arn": arn}}
+    )
     with pytest.raises(RuntimeError, match="identity verification failed"):
         operator.verify_identity()
 
@@ -56,13 +67,17 @@ def test_cli_always_sets_profile_region_and_bounded_timeouts(monkeypatch):
         assert kwargs["timeout"] == 55
         assert kwargs["env"]["AWS_EC2_METADATA_DISABLED"] == "true"
         return type("Result", (), {"returncode": 0, "stdout": "{}", "stderr": ""})()
+
     monkeypatch.setattr(operator.subprocess, "run", run)
     assert operator.aws(["sts", "get-caller-identity"])["returncode"] == 0
 
 
 def test_empty_successful_mutation_response_is_valid(monkeypatch):
-    monkeypatch.setattr(operator.subprocess, "run", lambda *a, **k: type(
-        "Result", (), {"returncode": 0, "stdout": "", "stderr": ""})())
+    monkeypatch.setattr(
+        operator.subprocess,
+        "run",
+        lambda *a, **k: type("Result", (), {"returncode": 0, "stdout": "", "stderr": ""})(),
+    )
     assert operator.aws(["cloudformation", "execute-change-set"])["data"] == {}
 
 
@@ -73,16 +88,17 @@ def test_unscoped_calls_are_refused_without_running_the_cli(monkeypatch):
         operator.aws(["sts", "get-caller-identity"])
 
 
-@pytest.mark.parametrize("profile,account,arn", [
-    ("default", DUMMY_ACCOUNT, DUMMY_OPERATOR),
-    ("", DUMMY_ACCOUNT, DUMMY_OPERATOR),
-    ("p", "123", DUMMY_OPERATOR),
-    ("p", DUMMY_ACCOUNT, "arn:aws:iam::999999999999:user/operator"),
-    ("p", DUMMY_ACCOUNT, f"arn:aws:iam::{DUMMY_ACCOUNT}:role/operator"),
-])
-def test_configure_rejects_default_profile_and_identity_outside_the_account(
-    profile, account, arn
-):
+@pytest.mark.parametrize(
+    "profile,account,arn",
+    [
+        ("default", DUMMY_ACCOUNT, DUMMY_OPERATOR),
+        ("", DUMMY_ACCOUNT, DUMMY_OPERATOR),
+        ("p", "123", DUMMY_OPERATOR),
+        ("p", DUMMY_ACCOUNT, "arn:aws:iam::999999999999:user/operator"),
+        ("p", DUMMY_ACCOUNT, f"arn:aws:iam::{DUMMY_ACCOUNT}:role/operator"),
+    ],
+)
+def test_configure_rejects_default_profile_and_identity_outside_the_account(profile, account, arn):
     with pytest.raises(ValueError):
         operator.configure(profile, account, arn)
 

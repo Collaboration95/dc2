@@ -62,9 +62,17 @@ class Context:
     def proof(self, issue, required, *, guarded=True):
         guard = SessionGuard(self.journal, self.aws, self.config) if guarded else None
         # The scope (including the account id) stays in the private receipt only.
-        return Proof(issue, directory=self.evidence_dir, run_id=self.run_id,
-                     simulated=self.simulated, scope=dict(self.scope), required=required,
-                     guard=guard, wall=self.wall, fresh=self.fresh)
+        return Proof(
+            issue,
+            directory=self.evidence_dir,
+            run_id=self.run_id,
+            simulated=self.simulated,
+            scope=dict(self.scope),
+            required=required,
+            guard=guard,
+            wall=self.wall,
+            fresh=self.fresh,
+        )
 
     def deadline(self, seconds):
         return self.clock() + seconds
@@ -78,10 +86,16 @@ LAMBDA_CALL_SECONDS = 90
 
 
 def check_scope(profile, region, account):
-    if (not profile or profile == "default" or not operations.PROFILE_PATTERN.fullmatch(profile)
-            or region != REGION or not re.fullmatch(r"[0-9]{12}", account or "")):
-        raise ProofError(f"An explicit non-default profile, {REGION} and a 12-digit account "
-                         "are required")
+    if (
+        not profile
+        or profile == "default"
+        or not operations.PROFILE_PATTERN.fullmatch(profile)
+        or region != REGION
+        or not re.fullmatch(r"[0-9]{12}", account or "")
+    ):
+        raise ProofError(
+            f"An explicit non-default profile, {REGION} and a 12-digit account are required"
+        )
     return {"profile": profile, "region": region, "account": account}
 
 
@@ -90,13 +104,24 @@ def load_state(state_dir, config_path=None):
     path = Path(config_path) if config_path else Path(state_dir) / "operator-config.json"
     data, config, hooks, urls = operations.load_operator_config(path)
     outputs = operations.normalize_outputs(json.loads(Path(data["outputs_file"]).read_text()))
-    journal = Journal(data["journal"], station=data["operator_station"],
-                      environment=data["environment_id"])
+    journal = Journal(
+        data["journal"], station=data["operator_station"], environment=data["environment_id"]
+    )
     return data, config, hooks, urls, outputs, journal
 
 
-def live(args, *, aws=None, http=None, sqs=None, sdk=None, release_main=None,
-         clock=time.monotonic, sleep=time.sleep, wall=time.time):
+def live(
+    args,
+    *,
+    aws=None,
+    http=None,
+    sqs=None,
+    sdk=None,
+    release_main=None,
+    clock=time.monotonic,
+    sleep=time.sleep,
+    wall=time.time,
+):
     """Build a live context. `aws`/`http`/`sqs` are injectable so tests never reach the network."""
     scope = check_scope(args.profile, args.region, args.account)
     state = Path(args.state_dir)
@@ -109,9 +134,23 @@ def live(args, *, aws=None, http=None, sqs=None, sdk=None, release_main=None,
         raise ProofError("STS account differs from --account; no further calls")
     smoke = state / "smoke-credentials.json"
     return Context(
-        scope=scope, state_dir=state, run_id=args.run_id, simulated=False, outputs=outputs,
-        config=config, hooks=hooks, urls=urls, data=data, journal=journal, aws=aws,
-        http=http or urllib_http, clock=clock, sleep=sleep, wall=wall,
+        scope=scope,
+        state_dir=state,
+        run_id=args.run_id,
+        simulated=False,
+        outputs=outputs,
+        config=config,
+        hooks=hooks,
+        urls=urls,
+        data=data,
+        journal=journal,
+        aws=aws,
+        http=http or urllib_http,
+        clock=clock,
+        sleep=sleep,
+        wall=wall,
         credentials=lambda: load_credentials(smoke),
         sqs=sqs or (lambda: operations.live_sqs_client(scope)),
-        sdk=sdk or operations.live_transport, release_main=release_main or release_cli.main)
+        sdk=sdk or operations.live_transport,
+        release_main=release_main or release_cli.main,
+    )

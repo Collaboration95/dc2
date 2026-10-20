@@ -35,8 +35,10 @@ def emit(result):
 
 
 def asyncpg_dsn(owner):
-    raw = os.environ.get(f"{owner.upper()}_MIGRATION_DSN") or os.environ[
-        f"{owner.upper()}_POSTGRES_DSN"]
+    raw = (
+        os.environ.get(f"{owner.upper()}_MIGRATION_DSN")
+        or os.environ[f"{owner.upper()}_POSTGRES_DSN"]
+    )
     return raw.replace("postgresql+asyncpg://", "postgresql://", 1)
 
 
@@ -47,8 +49,11 @@ async def connect(dsn, context, window):
     """
     import asyncpg
 
-    permanent = (ssl.SSLError, asyncpg.InvalidPasswordError,
-                 asyncpg.InvalidAuthorizationSpecificationError)
+    permanent = (
+        ssl.SSLError,
+        asyncpg.InvalidPasswordError,
+        asyncpg.InvalidAuthorizationSpecificationError,
+    )
     end = time.monotonic() + window
     attempts = 0
     while True:
@@ -66,11 +71,15 @@ async def connect(dsn, context, window):
 async def tls_facts(connection, context):
     """What the client enforced and what the server reports for this very session."""
     row = await connection.fetchrow(
-        "SELECT ssl, version FROM pg_stat_ssl WHERE pid = pg_backend_pid()")
+        "SELECT ssl, version FROM pg_stat_ssl WHERE pid = pg_backend_pid()"
+    )
     enforced = context.verify_mode == ssl.CERT_REQUIRED and context.check_hostname
     server_ssl = bool(row and row["ssl"])
-    return {"verified": bool(enforced and server_ssl), "server_reports_ssl": server_ssl,
-            "protocol": (row["version"] if row else None)}
+    return {
+        "verified": bool(enforced and server_ssl),
+        "server_reports_ssl": server_ssl,
+        "protocol": (row["version"] if row else None),
+    }
 
 
 async def read(owner, mode):
@@ -79,9 +88,14 @@ async def read(owner, mode):
     started = time.monotonic()
     connection, attempts = await connect(asyncpg_dsn(owner), context, window)
     try:
-        result = {"ok": True, "mode": mode, "owner": owner, "connect_attempts": attempts,
-                  "connect_seconds": round(time.monotonic() - started, 1),
-                  "tls": await tls_facts(connection, context)}
+        result = {
+            "ok": True,
+            "mode": mode,
+            "owner": owner,
+            "connect_attempts": attempts,
+            "connect_seconds": round(time.monotonic() - started, 1),
+            "tls": await tls_facts(connection, context),
+        }
         if mode == "schema":
             rows = await connection.fetch("SELECT version_num FROM alembic_version")
             result["heads"] = len(rows)

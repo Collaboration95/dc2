@@ -21,8 +21,7 @@ class Job(Base):
     __tablename__ = "jobs"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('queued', 'processing', 'done', 'failed')",
-            name="ck_jobs_status",
+            "status IN ('queued', 'processing', 'done', 'failed')", name="ck_jobs_status"
         ),
         CheckConstraint(
             "(status = 'done' AND output_key IS NOT NULL) "

@@ -148,15 +148,9 @@ def test_package_coverage_totals_exclude_migrations_from_the_denominator():
 
 
 def test_bootstrap_report_is_a_separate_measured_file():
-    summary = {
-        "num_statements": 10,
-        "num_branches": 4,
-        "covered_lines": 9,
-        "covered_branches": 3,
-    }
+    summary = {"num_statements": 10, "num_branches": 4, "covered_lines": 9, "covered_branches": 3}
     result = coverage.file_report(
-        {"scripts/aws/v1/bootstrap.py": {"summary": summary}},
-        "scripts/aws/v1/bootstrap.py",
+        {"scripts/aws/v1/bootstrap.py": {"summary": summary}}, "scripts/aws/v1/bootstrap.py"
     )
     assert result["status"] == "MEASURED"
     assert result["combined"] == 85.71428571428571
@@ -176,11 +170,7 @@ def test_coverage_rejects_tiers_with_different_omit_settings(tmp_path, monkeypat
     data.write_bytes(b"unused")
     data.with_suffix(data.suffix + ".json").write_text(
         json.dumps(
-            {
-                "fingerprint": "current",
-                "tier": "fast",
-                "omit": ["processing/recovery_v1.py"],
-            }
+            {"fingerprint": "current", "tier": "fast", "omit": ["processing/recovery_v1.py"]}
         )
     )
     monkeypatch.setattr(coverage, "fingerprint", lambda: "current")
@@ -198,12 +188,7 @@ def test_coverage_rejects_stale_data(tmp_path, monkeypatch):
     data = tmp_path / ".coverage.fast"
     data.write_bytes(b"unused")
     data.with_suffix(data.suffix + ".json").write_text(
-        json.dumps(
-            {
-                "fingerprint": "old",
-                "tier": "fast",
-            }
-        )
+        json.dumps({"fingerprint": "old", "tier": "fast"})
     )
     monkeypatch.setattr(coverage, "fingerprint", lambda: "new")
     monkeypatch.setattr(sys, "argv", ["coverage", "--data", str(data)])

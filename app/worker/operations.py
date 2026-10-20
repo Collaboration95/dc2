@@ -9,12 +9,7 @@ from uuid import UUID
 from pydantic import ValidationError
 
 from app.schemas.edit import EditRequest
-from app.worker.storage import (
-    UNPROCESSABLE_VIDEO,
-    ObjectStore,
-    ObjectStoreError,
-    ProcessingResult,
-)
+from app.worker.storage import UNPROCESSABLE_VIDEO, ObjectStore, ObjectStoreError, ProcessingResult
 from app.worker.validation import validate_clip, validate_crop
 
 INVALID_EDIT = "the edit request is invalid; please submit it again"
@@ -70,9 +65,7 @@ def build_edit_command(
     else:
         if filters:
             command.extend(["-vf", ",".join(filters)])
-        command.extend(
-            ["-c:v", "libx264", "-preset", preset, "-crf", str(crf), "-c:a", "aac"]
-        )
+        command.extend(["-c:v", "libx264", "-preset", preset, "-crf", str(crf), "-c:a", "aac"])
         if output_format == "mp4":
             command.extend(["-movflags", "+faststart"])
 
@@ -122,11 +115,9 @@ class EditProcessor:
         request = self._request()
         convert = request.operation("convert")
         extension = convert.params.format if convert is not None else "mp4"
-        content_type = {
-            "mp4": "video/mp4",
-            "mkv": "video/x-matroska",
-            "mp3": "audio/mpeg",
-        }[extension]
+        content_type = {"mp4": "video/mp4", "mkv": "video/x-matroska", "mp3": "audio/mpeg"}[
+            extension
+        ]
         stem = PurePosixPath(source_key).stem or str(job_id)
         output_key = f"{self._output_prefix}/{job_id}/{stem}.{extension}"
 
@@ -182,9 +173,7 @@ class EditProcessor:
                 )
 
             self._store.upload_file(
-                key=output_key,
-                source=str(output_path),
-                content_type=content_type,
+                key=output_key, source=str(output_path), content_type=content_type
             )
             return ProcessingResult(output_key=output_key)
         finally:

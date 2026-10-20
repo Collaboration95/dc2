@@ -102,11 +102,7 @@ class MinioObjectStore:
         from minio.error import S3Error
 
         try:
-            self._client.copy_object(
-                self._bucket,
-                output_key,
-                CopySource(self._bucket, source_key),
-            )
+            self._client.copy_object(self._bucket, output_key, CopySource(self._bucket, source_key))
         except S3Error as exc:
             raise ObjectStoreError(
                 f"copy failed from {source_key} to {output_key}: {exc.code}",

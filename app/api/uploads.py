@@ -40,15 +40,9 @@ DEFAULT_FILENAME = "upload.bin"
 MAX_FILENAME_LENGTH = 100
 _UNSAFE_FILENAME_CHARS = re.compile(r"[^A-Za-z0-9._-]")
 
-StorageDependency = Annotated[
-    StorageService,
-    Depends(get_storage_service),
-]
+StorageDependency = Annotated[StorageService, Depends(get_storage_service)]
 
-SessionDependency = Annotated[
-    AsyncSession,
-    Depends(get_session),
-]
+SessionDependency = Annotated[AsyncSession, Depends(get_session)]
 
 
 def safe_filename(raw: str | None) -> str:
@@ -77,10 +71,7 @@ async def upload_video(
     # decides whether this is storable, the parameters are not.
     content_type = (file.content_type or "").split(";")[0].strip().lower()
     if content_type not in ALLOWED_CONTENT_TYPES:
-        return JSONResponse(
-            status_code=415,
-            content={"error": "unsupported media type"},
-        )
+        return JSONResponse(status_code=415, content={"error": "unsupported media type"})
 
     # By the time this runs Starlette has already spooled the whole part to a
     # temp file, so this measures bytes that have landed rather than preventing
@@ -91,10 +82,7 @@ async def upload_video(
     file.file.seek(0)
 
     if size > MAX_FILE_SIZE:
-        return JSONResponse(
-            status_code=413,
-            content={"error": "file too large"},
-        )
+        return JSONResponse(status_code=413, content={"error": "file too large"})
 
     # What the bytes say, which is the only account of the file that the client
     # cannot write. Stored in place of the declared type, so the object is
@@ -105,8 +93,7 @@ async def upload_video(
     sniffed_type = sniff_video_type(head)
     if sniffed_type is None:
         return JSONResponse(
-            status_code=415,
-            content={"error": "file content is not a recognized video format"},
+            status_code=415, content={"error": "file content is not a recognized video format"}
         )
 
     job_id = uuid4()
@@ -115,19 +102,10 @@ async def upload_video(
 
     source_key = f"uploads/{job_id}/{filename}"
 
-    await storage.upload_stream(
-        source_key,
-        file.file,
-        length=size,
-        content_type=sniffed_type,
-    )
+    await storage.upload_stream(source_key, file.file, length=size, content_type=sniffed_type)
 
     await create_job(
-        session,
-        job_id=job_id,
-        owner_id=user.id,
-        filename=filename,
-        source_key=source_key,
+        session, job_id=job_id, owner_id=user.id, filename=filename, source_key=source_key
     )
 
     # Enqueue last, and only after the row exists: a worker can pick the job up
@@ -136,6 +114,4 @@ async def upload_video(
     # the storage calls above -- the upload must stay under 1s (N1).
     await run_in_threadpool(enqueue_job, job_id)
 
-    return {
-        "job_id": str(job_id),
-    }
+    return {"job_id": str(job_id)}

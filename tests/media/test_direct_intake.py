@@ -142,12 +142,7 @@ async def test_finalize_denies_invalid_reservation(session, storage, reservation
         body.request_id = uuid4()
     with pytest.raises(MediaError) as error:
         await intake.finalize(
-            session,
-            storage,
-            reservation.owner_id,
-            reservation.id,
-            body,
-            enqueue=enqueue,
+            session, storage, reservation.owner_id, reservation.id, body, enqueue=enqueue
         )
     assert error.value.status_code == {"owner": 404, "expired": 410, "request": 409}[failure]
     storage.verify_direct_upload.assert_not_awaited()

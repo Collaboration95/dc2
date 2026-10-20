@@ -193,8 +193,12 @@ def registry_receipt(proof, response):
 def manifest_receipt(config_id, response):
     """The raw-byte/config binding shared by deploy and full artifact receipts."""
     digest(config_id)
-    if (not isinstance(response, dict) or response.get("failures")
-            or not isinstance(response.get("images"), list) or len(response["images"]) != 1):
+    if (
+        not isinstance(response, dict)
+        or response.get("failures")
+        or not isinstance(response.get("images"), list)
+        or len(response["images"]) != 1
+    ):
         raise OperationError("Missing or ambiguous registry receipt")
     try:
         image = response["images"][0]
@@ -205,9 +209,12 @@ def manifest_receipt(config_id, response):
         raise OperationError("Malformed registry manifest receipt") from None
     if "sha256:" + hashlib.sha256(raw).hexdigest() != reported:
         raise OperationError("Registry digest does not match returned manifest bytes")
-    if (not isinstance(manifest, dict) or "manifests" in manifest
-            or not isinstance(manifest.get("config"), dict)
-            or manifest["config"].get("digest") != config_id):
+    if (
+        not isinstance(manifest, dict)
+        or "manifests" in manifest
+        or not isinstance(manifest.get("config"), dict)
+        or manifest["config"].get("digest") != config_id
+    ):
         raise OperationError("Registry manifest/index does not reference tested config")
     return {
         "manifest_digest": reported,

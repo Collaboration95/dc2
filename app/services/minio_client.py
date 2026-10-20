@@ -51,10 +51,7 @@ def internal_client() -> Minio:
 def public_client() -> Minio:
     """For signing URLs a browser will open. See the module docstring."""
     settings = get_settings()
-    return _build(
-        endpoint=settings.minio_public_endpoint,
-        secure=settings.minio_public_use_ssl,
-    )
+    return _build(endpoint=settings.minio_public_endpoint, secure=settings.minio_public_use_ssl)
 
 
 def bucket() -> str:

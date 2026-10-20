@@ -25,30 +25,49 @@ def release_files(tmp_path):
     """The private inputs `release promote` reads; its --config is replaced per test."""
     base = tmp_path / "release-inputs"
     base.mkdir(mode=0o700)
-    compat = {"owner": "processing", "source_sha": "d" * 40, "target_revision": "0002",
-              "additive_only": True, "current_image_compatible": True,
-              "prior_image_compatible": True}
+    compat = {
+        "owner": "processing",
+        "source_sha": "d" * 40,
+        "target_revision": "0002",
+        "additive_only": True,
+        "current_image_compatible": True,
+        "prior_image_compatible": True,
+    }
     return {
-        "config": "unused", "creds": private(base / "creds.json", CREDENTIALS),
+        "config": "unused",
+        "creds": private(base / "creds.json", CREDENTIALS),
         "compat": private(base / "compat.json", compat),
-        "bundle": private(base / "bundle.json", {"api": proof("processing", "lambda-api"),
-                                                 "worker": proof("processing", "finite-worker")}),
+        "bundle": private(
+            base / "bundle.json",
+            {
+                "api": proof("processing", "lambda-api"),
+                "worker": proof("processing", "finite-worker"),
+            },
+        ),
     }
 
 
 def stack(tmp_path, *faults, sql=False):
     world = sim.SimWorld(faults=faults)
-    ctx = sim.build(argparse.Namespace(run_id="t", dry_run=True), session="window", sql=sql,
-                    tmp=tmp_path / "state", world=world)
+    ctx = sim.build(
+        argparse.Namespace(run_id="t", dry_run=True),
+        session="window",
+        sql=sql,
+        tmp=tmp_path / "state",
+        world=world,
+    )
     return world, ctx
 
 
 def cli(ctx, world, *argv):
     out = io.StringIO()
     code = release_cli.main(
-        [*argv, "--config", str(ctx.state_dir / "operator-config.json"), *SCOPE], stdout=out,
-        transport_factory=lambda scope: world, clock=world.clock.monotonic,
-        sleep=world.clock.sleep)
+        [*argv, "--config", str(ctx.state_dir / "operator-config.json"), *SCOPE],
+        stdout=out,
+        transport_factory=lambda scope: world,
+        clock=world.clock.monotonic,
+        sleep=world.clock.sleep,
+    )
     return code, json.loads(out.getvalue())
 
 
@@ -66,7 +85,9 @@ def test_the_schema_action_dry_run_names_the_in_vpc_task_and_touches_no_transpor
     out = io.StringIO()
     code = release_cli.main(
         ["schema", "--config", str(ctx.state_dir / "operator-config.json"), *SCOPE, "--dry-run"],
-        stdout=out, transport_factory=lambda scope: pytest.fail("dry-run must not connect"))
+        stdout=out,
+        transport_factory=lambda scope: pytest.fail("dry-run must not connect"),
+    )
     plan = json.loads(out.getvalue())["result"]["planned_calls"]
     assert code == 0 and {p["owner"] for p in plan} == {"media", "processing"}
     assert all(p["source"] == "in-vpc-task" and p["operation"] == "run-task" for p in plan)
@@ -98,23 +119,31 @@ def test_a_sql_block_without_a_ca_file_is_still_refused(tmp_path):
 
 
 def test_promote_without_a_sql_station_hands_the_release_an_in_vpc_reader(
-        tmp_path, release_files, monkeypatch):
+    tmp_path, release_files, monkeypatch
+):
     world, ctx = stack(tmp_path)
     seen = {}
 
     def fake_promote(config, transport, journal, *, schema_revision, deadline, **kwargs):
         seen["reader"] = schema_revision
         schema_revision.prefetch(("processing", "media"), deadline=deadline)
-        seen["revisions"] = [schema_revision("processing", deadline=deadline),
-                             schema_revision("media", deadline=deadline)]
+        seen["revisions"] = [
+            schema_revision("processing", deadline=deadline),
+            schema_revision("media", deadline=deadline),
+        ]
         return {"owner": kwargs["owner"], "status": "promoted"}
 
     monkeypatch.setattr(release_cli, "promote", fake_promote)
     argv = promote_args(release_files)
     argv[argv.index("--config") + 1] = str(ctx.state_dir / "operator-config.json")
     out = io.StringIO()
-    code = release_cli.main(argv, stdout=out, transport_factory=lambda scope: world,
-                            clock=world.clock.monotonic, sleep=world.clock.sleep)
+    code = release_cli.main(
+        argv,
+        stdout=out,
+        transport_factory=lambda scope: world,
+        clock=world.clock.monotonic,
+        sleep=world.clock.sleep,
+    )
     result = json.loads(out.getvalue())["result"]
     assert code == 0 and isinstance(seen["reader"], VpcReader)
     assert seen["revisions"] == ["p0005", "m0007"]
@@ -122,7 +151,8 @@ def test_promote_without_a_sql_station_hands_the_release_an_in_vpc_reader(
 
 
 def test_a_failed_release_still_names_the_schema_source_and_leaves_no_read_task_running(
-        tmp_path, release_files, monkeypatch):
+    tmp_path, release_files, monkeypatch
+):
     world, ctx = stack(tmp_path)
 
     def failing(config, transport, journal, *, schema_revision, deadline, **kwargs):
@@ -133,15 +163,21 @@ def test_a_failed_release_still_names_the_schema_source_and_leaves_no_read_task_
     argv = promote_args(release_files)
     argv[argv.index("--config") + 1] = str(ctx.state_dir / "operator-config.json")
     out = io.StringIO()
-    code = release_cli.main(argv, stdout=out, transport_factory=lambda scope: world,
-                            clock=world.clock.monotonic, sleep=world.clock.sleep)
+    code = release_cli.main(
+        argv,
+        stdout=out,
+        transport_factory=lambda scope: world,
+        clock=world.clock.monotonic,
+        sleep=world.clock.sleep,
+    )
     body = json.loads(out.getvalue())
     assert code == 1 and body["schema_revision_source"] == "in-vpc-task"
     assert [c for c in world.calls if c[1] == "stop-task"] == [("ecs", "stop-task")] * 2
 
 
 def test_an_older_stack_without_migration_outputs_uses_the_pinned_definition_for_its_owner(
-        tmp_path, release_files, monkeypatch):
+    tmp_path, release_files, monkeypatch
+):
     world, ctx = stack(tmp_path)
     outputs_path = ctx.state_dir / "outputs.json"
     outputs = json.loads(outputs_path.read_text())
@@ -157,8 +193,13 @@ def test_an_older_stack_without_migration_outputs_uses_the_pinned_definition_for
     monkeypatch.setattr(release_cli, "promote", fake_promote)
     argv = promote_args(release_files)
     argv[argv.index("--config") + 1] = str(ctx.state_dir / "operator-config.json")
-    release_cli.main(argv, stdout=io.StringIO(), transport_factory=lambda scope: world,
-                     clock=world.clock.monotonic, sleep=world.clock.sleep)
+    release_cli.main(
+        argv,
+        stdout=io.StringIO(),
+        transport_factory=lambda scope: world,
+        clock=world.clock.monotonic,
+        sleep=world.clock.sleep,
+    )
     assert list(seen["definitions"]) == ["processing"]
 
 
@@ -166,11 +207,23 @@ def test_an_older_stack_without_migration_outputs_uses_the_pinned_definition_for
 def test_close_can_prove_the_drain_from_in_vpc_counts_instead_of_an_attested_file(tmp_path):
     world, ctx = stack(tmp_path)
     owner, counts = session_cli.build_hooks(
-        ctx.data, ctx.hooks, world, dry_run=False, config=ctx.config, in_vpc=True,
-        clock=world.clock.monotonic, sleep=world.clock.sleep)
+        ctx.data,
+        ctx.hooks,
+        world,
+        dry_run=False,
+        config=ctx.config,
+        in_vpc=True,
+        clock=world.clock.monotonic,
+        sleep=world.clock.sleep,
+    )
     assert counts.drain(deadline=world.clock.monotonic() + 600) is True
     assert counts.outcomes(deadline=world.clock.monotonic() + 600) == {
-        "queued": 0, "succeeded": 3, "failed": 1, "abandoned": 0, "cancelled": 0}
+        "queued": 0,
+        "succeeded": 3,
+        "failed": 1,
+        "abandoned": 0,
+        "cancelled": 0,
+    }
     assert world.vpc_reads and all(r[:2] == ("processing", "attempts") for r in world.vpc_reads)
 
 
@@ -178,16 +231,30 @@ def test_in_vpc_counts_win_over_a_stale_attested_file_when_asked_for(tmp_path):
     world, ctx = stack(tmp_path)
     ctx.data["counts_file"] = "/nonexistent/attested.json"
     _, counts = session_cli.build_hooks(
-        ctx.data, ctx.hooks, world, dry_run=False, config=ctx.config, in_vpc=True,
-        clock=world.clock.monotonic, sleep=world.clock.sleep)
+        ctx.data,
+        ctx.hooks,
+        world,
+        dry_run=False,
+        config=ctx.config,
+        in_vpc=True,
+        clock=world.clock.monotonic,
+        sleep=world.clock.sleep,
+    )
     assert counts.outcomes(deadline=world.clock.monotonic() + 600)["succeeded"] == 3
 
 
 def test_in_vpc_counts_only_apply_to_close(tmp_path):
     world, ctx = stack(tmp_path)
     with pytest.raises(SystemExit):
-        session_cli.main(["open", "--config", str(ctx.state_dir / "operator-config.json"),
-                          *SCOPE, "--in-vpc-counts"])
+        session_cli.main(
+            [
+                "open",
+                "--config",
+                str(ctx.state_dir / "operator-config.json"),
+                *SCOPE,
+                "--in-vpc-counts",
+            ]
+        )
 
 
 # ---- injected clocks reach every hook --------------------------------------------------
@@ -212,8 +279,8 @@ def test_every_hook_uses_the_injected_clock_and_sleep(tmp_path, monkeypatch):
     monkeypatch.setattr(session_cli, "file_reader", lambda path: lambda deadline: next(readings))
     data = {**ctx.data, "sql": None, "counts_file": "unused"}
     owner, counts = session_cli.build_hooks(
-        data, ctx.hooks, world, dry_run=False, config=ctx.config, clock=clock,
-        sleep=clock.sleep)
+        data, ctx.hooks, world, dry_run=False, config=ctx.config, clock=clock, sleep=clock.sleep
+    )
     assert (owner.clock, owner.sleep) == (clock, clock.sleep)
     assert (counts.clock, counts.sleep) == (clock, clock.sleep)
     assert counts.drain(deadline=clock() + 60) is True  # retried twice on the fake clock
@@ -234,7 +301,13 @@ def test_the_launcher_hooks_built_by_the_cli_use_the_injected_clock(tmp_path, mo
     monkeypatch.setattr(session_cli, "LauncherHooks", spy)
     ctx.config["launcher"] = {"rule": "r"}
     owner, _ = session_cli.build_hooks(
-        ctx.data, {**ctx.hooks, "launcher": "fn"}, world, dry_run=True, config=ctx.config,
-        clock=clock, sleep=clock.sleep)
+        ctx.data,
+        {**ctx.hooks, "launcher": "fn"},
+        world,
+        dry_run=True,
+        config=ctx.config,
+        clock=clock,
+        sleep=clock.sleep,
+    )
     session_cli.LauncherHooks(owner, clock=clock, sleep=clock.sleep)
     assert built[0]["clock"] is clock

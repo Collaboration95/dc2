@@ -31,7 +31,8 @@ def poll_count(value):
 def parser():
     root = argparse.ArgumentParser(description=__doc__)
     root.add_argument(
-        "--base-url", required=True,
+        "--base-url",
+        required=True,
         help="HTTPS Media API base, including /api/media (e.g. https://HOST/api/media)",
     )
     root.add_argument("--ca-file", help="Explicit PEM CA file; otherwise system trust")

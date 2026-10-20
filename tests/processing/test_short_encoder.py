@@ -191,9 +191,7 @@ async def test_a_deadline_inside_the_pipeline_commits_nothing(monkeypatch):
     rig.finish.assert_not_awaited()  # recovery owns the timeout; this invocation has no authority
 
 
-async def test_an_ordinary_encode_failure_records_a_curated_error_and_is_acknowledged(
-    monkeypatch,
-):
+async def test_an_ordinary_encode_failure_records_a_curated_error_and_is_acknowledged(monkeypatch):
     rig = Rig(monkeypatch)
     rig.pipeline.side_effect = ValueError("secret detail https://signed.example/?sig=abc")
     assert await rig.invoke({"Records": [record()]}) == {"batchItemFailures": []}

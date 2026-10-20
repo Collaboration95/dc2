@@ -57,9 +57,7 @@ async def test_hls_does_not_swallow_control_flow(monkeypatch, tmp_path, exceptio
     )
     store = SimpleNamespace(put=AsyncMock(return_value={"kind": "primary"}))
     with pytest.raises(exception):
-        await tasks.pipeline(
-            work(), cfg(), sup, None, store, tmp_path, downloader=download
-        )
+        await tasks.pipeline(work(), cfg(), sup, None, store, tmp_path, downloader=download)
 
 
 async def test_hls_failure_retains_primary(monkeypatch, tmp_path):
@@ -78,9 +76,9 @@ async def test_hls_failure_retains_primary(monkeypatch, tmp_path):
         ]
     )
     store = SimpleNamespace(put=AsyncMock(return_value={"kind": "primary"}))
-    assert await tasks.pipeline(
-            work(), cfg(), sup, None, store, tmp_path, downloader=download
-        ) == [{"kind": "primary"}]
+    assert await tasks.pipeline(work(), cfg(), sup, None, store, tmp_path, downloader=download) == [
+        {"kind": "primary"}
+    ]
 
 
 async def test_guard_loss_interrupts_download_or_upload(monkeypatch):

@@ -228,13 +228,7 @@ def test_mp4_gate_requires_explicit_mp4_selection():
 )
 @pytest.mark.parametrize("hostile_environment", [False, True], ids=["ambient", "hostile-node-env"])
 def test_actual_media_sample_javascript_classifies_source_without_returning_capabilities(
-    source,
-    hls_supported,
-    native,
-    kind,
-    hostile_environment,
-    monkeypatch,
-    tmp_path,
+    source, hls_supported, native, kind, hostile_environment, monkeypatch, tmp_path
 ):
     # Execute the exact sampling JS against controlled plain objects, with no
     # DOM, browser or network. This is assertion logic evidence only.
@@ -249,8 +243,11 @@ def test_actual_media_sample_javascript_classifies_source_without_returning_capa
         monkeypatch.setenv("NODE_PATH", str(tmp_path))
         monkeypatch.setenv("NODE_V8_COVERAGE", str(coverage_output))
     # Ambient preloads/profilers must not alter or delay this plain-object check.
-    env = {key: value for key, value in os.environ.items()
-           if key not in {"NODE_OPTIONS", "NODE_PATH", "NODE_V8_COVERAGE"}}
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if key not in {"NODE_OPTIONS", "NODE_PATH", "NODE_V8_COVERAGE"}
+    }
     expected = {
         "hls": "/ladder.m3u8",
         "mp4": "https://storage.invalid/primary.mp4?signature=never-persist",

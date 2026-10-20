@@ -69,8 +69,7 @@ class Supervisor:
                     self.reason = AttemptDeadline
                     break
                 alive = await asyncio.wait_for(
-                    self.renew_authority(),
-                    timeout=min(self.settings.heartbeat_seconds, remaining),
+                    self.renew_authority(), timeout=min(self.settings.heartbeat_seconds, remaining)
                 )
                 if not alive:
                     break

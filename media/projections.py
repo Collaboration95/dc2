@@ -76,11 +76,7 @@ async def apply_result(session, envelope):
     # cannot bypass schema validation. It also drops fields a newer producer added.
     event = Envelope.from_dict(event).to_dict()
     asset = await get_asset(
-        session,
-        UUID(event["asset_id"]),
-        UUID(event["owner_id"]),
-        include_deleted=True,
-        lock=True,
+        session, UUID(event["asset_id"]), UUID(event["owner_id"]), include_deleted=True, lock=True
     )
     if event["job_id"] is None and event["attempt_id"] is None:
         return await confirm_cancellation(session, asset, event, no_job=True)
@@ -220,10 +216,7 @@ def _projected_job(current):
     if isinstance(current, ProjectedJob):
         return current
     return ProjectedJob(
-        job_id=current.job_id,
-        status=current.status,
-        outputs=current.outputs,
-        error=current.error,
+        job_id=current.job_id, status=current.status, outputs=current.outputs, error=current.error
     )
 
 

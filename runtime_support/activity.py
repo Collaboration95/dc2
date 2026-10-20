@@ -107,8 +107,11 @@ class Activity:
             return False
         now = self.clock()
         # A check from the future (or in milliseconds) is as untrustworthy as a stale one.
-        return (touched < checked - MARGIN_SECONDS and now < due
-                and 0 <= now - checked < MAX_QUIET_SECONDS)
+        return (
+            touched < checked - MARGIN_SECONDS
+            and now < due
+            and 0 <= now - checked < MAX_QUIET_SECONDS
+        )
 
     def record(self, checked_at, due_at):
         """After a pass: ``checked_at`` was taken before the SQL that found ``due_at``.

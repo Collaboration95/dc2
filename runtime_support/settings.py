@@ -8,10 +8,7 @@ from contextlib import contextmanager
 PARAMETER_ARN = re.compile(
     r"arn:(aws(?:-us-gov|-cn)?):ssm:([a-z0-9-]+):(\d{12}):parameter/[^\s]+\Z"
 )
-FIELDS = {
-    "MEDIA": ("postgres_dsn", "jwt_secret"),
-    "PROCESSING": ("postgres_dsn",),
-}
+FIELDS = {"MEDIA": ("postgres_dsn", "jwt_secret"), "PROCESSING": ("postgres_dsn",)}
 
 
 # invalid_password and invalid_authorization_specification: what a rotated or revoked
@@ -79,10 +76,7 @@ def _native_client(environ: Mapping[str, str], region: str):
 
 
 def runtime_values(
-    service: str,
-    *,
-    environ: Mapping[str, str] | None = None,
-    ssm_client=None,
+    service: str, *, environ: Mapping[str, str] | None = None, ssm_client=None
 ) -> dict[str, str]:
     """Return BaseSettings overrides for this owner's configured SecureStrings.
 

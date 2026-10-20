@@ -29,8 +29,9 @@ def fixture(tmp_path):
 def build(tmp_path, *faults, **world):
     world.setdefault("encode_seconds", 150.0)
     args = argparse.Namespace(run_id="t", dry_run=True)
-    return sim.build(args, session="open", world=sim.SimWorld(faults=faults, **world),
-                     tmp=tmp_path / "state")
+    return sim.build(
+        args, session="open", world=sim.SimWorld(faults=faults, **world), tmp=tmp_path / "state"
+    )
 
 
 def statuses(proof):
@@ -55,7 +56,8 @@ STUB = Stub()
 def stopped(ctx):
     """Every task the harness started is STOPPED in the simulated account."""
     return bool(ctx.world.tasks) and all(
-        ctx.world.task_view(t)["lastStatus"] == "STOPPED" for t in ctx.world.tasks.values())
+        ctx.world.task_view(t)["lastStatus"] == "STOPPED" for t in ctx.world.tasks.values()
+    )
 
 
 # ---- the arithmetic ---------------------------------------------------------------------
@@ -73,14 +75,18 @@ def test_a_missing_rate_gives_no_ratio_rather_than_a_default():
     assert capacity.meets_targets({2: None, 3: None}) == {2: False, 3: False}
 
 
-@pytest.mark.parametrize(("ratio_2", "ratio_3", "expected"), [
-    (1.6, 2.1, (True, True)),          # exactly on the target passes
-    (1.5999, 2.1, (False, True)),      # just under fails, whatever it rounds to for display
-    (1.9, 2.0999, (True, False)),
-    (1.0, 1.0, (False, False)),
-])
+@pytest.mark.parametrize(
+    ("ratio_2", "ratio_3", "expected"),
+    [
+        (1.6, 2.1, (True, True)),  # exactly on the target passes
+        (1.5999, 2.1, (False, True)),  # just under fails, whatever it rounds to for display
+        (1.9, 2.0999, (True, False)),
+        (1.0, 1.0, (False, False)),
+    ],
+)
 def test_the_targets_are_one_point_six_at_cap_two_and_two_point_one_at_cap_three(
-        ratio_2, ratio_3, expected):
+    ratio_2, ratio_3, expected
+):
     found = capacity.meets_targets({2: ratio_2, 3: ratio_3})
     assert (found[2], found[3]) == expected
 
@@ -103,20 +109,34 @@ def test_reasonable_backlog_sizes_are_accepted(size):
 
 # ---- queue wait comes from the attempt's own stamps ----------------------------------------
 def job_doc(queued, started, finished, number=1):
-    return {"current_attempt": {"number": number, "queued_at": queued, "started_at": started,
-                                "finished_at": finished}}
+    return {
+        "current_attempt": {
+            "number": number,
+            "queued_at": queued,
+            "started_at": started,
+            "finished_at": finished,
+        }
+    }
 
 
 def test_queue_wait_and_processing_time_are_differences_of_the_attempt_stamps():
-    doc = job_doc("2026-10-21T10:00:00.250000+00:00", "2026-10-21T10:01:30.750000+00:00",
-                  "2026-10-21T10:03:50.750000Z")
+    doc = job_doc(
+        "2026-10-21T10:00:00.250000+00:00",
+        "2026-10-21T10:01:30.750000+00:00",
+        "2026-10-21T10:03:50.750000Z",
+    )
     assert capacity.attempt_times(doc) == (90.5, 140.0, 1)
 
 
-@pytest.mark.parametrize("doc", [
-    None, {}, job_doc("2026-10-21T10:00:00Z", None, None),
-    job_doc("2026-10-21T10:05:00Z", "2026-10-21T10:00:00Z", "2026-10-21T10:06:00Z"),  # negative
-])
+@pytest.mark.parametrize(
+    "doc",
+    [
+        None,
+        {},
+        job_doc("2026-10-21T10:00:00Z", None, None),
+        job_doc("2026-10-21T10:05:00Z", "2026-10-21T10:00:00Z", "2026-10-21T10:06:00Z"),  # negative
+    ],
+)
 def test_a_missing_or_impossible_stamp_is_reported_as_missing_not_guessed(doc):
     wait, _, _ = capacity.attempt_times(doc)
     assert wait is None
@@ -124,12 +144,18 @@ def test_a_missing_or_impossible_stamp_is_reported_as_missing_not_guessed(doc):
 
 
 def test_queue_stats_counts_retried_jobs_and_keeps_only_real_samples():
-    docs = [job_doc("2026-10-21T10:00:00Z", "2026-10-21T10:00:10Z", "2026-10-21T10:02:00Z"),
-            job_doc("2026-10-21T10:00:00Z", "2026-10-21T10:00:50Z", None, number=2), None]
+    docs = [
+        job_doc("2026-10-21T10:00:00Z", "2026-10-21T10:00:10Z", "2026-10-21T10:02:00Z"),
+        job_doc("2026-10-21T10:00:00Z", "2026-10-21T10:00:50Z", None, number=2),
+        None,
+    ]
     stats = capacity.queue_stats(docs)
     assert stats["waits"] == [10.0, 50.0] and stats["runs"] == [110.0]
-    assert (stats["retried_jobs"], stats["missing_queue_wait"],
-            stats["missing_processing_time"]) == (1, 1, 2)
+    assert (
+        stats["retried_jobs"],
+        stats["missing_queue_wait"],
+        stats["missing_processing_time"],
+    ) == (1, 1, 2)
 
 
 def test_the_receipt_reports_server_side_processing_time_and_falling_queue_wait(tmp_path, fixture):
@@ -158,11 +184,9 @@ def test_a_clean_simulated_sweep_reports_measured_speedups_against_the_targets(t
     assert "6 vCPU" in compare["cap_note"]
 
 
-def test_a_sweep_that_misses_a_target_fails_the_comparison_with_the_numbers_kept(
-        tmp_path, fixture):
+def test_a_sweep_that_misses_a_target_fails_the_comparison_with_the_numbers_kept(tmp_path, fixture):
     ctx = build(tmp_path)
-    proof = capacity.run_backlog(ctx, fixture=fixture, only={"backlog-1", "backlog-2",
-                                                             "backlog-3"})
+    proof = capacity.run_backlog(ctx, fixture=fixture, only={"backlog-1", "backlog-2", "backlog-3"})
     steps = proof.doc["steps"]
     # Rewrite the recorded elapsed times as if extra encoders had bought almost nothing.
     for cap, elapsed in ((2, 900.0), (3, 800.0)):
@@ -176,8 +200,9 @@ def test_a_sweep_that_misses_a_target_fails_the_comparison_with_the_numbers_kept
 def test_the_comparison_fails_when_the_steps_used_different_backlogs(tmp_path, fixture):
     proof = capacity.run_backlog(build(tmp_path), fixture=fixture)
     proof.doc["steps"]["backlog-2"]["public"]["backlog"] = 12
-    step = proof.step("backlog-compare", lambda i: capacity.backlog_compare(proof), session=None,
-                      rerun=True)
+    step = proof.step(
+        "backlog-compare", lambda i: capacity.backlog_compare(proof), session=None, rerun=True
+    )
     assert step["status"] == FAIL and step["public"]["comparable"] is False
 
 
@@ -189,7 +214,8 @@ def test_the_comparison_waits_until_all_three_caps_are_recorded(tmp_path, fixtur
 
 # ---- finite encoders: the operator batch keeps up to `cap` busy -----------------------------
 def test_each_cap_drains_a_fresh_backlog_with_one_encoder_per_job_and_never_more_than_cap(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     ctx = build(tmp_path)
     proof = capacity.run_backlog(ctx, fixture=fixture)
     for cap in (1, 2, 3):
@@ -202,18 +228,21 @@ def test_each_cap_drains_a_fresh_backlog_with_one_encoder_per_job_and_never_more
 
 
 def test_a_job_that_is_queued_when_an_encoder_stops_is_picked_up_by_a_replacement(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     ctx = build(tmp_path)
-    proof = capacity.run_backlog(ctx, fixture=fixture, workers={1}, backlog=6,
-                                 only={"backlog-1"})
+    proof = capacity.run_backlog(ctx, fixture=fixture, workers={1}, backlog=6, only={"backlog-1"})
     assert public(proof, "backlog-1")["jobs_done"] == 6
     assert len({t["started_at"] for t in ctx.world.tasks.values()}) == 6
 
 
 def test_refill_starts_only_what_the_backlog_needs_under_the_cap(monkeypatch):
     started = []
-    monkeypatch.setattr(workflow, "start_workers",
-                        lambda ctx, count, minutes: started.append(count) or ["t"] * count)
+    monkeypatch.setattr(
+        workflow,
+        "start_workers",
+        lambda ctx, count, minutes: started.append(count) or ["t"] * count,
+    )
     rows = [{"status": "queued"}] * 4 + [{"status": "processing"}, {"status": "done"}]
     intent = {"tasks": []}
     # Three alive, one of them busy: two have not claimed yet and stand for two queued jobs.
@@ -230,7 +259,8 @@ def test_refill_treats_a_busy_slot_as_taken_and_never_exceeds_the_cap(monkeypatc
 
 
 def test_a_slot_the_session_still_holds_is_retried_but_other_launch_errors_stop_the_step(
-        monkeypatch):
+    monkeypatch,
+):
     def full(ctx, count, minutes):
         raise OperationError("Worker/reservation cap reached")
 
@@ -269,8 +299,9 @@ def test_a_failed_encode_fails_its_step_and_the_comparison_and_is_counted(tmp_pa
 
 
 def test_throughput_counts_only_jobs_that_finished_successfully(tmp_path, fixture):
-    proof = capacity.run_backlog(build(tmp_path, fail_claims={1, 2}), fixture=fixture,
-                                 only={"backlog-1"})
+    proof = capacity.run_backlog(
+        build(tmp_path, fail_claims={1, 2}), fixture=fixture, only={"backlog-1"}
+    )
     step = public(proof, "backlog-1")
     assert step["jobs_done"] == 4
     assert step["jobs_per_minute"] == pytest.approx(4 * 60.0 / step["elapsed_seconds"], rel=1e-3)
@@ -307,8 +338,9 @@ def test_an_encoder_still_alive_after_the_drain_fails_the_step(tmp_path, fixture
 
     monkeypatch.setattr(workflow, "live_tasks", live)
     real_wait = workflow.wait_stopped
-    monkeypatch.setattr(workflow, "wait_stopped",
-                        lambda *a, **k: state.update(done=True) or real_wait(*a, **k))
+    monkeypatch.setattr(
+        workflow, "wait_stopped", lambda *a, **k: state.update(done=True) or real_wait(*a, **k)
+    )
     proof = capacity.run_backlog(ctx, fixture=fixture, workers={1}, only={"backlog-1"})
     assert statuses(proof)["backlog-1"] == FAIL
     assert public(proof, "backlog-1")["encoders_left_running"] == 1
@@ -324,10 +356,12 @@ def test_an_encoder_already_running_blocks_the_step_before_any_upload(tmp_path, 
 
 # ---- stop and timeout -------------------------------------------------------------------------
 def test_a_step_that_times_out_stops_its_encoders_and_fails_with_the_numbers_it_had(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     ctx = build(tmp_path, encode_seconds=5000.0)
-    proof = capacity.run_backlog(ctx, fixture=fixture, drain_timeout=120, workers={2},
-                                 only={"backlog-2"})
+    proof = capacity.run_backlog(
+        ctx, fixture=fixture, drain_timeout=120, workers={2}, only={"backlog-2"}
+    )
     step = public(proof, "backlog-2")
     assert statuses(proof)["backlog-2"] == FAIL
     assert step["timed_out"] is True and step["jobs_not_terminal"] == 6
@@ -335,7 +369,8 @@ def test_a_step_that_times_out_stops_its_encoders_and_fails_with_the_numbers_it_
 
 
 def test_a_backlog_left_unfinished_blocks_the_next_cap_so_it_cannot_join_the_measurement(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     ctx = build(tmp_path, encode_seconds=5000.0)
     proof = capacity.run_backlog(ctx, fixture=fixture, drain_timeout=120)
     found = statuses(proof)
@@ -380,7 +415,8 @@ def test_a_session_closed_mid_drain_stops_the_encoders_and_ends_the_command(tmp_
 
 
 def test_a_driver_that_went_quiet_too_long_cannot_pass_because_it_was_not_refilling(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     ctx = build(tmp_path)
     real_sleep, calls = ctx.sleep, []
 
@@ -409,8 +445,16 @@ def test_a_harness_refuses_while_the_session_is_closed(tmp_path, fixture):
 
 
 # ---- the evidence CLI -----------------------------------------------------------------------
-SCOPE = ("--profile", "dc2-project2-mfa", "--region", "ap-southeast-1", "--account",
-         "123456789012", "--run-id", "cli")
+SCOPE = (
+    "--profile",
+    "dc2-project2-mfa",
+    "--region",
+    "ap-southeast-1",
+    "--account",
+    "123456789012",
+    "--run-id",
+    "cli",
+)
 
 
 def cli(*argv, **kwargs):
@@ -421,8 +465,9 @@ def cli(*argv, **kwargs):
 
 def test_capacity_backlog_runs_through_the_cli_and_writes_its_own_receipt(tmp_path, fixture):
     world = sim.SimWorld(encode_seconds=150.0)
-    code, report = cli("capacity", *SCOPE, "--dry-run", "--fixture", str(fixture), "--backlog",
-                       "6", world=world)
+    code, report = cli(
+        "capacity", *SCOPE, "--dry-run", "--fixture", str(fixture), "--backlog", "6", world=world
+    )
     assert code == 0 and report["issue"] == "#185" and report["overall"] == "SIMULATED"
     assert set(report["steps"]) == {"backlog-1", "backlog-2", "backlog-3", "backlog-compare"}
     assert report["steps"]["backlog-compare"]["meets_target"] == {"2": True, "3": True}
@@ -430,25 +475,34 @@ def test_capacity_backlog_runs_through_the_cli_and_writes_its_own_receipt(tmp_pa
 
 def test_a_bare_backlog_flag_uses_the_default_size():
     args = evidence.build_parser().parse_args(
-        ["capacity", *SCOPE, "--fixture", "f.mp4", "--backlog"])
+        ["capacity", *SCOPE, "--fixture", "f.mp4", "--backlog"]
+    )
     assert args.backlog == capacity.DEFAULT_BACKLOG == 6
     plain = evidence.build_parser().parse_args(["capacity", *SCOPE, "--fixture", "f.mp4"])
     assert plain.backlog is None
 
 
-def test_without_backlog_the_capacity_command_still_runs_the_one_two_three_proof(
-        tmp_path, fixture):
+def test_without_backlog_the_capacity_command_still_runs_the_one_two_three_proof(tmp_path, fixture):
     world = sim.SimWorld(encode_seconds=240.0)
-    code, report = cli("capacity", *SCOPE, "--dry-run", "--fixture", str(fixture),
-                       "--short-fixture", str(fixture), world=world)
+    code, report = cli(
+        "capacity",
+        *SCOPE,
+        "--dry-run",
+        "--fixture",
+        str(fixture),
+        "--short-fixture",
+        str(fixture),
+        world=world,
+    )
     assert code == 0 and report["issue"] == "#64"
     assert {"run-1", "run-2", "run-3", "recovery", "dlq", "drain"} == set(report["steps"])
 
 
 @pytest.mark.parametrize("extra", [["--poison"], ["--short-fixture", "s.mp4"]])
 def test_backlog_does_not_mix_with_the_recovery_or_poison_steps(tmp_path, fixture, extra):
-    code, body = cli("capacity", *SCOPE, "--dry-run", "--fixture", str(fixture), "--backlog",
-                     "6", *extra)
+    code, body = cli(
+        "capacity", *SCOPE, "--dry-run", "--fixture", str(fixture), "--backlog", "6", *extra
+    )
     assert code == 1 and "does not combine" in body["error"]
 
 

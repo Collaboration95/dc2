@@ -56,10 +56,7 @@ async def main() -> None:
         try:
             reaped, requeued, deleted = await run_once()
             logger.info(
-                "reaper pass complete: reaped=%s requeued=%s deleted=%s",
-                reaped,
-                requeued,
-                deleted,
+                "reaper pass complete: reaped=%s requeued=%s deleted=%s", reaped, requeued, deleted
             )
         except Exception:
             logger.exception("reaper pass failed; retrying")

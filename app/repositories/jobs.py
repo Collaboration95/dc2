@@ -154,10 +154,7 @@ async def mark_processing(session: AsyncSession, job_id: UUID) -> Job:
     # can see the old failed snapshot and skip it without waiting at all.
     await session.execute(select(Job.id).where(Job.id == job_id).with_for_update())
     return await _transition(
-        session,
-        job_id=job_id,
-        expected_status=JobStatus.QUEUED,
-        next_status=JobStatus.PROCESSING,
+        session, job_id=job_id, expected_status=JobStatus.QUEUED, next_status=JobStatus.PROCESSING
     )
 
 
@@ -207,11 +204,7 @@ async def prepare_retry(session: AsyncSession, job_id: UUID, *, owner_id: UUID) 
     """
     statement = (
         update(Job)
-        .where(
-            Job.id == job_id,
-            Job.owner_id == owner_id,
-            Job.status == JobStatus.FAILED.value,
-        )
+        .where(Job.id == job_id, Job.owner_id == owner_id, Job.status == JobStatus.FAILED.value)
         .values(
             status=JobStatus.QUEUED.value,
             error=None,
@@ -273,12 +266,7 @@ async def list_source_keys(session: AsyncSession) -> set[str]:
     return set(result.scalars().all())
 
 
-async def list_stale(
-    session: AsyncSession,
-    *,
-    status: JobStatus,
-    before: datetime,
-) -> list[Job]:
+async def list_stale(session: AsyncSession, *, status: JobStatus, before: datetime) -> list[Job]:
     statement = (
         select(Job)
         .where(Job.status == status.value, Job.updated_at < before)

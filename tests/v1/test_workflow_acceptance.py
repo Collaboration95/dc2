@@ -112,13 +112,7 @@ def test_publisher_retry_reuses_the_stored_source_after_a_transient_encode_failu
     if not os.environ.get("V1_RUNTIME_CONFIG"):
         pytest.skip("Explicit Lead C runtime attachment required")
     from publisher.client import PublicClient
-    from scripts.dev.v1_acceptance import (
-        app_runtime,
-        encode_one,
-        pump,
-        short_video,
-        sql_fetch,
-    )
+    from scripts.dev.v1_acceptance import app_runtime, encode_one, pump, short_video, sql_fetch
 
     source = short_video(tmp_path / "retry-av.mp4")
     with app_runtime(os.environ["V1_RUN_ID"]) as runtime:

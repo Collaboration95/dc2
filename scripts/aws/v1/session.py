@@ -150,10 +150,7 @@ class Session:
         self.call(
             "lambda",
             "update-event-source-mapping",
-            {
-                "UUID": identity,
-                "Enabled": enabled,
-            },
+            {"UUID": identity, "Enabled": enabled},
             deadline,
         )
         expected = "Enabled" if enabled else "Disabled"
@@ -208,9 +205,7 @@ class Session:
         """
         with self.journal.locked() as state:
             allowed = {"closed", "opening", "window"} if window else {"closed", "opening"}
-            if state.get("session") not in allowed or (
-                state.get("pending_release") and not window
-            ):
+            if state.get("session") not in allowed or (state.get("pending_release") and not window):
                 raise OperationError("Closed session without release intent required")
             if launcher is not None and (
                 window or not self.config.get("launcher") or not launcher_session_end
@@ -292,11 +287,7 @@ class Session:
                 session_warnings=warnings,
             )
             self.journal.save(state)
-            return {
-                "session": state["session"],
-                "worker_starts": 0,
-                "warnings": warnings,
-            }
+            return {"session": state["session"], "worker_starts": 0, "warnings": warnings}
 
     def status(self, *, deadline):
         """Read-only reconciliation of the journal against the live control plane.

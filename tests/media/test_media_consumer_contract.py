@@ -46,10 +46,7 @@ def tolerated(message):
     return extended
 
 
-VARIANTS = {
-    "as_published": lambda message: message,
-    "with_additive_fields": tolerated,
-}
+VARIANTS = {"as_published": lambda message: message, "with_additive_fields": tolerated}
 
 
 def prepare(session, asset, message, monkeypatch, accepted_source):

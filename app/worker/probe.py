@@ -30,11 +30,7 @@ class SourceProbe:
 
 
 def probe_source(
-    path: Path,
-    *,
-    ffprobe_binary: str = "ffprobe",
-    timeout_seconds: int = 30,
-    runner=subprocess.run,
+    path: Path, *, ffprobe_binary: str = "ffprobe", timeout_seconds: int = 30, runner=subprocess.run
 ) -> SourceProbe:
     """Read the first video stream's size and the container's duration.
 
@@ -63,11 +59,7 @@ def probe_source(
 
     try:
         result = runner(
-            command,
-            capture_output=True,
-            text=True,
-            timeout=timeout_seconds,
-            check=False,
+            command, capture_output=True, text=True, timeout=timeout_seconds, check=False
         )
     except subprocess.TimeoutExpired as exc:
         raise ObjectStoreError(
@@ -94,8 +86,7 @@ def probe_source(
         # rather than impossible -- sniffing proves the container, not that
         # every stream inside it is intact.
         raise ObjectStoreError(
-            f"ffprobe found no video stream in {path}",
-            user_message=UNPROCESSABLE_VIDEO,
+            f"ffprobe found no video stream in {path}", user_message=UNPROCESSABLE_VIDEO
         )
 
     try:
@@ -113,8 +104,7 @@ def probe_source(
 
     if width <= 0 or height <= 0 or duration <= 0:
         raise ObjectStoreError(
-            f"ffprobe reported a non-positive dimension or duration: "
-            f"{width}x{height}, {duration}s",
+            f"ffprobe reported a non-positive dimension or duration: {width}x{height}, {duration}s",
             user_message=UNPROCESSABLE_VIDEO,
         )
 

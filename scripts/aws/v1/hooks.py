@@ -142,7 +142,8 @@ class LauncherHooks:
             raise OperationError(
                 f"Launcher control did not confirm ({action}: status {result.get('StatusCode')}, "
                 f"function error {result.get('FunctionError')}, error type "
-                f"{str(error_type)[:60]})")
+                f"{str(error_type)[:60]})"
+            )
         return reply
 
     def enable(self, *, session_end_epoch, deadline):

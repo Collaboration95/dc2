@@ -19,20 +19,13 @@ def complete_report():
     return {
         "status": "PASS",
         "scope": "full",
-        "cases": {
-            "CT-18-cli": {"status": "PASS"},
-            "CT-18-browser": {"status": "PASS"},
-        },
-        "events": [
-            {"event": "browser-hls-decoded"},
-            {"event": "browser-mp4-decoded"},
-        ],
+        "cases": {"CT-18-cli": {"status": "PASS"}, "CT-18-browser": {"status": "PASS"}},
+        "events": [{"event": "browser-hls-decoded"}, {"event": "browser-mp4-decoded"}],
     }
 
 
 @pytest.mark.parametrize(
-    "incomplete",
-    [None, "public-only", "failed", "missing-cli", "missing-browser", "missing-mp4"],
+    "incomplete", [None, "public-only", "failed", "missing-cli", "missing-browser", "missing-mp4"]
 )
 def test_ci_acceptance_rejects_partial_results(
     workflow, complete_report, incomplete, tmp_path, monkeypatch

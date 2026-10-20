@@ -11,9 +11,7 @@ FACADES = (media_credentials, processing_credentials)
 
 def settings(mode="static", access="", secret=""):
     return SimpleNamespace(
-        storage_credential_mode=mode,
-        minio_access_key=access,
-        minio_secret_key=secret,
+        storage_credential_mode=mode, minio_access_key=access, minio_secret_key=secret
     )
 
 
@@ -60,10 +58,7 @@ def test_lambda_provider_reads_each_rotated_tuple(monkeypatch, facade):
     monkeypatch.delenv("AWS_CREDENTIAL_EXPIRATION", raising=False)
     provider = facade.credential_provider(settings("lambda"))
     observed = []
-    tuples = (
-        ("access-A", "secret-A", "token-A"),
-        ("access-B", "secret-B", "token-B"),
-    )
+    tuples = (("access-A", "secret-A", "token-A"), ("access-B", "secret-B", "token-B"))
     for access, secret, token in tuples:
         monkeypatch.setenv("AWS_ACCESS_KEY_ID", access)
         monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", secret)

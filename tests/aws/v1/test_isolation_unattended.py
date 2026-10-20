@@ -28,8 +28,13 @@ def fixture(tmp_path):
 def build(tmp_path, *faults, session="open", unattended_session=False, **world):
     world.setdefault("encode_seconds", 150.0)
     args = argparse.Namespace(run_id="t", dry_run=True)
-    return sim.build(args, session=session, world=sim.SimWorld(faults=faults, **world),
-                     tmp=tmp_path / "state", unattended=unattended_session)
+    return sim.build(
+        args,
+        session=session,
+        world=sim.SimWorld(faults=faults, **world),
+        tmp=tmp_path / "state",
+        unattended=unattended_session,
+    )
 
 
 def public(proof, name):
@@ -46,12 +51,14 @@ def commands_mapping(ctx):
 
 def stopped(ctx):
     return bool(ctx.world.tasks) and all(
-        ctx.world.task_view(t)["lastStatus"] == "STOPPED" for t in ctx.world.tasks.values())
+        ctx.world.task_view(t)["lastStatus"] == "STOPPED" for t in ctx.world.tasks.values()
+    )
 
 
 # ---- #196 Media accepts uploads while Processing is down -------------------------------------
 def test_media_accepts_and_holds_an_upload_while_the_consumer_is_off_then_it_completes(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     ctx = build(tmp_path, outbox_seconds=45.0)
     proof = isolation.run(ctx, fixture=fixture)
     step = public(proof, "processing-down")
@@ -80,7 +87,8 @@ def test_the_receipt_view_carries_no_identifier(tmp_path, fixture):
 
 
 def test_an_upload_that_needs_processing_to_be_up_fails_and_still_restores_the_consumer(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     ctx = build(tmp_path, "finalize-needs-processing")
     proof = isolation.run(ctx, fixture=fixture)
     assert status(proof, "processing-down") == FAIL
@@ -137,8 +145,10 @@ def test_an_interrupt_restores_the_consumer_and_stops_the_encoder(tmp_path, fixt
     with pytest.raises(KeyboardInterrupt):
         isolation.run(ctx, fixture=fixture)
     assert commands_mapping(ctx) == "Enabled"
-    assert ctx.proof(isolation.ISSUE, isolation.REQUIRED).intent("processing-down")[
-        "restore"] == "re-enabled"
+    assert (
+        ctx.proof(isolation.ISSUE, isolation.REQUIRED).intent("processing-down")["restore"]
+        == "re-enabled"
+    )
 
 
 def test_an_interrupt_after_the_consumer_is_back_stops_the_encoder_too(tmp_path, fixture):
@@ -147,8 +157,7 @@ def test_an_interrupt_after_the_consumer_is_back_stops_the_encoder_too(tmp_path,
 
     def sleep(seconds):
         calls.append(seconds)
-        if ctx.world.tasks and len(calls) > 1 and any(
-                t["busy"] for t in ctx.world.tasks.values()):
+        if ctx.world.tasks and len(calls) > 1 and any(t["busy"] for t in ctx.world.tasks.values()):
             raise KeyboardInterrupt
         real(seconds)
 
@@ -180,12 +189,16 @@ def test_a_session_closed_mid_outage_leaves_the_consumer_to_the_close(tmp_path, 
 
 
 def test_a_killed_run_resumes_the_same_upload_and_finishes_with_the_consumer_back(
-        tmp_path, fixture, monkeypatch):
+    tmp_path, fixture, monkeypatch
+):
     ctx = build(tmp_path)
     with monkeypatch.context() as patch:
         patch.setattr(isolation, "restore", lambda *a, **k: None)  # a process that was killed
-        patch.setattr(isolation, "observe_outage",
-                      lambda *a, **k: (_ for _ in ()).throw(RuntimeError("killed")))
+        patch.setattr(
+            isolation,
+            "observe_outage",
+            lambda *a, **k: (_ for _ in ()).throw(RuntimeError("killed")),
+        )
         first = isolation.run(ctx, fixture=fixture)
     assert status(first, "processing-down") == FAIL
     assert commands_mapping(ctx) == "Disabled" and len(ctx.world.jobs) == 1
@@ -211,10 +224,24 @@ def test_an_encoder_already_running_blocks_the_step(tmp_path, fixture):
 
 def test_isolation_runs_through_the_cli_with_its_own_receipt(tmp_path, fixture):
     out = io.StringIO()
-    code = evidence.main(["isolation", "--profile", "dc2-project2-mfa", "--region",
-                          "ap-southeast-1", "--account", "123456789012", "--run-id", "cli",
-                          "--dry-run", "--fixture", str(fixture)], stdout=out,
-                         world=sim.SimWorld(encode_seconds=150.0))
+    code = evidence.main(
+        [
+            "isolation",
+            "--profile",
+            "dc2-project2-mfa",
+            "--region",
+            "ap-southeast-1",
+            "--account",
+            "123456789012",
+            "--run-id",
+            "cli",
+            "--dry-run",
+            "--fixture",
+            str(fixture),
+        ],
+        stdout=out,
+        world=sim.SimWorld(encode_seconds=150.0),
+    )
     report = json.loads(out.getvalue())
     assert code == 0 and report["issue"] == "#196" and report["overall"] == "SIMULATED"
     assert report["steps"]["processing-down"]["status"] == PASS
@@ -241,7 +268,8 @@ def with_baseline(tmp_path, fixture, *faults, **world):
 
 
 def test_the_launcher_drains_the_same_backlog_and_is_compared_with_operator_batches(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     ctx = with_baseline(tmp_path, fixture)
     proof = unattended.run(ctx, fixture=fixture, iam_simulated=True)
     assert [status(proof, n) for n in unattended.STEPS] == [PASS, PASS, PASS]
@@ -261,8 +289,11 @@ def test_the_launcher_drains_the_same_backlog_and_is_compared_with_operator_batc
 
 def test_the_harness_starts_no_encoder_itself(tmp_path, fixture, monkeypatch):
     ctx = with_baseline(tmp_path, fixture)
-    monkeypatch.setattr(workflow, "start_workers",
-                        lambda *a, **k: pytest.fail("the harness must not start encoders"))
+    monkeypatch.setattr(
+        workflow,
+        "start_workers",
+        lambda *a, **k: pytest.fail("the harness must not start encoders"),
+    )
     proof = unattended.run(ctx, fixture=fixture, iam_simulated=True)
     assert status(proof, "launcher-backlog") == PASS
 
@@ -275,8 +306,7 @@ def test_it_refuses_to_start_without_an_operator_batch_baseline(tmp_path, fixtur
     assert not ctx.world.jobs
 
 
-def test_the_preflight_demands_the_iam_simulation_and_stops_before_any_upload(
-        tmp_path, fixture):
+def test_the_preflight_demands_the_iam_simulation_and_stops_before_any_upload(tmp_path, fixture):
     ctx = with_baseline(tmp_path, fixture)
     jobs = len(ctx.world.jobs)
     proof = unattended.run(ctx, fixture=fixture, iam_simulated=False)
@@ -355,10 +385,25 @@ def test_an_interrupt_stops_the_encoders_the_launcher_started(tmp_path, fixture)
 
 def test_unattended_without_a_baseline_is_an_error_through_the_cli(tmp_path, fixture):
     out = io.StringIO()
-    code = evidence.main(["unattended", "--profile", "dc2-project2-mfa", "--region",
-                          "ap-southeast-1", "--account", "123456789012", "--run-id", "cli",
-                          "--dry-run", "--fixture", str(fixture), "--iam-simulated"],
-                         stdout=out, world=sim.SimWorld(launcher=True))
+    code = evidence.main(
+        [
+            "unattended",
+            "--profile",
+            "dc2-project2-mfa",
+            "--region",
+            "ap-southeast-1",
+            "--account",
+            "123456789012",
+            "--run-id",
+            "cli",
+            "--dry-run",
+            "--fixture",
+            str(fixture),
+            "--iam-simulated",
+        ],
+        stdout=out,
+        world=sim.SimWorld(launcher=True),
+    )
     body = json.loads(out.getvalue())
     assert code == 1 and "#185" in body["error"]
 

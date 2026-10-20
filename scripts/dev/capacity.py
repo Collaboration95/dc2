@@ -362,9 +362,7 @@ def may_stop(lease, owner, now, force):
 
 def start(args, env, executable, image):
     now = time.time()
-    request = resolve_request(
-        cpus=args.cpus, memory_gib=args.memory_gib, benchmark=args.benchmark
-    )
+    request = resolve_request(cpus=args.cpus, memory_gib=args.memory_gib, benchmark=args.benchmark)
     persisted = persisted_resources()
     resources = effective_resources(request, persisted)
     state = instance_state(executable, env)
@@ -529,8 +527,7 @@ def run_job(args, env, executable, image):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "action",
-        choices=["install", "start", "status", "stop", "env", "reap", "renew", "run"],
+        "action", choices=["install", "start", "status", "stop", "env", "reap", "renew", "run"]
     )
     parser.add_argument("--cpus", type=int, help="default profile allows 1..2")
     parser.add_argument("--memory-gib", type=int, help="default profile allows 1..2")

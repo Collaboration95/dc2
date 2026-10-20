@@ -53,11 +53,7 @@ def engines(monkeypatch):
         return engine
 
     monkeypatch.setattr(media_database, "create_async_engine", build)
-    monkeypatch.setattr(
-        media_database,
-        "async_sessionmaker",
-        lambda *a, **k: lambda: AsyncMock(),
-    )
+    monkeypatch.setattr(media_database, "async_sessionmaker", lambda *a, **k: lambda: AsyncMock())
     return made
 
 

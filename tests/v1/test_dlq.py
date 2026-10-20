@@ -260,14 +260,20 @@ SCOPE_ARGS = ["--profile", "dc2-project2-mfa", "--region", "ap-southeast-1"]
 
 @pytest.fixture
 def clean_env(monkeypatch):
-    for name in ("AWS_PROFILE", "AWS_DEFAULT_PROFILE", "AWS_ACCESS_KEY_ID", "AWS_SESSION_TOKEN",
-                 "DC2_AWS_ACCOUNT"):
+    for name in (
+        "AWS_PROFILE",
+        "AWS_DEFAULT_PROFILE",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SESSION_TOKEN",
+        "DC2_AWS_ACCOUNT",
+    ):
         monkeypatch.delenv(name, raising=False)
 
 
 @pytest.fixture
 def no_client(monkeypatch):
     """Any attempt to build an AWS client fails the test: usage errors must come first."""
+
     def forbidden(*_a, **_k):
         raise AssertionError("an AWS client was built")
 
@@ -275,29 +281,41 @@ def no_client(monkeypatch):
     monkeypatch.setattr(dlq, "build_verified_client", forbidden)
 
 
-@pytest.mark.parametrize("extra", [
-    [],
-    ["--profile", "dc2-project2-mfa"],
-    ["--region", "ap-southeast-1"],
-    ["--profile", "default", "--region", "ap-southeast-1"],
-    ["--profile", "dc2-project2-mfa", "--region", "us-east-1"],
-    ["--profile", "dc2-project2-mfa", "--region", "ap-southeast-1", "--account", "123"],
-])
+@pytest.mark.parametrize(
+    "extra",
+    [
+        [],
+        ["--profile", "dc2-project2-mfa"],
+        ["--region", "ap-southeast-1"],
+        ["--profile", "default", "--region", "ap-southeast-1"],
+        ["--profile", "dc2-project2-mfa", "--region", "us-east-1"],
+        ["--profile", "dc2-project2-mfa", "--region", "ap-southeast-1", "--account", "123"],
+    ],
+)
 def test_real_aws_commands_need_an_explicit_profile_region_and_account_before_any_client(
-        no_client, clean_env, extra):
+    no_client, clean_env, extra
+):
     with pytest.raises(SystemExit):
         dlq.main(["status", "--dlq-arn", DLQ_ARN, *extra])
 
 
 def test_a_non_loopback_endpoint_is_a_usage_error_not_a_fallback_to_default_credentials(
-        no_client, clean_env):
+    no_client, clean_env
+):
     with pytest.raises(SystemExit):
-        dlq.main(["status", "--dlq-arn", DLQ_ARN, "--endpoint-url", "https://sqs.example.test",
-                  *SCOPE_ARGS])
+        dlq.main(
+            [
+                "status",
+                "--dlq-arn",
+                DLQ_ARN,
+                "--endpoint-url",
+                "https://sqs.example.test",
+                *SCOPE_ARGS,
+            ]
+        )
 
 
-def test_the_sts_account_is_verified_before_any_sqs_client_exists(
-        monkeypatch, clean_env, capsys):
+def test_the_sts_account_is_verified_before_any_sqs_client_exists(monkeypatch, clean_env, capsys):
     fake = FakeBoto3("999999999999")
     monkeypatch.setitem(sys.modules, "boto3", fake)
     with pytest.raises(SystemExit, match="different account"):
@@ -308,7 +326,8 @@ def test_the_sts_account_is_verified_before_any_sqs_client_exists(
 
 
 def test_the_expected_project_account_is_the_default_check_and_account_overrides_it(
-        monkeypatch, clean_env, capsys):
+    monkeypatch, clean_env, capsys
+):
     fake = FakeBoto3(dlq.EXPECTED_ACCOUNT)
     fake.sqs.list_message_move_tasks.return_value = {"Results": []}
     monkeypatch.setitem(sys.modules, "boto3", fake)
@@ -354,9 +373,7 @@ async def test_quarantined_message_in_emulator_dlq_is_inspectable(sqs_local):
 
 
 @pytest.mark.integration
-async def test_emulator_redrive_returns_a_quarantined_envelope_and_keeps_the_invalid_one(
-    sqs_local,
-):
+async def test_emulator_redrive_returns_a_quarantined_envelope_and_keeps_the_invalid_one(sqs_local):
     client, urls = sqs_local
     work, dlq_url = urls["processing-work"], urls["processing-work-dlq"]
     body = message("work")

@@ -147,9 +147,7 @@ def test_status_flags_a_running_vm_with_an_expired_lease_without_stopping_it(
     home, monkeypatch, capsys
 ):
     stopped = []
-    capacity.write_lease(
-        capacity.make_lease(1, keep_alive=False, resources={}, now=0, owner=OTHER)
-    )
+    capacity.write_lease(capacity.make_lease(1, keep_alive=False, resources={}, now=0, owner=OTHER))
     monkeypatch.setattr(capacity, "instance_state", lambda *a: "Running")
     monkeypatch.setattr(capacity, "run", lambda *a, **k: None)
     monkeypatch.setattr(capacity, "stop_instance", lambda *a: stopped.append(a))

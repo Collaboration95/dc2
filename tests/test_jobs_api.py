@@ -61,10 +61,7 @@ async def client(test_user, storage: FakeStorage):
 
 
 def make_job(
-    *,
-    status: JobStatus = JobStatus.QUEUED,
-    output_key: str | None = None,
-    error: str | None = None,
+    *, status: JobStatus = JobStatus.QUEUED, output_key: str | None = None, error: str | None = None
 ) -> Job:
     now = datetime.now(UTC)
     return Job(
@@ -101,11 +98,7 @@ async def test_get_queued_job_omits_internal_and_empty_fields(
     response = await client.get(f"/jobs/{job.id}")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "id": str(job.id),
-        "filename": "demo.mp4",
-        "status": "queued",
-    }
+    assert response.json() == {"id": str(job.id), "filename": "demo.mp4", "status": "queued"}
 
 
 @pytest.mark.asyncio

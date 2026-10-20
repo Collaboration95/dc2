@@ -1,7 +1,8 @@
 # Contributing
 
 Use Python 3.12 and follow the Ruff settings in `pyproject.toml`: 100-column lines, four-space
-indentation, and the configured import and lint rules. Ruff format is the Python formatter.
+indentation, and the configured import and lint rules. Ruff format is the Python formatter;
+short expressions stay compact even when the input has a trailing comma.
 
 Before committing Python changes, run `make lint`, `make format-check`, and `make test`. The first two
 commands are local and read-only; `make test` uses the offline fast suite. Format only the files you

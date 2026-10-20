@@ -29,10 +29,7 @@ async def test_login_releases_read_connection_before_password_verification(
     with Session(engine) as seed:
         seed.add(
             User(
-                id=owner_id,
-                email="known@example.com",
-                password_hash="stored-hash",
-                role="operator",
+                id=owner_id, email="known@example.com", password_hash="stored-hash", role="operator"
             )
         )
         seed.commit()
@@ -50,8 +47,7 @@ async def test_login_releases_read_connection_before_password_verification(
                     yield
 
             session = SimpleNamespace(
-                begin=transaction,
-                scalar=AsyncMock(side_effect=database.scalar),
+                begin=transaction, scalar=AsyncMock(side_effect=database.scalar)
             )
 
             def verify(password, password_hash):

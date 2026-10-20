@@ -278,10 +278,7 @@ async def test_an_upload_records_its_owner(test_user, monkeypatch):
     from tests.test_uploads import FakeUpload
 
     await uploads_api.upload_video(
-        file=FakeUpload(10),
-        user=test_user,
-        storage=FakeStorage(),
-        session=object(),
+        file=FakeUpload(10), user=test_user, storage=FakeStorage(), session=object()
     )
 
     assert recorded["owner_id"] == test_user.id

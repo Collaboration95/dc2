@@ -336,20 +336,13 @@ async def run(
             )
 
         complete = await execute(
-            factory,
-            envelope,
-            settings,
-            renew=renew,
-            deadline=deadline,
-            task_name=name,
+            factory, envelope, settings, renew=renew, deadline=deadline, task_name=name
         )
         if complete is SKIPPED:
             continue
         if complete is STALE or complete:
             await call(
-                sqs.delete_message,
-                QueueUrl=queue_url,
-                ReceiptHandle=message["ReceiptHandle"],
+                sqs.delete_message, QueueUrl=queue_url, ReceiptHandle=message["ReceiptHandle"]
             )
             log_safe_event(
                 logger,

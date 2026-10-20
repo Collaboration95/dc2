@@ -69,8 +69,11 @@ class FakeGateway:
         if path.startswith("/api/processing/jobs"):
             return 200, {}, b"[]"
         if path == "/api/media/uploads/reservations":
-            reply = {"upload": {"url": "https://s3", "fields": {}}, "expires_at": "x",
-                     "finalize_url": "y"}
+            reply = {
+                "upload": {"url": "https://s3", "fields": {}},
+                "expires_at": "x",
+                "finalize_url": "y",
+            }
             return 201, {}, json.dumps(reply).encode()
         return 404, {}, b"{}"
 
@@ -108,9 +111,17 @@ def settings_for(tmp_path, **overrides):
     images = tmp_path / "images.json"
     images.write_text(json.dumps({o: f"local-{o}:1" for o in ("media", "processing", "worker")}))
     values = dict(
-        profile="dc2-project2", region="ap-southeast-1", account=ACCOUNT, run_id="t1",
-        state_dir=state, execute=True, images_file=images, seed_email="smoke@example.com",
-        assume_empty_counts=True, forecast_usd=0.0)
+        profile="dc2-project2",
+        region="ap-southeast-1",
+        account=ACCOUNT,
+        run_id="t1",
+        state_dir=state,
+        execute=True,
+        images_file=images,
+        seed_email="smoke@example.com",
+        assume_empty_counts=True,
+        forecast_usd=0.0,
+    )
     values.update(overrides)
     return Settings(**values)
 
@@ -123,19 +134,37 @@ class Rig:
         self.gateway = gateway or FakeGateway()
         self.session = FakeSession()
         self.journal = DeployJournal(
-            self.s.state_dir / "deploy-journal.json", station=self.s.station,
-            environment=self.s.env)
+            self.s.state_dir / "deploy-journal.json", station=self.s.station, environment=self.s.env
+        )
         if not self.journal.exists():
-            self.journal.create({
-                "run_id": self.s.run_id, "env": self.s.env, "account": ACCOUNT,
-                "region": self.s.region, "created_at": "t", "steps": {}, "resources": {},
-                "outputs": {}, "images": {}, "events": []})
+            self.journal.create(
+                {
+                    "run_id": self.s.run_id,
+                    "env": self.s.env,
+                    "account": ACCOUNT,
+                    "region": self.s.region,
+                    "created_at": "t",
+                    "steps": {},
+                    "resources": {},
+                    "outputs": {},
+                    "images": {},
+                    "events": [],
+                }
+            )
 
     def pipeline(self):
         return Pipeline(
-            self.s, self.sim, self.journal, docker=self.docker, http=self.gateway,
-            session_main=self.session, clock=iter_clock(), sleep=lambda _s: None,
-            stderr=io.StringIO(), today=lambda: TODAY)
+            self.s,
+            self.sim,
+            self.journal,
+            docker=self.docker,
+            http=self.gateway,
+            session_main=self.session,
+            clock=iter_clock(),
+            sleep=lambda _s: None,
+            stderr=io.StringIO(),
+            today=lambda: TODAY,
+        )
 
     def deploy(self, **kwargs):
         pipeline = self.pipeline()
@@ -168,10 +197,18 @@ def rig(tmp_path):
 
 
 # ---- scope and transport ----------------------
-@pytest.mark.parametrize("override", [
-    {"profile": "default"}, {"profile": "bad profile"}, {"region": "us-east-1"},
-    {"account": "1234"}, {"run_id": "UPPER"}, {"run_id": "x" * 17}, {"budget_usd": 0},
-])
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"profile": "default"},
+        {"profile": "bad profile"},
+        {"region": "us-east-1"},
+        {"account": "1234"},
+        {"run_id": "UPPER"},
+        {"run_id": "x" * 17},
+        {"budget_usd": 0},
+    ],
+)
 def test_settings_refuse_default_profile_foreign_region_and_malformed_scope(tmp_path, override):
     with pytest.raises(DeployError):
         settings_for(tmp_path, **override)
@@ -179,15 +216,27 @@ def test_settings_refuse_default_profile_foreign_region_and_malformed_scope(tmp_
 
 def test_the_cli_requires_every_scope_flag_and_never_defaults_the_profile(capsys):
     with pytest.raises(SystemExit):
-        deploy.main(["deploy", "--region", "ap-southeast-1", "--account", ACCOUNT,
-                     "--run-id", "t1", "--dry-run"])
+        deploy.main(
+            [
+                "deploy",
+                "--region",
+                "ap-southeast-1",
+                "--account",
+                ACCOUNT,
+                "--run-id",
+                "t1",
+                "--dry-run",
+            ]
+        )
     assert "--profile" in capsys.readouterr().err
 
 
 def test_live_transport_refuses_inherited_aws_credentials():
     with pytest.raises(OperationError):
-        CliTransport({"profile": "p", "region": "ap-southeast-1", "account": ACCOUNT},
-                     environ={"AWS_PROFILE": "other"})
+        CliTransport(
+            {"profile": "p", "region": "ap-southeast-1", "account": ACCOUNT},
+            environ={"AWS_PROFILE": "other"},
+        )
 
 
 class RecordingRunner:
@@ -197,11 +246,16 @@ class RecordingRunner:
     def __call__(self, argv, **kwargs):
         index = argv.index("--cli-input-json") if "--cli-input-json" in argv else None
         path = Path(argv[index + 1].removeprefix("file://")) if index else None
-        self.calls.append({
-            "argv": argv, "env": kwargs["env"],
-            "file_mode": stat.S_IMODE(path.stat().st_mode) if path else None,
-            "dir_mode": stat.S_IMODE(path.parent.stat().st_mode) if path else None,
-            "body": json.loads(path.read_text()) if path else None, "path": path})
+        self.calls.append(
+            {
+                "argv": argv,
+                "env": kwargs["env"],
+                "file_mode": stat.S_IMODE(path.stat().st_mode) if path else None,
+                "dir_mode": stat.S_IMODE(path.parent.stat().st_mode) if path else None,
+                "body": json.loads(path.read_text()) if path else None,
+                "path": path,
+            }
+        )
         return subprocess.CompletedProcess(argv, self.returncode, self.stdout, self.stderr)
 
 
@@ -212,8 +266,11 @@ def transport(runner, **kwargs):
 
 def test_live_call_sends_the_request_through_a_private_file_and_removes_it():
     runner = RecordingRunner('{"Version": 1}')
-    result = transport(runner).call("ssm", "put-parameter", {
-        "Name": "/dc2/x/a", "Value": "hunter2-very-secret", "Type": "SecureString"})
+    result = transport(runner).call(
+        "ssm",
+        "put-parameter",
+        {"Name": "/dc2/x/a", "Value": "hunter2-very-secret", "Type": "SecureString"},
+    )
     call = runner.calls[0]
     assert result == {"Version": 1}
     assert "hunter2-very-secret" not in " ".join(call["argv"])
@@ -226,26 +283,37 @@ def test_live_call_sends_the_request_through_a_private_file_and_removes_it():
 def test_live_call_never_inherits_the_callers_aws_environment(monkeypatch):
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "leak")
     runner = RecordingRunner()
-    CliTransport({"profile": "p", "region": "ap-southeast-1", "account": ACCOUNT},
-                 runner=runner, environ={}).call("sts", "get-caller-identity", {})
+    CliTransport(
+        {"profile": "p", "region": "ap-southeast-1", "account": ACCOUNT}, runner=runner, environ={}
+    ).call("sts", "get-caller-identity", {})
     assert not [k for k in runner.calls[0]["env"] if k == "AWS_SECRET_ACCESS_KEY"]
     assert runner.calls[0]["env"]["AWS_IGNORE_CONFIGURED_ENDPOINT_URLS"] == "true"
 
 
 def test_a_cli_failure_surfaces_only_the_error_code_not_the_message():
-    runner = RecordingRunner(returncode=254, stderr=(
-        "\nAn error occurred (ValidationError) when calling the DescribeStacks operation: "
-        "Stack with id x does not exist (secret-ish detail)"))
+    runner = RecordingRunner(
+        returncode=254,
+        stderr=(
+            "\nAn error occurred (ValidationError) when calling the DescribeStacks operation: "
+            "Stack with id x does not exist (secret-ish detail)"
+        ),
+    )
     with pytest.raises(AwsError) as caught:
         transport(runner).call("cloudformation", "describe-stacks", {"StackName": "x"})
     assert caught.value.code == "ValidationError"
     assert "secret-ish" not in str(caught.value)
 
 
-@pytest.mark.parametrize("service,operation", [
-    ("s3api", "put-bucket-policy"), ("ec2", "run-instances"), ("iam", "create-user"),
-    ("rds", "delete-db-snapshot"), ("lambda", "put-function-concurrency"),
-])
+@pytest.mark.parametrize(
+    "service,operation",
+    [
+        ("s3api", "put-bucket-policy"),
+        ("ec2", "run-instances"),
+        ("iam", "create-user"),
+        ("rds", "delete-db-snapshot"),
+        ("lambda", "put-function-concurrency"),
+    ],
+)
 def test_calls_outside_the_allowlist_are_refused_before_any_process_starts(service, operation):
     runner = RecordingRunner()
     with pytest.raises(DeployError):
@@ -268,13 +336,22 @@ def test_a_streaming_body_travels_as_a_path_argument_not_in_the_request_json():
 
 def test_plans_redact_parameter_values_but_keep_tags_and_elide_template_bodies():
     scope = {"profile": "p", "region": "ap-southeast-1", "account": ACCOUNT}
-    shown = deploy.display_command(scope, "ssm", "put-parameter", {
-        "Name": "/n", "Value": "s3cr3t", "Type": "SecureString",
-        "Tags": [{"Key": "owner-run", "Value": "t1"}]})
+    shown = deploy.display_command(
+        scope,
+        "ssm",
+        "put-parameter",
+        {
+            "Name": "/n",
+            "Value": "s3cr3t",
+            "Type": "SecureString",
+            "Tags": [{"Key": "owner-run", "Value": "t1"}],
+        },
+    )
     assert "s3cr3t" not in shown and '"Value":"<redacted>"' in shown and '"Value":"t1"' in shown
     body = "x" * 5000
-    shown = deploy.display_command(scope, "cloudformation", "create-change-set",
-                                   {"StackName": "s", "TemplateBody": body})
+    shown = deploy.display_command(
+        scope, "cloudformation", "create-change-set", {"StackName": "s", "TemplateBody": body}
+    )
     assert body not in shown and "5000 bytes sha256:" in shown
 
 
@@ -343,8 +420,14 @@ def test_preflight_blocks_fewer_than_two_fargate_vcpus_but_only_warns_below_six(
 
 
 def test_preflight_blocks_a_stack_with_the_run_name_that_this_run_does_not_own(rig):
-    rig.sim.stacks[rig.s.env] = {"status": "CREATE_COMPLETE", "tags": {}, "resources": [],
-                                 "outputs": {}, "changesets": {}, "id": "someone-elses"}
+    rig.sim.stacks[rig.s.env] = {
+        "status": "CREATE_COMPLETE",
+        "tags": {},
+        "resources": [],
+        "outputs": {},
+        "changesets": {},
+        "id": "someone-elses",
+    }
     assert "name-collisions" in preflight_blockers(rig)
 
 
@@ -356,7 +439,9 @@ def test_preflight_blocks_leftover_parameters_and_log_groups_that_are_not_tagged
 
 def test_preflight_accepts_resources_this_run_already_created_so_a_resume_works(rig):
     rig.sim.params[f"/dc2/{rig.s.env}/jwt_secret"] = {
-        deploy.PROJECT_KEY: deploy.PROJECT_VALUE, deploy.RUN_KEY: rig.s.run_id}
+        deploy.PROJECT_KEY: deploy.PROJECT_VALUE,
+        deploy.RUN_KEY: rig.s.run_id,
+    }
     rig.pipeline().preflight()
 
 
@@ -442,7 +527,9 @@ def test_a_fresh_bootstrap_stack_is_created_and_the_rolled_back_one_is_not_touch
     allowed = json.loads(request["TemplateBody"])["Parameters"]["Namespace"]["AllowedValues"]
     assert allowed == [rig.s.env]
     assert {t["Key"]: t["Value"] for t in request["Tags"]} == {
-        "deploy-project": "dc2-v1", "owner-run": "t1"}
+        "deploy-project": "dc2-v1",
+        "owner-run": "t1",
+    }
 
 
 def test_adopting_a_bootstrap_stack_requires_it_to_be_healthy_and_exposes_a_bucket(rig):
@@ -455,8 +542,13 @@ def test_adopting_a_bootstrap_stack_requires_it_to_be_healthy_and_exposes_a_buck
 
 def adopt(rig):
     rig.sim.stacks["shared-staging"] = {
-        "status": "CREATE_COMPLETE", "tags": {}, "resources": [], "id": "s", "changesets": {},
-        "outputs": {"ArtifactsBucket": "shared-artifacts"}}
+        "status": "CREATE_COMPLETE",
+        "tags": {},
+        "resources": [],
+        "id": "s",
+        "changesets": {},
+        "outputs": {"ArtifactsBucket": "shared-artifacts"},
+    }
     rig.sim.buckets["shared-artifacts"] = {"tags": {}, "versions": [], "markers": [], "uploads": []}
     rig.s.adopt_bootstrap = "shared-staging"
 
@@ -491,14 +583,22 @@ def test_a_later_execute_run_reuses_the_described_change_set_and_continues(tmp_p
         rig.deploy()
     rig.s.execute = True
     rig.deploy()
-    assert len([c for c in rig.ops("create-change-set")
-                if c[2]["StackName"].endswith("bootstrap")]) == 1
+    assert (
+        len([c for c in rig.ops("create-change-set") if c[2]["StackName"].endswith("bootstrap")])
+        == 1
+    )
     assert set(rig.steps().values()) == {"done"}
 
 
 def change(action, logical="Thing", kind="AWS::S3::Bucket", replacement="False"):
-    return {"ResourceChange": {"Action": action, "LogicalResourceId": logical,
-                               "ResourceType": kind, "Replacement": replacement}}
+    return {
+        "ResourceChange": {
+            "Action": action,
+            "LogicalResourceId": logical,
+            "ResourceType": kind,
+            "Replacement": replacement,
+        }
+    }
 
 
 def test_an_initial_change_set_may_only_add_resources():
@@ -583,8 +683,9 @@ def test_the_unattended_launcher_is_off_unless_the_deploy_asks_for_it(tmp_path):
 def test_unattended_launch_flag_renders_the_stack_parameter(tmp_path):
     rig = Rig(tmp_path, unattended_launch=True)
     assert applications_parameters(rig)["UnattendedLaunch"] == "true"
-    parsed = deploy.build_parser().parse_args(["deploy", *ARGS, "--run-id", "t1",
-                                               "--unattended-launch"])
+    parsed = deploy.build_parser().parse_args(
+        ["deploy", *ARGS, "--run-id", "t1", "--unattended-launch"]
+    )
     assert parsed.unattended_launch is True
 
 
@@ -593,8 +694,10 @@ def test_images_are_pushed_once_and_the_stack_receives_digest_pinned_references(
     rig.deploy(stop_after="applications")
     images = rig.journal.view()["images"]
     assert set(images) == {"media", "processing", "worker"}
-    assert all(i["uri"].endswith("@" + i["digest"]) and i["digest"].startswith("sha256:")
-               for i in images.values())
+    assert all(
+        i["uri"].endswith("@" + i["digest"]) and i["digest"].startswith("sha256:")
+        for i in images.values()
+    )
     pushes = [c for c in rig.docker.commands if c[0] == "push"]
     assert len(pushes) == 3
     update = [c for c in rig.ops("create-change-set") if c[2]["ChangeSetType"] == "UPDATE"][0][2]
@@ -654,17 +757,25 @@ def test_a_resume_refuses_a_local_image_that_changed_after_it_was_pushed(rig):
 
 
 def test_a_registry_digest_that_differs_from_the_expected_one_is_refused(rig):
-    rig.s.images_file.write_text(json.dumps({
-        "media": {"source": "m:1", "expected_digest": "sha256:" + "0" * 64},
-        "processing": "p:1", "worker": "w:1"}))
+    rig.s.images_file.write_text(
+        json.dumps(
+            {
+                "media": {"source": "m:1", "expected_digest": "sha256:" + "0" * 64},
+                "processing": "p:1",
+                "worker": "w:1",
+            }
+        )
+    )
     with pytest.raises(DeployError, match="expected_digest"):
         rig.deploy()
     assert rig.steps()["images"] == "failed"
 
 
 def evidence(status="LOCAL_ARTIFACT_PASS", **overrides):
-    images = {o: {"tag": f"dc2-v1-{o}:local-abc", "config_id": f"sha256:{o}"}
-              for o in ("media", "processing", "worker")}
+    images = {
+        o: {"tag": f"dc2-v1-{o}:local-abc", "config_id": f"sha256:{o}"}
+        for o in ("media", "processing", "worker")
+    }
     images.update(overrides)
     return {"schema_version": 2, "status": status, "images": images}
 
@@ -701,14 +812,23 @@ REAL_IDS = {o: "sha256:" + hashlib.sha256(o.encode()).hexdigest() for o in OWNER
 def real_evidence(tmp_path):
     """The shape deploy/v1/build_and_verify.py writes: real tags, real 64-hex config ids."""
     path = tmp_path / "images-evidence.json"
-    path.write_text(json.dumps(evidence(**{
-        o: {"tag": f"dc2-v1-{o}:local-44480bbf6099", "config_id": REAL_IDS[o]} for o in OWNERS})))
+    path.write_text(
+        json.dumps(
+            evidence(
+                **{
+                    o: {"tag": f"dc2-v1-{o}:local-44480bbf6099", "config_id": REAL_IDS[o]}
+                    for o in OWNERS
+                }
+            )
+        )
+    )
     return path
 
 
 @pytest.fixture
 def daemon(monkeypatch):
     """A stand-in local daemon: records every argv it is asked and answers from `.images`."""
+
     class Daemon:
         def __init__(self):
             self.asked = []
@@ -725,13 +845,15 @@ def daemon(monkeypatch):
 
 
 def dry_run_with(images):
-    return run_main(["deploy", *ARGS, "--run-id", "r1", "--dry-run", "--images", str(images)],
-                    today=lambda: TODAY)
+    return run_main(
+        ["deploy", *ARGS, "--run-id", "r1", "--dry-run", "--images", str(images)],
+        today=lambda: TODAY,
+    )
 
 
 def test_a_dry_run_accepts_real_build_evidence_by_observing_the_local_daemon(tmp_path, daemon):
     code, text = dry_run_with(real_evidence(tmp_path))
-    result = json.loads(text[:text.index("\n## ")])
+    result = json.loads(text[: text.index("\n## ")])
     assert code == 0 and result["ok"] and result["steps"]["images"] == "done"
     assert set(result["image_inspect"].values()) == {"observed: local Docker daemon"}
     assert len(result["image_inspect"]) == 3
@@ -746,10 +868,12 @@ def test_a_dry_run_only_ever_asks_the_daemon_to_inspect_a_named_image(tmp_path, 
 def test_a_dry_run_falls_back_to_the_evidence_id_when_the_daemon_cannot_answer(tmp_path, daemon):
     daemon.images = {}  # unreachable, or the image is not in this daemon
     code, text = dry_run_with(real_evidence(tmp_path))
-    result = json.loads(text[:text.index("\n## ")])
+    result = json.loads(text[: text.index("\n## ")])
     assert code == 0 and result["steps"]["images"] == "done"
-    assert all(v.startswith("simulated: build evidence config_id")
-               for v in result["image_inspect"].values())
+    assert all(
+        v.startswith("simulated: build evidence config_id")
+        for v in result["image_inspect"].values()
+    )
 
 
 def test_a_dry_run_still_refuses_a_local_image_rebuilt_since_the_evidence(tmp_path, daemon):
@@ -775,12 +899,19 @@ def test_the_observing_docker_simulates_login_tag_and_push_and_never_asks_the_da
     assert asked == []
 
 
-@pytest.mark.parametrize("argv", [
-    ["push", "registry/x:1"], ["login", "--password-stdin", "r"], ["image", "inspect", "x"],
-    ["image", "inspect", "--format", "{{.Id}}", "--all", "x"], ["image", "rm", "x"],
-    ["image", "inspect", "--format", "{{.Id}}", "x y"], ["image", "inspect", "--format", "f", "-x"],
-    ["image", "inspect", "--format", "{{.Id}}", "x;rm"],
-])
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["push", "registry/x:1"],
+        ["login", "--password-stdin", "r"],
+        ["image", "inspect", "x"],
+        ["image", "inspect", "--format", "{{.Id}}", "--all", "x"],
+        ["image", "rm", "x"],
+        ["image", "inspect", "--format", "{{.Id}}", "x y"],
+        ["image", "inspect", "--format", "f", "-x"],
+        ["image", "inspect", "--format", "{{.Id}}", "x;rm"],
+    ],
+)
 def test_the_daemon_helper_refuses_anything_but_a_pinned_image_inspect(monkeypatch, argv):
     def forbidden(*args, **kwargs):
         raise AssertionError("no process may start for a refused command")
@@ -791,7 +922,8 @@ def test_the_daemon_helper_refuses_anything_but_a_pinned_image_inspect(monkeypat
 
 
 def test_the_daemon_helper_runs_docker_with_the_sanitized_environment_and_checks_the_answer(
-        monkeypatch):
+    monkeypatch,
+):
     calls, outcome = [], {}
 
     def fake_run(command, **kwargs):
@@ -808,20 +940,30 @@ def test_the_daemon_helper_runs_docker_with_the_sanitized_environment_and_checks
     assert deploy_sim.daemon_inspect(argv) == good.strip()
     command, kwargs = calls[0]
     assert command == ["docker", *argv] and "AWS_SECRET_ACCESS_KEY" not in kwargs["env"]
-    for bad in ((1, "", "Cannot connect to the Docker daemon"), (0, "not an answer\n", ""),
-                (0, f"windows/amd64 {REAL_IDS['media']}\n", ""), FileNotFoundError(),
-                subprocess.TimeoutExpired("docker", 20)):
+    for bad in (
+        (1, "", "Cannot connect to the Docker daemon"),
+        (0, "not an answer\n", ""),
+        (0, f"windows/amd64 {REAL_IDS['media']}\n", ""),
+        FileNotFoundError(),
+        subprocess.TimeoutExpired("docker", 20),
+    ):
         outcome["value"] = bad
         assert deploy_sim.daemon_inspect(argv) is None
 
 
-@pytest.mark.parametrize("content,message", [
-    ("not json", "unreadable"), ('{"media": "m"}', "exactly media"),
-    ('{"media":"m","processing":"p","worker":"w x"}', "plain image reference"),
-    ('{"media":"m","processing":"p","worker":{"source":"w","expected_digest":"sha256:short"}}',
-     "sha256"),
-    ('{"media":"m","processing":"p","worker":{"source":"w","extra":1}}', "needs 'source'"),
-])
+@pytest.mark.parametrize(
+    "content,message",
+    [
+        ("not json", "unreadable"),
+        ('{"media": "m"}', "exactly media"),
+        ('{"media":"m","processing":"p","worker":"w x"}', "plain image reference"),
+        (
+            '{"media":"m","processing":"p","worker":{"source":"w","expected_digest":"sha256:short"}}',
+            "sha256",
+        ),
+        ('{"media":"m","processing":"p","worker":{"source":"w","extra":1}}', "needs 'source'"),
+    ],
+)
 def test_images_input_is_validated(tmp_path, content, message):
     path = tmp_path / "i.json"
     path.write_text(content)
@@ -833,9 +975,16 @@ def test_images_input_is_validated(tmp_path, content, message):
 def test_database_bootstrap_keeps_credentials_in_ssm_only_and_removes_the_temporary_input(rig):
     rig.deploy(stop_after="db-bootstrap")
     prefix = f"/dc2/{rig.s.env}/"
-    assert sorted(rig.sim.params) == sorted(prefix + n for n in (
-        "media_runtime_dsn", "media_migration_dsn", "processing_runtime_dsn",
-        "processing_migration_dsn", "jwt_secret"))
+    assert sorted(rig.sim.params) == sorted(
+        prefix + n
+        for n in (
+            "media_runtime_dsn",
+            "media_migration_dsn",
+            "processing_runtime_dsn",
+            "processing_migration_dsn",
+            "jwt_secret",
+        )
+    )
     assert prefix + "bootstrap-input" not in rig.sim.params
     dsn = rig.sim.param_values[prefix + "media_runtime_dsn"]
     assert dsn.startswith("postgresql://media_runtime:") and dsn.endswith("/media_db")
@@ -850,9 +999,15 @@ def test_database_bootstrap_keeps_credentials_in_ssm_only_and_removes_the_tempor
 def test_the_four_database_roles_get_distinct_passwords_in_their_own_dsn(rig):
     rig.deploy(stop_after="db-bootstrap")
     prefix = f"/dc2/{rig.s.env}/"
-    passwords = {k: rig.sim.param_values[prefix + k].split(":")[2].split("@")[0]
-                 for k in ("media_runtime_dsn", "media_migration_dsn", "processing_runtime_dsn",
-                           "processing_migration_dsn")}
+    passwords = {
+        k: rig.sim.param_values[prefix + k].split(":")[2].split("@")[0]
+        for k in (
+            "media_runtime_dsn",
+            "media_migration_dsn",
+            "processing_runtime_dsn",
+            "processing_migration_dsn",
+        )
+    }
     assert len(set(passwords.values())) == 4 and all(len(p) >= 24 for p in passwords.values())
 
 
@@ -879,7 +1034,9 @@ def interrupt_publication_after_the_task_succeeded(rig):
     """The bootstrap task finishes, then the first DSN cannot be written (the second SSM put:
     the first is the temporary bootstrap input)."""
     rig.sim.fail[("ssm", "put-parameter")] = [
-        None, AwsError("ssm", "put-parameter", "ThrottlingException")]
+        None,
+        AwsError("ssm", "put-parameter", "ThrottlingException"),
+    ]
     with pytest.raises(AwsError):
         rig.deploy(stop_after="db-bootstrap")
     assert rig.sim.role_passwords  # the database now holds passwords the run has not published
@@ -888,11 +1045,15 @@ def interrupt_publication_after_the_task_succeeded(rig):
 
 def published_passwords(rig):
     prefix = f"/dc2/{rig.s.env}/"
-    return {role: urlsplit(rig.sim.param_values[prefix + key]).password
-            for key, role in {"media_runtime_dsn": "media_runtime",
-                              "media_migration_dsn": "media_migrator",
-                              "processing_runtime_dsn": "processing_runtime",
-                              "processing_migration_dsn": "processing_migrator"}.items()}
+    return {
+        role: urlsplit(rig.sim.param_values[prefix + key]).password
+        for key, role in {
+            "media_runtime_dsn": "media_runtime",
+            "media_migration_dsn": "media_migrator",
+            "processing_runtime_dsn": "processing_runtime",
+            "processing_migration_dsn": "processing_migrator",
+        }.items()
+    }
 
 
 def test_a_resume_after_the_bootstrap_task_finished_publishes_the_passwords_it_applied(rig):
@@ -953,8 +1114,11 @@ def test_losing_the_password_file_stops_the_unfinished_task_before_a_new_bootstr
     rig.deploy(stop_after="db-bootstrap")
     stop = first_index(rig, "stop-task", task=old)
     relaunch = [i for i, (_, op, _) in enumerate(rig.sim.calls) if op == "run-task"][1]
-    confirmed = [i for i, (_, op, p) in enumerate(rig.sim.calls)
-                 if op == "describe-tasks" and old in p["tasks"] and stop < i < relaunch]
+    confirmed = [
+        i
+        for i, (_, op, p) in enumerate(rig.sim.calls)
+        if op == "describe-tasks" and old in p["tasks"] and stop < i < relaunch
+    ]
     assert stop < confirmed[0] < relaunch  # stopped, observed STOPPED, only then relaunched
     assert rig.sim.tasks[old]["stopped"]
     assert published_passwords(rig) == rig.sim.role_passwords
@@ -990,15 +1154,17 @@ def test_a_resume_after_ecs_forgot_the_finished_task_never_describes_it_again(ri
 
 @pytest.mark.parametrize("answer", ["missing", "empty"])
 def test_an_unfinished_task_that_ecs_no_longer_reports_is_relaunched_with_the_saved_passwords(
-        rig, answer):
+    rig, answer
+):
     old = interrupt_while_waiting_for_the_bootstrap_task(rig)
     saved = json.loads((rig.s.state_dir / "db-bootstrap-passwords.json").read_text())
     if answer == "missing":
         rig.sim.tasks.pop(old)
     else:
         real = rig.sim.ecs_describe_tasks
-        rig.sim.ecs_describe_tasks = lambda p: {"tasks": [], "failures": []} if old in p[
-            "tasks"] else real(p)
+        rig.sim.ecs_describe_tasks = lambda p: (
+            {"tasks": [], "failures": []} if old in p["tasks"] else real(p)
+        )
     rig.deploy(stop_after="db-bootstrap")
     assert len(rig.ops("run-task")) == 2
     assert rig.sim.role_passwords == published_passwords(rig) == saved
@@ -1028,8 +1194,11 @@ def test_an_unjournaled_task_is_described_until_stopped_even_after_it_leaves_the
     calls = rig.sim.calls
     stop = first_index(rig, "stop-task", task=old)
     relaunch = [i for i, (_, op, _) in enumerate(calls) if op == "run-task"][1]
-    after = [i for i in range(stop + 1, relaunch)
-             if calls[i][1] == "describe-tasks" and old in calls[i][2]["tasks"]]
+    after = [
+        i
+        for i in range(stop + 1, relaunch)
+        if calls[i][1] == "describe-tasks" and old in calls[i][2]["tasks"]
+    ]
     assert len(after) >= 4  # three RUNNING answers, then STOPPED
     assert published_passwords(rig) == rig.sim.role_passwords
 
@@ -1071,8 +1240,11 @@ def test_a_retained_arn_ecs_does_not_know_counts_as_stopped_only_after_repeated_
     mark = len(rig.sim.calls)
     rig.deploy(stop_after="db-bootstrap")
     relaunch = [i for i, (_, op, _) in enumerate(rig.sim.calls) if op == "run-task"][1]
-    looks = [i for i in range(mark, relaunch) if rig.sim.calls[i][1] == "describe-tasks"
-             and old in rig.sim.calls[i][2]["tasks"]]
+    looks = [
+        i
+        for i in range(mark, relaunch)
+        if rig.sim.calls[i][1] == "describe-tasks" and old in rig.sim.calls[i][2]["tasks"]
+    ]
     assert len(looks) >= deploy.MISSING_LOOKS
     assert rig.ops("stop-task") == []
 
@@ -1098,7 +1270,10 @@ def test_each_owner_migrates_once_through_the_shared_module_in_order(rig):
     rig.deploy(stop_after="migrations")
     tasks = [p["taskDefinition"] for _, _, p in rig.ops("run-task")]
     assert [t.split("/")[-1].split(":")[0].rsplit("-", 1)[-1] for t in tasks] == [
-        "bootstrap", "mediamigration", "processingmigration"]
+        "bootstrap",
+        "mediamigration",
+        "processingmigration",
+    ]
     detail = rig.journal.view()["steps"]["migrations"]["detail"]
     assert detail["owners_done"] == ["media", "processing"]
     assert detail["schema_check"] == "task-exit-code-only"
@@ -1128,8 +1303,9 @@ def test_the_migration_journal_lock_is_never_taken_twice(rig):
 
 def test_schema_revision_is_read_from_sql_only_when_the_station_can_reach_it(rig, tmp_path):
     sql = tmp_path / "sql.json"
-    sql.write_text(json.dumps({
-        "ca_file": "/ca.pem", "media_dsn_file": "/m", "processing_dsn_file": "/p"}))
+    sql.write_text(
+        json.dumps({"ca_file": "/ca.pem", "media_dsn_file": "/m", "processing_dsn_file": "/p"})
+    )
     rig.s.sql_config = sql
     hook, label = rig.pipeline().schema_reader({"media": "m", "processing": "p"})
     assert label == "alembic_version-over-verified-tls" and callable(hook)
@@ -1161,11 +1337,17 @@ def test_the_operator_config_for_the_session_cli_is_private_and_nonsecret(rig):
     path = rig.pipeline().write_ops_config()
     data = json.loads(path.read_text())
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
-    assert set(data) == {"operator_station", "environment_id", "journal", "outputs_file",
-                         "counts_file"}
+    assert set(data) == {
+        "operator_station",
+        "environment_id",
+        "journal",
+        "outputs_file",
+        "counts_file",
+    }
     # Relative to the config, so the state works wherever it is synced (CD runner, laptop).
-    assert not any(Path(data[key]).is_absolute() for key in ("journal", "outputs_file",
-                                                              "counts_file"))
+    assert not any(
+        Path(data[key]).is_absolute() for key in ("journal", "outputs_file", "counts_file")
+    )
     loaded = operations.load_operator_config(path)[0]
     assert stat.S_IMODE(Path(loaded["counts_file"]).stat().st_mode) == 0o600
 
@@ -1215,8 +1397,13 @@ def test_the_smoke_runs_every_public_check_through_the_gateway(rig):
     rig.deploy()
     detail = rig.journal.view()["steps"]["public-smoke"]["detail"]["checks"]
     assert set(detail.values()) == {"PASS"}
-    assert {"media-health", "processing-health", "anonymous-denied", "login",
-            "upload-reserve"} <= set(detail)
+    assert {
+        "media-health",
+        "processing-health",
+        "anonymous-denied",
+        "login",
+        "upload-reserve",
+    } <= set(detail)
 
 
 def test_a_failing_smoke_fails_the_run_and_still_closes_the_session_window(tmp_path):
@@ -1282,8 +1469,10 @@ def test_a_crash_after_execute_but_before_journaling_does_not_execute_twice(rig)
     rig.deploy(stop_after="bootstrap-stack")
     rig.journal.mutate(lambda d: d["steps"].pop("bootstrap-stack"))
     rig.deploy(stop_after="bootstrap-stack")
-    assert len([c for c in rig.ops("execute-change-set")
-                if c[2]["StackName"].endswith("bootstrap")]) == 1
+    assert (
+        len([c for c in rig.ops("execute-change-set") if c[2]["StackName"].endswith("bootstrap")])
+        == 1
+    )
 
 
 def test_only_one_process_may_run_a_given_run_at_a_time(rig):
@@ -1306,8 +1495,12 @@ def test_failure_text_that_trips_the_secret_screen_is_withheld_not_fatal(rig):
 def test_the_journal_contains_names_and_hashes_but_no_credentials(rig):
     rig.deploy()
     text = (rig.s.state_dir / "deploy-journal.json").read_text()
-    for forbidden in ("postgresql://", "simulated-master-password", "password\":",
-                      "simulated-registry-password"):
+    for forbidden in (
+        "postgresql://",
+        "simulated-master-password",
+        'password":',
+        "simulated-registry-password",
+    ):
         assert forbidden not in text
     assert all(p not in text for p in rig.sim.param_values.values())
 
@@ -1348,12 +1541,15 @@ def test_teardown_deletes_in_dependency_order(deployed):
     deployed.teardown()
     sim = deployed.sim
     order = [
-        first_index(deployed, "delete-objects"), first_index(deployed, "batch-delete-image"),
-        first_index(deployed, "delete-db-instance"), first_index(deployed, "delete-db-cluster"),
+        first_index(deployed, "delete-objects"),
+        first_index(deployed, "batch-delete-image"),
+        first_index(deployed, "delete-db-instance"),
+        first_index(deployed, "delete-db-cluster"),
         first_index(deployed, "delete-parameter", Name=f"/dc2/{deployed.s.env}/media_runtime_dsn"),
         first_index(deployed, "delete-stack", StackName=deployed.s.env),
         first_index(deployed, "delete-stack", StackName=deployed.s.bootstrap_stack),
-        first_index(deployed, "delete-bucket"), first_index(deployed, "delete-repository"),
+        first_index(deployed, "delete-bucket"),
+        first_index(deployed, "delete-repository"),
     ]
     assert order == sorted(order) and min(order) >= 0
     assert not sim.buckets and not sim.repos and not sim.clusters and not sim.instances
@@ -1363,12 +1559,17 @@ def test_teardown_deletes_in_dependency_order(deployed):
 
 def test_teardown_removes_every_version_and_delete_marker_before_deleting_a_bucket(deployed):
     deployed.s.confirm_run_id = "t1"
-    seeded = {name: (len(b["versions"]), len(b["markers"]))
-              for name, b in deployed.sim.buckets.items()}
+    seeded = {
+        name: (len(b["versions"]), len(b["markers"])) for name, b in deployed.sim.buckets.items()
+    }
     assert any(v and m for v, m in seeded.values())
     deployed.teardown()
-    removed = [o["VersionId"] for _, op, p in deployed.sim.calls if op == "delete-objects"
-               for o in p["Delete"]["Objects"]]
+    removed = [
+        o["VersionId"]
+        for _, op, p in deployed.sim.calls
+        if op == "delete-objects"
+        for o in p["Delete"]["Objects"]
+    ]
     assert "dm1" in removed and "v1" in removed and "v2" in removed
     assert deployed.sim.buckets == {}
 
@@ -1380,7 +1581,9 @@ def test_teardown_takes_a_final_snapshot_by_default_and_tags_it(deployed):
     assert request["SkipFinalSnapshot"] is False
     assert request["FinalDBSnapshotIdentifier"] == f"{deployed.s.env}-final"
     assert deployed.sim.snapshots[f"{deployed.s.env}-final"]["tags"] == {
-        "deploy-project": "dc2-v1", "owner-run": "t1"}
+        "deploy-project": "dc2-v1",
+        "owner-run": "t1",
+    }
     assert deployed.ops("modify-db-cluster")[0][2]["DeletionProtection"] is False
 
 
@@ -1389,8 +1592,10 @@ def test_skipping_the_final_snapshot_is_explicit_and_leaves_a_clean_receipt(tmp_
     rig.deploy()
     pipeline = rig.teardown()
     request = rig.ops("delete-db-cluster")[0][2]
-    assert request == {"DBClusterIdentifier": request["DBClusterIdentifier"],
-                       "SkipFinalSnapshot": True}
+    assert request == {
+        "DBClusterIdentifier": request["DBClusterIdentifier"],
+        "SkipFinalSnapshot": True,
+    }
     assert rig.sim.snapshots == {}
     assert pipeline.receipt["status"] == "CLEAN" and pipeline.receipt["resources_remaining"] == []
     assert pipeline.receipt["final_snapshot"] == "skipped by operator"
@@ -1410,9 +1615,13 @@ def test_the_receipt_lists_the_snapshot_as_remaining_by_default(deployed):
 def test_the_receipt_names_the_preexisting_stack_it_never_touched(deployed):
     deployed.s.confirm_run_id = "t1"
     receipt = deployed.teardown().receipt
-    assert receipt["pre_existing_untouched"] == [{
-        "kind": "cloudformation-stack", "id": deploy.LEGACY_BOOTSTRAP_STACK,
-        "status": "ROLLBACK_COMPLETE"}]
+    assert receipt["pre_existing_untouched"] == [
+        {
+            "kind": "cloudformation-stack",
+            "id": deploy.LEGACY_BOOTSTRAP_STACK,
+            "status": "ROLLBACK_COMPLETE",
+        }
+    ]
     deleted = {p.get("StackName") for _, op, p in deployed.sim.calls if op == "delete-stack"}
     assert deploy.LEGACY_BOOTSTRAP_STACK not in deleted
 
@@ -1428,8 +1637,9 @@ def test_a_resource_whose_tags_no_longer_match_is_skipped_and_reported(deployed)
     assert ("bucket", victim) in kept and ("repository", foreign_repo) in kept
     assert victim in deployed.sim.buckets and foreign_repo in deployed.sim.repos
     assert not [c for c in deployed.ops("delete-bucket") if c[2]["Bucket"] == victim]
-    assert not [c for c in deployed.ops("delete-repository")
-                if c[2]["repositoryName"] == foreign_repo]
+    assert not [
+        c for c in deployed.ops("delete-repository") if c[2]["repositoryName"] == foreign_repo
+    ]
     remaining = {r["id"] for r in receipt["resources_remaining"]}
     assert {victim, foreign_repo} <= remaining
 
@@ -1446,12 +1656,17 @@ def test_an_untagged_parameter_in_the_run_namespace_is_kept_not_deleted(deployed
 def test_a_resource_the_journal_never_recorded_is_not_deleted_even_if_tagged_for_the_run(deployed):
     deployed.s.confirm_run_id = "t1"
     deployed.sim.buckets["unrecorded"] = {
-        "tags": {"deploy-project": "dc2-v1", "owner-run": "t1"}, "versions": [], "markers": [],
-        "uploads": []}
+        "tags": {"deploy-project": "dc2-v1", "owner-run": "t1"},
+        "versions": [],
+        "markers": [],
+        "uploads": [],
+    }
     receipt = deployed.teardown().receipt
     assert "unrecorded" in deployed.sim.buckets
-    assert any(r["kind"] == "tagged-resource" and "unrecorded" in r["id"]
-               for r in receipt["resources_remaining"])
+    assert any(
+        r["kind"] == "tagged-resource" and "unrecorded" in r["id"]
+        for r in receipt["resources_remaining"]
+    )
 
 
 def test_a_stack_deleted_while_the_database_still_exists_fails_instead_of_orphaning_it(deployed):
@@ -1474,14 +1689,16 @@ def test_teardown_resumes_after_a_failure_without_redoing_finished_steps(deploye
     assert len(deployed.ops("delete-objects")) == emptied
     assert receipt["resources_remaining"][0]["kind"] == "aurora-snapshot"
     assert deployed.sim.clusters == {} and deployed.sim.stacks[deployed.s.env]["status"] == (
-        "DELETE_COMPLETE")
+        "DELETE_COMPLETE"
+    )
 
 
 def test_teardown_is_idempotent_when_everything_is_already_gone(deployed):
     deployed.s.confirm_run_id = "t1"
     deployed.teardown()
-    deployed.journal.mutate(lambda d: [d["steps"].pop(k) for k in list(d["steps"])
-                                       if k.startswith("td-")])
+    deployed.journal.mutate(
+        lambda d: [d["steps"].pop(k) for k in list(d["steps"]) if k.startswith("td-")]
+    )
     receipt = deployed.teardown().receipt
     assert receipt["status"] == "ITEMS_REMAIN" and len(receipt["resources_remaining"]) == 1
 
@@ -1538,8 +1755,11 @@ def test_teardown_closes_the_session_then_stops_tasks_then_empties_the_buckets(d
     assert len(closed) == 1 and closed[0] >= start
     stop = first_index(deployed, "stop-task")
     emptied = first_index(deployed, "delete-objects")
-    confirmed = max(i for i, (_, op, _) in enumerate(deployed.sim.calls)
-                    if op == "describe-tasks" and i < emptied)
+    confirmed = max(
+        i
+        for i, (_, op, _) in enumerate(deployed.sim.calls)
+        if op == "describe-tasks" and i < emptied
+    )
     assert closed[0] <= stop < confirmed < emptied
     steps = deployed.steps()
     td = [name for name in steps if name.startswith("td-")]
@@ -1554,8 +1774,11 @@ def test_teardown_waits_for_a_stopping_task_to_report_stopped_before_emptying(de
     deployed.sim.tasks["arn:task/stray"] = {"definition": "d", "polls": 0, "stopped": False}
     deployed.teardown()
     stop, emptied = first_index(deployed, "stop-task"), first_index(deployed, "delete-objects")
-    polls = [i for i, (_, op, _) in enumerate(deployed.sim.calls)
-             if op == "describe-tasks" and stop < i < emptied]
+    polls = [
+        i
+        for i, (_, op, _) in enumerate(deployed.sim.calls)
+        if op == "describe-tasks" and stop < i < emptied
+    ]
     assert len(polls) >= 5  # four RUNNING answers, then STOPPED, then a clean re-list
 
 
@@ -1571,7 +1794,8 @@ def test_a_task_that_never_stops_halts_teardown_before_any_bucket_is_touched(dep
 
 
 def test_a_session_that_cannot_be_closed_stops_teardown_before_anything_is_stopped_or_emptied(
-        deployed):
+    deployed,
+):
     deployed.s.confirm_run_id = "t1"
     deployed.session = failing_session("Partial close; retry from retained journal")
     deployed.sim.tasks["arn:task/stray"] = {"definition": "d", "polls": 0, "stopped": False}
@@ -1624,13 +1848,18 @@ def test_an_adopted_bucket_keeps_another_runs_template_versions_through_teardown
     shared = shared_staging(first, second)
     first.deploy()
     second.deploy()
-    staged = {run: rig.journal.view()["resources"]["staged_objects"]
-              for run, rig in (("ra", first), ("rb", second))}
+    staged = {
+        run: rig.journal.view()["resources"]["staged_objects"]
+        for run, rig in (("ra", first), ("rb", second))
+    }
     # Same bytes, same digest: only the run id tells the two sets of objects apart.
     names = {run: {Path(o["key"]).name for o in objects} for run, objects in staged.items()}
     assert names["ra"] == names["rb"]
-    assert all(o["key"].startswith(f"templates/{run}/") and o["version_id"]
-               for run, objects in staged.items() for o in objects)
+    assert all(
+        o["key"].startswith(f"templates/{run}/") and o["version_id"]
+        for run, objects in staged.items()
+        for o in objects
+    )
     mine = {o["version_id"] for o in staged["rb"]}
     assert mine <= {v["VersionId"] for v in shared["versions"]}
     first.teardown()
@@ -1658,8 +1887,9 @@ def test_staged_objects_with_no_recorded_version_are_reported_not_guessed_at(rig
     shared = rig.sim.buckets["shared-artifacts"]
     rig.s.confirm_run_id = "t1"
     rig.deploy(stop_after="foundation")
-    rig.journal.mutate(lambda d: [o.update(version_id=None)
-                                  for o in d["resources"]["staged_objects"]])
+    rig.journal.mutate(
+        lambda d: [o.update(version_id=None) for o in d["resources"]["staged_objects"]]
+    )
     rig.teardown()
     detail = rig.journal.view()["steps"]["td-bootstrap-stack"]["detail"]
     assert detail["staged_versions_removed"] == 0 and detail["staged_without_version_id_kept"]
@@ -1674,7 +1904,8 @@ def late_writes(rig, times):
         if left[0] > 0 and payload["Bucket"] in rig.sim.buckets:
             left[0] -= 1
             rig.sim.buckets[payload["Bucket"]]["versions"].append(
-                {"Key": "uploads/late.mp4", "VersionId": f"late-{times}-{left[0]}"})
+                {"Key": "uploads/late.mp4", "VersionId": f"late-{times}-{left[0]}"}
+            )
         return real(payload)
 
     rig.sim.s3api_delete_bucket = hook
@@ -1686,8 +1917,12 @@ def test_a_write_that_lands_after_the_sweep_is_removed_before_the_bucket_is_dele
     late_writes(deployed, 1)
     deployed.teardown()
     assert deployed.sim.buckets == {}
-    removed = [o["VersionId"] for _, op, p in deployed.sim.calls if op == "delete-objects"
-               for o in p["Delete"]["Objects"]]
+    removed = [
+        o["VersionId"]
+        for _, op, p in deployed.sim.calls
+        if op == "delete-objects"
+        for o in p["Delete"]["Objects"]
+    ]
     assert any(v.startswith("late-") for v in removed)
     detail = deployed.journal.view()["steps"]["td-retained"]["detail"]
     assert len(deployed.ops("delete-bucket")) == detail["buckets"] + 1  # one retry, one bucket
@@ -1708,7 +1943,8 @@ def test_a_bucket_that_keeps_receiving_writes_fails_and_a_resume_sweeps_it_again
 def test_a_non_empty_bucket_error_is_the_only_one_that_triggers_a_re_sweep(deployed):
     deployed.s.confirm_run_id = "t1"
     deployed.sim.fail[("s3api", "delete-bucket")] = [
-        AwsError("s3api", "delete-bucket", "AccessDenied")]
+        AwsError("s3api", "delete-bucket", "AccessDenied")
+    ]
     with pytest.raises(AwsError, match="AccessDenied"):
         deployed.teardown()
     assert len(deployed.ops("delete-bucket")) == 1
@@ -1716,10 +1952,22 @@ def test_a_non_empty_bucket_error_is_the_only_one_that_triggers_a_re_sweep(deplo
 
 def test_teardown_needs_a_journal_to_know_what_this_run_created(tmp_path):
     out = io.StringIO()
-    code = deploy.main(["teardown", *ARGS, "--run-id", "t1", "--state-dir",
-                        str(private(tmp_path / "s")), "--execute", "--confirm-run-id", "t1"],
-                       transport=deploy_sim.SimulatedAws(settings_for(tmp_path)), stdout=out,
-                       stderr=io.StringIO())
+    code = deploy.main(
+        [
+            "teardown",
+            *ARGS,
+            "--run-id",
+            "t1",
+            "--state-dir",
+            str(private(tmp_path / "s")),
+            "--execute",
+            "--confirm-run-id",
+            "t1",
+        ],
+        transport=deploy_sim.SimulatedAws(settings_for(tmp_path)),
+        stdout=out,
+        stderr=io.StringIO(),
+    )
     assert code == 1 and "No journal" in json.loads(out.getvalue())["error"]
 
 
@@ -1737,13 +1985,14 @@ def run_main(argv, **kwargs):
 
 
 def test_rehearse_simulates_the_whole_deploy_and_teardown_without_a_process_or_state_dir(
-        monkeypatch, tmp_path):
+    monkeypatch, tmp_path
+):
     def forbidden(*args, **kwargs):
         raise AssertionError("a dry run must not start a process")
 
     monkeypatch.setattr(subprocess, "run", forbidden)
     code, text = run_main(["rehearse", *ARGS, "--run-id", "rehearsal1"], today=lambda: TODAY)
-    document = text[:text.index("\n## ")] if "\n## " in text else text
+    document = text[: text.index("\n## ")] if "\n## " in text else text
     result = json.loads(document)
     assert code == 0 and result["mode"] == "dry-run" and "simulated" in result
     assert list(result["steps"]) == [*DEPLOY_STEPS, *TEARDOWN_STEPS]
@@ -1752,9 +2001,10 @@ def test_rehearse_simulates_the_whole_deploy_and_teardown_without_a_process_or_s
 
 
 def test_dry_run_prints_exact_cli_commands_grouped_by_step_and_hides_reads_by_default():
-    code, text = run_main(["deploy", *ARGS, "--run-id", "rehearsal1", "--dry-run"],
-                          today=lambda: TODAY)
-    plan = text[text.index("\n## ") + 1:]
+    code, text = run_main(
+        ["deploy", *ARGS, "--run-id", "rehearsal1", "--dry-run"], today=lambda: TODAY
+    )
+    plan = text[text.index("\n## ") + 1 :]
     assert code == 0
     assert plan.index("## bootstrap-stack") < plan.index("## foundation") < plan.index("## images")
     assert "cloudformation execute-change-set" in plan
@@ -1764,15 +2014,19 @@ def test_dry_run_prints_exact_cli_commands_grouped_by_step_and_hides_reads_by_de
 
 
 def test_dry_run_can_show_every_read_call_too():
-    code, text = run_main(["deploy", *ARGS, "--run-id", "rehearsal1", "--dry-run",
-                           "--plan-detail", "all"], today=lambda: TODAY)
+    code, text = run_main(
+        ["deploy", *ARGS, "--run-id", "rehearsal1", "--dry-run", "--plan-detail", "all"],
+        today=lambda: TODAY,
+    )
     assert "cloudformation describe-stacks" in text and "sts get-caller-identity" in text
 
 
 def test_dry_run_never_touches_a_real_state_directory(tmp_path):
     state = private(tmp_path / "real")
-    code, _ = run_main(["deploy", *ARGS, "--run-id", "rehearsal1", "--dry-run",
-                        "--state-dir", str(state)], today=lambda: TODAY)
+    code, _ = run_main(
+        ["deploy", *ARGS, "--run-id", "rehearsal1", "--dry-run", "--state-dir", str(state)],
+        today=lambda: TODAY,
+    )
     assert code == 0 and list(state.iterdir()) == []
 
 
@@ -1789,8 +2043,16 @@ def test_a_live_run_needs_a_private_state_directory_outside_the_repository(tmp_p
     os.chmod(loose, 0o755)
     code, text = run_main(["deploy", *ARGS, "--run-id", "t1", "--state-dir", str(loose)])
     assert code == 1 and "private" in text
-    code, text = run_main(["deploy", *ARGS, "--run-id", "t1", "--state-dir",
-                           str(private(deploy.ROOT / ".cache-test-state"))])
+    code, text = run_main(
+        [
+            "deploy",
+            *ARGS,
+            "--run-id",
+            "t1",
+            "--state-dir",
+            str(private(deploy.ROOT / ".cache-test-state")),
+        ]
+    )
     assert code == 1 and "outside the repository" in text
     (deploy.ROOT / ".cache-test-state").rmdir()
 
@@ -1799,9 +2061,12 @@ def test_a_live_deploy_without_execute_exits_3_after_describing_the_first_change
     state = private(tmp_path / "state")
     settings = settings_for(tmp_path)
     sim = deploy_sim.SimulatedAws(settings)
-    code, text = run_main(["deploy", *ARGS, "--run-id", "t1", "--state-dir", str(state),
-                           "--assume-empty-counts"], transport=sim,
-                          docker=deploy_sim.SimulatedDocker(sim), today=lambda: TODAY)
+    code, text = run_main(
+        ["deploy", *ARGS, "--run-id", "t1", "--state-dir", str(state), "--assume-empty-counts"],
+        transport=sim,
+        docker=deploy_sim.SimulatedDocker(sim),
+        today=lambda: TODAY,
+    )
     assert code == 3 and "--execute" in json.loads(text)["awaiting_execute"]
     assert not [c for c in sim.calls if c[1] == "execute-change-set"]
     code, text = run_main(["status", *ARGS, "--run-id", "t1", "--state-dir", str(state)])
@@ -1812,8 +2077,18 @@ def test_a_live_deploy_without_execute_exits_3_after_describing_the_first_change
 def test_teardown_dry_run_rehearses_a_recorded_journal_and_leaves_it_untouched(deployed):
     journal_file = deployed.s.state_dir / "deploy-journal.json"
     before = journal_file.read_bytes()
-    code, text = run_main(["teardown", *ARGS, "--run-id", "t1", "--dry-run", "--state-dir",
-                           str(deployed.s.state_dir)], today=lambda: TODAY)
+    code, text = run_main(
+        [
+            "teardown",
+            *ARGS,
+            "--run-id",
+            "t1",
+            "--dry-run",
+            "--state-dir",
+            str(deployed.s.state_dir),
+        ],
+        today=lambda: TODAY,
+    )
     assert code == 0 and "delete-stack" in text and "delete-db-cluster" in text
     assert journal_file.read_bytes() == before
 
@@ -1824,9 +2099,11 @@ def test_teardown_dry_run_without_a_state_dir_points_at_rehearse():
 
 
 def test_the_format_plan_helper_groups_steps_and_filters_reads():
-    plan = [{"step": "a", "mutating": False, "command": "read"},
-            {"step": "a", "mutating": True, "command": "write"},
-            {"step": "b", "mutating": False, "command": "# note"}]
+    plan = [
+        {"step": "a", "mutating": False, "command": "read"},
+        {"step": "a", "mutating": True, "command": "write"},
+        {"step": "b", "mutating": False, "command": "# note"},
+    ]
     assert deploy.format_plan(plan, "mutating") == "## a\nwrite\n\n## b\n# note"
     assert "read" in deploy.format_plan(plan, "all")
 
@@ -1850,15 +2127,23 @@ def test_every_request_field_exists_in_the_installed_cli_skeleton(deployed, tmp_
     seen = {}
     for service, operation, payload in deployed.sim.calls:
         seen.setdefault((service, operation), set()).update(payload)
-    environment = {"PATH": os.environ["PATH"], "HOME": str(tmp_path),
-                   "AWS_EC2_METADATA_DISABLED": "true"}
+    environment = {
+        "PATH": os.environ["PATH"],
+        "HOME": str(tmp_path),
+        "AWS_EC2_METADATA_DISABLED": "true",
+    }
     unknown = {}
 
     def skeleton(item):
         (service, operation), keys = item
         out = subprocess.run(
-            ["aws", service, operation, "--generate-cli-skeleton", "input"], env=environment,
-            capture_output=True, text=True, check=True, timeout=90)
+            ["aws", service, operation, "--generate-cli-skeleton", "input"],
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=90,
+        )
         return f"{service} {operation}", keys - set(json.loads(out.stdout)) - {"Body"}
 
     # Each CLI start costs seconds on a CI runner; run them side by side to stay in budget.
@@ -1867,8 +2152,11 @@ def test_every_request_field_exists_in_the_installed_cli_skeleton(deployed, tmp_
             if extra:
                 unknown[name] = sorted(extra)
     assert unknown == {}
-    assert {("ce", "get-cost-forecast"), ("ecs", "stop-task"),
-            ("s3api", "abort-multipart-upload")} <= set(seen)
+    assert {
+        ("ce", "get-cost-forecast"),
+        ("ecs", "stop-task"),
+        ("s3api", "abort-multipart-upload"),
+    } <= set(seen)
 
 
 def admitted_resume(rig):
@@ -1886,18 +2174,32 @@ def admitted_resume(rig):
         manifests[digest] = raw
         repository = recorded["uri"].split("@", 1)[0]
         rig.sim.repos[repository.split("/", 1)[1]]["images"][recorded["tag"]] = digest
-        rig.journal.mutate(lambda d, n=name, dig=digest, uri=repository, sha=source_sha:
-                           d["images"][n].update(digest=dig, uri=f"{uri}@{dig}", source_sha=sha))
+        rig.journal.mutate(
+            lambda d, n=name, dig=digest, uri=repository, sha=source_sha: d["images"][n].update(
+                digest=dig, uri=f"{uri}@{dig}", source_sha=sha
+            )
+        )
         image = {"tag": "unused-local-tag", "config_id": config_id, "source_sha": source_sha}
-        report = json.dumps({"Metadata": {"ImageID": config_id}, "Results": [
-            {"Class": "os-pkgs", "Type": "debian"},
-            {"Class": "lang-pkgs", "Type": "python-pkg"}]}).encode()
+        report = json.dumps(
+            {
+                "Metadata": {"ImageID": config_id},
+                "Results": [
+                    {"Class": "os-pkgs", "Type": "debian"},
+                    {"Class": "lang-pkgs", "Type": "python-pkg"},
+                ],
+            }
+        ).encode()
         image["trivy_scan"] = scan_receipt(report, config_id=config_id, source_sha=source_sha)
         images[name] = image
     rig.s.images_file.write_text(json.dumps({"status": "LOCAL_ARTIFACT_PASS", "images": images}))
-    rig.sim.ecr_batch_get_image = lambda p: {"images": [{
-        "imageId": {"imageDigest": p["imageIds"][0]["imageDigest"]},
-        "imageManifest": manifests[p["imageIds"][0]["imageDigest"]]}]}
+    rig.sim.ecr_batch_get_image = lambda p: {
+        "images": [
+            {
+                "imageId": {"imageDigest": p["imageIds"][0]["imageDigest"]},
+                "imageManifest": manifests[p["imageIds"][0]["imageDigest"]],
+            }
+        ]
+    }
     pipeline = rig.pipeline()
     # The transport remains an in-memory fake. This flag enables the production proof gates.
     pipeline.simulated = False
@@ -1926,13 +2228,16 @@ def test_a_failed_images_step_resumes_its_pushed_digests_without_rebuild_or_repu
 
     pipeline.docker = registry_login_only
     result = pipeline.run_step("images", pipeline.step_images)
-    assert result["images"] == {name: image["digest"]
-                                for name, image in rig.journal.view()["images"].items()}
+    assert result["images"] == {
+        name: image["digest"] for name, image in rig.journal.view()["images"].items()
+    }
     assert rig.steps()["images"] == "done"
 
 
-@pytest.mark.parametrize("fault", ["pending", "missing", "failed", "denied", "high", "counts",
-                                   "digest", "trivy", "manifest"])
+@pytest.mark.parametrize(
+    "fault",
+    ["pending", "missing", "failed", "denied", "high", "counts", "digest", "trivy", "manifest"],
+)
 def test_first_use_and_a_completed_applications_resume_reject_unproved_images(rig, fault):
     pipeline = admitted_resume(rig)
     rig.journal.mutate(lambda d: d["steps"].update(applications={"status": "done"}))
@@ -2000,19 +2305,26 @@ def test_first_deploy_uses_the_release_exception_policy_and_still_refuses_unknow
 
     pipeline = admitted_resume(rig)
     pipeline.s.accept_unfixed = root_accept = deploy.ROOT / (
-        "docs/execution/aws/v1/scan-accepted-unfixed-20261017.json")
+        "docs/execution/aws/v1/scan-accepted-unfixed-20261017.json"
+    )
     accepted = sorted(load_accept(root_accept)[0])[0]
     cve = accepted
 
     def reply(payload):
-        return {"imageId": payload["imageId"], "imageScanStatus": {"status": "COMPLETE"},
-                "imageScanFindings": {"findingSeverityCounts": {"HIGH": 1},
-                                      "findings": [{"name": cve, "severity": "HIGH"}]}}
+        return {
+            "imageId": payload["imageId"],
+            "imageScanStatus": {"status": "COMPLETE"},
+            "imageScanFindings": {
+                "findingSeverityCounts": {"HIGH": 1},
+                "findings": [{"name": cve, "severity": "HIGH"}],
+            },
+        }
 
     rig.sim.ecr_describe_image_scan_findings = reply
     pipeline.verify_registry_images()
     assert rig.journal.view()["images"]["media"]["registry_gate"]["ecr_scan"][
-        "accepted_high_critical"] == [accepted]
+        "accepted_high_critical"
+    ] == [accepted]
     cve = "CVE-2026-999999999"
     with pytest.raises(DeployError, match="not on the accept list"):
         pipeline.verify_registry_images()

@@ -15,11 +15,7 @@ from sqlalchemy import delete, func, or_, select
 from media.messaging_models import MediaOutbox
 from media.models import Asset, CleanupIntent, StagedObject, now
 from media.projections import source_for_asset
-from media.services.direct_intake import (
-    CLEANUP_HORIZON,
-    cleanup_due,
-    cleanup_expired_uploads,
-)
+from media.services.direct_intake import CLEANUP_HORIZON, cleanup_due, cleanup_expired_uploads
 from media.upload_models import UploadReservation
 
 # A staged copy no Asset adopted: the one predicate the staged cleanup and next_due share.
@@ -225,10 +221,7 @@ async def run_once(factory, settings, storage, *, deadline=None):
     result = {"cleanup": 0, "uploads": 0, "staged": 0}
     if deadline is None or time.monotonic() < deadline:
         result["cleanup"] = await cleanup_tombstones(
-            factory,
-            storage,
-            limit=limit,
-            deadline=deadline,
+            factory, storage, limit=limit, deadline=deadline
         )
     if deadline is None or time.monotonic() < deadline:
         # The scan reserves each row before storage I/O and bounds that I/O by the

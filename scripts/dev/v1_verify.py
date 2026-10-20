@@ -776,11 +776,7 @@ def run_flow(name, data, phase):
         storage_mode="static",
     )
     bootstrap = selected_tests(
-        ["tests/aws/v1/test_bootstrap.py"],
-        phase,
-        data,
-        tag="bootstrap-coverage",
-        timeout=180,
+        ["tests/aws/v1/test_bootstrap.py"], phase, data, tag="bootstrap-coverage", timeout=180
     )
     release_path = ROOT / "tests/v1/test_release_acceptance.py"
     release = {

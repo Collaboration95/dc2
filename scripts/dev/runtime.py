@@ -394,8 +394,7 @@ def smoke(state):
             if reply.status != 200:
                 raise ValueError(f"Infrastructure route failed: {route}")
     with urllib.request.urlopen(
-        f"http://127.0.0.1:{state['processing_port']}/health",
-        timeout=10,
+        f"http://127.0.0.1:{state['processing_port']}/health", timeout=10
     ) as reply:
         if json.load(reply)["status"] != "ok":
             raise ValueError("Processing health failed")

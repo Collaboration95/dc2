@@ -9,12 +9,7 @@ from pydantic import ValidationError
 from processing.config import Settings, get_settings
 from processing.database import Base
 from processing.launcher_models import LauncherControl, LaunchReservation
-from processing.messaging_models import (
-    AttemptTask,
-    JobMessaging,
-    ProcessingInbox,
-    ProcessingOutbox,
-)
+from processing.messaging_models import AttemptTask, JobMessaging, ProcessingInbox, ProcessingOutbox
 from processing.models import Attempt, Job, SubmissionGuard
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -102,11 +97,7 @@ assert app.title == 'FlickPond Processing private API'
 """
     env = {key: value for key, value in os.environ.items() if not key.startswith("PROCESSING_")}
     result = subprocess.run(
-        [sys.executable, "-c", script],
-        cwd=ROOT,
-        env=env,
-        capture_output=True,
-        text=True,
+        [sys.executable, "-c", script], cwd=ROOT, env=env, capture_output=True, text=True
     )
     assert result.returncode == 0, result.stderr
 

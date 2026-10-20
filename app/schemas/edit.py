@@ -66,11 +66,7 @@ class ConvertOperation(_StrictModel):
 
 
 EditOperation = Annotated[
-    ClipOperation
-    | CropOperation
-    | DownscaleOperation
-    | UpscaleOperation
-    | ConvertOperation,
+    ClipOperation | CropOperation | DownscaleOperation | UpscaleOperation | ConvertOperation,
     Field(discriminator="operation"),
 ]
 

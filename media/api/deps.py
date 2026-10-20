@@ -49,4 +49,3 @@ async def operator_user(user: CurrentUser) -> User:
 
 
 Operator = Annotated[User, Depends(operator_user)]
-

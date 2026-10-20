@@ -17,27 +17,14 @@ async def test_upload_and_download(tmp_path: Path):
     source = tmp_path / "test.txt"
     downloaded = tmp_path / "downloaded-test.txt"
 
-    source.write_text(
-        "Hello Flickpond! MinIO storage test.",
-        encoding="utf-8",
-    )
+    source.write_text("Hello Flickpond! MinIO storage test.", encoding="utf-8")
 
     object_key = "test/test.txt"
 
-    await storage.upload_file(
-        str(source),
-        object_key,
-    )
+    await storage.upload_file(str(source), object_key)
 
-    await storage.download_file(
-        object_key,
-        str(downloaded),
-    )
+    await storage.download_file(object_key, str(downloaded))
 
     assert downloaded.exists()
 
-    assert downloaded.read_text(
-        encoding="utf-8"
-    ) == source.read_text(
-        encoding="utf-8"
-    )
+    assert downloaded.read_text(encoding="utf-8") == source.read_text(encoding="utf-8")

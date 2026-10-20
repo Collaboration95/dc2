@@ -19,8 +19,9 @@ CREDENTIAL_ROLES = tuple(f"{d}_{suffix}" for d in DOMAINS for suffix in ("migrat
 WAKE_DEADLINE_SECONDS = 150
 
 
-async def connect_waking(connect, *, deadline=WAKE_DEADLINE_SECONDS, sleep=asyncio.sleep,
-                         clock=None, **options):
+async def connect_waking(
+    connect, *, deadline=WAKE_DEADLINE_SECONDS, sleep=asyncio.sleep, clock=None, **options
+):
     """connect(**options), retrying connection-class failures until the deadline."""
     clock = clock or asyncio.get_running_loop().time
     give_up = clock() + deadline
@@ -124,8 +125,7 @@ async def reconcile(connect, options, domains, role_passwords):
         # Refuse unrelated databases before changing any role/password.
         for domain in domains:
             current = await admin.fetchval(
-                "SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname=$1",
-                f"{domain}_db",
+                "SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname=$1", f"{domain}_db"
             )
             if current is not None and current != f"{domain}_owner":
                 raise ValueError("Existing project DB has an unexpected owner; refusing adoption")
@@ -178,8 +178,13 @@ async def reconcile(connect, options, domains, role_passwords):
             if peers:
                 denied = ", ".join(f"{p}_{s}" for p in peers for s in ("runtime", "migrator"))
                 await admin.execute(f"REVOKE ALL ON DATABASE {domain}_db FROM {denied}")
-            held = ", ".join([f"{domain}_runtime", *(f"{p}_runtime" for p in peers),
-                              *(f"{p}_migrator" for p in peers)])
+            held = ", ".join(
+                [
+                    f"{domain}_runtime",
+                    *(f"{p}_runtime" for p in peers),
+                    *(f"{p}_migrator" for p in peers),
+                ]
+            )
             await admin.execute(f"REVOKE {domain}_owner FROM {held}")
     finally:
         await asyncio.wait_for(admin.close(), timeout=5)

@@ -51,11 +51,7 @@ def live(pair, token, now):
 async def cleanup_intent(session, job_id, attempt_id, now):
     await session.execute(
         insert(CleanupIntent)
-        .values(
-            job_id=job_id,
-            attempt_id=attempt_id,
-            next_try_at=now,
-        )
+        .values(job_id=job_id, attempt_id=attempt_id, next_try_at=now)
         .on_conflict_do_nothing(index_elements=[CleanupIntent.attempt_id])
     )
 
@@ -98,10 +94,7 @@ async def cancel_asset(session, owner_id, asset_id, *, on_change=None):
     async with session.begin():
         await session.execute(
             insert(SubmissionGuard)
-            .values(
-                asset_id=asset_id,
-                owner_id=owner_id,
-            )
+            .values(asset_id=asset_id, owner_id=owner_id)
             .on_conflict_do_nothing(index_elements=[SubmissionGuard.asset_id])
         )
         guard = await session.scalar(

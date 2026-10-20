@@ -46,9 +46,17 @@ def reserve(api, path, request_id, *, replay_ok=False):
     needs a grant to use.
     """
     path = Path(path)
-    reply = api.request("POST", "/api/media/uploads/reservations", body={
-        "request_id": request_id, "filename": path.name, "content_type": CONTENT_TYPE,
-        "size_bytes": path.stat().st_size, "sha256": sha256_file(path)})
+    reply = api.request(
+        "POST",
+        "/api/media/uploads/reservations",
+        body={
+            "request_id": request_id,
+            "filename": path.name,
+            "content_type": CONTENT_TYPE,
+            "size_bytes": path.stat().st_size,
+            "sha256": sha256_file(path),
+        },
+    )
     data = reply.json()
     if reply.status != 201 or not isinstance(data, dict) or not data.get("reservation_id"):
         raise ProofError(f"Reservation failed with HTTP {reply.status}")
@@ -85,8 +93,15 @@ def submit(ctx, api, path, intent, save):
             raise ProofError("The storage upload URL is not HTTPS")
         ctype, body = multipart(grant["fields"], path.name, path.read_bytes(), CONTENT_TYPE)
         # No cookie: storage is a different origin and must never see the session.
-        sent = direct(ctx.http, "POST", grant["url"], {"content-type": ctype}, body,
-                      timeout=600, clock=ctx.clock)
+        sent = direct(
+            ctx.http,
+            "POST",
+            grant["url"],
+            {"content-type": ctype},
+            body,
+            timeout=600,
+            clock=ctx.clock,
+        )
         if sent.status not in UPLOAD_OK:
             raise ProofError(f"Direct upload to storage returned HTTP {sent.status}")
         timing["upload_ms"], timing["upload_status"] = sent.ms, sent.status
@@ -94,11 +109,16 @@ def submit(ctx, api, path, intent, save):
         intent["uploaded"] = True
         save()
     final = api.request(
-        "POST", f"/api/media/uploads/reservations/{intent['reservation_id']}/finalize",
-        body={"request_id": intent["request_id"]})
+        "POST",
+        f"/api/media/uploads/reservations/{intent['reservation_id']}/finalize",
+        body={"request_id": intent["request_id"]},
+    )
     accepted = final.json()
-    if final.status not in {200, 201, 202} or not isinstance(accepted, dict) or not accepted.get(
-            "job_id"):
+    if (
+        final.status not in {200, 201, 202}
+        or not isinstance(accepted, dict)
+        or not accepted.get("job_id")
+    ):
         raise ProofError(f"Finalize failed with HTTP {final.status}")
     timing.setdefault("finalize_ms", final.ms)
     timing.setdefault("finalize_status", final.status)
@@ -109,8 +129,9 @@ def submit(ctx, api, path, intent, save):
     return {"job_id": accepted["job_id"], "bytes": path.stat().st_size, **timing}
 
 
-def poll_job(ctx, api, job_id, *, timeout, interval=5, until=TERMINAL, checkpoint=None,
-             check_every=12):
+def poll_job(
+    ctx, api, job_id, *, timeout, interval=5, until=TERMINAL, checkpoint=None, check_every=12
+):
     """Poll a job; returns (transitions, last document). Transitions are (seconds, status)."""
     start, transitions, polls = ctx.clock(), [], 0
     while True:
@@ -155,18 +176,22 @@ def live_tasks(ctx):
 
 def wait_stopped(ctx, arns, *, timeout, checkpoint=None):
     """Block until every named task is STOPPED; returns their final descriptions."""
+
     def check():
         found = describe_tasks(ctx.config, ctx.aws, arns, deadline=ctx.deadline(60))
         return all(t["lastStatus"] == "STOPPED" for t in found.values()), found
 
-    return tasks.wait_until(ctx, check, timeout=timeout, interval=10, checkpoint=checkpoint,
-                            session="open")
+    return tasks.wait_until(
+        ctx, check, timeout=timeout, interval=10, checkpoint=checkpoint, session="open"
+    )
 
 
 def playback(ctx, api, job):
     """Fetch the HLS ladder through CloudFront, then a segment through its S3 redirect."""
-    out = {"hls_url_present": bool(job.get("hls_url")),
-           "output_url_present": bool(job.get("output_url"))}
+    out = {
+        "hls_url_present": bool(job.get("hls_url")),
+        "output_url_present": bool(job.get("output_url")),
+    }
     if not job.get("hls_url"):
         return False, out
     master = api.request("GET", job["hls_url"])
@@ -191,7 +216,8 @@ def playback(ctx, api, job):
     out["segment_status"] = segment.status
     location = segment.first("location")
     out["segment_redirects_to_s3"] = segment.status == 307 and host_of(location).endswith(
-        ".amazonaws.com")
+        ".amazonaws.com"
+    )
     ok = False
     if out["segment_redirects_to_s3"]:
         ok = _ranged(ctx, location, out, "segment")
@@ -218,14 +244,17 @@ def _first_reference(body):
 
 
 WORK_QUEUE_ATTRIBUTES = [
-    "ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible",
-    "ApproximateNumberOfMessagesDelayed"]
+    "ApproximateNumberOfMessages",
+    "ApproximateNumberOfMessagesNotVisible",
+    "ApproximateNumberOfMessagesDelayed",
+]
 
 
 def work_queue_depth(ctx):
     """Messages the ProcessingWork queue holds: visible, in flight or delayed."""
     got = ctx.sqs().get_queue_attributes(
-        QueueUrl=ctx.outputs["ProcessingWorkQueueUrl"], AttributeNames=WORK_QUEUE_ATTRIBUTES)
+        QueueUrl=ctx.outputs["ProcessingWorkQueueUrl"], AttributeNames=WORK_QUEUE_ATTRIBUTES
+    )
     return sum(int(got["Attributes"].get(name, 0)) for name in WORK_QUEUE_ATTRIBUTES)
 
 
@@ -248,5 +277,6 @@ def require_empty_work_queue(ctx, *, settle=60, interval=5):
             raise ProofError(
                 f"The ProcessingWork queue still holds {depth} message(s) {settle} s after the "
                 "run started: an earlier run left work behind. Let an encoder drain it or "
-                "tear the stack down; this run would encode it instead of its own job.")
+                "tear the stack down; this run would encode it instead of its own job."
+            )
         ctx.sleep(interval)

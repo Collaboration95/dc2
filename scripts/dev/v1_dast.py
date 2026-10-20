@@ -294,11 +294,7 @@ class DastGateway(Gateway):
                             count
                             for (service, method, route, response), count in self._coverage.items()
                             if (service, method, route)
-                            == (
-                                row["service"],
-                                row["method"],
-                                row["route"],
-                            )
+                            == (row["service"], row["method"], row["route"])
                             and response == family
                         )
                         for family in ("2xx", "3xx", "4xx", "5xx", "429")
@@ -499,8 +495,7 @@ def _seed_and_verify(runtime, private, specs, rows):
             own_processing_b = proc_b.get(f"/api/processing/jobs/{processing_b}")
             cross_media = b.http.get(f"jobs/{asset_a}")
             forged_media = b.http.get(
-                f"jobs/{asset_a}",
-                headers={"X-Owner-Id": owner_a["id"], "X-Role": "operator"},
+                f"jobs/{asset_a}", headers={"X-Owner-Id": owner_a["id"], "X-Role": "operator"}
             )
             cross_processing = proc_b.get(f"/api/processing/jobs/{processing_a}")
             cross_media_mutation = b.http.delete(f"jobs/{asset_a}")
@@ -693,10 +688,7 @@ def run_scan(run_id, output):
             clients = seeded["clients"]
             proc_clients = seeded["proc_clients"]
             gateway = local["gateway"]
-            disposition.update(
-                scan_schema_hashes=seeded["scan_hashes"],
-                auth_proof=seeded["proof"],
-            )
+            disposition.update(scan_schema_hashes=seeded["scan_hashes"], auth_proof=seeded["proof"])
             gateway.begin_scan(REQUEST_CAP)
             for service in SERVICES:
                 schema = private / f"{service}.openapi.json"
@@ -733,9 +725,7 @@ def run_scan(run_id, output):
             gateway.end_scan()
             disposition["route_coverage"] = gateway.scan_evidence()
         disposition.update(
-            disposition="error",
-            error_type=type(error).__name__,
-            exit_codes=exit_codes,
+            disposition="error", error_type=type(error).__name__, exit_codes=exit_codes
         )
     finally:
         shutil.rmtree(private, ignore_errors=True)

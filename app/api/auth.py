@@ -17,11 +17,7 @@ from app.api.deps import CurrentUser
 from app.config import get_settings
 from app.database import get_session
 from app.errors import ApiUnauthorizedError
-from app.repositories.users import (
-    EmailAlreadyRegisteredError,
-    create_user,
-    get_user_by_email,
-)
+from app.repositories.users import EmailAlreadyRegisteredError, create_user, get_user_by_email
 from app.schemas.user import Credentials, UserResponse
 from app.services.security import COOKIE_NAME, hash_password, issue_token, verify_password
 
@@ -50,9 +46,7 @@ def _set_cookie(response: Response, token: str) -> None:
 async def register(credentials: Credentials, session: SessionDependency, response: Response):
     try:
         user = await create_user(
-            session,
-            email=credentials.email,
-            password_hash=hash_password(credentials.password),
+            session, email=credentials.email, password_hash=hash_password(credentials.password)
         )
     except EmailAlreadyRegisteredError:
         # 409 rather than a generic error: the caller is the person choosing

@@ -16,13 +16,7 @@ class OutputUrlSigner(Protocol):
 
 
 class MinioOutputUrlSigner:
-    def __init__(
-        self,
-        client: Minio,
-        *,
-        bucket: str,
-        expiry_seconds: int,
-    ) -> None:
+    def __init__(self, client: Minio, *, bucket: str, expiry_seconds: int) -> None:
         self._client = client
         self._bucket = bucket
         self._expiry = timedelta(seconds=expiry_seconds)
@@ -56,10 +50,7 @@ class MinioOutputUrlSigner:
         hard to switch off by accident, and the MP4 must keep it.
         """
         return await run_in_threadpool(
-            self._client.presigned_get_object,
-            self._bucket,
-            output_key,
-            expires=self._expiry,
+            self._client.presigned_get_object, self._bucket, output_key, expires=self._expiry
         )
 
 
@@ -69,7 +60,5 @@ def get_output_url_signer() -> OutputUrlSigner:
     # built with lands inside the SigV4 signature, and the URL is opened by a
     # browser. Swapping this for internal_client() breaks playback silently.
     return MinioOutputUrlSigner(
-        public_client(),
-        bucket=bucket(),
-        expiry_seconds=get_settings().output_url_expiry_seconds,
+        public_client(), bucket=bucket(), expiry_seconds=get_settings().output_url_expiry_seconds
     )

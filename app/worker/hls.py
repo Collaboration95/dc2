@@ -217,8 +217,7 @@ class HlsLadderBuilder:
             master = work_dir / MASTER_PLAYLIST_NAME
             if not master.is_file():
                 raise ObjectStoreError(
-                    "FFmpeg produced no master playlist",
-                    user_message=UNPROCESSABLE_VIDEO,
+                    "FFmpeg produced no master playlist", user_message=UNPROCESSABLE_VIDEO
                 )
 
             prefix = self.prefix_for(job_id)

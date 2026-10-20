@@ -70,11 +70,29 @@ def files(tmp_path):
 
 def promote_args(files, *extra, image=NEW):
     return [
-        "promote", "--config", files["config"], *SCOPE,
-        "--owner", "processing", "--bundle", files["bundle"], "--image-uri", image,
-        "--migration-definition", MIGRATION, "--worker-definition", WORKER,
-        "--target-revision", "0002", "--compat-evidence", files["compat"],
-        "--smoke-url", "https://gw.example.invalid", "--smoke-credentials", files["creds"], *extra,
+        "promote",
+        "--config",
+        files["config"],
+        *SCOPE,
+        "--owner",
+        "processing",
+        "--bundle",
+        files["bundle"],
+        "--image-uri",
+        image,
+        "--migration-definition",
+        MIGRATION,
+        "--worker-definition",
+        WORKER,
+        "--target-revision",
+        "0002",
+        "--compat-evidence",
+        files["compat"],
+        "--smoke-url",
+        "https://gw.example.invalid",
+        "--smoke-credentials",
+        files["creds"],
+        *extra,
     ]
 
 
@@ -96,8 +114,11 @@ def test_dry_run_validates_artifact_pins_offline_and_prints_the_planned_calls(fi
     assert operations.index("publish-version") < operations.index("update-alias")
     assert steps[-2]["step"] == "public-smoke" and steps[-1]["step"] == "peer-unchanged"
     assert {s["function"] for s in steps if s["step"] == "promote"} == {
-        "fn-ProcessingApi", "fn-ProcessingCommands", "fn-ProcessingRepair",
-        "fn-ProcessingEcsEvents", "fn-ProcessingS3Events",
+        "fn-ProcessingApi",
+        "fn-ProcessingCommands",
+        "fn-ProcessingRepair",
+        "fn-ProcessingEcsEvents",
+        "fn-ProcessingS3Events",
     }
 
 
@@ -120,8 +141,19 @@ def test_release_cli_requires_explicit_profile_and_region(files, action):
     with pytest.raises(SystemExit):
         main([action, "--config", files["config"], "--region", "ap-southeast-1"])
     with pytest.raises(SystemExit):
-        main([action, "--config", files["config"], "--profile", "default", "--region",
-              "ap-southeast-1", "--account", "123456789012"])
+        main(
+            [
+                action,
+                "--config",
+                files["config"],
+                "--profile",
+                "default",
+                "--region",
+                "ap-southeast-1",
+                "--account",
+                "123456789012",
+            ]
+        )
 
 
 def test_live_promote_wires_real_hooks_and_reports_only_check_names(files, monkeypatch):
@@ -141,8 +173,17 @@ def test_live_promote_wires_real_hooks_and_reports_only_check_names(files, monke
 
 
 def abandon_argv(files, *extra):
-    return ["abandon", "--config", files["config"], *SCOPE, "--owner", "processing",
-            "--migration-definition", MIGRATION, *extra]
+    return [
+        "abandon",
+        "--config",
+        files["config"],
+        *SCOPE,
+        "--owner",
+        "processing",
+        "--migration-definition",
+        MIGRATION,
+        *extra,
+    ]
 
 
 def test_abandon_dry_run_prints_the_plan_and_touches_nothing(files):
@@ -162,9 +203,15 @@ def test_abandon_gets_only_the_schema_and_quiescence_hooks_and_the_reason(files,
         return {"owner": "processing", "status": "abandoned", "versions_published_unaliased": []}
 
     monkeypatch.setattr(release_cli, "abandon", fake_abandon)
-    argv = abandon_argv(files, "--reason", "migration failed",
-                        "--smoke-url", "https://gw.example.invalid",
-                        "--smoke-credentials", files["creds"])
+    argv = abandon_argv(
+        files,
+        "--reason",
+        "migration failed",
+        "--smoke-url",
+        "https://gw.example.invalid",
+        "--smoke-credentials",
+        files["creds"],
+    )
     code, out = run(argv, transport_factory=lambda scope: Cloud())
     assert code == 0 and out["result"]["status"] == "abandoned"
     assert set(seen) == {"schema_revision", "quiescent", "deadline", "reason"}
@@ -181,8 +228,12 @@ def test_abandon_without_a_journal_is_a_refusal_not_a_crash(files):
 def test_status_names_the_aliases_a_pending_release_already_moved(files):
     from scripts.aws.journal import Journal
 
-    base = {"v1_request": {"owner": "processing"}, "phase": "preparing", "versions": {},
-            "moved": {"fn": {"version": "2"}}}
+    base = {
+        "v1_request": {"owner": "processing"},
+        "phase": "preparing",
+        "versions": {},
+        "moved": {"fn": {"version": "2"}},
+    }
     path = json.loads(open(files["config"]).read())["journal"]
     journal = Journal(path, station="s", environment="e2e")
     journal.initialize(verified_empty=True, exclusive_station=True)
@@ -196,8 +247,9 @@ def test_status_names_the_aliases_a_pending_release_already_moved(files):
                 return {"FunctionVersion": "7", "RevisionId": "r"}
             return super().call(service, operation, payload, deadline=deadline)
 
-    code, out = run(["status", "--config", files["config"], *SCOPE],
-                    transport_factory=lambda scope: Aliases())
+    code, out = run(
+        ["status", "--config", files["config"], *SCOPE], transport_factory=lambda scope: Aliases()
+    )
     assert code == 0 and out["result"]["pending_release"]["moved"] == ["fn"]
     assert out["result"]["pending_release"]["migration_complete"] is False
 
@@ -226,11 +278,14 @@ def test_status_reads_aliases_and_summarizes_the_journal_intent(files):
     from scripts.aws.v1 import session_cli
 
     out = io.StringIO()
-    assert session_cli.main(
-        ["init", "--config", files["config"], *SCOPE, "--confirm-empty", "--confirm-exclusive"],
-        stdout=out,
-        transport_factory=factory,
-    ) == 0
+    assert (
+        session_cli.main(
+            ["init", "--config", files["config"], *SCOPE, "--confirm-empty", "--confirm-exclusive"],
+            stdout=out,
+            transport_factory=factory,
+        )
+        == 0
+    )
     code, out = run(["status", "--config", files["config"], *SCOPE], transport_factory=factory)
     assert code == 0 and out["result"]["pending_release"] is None
     assert {a["version"] for a in out["result"]["aliases"].values()} == {"7"}
@@ -260,7 +315,9 @@ def test_owner_is_quiescent_only_when_its_consumers_rules_and_tasks_are_off():
 def test_a_running_encoder_blocks_processing_quiescence_but_not_media():
     check, cloud, _ = quiescence()
     cloud.tasks["arn:t"] = {
-        "taskArn": "arn:t", "taskDefinitionArn": "worker:1", "lastStatus": "RUNNING"
+        "taskArn": "arn:t",
+        "taskDefinitionArn": "worker:1",
+        "lastStatus": "RUNNING",
     }
     deadline = time.monotonic() + 30
     assert check("processing", deadline=deadline) is False
@@ -300,8 +357,12 @@ def test_schema_revision_reads_exactly_one_head_over_verified_tls(tmp_path, monk
 def test_compatibility_evidence_is_bound_to_owner_source_and_revision(tmp_path):
     bundle = {"api": {"source_sha": "d" * 40}}
     good = {
-        "owner": "processing", "source_sha": "d" * 40, "target_revision": "0002",
-        "additive_only": True, "current_image_compatible": True, "prior_image_compatible": True,
+        "owner": "processing",
+        "source_sha": "d" * 40,
+        "target_revision": "0002",
+        "additive_only": True,
+        "current_image_compatible": True,
+        "prior_image_compatible": True,
     }
     path = tmp_path / "evidence.json"
 

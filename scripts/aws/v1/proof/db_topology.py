@@ -58,19 +58,23 @@ NOTES = {
         "Each owner's migration task reads its own domain's connection parameter, so with one "
         "cluster per domain a migration wakes and holds only that domain's cluster; with one "
         "shared cluster it wakes the cluster both domains use. The schema, roles and "
-        "migrations are identical in both layouts. Not measured by this harness."),
+        "migrations are identical in both layouts. Not measured by this harness."
+    ),
     "restore": (
         "Teardown takes one final snapshot per cluster. A shared cluster restores both "
         "databases to one point in time together; separate clusters restore independently. "
-        "Neither restore was timed; this is design, not evidence."),
+        "Neither restore was timed; this is design, not evidence."
+    ),
 }
 
 
 # ---- topology and clusters --------------------------------------------------------------------
 def topology_of(ctx):
     """What the deployed stack is, read from its outputs and never from the operator's wish."""
-    separate = (ctx.outputs.get("DatabaseTopology") == "separate"
-                or "ProcessingDatabaseEndpoint" in ctx.outputs)
+    separate = (
+        ctx.outputs.get("DatabaseTopology") == "separate"
+        or "ProcessingDatabaseEndpoint" in ctx.outputs
+    )
     return "separate" if separate else "shared"
 
 
@@ -81,8 +85,10 @@ def cluster_ids(ctx, *, shared=None, media=None, processing=None):
     cluster when a journal predates that record.
     """
     journal = deploy.DeployJournal(
-        ctx.state_dir / "deploy-journal.json", station=ctx.data["operator_station"],
-        environment=ctx.data["environment_id"])
+        ctx.state_dir / "deploy-journal.json",
+        station=ctx.data["operator_station"],
+        environment=ctx.data["environment_id"],
+    )
     if not journal.exists():
         raise ProofError("No deploy journal in the state directory; pass the cluster ids")
     resources = journal.view()["resources"]
@@ -90,15 +96,19 @@ def cluster_ids(ctx, *, shared=None, media=None, processing=None):
     if topology_of(ctx) == "shared":
         chosen = shared or (found[0] if len(found) == 1 else None)
         if not chosen:
-            raise ProofError("Expected exactly one Aurora cluster in the deploy journal; "
-                             "pass --cluster")
+            raise ProofError(
+                "Expected exactly one Aurora cluster in the deploy journal; pass --cluster"
+            )
         return {"cluster": chosen}
     by_name = {name: cid for cid, name in logical.items()}
-    chosen = {"media": media or by_name.get("MediaDatabaseCluster"),
-              "processing": processing or by_name.get("ProcessingDatabaseCluster")}
+    chosen = {
+        "media": media or by_name.get("MediaDatabaseCluster"),
+        "processing": processing or by_name.get("ProcessingDatabaseCluster"),
+    }
     if not all(chosen.values()) or chosen["media"] == chosen["processing"]:
-        raise ProofError("Cannot tell the two clusters apart; pass --media-cluster and "
-                         "--processing-cluster")
+        raise ProofError(
+            "Cannot tell the two clusters apart; pass --media-cluster and --processing-cluster"
+        )
     return chosen
 
 
@@ -111,11 +121,15 @@ def cluster_for(clusters, domain):
 
 
 def describe_scaling(ctx, cluster):
-    reply = ctx.aws.call("rds", "describe-db-clusters", {"DBClusterIdentifier": cluster},
-                         deadline=ctx.deadline(60))
+    reply = ctx.aws.call(
+        "rds", "describe-db-clusters", {"DBClusterIdentifier": cluster}, deadline=ctx.deadline(60)
+    )
     scaling = reply["DBClusters"][0].get("ServerlessV2ScalingConfiguration", {})
-    return {"min_acu": scaling.get("MinCapacity"), "max_acu": scaling.get("MaxCapacity"),
-            "seconds_until_auto_pause": scaling.get("SecondsUntilAutoPause")}
+    return {
+        "min_acu": scaling.get("MinCapacity"),
+        "max_acu": scaling.get("MaxCapacity"),
+        "seconds_until_auto_pause": scaling.get("SecondsUntilAutoPause"),
+    }
 
 
 # ---- one probe --------------------------------------------------------------------------------
@@ -124,25 +138,40 @@ def probe(ctx, transport, domain):
     function = ctx.hooks["media_api" if domain == "media" else "processing_api"]
     started = ctx.clock()
     try:
-        result = transport.call("lambda", "invoke", {
-            "FunctionName": function, "Qualifier": ctx.config.get("alias", "live"),
-            "InvocationType": "RequestResponse", "Payload": {"dc2_operation": "ready"}},
-            deadline=ctx.deadline(PROBE_BUDGET_SECONDS))
+        result = transport.call(
+            "lambda",
+            "invoke",
+            {
+                "FunctionName": function,
+                "Qualifier": ctx.config.get("alias", "live"),
+                "InvocationType": "RequestResponse",
+                "Payload": {"dc2_operation": "ready"},
+            },
+            deadline=ctx.deadline(PROBE_BUDGET_SECONDS),
+        )
     except OperationError:
         return False, round((ctx.clock() - started) * 1000, 1)
     reply = result.get("Payload")
-    ok = (not result.get("FunctionError") and result.get("StatusCode") == 200
-          and isinstance(reply, dict) and reply.get("service") == domain
-          and reply.get("ready") is True)
+    ok = (
+        not result.get("FunctionError")
+        and result.get("StatusCode") == 200
+        and isinstance(reply, dict)
+        and reply.get("service") == domain
+        and reply.get("ready") is True
+    )
     return ok, round((ctx.clock() - started) * 1000, 1)
 
 
 def latency_stats(samples):
     """p50/p95 over the probes that succeeded; failures stay counted and are never dropped."""
     good = [ms for ok, ms in samples if ok]
-    return {"count": len(samples), "failures": len(samples) - len(good),
-            "p50_ms": percentile(good, 0.5), "p95_ms": percentile(good, 0.95),
-            "max_ms": max(good) if good else None}
+    return {
+        "count": len(samples),
+        "failures": len(samples) - len(good),
+        "p50_ms": percentile(good, 0.5),
+        "p95_ms": percentile(good, 0.95),
+        "max_ms": max(good) if good else None,
+    }
 
 
 def settle(ctx, transport, domain, *, timeout=SETTLE_SECONDS):
@@ -184,10 +213,15 @@ def cold_resume(ctx, transport, domain, *, timeout):
         if ok or ctx.clock() - started >= timeout:
             break
         ctx.sleep(2)
-    return {"measured": True, "probe_domain": domain, "succeeded": ok,
-            "resume_seconds": round(ctx.clock() - started, 1) if ok else None,
-            "attempts": len(attempts), "first_attempt_ms": attempts[0],
-            "paused_confirmed_by": "ServerlessDatabaseCapacity == 0"}
+    return {
+        "measured": True,
+        "probe_domain": domain,
+        "succeeded": ok,
+        "resume_seconds": round(ctx.clock() - started, 1) if ok else None,
+        "attempts": len(attempts),
+        "first_attempt_ms": attempts[0],
+        "paused_confirmed_by": "ServerlessDatabaseCapacity == 0",
+    }
 
 
 @contextlib.contextmanager
@@ -229,8 +263,10 @@ def peer_wake(ctx, transport, clusters, *, load_seconds, concurrency, pause_minu
     """With everything paused, load Media alone and watch Processing's cluster."""
     still = wait_paused(ctx, clusters, minutes=pause_minutes, checkpoint=checkpoint)
     if still:
-        return {"measured": False, "reason": "a cluster never showed 0 ACU within the wait: "
-                + ", ".join(sorted(still))}
+        return {
+            "measured": False,
+            "reason": "a cluster never showed 0 ACU within the wait: " + ", ".join(sorted(still)),
+        }
     peer = cluster_for(clusters, "processing")
     started = ctx.wall()
     with load(ctx, transport, "media", concurrency) as stats:
@@ -238,12 +274,18 @@ def peer_wake(ctx, transport, clusters, *, load_seconds, concurrency, pause_minu
     ctx.sleep(METRIC_LAG_SECONDS)  # let the minute that held the load reach CloudWatch
     series = spend.capacity_series(ctx, peer, since_epoch=started - CAPACITY_PERIOD)
     peak = max((high for _, _, high in series), default=None)
-    return {"measured": peak is not None, "load_domain": "media",
-            "observed_cluster_domain": "processing",
-            "same_cluster": peer == cluster_for(clusters, "media"),
-            "peer_woken": bool(peak), "peer_max_acu": peak,
-            "load_concurrency": concurrency, "load_seconds": load_seconds,
-            "load_requests": stats["requests"], "load_ok": stats["ok"]}
+    return {
+        "measured": peak is not None,
+        "load_domain": "media",
+        "observed_cluster_domain": "processing",
+        "same_cluster": peer == cluster_for(clusters, "media"),
+        "peer_woken": bool(peak),
+        "peer_max_acu": peak,
+        "load_concurrency": concurrency,
+        "load_seconds": load_seconds,
+        "load_requests": stats["requests"],
+        "load_ok": stats["ok"],
+    }
 
 
 def peer_slowdown(ctx, transport, *, samples, concurrency):
@@ -254,28 +296,44 @@ def peer_slowdown(ctx, transport, *, samples, concurrency):
         loaded = measure_warm(ctx, transport, "processing", samples)
 
     def ratio(key):
-        return (round(loaded[key] / alone[key], 3)
-                if alone[key] and loaded[key] is not None else None)
+        return (
+            round(loaded[key] / alone[key], 3) if alone[key] and loaded[key] is not None else None
+        )
 
-    return {"measured": alone["p95_ms"] is not None and loaded["p95_ms"] is not None,
-            "alone": alone, "under_media_load": loaded,
-            "slowdown_p50": ratio("p50_ms"), "slowdown_p95": ratio("p95_ms")}
+    return {
+        "measured": alone["p95_ms"] is not None and loaded["p95_ms"] is not None,
+        "alone": alone,
+        "under_media_load": loaded,
+        "slowdown_p50": ratio("p50_ms"),
+        "slowdown_p95": ratio("p95_ms"),
+    }
 
 
 # ---- ACU-hours and cost -----------------------------------------------------------------------
 def acu_hours(ctx, cluster, *, since, until):
     """Average ACU per minute, summed, from CloudWatch; the coverage is reported with it."""
-    reply = ctx.aws.call("cloudwatch", "get-metric-statistics", {
-        "Namespace": "AWS/RDS", "MetricName": "ServerlessDatabaseCapacity",
-        "Dimensions": [{"Name": "DBClusterIdentifier", "Value": cluster}],
-        "StartTime": stamp(since), "EndTime": stamp(until),
-        "Period": CAPACITY_PERIOD, "Statistics": ["Average", "Maximum"]},
-        deadline=ctx.deadline(60))
+    reply = ctx.aws.call(
+        "cloudwatch",
+        "get-metric-statistics",
+        {
+            "Namespace": "AWS/RDS",
+            "MetricName": "ServerlessDatabaseCapacity",
+            "Dimensions": [{"Name": "DBClusterIdentifier", "Value": cluster}],
+            "StartTime": stamp(since),
+            "EndTime": stamp(until),
+            "Period": CAPACITY_PERIOD,
+            "Statistics": ["Average", "Maximum"],
+        },
+        deadline=ctx.deadline(60),
+    )
     points = reply.get("Datapoints", [])
     total = sum(p["Average"] for p in points) * CAPACITY_PERIOD / 3600
-    return {"acu_hours": round(total, 4), "datapoints": len(points),
-            "window_minutes": round((until - since) / 60, 1),
-            "max_acu": max((p["Maximum"] for p in points), default=None)}
+    return {
+        "acu_hours": round(total, 4),
+        "datapoints": len(points),
+        "window_minutes": round((until - since) / 60, 1),
+        "max_acu": max((p["Maximum"] for p in points), default=None),
+    }
 
 
 def cost_section(ctx, clusters, *, since, until):
@@ -294,13 +352,16 @@ def cost_section(ctx, clusters, *, since, until):
         fixed = deploy.EXTRA_CLUSTER_MONTH_USD * window_hours / MONTH_HOURS
         rows[label] = {**measured, "compute_usd": round(compute, 4), "fixed_usd": round(fixed, 4)}
         total += compute + fixed
-    return {"clusters": rows, "total_usd": round(total, 4),
-            "window_hours": round(window_hours, 3),
-            "fixed_month_usd_per_cluster": deploy.EXTRA_CLUSTER_MONTH_USD,
-            "acu_hour_usd": deploy.ACU_HOUR,
-            "basis": "model on CloudWatch average ACU per minute at the captured ACU rate; "
-                     "Cost Explorer lags a day and cannot split one Aurora line between "
-                     "clusters"}
+    return {
+        "clusters": rows,
+        "total_usd": round(total, 4),
+        "window_hours": round(window_hours, 3),
+        "fixed_month_usd_per_cluster": deploy.EXTRA_CLUSTER_MONTH_USD,
+        "acu_hour_usd": deploy.ACU_HOUR,
+        "basis": "model on CloudWatch average ACU per minute at the captured ACU rate; "
+        "Cost Explorer lags a day and cannot split one Aurora line between "
+        "clusters",
+    }
 
 
 # ---- the arm ----------------------------------------------------------------------------------
@@ -313,12 +374,25 @@ def once(proof, intent, key, action):
     return done[key]
 
 
-def arm(ctx, proof, intent, *, name, samples, pause_minutes, resume_timeout, load_seconds,
-        concurrency, tail_minutes, overrides):
+def arm(
+    ctx,
+    proof,
+    intent,
+    *,
+    name,
+    samples,
+    pause_minutes,
+    resume_timeout,
+    load_seconds,
+    concurrency,
+    tail_minutes,
+    overrides,
+):
     if topology_of(ctx) != name:
         raise ProofError(
             f"This stack is {topology_of(ctx)}; the {name} arm needs a stack deployed with "
-            f"--database-topology {name} (the topology cannot be changed on a live stack)")
+            f"--database-topology {name} (the topology cannot be changed on a live stack)"
+        )
     clusters = cluster_ids(ctx, **overrides)
     transport = ctx.sdk(ctx.scope)
     intent.setdefault("window_start", ctx.wall())
@@ -333,11 +407,12 @@ def arm(ctx, proof, intent, *, name, samples, pause_minutes, resume_timeout, loa
     def cold():
         out = {}
         for label, cluster in clusters.items():
-            still = wait_paused(ctx, {label: cluster}, minutes=pause_minutes,
-                                checkpoint=checkpoint)
+            still = wait_paused(ctx, {label: cluster}, minutes=pause_minutes, checkpoint=checkpoint)
             if still:
-                out[label] = {"measured": False,
-                              "reason": "CloudWatch never showed 0 ACU within the wait"}
+                out[label] = {
+                    "measured": False,
+                    "reason": "CloudWatch never showed 0 ACU within the wait",
+                }
                 continue
             domain = "processing" if label == "cluster" else label
             out[label] = cold_resume(ctx, transport, domain, timeout=resume_timeout)
@@ -348,11 +423,26 @@ def arm(ctx, proof, intent, *, name, samples, pause_minutes, resume_timeout, loa
 
     cold_result = once(proof, intent, "cold_resume", cold)
     warm_result = once(proof, intent, "warm", warm)
-    wake = once(proof, intent, "peer_wake", lambda: peer_wake(
-        ctx, transport, clusters, load_seconds=load_seconds, concurrency=concurrency,
-        pause_minutes=pause_minutes, checkpoint=checkpoint))
-    slowdown = once(proof, intent, "peer_slowdown", lambda: peer_slowdown(
-        ctx, transport, samples=samples, concurrency=concurrency))
+    wake = once(
+        proof,
+        intent,
+        "peer_wake",
+        lambda: peer_wake(
+            ctx,
+            transport,
+            clusters,
+            load_seconds=load_seconds,
+            concurrency=concurrency,
+            pause_minutes=pause_minutes,
+            checkpoint=checkpoint,
+        ),
+    )
+    slowdown = once(
+        proof,
+        intent,
+        "peer_slowdown",
+        lambda: peer_slowdown(ctx, transport, samples=samples, concurrency=concurrency),
+    )
     if tail_minutes and not intent.get("tail_done"):
         # The pause tail is billed; leave it inside the window so the cost is not flattered.
         end = ctx.clock() + 60 * tail_minutes
@@ -362,22 +452,35 @@ def arm(ctx, proof, intent, *, name, samples, pause_minutes, resume_timeout, loa
         intent["tail_done"] = True
         proof.save()
     until = ctx.wall()
-    cost = once(proof, intent, "cost", lambda: cost_section(
-        ctx, clusters, since=intent["window_start"], until=until))
+    cost = once(
+        proof,
+        intent,
+        "cost",
+        lambda: cost_section(ctx, clusters, since=intent["window_start"], until=until),
+    )
     measured = [r.get("measured") for r in cold_result.values()] + [
-        wake.get("measured"), slowdown.get("measured")]
+        wake.get("measured"),
+        slowdown.get("measured"),
+    ]
     public = {
-        "arm": name, "clusters": len(clusters), "configured": configured,
-        "cold_resume": cold_result, "warm": warm_result,
+        "arm": name,
+        "clusters": len(clusters),
+        "configured": configured,
+        "cold_resume": cold_result,
+        "warm": warm_result,
         "isolation": {"peer_wake": wake, "peer_slowdown": slowdown},
-        "cost": cost, "notes": NOTES, "probe_path": "operator station -> Lambda invoke of the "
+        "cost": cost,
+        "notes": NOTES,
+        "probe_path": "operator station -> Lambda invoke of the "
         "owner's ready probe (fresh connection, SELECT 1); includes the network path",
         "samples": samples,
     }
     failed = [d for d, s in warm_result.items() if s["failures"]]
-    return {"status": PASS if all(measured) and not failed else (
-        FAIL if failed else NOT_RUN), "public": public,
-        "private": {"clusters": clusters}}
+    return {
+        "status": PASS if all(measured) and not failed else (FAIL if failed else NOT_RUN),
+        "public": public,
+        "private": {"clusters": clusters},
+    }
 
 
 # ---- the verdict ------------------------------------------------------------------------------
@@ -404,51 +507,82 @@ def compare(proof):
         warm_ratios[domain] = round(b / a, 3) if a and b is not None else None
     delta_window = round(two["cost"]["total_usd"] - one["cost"]["total_usd"], 4)
     extra_compute = sum(r["compute_usd"] for r in two["cost"]["clusters"].values()) - sum(
-        r["compute_usd"] for r in one["cost"]["clusters"].values())
+        r["compute_usd"] for r in one["cost"]["clusters"].values()
+    )
     projected = round(deploy.EXTRA_CLUSTER_MONTH_USD + max(0.0, extra_compute), 4)
     rule = {
         "both_arms_fully_measured": all(
-            v.get("measured") for arm_public in (one, two)
-            for v in (*arm_public["cold_resume"].values(), arm_public["isolation"]["peer_wake"],
-                      arm_public["isolation"]["peer_slowdown"])),
-        "coupling_observed_when_shared": bool(shared_wake.get("peer_woken")) or (
-            shared_slow is not None and shared_slow > MAX_PEER_SLOWDOWN),
+            v.get("measured")
+            for arm_public in (one, two)
+            for v in (
+                *arm_public["cold_resume"].values(),
+                arm_public["isolation"]["peer_wake"],
+                arm_public["isolation"]["peer_slowdown"],
+            )
+        ),
+        "coupling_observed_when_shared": bool(shared_wake.get("peer_woken"))
+        or (shared_slow is not None and shared_slow > MAX_PEER_SLOWDOWN),
         "separate_does_not_wake_the_peer": separate_wake.get("measured") is True
-        and not separate_wake.get("peer_woken") and not separate_wake.get("same_cluster"),
+        and not separate_wake.get("peer_woken")
+        and not separate_wake.get("same_cluster"),
         "separate_peer_slowdown_within_limit": separate_slow is not None
         and separate_slow <= MAX_PEER_SLOWDOWN,
-        "separate_cold_resume_not_slower": shared_cold is not None and all(
-            c is not None and c <= shared_cold + MAX_COLD_EXTRA_SECONDS for c in separate_colds),
+        "separate_cold_resume_not_slower": shared_cold is not None
+        and all(
+            c is not None and c <= shared_cold + MAX_COLD_EXTRA_SECONDS for c in separate_colds
+        ),
         "separate_warm_p95_not_slower": all(
-            r is not None and r <= MAX_WARM_P95_RATIO for r in warm_ratios.values()),
+            r is not None and r <= MAX_WARM_P95_RATIO for r in warm_ratios.values()
+        ),
         "separate_extra_cost_within_limit": projected <= MAX_EXTRA_USD_PER_MONTH,
     }
-    return {"public": {
-        "shared": {"cold_resume_seconds": shared_cold, "warm_p95_ms": {
-            d: one["warm"][d]["p95_ms"] for d in DOMAINS}, "peer_woken": shared_wake.get(
-                "peer_woken"), "peer_slowdown_p95": shared_slow,
-            "window_cost_usd": one["cost"]["total_usd"]},
-        "separate": {"cold_resume_seconds": separate_colds, "warm_p95_ms": {
-            d: two["warm"][d]["p95_ms"] for d in DOMAINS}, "peer_woken": separate_wake.get(
-                "peer_woken"), "peer_slowdown_p95": separate_slow,
-            "window_cost_usd": two["cost"]["total_usd"]},
-        "warm_p95_ratio_separate_over_shared": warm_ratios,
-        "window_cost_delta_usd": delta_window,
-        "projected_extra_usd_per_month": projected,
-        "projection_basis": "one more cluster's fixed monthly cost plus the measured extra ACU "
-                            "compute of one such window; scale the window to the real usage",
-        "decision_rule": rule,
-        "limits": {"peer_slowdown": MAX_PEER_SLOWDOWN, "cold_extra_seconds":
-                   MAX_COLD_EXTRA_SECONDS, "warm_p95_ratio": MAX_WARM_P95_RATIO,
-                   "extra_usd_per_month": MAX_EXTRA_USD_PER_MONTH},
-        "warrants_change": all(rule.values()),
-        "default": "shared (V1) unless every rule above holds in a live run",
-        "merge_decision": "pending",
-    }}
+    return {
+        "public": {
+            "shared": {
+                "cold_resume_seconds": shared_cold,
+                "warm_p95_ms": {d: one["warm"][d]["p95_ms"] for d in DOMAINS},
+                "peer_woken": shared_wake.get("peer_woken"),
+                "peer_slowdown_p95": shared_slow,
+                "window_cost_usd": one["cost"]["total_usd"],
+            },
+            "separate": {
+                "cold_resume_seconds": separate_colds,
+                "warm_p95_ms": {d: two["warm"][d]["p95_ms"] for d in DOMAINS},
+                "peer_woken": separate_wake.get("peer_woken"),
+                "peer_slowdown_p95": separate_slow,
+                "window_cost_usd": two["cost"]["total_usd"],
+            },
+            "warm_p95_ratio_separate_over_shared": warm_ratios,
+            "window_cost_delta_usd": delta_window,
+            "projected_extra_usd_per_month": projected,
+            "projection_basis": "one more cluster's fixed monthly cost plus the measured extra ACU "
+            "compute of one such window; scale the window to the real usage",
+            "decision_rule": rule,
+            "limits": {
+                "peer_slowdown": MAX_PEER_SLOWDOWN,
+                "cold_extra_seconds": MAX_COLD_EXTRA_SECONDS,
+                "warm_p95_ratio": MAX_WARM_P95_RATIO,
+                "extra_usd_per_month": MAX_EXTRA_USD_PER_MONTH,
+            },
+            "warrants_change": all(rule.values()),
+            "default": "shared (V1) unless every rule above holds in a live run",
+            "merge_decision": "pending",
+        }
+    }
 
 
-def run(ctx, *, arm_name, samples=30, pause_minutes=30, resume_timeout=300, load_seconds=60,
-        concurrency=4, tail_minutes=10, overrides=None):
+def run(
+    ctx,
+    *,
+    arm_name,
+    samples=30,
+    pause_minutes=30,
+    resume_timeout=300,
+    load_seconds=60,
+    concurrency=4,
+    tail_minutes=10,
+    overrides=None,
+):
     proof = ctx.proof(94, REQUIRED)
     if arm_name == "compare":
         proof.step("compare", lambda _intent: compare(proof), session=None)
@@ -459,8 +593,21 @@ def run(ctx, *, arm_name, samples=30, pause_minutes=30, resume_timeout=300, load
         raise ProofError("--samples is 5..200")
     if not 1 <= concurrency <= 8:
         raise ProofError("--load-concurrency is 1..8 (the account has 10 Lambda slots)")
-    proof.step(arm_name, lambda intent: arm(
-        ctx, proof, intent, name=arm_name, samples=samples, pause_minutes=pause_minutes,
-        resume_timeout=resume_timeout, load_seconds=load_seconds, concurrency=concurrency,
-        tail_minutes=tail_minutes, overrides=overrides or {}), session="window")
+    proof.step(
+        arm_name,
+        lambda intent: arm(
+            ctx,
+            proof,
+            intent,
+            name=arm_name,
+            samples=samples,
+            pause_minutes=pause_minutes,
+            resume_timeout=resume_timeout,
+            load_seconds=load_seconds,
+            concurrency=concurrency,
+            tail_minutes=tail_minutes,
+            overrides=overrides or {},
+        ),
+        session="window",
+    )
     return proof

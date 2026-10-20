@@ -54,7 +54,10 @@ def test_every_tick_sweeps_sql_once_the_last_check_is_half_an_hour_old():
 
 
 MALFORMED = [
-    ("0", "inf inf"), ("0", "nan 20000"), ("-inf", "9000 20000"), ("nan", "9000 20000"),
+    ("0", "inf inf"),
+    ("0", "nan 20000"),
+    ("-inf", "9000 20000"),
+    ("nan", "9000 20000"),
     ("0", "10500 20000"),  # checked in the future
     ("0", "9000000 9999999999999"),  # milliseconds: a check far in the future
 ]
@@ -68,7 +71,8 @@ def test_non_finite_or_out_of_range_markers_are_never_quiet(touched, quiet):
 @pytest.mark.parametrize("owner", ["processing", "media"])
 @pytest.mark.parametrize(("touched", "quiet"), [("0", "inf inf"), ("0", "99999999999999 inf")])
 async def test_a_malformed_marker_sends_each_repair_tick_to_sql(
-        monkeypatch, quiet_markers, owner, touched, quiet):
+    monkeypatch, quiet_markers, owner, touched, quiet
+):
     import importlib
 
     handlers = importlib.import_module(f"{owner}.handlers")
@@ -123,8 +127,10 @@ def test_a_pass_records_quiet_only_when_nothing_is_due_now_and_never_for_long(ca
 
 def test_the_gate_exists_only_where_the_stack_deployed_its_markers():
     assert Activity.from_environ("MEDIA", {}) is None
-    built = Activity.from_environ("MEDIA", {"MEDIA_ACTIVITY_TOUCHED_PARAMETER": TOUCHED,
-                                            "MEDIA_ACTIVITY_QUIET_PARAMETER": QUIET})
+    built = Activity.from_environ(
+        "MEDIA",
+        {"MEDIA_ACTIVITY_TOUCHED_PARAMETER": TOUCHED, "MEDIA_ACTIVITY_QUIET_PARAMETER": QUIET},
+    )
     assert (built.touched, built.quiet_name) == (TOUCHED, QUIET)
 
 
@@ -166,7 +172,8 @@ async def test_an_idle_repair_tick_opens_no_database_connection(monkeypatch, qui
 
 @pytest.mark.parametrize(("owner", "mode"), [("processing", "command"), ("media", "result")])
 async def test_a_consumer_records_its_write_before_touching_sql(
-        monkeypatch, quiet_markers, owner, mode):
+    monkeypatch, quiet_markers, owner, mode
+):
     import importlib
 
     handlers = importlib.import_module(f"{owner}.handlers")
@@ -180,8 +187,12 @@ async def test_an_idle_launcher_tick_opens_no_connection_but_a_wake_still_does(q
     from processing import launcher_aws
 
     result = await launcher_aws.run({"source": "aws.events"}, None)
-    assert result == {"service": "processing-launcher", "action": "tick", "outcome": "idle",
-                      "skipped": "quiet"}
+    assert result == {
+        "service": "processing-launcher",
+        "action": "tick",
+        "outcome": "idle",
+        "skipped": "quiet",
+    }
     # A wake (after a work send) and every control event bypass the gate.
     with pytest.raises(KeyError):  # reaches config_from_environ, which this test left unset
         await launcher_aws.run({"dc2_operation": "launcher", "action": "wake"}, None)
@@ -192,8 +203,9 @@ async def test_a_mutating_media_request_is_recorded_and_a_read_is_not(quiet_mark
 
     from media.main import create_v1_app
 
-    async with AsyncClient(transport=ASGITransport(app=create_v1_app()),
-                           base_url="http://media") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=create_v1_app()), base_url="http://media"
+    ) as client:
         await client.get("/health")
         assert quiet_markers.puts == []
         await client.post("/auth/logout")
@@ -208,20 +220,28 @@ def processing_event(method, path, body=None, owner=None):
 
     actor = Actor(str(owner or uuid4()), "publisher")
     return {
-        "version": "2.0", "rawPath": "/api/processing" + path, "rawQueryString": "",
+        "version": "2.0",
+        "rawPath": "/api/processing" + path,
+        "rawQueryString": "",
         "headers": {"content-type": "application/json"},
-        "requestContext": {"http": {"method": method},
-                           "authorizer": {"lambda": actor.to_context()}},
+        "requestContext": {
+            "http": {"method": method},
+            "authorizer": {"lambda": actor.to_context()},
+        },
         "body": body,
     }
 
 
-@pytest.mark.parametrize(("method", "path", "body", "status"), [
-    ("POST", "/jobs/{id}/retry", '{"retry_request_id": "%s"}', 202),
-    ("DELETE", "/jobs/{id}", None, 204),
-])
+@pytest.mark.parametrize(
+    ("method", "path", "body", "status"),
+    [
+        ("POST", "/jobs/{id}/retry", '{"retry_request_id": "%s"}', 202),
+        ("DELETE", "/jobs/{id}", None, 204),
+    ],
+)
 async def test_a_direct_processing_mutation_touches_before_it_commits_and_repair_then_runs_sql(
-        monkeypatch, quiet_markers, method, path, body, status):
+    monkeypatch, quiet_markers, method, path, body, status
+):
     from unittest.mock import AsyncMock
     from uuid import uuid4
 
@@ -234,8 +254,11 @@ async def test_a_direct_processing_mutation_touches_before_it_commits_and_repair
     async def mutation(*_args):
         order.append(("mutation", [name for name, _ in quiet_markers.puts]))
 
-    monkeypatch.setattr(v1_api, "retry_owned" if method == "POST" else "cancel_owned",
-                        AsyncMock(side_effect=mutation))
+    monkeypatch.setattr(
+        v1_api,
+        "retry_owned" if method == "POST" else "cancel_owned",
+        AsyncMock(side_effect=mutation),
+    )
     deny_database(monkeypatch, handlers)
     assert await handlers.invoke({}, None, "repair") == {"skipped": "idle"}  # quiet start
     event = processing_event(method, path.format(id=uuid4()), body % uuid4() if body else None)
@@ -264,15 +287,22 @@ def clocked(monkeypatch, quiet_markers):
     """Repair ticks read a controllable clock; the quiet snapshot is 600 s old at the start."""
     now = [100_000.0]
     build = Activity.from_environ.__func__
-    monkeypatch.setattr(Activity, "from_environ", classmethod(
-        lambda cls, prefix, environ=None, **kw: build(
-            cls, prefix, environ, clock=lambda: now[0], **kw)))
+    monkeypatch.setattr(
+        Activity,
+        "from_environ",
+        classmethod(
+            lambda cls, prefix, environ=None, **kw: build(
+                cls, prefix, environ, clock=lambda: now[0], **kw
+            )
+        ),
+    )
     quiet_markers.values[QUIET] = f"{int(now[0]) - 600} 99999999999"
     return now
 
 
 async def test_a_lost_touch_leaves_early_ticks_skipping_until_the_snapshot_ages_out(
-        monkeypatch, quiet_markers, clocked):
+    monkeypatch, quiet_markers, clocked
+):
     # Local, simulated clock and fake SSM: this is not AWS timing evidence (see AD-27).
     from processing import handlers
 

@@ -75,7 +75,11 @@ def probe(profile, *, runner=subprocess.run, environ=None, home=None, now=None):
     try:
         done = runner(
             ["aws", "configure", "export-credentials", "--profile", profile, "--format", "process"],
-            env=env, capture_output=True, text=True, timeout=30, check=False,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
         )
         data = json.loads(done.stdout) if done.returncode == 0 else {}
     except (OSError, ValueError, subprocess.SubprocessError):
@@ -110,8 +114,11 @@ def assess(profile, info, mfa_required=None):
     if info["kind"] == "long-term":
         if mfa_required is False:
             return "pass", "principal is not subject to an MFA deny (simulated)"
-        why = ("" if mfa_required is True else
-               " (whether an MFA deny applies could not be simulated, so it is assumed to)")
+        why = (
+            ""
+            if mfa_required is True
+            else " (whether an MFA deny applies could not be simulated, so it is assumed to)"
+        )
         return "blocker", (
             f"Profile {profile} holds long-term credentials (AKIA...){why}. Calls CloudFormation "
             "makes on your behalf carry aws:MultiFactorAuthPresent=false and FlickPondRequireMFA "

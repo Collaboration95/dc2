@@ -106,11 +106,7 @@ def test_images_explicit_override_auto_disable_and_unavailable_classifier(
     assert selected == (images or (auto and (path_result != "success" or changed == "true")))
     classify = evaluate(
         workflow["jobs"]["image-paths"]["if"],
-        **{
-            "github.event_name": event,
-            "inputs.images": images,
-            "inputs.auto_images": auto,
-        },
+        **{"github.event_name": event, "inputs.images": images, "inputs.auto_images": auto},
     )
     assert classify == (auto and not images)
 
@@ -323,11 +319,7 @@ def test_complete_acceptance_assertions_are_executable(
     folder.mkdir(parents=True)
     (folder / "manifest.json").write_text(
         json.dumps(
-            {
-                "status": status,
-                "complete_v1_acceptance": complete,
-                "cloud_acceptance": cloud,
-            }
+            {"status": status, "complete_v1_acceptance": complete, "cloud_acceptance": cloud}
         )
     )
     monkeypatch.chdir(tmp_path)

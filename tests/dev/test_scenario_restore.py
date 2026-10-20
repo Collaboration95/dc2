@@ -176,10 +176,7 @@ def test_callable_workflow_arms_guard_before_fault(
 
 @pytest.mark.parametrize("ignore_term", [False, True])
 def test_outer_timeout_restores_original_worker_replicas_when_child_cannot_finalize(
-    stack,
-    tmp_path,
-    monkeypatch,
-    ignore_term,
+    stack, tmp_path, monkeypatch, ignore_term
 ):
     mutation = tmp_path / "worker-count"
     mutation.write_text("3")

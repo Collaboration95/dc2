@@ -406,11 +406,7 @@ class SourceTests(unittest.TestCase):
             event = Path(directory) / "event.json"
             event.write_text(
                 json.dumps(
-                    {
-                        "pull_request": {
-                            "base": {"ref": "dev/closeout", "sha": "unreadable-base"}
-                        }
-                    }
+                    {"pull_request": {"base": {"ref": "dev/closeout", "sha": "unreadable-base"}}}
                 )
             )
             output = Path(directory) / "output"

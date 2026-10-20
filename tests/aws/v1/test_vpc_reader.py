@@ -29,8 +29,13 @@ ROOT = Path(__file__).resolve().parents[3]
 
 def rig(tmp_path, *faults, **world_kwargs):
     world = sim.SimWorld(faults=faults, **world_kwargs)
-    ctx = sim.build(argparse.Namespace(run_id="t", dry_run=True), session="window", sql=False,
-                    tmp=tmp_path / "state", world=world)
+    ctx = sim.build(
+        argparse.Namespace(run_id="t", dry_run=True),
+        session="window",
+        sql=False,
+        tmp=tmp_path / "state",
+        world=world,
+    )
     reader = VpcReader(ctx.config, world, clock=world.clock.monotonic, sleep=world.clock.sleep)
     return world, ctx, reader
 
@@ -56,15 +61,17 @@ def test_each_owner_is_read_with_its_own_deployed_migration_definition(tmp_path)
     reader.schema("processing", deadline=deadline(world))
     assert [r[2] for r in world.vpc_reads] == [
         ctx.config["migration_definitions"]["media"],
-        ctx.config["migration_definitions"]["processing"]]
+        ctx.config["migration_definitions"]["processing"],
+    ]
 
 
 def test_the_task_override_carries_no_secret_and_fits_the_ecs_limit(tmp_path):
     world, _, reader = rig(tmp_path)
     seen = []
     original = world.call
-    world.call = lambda *a, **k: (seen.append(a) if a[1] == "run-task" else None) or original(
-        *a, **k)
+    world.call = lambda *a, **k: (
+        (seen.append(a) if a[1] == "run-task" else None) or original(*a, **k)
+    )
     reader.schema("media", deadline=deadline(world))
     payload = seen[0][2]
     safe_record(payload)  # the operator transport refuses anything credential-looking
@@ -72,8 +79,11 @@ def test_the_task_override_carries_no_secret_and_fits_the_ecs_limit(tmp_path):
     names = {e["name"] for e in overrides["environment"]}
     assert names == {"DC2_SCRIPT", "DC2_OWNER", "DC2_MODE", "DC2_RESUME_SECONDS"}
     text = json.dumps(payload["overrides"])
-    assert len(text) < 8192 and "postgres" not in text.lower() and "dsn" not in overrides[
-        "command"][-1].lower()
+    assert (
+        len(text) < 8192
+        and "postgres" not in text.lower()
+        and "dsn" not in overrides["command"][-1].lower()
+    )
     assert overrides["command"][:2] == ["python", "-c"]
 
 
@@ -81,8 +91,15 @@ def test_the_shipped_wrapper_runs_the_probe_and_a_bad_environment_prints_a_class
     packed, command = vpc_reader.ship()
     assert "=" not in packed
     env = {**os.environ, "DC2_SCRIPT": packed, "DC2_OWNER": "nobody", "DC2_MODE": "schema"}
-    done = subprocess.run([sys.executable, *command[1:]], env=env, capture_output=True,
-                          text=True, timeout=60, cwd=tmp_path, check=False)
+    done = subprocess.run(
+        [sys.executable, *command[1:]],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        cwd=tmp_path,
+        check=False,
+    )
     assert done.returncode == 1
     line = next(x for x in done.stdout.splitlines() if x.startswith("DC2-VPC-READ "))
     assert json.loads(line.split(" ", 1)[1])["error"] == "ValueError" and not done.stderr
@@ -178,8 +195,9 @@ def test_attempt_counts_are_read_for_processing_and_validated(tmp_path):
 # ---- the real operator transport accepts exactly these calls ---------------------------------
 def client(**methods):
     config = SimpleNamespace(retries={"total_max_attempts": 1}, connect_timeout=2, read_timeout=3)
-    return SimpleNamespace(meta=SimpleNamespace(region_name="ap-southeast-1", config=config),
-                           **methods)
+    return SimpleNamespace(
+        meta=SimpleNamespace(region_name="ap-southeast-1", config=config), **methods
+    )
 
 
 def test_the_operator_transport_admits_every_call_the_reader_makes(tmp_path):
@@ -188,13 +206,17 @@ def test_the_operator_transport_admits_every_call_the_reader_makes(tmp_path):
         run_task=lambda **kw: world.call("ecs", "run-task", kw),
         describe_tasks=lambda **kw: world.call("ecs", "describe-tasks", kw),
         describe_task_definition=lambda **kw: world.call("ecs", "describe-task-definition", kw),
-        stop_task=lambda **kw: world.call("ecs", "stop-task", kw))
+        stop_task=lambda **kw: world.call("ecs", "stop-task", kw),
+    )
     logs = client(get_log_events=lambda **kw: world.call("logs", "get-log-events", kw))
     transport = OperatorTransport(
-        {"ecs": ecs, "logs": logs}, identity={"Account": "123456789012"},
-        account="123456789012", region="ap-southeast-1", clock=world.clock.monotonic)
-    reader = VpcReader(ctx.config, transport, clock=world.clock.monotonic,
-                       sleep=world.clock.sleep)
+        {"ecs": ecs, "logs": logs},
+        identity={"Account": "123456789012"},
+        account="123456789012",
+        region="ap-southeast-1",
+        clock=world.clock.monotonic,
+    )
+    reader = VpcReader(ctx.config, transport, clock=world.clock.monotonic, sleep=world.clock.sleep)
     assert reader.schema("processing", deadline=deadline(world)) == "p0005"
 
 
@@ -218,9 +240,12 @@ def run_probe(monkeypatch, connect, *, owner="media", mode="schema", resume="0")
 
     secret = "postgresql+asyncpg://role:S3CRETPW@db.example.internal:5432/media_db"
     for name, value in {
-            "DC2_OWNER": owner, "DC2_MODE": mode, "DC2_RESUME_SECONDS": resume,
-            "DB_SSL_CA_FILE": str(ROOT / "deploy/v1/global-bundle.pem"),
-            f"{owner.upper()}_MIGRATION_DSN": secret}.items():
+        "DC2_OWNER": owner,
+        "DC2_MODE": mode,
+        "DC2_RESUME_SECONDS": resume,
+        "DB_SSL_CA_FILE": str(ROOT / "deploy/v1/global-bundle.pem"),
+        f"{owner.upper()}_MIGRATION_DSN": secret,
+    }.items():
         monkeypatch.setenv(name, value)
     monkeypatch.setattr(asyncpg, "connect", connect)
     monkeypatch.setattr(vpc_probe, "RETRY_SECONDS", 0)
@@ -233,8 +258,7 @@ def run_probe(monkeypatch, connect, *, owner="media", mode="schema", resume="0")
     return code, json.loads(line.split(" ", 1)[1])
 
 
-def test_the_probe_verifies_tls_with_a_required_chain_and_hostname_then_reads_the_head(
-        monkeypatch):
+def test_the_probe_verifies_tls_with_a_required_chain_and_hostname_then_reads_the_head(monkeypatch):
     seen = {}
 
     async def connect(dsn, **kwargs):
@@ -278,7 +302,11 @@ def test_a_certificate_failure_is_permanent_and_prints_only_its_class(monkeypatc
 
     code, result = run_probe(monkeypatch, connect, resume="3600")
     assert code == 1 and result == {
-        "ok": False, "owner": "media", "mode": "schema", "error": "SSLCertVerificationError"}
+        "ok": False,
+        "owner": "media",
+        "mode": "schema",
+        "error": "SSLCertVerificationError",
+    }
     assert len(calls) == 1
 
 

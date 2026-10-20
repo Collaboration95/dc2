@@ -82,7 +82,9 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("group: dast-${{ github.workflow }}-${{ github.ref }}", dast)
         self.assertIn("-m scripts.dev.v1_dast scan --run-id", dast)
         self.assertIn("source == os.environ['GITHUB_SHA']", dast)
-        self.assertIn("if: always()\n        run: .venv/bin/python -m scripts.dev.v1_dast cleanup", dast)
+        self.assertIn(
+            "if: always()\n        run: .venv/bin/python -m scripts.dev.v1_dast cleanup", dast
+        )
         self.assertNotIn("continue-on-error", jobs(dast)["dast"])
         self.assertNotIn("needs:", self.jobs["sonar-config"])
         self.assertIn("NOT_RUN / not configured", self.jobs["sonar-config"])
