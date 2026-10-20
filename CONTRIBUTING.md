@@ -15,3 +15,7 @@ Both lint and formatting cover the CI helpers and V1 image-verification scripts.
 For frontend test-tool changes, use a Node version supported by `frontend/package.json`, run
 `npm ci`, `npm run test:coverage`, and `npm audit --audit-level=high` from `frontend/`.
 CI uses Node 22 and blocks known high or critical findings in this locked development toolchain.
+
+Before publishing workflow edits, run `actionlint -shellcheck= -pyflakes= .github/workflows/*.yml`
+(validated with actionlint 1.7.12). This checks GitHub expression contexts and workflow structure;
+Python source lint and tests run separately. An invalid workflow can fail before CI creates jobs.
