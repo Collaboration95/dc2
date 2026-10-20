@@ -41,8 +41,8 @@ features or numerical targets.
 - **Pre:** caller is authenticated and owns the Asset; state may be queued, processing or terminal.
 - **Normal:** Media reads the owner-filtered Asset and local Processing projection; returns status and, when done, a short-lived signed MP4 capability. Optional HLS playlist is served through Media and segments redirect to signed S3 URLs.
 - **Exceptions:** foreign and unknown IDs are not found; stale/conflicting results cannot replace a newer projection. Expired signed URLs require a fresh authorized read; HLS may be absent.
-- **Post:** owner-only status and expiring playback access; read has no domain mutation.
-- **Tests:** [`test_local_status_hls_and_signed_range_capability`](../../tests/media/test_v1_projection.py#L151), [`test_wrong_owner_source_job_and_output_rejected`](../../tests/media/test_v1_projection.py#L130), [`test_publisher_direct_post_encode_projection_and_ownership`](../../tests/v1/test_workflow_acceptance.py#L19).
+- **Post:** owner-only status and expiring playback access; read has no domain mutation. Authenticated API responses, including signed playback URLs, use `Cache-Control: private, no-store`.
+- **Tests:** [`test_local_status_hls_and_signed_range_capability`](../../tests/media/test_v1_projection.py#L151), [`test_wrong_owner_source_job_and_output_rejected`](../../tests/media/test_v1_projection.py#L130), [`test_publisher_direct_post_encode_projection_and_ownership`](../../tests/v1/test_workflow_acceptance.py#L19), [`test_exported_handler_reads_owned_projection_without_peer`](../../tests/media/test_v1_wiring.py#L79).
 
 ### UC-4 — Retry from the stored source
 

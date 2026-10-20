@@ -1,0 +1,58 @@
+[
+  {
+    "confidence": "2",
+    "count": 4,
+    "plugin_id": "90004",
+    "risk_code": "1",
+    "service": "media"
+  },
+  {
+    "confidence": "3",
+    "count": 4,
+    "plugin_id": "10036",
+    "risk_code": "1",
+    "service": "media"
+  },
+  {
+    "confidence": "3",
+    "count": 4,
+    "plugin_id": "10035",
+    "risk_code": "1",
+    "service": "media"
+  },
+  {
+    "confidence": "2",
+    "count": 4,
+    "plugin_id": "10021",
+    "risk_code": "1",
+    "service": "media"
+  },
+  {
+    "confidence": "3",
+    "count": 78,
+    "plugin_id": "100000",
+    "risk_code": "0",
+    "service": "media"
+  },
+  {
+    "confidence": "2",
+    "count": 3,
+    "plugin_id": "10049",
+    "risk_code": "0",
+    "service": "media"
+  },
+  {
+    "confidence": "1",
+    "count": 4,
+    "plugin_id": "10015",
+    "risk_code": "0",
+    "service": "media"
+  },
+  {
+    "confidence": "2",
+    "count": 1,
+    "plugin_id": "10049",
+    "risk_code": "0",
+    "service": "media"
+  }
+]

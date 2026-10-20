@@ -1,0 +1,418 @@
+{
+  "run_id": "quality-final-20261020",
+  "source_sha": "514914a1326ec92400d4ac0e9cf07012d117a0d2",
+  "tracked_dirty": false,
+  "source": {
+    "sha": "514914a1326ec92400d4ac0e9cf07012d117a0d2",
+    "dirty": false,
+    "untracked_files": 0
+  },
+  "images": {
+    "v1_artifacts": {
+      "dc2-v1-media": {
+        "status": "NOT_BUILT",
+        "reference": "dc2-v1-media:latest"
+      },
+      "dc2-v1-processing": {
+        "status": "NOT_BUILT",
+        "reference": "dc2-v1-processing:latest"
+      },
+      "dc2-v1-worker": {
+        "status": "NOT_BUILT",
+        "reference": "dc2-v1-worker:latest"
+      }
+    },
+    "postgres": {
+      "status": "RUNNING",
+      "reference": "postgres:16",
+      "config_id": "sha256:ed134ce8cc303c24d12c4bc6f5a2a43dc7ee7bbde8f67d9f60be5cc03206eab0"
+    }
+  },
+  "tools": {
+    "python": "3.12.11",
+    "ffmpeg": "ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers",
+    "moto": "5.2.4"
+  },
+  "boundaries": {
+    "real": {
+      "postgresql": "PostgreSQL 16 container, owner roles, TLS and migrations",
+      "ffmpeg": "inherited engine encoding real MP4 and HLS bytes",
+      "domain_code": "media/, processing/, delivery/, contracts/ handlers and SQL",
+      "clients": "Publisher PublicClient and, when V1_BROWSER=1, the real frontend in Chromium"
+    },
+    "emulated": {
+      "api_gateway": "scripts.dev.v1_gateway loopback bridge; not HTTP API, IAM or CloudFront",
+      "s3_sqs": "Moto HTTP server on loopback; not AWS S3/SQS semantics, IAM or KMS",
+      "event_source_mapping": "scripts.dev.v1_acceptance.pump delivers SQS batches by hand",
+      "lambda": "handlers imported in-process; no Lambda runtime, cold start or concurrency",
+      "fargate": "processing.v1_worker runs as a local subprocess; no ECS task or image",
+      "release_transport": "fake Lambda/ECS transport; alias moves are not AWS API calls",
+      "tls": "generated local certificate trusted only by the test process"
+    },
+    "not_run": [
+      "AWS IAM and resource policies",
+      "Aurora networking and pause",
+      "public DNS, TLS and CloudFront",
+      "Lambda and Fargate images in a registry",
+      "billing"
+    ]
+  },
+  "browser_requested": true,
+  "integration_selection": {
+    "scope": "pytest tests/v1 -m integration",
+    "separate_flow_suites": [
+      "tests/v1/test_browser_acceptance.py",
+      "tests/v1/test_launcher_sql.py",
+      "tests/v1/test_release_acceptance.py",
+      "tests/v1/test_workflow_acceptance.py"
+    ],
+    "optional_dispositions": {
+      "tests/v1/test_short_encoder_sql.py": {
+        "cases": 13,
+        "status": "DEFERRED_OPTIONAL_V2",
+        "reason": "Optional short-encoder lane; its tests do not enable the lane in runtime."
+      }
+    }
+  },
+  "flows": {
+    "a": {
+      "status": "PASS",
+      "scope": "dependency/engine seam only",
+      "owners": [
+        "media",
+        "processing"
+      ],
+      "runtime_dml": "PASS",
+      "runtime_ddl_denied": "PASS",
+      "cross_database_runtime_and_migrator_denied": "PASS",
+      "postgres_tls": "verified local certificate",
+      "queued_rows": "retained",
+      "s3_immutable_version": "PASS",
+      "sqs_redelivery": "PASS",
+      "mp4_hls_ffmpeg": "PASS",
+      "s3_range": "PASS",
+      "source_sha256": "2f8b8ead77bcb7726dfa9f77a167d67defdccb0407058ec771f9f2be3dc9f26b",
+      "output_sha256": "1f0556ae93866a33c078f35b35aafcf4d4e2d249ec7f37535be81178c9bfc0ec",
+      "source_bytes": 20913,
+      "output_bytes": 25203,
+      "cloud_iam_gateway_lambda_fargate": "NOT_RUN"
+    },
+    "b": {
+      "status": "PASS",
+      "publisher": {
+        "status": "PASS",
+        "counts": {
+          "tests": 2,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0
+        },
+        "junit_sha256": "681ca08f48c0f3f51e667c219ba66a766b08ed80cb82578a41bcd19e22287737",
+        "tests": [
+          "tests/v1/test_workflow_acceptance.py"
+        ],
+        "node_ids": [
+          "tests/v1/test_workflow_acceptance.py::test_publisher_direct_post_encode_projection_and_ownership",
+          "tests/v1/test_workflow_acceptance.py::test_publisher_retry_reuses_the_stored_source_after_a_transient_encode_failure"
+        ],
+        "passed": 2,
+        "failed_tests": [],
+        "skipped_tests": []
+      },
+      "browser": {
+        "status": "PASS",
+        "counts": {
+          "tests": 2,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0
+        },
+        "junit_sha256": "259a1495350bec0db58e54450f4b86728e5e01dd1ea3d17cb46c47eaaa2c03aa",
+        "tests": [
+          "tests/v1/test_browser_acceptance.py"
+        ],
+        "node_ids": [
+          "tests/v1/test_browser_acceptance.py::test_browser_signs_in_uploads_directly_waits_for_encode_plays_and_deletes[hlsjs]",
+          "tests/v1/test_browser_acceptance.py::test_browser_signs_in_uploads_directly_waits_for_encode_plays_and_deletes[native]"
+        ],
+        "passed": 2,
+        "failed_tests": [],
+        "skipped_tests": []
+      }
+    },
+    "c": {
+      "status": "PASS",
+      "sessions": {
+        "status": "PASS",
+        "counts": {
+          "tests": 38,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0
+        },
+        "junit_sha256": "97ec1ac48d23dabe3171a591923706022bb1f3f9ee7b19185986d52cedefd18c",
+        "tests": [
+          "tests/v1/test_launcher_sql.py",
+          "tests/v1/test_session.py"
+        ],
+        "node_ids": [
+          "tests/v1/test_launcher_sql.py::test_no_backlog_means_no_launch_and_not_one_aws_call",
+          "tests/v1/test_launcher_sql.py::test_an_empty_queue_blocks_a_launch_even_when_sql_shows_backlog",
+          "tests/v1/test_launcher_sql.py::test_a_backlog_of_ten_launches_at_most_three_and_later_ticks_add_none",
+          "tests/v1/test_launcher_sql.py::test_launch_requests_are_finite_named_by_token_and_end_before_the_session",
+          "tests/v1/test_launcher_sql.py::test_concurrent_triggers_never_exceed_the_cap",
+          "tests/v1/test_launcher_sql.py::test_always_on_concurrent_wakes_never_exceed_the_cap_without_a_session_end",
+          "tests/v1/test_launcher_sql.py::test_always_on_launches_nothing_for_an_empty_queue_or_while_switched_off",
+          "tests/v1/test_launcher_sql.py::test_concurrent_triggers_with_a_lost_response_still_respect_the_cap",
+          "tests/v1/test_launcher_sql.py::test_a_lost_runtask_response_is_resolved_by_token_without_a_second_launch",
+          "tests/v1/test_launcher_sql.py::test_a_dropped_request_is_replayed_with_the_identical_token_and_payload",
+          "tests/v1/test_launcher_sql.py::test_a_replay_of_a_launch_ecs_has_not_listed_yet_does_not_double_launch",
+          "tests/v1/test_launcher_sql.py::test_restart_mid_launch_resumes_the_reserved_slots_by_token",
+          "tests/v1/test_launcher_sql.py::test_an_idle_worker_is_counted_as_capacity_and_never_respawned",
+          "tests/v1/test_launcher_sql.py::test_a_worker_that_holds_an_attempt_does_not_offset_new_backlog",
+          "tests/v1/test_launcher_sql.py::test_three_idle_exits_in_a_row_stop_launches_until_the_operator_reenables",
+          "tests/v1/test_launcher_sql.py::test_one_idle_exit_waits_out_the_cooldown_before_replacing_the_worker",
+          "tests/v1/test_launcher_sql.py::test_a_worker_that_finished_real_work_is_replaced_when_new_backlog_arrives",
+          "tests/v1/test_launcher_sql.py::test_workers_started_by_anyone_count_against_the_cap",
+          "tests/v1/test_launcher_sql.py::test_other_task_families_do_not_consume_worker_slots",
+          "tests/v1/test_launcher_sql.py::test_disabling_stops_every_launch_including_a_slot_already_reserved",
+          "tests/v1/test_launcher_sql.py::test_a_send_that_starts_after_disable_releases_its_slot_without_calling_ecs",
+          "tests/v1/test_launcher_sql.py::test_disable_waits_for_an_in_flight_send_so_nothing_launches_after_it_returns",
+          "tests/v1/test_launcher_sql.py::test_enabling_requires_a_future_session_end_and_launches_stop_near_it",
+          "tests/v1/test_launcher_sql.py::test_a_refusal_from_ecs_releases_the_slot_and_is_not_retried_in_the_same_tick",
+          "tests/v1/test_launcher_sql.py::test_an_unreadable_inventory_fails_closed_before_any_reservation",
+          "tests/v1/test_launcher_sql.py::test_a_reservation_that_ecs_never_confirms_is_released_after_the_horizon",
+          "tests/v1/test_launcher_sql.py::test_a_forgotten_task_past_its_deadline_settles_as_stopped",
+          "tests/v1/test_launcher_sql.py::test_the_status_and_idle_fast_paths_report_counts_only",
+          "tests/v1/test_launcher_sql.py::test_reservation_timestamps_use_the_database_clock",
+          "tests/v1/test_launcher_sql.py::test_idle_processing_has_nothing_due_and_open_work_is_due_now",
+          "tests/v1/test_launcher_sql.py::test_once_no_attempt_is_open_the_earliest_scheduled_row_is_the_next_due_time",
+          "tests/v1/test_session.py::test_open_close_retains_queued_work_and_never_launches",
+          "tests/v1/test_session.py::test_open_failure_keeps_launches_paused_and_intake_zero",
+          "tests/v1/test_session.py::test_failed_drain_still_disables_wake_sources_and_is_retryable",
+          "tests/v1/test_session.py::test_lost_launch_response_reserves_slot_across_restart",
+          "tests/v1/test_session.py::test_finite_batch_cap_and_stopped_inventory_releases_slot",
+          "tests/v1/test_session.py::test_concurrent_station_and_release_interlocks",
+          "tests/v1/test_session.py::test_explicit_replay_keeps_identical_payload_and_token"
+        ],
+        "passed": 38,
+        "failed_tests": [],
+        "skipped_tests": []
+      },
+      "required_integration": {
+        "status": "PASS",
+        "counts": {
+          "tests": 99,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0
+        },
+        "junit_sha256": "f2587689b4882b3a357bf3b1775f8260748c046a2168527c9c898a00db11907e",
+        "tests": [
+          "tests/v1"
+        ],
+        "node_ids": [
+          "tests/v1/test_credential_rotation.py::test_a_real_wrong_password_is_recognised_as_a_login_refusal",
+          "tests/v1/test_delivery_recovery_sql.py::test_repair_resends_one_stable_work_message_on_a_fixed_short_interval",
+          "tests/v1/test_delivery_recovery_sql.py::test_repair_interval_never_grows_so_a_late_loss_is_still_found_inside_120_seconds",
+          "tests/v1/test_delivery_recovery_sql.py::test_repair_skips_work_that_is_still_unsent_or_mid_publication",
+          "tests/v1/test_delivery_recovery_sql.py::test_lost_committed_work_is_requeued_within_120_seconds",
+          "tests/v1/test_delivery_recovery_sql.py::test_interrupted_work_is_resolved_within_300_seconds[60]",
+          "tests/v1/test_delivery_recovery_sql.py::test_interrupted_work_is_resolved_within_300_seconds[240]",
+          "tests/v1/test_delivery_recovery_sql.py::test_mixed_success_publish_batch_keeps_failed_rows_for_a_later_pass",
+          "tests/v1/test_delivery_recovery_sql.py::test_disposition_marks_only_provably_dead_attempts_stale[cancelled]",
+          "tests/v1/test_delivery_recovery_sql.py::test_disposition_marks_only_provably_dead_attempts_stale[succeeded]",
+          "tests/v1/test_delivery_recovery_sql.py::test_disposition_marks_only_provably_dead_attempts_stale[failed]",
+          "tests/v1/test_delivery_recovery_sql.py::test_disposition_marks_only_provably_dead_attempts_stale[superseded]",
+          "tests/v1/test_delivery_recovery_sql.py::test_delayed_ecs_and_s3_events_cannot_touch_a_newer_attempt",
+          "tests/v1/test_delivery_recovery_sql.py::test_a_stopped_task_fails_its_live_attempt_before_the_lease_expires",
+          "tests/v1/test_delivery_recovery_sql.py::test_a_duplicate_stopped_event_changes_nothing_the_second_time",
+          "tests/v1/test_delivery_recovery_sql.py::test_a_stopped_event_before_any_claim_is_a_no_op",
+          "tests/v1/test_delivery_recovery_sql.py::test_a_stopped_task_cannot_fail_another_tasks_attempt",
+          "tests/v1/test_delivery_recovery_sql.py::test_only_a_stopped_status_ends_an_attempt[RUNNING]",
+          "tests/v1/test_delivery_recovery_sql.py::test_only_a_stopped_status_ends_an_attempt[PENDING]",
+          "tests/v1/test_delivery_recovery_sql.py::test_only_a_stopped_status_ends_an_attempt[DEPROVISIONING]",
+          "tests/v1/test_delivery_recovery_sql.py::test_a_worker_bound_by_task_id_or_arn_is_matched_too[task id]",
+          "tests/v1/test_delivery_recovery_sql.py::test_a_worker_bound_by_task_id_or_arn_is_matched_too[task arn]",
+          "tests/v1/test_delivery_recovery_sql.py::test_a_stopped_event_after_the_worker_finished_does_not_undo_the_result",
+          "tests/v1/test_delivery_recovery_sql.py::test_a_worker_cannot_finish_an_attempt_its_stopped_task_already_failed",
+          "tests/v1/test_delivery_recovery_sql.py::test_the_ecs_handler_path_also_runs_expiry_and_reports_the_stop",
+          "tests/v1/test_delivery_recovery_sql.py::test_cleanup_is_ordered_bounded_and_backs_off_between_rescans",
+          "tests/v1/test_delivery_recovery_sql.py::test_cleanup_retires_after_the_horizon_but_never_after_an_error",
+          "tests/v1/test_delivery_recovery_sql.py::test_reemitted_result_supersedes_a_quarantined_version",
+          "tests/v1/test_delivery_recovery_sql.py::test_close_then_reopen_processes_retained_work_and_drops_stale_leftovers",
+          "tests/v1/test_delivery_recovery_sql.py::test_duplicate_work_after_completion_is_acked_not_cycled_to_the_dlq",
+          "tests/v1/test_direct_intake_s3.py::test_grant_binds_key_type_size_and_a_short_expiry",
+          "tests/v1/test_direct_intake_s3.py::test_replayed_grant_after_finalize_cannot_change_the_served_source",
+          "tests/v1/test_direct_intake_s3.py::test_finalize_pins_the_exact_version_it_verified",
+          "tests/v1/test_direct_intake_s3.py::test_wrong_owner_cannot_finalize_or_observe_a_reservation",
+          "tests/v1/test_direct_intake_s3.py::test_oversized_and_truncated_objects_are_refused_at_finalize",
+          "tests/v1/test_direct_intake_s3.py::test_same_size_different_bytes_fail_the_checksum",
+          "tests/v1/test_direct_intake_s3.py::test_missing_object_is_retryable_not_adopted",
+          "tests/v1/test_direct_intake_s3.py::test_an_unversioned_bucket_is_refused_because_nothing_could_be_pinned",
+          "tests/v1/test_direct_intake_s3.py::test_expired_reservation_is_refused_and_its_bytes_are_reclaimed",
+          "tests/v1/test_direct_intake_s3.py::test_cleanup_keeps_the_pin_removes_late_writes_and_stays_armed",
+          "tests/v1/test_direct_intake_s3.py::test_database_refuses_a_finalized_reservation_without_a_real_version",
+          "tests/v1/test_dlq.py::test_quarantined_message_in_emulator_dlq_is_inspectable",
+          "tests/v1/test_dlq.py::test_emulator_redrive_returns_a_quarantined_envelope_and_keeps_the_invalid_one",
+          "tests/v1/test_domain_sql_boundary.py::test_finalize_command_completion_and_reordered_projection",
+          "tests/v1/test_domain_sql_boundary.py::test_stored_source_retry_then_media_delete_dominates_late_results",
+          "tests/v1/test_local_gateway.py::test_real_http_bridge_preserves_multiple_set_cookie_and_binary_response",
+          "tests/v1/test_media_cleanup_sql.py::test_no_delete_from_published_command_without_ack",
+          "tests/v1/test_media_cleanup_sql.py::test_ack_then_delete_without_asset_or_intent_locks_and_late_replay",
+          "tests/v1/test_media_cleanup_sql.py::test_lost_delete_response_retains_retry_and_repeated_delete_is_safe",
+          "tests/v1/test_media_cleanup_sql.py::test_no_job_ack_must_match_persisted_cancel_command",
+          "tests/v1/test_media_cleanup_sql.py::test_stale_scan_cannot_overwrite_new_cleanup_reservation",
+          "tests/v1/test_media_cleanup_sql.py::test_existing_job_cancellation_needs_current_version_before_cleanup",
+          "tests/v1/test_media_cleanup_sql.py::test_native_source_version_deletion_and_late_object_with_moto",
+          "tests/v1/test_media_cleanup_sql.py::test_wrong_owner_ack_cannot_grant_cleanup",
+          "tests/v1/test_media_cleanup_sql.py::test_tombstone_rescans_back_off_then_retire_after_the_horizon",
+          "tests/v1/test_media_cleanup_sql.py::test_failed_tombstone_scans_never_retire_however_old",
+          "tests/v1/test_media_cleanup_sql.py::test_tombstone_batches_are_bounded_and_oldest_first",
+          "tests/v1/test_media_cleanup_sql.py::test_poisoned_result_does_not_block_a_later_version",
+          "tests/v1/test_media_cleanup_sql.py::test_stale_unadopted_stages_lose_every_version_and_their_row",
+          "tests/v1/test_media_cleanup_sql.py::test_recent_and_adopted_stages_are_never_touched",
+          "tests/v1/test_media_cleanup_sql.py::test_staged_recovery_is_bounded_per_pass_and_oldest_first",
+          "tests/v1/test_media_cleanup_sql.py::test_an_uncertain_removal_keeps_the_intent_and_stays_unadoptable_until_it_returns",
+          "tests/v1/test_media_cleanup_sql.py::test_a_timed_out_deletion_leaves_the_row_stale_and_the_bytes_unadoptable",
+          "tests/v1/test_media_cleanup_sql.py::test_a_write_of_unknown_outcome_is_rescanned_instead_of_retired",
+          "tests/v1/test_media_cleanup_sql.py::test_an_adopter_holding_the_stage_lock_is_not_overtaken_by_cleanup",
+          "tests/v1/test_media_cleanup_sql.py::test_run_once_includes_staged_recovery_with_the_repair_settings",
+          "tests/v1/test_media_cleanup_sql.py::test_staged_copy_with_versions_and_delete_marker_is_fully_released_with_moto",
+          "tests/v1/test_media_messaging_sql.py::test_finalize_intent_rolls_back_with_adoption_and_commits_once",
+          "tests/v1/test_media_messaging_sql.py::test_result_commit_dedupe_and_callback_rollback",
+          "tests/v1/test_media_messaging_sql.py::test_media_repair_is_idle_without_rows_and_due_when_a_command_awaits_publishing",
+          "tests/v1/test_messaging_sql.py::test_submit_duplicate_conflict_and_rollback",
+          "tests/v1/test_messaging_sql.py::test_retry_must_match_the_durable_job_identity[job_id]",
+          "tests/v1/test_messaging_sql.py::test_retry_must_match_the_durable_job_identity[source]",
+          "tests/v1/test_messaging_sql.py::test_cancel_before_submit_is_permanent",
+          "tests/v1/test_messaging_sql.py::test_cross_owner_submit_rejected_before_mutation",
+          "tests/v1/test_messaging_sql.py::test_claim_source_substitution_rolls_back_and_completion_is_fenced",
+          "tests/v1/test_messaging_sql.py::test_lost_send_response_replays_after_commit_outside_locks",
+          "tests/v1/test_messaging_sql.py::test_sent_work_retention_gap_and_interrupted_lease_repair",
+          "tests/v1/test_messaging_sql.py::test_cleanup_retains_late_write_intent_without_holding_sql_locks",
+          "tests/v1/test_messaging_sql.py::test_concurrent_duplicate_and_distinct_submit_ids_serialize",
+          "tests/v1/test_messaging_sql.py::test_retry_idempotency_and_cancel_fence_old_and_current_attempts",
+          "tests/v1/test_messaging_sql.py::test_success_output_namespace_validation_and_atomic_terminal_result",
+          "tests/v1/test_messaging_sql.py::test_sql_outbox_to_emulator_work_and_terminal_result",
+          "tests/v1/test_messaging_sql.py::test_finite_task_binding_persists_and_cannot_claim_second_job",
+          "tests/v1/test_messaging_sql.py::test_new_cancel_after_prior_public_cancel_emits_fresh_cleanup_confirmation",
+          "tests/v1/test_messaging_sql.py::test_guard_tombstone_rejects_claim_even_if_job_projection_is_still_queued",
+          "tests/v1/test_processing_activity_sql.py::test_a_direct_retry_from_a_quiet_gate_records_activity_and_commits_pending_work",
+          "tests/v1/test_sqs_emulator.py::test_emulator_lost_delete_redelivery_stable_content",
+          "tests/v1/test_sqs_emulator.py::test_emulator_poison_redrives_to_matching_dlq",
+          "tests/v1/test_sqs_emulator.py::test_native_output_cleanup_removes_versions_and_late_writes_only_in_attempt",
+          "tests/v1/test_upload_cleanup_sql.py::test_batch_is_ordered_by_due_time_and_bounded_by_the_limit",
+          "tests/v1/test_upload_cleanup_sql.py::test_an_unexpired_reservation_is_never_scanned",
+          "tests/v1/test_upload_cleanup_sql.py::test_rescans_back_off_until_the_row_is_made_due_again",
+          "tests/v1/test_upload_cleanup_sql.py::test_a_clean_scan_past_the_horizon_retires_and_a_failed_one_never_does",
+          "tests/v1/test_upload_cleanup_sql.py::test_a_clean_scan_before_the_horizon_keeps_the_row_armed",
+          "tests/v1/test_upload_cleanup_sql.py::test_storage_io_runs_without_holding_the_row_lock",
+          "tests/v1/test_upload_cleanup_sql.py::test_concurrent_invocations_scan_a_row_once",
+          "tests/v1/test_upload_cleanup_sql.py::test_a_scan_cut_off_by_the_deadline_leaves_a_lease_not_a_retirement",
+          "tests/v1/test_upload_cleanup_sql.py::test_migration_0008_upgrades_downgrades_and_matches_the_model"
+        ],
+        "passed": 99,
+        "failed_tests": [],
+        "skipped_tests": []
+      },
+      "required_integration_counts": {
+        "core": {
+          "selected": 95,
+          "passed": 95,
+          "skipped": 0,
+          "failed": 0
+        },
+        "support": {
+          "selected": 3,
+          "passed": 3,
+          "skipped": 0,
+          "failed": 0
+        },
+        "real_password": {
+          "selected": 1,
+          "passed": 1,
+          "skipped": 0,
+          "failed": 0
+        }
+      },
+      "bootstrap_coverage": {
+        "status": "PASS",
+        "counts": {
+          "tests": 13,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0
+        },
+        "junit_sha256": "274d07307d1038cd811b68567f6e74cc417aa7f2cbccda63557be2379d206a4b",
+        "tests": [
+          "tests/aws/v1/test_bootstrap.py"
+        ],
+        "node_ids": [
+          "tests/aws/v1/test_bootstrap.py::test_two_owned_databases_separate_logins_and_restricted_grants",
+          "tests/aws/v1/test_bootstrap.py::test_wrong_existing_owner_is_not_adopted",
+          "tests/aws/v1/test_bootstrap.py::test_private_input_validation[shared_password]",
+          "tests/aws/v1/test_bootstrap.py::test_private_input_validation[missing_role]",
+          "tests/aws/v1/test_bootstrap.py::test_private_input_validation[short_password]",
+          "tests/aws/v1/test_bootstrap.py::test_private_input_validation[url_host]",
+          "tests/aws/v1/test_bootstrap.py::test_private_input_validation[extra_key]",
+          "tests/aws/v1/test_bootstrap.py::test_cli_never_echoes_private_parse_errors",
+          "tests/aws/v1/test_bootstrap.py::test_a_paused_aurora_is_given_time_to_resume_before_bootstrap_gives_up",
+          "tests/aws/v1/test_bootstrap.py::test_a_database_that_never_wakes_still_fails_within_the_deadline",
+          "tests/aws/v1/test_bootstrap.py::test_a_rejected_credential_is_not_retried",
+          "tests/aws/v1/test_bootstrap.py::test_cli_failure_names_only_the_error_class",
+          "tests/aws/v1/test_bootstrap.py::test_an_existing_elevated_role_is_refused_rather_than_altered"
+        ],
+        "passed": 13,
+        "failed_tests": [],
+        "skipped_tests": []
+      },
+      "release": {
+        "status": "PASS",
+        "counts": {
+          "tests": 3,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0
+        },
+        "junit_sha256": "c3c0f47a11464fef47344d7f752826d6498b51b09bcbe6a4c1a8a7940f4ea156",
+        "tests": [
+          "tests/v1/test_release_acceptance.py"
+        ],
+        "node_ids": [
+          "tests/v1/test_release_acceptance.py::test_owner_release_applies_a_real_migration_and_failed_candidate_restores_aliases[media]",
+          "tests/v1/test_release_acceptance.py::test_owner_release_applies_a_real_migration_and_failed_candidate_restores_aliases[processing]",
+          "tests/v1/test_release_acceptance.py::test_session_close_and_wake_keep_real_queued_work_and_run_one_finite_encode"
+        ],
+        "passed": 3,
+        "failed_tests": [],
+        "skipped_tests": []
+      },
+      "suite_registry": {
+        "audit_core_cases": 93,
+        "additional_recovery_cases": 2,
+        "real_password_regression": "tests/v1/test_credential_rotation.py::test_a_real_wrong_password_is_recognised_as_a_login_refusal",
+        "optional_cases_deferred": 13,
+        "optional_disposition": {
+          "cases": 13,
+          "status": "DEFERRED_OPTIONAL_V2",
+          "reason": "Optional short-encoder lane; its tests do not enable the lane in runtime."
+        }
+      }
+    }
+  },
+  "status": "PASS",
+  "complete_v1_acceptance": "PASS",
+  "cloud_acceptance": "NOT_RUN",
+  "failed_tests": [],
+  "coverage": {
+    "status": "COLLECTED",
+    "fragments": 6,
+    "tier": "v1-integration",
+    "omit": [
+      "*/migrations/*"
+    ],
+    "bootstrap_source": "scripts.aws.v1.bootstrap"
+  },
+  "elapsed_seconds": 85.142
+}

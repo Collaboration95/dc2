@@ -103,6 +103,8 @@ Recent candidate engineering work has a few bounded maintainability measures:
 - The obsolete 300-line root Compose file, 45 lines of unused CI services and 11 lines of duplicate dependency inputs were removed. Active legacy consumers and historical evidence remain available. Ten workflow setup blocks now share one small Python-tool action.
 - Release admission checks the exact tested source, full CI run and attempt. Both new and retained images need fresh scans; registry manifest bytes must bind the deployed digest to the scanned config. The manual procedure follows the same policy.
 - Missing upload objects return recoverable `409`, while real storage failures remain `503`. Bounded diagnostics record safe failure context, and a failed log sink cannot prevent lease revocation or fail best-effort activity markers.
+- Authenticated responses and responses that set session cookies now use `Cache-Control: private, no-store`, including owner status and signed playback URLs. Public health responses retain their existing policy. Regression tests cover headers, redirects, login/logout cookies, empty lists and completed jobs.
+- Seven additional browser-client tests cover refused storage uploads, safe 409/410/503 handling, stable request identity after lost responses, and late responses after an owner change. Patched test tooling removes the nine recorded npm audit findings and reduces the locked dependency tree from 214 to 171 packages. The browser application still has no production npm build.
 
 These checks improve confidence in specific behaviors; they do not establish complete coverage, exactly-once delivery, or general reliability. Read the [evidence index](../evidence-index.md) and [actual-vs-target results](../results/actual-vs-target.md) with each workload and source label intact.
 
@@ -145,25 +147,42 @@ The following results are local engineering evidence. The accepted cloud runtime
 
 | Check | Observed result | Source and evidence |
 |---|---|---|
-| Complete offline regression | 3,662 passed; 267 subtests; three documented skips. About 125 seconds; the local wrapper now permits 180 seconds without retries. | Runtime source `8bb273a`; subsequent `c85a737` changes only design documentation. [Validation receipt](../results/engineering-20261020/local-validation-9bd0a59.json). The real cfn-lint suite subsequently passed separately; the other two skips have no applicable credential mode. |
-| All five backend coverage tiers | Fast 2,878 passed; inherited integration 44, Processing integration 47, Media integration 39; V1 157. No selected integration skips. All package and recovery goals passed. | Clean candidate `9bd0a598be293b1f68460e0a8288100160e78dec`; [combined receipt](../results/engineering-20261020/local-validation-9bd0a59.json) and [V1 manifest](../results/engineering-20261020/v1-local-9bd0a59.json). |
-| Frontend | 170 passed; 99.72% statement and 91.99% branch coverage. | Frontend source unchanged in this pass; local Vitest coverage. |
-| Exact image execution | 73/73 checks passed across all three Linux amd64 images: packaging, imports, Lambda RIE handlers, migration/bootstrap and FFmpeg checks. | Clean source `1a4426306fd59c5204e2a5fea75eab514c756fbc`; [image receipt](../results/engineering-20261020/local-images-1a44263.json). Installed distributions are 41/37/34 including pip; owner exports are 40/36/33. Docker-reported sizes are 262,250,847 / 258,200,210 / 700,775,222 bytes, respectively. These sizes are not a controlled before/after comparison. |
-| Exact image vulnerability scans | Trivy 0.70.0 passed the zero **fixable** HIGH/CRITICAL gate for all three config IDs. Unfixed finding rows remain: Media 44, Processing 44, worker 208. | [Scan receipts and report hashes](../results/engineering-20261020/image-scan-summary-1a44263.json); database updated 20 October. This is not a claim of zero vulnerabilities. |
+| Complete offline regression | 3,697 passed; 267 subtests; two documented skips; 123.21 seconds. The local wrapper permits 180 seconds without retries. The same command also passed 177 frontend tests. | Clean final code `514914a1326ec92400d4ac0e9cf07012d117a0d2`; [validation receipt](../results/engineering-20261020/local-validation-514914a.json). The real cfn-lint suite ran in this full check; the two skips have no applicable credential mode. |
+| All five backend coverage tiers | Fast 2,912 passed; inherited integration 44, Processing integration 47, Media integration 39; V1 157. No selected integration skips. All package and recovery goals passed. | Same clean source `514914a`; [combined receipt](../results/engineering-20261020/local-validation-514914a.json) and [V1 manifest](../results/engineering-20261020/v1-local-514914a.json). The required V1 cohort is 99/99; 13 optional short-encoder cases remain explicitly deferred. |
+| Frontend and dependency audit | 177 passed; 96.24% statement, 90.69% branch, 92.24% function and 99.55% line coverage. All four 90% floors pass; npm audit reports zero findings. | Vitest 4.1.12 uses different AST coverage mapping from Vitest 2, so its percentages are a new tooling baseline. The [receipt](../results/engineering-20261020/local-validation-514914a.json) identifies the measured source and confirms identical frontend contents at the final code commit. |
+| Exact image execution | 73/73 checks passed across all three Linux amd64 images: packaging, imports, Lambda RIE handlers, migration/bootstrap and FFmpeg checks. | Clean source `514914a`; [image receipt](../results/engineering-20261020/local-images-514914a.json). Installed distributions are 41/37/34 including pip; owner exports are 40/36/33. Docker-reported sizes are 262,251,360 / 258,200,648 / 700,775,670 bytes, respectively. These sizes are not a controlled before/after comparison. |
+| Exact image vulnerability scans | Trivy 0.70.0 passed the zero **fixable** HIGH/CRITICAL gate for all three config IDs. Unfixed finding rows remain: Media 44, Processing 44, worker 208. | [Scan receipts and report hashes](../results/engineering-20261020/image-scan-summary-514914a.json); database updated 20 October. This is not a claim of zero vulnerabilities. |
+| Current-API authenticated DAST | Both service scans completed; all seven selected routes received successful reads. 317 requests reached the handlers; 146 out-of-scope probes were blocked. No in-scope auth denials, server errors or request-cap hits. Eight low and eight informational finding entries remain. | Same clean source `514914a`; [confirmation receipt](../results/engineering-20261020/dast-confirmation-514914a.json) and [sanitized findings](../results/engineering-20261020/dast-confirmation-findings-514914a.json). PostgreSQL/Moto and the local Gateway were exercised on macOS Docker Desktop. This does not scan AWS or all 20 operations. |
 | Style and design references | Required ordinary/security lint and formatting pass over the maintained Python scope; 486 tracked Python ASTs were unchanged by the mechanical formatting commit. All eight Mermaid diagrams rendered; local guide/catalogue/checklist links resolve. | Formatting commit `ef1b8e0`, rendered-reference repair `c85a737`; [style guide](../../CONTRIBUTING.md). |
-| Independent review fixes | Fresh CD dependency profile: 450 passed, two expected skips. Log-sink regressions: 55 passed. Integrated scan/planner checks: 71 passed and 21 subtests. | Reviews found and prompted fixes for missing CD authentication dependencies, logging interrupting failure handling, and missing manual scan-attachment instructions. These were AI-assisted reviews, not a claim of member review or authorship. |
+| Independent review fixes | The last review passed at `514914a`, closing private-cache policy and malformed-scan-report findings. The 100 focused cache/parser checks also passed. Earlier findings concerning the CD dependency profile, logging failures and manual scan receipts were addressed and tested. | The [validation receipt](../results/engineering-20261020/local-validation-514914a.json) records scope, source and report hash. These were AI-assisted reviews, not a claim of member review or authorship. Hosted Linux CI remains a separate delivery gate. |
 
 Coverage comparisons apply the same migration exclusion to the retained `daee44b` CI report and the
 new five-tier report. Media combined/branch coverage changed from **91.05% / 82.01%** to
-**93.91% / 86.68%**; Processing from **88.01% / 79.21%** to **93.79% / 89.36%**. Shared credential
+**93.91% / 86.68%**; Processing from **88.01% / 79.21%** to **93.90% / 89.36%**. Shared credential
 code changes package ownership and denominators, so part of a package-level change is structural.
 The recovery modules retain the same measured statements and branches: Media improved from
 **59.06% / 37.50%** to **89.76% / 75.00%**, and Processing from **53.99% / 37.50%** to
 **88.34% / 80.00%**. The deployed bootstrap is now measured separately at **80.37% / 71.43%**;
 it has no new coverage floor.
 
-**Remaining delivery checks:** the active current-API ZAP integration, its final review, and hosted
-full CI on the final candidate are still in progress. The local receipts above keep their original
-source identities. Update this paragraph with final scan/CI/release identities before calling the
-engineering delivery complete. Local PostgreSQL, Moto, RIE and fake release transports do not prove
-AWS IAM, Aurora pause, actual API Gateway behavior, Fargate timing or current live availability.
+The first unmodified DAST run at `514914a` completed Media but exited with scanner code 3 before
+Processing sent requests. Its [failed receipt](../results/engineering-20261020/dast-failed-514914a.json)
+and [partial findings](../results/engineering-20261020/dast-failed-findings-514914a.json) are retained.
+A private diagnostic run and the separate unmodified confirmation both completed. The cause of
+the initial failure was not established; it is not claimed fixed, and the workflow has no automatic
+retry that could conceal it. Cleanup passed in each run.
+
+DAST finding interpretation remains narrow. The four low-severity plugin IDs per service concern
+site-isolation headers (90004), the Server banner (10036), HSTS (10035) and nosniff (10021). The local
+Python HTTP bridge supplies its own banner and does not emulate AWS edge headers. Informational
+100000 entries retain only the parent plugin ID; the route counters show client-error probes and no
+server errors, but do not prove each alert subtype. Cache-related 10015/10049 entries also omit
+URLs/subtypes, so do not label each one a leak or infer that it belongs to an owner response.
+The new private/no-store behavior is demonstrated by application tests. Public health responses
+remain outside that policy. These are report-only findings requiring this context, not a clean-scan
+claim or evidence of an AWS edge vulnerability.
+
+**Remaining delivery checks:** hosted full CI, including the Linux DAST path, and controlled cloud
+delivery on the final candidate. The local receipts above and the earlier precursor receipts keep
+their original source identities. Local PostgreSQL, Moto, RIE and fake release transports do not
+prove AWS IAM, Aurora pause, actual API Gateway behavior, Fargate timing or current live availability.
