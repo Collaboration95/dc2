@@ -1,11 +1,10 @@
 # Flickpond use-case and design catalogue
 
-Reusable engineering reference for the seven in-scope use cases. This is not the final report or
-presentation. It describes the service code frozen in `daee44b61a6e8eef3f62505df69f8bfd076d68b8`
-and the persistent V2-live operating mode recorded in the release manifest. Main at
-`f9ce3b949826a7f329839cd7dc2b3a48464e1661` contains documentation-only changes after that runtime
-freeze. **Final engineering status: PENDING integration**; the parent replaces this status after
-integrated verification. Tests cited below were read for their assertions; this task did not run them.
+Reusable engineering reference for the seven in-scope use cases. It describes the integrated
+engineering candidate and identifies differences from the accepted V2-live runtime
+`daee44b61a6e8eef3f62505df69f8bfd076d68b8`. The [engineering handoff](../release/engineering-handoff.md)
+records current verification and delivery status; the [release manifest](../release/demo-release-manifest.md)
+remains the authority for the frozen cloud release. This catalogue is not a final report or presentation.
 
 Maya, Arun, Jules and Sam are fictional planning personas, not interviewed users, application roles
 or authorship evidence ([persona source](../../project-roadmap/business-scope.json)). Maya's course
@@ -21,7 +20,7 @@ features or numerical targets.
 
 - **Pre:** account exists or is created; caller owns a supported video ≤100 MiB.
 - **Normal:** authenticate; Media reserves an owner-scoped S3 grant; client uploads directly to versioned S3; finalize verifies bytes and pins the VersionId, then atomically adopts the Asset and stages `submit`; return `202` and Asset/job ID.
-- **Exceptions:** anonymous, unsupported type, declared oversize, wrong owner, changed request or expired reservation is refused. Missing, truncated, changed or unversioned bytes are not adopted and enqueue no work. S3 refusing an oversized body can surface as `503` at finalize on the frozen release (#271); the limit still holds. Reusing a request key with changed input conflicts.
+- **Exceptions:** anonymous, unsupported type, declared oversize, wrong owner, changed request or expired reservation is refused. Missing, truncated, changed or unversioned bytes are not adopted and enqueue no work. The candidate returns recoverable `409` for a missing upload object; real storage outages remain `503`. The frozen release can return `503` after S3 refuses an oversized body (#271). Both versions enforce the size limit. Reusing a request key with changed input conflicts.
 - **Post:** one owned Asset, immutable verified source and one durable command; replay returns the same Asset without a second command.
 - **Tests:** [`test_publisher_direct_post_encode_projection_and_ownership`](../../tests/v1/test_workflow_acceptance.py#L19), [`test_finalize_pins_the_exact_version_it_verified`](../../tests/v1/test_direct_intake_s3.py#L237), [`test_wrong_owner_cannot_finalize_or_observe_a_reservation`](../../tests/v1/test_direct_intake_s3.py#L253), [`test_missing_object_is_retryable_not_adopted`](../../tests/v1/test_direct_intake_s3.py#L299). The full workflow test requires a local runtime attachment; it marks browser rendering and AWS IAM NOT_RUN.
 
@@ -206,13 +205,14 @@ and `CLITransport` are operator-tool classes; release transitions themselves are
   image and resolved task definitions are pinned and checked; owner and peer identities, migration
   compatibility, smoke result and absolute deadline are checked before completion. A failed smoke
   restores image/alias state; the schema is not rolled back. A failed restore keeps recovery intent
-  for an explicit resume. Patch-specific CI admission and scan-parser changes are **pending parent
-  verification** and are not claimed here.
+  for an explicit resume. The candidate additionally requires exact-source full CI admission and
+  fresh image scans, and binds registry manifest bytes to the scanned config. These controls have
+  offline counterexample tests; current delivery evidence is in the engineering handoff.
 
 ## Grouped sequence views
 
 The analysis views use only business concepts. They are explanatory, not historical artifacts. The
-implementation views describe the frozen persistent V2-live behavior. Existing detailed V1 sequence
+implementation views describe persistent V2-live behavior, including the candidate changes above. Existing detailed V1 sequence
 and state diagrams remain in [views.md §5](views.md#5-representative-use-case-upload-process-play) and
 are not silently relabeled as V2.
 
@@ -482,7 +482,8 @@ views are explanatory where noted, not historical UML artifacts.
   tests](../../tests/v1/test_launcher_sql.py#L233), [release restore
   test](../../tests/aws/test_aws_release.py#L58). Retained cloud results are bounded: V2-live
   measured 9 clips at fixed cap 3 only; a frozen-source bad-candidate rollback was not run. The
-  per-owner admission/scan patches being handled concurrently remain pending parent verification.
+  candidate admission and scan controls are covered by offline counterexample tests; they do not
+  retroactively establish scan evidence for the frozen release.
 
 ### 2. Durable asynchronous Processing handoff
 
@@ -552,11 +553,12 @@ Data/schema links: [Media ER diagram](img/views-er-media.svg), [Processing ER di
 [storage keys and cleanup rules](views.md#43-object-storage-an-implicit-contract),
 [message durability](views.md#44-message-durability), and [architecture limitations](decisions.md#6-architectural-limitations).
 
-## Parent integration check
+## Verification boundary
 
-This catalogue uses stable frozen responsibilities only. Integration work on shared credentials,
-owner-local list queries, #271 error classification/logging, CI admission and scan validation,
-test/coverage selection, dependency/style cleanup and DAST is **pending parent verification**. Update
-this note and the [course checklist](../../project-documentation/course-evidence-checklist.md) only
-after the integrated source identity and affected evidence are known. Do not change the published
-freeze or describe this documentation commit as deployed.
+The integrated candidate shares native credential policy, uses an owner-local asset/projection
+join, classifies missing uploads as `409`, and protects failure handling from diagnostic errors.
+Required integration tests use native pytest marker discovery; lint and formatting use one
+maintained scope. All eight Mermaid blocks rendered successfully. Test links identify the relevant
+assertions, while the [engineering handoff](../release/engineering-handoff.md) records actual runs,
+source identities, image scans and remaining limits. Local PostgreSQL/Moto tests do not establish
+AWS IAM, Aurora or Fargate behavior. The published freeze changes only through a verified release.
