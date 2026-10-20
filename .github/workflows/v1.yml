@@ -58,15 +58,7 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version-file: .python-version
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
-        with:
-          version: '0.8.17'
-          enable-cache: true
-          cache-local-path: .cache/uv
-          cache-dependency-glob: uv.lock
+      - uses: ./.github/actions/python-tools
       - name: Install locked V1 and Media checks without the legacy extra
         run: |
           uv sync --locked --extra dev --extra v1-media
@@ -108,15 +100,7 @@ jobs:
       V1_COVERAGE: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version-file: .python-version
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
-        with:
-          version: '0.8.17'
-          enable-cache: true
-          cache-local-path: .cache/uv
-          cache-dependency-glob: uv.lock
+      - uses: ./.github/actions/python-tools
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .local/playwright

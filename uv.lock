@@ -499,6 +499,7 @@ browser = [
 ]
 dev = [
     { name = "aiosqlite" },
+    { name = "alembic" },
     { name = "fakeredis" },
     { name = "httpx" },
     { name = "jsonschema" },
@@ -537,6 +538,7 @@ v1-worker = [
 [package.metadata]
 requires-dist = [
     { name = "aiosqlite", marker = "extra == 'dev'", specifier = ">=0.21,<1" },
+    { name = "alembic", marker = "extra == 'dev'", specifier = ">=1.14,<2" },
     { name = "alembic", marker = "extra == 'legacy'", specifier = ">=1.14,<2" },
     { name = "alembic", marker = "extra == 'v1-media'", specifier = ">=1.14,<2" },
     { name = "alembic", marker = "extra == 'v1-processing'", specifier = ">=1.14,<2" },

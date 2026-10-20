@@ -44,6 +44,8 @@ v1-processing = ["alembic>=1.14,<2", "awslambdaric>=3.1,<4"]
 v1-worker = ["awslambdaric>=3.1,<4"]
 dev = [
   "aiosqlite>=0.21,<1",
+  # The operator CLI reads migration heads before planning a deployment or release.
+  "alembic>=1.14,<2",
   "fakeredis>=2.26,<3",
   "httpx>=0.28,<1",
   "pytest>=8,<10",

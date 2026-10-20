@@ -408,7 +408,7 @@ def event_selection(event_name, event, source_sha, candidate_sha=""):
         pr = event.get("pull_request", {})
         base = pr.get("base", {})
         return (
-            base.get("ref") != "dev/v1-integration",
+            base.get("ref") != "dev/closeout",
             f"PR base {base.get('ref', 'unknown')}; tested merge {source_sha}",
             base.get("sha", ""),
         )

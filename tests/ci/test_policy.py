@@ -175,9 +175,9 @@ class SelectionTests(unittest.TestCase):
         self.assertFalse(image_inputs("tests/v1/test_config.py")[0])
 
     def test_event_table_and_exact_manual_source(self):
-        event = {"pull_request": {"base": {"ref": "dev/v1-integration", "sha": "base"}}}
+        event = {"pull_request": {"base": {"ref": "dev/closeout", "sha": "base"}}}
         self.assertEqual(event_selection("pull_request", event, SHA)[::2], (False, "base"))
-        for base in ["Main", "other", None]:
+        for base in ["Main", "dev/v1-integration", "other", None]:
             event["pull_request"]["base"]["ref"] = base
             self.assertTrue(event_selection("pull_request", event, SHA)[0])
         self.assertTrue(event_selection("pull_request", {}, SHA)[0])
@@ -407,7 +407,7 @@ class SourceTests(unittest.TestCase):
                 json.dumps(
                     {
                         "pull_request": {
-                            "base": {"ref": "dev/v1-integration", "sha": "unreadable-base"}
+                            "base": {"ref": "dev/closeout", "sha": "unreadable-base"}
                         }
                     }
                 )

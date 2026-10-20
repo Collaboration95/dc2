@@ -11,7 +11,7 @@ verification on a promotion candidate.
 
 | Event / target | Mode | Selection / source |
 | --- | --- | --- |
-| PR into `dev/v1-integration` | dev, unless conservative fallback | Intended base SHA to the tested merge SHA; selected lanes below |
+| PR into `dev/closeout` | dev, unless conservative fallback | Intended base SHA to the tested merge SHA; selected lanes below |
 | PR into `Main` | full | Every lane, tested PR merge commit |
 | PR into an unknown target, or unknown event | full | Every lane; do not assume dev semantics |
 | Push into `Main` | full | Every lane at the pushed SHA; regression detection, not pre-promotion proof |
@@ -40,6 +40,13 @@ Supplying an unrelated SHA while dispatching a different ref fails classificatio
 there is no alternate checkout hidden inside a reusable workflow. Use the full
 Main-promotion PR run at its current merge SHA before merging. A default-branch
 schedule or an earlier candidate's success cannot attest to the current PR.
+
+CD additionally requires the full selection receipt and the successful **Full verification**
+job for the exact source, run and attempt. Automatic CD uses only its triggering Main push
+attempt. Manual deploy/release uses a Main push or exact-source full dispatch; a PR head alone
+is insufficient. Missing artifacts, a partial tier or a rerun started during admission stop
+the operation. Preflight and emergency teardown retain their existing separate controls.
+The accepted CI identity is retained as `ci-admission.json` in the CD public artifact.
 
 ## Lane selection
 
