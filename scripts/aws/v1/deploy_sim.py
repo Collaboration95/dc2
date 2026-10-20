@@ -495,7 +495,8 @@ class SimulatedAws:
         return {"imageDetails": [{"imageDigest": repo["images"][tag], "imageTags": [tag]}]}
 
     def ecr_describe_image_scan_findings(self, payload):
-        return {"imageScanFindings": {"findingSeverityCounts": {}}}
+        return {"imageId": payload["imageId"], "imageScanStatus": {"status": "COMPLETE"},
+                "imageScanFindings": {"findingSeverityCounts": {}}}
 
     def ecr_list_images(self, payload):
         repo = self.repository(payload["repositoryName"], "list-images")

@@ -1869,3 +1869,134 @@ def test_every_request_field_exists_in_the_installed_cli_skeleton(deployed, tmp_
     assert unknown == {}
     assert {("ce", "get-cost-forecast"), ("ecs", "stop-task"),
             ("s3api", "abort-multipart-upload")} <= set(seen)
+
+
+def admitted_resume(rig):
+    """A pushed first deploy on a new runner, with real gates and an in-memory registry."""
+    from scripts.ci.v1_scan import scan_receipt
+
+    rig.deploy(stop_after="images")
+    images = {}
+    manifests = {}
+    for name, recorded in rig.journal.view()["images"].items():
+        config_id = recorded["local_id"]
+        source_sha = "a" * 40
+        raw = json.dumps({"schemaVersion": 2, "config": {"digest": config_id}}, indent=2)
+        digest = "sha256:" + hashlib.sha256(raw.encode()).hexdigest()
+        manifests[digest] = raw
+        repository = recorded["uri"].split("@", 1)[0]
+        rig.journal.mutate(lambda d, n=name, dig=digest, uri=repository, sha=source_sha:
+                           d["images"][n].update(digest=dig, uri=f"{uri}@{dig}", source_sha=sha))
+        image = {"tag": "unused-local-tag", "config_id": config_id, "source_sha": source_sha}
+        report = json.dumps({"Metadata": {"ImageID": config_id}, "Results": [
+            {"Class": "os-pkgs", "Type": "debian"},
+            {"Class": "lang-pkgs", "Type": "python-pkg"}]}).encode()
+        image["trivy_scan"] = scan_receipt(report, config_id=config_id, source_sha=source_sha)
+        images[name] = image
+    rig.s.images_file.write_text(json.dumps({"status": "LOCAL_ARTIFACT_PASS", "images": images}))
+    rig.sim.ecr_batch_get_image = lambda p: {"images": [{
+        "imageId": {"imageDigest": p["imageIds"][0]["imageDigest"]},
+        "imageManifest": manifests[p["imageIds"][0]["imageDigest"]]}]}
+    pipeline = rig.pipeline()
+    # The transport remains an in-memory fake. This flag enables the production proof gates.
+    pipeline.simulated = False
+    return pipeline
+
+
+def test_first_deploy_resume_rechecks_complete_zero_scans_without_local_images(rig):
+    pipeline = admitted_resume(rig)
+    before = len(rig.docker.commands)
+    pipeline.run_step("applications", lambda: {"app_used": True})
+    assert len(rig.docker.commands) == before
+    for image in rig.journal.view()["images"].values():
+        assert image["registry_gate"]["status"] == "PASS"
+        assert image["registry_gate"]["ecr_scan"]["status"] == "COMPLETE"
+        assert image["scan_severity_counts"] == {}
+        assert image["registry_gate"]["registry"]["manifest_digest"] == image["digest"]
+
+
+@pytest.mark.parametrize("fault", ["pending", "missing", "failed", "denied", "high", "counts",
+                                   "digest", "trivy", "manifest"])
+def test_first_use_and_a_completed_applications_resume_reject_unproved_images(rig, fault):
+    pipeline = admitted_resume(rig)
+    rig.journal.mutate(lambda d: d["steps"].update(applications={"status": "done"}))
+    calls = []
+    base = rig.sim.ecr_describe_image_scan_findings
+
+    def reply(payload):
+        calls.append(payload)
+        result = base(payload)
+        if fault == "pending":
+            result["imageScanStatus"]["status"] = "IN_PROGRESS"
+        elif fault == "missing":
+            return {}
+        elif fault == "failed":
+            result["imageScanStatus"]["status"] = "FAILED"
+        elif fault == "denied":
+            raise AwsError("ecr", "describe-image-scan-findings", "AccessDeniedException")
+        elif fault == "high":
+            result["imageScanFindings"]["findingSeverityCounts"] = {"HIGH": 1}
+        elif fault == "counts":
+            del result["imageScanFindings"]["findingSeverityCounts"]
+        elif fault == "digest":
+            result["imageId"] = {"imageDigest": "sha256:" + "f" * 64}
+        return result
+
+    rig.sim.ecr_describe_image_scan_findings = reply
+    if fault == "trivy":
+        data = json.loads(rig.s.images_file.read_text())
+        del data["images"]["media"]["trivy_scan"]
+        rig.s.images_file.write_text(json.dumps(data))
+    elif fault == "manifest":
+        rig.sim.ecr_batch_get_image = lambda _: {"images": []}
+    app_used = []
+    with pytest.raises(DeployError):
+        pipeline.run_step("applications", lambda: app_used.append(True))
+    assert not app_used
+    assert rig.journal.view()["images"]["media"]["registry_gate"]["status"] == "FAIL"
+    assert len(calls) == (10 if fault == "pending" else 0 if fault in {"manifest", "trivy"} else 1)
+    # A refused candidate adds no teardown prerequisites.
+    assert pipeline.s.confirm_run_id is None
+
+
+def test_pending_first_deploy_scan_can_complete_on_a_bounded_retry(rig):
+    pipeline = admitted_resume(rig)
+    base = rig.sim.ecr_describe_image_scan_findings
+    count = 0
+    waited = []
+
+    def reply(payload):
+        nonlocal count
+        count += 1
+        result = base(payload)
+        if count == 1:
+            result["imageScanStatus"]["status"] = "IN_PROGRESS"
+        return result
+
+    rig.sim.ecr_describe_image_scan_findings = reply
+    pipeline.sleep = waited.append
+    pipeline.verify_registry_images()
+    assert waited == [30] and count == 4
+
+
+def test_first_deploy_uses_the_release_exception_policy_and_still_refuses_unknown_cves(rig):
+    from scripts.aws.v1.proof.release_plan import load_accept
+
+    pipeline = admitted_resume(rig)
+    pipeline.s.accept_unfixed = root_accept = deploy.ROOT / (
+        "docs/execution/aws/v1/scan-accepted-unfixed-20261017.json")
+    accepted = sorted(load_accept(root_accept)[0])[0]
+    cve = accepted
+
+    def reply(payload):
+        return {"imageId": payload["imageId"], "imageScanStatus": {"status": "COMPLETE"},
+                "imageScanFindings": {"findingSeverityCounts": {"HIGH": 1},
+                                      "findings": [{"name": cve, "severity": "HIGH"}]}}
+
+    rig.sim.ecr_describe_image_scan_findings = reply
+    pipeline.verify_registry_images()
+    assert rig.journal.view()["images"]["media"]["registry_gate"]["ecr_scan"][
+        "accepted_high_critical"] == [accepted]
+    cve = "CVE-2026-999999999"
+    with pytest.raises(DeployError, match="not on the accept list"):
+        pipeline.verify_registry_images()

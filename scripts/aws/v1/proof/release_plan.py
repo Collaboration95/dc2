@@ -25,11 +25,14 @@ import json
 import re
 from pathlib import Path
 
+from scripts.aws.artifacts import registry_receipt
 from scripts.aws.transport import OperationError
 from scripts.aws.v1 import deploy
+from scripts.aws.v1.artifacts import registry_scan
 from scripts.aws.v1.proof import release
 from scripts.aws.v1.proof.core import ProofError, private_write
 from scripts.aws.v1.release import validate_inputs
+from scripts.ci.v1_scan import validate_scan
 
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 CVE = re.compile(r"CVE-\d{4}-\d+")
@@ -163,61 +166,13 @@ class Planner:
         return found[0]["imageDigest"]
 
     def scan(self, repository, digest, tag):
-        """(report hash, blocking count, accepted ids). A pending or blocking scan is a refusal.
-
-        Without an accept list any HIGH/CRITICAL blocks, from the severity counts alone. With
-        one, the individual findings are always read (every page, whatever the counts say) and
-        only an id on the list is waved through."""
-        request = {"repositoryName": repository.split("/", 1)[1],
-                   "imageId": {"imageDigest": digest}}
-        reply = self.aws("ecr", "describe-image-scan-findings", request)
-        if reply.get("imageScanStatus", {}).get("status") != "COMPLETE":
-            raise ProofError(f"The scan of {tag} is not COMPLETE yet")
-        counts = reply.get("imageScanFindings", {}).get("findingSeverityCounts") or {}
-        total = counts.get("HIGH", 0) + counts.get("CRITICAL", 0)
-        accepted = []
-        if not self.accept_ids:
-            if total:
-                raise ProofError(f"{tag} has {total} HIGH/CRITICAL scan findings; the release "
-                                 "gate blocks it")
-        else:
-            # The counts are never trusted to be complete: with an accept list the findings
-            # themselves are read, every page, and must agree with the counts both ways.
-            reply = self.all_findings(request, reply, tag)
-            if reply["imageScanFindings"].get("enhancedFindings"):
-                raise ProofError(f"The scan of {tag} uses enhanced findings, which the accept "
-                                 "list cannot be matched against")
-            serious = [f for f in reply["imageScanFindings"]["findings"]
-                       if f.get("severity") in ("HIGH", "CRITICAL")]
-            if len(serious) != total:
-                raise ProofError(f"The scan of {tag} counts {total} HIGH/CRITICAL findings but "
-                                 f"lists {len(serious)}, so they cannot be matched to the "
-                                 "accept list")
-            names = {str(f.get("name")) for f in serious}
-            blocked = sorted(names - self.accept_ids)
-            if blocked:
-                shown = ", ".join(blocked[:10]) + (" ..." if len(blocked) > 10 else "")
-                raise ProofError(f"{tag} has {len(blocked)} HIGH/CRITICAL scan finding(s) not "
-                                 f"on the accept list: {shown}")
-            accepted = sorted(names)
-            self.matched.update(accepted)
-        canonical = json.dumps(reply, sort_keys=True, default=str)
-        return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest(), 0, accepted
-
-    def all_findings(self, request, reply, tag):
-        """The first reply with every page's findings merged in (one page is returned as is)."""
-        merged = json.loads(json.dumps(reply, default=str))
-        merged.setdefault("imageScanFindings", {}).setdefault("findings", [])
-        token, pages = merged.pop("nextToken", None), 1
-        while token:
-            pages += 1
-            if pages > 200:
-                raise ProofError(f"The scan findings of {tag} do not end")
-            page = self.aws("ecr", "describe-image-scan-findings", {**request, "nextToken": token})
-            merged["imageScanFindings"]["findings"] += page.get(
-                "imageScanFindings", {}).get("findings", [])
-            token = page.get("nextToken")
-        return merged
+        try:
+            result = registry_scan(self.aws, repository, digest, tag, self.accept_ids)
+        except OperationError as error:
+            raise ProofError(str(error)) from None
+        self.matched.update(result["accepted_high_critical"])
+        return (result["report_sha256"], result["blocking_high_critical"],
+                result["accepted_high_critical"])
 
     def image_set(self, role, tags, evidence, tests_passed):
         """{bundle, image_uri, digests}: one registry-verified image set and its bundle."""
@@ -226,24 +181,36 @@ class Planner:
             image = evidence_image(evidence, name)
             repository = self.repository(output)
             digest = self.digest_of(repository, tags[name])
+            try:
+                trivy = validate_scan(image.get("trivy_scan"), config_id=image["config_id"],
+                                      source_sha=image["source_sha"])
+            except ValueError as error:
+                raise ProofError(str(error)) from None
             report, blocking, accepted = self.scan(repository, digest, tags[name])
             gate = {"status": "PASS", "config_id": image["config_id"],
                     "source_sha": image["source_sha"]}
             bundle[kind] = {
                 "owner": self.owner, "platform": "linux/amd64",
                 "source_sha": image["source_sha"], "config_id": image["config_id"],
-                # `docker push` of a local image keeps its config digest as the image id.
-                "manifest_config_id": image["config_id"], "manifest_digest": digest,
                 "tests": {**gate, "passed": tests_passed},
                 "artifact_test": {**gate, "kind": "local-exact-image-checks"},
-                "scan": {**gate, "blocking_high_critical": blocking,
+                "scan": {**trivy, "ecr_status": "COMPLETE", "blocking_high_critical": blocking,
                          # The release CLI's validator reads this older name; it means the same.
                          "fixable_high_critical": blocking,
                          "accepted_high_critical": accepted,
-                         "accept_file_sha256": self.accept_sha, "report_sha256": report},
+                         "accept_file_sha256": self.accept_sha, "ecr_report_sha256": report},
                 "runtime_kind": RUNTIME[kind],
                 "runtime_contents": image["runtime_contents"],
             }
+            response = self.aws("ecr", "batch-get-image", {
+                "repositoryName": repository.split("/", 1)[1],
+                "imageIds": [{"imageDigest": digest}]})
+            try:
+                bundle[kind] = registry_receipt(bundle[kind], response)
+            except OperationError as error:
+                raise ProofError(str(error)) from None
+            if bundle[kind]["manifest_digest"] != digest:
+                raise ProofError("Registry receipt differs from the selected release digest")
             digests[kind] = (repository, digest)
         repository, digest = digests["api"]
         return {"role": role, "bundle": bundle, "image_uri": f"{repository}@{digest}",

@@ -41,12 +41,14 @@ import uuid
 from pathlib import Path
 from urllib.parse import quote
 
+from scripts.aws.artifacts import manifest_receipt
 from scripts.aws.journal import Journal
 from scripts.aws.transport import SECRET_KEY, OperationError
 from scripts.aws.v1 import bootstrap as db_bootstrap
 from scripts.aws.v1 import config as render_config
 from scripts.aws.v1 import credentials, operations, session_cli
 from scripts.aws.v1 import frontend as spa
+from scripts.aws.v1.artifacts import ScanPending, registry_scan
 from scripts.aws.v1.definitions import SEPARATE, DatabaseOptions
 from scripts.aws.v1.definitions import template as render_template
 from scripts.aws.v1.hooks import refuse_ambient_credentials
@@ -55,6 +57,7 @@ from scripts.aws.v1.public_smoke import PublicSmoke, urllib_http, validate_base_
 from scripts.aws.v1.transport import REGION, validate_arguments
 from scripts.aws.v1_operator import sanitized_environment
 from scripts.ci import policy
+from scripts.ci.v1_scan import validate_scan
 
 ROOT = Path(__file__).resolve().parents[3]
 BOOTSTRAP_TEMPLATE = ROOT / "deploy/aws/v1-operator-bootstrap.json"
@@ -179,6 +182,7 @@ ALLOWED = {
     },
     "ecr": {
         "get-authorization-token", "describe-images", "describe-image-scan-findings",
+        "batch-get-image",
         "list-images", "batch-delete-image", "delete-repository", "list-tags-for-resource",
     },
     "rds": {
@@ -465,6 +469,7 @@ class Settings:
     execute: bool = False
     dry_run: bool = False
     images_file: Path | None = None
+    accept_unfixed: Path | None = None
     adopt_bootstrap: str | None = None
     allow_replacement: bool = False
     skip_final_snapshot: bool = False
@@ -670,6 +675,11 @@ class Pipeline:
 
     def run_step(self, name, action, *, always=False):
         self.step = name
+        # A completed images/applications journal entry is not admission evidence on resume.
+        # Recovery/teardown never enters this path. Established updates keep the running set;
+        # changed owners pass the release planner's gates instead.
+        if name == "applications" and not self.established():
+            self.verify_registry_images()
         record = self.meta()["steps"].get(name, {})
         if record.get("status") == "done" and not always:
             self.say(f"[{name}] already done; skipping")
@@ -1163,6 +1173,14 @@ class Pipeline:
         if not self.s.images_file:
             raise DeployError("--images is required to push the three amd64 images")
         sources = load_images(self.s.images_file)
+        for name, source in sources.items():
+            recorded = self.meta()["images"].get(name, {})
+            if (recorded.get("source_sha") and recorded.get("local_id")
+                    and source.get("source_sha") != recorded["source_sha"]):
+                raise DeployError(f"{name} source changed since publishing began")
+        if not self.simulated:
+            for source in sources.values():
+                self.verify_trivy(source)
         outputs = self.meta()["outputs"]
         # Which commit each image was built from: what later deploys diff against (AD-27).
         self.journal.mutate(lambda d: [d["images"].setdefault(o, {}).update(
@@ -1178,9 +1196,15 @@ class Pipeline:
             repository = uri.split("/", 1)[1]
             tag = f"{self.s.run_id}-{owner}"
             source = sources[owner]
-            platform, local_id = self.run_docker([
-                "image", "inspect", "--format", "{{.Os}}/{{.Architecture}} {{.Id}}",
-                source["source"]]).split()
+            saved = self.meta()["images"].get(owner, {})
+            if not self.simulated and saved.get("digest"):
+                # A previous runner already pushed this immutable artifact. Its manifest is
+                # checked below; resuming never requires rebuilding or loading its recipe.
+                platform, local_id = "linux/amd64", source.get("local_id")
+            else:
+                platform, local_id = self.run_docker([
+                    "image", "inspect", "--format", "{{.Os}}/{{.Architecture}} {{.Id}}",
+                    source["source"]]).split()
             if platform != "linux/amd64":
                 raise DeployError(f"{owner} image is {platform}; V1 runs linux/amd64 only")
             verified = source.get("local_id")
@@ -1196,23 +1220,79 @@ class Pipeline:
                 "repositoryName": repository, "imageIds": [{"imageTag": tag}]},
                 tolerate=("ImageNotFoundException",))
             if existing is None:  # repositories are immutable-tag: only ever pushed once
-                self.run_docker(["tag", source["source"], f"{uri}:{tag}"])
+                self.run_docker(["tag", local_id, f"{uri}:{tag}"])
                 self.run_docker(["push", f"{uri}:{tag}"])
                 existing = self.aws("ecr", "describe-images", {
                     "repositoryName": repository, "imageIds": [{"imageTag": tag}]})
             digest = existing["imageDetails"][0]["imageDigest"]
+            if saved.get("digest") and saved["digest"] != digest:
+                raise DeployError(f"{owner} registry tag changed since it was pushed")
             expected = source.get("expected_digest")
             if expected and expected != digest:
                 raise DeployError(f"{owner} registry digest differs from expected_digest")
-            scan = self.aws("ecr", "describe-image-scan-findings", {
-                "repositoryName": repository, "imageId": {"imageDigest": digest}},
-                tolerate=("ScanNotFoundException", "ImageNotFoundException",
-                          "AccessDeniedException")) or {}
-            counts = scan.get("imageScanFindings", {}).get("findingSeverityCounts")
-            pushed[owner] = {"uri": f"{uri}@{digest}", "digest": digest, "tag": tag,
-                             "scan_severity_counts": counts or "PENDING"}
-        self.journal.mutate(lambda d: [d["images"][o].update(v) for o, v in pushed.items()])
+            pushed[owner] = {"uri": f"{uri}@{digest}", "digest": digest, "tag": tag}
+            # Save every pushed immutable identity even if a later push/scan fails.
+            self.journal.mutate(lambda d, o=owner: d["images"][o].update(pushed[o]))
+        self.verify_registry_images()
         return {"images": {k: v["digest"] for k, v in pushed.items()}}
+
+    def verify_trivy(self, source):
+        try:
+            return validate_scan(source.get("trivy_scan"), config_id=source.get("local_id"),
+                                 source_sha=source.get("source_sha"))
+        except ValueError as error:
+            raise DeployError(str(error)) from None
+
+    def verify_registry_images(self):
+        """First use and every partial resume require exact-image and completed ECR scans."""
+        from scripts.aws.v1.proof.release_plan import load_accept
+
+        accept_ids, accept_sha = load_accept(self.s.accept_unfixed) if self.s.accept_unfixed else (
+            set(), None)
+        sources = load_images(self.s.images_file) if self.s.images_file else {}
+        for name in ("media", "processing", "worker"):
+            image = self.meta()["images"].get(name, {})
+            try:
+                if not self.simulated:
+                    source = sources.get(name, {})
+                    if (source.get("local_id") != image.get("local_id")
+                            or source.get("source_sha") != image.get("source_sha")):
+                        raise DeployError("Resume image evidence differs from the pushed image")
+                    trivy = self.verify_trivy(source)
+                    repository, selected = image["uri"].rsplit("@", 1)
+                    if selected != image["digest"]:
+                        raise DeployError("Journal image URI differs from the selected digest")
+                    response = self.aws("ecr", "batch-get-image", {
+                        "repositoryName": repository.split("/", 1)[1],
+                        "imageIds": [{"imageDigest": selected}]})
+                    binding = manifest_receipt(image["local_id"], response)
+                    if binding["manifest_digest"] != selected:
+                        raise DeployError("Registry receipt differs from selected deploy digest")
+                else:
+                    repository = image["uri"].split("@", 1)[0]
+                    trivy, binding = {"status": "SIMULATED"}, {"status": "SIMULATED"}
+                for attempt in range(10):
+                    try:
+                        scan = registry_scan(self.aws, repository, image["digest"], image["tag"],
+                                             accept_ids)
+                        break
+                    except ScanPending:
+                        self.journal.mutate(lambda d, n=name: d["images"][n].update(
+                            registry_gate={"status": "PENDING"}))
+                        if attempt == 9:
+                            raise DeployError(
+                                "ECR scan did not finish in time (10 attempts)") from None
+                        self.sleep(30)
+                proof = {"status": "PASS" if not self.simulated else "SIMULATED",
+                         "trivy": trivy, "registry": binding, "ecr_scan": scan,
+                         "accept_file_sha256": accept_sha}
+                self.journal.mutate(lambda d, n=name, p=proof, c=scan["severity_counts"]:
+                                    d["images"][n].update(registry_gate=p, scan_severity_counts=c))
+            except OperationError as error:
+                self.journal.mutate(lambda d, n=name, message=str(error):
+                                    d["images"].setdefault(n, {}).update(
+                                        registry_gate={"status": "FAIL", "error": message}))
+                raise DeployError(str(error)) from None
 
     def changed_owners(self):
         """Owners whose images' build inputs changed since the commit each image runs from.
@@ -2535,10 +2615,12 @@ def load_images(path):
     except (OSError, ValueError):
         raise DeployError("--images is unreadable JSON") from None
     if isinstance(data, dict) and "images" in data and "status" in data:
-        if data["status"] != "LOCAL_ARTIFACT_PASS":
+        if data["status"] != "LOCAL_ARTIFACT_PASS" or data.get("failures"):
             raise DeployError("The build evidence did not pass; refusing to push its images")
         try:
             data = {owner: {"source": image["tag"], "local_id": image["config_id"],
+                            **({"trivy_scan": image["trivy_scan"]}
+                               if "trivy_scan" in image else {}),
                             **({"source_sha": image["source_sha"]}
                                if image.get("source_sha") else {})}
                     for owner, image in data["images"].items()}
@@ -2549,8 +2631,8 @@ def load_images(path):
     result = {}
     for owner, value in data.items():
         entry = {"source": value} if isinstance(value, str) else dict(value)
-        if set(entry) - {"source", "expected_digest", "local_id", "source_sha"} or not entry.get(
-                "source"):
+        allowed = {"source", "expected_digest", "local_id", "source_sha", "trivy_scan"}
+        if set(entry) - allowed or not entry.get("source"):
             raise DeployError(f"--images entry for {owner} needs 'source' (and optional digest)")
         if re.search(r"[\s;|&$`]", entry["source"]):
             raise DeployError(f"--images source for {owner} is not a plain image reference")
@@ -2580,6 +2662,8 @@ def build_parser():
                    help="private 0700 directory outside the repository (journal, outputs, receipt)")
     p.add_argument("--dry-run", action="store_true", help="offline simulation; print the commands")
     p.add_argument("--execute", action="store_true", help="apply change sets / delete resources")
+    p.add_argument("--accept-unfixed", type=Path,
+                   help="reviewed ECR exceptions, same as release-plan")
     p.add_argument("--budget-usd", type=float, default=30.0)
     p.add_argument("--budget-name", default=DEFAULT_BUDGET_NAME)
     p.add_argument("--forecast-usd", type=float, help="when Cost Explorer has no forecast")
@@ -2686,6 +2770,7 @@ def main(argv=None, *, environ=None, transport=None, docker=None, http=None, ses
             state_dir=state, budget_usd=args.budget_usd, budget_name=args.budget_name,
             forecast_usd=args.forecast_usd, planned_hours=args.planned_hours,
             execute=args.execute or rehearse, dry_run=dry, images_file=args.images,
+            accept_unfixed=args.accept_unfixed,
             adopt_bootstrap=args.adopt_bootstrap_stack, allow_replacement=args.allow_replacement,
             skip_final_snapshot=args.skip_final_snapshot, confirm_run_id=args.confirm_run_id,
             seed_email=args.seed_email, counts_file=args.counts_file,

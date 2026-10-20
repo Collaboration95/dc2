@@ -28,11 +28,18 @@ from scripts.aws.v1.proof import generator
 from scripts.aws.v1.proof.context import Context, load_state
 from scripts.aws.v1.proof.core import stamp
 from scripts.aws.v1.transport import REGION
+from scripts.ci.v1_scan import scan_receipt
 
-BASELINE_DIGEST = {"media": "sha256:" + "ab" * 32, "processing": "sha256:" + "ac" * 32,
-                   "worker": "sha256:" + "cd" * 32}
 LOCAL_ID = {"media": "sha256:" + "11" * 32, "processing": "sha256:" + "22" * 32,
             "worker": "sha256:" + "33" * 32}
+
+
+def image_manifest(config_id):
+    return json.dumps({"schemaVersion": 2, "config": {"digest": config_id}}, indent=2)
+
+
+BASELINE_DIGEST = {name: "sha256:" + hashlib.sha256(image_manifest(config).encode()).hexdigest()
+                   for name, config in LOCAL_ID.items()}
 EPOCH = 1_792_233_600.0  # 2026-10-17T10:40:00Z, an arbitrary fixed wall-clock origin
 ACCOUNT = "123456789012"
 FRONTEND = "https://d111111abcdef8.cloudfront.net"
@@ -144,6 +151,8 @@ class SimWorld:
         # A release that keeps an image retags its running manifest; an adopted release is what
         # the stack's own definitions then hold (V2-live).
         self.retagged, self.stack_digests = {}, dict(BASELINE_DIGEST)
+        self.manifests = {BASELINE_DIGEST[name]: image_manifest(config)
+                          for name, config in LOCAL_ID.items()}
         self.definitions, self.logs, self.calls = {}, {}, []
         self.dlq = {q: [] for q in operations.QUEUES}
         self.poison = []
@@ -315,6 +324,16 @@ class SimWorld:
         if tag == f"{self.env}-{owner}" and owner in BASELINE_DIGEST:
             return BASELINE_DIGEST[owner]
         return "sha256:" + hashlib.sha256(f"{repository}:{tag}".encode()).hexdigest()
+
+    def register_build(self, prefix, evidence, only=None):
+        """Put a simulated build's exact configs/manifests into this in-memory registry."""
+        for name, image in json.loads(Path(evidence).read_text())["images"].items():
+            if only and name not in only:
+                continue
+            raw = image_manifest(image["config_id"])
+            digest = "sha256:" + hashlib.sha256(raw.encode()).hexdigest()
+            self.manifests[digest] = raw
+            self.retagged[(self.repository(name), f"{prefix}-{name}")] = digest
 
     def journal_images(self):
         """What `deploy` recorded when it pushed the three images."""
@@ -904,6 +923,13 @@ class SimWorld:
         digest = self.image_digest(self.repository_of(name), tag)
         return {"imageDetails": [{"imageDigest": digest, "imageTags": [tag]}]}
 
+    def ecr_batch_get_image(self, payload):
+        digest = payload["imageIds"][0]["imageDigest"]
+        if digest not in self.manifests:
+            return {"images": [], "failures": [{"failureCode": "ImageNotFound"}]}
+        return {"images": [{"imageId": {"imageDigest": digest},
+                            "imageManifest": self.manifests[digest]}]}
+
     def repository_of(self, name):
         return f"{ACCOUNT}.dkr.ecr.{REGION}.amazonaws.com/{name}"
 
@@ -1094,6 +1120,12 @@ def build_evidence(path, *, source_sha, config_ids=None, failures=()):
         "config_id": config_ids[owner], "source_sha": source_sha,
         "runtime_contents": {"ffmpeg": owner == "worker", "redis": False, "rq": False}}
         for owner in ("media", "processing", "worker")}
+    for image in images.values():
+        image["trivy_scan"] = scan_receipt(json.dumps({
+            "Metadata": {"ImageID": image["config_id"]}, "Results": [
+                {"Class": "os-pkgs", "Type": "debian"},
+                {"Class": "lang-pkgs", "Type": "python-pkg"}]}).encode(),
+            config_id=image["config_id"], source_sha=source_sha)
     Path(path).write_text(json.dumps({
         "status": "LOCAL_ARTIFACT_FAIL" if failures else "LOCAL_ARTIFACT_PASS",
         "source_sha": source_sha, "images": images, "failures": list(failures)}))

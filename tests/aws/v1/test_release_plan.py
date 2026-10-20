@@ -31,6 +31,8 @@ def stack(tmp_path, *faults):
                                    config_ids=GOOD_IDS),
         "bad": sim.build_evidence(tmp_path / "bad.json", source_sha="c" * 40, config_ids=BAD_IDS),
     }
+    world.register_build("g1", builds["good"])
+    world.register_build("b1", builds["bad"])
     return world, ctx, builds
 
 
@@ -140,7 +142,7 @@ def test_failed_build_evidence_is_refused(tmp_path):
 def test_a_good_image_that_is_the_deployed_one_would_move_nothing_and_is_refused(tmp_path):
     world, ctx, builds = stack(tmp_path)
     with pytest.raises(ProofError, match="is the baseline's"):
-        make(ctx, builds, tmp_path, good={"run_id": world.env, "evidence": builds["good"]})
+        make(ctx, builds, tmp_path, good={"run_id": world.env, "evidence": builds["baseline"]})
 
 
 def test_a_scan_with_a_high_finding_blocks_the_plan(tmp_path):
@@ -446,9 +448,18 @@ def test_a_worker_only_then_an_api_only_release_each_plan_against_the_mixed_base
         world.retagged[(world.repository(kept), f"{run_id}-{kept}")] = deployed[kept]["digest"]
         evidence = json.loads(baseline_path.read_text())
         evidence["images"][rebuilt] = {**evidence["images"][rebuilt], "source_sha": source,
-                                       "config_id": "sha256:" + str(number) * 64}
+                                       "config_id": "sha256:" + str(number + 6) * 64}
+        from scripts.ci.v1_scan import scan_receipt
+
+        config_id = evidence["images"][rebuilt]["config_id"]
+        evidence["images"][rebuilt]["trivy_scan"] = scan_receipt(json.dumps({
+            "Metadata": {"ImageID": config_id}, "Results": [
+                {"Class": "os-pkgs", "Type": "debian"},
+                {"Class": "lang-pkgs", "Type": "python-pkg"}]}).encode(),
+            config_id=config_id, source_sha=source)
         good = tmp_path / f"good-{number}.json"
         good.write_text(json.dumps(evidence))
+        world.register_build(run_id, good, only=[rebuilt])
         make(ctx, {"baseline": baseline_path, "good": good}, tmp_path, "processing",
              good={"run_id": run_id, "evidence": good}, target_revision="p0005",
              out=tmp_path / f"plan-{number}")
@@ -474,3 +485,65 @@ def test_a_worker_only_then_an_api_only_release_each_plan_against_the_mixed_base
     with pytest.raises(Exception, match="share frozen source"):
         validate_bundle(baseline, owner="processing")  # as a candidate it would not pass
     assert validate_bundle(baseline, owner="processing", deployed=True)
+
+
+@pytest.mark.parametrize("fault", ["wrong-config", "raw-hash", "index", "missing", "ambiguous",
+                                   "wrong-selected", "malformed"])
+def test_release_requires_the_fetched_single_manifest_to_bind_to_the_tested_config(
+        tmp_path, fault):
+    world, ctx, builds = stack(tmp_path)
+    base = world.ecr_batch_get_image
+
+    def reply(payload):
+        result = base(payload)
+        image = result["images"][0]
+        if fault == "missing":
+            return {"images": [], "failures": [{"failureCode": "ImageNotFound"}]}
+        if fault == "ambiguous":
+            result["images"] *= 2
+        elif fault == "malformed":
+            del image["imageManifest"]
+        elif fault == "raw-hash":
+            image["imageManifest"] += " "
+        else:
+            manifest = json.loads(image["imageManifest"])
+            if fault == "wrong-config":
+                manifest["config"]["digest"] = "sha256:" + "f" * 64
+            elif fault == "index":
+                manifest["manifests"] = []
+            else:
+                manifest["extra"] = "same config, different selected bytes"
+            image["imageManifest"] = json.dumps(manifest)
+            image["imageId"]["imageDigest"] = "sha256:" + hashlib.sha256(
+                image["imageManifest"].encode()).hexdigest()
+        return result
+
+    world.ecr_batch_get_image = reply
+    with pytest.raises(ProofError):
+        make(ctx, builds, tmp_path)
+    assert not world.definitions
+    assert not (tmp_path / "plan" / "plan.json").exists()
+
+
+@pytest.mark.parametrize("fault", ["missing", "wrong-source", "wrong-config", "fixable", "expired",
+                                   "wrong-scope"])
+def test_release_requires_a_fresh_exact_cd_image_os_and_python_scan(tmp_path, fault):
+    _, ctx, builds = stack(tmp_path)
+    data = json.loads(builds["good"].read_text())
+    scan = data["images"]["media"]["trivy_scan"]
+    if fault == "missing":
+        del data["images"]["media"]["trivy_scan"]
+    elif fault == "wrong-source":
+        scan["source_sha"] = "c" * 40
+    elif fault == "wrong-config":
+        scan["config_id"] = "sha256:" + "f" * 64
+    elif fault == "fixable":
+        scan["fixable_high_critical"] = 1
+    elif fault == "expired":
+        scan["scanned_at"] = "2020-01-01T00:00:00+00:00"
+    else:
+        scan["targets"] = [["os-pkgs", "debian"]]
+    builds["good"].write_text(json.dumps(data))
+    with pytest.raises(ProofError, match="Trivy"):
+        make(ctx, builds, tmp_path)
+    assert not (tmp_path / "plan" / "plan.json").exists()

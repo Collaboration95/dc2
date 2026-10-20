@@ -370,6 +370,8 @@ def rehearse_release(base, shared, plan_path):
                                         strict=True)}
             builds[role] = sim.build_evidence(base / f"build-{role}.json", source_sha=sha * 40,
                                               config_ids=ids)
+            if role != "baseline":
+                world.register_build(f"rehearsal-{role}", builds[role])
         release_plan.run(
             ctx, owner="processing", baseline_evidence=builds["baseline"],
             good={"run_id": "rehearsal-good", "evidence": builds["good"]},
