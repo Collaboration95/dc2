@@ -1,8 +1,12 @@
 # Demo release manifest: persistent V2-live (`dc2-live`)
 
-**Status: prepared, not yet team-accepted.** Populated on 19 October 2026 from read-only queries of the
-running environment and from the retained receipts. It is not a freeze record until the checklist at the
-bottom is signed off. It grants no permission to retag or deploy; `project2-v1`
+**Status: FROZEN, team-accepted on 20 October 2026.** Guruprasath Gopal accepted the freeze on behalf of
+Team 17. The freeze covers the code and images built from `daee44b`. Later commits that change only
+documentation do not reopen it. The manifest was populated on 19 October 2026 from read-only queries
+of the running environment and from the retained receipts. On 20 October the `live` alias of all ten
+functions (Media version 5; ProcessingApi version 7; the other Processing functions version 6) and
+the worker task definition (`dc2-live-worker:6`) were re-read, and both still match this file.
+The manifest grants no permission to retag or deploy. `project2-v1`
 (`f33b2a899fe2a1b7f1dab8480e03904d80838701`) stays immutable. Issue: #255.
 
 Secret values, signed URLs, cookies, account IDs and private deployment-state files are not in this
@@ -61,6 +65,7 @@ policy is in `contracts/README.md`. Both databases are on one Aurora Serverless 
 | Encoder task | Fargate, 2 vCPU (`cpu` 2048) and 4 GiB (`memory` 4096) |
 | Cap | `DC2_WORKER_CAP=3` (the deploy README calls it documentary process input; peak 3 tasks observed in #268 and in the #270 re-test) |
 | Task lifetime | `WORKER_LIFETIME_SECONDS=1800` |
+| Upload size cap | 100 MiB per file (`contracts/v1.py` `MAX_UPLOAD_BYTES`). Enforced at four points: the web app refuses larger files before uploading (`frontend/app.js`); Media refuses a larger declared `size_bytes` when it issues the upload grant; S3 refuses a body larger than the size the grant allows; the Publisher CLI reports the limit on 413. #229 verified the refusal on `dc2-live` |
 | Scaling | 0 to N to 0 from SQL backlog (launcher), not queue depth |
 | Per-stage limits, Lambda memory and timeouts, reserved concurrency | **unknown** (not read; see `deploy/aws/v1/template.json`) |
 | Fixtures | The #270 burst used a synthetic 20 s 640x360 clip, 303,113 bytes, sha256 `d71114c2384828ef7f70af372aa383d4e694ae74e7005f6364b7ada5b1d36987`. The #268 clips (`clip400/500/600`) are not hashed in their receipt: **unknown**. #229 used its own probes |
@@ -103,8 +108,10 @@ policy is in `contracts/README.md`. Both databases are on one Aurora Serverless 
 
 ## Known limitations and open issues
 
-- #271 (open): Media finalize returns 503 when S3 refused an oversized upload; it should be a 4xx. The
-  oversize upload is still refused and not adopted (#229).
+- #271 (open, accepted as a known limitation on 20 Oct): Media finalize returns 503 when S3 refused an
+  oversized upload; it should be a 4xx. The 100 MiB cap still holds: the oversized upload is refused and
+  never adopted (#229), and the web app refuses such a file before it uploads. Not fixed, because a fix
+  would reopen the freeze.
 - Queue wait (about 37 s) misses the 20 s target; Aurora pauses about an hour after the last upload (above).
 - Backlog scaling has one measurement at a fixed cap of 3.
 - Duplicate `ProcessingWork` sends (repair cadence 45 s) are expected under load; they are now drained.
@@ -117,16 +124,16 @@ policy is in `contracts/README.md`. Both databases are on one Aurora Serverless 
 
 ## Freeze checklist
 
-Status of every line: **prepared, not yet team-accepted.**
+Accepted on 20 October 2026 by Guruprasath Gopal on behalf of Team 17. Steps 4 and 5 are recorded as follows.
 
 | # | Step | State |
 |---|---|---|
 | 1 | #243 and #244 resolved; relevant regressions verified | Both issues are closed; regression runs are in the CI above |
 | 2 | One integrated candidate (`daee44b`) with exact-source CI and CD | Done (runs above) |
 | 3 | #229 and #238 acceptance, or an explicit limitation | #229 PASS; #238 PASS except the queue-wait miss (#237) |
-| 4 | Demo playback and fallback confirmed; manifest, images, config and fixture agree | Not done |
-| 5 | Team release acceptance recorded; any extra tag through the normal authorized path | Not done |
-| 6 | After freeze, only blocker repairs with affected verification and an updated manifest | Not started |
+| 4 | Demo playback and fallback confirmed; manifest, images, config and fixture agree | Manifest, images and config re-read on 20 Oct and they agree. The recorded fallback (#254) is deferred; it will be captured from this frozen release |
+| 5 | Team release acceptance recorded; any extra tag through the normal authorized path | **Done** (20 Oct, on behalf of the team). No new tag |
+| 6 | After freeze, only blocker repairs with affected verification and an updated manifest | **In force** from 20 Oct |
 
 The freeze reopens if any of these change: the `live` alias of any function, the worker task definition
-revision, the Main SHA, a migration head, the contract version, or the worker cap.
+revision, a non-documentation change on Main, a migration head, the contract version, or the worker cap.
