@@ -30,7 +30,8 @@ def upgrade():
         sa.Column("cleanup_attempts", sa.Integer(), nullable=False, server_default="0"),
     )
     op.add_column(
-        "upload_reservations", sa.Column("cleanup_retired_at", sa.DateTime(timezone=True))
+        "upload_reservations",
+        sa.Column("cleanup_retired_at", sa.DateTime(timezone=True)),
     )
     op.create_index(
         "ix_upload_reservations_cleanup_due",

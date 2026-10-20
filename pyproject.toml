@@ -82,6 +82,8 @@ select = ["E", "F", "I", "UP", "B", "ASYNC"]
 
 [tool.ruff.format]
 skip-magic-trailing-comma = true
+# Released migration bytes are part of the deployment compatibility guard.
+exclude = ["**/migrations/versions/*.py"]
 
 [tool.ruff.lint.isort]
 split-on-trailing-comma = false
