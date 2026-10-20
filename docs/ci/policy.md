@@ -238,6 +238,33 @@ Its existing `continue-on-error` policy is retained; no new mandatory hosted
 service or subscription is enabled. Disposition artifacts distinguish not-run,
 submission, completed execution and errors. Manual `aws-prep.yml` stays manual.
 
+## Maintained tooling and source security lint
+
+The `python-tools` local composite keeps the Python version file, uv version and
+download-cache settings together. Each caller still runs its explicit locked
+dependency installation; the V1 environment remains separate from legacy,
+browser and emulator tools. CD retains its independent pinned setup. Image
+verification runs `check_runtime` as both the image user and a Lambda uid under
+read-only, reduced-capability container settings; service jobs do not repeat a
+weaker invocation afterward.
+
+All external workflow and composite-action references use immutable commit SHAs.
+Version comments identify the intended release. Update a pin through the
+authenticated `gh` CLI, resolve the selected upstream release to a commit in a
+local checkout, review it, and run the workflow contracts before merging. Do not
+replace a pin with a moving major tag. Runner and container base tags remain
+separate moving inputs; action pinning alone does not make builds reproducible.
+
+The required lint job also runs Ruff's `S` security rules over Media, Processing,
+the media engine, contracts, delivery, runtime support and Publisher. This is
+local security lint, not whole-program data-flow SAST. The one fixed emulator
+credential exception is documented at its restricted local endpoint call. Run
+the identical check with:
+
+```sh
+.venv/bin/ruff check --select S media processing media_engine contracts delivery runtime_support publisher
+```
+
 ## Verification and timing limits
 
 Run policy tests without an application environment:

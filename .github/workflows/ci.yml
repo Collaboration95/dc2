@@ -101,15 +101,7 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version-file: .python-version
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
-        with:
-          version: '0.8.17'
-          enable-cache: true
-          cache-local-path: .cache/uv
-          cache-dependency-glob: uv.lock
+      - uses: ./.github/actions/python-tools
       - run: uv sync --locked --extra legacy --extra dev --extra browser
       - run: make lint
       - name: Security lint for deployed Python and Publisher sources
@@ -142,15 +134,7 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version-file: .python-version
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
-        with:
-          version: '0.8.17'
-          enable-cache: true
-          cache-local-path: .cache/uv
-          cache-dependency-glob: uv.lock
+      - uses: ./.github/actions/python-tools
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
@@ -210,15 +194,7 @@ jobs:
       MINIO_USE_SSL: 'false'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version-file: .python-version
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
-        with:
-          version: '0.8.17'
-          enable-cache: true
-          cache-local-path: .cache/uv
-          cache-dependency-glob: uv.lock
+      - uses: ./.github/actions/python-tools
       - run: uv sync --locked --extra legacy --extra dev --extra browser
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -272,15 +248,7 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version-file: .python-version
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
-        with:
-          version: '0.8.17'
-          enable-cache: true
-          cache-local-path: .cache/uv
-          cache-dependency-glob: uv.lock
+      - uses: ./.github/actions/python-tools
       - run: uv sync --locked --extra legacy --extra dev --extra browser
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -353,15 +321,7 @@ jobs:
       PROCESSING_SERVICE_TOKEN: ci-only-unused-processing-token
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version-file: .python-version
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
-        with:
-          version: '0.8.17'
-          enable-cache: true
-          cache-local-path: .cache/uv
-          cache-dependency-glob: uv.lock
+      - uses: ./.github/actions/python-tools
       - run: uv sync --locked --extra legacy --extra dev --extra browser
       - name: Start isolated databases and apply only Media migrations
         run: |
@@ -383,7 +343,7 @@ jobs:
         run: docker compose -f docker-compose.processing.yml down -v
 
   # Per-service lanes (#199). Each owner's tests, then only that owner's V1 image(s) built and
-  # verified, then deploy/v1/check_runtime.py run in the built image. Selected by owner paths in
+  # verified (including check_runtime as the image user and a Lambda uid). Owner paths in
   # scripts/ci/policy.py (SERVICE_INPUTS); contracts, delivery, runtime_support and the shared
   # build tooling select both. The all-three build in v1-local stays: it proves the images are
   # also isolated from each other.
@@ -395,23 +355,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version-file: .python-version
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
-        with:
-          version: '0.8.17'
-          enable-cache: true
-          cache-local-path: .cache/uv
-          cache-dependency-glob: uv.lock
+      - uses: ./.github/actions/python-tools
       - run: uv sync --locked --extra legacy --extra dev
       - run: make test-media
       - name: Build and verify only Media's V1 image
         run: python3 deploy/v1/build_and_verify.py --only media --out "$RUNNER_TEMP/media-image.json"
-      - name: Run check_runtime in the built image
-        run: |
-          tag="dc2-v1-media:local-$(git rev-parse HEAD | cut -c1-12)"
-          docker run --rm --entrypoint python "$tag" /opt/check_runtime.py lambda-api media
       - name: Retain the image receipt (config ID, checks; no secrets)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -429,15 +377,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version-file: .python-version
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
-        with:
-          version: '0.8.17'
-          enable-cache: true
-          cache-local-path: .cache/uv
-          cache-dependency-glob: uv.lock
+      - uses: ./.github/actions/python-tools
       - run: uv sync --locked --extra legacy --extra dev
       - run: make test-processing test-media-engine
       # The API image and the finite worker image are both Processing's release unit.
@@ -445,11 +385,6 @@ jobs:
         run: >-
           python3 deploy/v1/build_and_verify.py --only processing --only worker
           --out "$RUNNER_TEMP/processing-images.json"
-      - name: Run check_runtime in the built images
-        run: |
-          short="$(git rev-parse HEAD | cut -c1-12)"
-          docker run --rm --entrypoint python "dc2-v1-processing:local-$short" /opt/check_runtime.py lambda-api processing
-          docker run --rm --entrypoint python "dc2-v1-worker:local-$short" /opt/check_runtime.py finite-worker worker
       - name: Retain the image receipt (config IDs, checks; no secrets)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -467,15 +402,7 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version-file: .python-version
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
-        with:
-          version: '0.8.17'
-          enable-cache: true
-          cache-local-path: .cache/uv
-          cache-dependency-glob: uv.lock
+      - uses: ./.github/actions/python-tools
       - run: uv sync --locked --extra legacy --extra dev --extra browser
       - name: Require real trusted/untrusted HTTPS and persisted Secure cookie
         run: >-
@@ -493,15 +420,7 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version-file: .python-version
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
-        with:
-          version: '0.8.17'
-          enable-cache: true
-          cache-local-path: .cache/uv
-          cache-dependency-glob: uv.lock
+      - uses: ./.github/actions/python-tools
       - run: uv sync --locked --extra legacy --extra dev --extra browser
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -634,15 +553,7 @@ jobs:
     if: needs.classify.outputs.coverage_gate == 'true'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version-file: .python-version
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
-        with:
-          version: '0.8.17'
-          enable-cache: true
-          cache-local-path: .cache/uv
-          cache-dependency-glob: uv.lock
+      - uses: ./.github/actions/python-tools
       - run: uv sync --locked --extra legacy --extra dev --extra browser
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:

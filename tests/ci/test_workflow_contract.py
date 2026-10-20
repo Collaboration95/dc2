@@ -24,6 +24,16 @@ class WorkflowContractTests(unittest.TestCase):
         self.ci = (ROOT / ".github/workflows/ci.yml").read_text()
         self.jobs = jobs(self.ci)
 
+    def test_external_actions_use_immutable_commits_including_local_composites(self):
+        workflows = list((ROOT / ".github/workflows").glob("*.yml"))
+        composites = list((ROOT / ".github/actions").glob("*/action.yml"))
+        for path in workflows + composites:
+            for reference in re.findall(r"\buses:\s*(\S+)", path.read_text()):
+                if reference.startswith("./"):
+                    self.assertTrue((ROOT / reference).exists(), (path, reference))
+                else:
+                    self.assertRegex(reference, r"^[\w./-]+@[0-9a-f]{40}$", str(path))
+
     def test_aggregates_wait_for_their_whole_scope(self):
         for job, scope in [("fast", "dev"), ("integration", "full")]:
             body = self.jobs[job]
