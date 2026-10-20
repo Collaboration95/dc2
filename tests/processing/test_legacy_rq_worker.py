@@ -146,5 +146,3 @@ def test_worker_main_uses_forking_rq_worker(monkeypatch):
     monkeypatch.setattr("sys.argv", ["legacy.processing_rq.worker", "--burst"])
     entry.main()
     worker.work.assert_called_once_with(burst=True)
-
-

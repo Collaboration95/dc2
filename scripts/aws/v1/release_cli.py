@@ -58,37 +58,67 @@ def plan_promote(config, args):
         {"step": "snapshot", "operation": op, "functions": functions}
         for op in ("get-alias", "get-function")
     ]
-    steps.append(
-        {"step": "peer-snapshot", "operation": "get-alias", "owner": _peer(owner)},
-    )
+    steps.append({"step": "peer-snapshot", "operation": "get-alias", "owner": _peer(owner)})
     for definition in filter(None, (args.migration_definition, args.worker_definition)):
         steps.append(
-            {"step": "validate-definition", "operation": "describe-task-definition",
-             "taskDefinition": definition}
+            {
+                "step": "validate-definition",
+                "operation": "describe-task-definition",
+                "taskDefinition": definition,
+            }
         )
     steps.append(
-        {"step": "migrate", "operation": "run-task", "taskDefinition": args.migration_definition,
-         "clientToken": "<generated and journaled before launch>"}
+        {
+            "step": "migrate",
+            "operation": "run-task",
+            "taskDefinition": args.migration_definition,
+            "clientToken": "<generated and journaled before launch>",
+        }
     )
     steps.append({"step": "migrate", "operation": "describe-tasks", "until": "STOPPED exit 0"})
     for name in functions:
         steps += [
-            {"step": "publish", "operation": "update-function-code", "function": name,
-             "ImageUri": args.image_uri, "Publish": False},
+            {
+                "step": "publish",
+                "operation": "update-function-code",
+                "function": name,
+                "ImageUri": args.image_uri,
+                "Publish": False,
+            },
             {"step": "publish", "operation": "list-versions-by-function", "function": name},
-            {"step": "publish", "operation": "publish-version", "function": name,
-             "Description": "dc2-v1-<release id>"},
-            {"step": "promote", "operation": "update-alias", "function": name, "Name": alias,
-             "FunctionVersion": "<published version>", "RevisionId": "<observed alias revision>"},
+            {
+                "step": "publish",
+                "operation": "publish-version",
+                "function": name,
+                "Description": "dc2-v1-<release id>",
+            },
+            {
+                "step": "promote",
+                "operation": "update-alias",
+                "function": name,
+                "Name": alias,
+                "FunctionVersion": "<published version>",
+                "RevisionId": "<observed alias revision>",
+            },
         ]
     steps.append(
-        {"step": "public-smoke", "base_url": args.smoke_url,
-         "requests": ["GET /api/media/health", "GET /api/processing/health",
-                      "GET /api/media/jobs (anonymous, expect 401/403)",
-                      "POST /api/media/auth/login", "GET /api/media/jobs",
-                      "GET /api/processing/jobs?asset_ids=<random>"]
-         + (["POST /api/media/uploads/reservations (never finalized)"]
-            if owner == "media" and not args.no_reserve else [])}
+        {
+            "step": "public-smoke",
+            "base_url": args.smoke_url,
+            "requests": [
+                "GET /api/media/health",
+                "GET /api/processing/health",
+                "GET /api/media/jobs (anonymous, expect 401/403)",
+                "POST /api/media/auth/login",
+                "GET /api/media/jobs",
+                "GET /api/processing/jobs?asset_ids=<random>",
+            ]
+            + (
+                ["POST /api/media/uploads/reservations (never finalized)"]
+                if owner == "media" and not args.no_reserve
+                else []
+            ),
+        }
     )
     steps.append({"step": "peer-unchanged", "operation": "get-alias", "owner": _peer(owner)})
     return steps
@@ -128,8 +158,9 @@ def hooks_for(config, data, transport, args, http, *, clock=time.monotonic, slee
             http=http or urllib_http,
             reserve=not args.no_reserve,
         )
-    quiescent = (owner_online(config, transport) if args.online
-                 else owner_quiescence(config, transport))
+    quiescent = (
+        owner_online(config, transport) if args.online else owner_quiescence(config, transport)
+    )
     hooks = {"schema_revision": reader, "quiescent": quiescent}
     if smoke:
         hooks["public_smoke"] = smoke
@@ -149,9 +180,14 @@ def plan_schema(config, data):
     if data.get("sql"):
         return [{"step": "schema", "source": SQL_SOURCE, "operation": "SELECT version_num"}]
     return [
-        {"step": "schema", "source": VpcReader.source, "owner": owner,
-         "operation": "run-task", "taskDefinition": definition,
-         "override": "command: python -c <vpc_probe.py>, env DC2_MODE=schema"}
+        {
+            "step": "schema",
+            "source": VpcReader.source,
+            "owner": owner,
+            "operation": "run-task",
+            "taskDefinition": definition,
+            "override": "command: python -c <vpc_probe.py>, env DC2_MODE=schema",
+        }
         for owner, definition in (config.get("migration_definitions") or {}).items()
     ]
 
@@ -202,8 +238,16 @@ def release_status(config, journal, transport, deadline):
     }
 
 
-def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=None,
-         clock=time.monotonic, sleep=time.sleep):
+def main(
+    argv=None,
+    *,
+    environ=None,
+    transport_factory=None,
+    stdout=None,
+    http=None,
+    clock=time.monotonic,
+    sleep=time.sleep,
+):
     environ = os.environ if environ is None else environ
     stdout = stdout or sys.stdout
     parser = argparse.ArgumentParser(prog="scripts.aws.v1.release", description=__doc__)
@@ -220,16 +264,21 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=N
     parser.add_argument("--smoke-credentials", help="private 0600 JSON {email,password}")
     parser.add_argument("--reason", help="abandon: why the intent is cleared (journaled)")
     parser.add_argument("--no-reserve", action="store_true", help="skip the upload reservation")
-    parser.add_argument("--online", action="store_true",
-                        help="the always-on environment: release without closing anything")
+    parser.add_argument(
+        "--online",
+        action="store_true",
+        help="the always-on environment: release without closing anything",
+    )
     operations.add_scope_arguments(parser)
     args = parser.parse_args(argv)
     scope = operations.resolve_scope(parser, args, environ)
     if args.action == "promote":
         needed = ("owner", "bundle", "image_uri", "migration_definition", "target_revision")
         if any(getattr(args, n) is None for n in needed) or not args.compat_evidence:
-            parser.error("promote needs --owner --bundle --image-uri --migration-definition "
-                         "--target-revision --compat-evidence")
+            parser.error(
+                "promote needs --owner --bundle --image-uri --migration-definition "
+                "--target-revision --compat-evidence"
+            )
     if args.action in {"promote", "restore"} and not (args.smoke_url and args.smoke_credentials):
         parser.error("--smoke-url and --smoke-credentials are required")
     smoke = vpc = None
@@ -252,8 +301,13 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=N
             elif args.action == "restore":
                 result["planned_calls"] = [
                     {"step": "restore", "operation": op}
-                    for op in ("get-alias", "update-alias (prior version)", "get-function",
-                               "public-smoke", "peer snapshot")
+                    for op in (
+                        "get-alias",
+                        "update-alias (prior version)",
+                        "get-function",
+                        "public-smoke",
+                        "peer snapshot",
+                    )
                 ]
             elif args.action == "schema":
                 result["planned_calls"] = plan_schema(config, data)
@@ -266,8 +320,12 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=N
                 ]
             else:
                 result["planned_calls"] = [
-                    {"operation": "get-alias", "functions": [
-                        n for fs in config["owner_functions"].values() for n in fs.values()]}
+                    {
+                        "operation": "get-alias",
+                        "functions": [
+                            n for fs in config["owner_functions"].values() for n in fs.values()
+                        ],
+                    }
                 ]
         else:
             transport = (transport_factory or operations.live_transport)(scope)
@@ -279,22 +337,31 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=N
             if args.action == "status":
                 result = release_status(config, journal, transport, deadline)
             elif args.action == "schema":
-                _, _, source, vpc = hooks_for(config, data, transport, args, http,
-                                              clock=clock, sleep=sleep)
+                _, _, source, vpc = hooks_for(
+                    config, data, transport, args, http, clock=clock, sleep=sleep
+                )
                 result = read_schemas(config, data, vpc, deadline)
             elif args.action == "abandon":
                 if not args.owner or not args.migration_definition:
                     owner, definition = pending_request(journal)
                     args.owner = args.owner or owner
                     args.migration_definition = args.migration_definition or definition
-                hooks, _, source, vpc = hooks_for(config, data, transport, args, http,
-                                                  clock=clock, sleep=sleep)
-                result = abandon(config, transport, journal, deadline=deadline,
-                                 reason=args.reason, schema_revision=hooks["schema_revision"],
-                                 quiescent=hooks["quiescent"])
+                hooks, _, source, vpc = hooks_for(
+                    config, data, transport, args, http, clock=clock, sleep=sleep
+                )
+                result = abandon(
+                    config,
+                    transport,
+                    journal,
+                    deadline=deadline,
+                    reason=args.reason,
+                    schema_revision=hooks["schema_revision"],
+                    quiescent=hooks["quiescent"],
+                )
             else:
-                hooks, smoke, source, vpc = hooks_for(config, data, transport, args, http,
-                                                      clock=clock, sleep=sleep)
+                hooks, smoke, source, vpc = hooks_for(
+                    config, data, transport, args, http, clock=clock, sleep=sleep
+                )
                 if args.action == "promote":
                     bundle = json.loads(Path(args.bundle).read_text())
                     result = promote(
@@ -329,8 +396,12 @@ def main(argv=None, *, environ=None, transport_factory=None, stdout=None, http=N
         if vpc:
             vpc.abandon()  # a failed release must not leave a prefetched read task running
     mode = "dry-run" if args.dry_run else "live"
-    print(json.dumps({"ok": True, "scope": {**scope, "mode": mode}, "result": result},
-                     indent=2, default=str), file=stdout)
+    print(
+        json.dumps(
+            {"ok": True, "scope": {**scope, "mode": mode}, "result": result}, indent=2, default=str
+        ),
+        file=stdout,
+    )
     return 0
 
 

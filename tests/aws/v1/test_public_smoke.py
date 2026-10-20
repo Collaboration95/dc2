@@ -6,11 +6,7 @@ import time
 import pytest
 
 from scripts.aws.transport import OperationError
-from scripts.aws.v1.public_smoke import (
-    PublicSmoke,
-    load_credentials,
-    validate_base_url,
-)
+from scripts.aws.v1.public_smoke import PublicSmoke, load_credentials, validate_base_url
 
 SECURE_COOKIE = "access_token=jwt-value; HttpOnly; Secure; SameSite=Strict; Path=/"
 CREDENTIALS = {"email": "smoke@example.invalid", "password": "correct horse battery"}

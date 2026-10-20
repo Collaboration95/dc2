@@ -62,8 +62,7 @@ class FakeConnection:
 
 
 async def run(private_input, *, existing=None, fail_database=None, elevated=()):
-    state = {"roles": set(elevated), "databases": dict(existing or {}),
-             "elevated": set(elevated)}
+    state = {"roles": set(elevated), "databases": dict(existing or {}), "elevated": set(elevated)}
     connections, options = [], []
 
     async def connect(**kwargs):
@@ -191,7 +190,8 @@ async def test_a_paused_aurora_is_given_time_to_resume_before_bootstrap_gives_up
     database = WakingDatabase([TimeoutError(), CannotConnectNowError(), OSError()])
     clock = FakeClock()
     result = await connect_waking(
-        database.connect, sleep=clock.sleep, clock=clock, database="postgres")
+        database.connect, sleep=clock.sleep, clock=clock, database="postgres"
+    )
     assert result == "postgres"
     assert database.calls == 4
 
@@ -203,7 +203,8 @@ async def test_a_database_that_never_wakes_still_fails_within_the_deadline():
     clock = FakeClock()
     with pytest.raises(TimeoutError):
         await connect_waking(
-            database.connect, deadline=150, sleep=clock.sleep, clock=clock, database="postgres")
+            database.connect, deadline=150, sleep=clock.sleep, clock=clock, database="postgres"
+        )
     assert clock.now <= 150
 
 

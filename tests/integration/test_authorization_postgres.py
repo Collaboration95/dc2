@@ -20,11 +20,7 @@ from app.config import get_settings
 from app.models.job import Job
 from app.models.user import LEGACY_USER_EMAIL, User, UserRole
 from app.repositories.jobs import create_job, get_job, list_jobs
-from app.repositories.users import (
-    EmailAlreadyRegisteredError,
-    create_user,
-    get_user_by_email,
-)
+from app.repositories.users import EmailAlreadyRegisteredError, create_user, get_user_by_email
 
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_POSTGRES_TESTS") != "1",

@@ -976,13 +976,7 @@ async def test_concurrent_phases_retain_logout_separately(tmp_path, topic, count
     operations = []
     try:
         samples = await runner.latency_phase(
-            people,
-            topic,
-            0.2,
-            artifacts=artifact,
-            repeat=1,
-            timed=True,
-            operations=operations,
+            people, topic, 0.2, artifacts=artifact, repeat=1, timed=True, operations=operations
         )
     finally:
         for person in people:
@@ -1005,10 +999,7 @@ async def test_concurrent_phases_retain_logout_separately(tmp_path, topic, count
 
 def test_login_proposal_assessment_has_no_numeric_error_threshold():
     result = runner.latency_metrics(
-        [
-            {"elapsed_ms": 100, "error": None},
-            {"elapsed_ms": 100, "error": "unexpected_status"},
-        ],
+        [{"elapsed_ms": 100, "error": None}, {"elapsed_ms": 100, "error": "unexpected_status"}],
         "login",
     )
     assert result["latency_pass"] and result["p90_ms"] == 100
@@ -1089,13 +1080,7 @@ async def test_performance_targets_separate_observed_errors_from_protocol_eligib
         runner, "fixture", lambda *a: (tmp_path / "source.mp4", {"sha256": "a" * 64})
     )
     args = runner.parser().parse_args(
-        [
-            "performance",
-            "--run-id",
-            "offline",
-            "--login-hash-cost",
-            "bcrypt rounds=12",
-        ]
+        ["performance", "--run-id", "offline", "--login-hash-cost", "bcrypt rounds=12"]
     )
     result = await runner.performance(
         args,
@@ -1125,11 +1110,7 @@ def test_cli_reports_protocol_invalidity_separately_from_numeric_targets(
         "configure",
         lambda run_id: (
             {},
-            {
-                "public_url": "https://localhost",
-                "compose_project": "own",
-                "ca_file": "unused",
-            },
+            {"public_url": "https://localhost", "compose_project": "own", "ca_file": "unused"},
         ),
     )
     monkeypatch.setattr(runner, "host_command", lambda args: "" if "status" in args else "ecd9d5f")

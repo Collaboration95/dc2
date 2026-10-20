@@ -52,11 +52,7 @@ async def test_status_endpoints_read_real_postgres_data(owner) -> None:
 
         async with get_session_factory()() as session:
             await mark_processing(session, job_id)
-            await mark_done(
-                session,
-                job_id,
-                output_key=f"outputs/{job_id}/integration.mp4",
-            )
+            await mark_done(session, job_id, output_key=f"outputs/{job_id}/integration.mp4")
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             done_response = await client.get(f"/jobs/{job_id}")

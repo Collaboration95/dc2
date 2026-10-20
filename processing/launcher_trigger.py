@@ -26,9 +26,7 @@ def invoke_async(function):
         region_name=os.environ.get("AWS_REGION"),
         config=Config(connect_timeout=2, read_timeout=5, retries={"total_max_attempts": 1}),
     )
-    client.invoke(
-        FunctionName=function, InvocationType="Event", Payload=json.dumps(WAKE).encode()
-    )
+    client.invoke(FunctionName=function, InvocationType="Event", Payload=json.dumps(WAKE).encode())
 
 
 class WakeOnWork:

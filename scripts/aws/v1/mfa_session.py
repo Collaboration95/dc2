@@ -40,8 +40,21 @@ def _aws(runner, profile, args, *, payload=None):
     """One aws CLI call with the explicit profile. The request goes through a private file."""
     from scripts.aws.v1_operator import sanitized_environment
 
-    argv = ["aws", "--profile", profile, "--region", REGION, "--no-cli-pager", "--output", "json",
-            "--cli-connect-timeout", "10", "--cli-read-timeout", "30", *args]
+    argv = [
+        "aws",
+        "--profile",
+        profile,
+        "--region",
+        REGION,
+        "--no-cli-pager",
+        "--output",
+        "json",
+        "--cli-connect-timeout",
+        "10",
+        "--cli-read-timeout",
+        "30",
+        *args,
+    ]
     with tempfile.TemporaryDirectory(prefix="dc2-mfa-") as directory:
         Path(directory).chmod(0o700)
         if payload is not None:
@@ -50,8 +63,14 @@ def _aws(runner, profile, args, *, payload=None):
             with os.fdopen(fd, "w") as handle:
                 json.dump(payload, handle)
             argv += ["--cli-input-json", f"file://{path}"]
-        done = runner(argv, env=sanitized_environment(), capture_output=True, text=True,
-                      timeout=60, check=False)
+        done = runner(
+            argv,
+            env=sanitized_environment(),
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
     if done.returncode:
         # stderr can quote request fields; report only that the call failed and which one.
         raise OperationError(f"aws {args[0]} {args[1]} failed (exit {done.returncode})")
@@ -79,8 +98,12 @@ def find_serial(runner, base_profile, override=None):
 
 
 def session_credentials(runner, base_profile, serial, code, duration):
-    reply = _aws(runner, base_profile, ["sts", "get-session-token"], payload={
-        "SerialNumber": serial, "TokenCode": code, "DurationSeconds": duration})
+    reply = _aws(
+        runner,
+        base_profile,
+        ["sts", "get-session-token"],
+        payload={"SerialNumber": serial, "TokenCode": code, "DurationSeconds": duration},
+    )
     found = reply.get("Credentials", {})
     needed = ("AccessKeyId", "SecretAccessKey", "SessionToken", "Expiration")
     if not isinstance(found, dict) or any(not found.get(k) for k in needed):
@@ -140,12 +163,15 @@ def _write_private(path, text):
 def write_profile(profile, found, *, home=None):
     """Store the session under `profile` in the credentials file and set its region."""
     cred_path, conf_path = credentials.credentials_file(home), credentials.config_file(home)
-    body = _render(profile, {
-        "aws_access_key_id": found["AccessKeyId"],
-        "aws_secret_access_key": found["SecretAccessKey"],
-        "aws_session_token": found["SessionToken"],
-        credentials.EXPIRY_KEY: found["Expiration"],
-    })
+    body = _render(
+        profile,
+        {
+            "aws_access_key_id": found["AccessKeyId"],
+            "aws_secret_access_key": found["SecretAccessKey"],
+            "aws_session_token": found["SessionToken"],
+            credentials.EXPIRY_KEY: found["Expiration"],
+        },
+    )
     existing = cred_path.read_text() if cred_path.exists() else ""
     updated = replace_section(existing, profile, body)
     check = configparser.RawConfigParser()
@@ -164,14 +190,22 @@ def _expiry(found):
 
 def main(argv=None, *, runner=subprocess.run, home=None, stdout=None, now=None):
     stdout = stdout or sys.stdout
-    parser = argparse.ArgumentParser(prog="scripts.aws.v1.mfa_session", description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        prog="scripts.aws.v1.mfa_session",
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("--code", required=True, help="the current 6-digit MFA code")
-    parser.add_argument("--duration", type=int, default=DEFAULT_DURATION,
-                        help=f"seconds, {MIN_DURATION}..{DEFAULT_DURATION} (default 36 h)")
+    parser.add_argument(
+        "--duration",
+        type=int,
+        default=DEFAULT_DURATION,
+        help=f"seconds, {MIN_DURATION}..{DEFAULT_DURATION} (default 36 h)",
+    )
     parser.add_argument("--base-profile", default=credentials.BASE_PROFILE)
-    parser.add_argument("--profile", default=credentials.MFA_PROFILE,
-                        help="profile to write (never 'default')")
+    parser.add_argument(
+        "--profile", default=credentials.MFA_PROFILE, help="profile to write (never 'default')"
+    )
     parser.add_argument("--serial", help="MFA device ARN when the user has several")
     parser.add_argument("--account", help="12 digits: confirm the new session resolves to it")
     args = parser.parse_args(argv)
@@ -203,8 +237,11 @@ def main(argv=None, *, runner=subprocess.run, home=None, stdout=None, now=None):
     expiry = _expiry(found)
     hours = (expiry - (now or dt.datetime.now(dt.UTC))).total_seconds() / 3600
     del found
-    print(f"Profile {args.profile} holds an MFA session until "
-          f"{expiry.strftime('%Y-%m-%dT%H:%M:%SZ')} ({hours:.1f} h)", file=stdout)
+    print(
+        f"Profile {args.profile} holds an MFA session until "
+        f"{expiry.strftime('%Y-%m-%dT%H:%M:%SZ')} ({hours:.1f} h)",
+        file=stdout,
+    )
     return 0
 
 

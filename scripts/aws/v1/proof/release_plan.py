@@ -25,11 +25,14 @@ import json
 import re
 from pathlib import Path
 
+from scripts.aws.artifacts import registry_receipt
 from scripts.aws.transport import OperationError
 from scripts.aws.v1 import deploy
+from scripts.aws.v1.artifacts import registry_scan
 from scripts.aws.v1.proof import release
 from scripts.aws.v1.proof.core import ProofError, private_write
 from scripts.aws.v1.release import validate_inputs
+from scripts.ci.v1_scan import validate_scan
 
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 CVE = re.compile(r"CVE-\d{4}-\d+")
@@ -40,15 +43,28 @@ SOURCE = re.compile(r"[0-9a-f]{40}")
 # owner -> ((kind, build-evidence image, repository output), ...)
 IMAGES = {
     "media": (("api", "media", "MediaRepositoryUri"),),
-    "processing": (("api", "processing", "ProcessingRepositoryUri"),
-                   ("worker", "worker", "WorkerRepositoryUri")),
+    "processing": (
+        ("api", "processing", "ProcessingRepositoryUri"),
+        ("worker", "worker", "WorkerRepositoryUri"),
+    ),
 }
 RUNTIME = {"api": "lambda-api", "worker": "finite-worker"}
-MIGRATION_OUTPUT = {"media": "MediaMigrationTaskDefinitionArn",
-                    "processing": "ProcessingMigrationTaskDefinitionArn"}
+MIGRATION_OUTPUT = {
+    "media": "MediaMigrationTaskDefinitionArn",
+    "processing": "ProcessingMigrationTaskDefinitionArn",
+}
 # The register-task-definition fields the operator contract admits; describe returns more.
-COPIED = ("family", "containerDefinitions", "cpu", "memory", "networkMode",
-          "requiresCompatibilities", "executionRoleArn", "runtimePlatform", "taskRoleArn")
+COPIED = (
+    "family",
+    "containerDefinitions",
+    "cpu",
+    "memory",
+    "networkMode",
+    "requiresCompatibilities",
+    "executionRoleArn",
+    "runtimePlatform",
+    "taskRoleArn",
+)
 
 
 def load_evidence(path):
@@ -56,19 +72,28 @@ def load_evidence(path):
         data = json.loads(Path(path).read_text())
     except (OSError, ValueError):
         raise ProofError("A build evidence file is unreadable JSON") from None
-    if (not isinstance(data, dict) or data.get("status") != "LOCAL_ARTIFACT_PASS"
-            or data.get("failures") or not isinstance(data.get("images"), dict)):
-        raise ProofError("Build evidence must be LOCAL_ARTIFACT_PASS with no failed check "
-                         "(deploy/v1/build_and_verify.py --out)")
+    if (
+        not isinstance(data, dict)
+        or data.get("status") != "LOCAL_ARTIFACT_PASS"
+        or data.get("failures")
+        or not isinstance(data.get("images"), dict)
+    ):
+        raise ProofError(
+            "Build evidence must be LOCAL_ARTIFACT_PASS with no failed check "
+            "(deploy/v1/build_and_verify.py --out)"
+        )
     return data
 
 
 def evidence_image(evidence, name):
     image = evidence["images"].get(name)
-    if (not isinstance(image, dict) or image.get("build_exit_code") != 0
-            or not DIGEST.fullmatch(str(image.get("config_id")))
-            or not SOURCE.fullmatch(str(image.get("source_sha")))
-            or not isinstance(image.get("runtime_contents"), dict)):
+    if (
+        not isinstance(image, dict)
+        or image.get("build_exit_code") != 0
+        or not DIGEST.fullmatch(str(image.get("config_id")))
+        or not SOURCE.fullmatch(str(image.get("source_sha")))
+        or not isinstance(image.get("runtime_contents"), dict)
+    ):
         raise ProofError(f"The build evidence has no verified {name} image")
     return image
 
@@ -108,18 +133,31 @@ def load_accept(path):
         data = json.loads(raw, object_pairs_hook=unique_pairs)
     except (OSError, ValueError):
         raise ProofError("--accept-unfixed is not readable JSON without repeated keys") from None
-    if (not isinstance(data, dict) or set(data) != ACCEPT_KEYS
-            or not isinstance(data["verified_by"], str) or not data["verified_by"].strip()
-            or not isinstance(data["accepted"], list) or not data["accepted"]):
-        raise ProofError("--accept-unfixed must be {\"accepted\": [...], \"verified_by\": text} "
-                         "with at least one entry")
+    if (
+        not isinstance(data, dict)
+        or set(data) != ACCEPT_KEYS
+        or not isinstance(data["verified_by"], str)
+        or not data["verified_by"].strip()
+        or not isinstance(data["accepted"], list)
+        or not data["accepted"]
+    ):
+        raise ProofError(
+            '--accept-unfixed must be {"accepted": [...], "verified_by": text} '
+            "with at least one entry"
+        )
     ids = set()
     for entry in data["accepted"]:
-        if (not isinstance(entry, dict) or set(entry) != ACCEPT_ENTRY_KEYS
-                or not all(isinstance(v, str) and v.strip() for v in entry.values())
-                or not CVE.fullmatch(entry["id"]) or not DATE.fullmatch(entry["reviewed_on"])):
-            raise ProofError("Every --accept-unfixed entry needs exactly id (CVE-YYYY-N), "
-                             "package, reason and reviewed_on (YYYY-MM-DD)")
+        if (
+            not isinstance(entry, dict)
+            or set(entry) != ACCEPT_ENTRY_KEYS
+            or not all(isinstance(v, str) and v.strip() for v in entry.values())
+            or not CVE.fullmatch(entry["id"])
+            or not DATE.fullmatch(entry["reviewed_on"])
+        ):
+            raise ProofError(
+                "Every --accept-unfixed entry needs exactly id (CVE-YYYY-N), "
+                "package, reason and reviewed_on (YYYY-MM-DD)"
+            )
         if entry["id"] in ids:
             raise ProofError(f"--accept-unfixed lists {entry['id']} twice")
         ids.add(entry["id"])
@@ -132,11 +170,14 @@ class Planner:
         self.accept_ids, self.accept_sha = accept if accept else (set(), None)
         self.matched = set()  # accepted ids some scanned image actually carries
         journal = deploy.DeployJournal(
-            ctx.state_dir / "deploy-journal.json", station=ctx.data["operator_station"],
-            environment=ctx.data["environment_id"])
+            ctx.state_dir / "deploy-journal.json",
+            station=ctx.data["operator_station"],
+            environment=ctx.data["environment_id"],
+        )
         if not journal.exists():
-            raise ProofError("No deploy journal in the state directory; this stack was not "
-                             "deployed from here")
+            raise ProofError(
+                "No deploy journal in the state directory; this stack was not deployed from here"
+            )
         self.deployed = journal.view()
         self.registered = []  # revisions this run created, for the plan and for cleanup
 
@@ -155,69 +196,27 @@ class Planner:
             raise ProofError(f"{service} {operation} failed ({type(error).__name__})") from None
 
     def digest_of(self, repository, tag):
-        reply = self.aws("ecr", "describe-images", {
-            "repositoryName": repository.split("/", 1)[1], "imageIds": [{"imageTag": tag}]})
+        reply = self.aws(
+            "ecr",
+            "describe-images",
+            {"repositoryName": repository.split("/", 1)[1], "imageIds": [{"imageTag": tag}]},
+        )
         found = reply.get("imageDetails") or []
         if len(found) != 1 or not DIGEST.fullmatch(str(found[0].get("imageDigest"))):
             raise ProofError(f"{tag} is not in the repository; push it first")
         return found[0]["imageDigest"]
 
     def scan(self, repository, digest, tag):
-        """(report hash, blocking count, accepted ids). A pending or blocking scan is a refusal.
-
-        Without an accept list any HIGH/CRITICAL blocks, from the severity counts alone. With
-        one, the individual findings are always read (every page, whatever the counts say) and
-        only an id on the list is waved through."""
-        request = {"repositoryName": repository.split("/", 1)[1],
-                   "imageId": {"imageDigest": digest}}
-        reply = self.aws("ecr", "describe-image-scan-findings", request)
-        if reply.get("imageScanStatus", {}).get("status") != "COMPLETE":
-            raise ProofError(f"The scan of {tag} is not COMPLETE yet")
-        counts = reply.get("imageScanFindings", {}).get("findingSeverityCounts") or {}
-        total = counts.get("HIGH", 0) + counts.get("CRITICAL", 0)
-        accepted = []
-        if not self.accept_ids:
-            if total:
-                raise ProofError(f"{tag} has {total} HIGH/CRITICAL scan findings; the release "
-                                 "gate blocks it")
-        else:
-            # The counts are never trusted to be complete: with an accept list the findings
-            # themselves are read, every page, and must agree with the counts both ways.
-            reply = self.all_findings(request, reply, tag)
-            if reply["imageScanFindings"].get("enhancedFindings"):
-                raise ProofError(f"The scan of {tag} uses enhanced findings, which the accept "
-                                 "list cannot be matched against")
-            serious = [f for f in reply["imageScanFindings"]["findings"]
-                       if f.get("severity") in ("HIGH", "CRITICAL")]
-            if len(serious) != total:
-                raise ProofError(f"The scan of {tag} counts {total} HIGH/CRITICAL findings but "
-                                 f"lists {len(serious)}, so they cannot be matched to the "
-                                 "accept list")
-            names = {str(f.get("name")) for f in serious}
-            blocked = sorted(names - self.accept_ids)
-            if blocked:
-                shown = ", ".join(blocked[:10]) + (" ..." if len(blocked) > 10 else "")
-                raise ProofError(f"{tag} has {len(blocked)} HIGH/CRITICAL scan finding(s) not "
-                                 f"on the accept list: {shown}")
-            accepted = sorted(names)
-            self.matched.update(accepted)
-        canonical = json.dumps(reply, sort_keys=True, default=str)
-        return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest(), 0, accepted
-
-    def all_findings(self, request, reply, tag):
-        """The first reply with every page's findings merged in (one page is returned as is)."""
-        merged = json.loads(json.dumps(reply, default=str))
-        merged.setdefault("imageScanFindings", {}).setdefault("findings", [])
-        token, pages = merged.pop("nextToken", None), 1
-        while token:
-            pages += 1
-            if pages > 200:
-                raise ProofError(f"The scan findings of {tag} do not end")
-            page = self.aws("ecr", "describe-image-scan-findings", {**request, "nextToken": token})
-            merged["imageScanFindings"]["findings"] += page.get(
-                "imageScanFindings", {}).get("findings", [])
-            token = page.get("nextToken")
-        return merged
+        try:
+            result = registry_scan(self.aws, repository, digest, tag, self.accept_ids)
+        except OperationError as error:
+            raise ProofError(str(error)) from None
+        self.matched.update(result["accepted_high_critical"])
+        return (
+            result["report_sha256"],
+            result["blocking_high_critical"],
+            result["accepted_high_critical"],
+        )
 
     def image_set(self, role, tags, evidence, tests_passed):
         """{bundle, image_uri, digests}: one registry-verified image set and its bundle."""
@@ -226,29 +225,63 @@ class Planner:
             image = evidence_image(evidence, name)
             repository = self.repository(output)
             digest = self.digest_of(repository, tags[name])
+            try:
+                trivy = validate_scan(
+                    image.get("trivy_scan"),
+                    config_id=image["config_id"],
+                    source_sha=image["source_sha"],
+                )
+            except ValueError as error:
+                raise ProofError(str(error)) from None
             report, blocking, accepted = self.scan(repository, digest, tags[name])
-            gate = {"status": "PASS", "config_id": image["config_id"],
-                    "source_sha": image["source_sha"]}
+            gate = {
+                "status": "PASS",
+                "config_id": image["config_id"],
+                "source_sha": image["source_sha"],
+            }
             bundle[kind] = {
-                "owner": self.owner, "platform": "linux/amd64",
-                "source_sha": image["source_sha"], "config_id": image["config_id"],
-                # `docker push` of a local image keeps its config digest as the image id.
-                "manifest_config_id": image["config_id"], "manifest_digest": digest,
+                "owner": self.owner,
+                "platform": "linux/amd64",
+                "source_sha": image["source_sha"],
+                "config_id": image["config_id"],
                 "tests": {**gate, "passed": tests_passed},
                 "artifact_test": {**gate, "kind": "local-exact-image-checks"},
-                "scan": {**gate, "blocking_high_critical": blocking,
-                         # The release CLI's validator reads this older name; it means the same.
-                         "fixable_high_critical": blocking,
-                         "accepted_high_critical": accepted,
-                         "accept_file_sha256": self.accept_sha, "report_sha256": report},
+                "scan": {
+                    **trivy,
+                    "ecr_status": "COMPLETE",
+                    "blocking_high_critical": blocking,
+                    # The release CLI's validator reads this older name; it means the same.
+                    "fixable_high_critical": blocking,
+                    "accepted_high_critical": accepted,
+                    "accept_file_sha256": self.accept_sha,
+                    "ecr_report_sha256": report,
+                },
                 "runtime_kind": RUNTIME[kind],
                 "runtime_contents": image["runtime_contents"],
             }
+            response = self.aws(
+                "ecr",
+                "batch-get-image",
+                {
+                    "repositoryName": repository.split("/", 1)[1],
+                    "imageIds": [{"imageDigest": digest}],
+                },
+            )
+            try:
+                bundle[kind] = registry_receipt(bundle[kind], response)
+            except OperationError as error:
+                raise ProofError(str(error)) from None
+            if bundle[kind]["manifest_digest"] != digest:
+                raise ProofError("Registry receipt differs from the selected release digest")
             digests[kind] = (repository, digest)
         repository, digest = digests["api"]
-        return {"role": role, "bundle": bundle, "image_uri": f"{repository}@{digest}",
-                "digests": {k: v[1] for k, v in digests.items()}, "repositories": {
-                    k: v[0] for k, v in digests.items()}}
+        return {
+            "role": role,
+            "bundle": bundle,
+            "image_uri": f"{repository}@{digest}",
+            "digests": {k: v[1] for k, v in digests.items()},
+            "repositories": {k: v[0] for k, v in digests.items()},
+        }
 
     def definition(self, arn):
         reply = self.aws("ecs", "describe-task-definition", {"taskDefinition": arn})
@@ -263,12 +296,14 @@ class Planner:
             kind = "worker" if field == "worker_definition" else "api"
             if not arn:
                 raise ProofError(f"The stack outputs have no {field.split('_')[0]} definition")
-            held = {c["image"].rsplit("@", 1)[-1]
-                    for c in self.definition(arn)["containerDefinitions"]}
+            held = {
+                c["image"].rsplit("@", 1)[-1] for c in self.definition(arn)["containerDefinitions"]
+            }
             if held != {baseline["digests"][kind]}:
                 raise ProofError(
                     f"The stack's {field} no longer holds the baseline image, so it has been "
-                    "updated since the deploy; name the image it holds as the baseline")
+                    "updated since the deploy; name the image it holds as the baseline"
+                )
         return found
 
     def register_copy(self, arn, image_uri):
@@ -277,8 +312,9 @@ class Planner:
         if len(source["containerDefinitions"]) != 1:
             raise ProofError("Only a single-container definition can be copied")
         payload = {k: source[k] for k in COPIED if source.get(k) is not None}
-        payload["containerDefinitions"] = [{**source["containerDefinitions"][0],
-                                            "image": image_uri}]
+        payload["containerDefinitions"] = [
+            {**source["containerDefinitions"][0], "image": image_uri}
+        ]
         made = self.aws("ecs", "register-task-definition", payload)
         new = made["taskDefinition"]["taskDefinitionArn"]
         self.registered.append(new)
@@ -286,21 +322,29 @@ class Planner:
 
     def registered_definitions(self, image, base):
         """Definitions for a new image set: the deployed ones with only the image swapped."""
-        uris = {kind: f"{image['repositories'][kind]}@{digest}"
-                for kind, digest in image["digests"].items()}
-        result = {"migration_definition": self.register_copy(
-            base["migration_definition"], uris["api"])}
+        uris = {
+            kind: f"{image['repositories'][kind]}@{digest}"
+            for kind, digest in image["digests"].items()
+        }
+        result = {
+            "migration_definition": self.register_copy(base["migration_definition"], uris["api"])
+        }
         if self.owner == "processing":
             result["worker_definition"] = self.register_copy(
-                base["worker_definition"], uris["worker"])
+                base["worker_definition"], uris["worker"]
+            )
         return result
 
     def retire(self):
         """Best effort: a failed run must not leave definition revisions nobody lists."""
         for arn in self.registered:
             try:
-                self.ctx.aws.call("ecs", "deregister-task-definition", {"taskDefinition": arn},
-                                  deadline=self.ctx.deadline(60))
+                self.ctx.aws.call(
+                    "ecs",
+                    "deregister-task-definition",
+                    {"taskDefinition": arn},
+                    deadline=self.ctx.deadline(60),
+                )
             except Exception:  # the caller is already failing with its own error
                 pass
 
@@ -309,29 +353,59 @@ def write_image(out, role, image, definitions, owner, target):
     bundle_path = out / f"bundle-{role}.json"
     compat_path = out / f"compat-{role}.json"
     private_write(bundle_path, json.dumps(image["bundle"], indent=2, sort_keys=True) + "\n")
-    private_write(compat_path, json.dumps({
-        "owner": owner, "source_sha": image["bundle"]["api"]["source_sha"],
-        "target_revision": target, "additive_only": True, "current_image_compatible": True,
-        "prior_image_compatible": True}, indent=2, sort_keys=True) + "\n")
+    private_write(
+        compat_path,
+        json.dumps(
+            {
+                "owner": owner,
+                "source_sha": image["bundle"]["api"]["source_sha"],
+                "target_revision": target,
+                "additive_only": True,
+                "current_image_compatible": True,
+                "prior_image_compatible": True,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+    )
     # Relative to plan.json, so a plan synced to another machine still finds its files.
-    return {"bundle": bundle_path.name, "image_uri": image["image_uri"],
-            "compat_evidence": compat_path.name, **definitions}
+    return {
+        "bundle": bundle_path.name,
+        "image_uri": image["image_uri"],
+        "compat_evidence": compat_path.name,
+        **definitions,
+    }
 
 
-def run(ctx, *, owner, baseline_evidence, good, bad=None, tests_passed, target_revision=None,
-        attest_schema_unchanged=False, accept_unfixed=None, out):
+def run(
+    ctx,
+    *,
+    owner,
+    baseline_evidence,
+    good,
+    bad=None,
+    tests_passed,
+    target_revision=None,
+    attest_schema_unchanged=False,
+    accept_unfixed=None,
+    out,
+):
     """Write `out/plan.json`. `good`/`bad` are {"run_id", "evidence"}; the tags are
     `<run_id>-media|processing|worker`, the convention `deploy` pushes with."""
     if not attest_schema_unchanged:
-        raise ProofError("--attest-schema-unchanged is required: good, baseline and bad must "
-                         "all be compatible with --target-revision (the stack's current head)")
+        raise ProofError(
+            "--attest-schema-unchanged is required: good, baseline and bad must "
+            "all be compatible with --target-revision (the stack's current head)"
+        )
     if type(tests_passed) is not int or tests_passed < 1:
         raise ProofError("--tests-passed must be the number of source tests that passed")
     target = target_revision or local_head(owner)
     planner = Planner(ctx, owner, load_accept(accept_unfixed) if accept_unfixed else None)
     try:
-        return assemble(ctx, planner, owner, baseline_evidence, good, bad, tests_passed, target,
-                        Path(out))
+        return assemble(
+            ctx, planner, owner, baseline_evidence, good, bad, tests_passed, target, Path(out)
+        )
     except BaseException:
         planner.retire()
         raise
@@ -357,15 +431,16 @@ def assemble(ctx, planner, owner, baseline_evidence, good, bad, tests_passed, ta
         new_tags = {name: f"{spec['run_id']}-{name}" for _, name, _ in IMAGES[owner]}
         image = planner.image_set(role, new_tags, evidence, tests_passed)
         if all(image["digests"][k] == baseline["digests"][k] for k in image["digests"]):
-            raise ProofError(f"The {role} image set is the baseline's, so promoting it would "
-                             "move nothing; build a different image")
+            raise ProofError(
+                f"The {role} image set is the baseline's, so promoting it would "
+                "move nothing; build a different image"
+            )
         # One of Processing's two images may be kept as it runs (its inputs did not change).
         for kind in image["digests"]:
             if image["digests"][kind] == baseline["digests"][kind]:
                 image["bundle"][kind]["retained"] = True
         sets[role] = (image, planner.registered_definitions(image, base))
-    plan = {"owner": owner, "target_revision": target,
-            "registered_definitions": planner.registered}
+    plan = {"owner": owner, "target_revision": target, "registered_definitions": planner.registered}
     for role, (image, definitions) in sets.items():
         plan[role] = write_image(out, role, image, definitions, owner, target)
     plan_path = out / "plan.json"
@@ -374,15 +449,23 @@ def assemble(ctx, planner, owner, baseline_evidence, good, bad, tests_passed, ta
     release.load_plan(plan_path)
     for role, (image, _) in sets.items():
         item = plan[role]
-        validate_inputs(ctx.config, owner=owner, bundle=image["bundle"],
-                        image_uri=item["image_uri"],
-                        worker_definition=item.get("worker_definition"),
-                        deployed=role == "baseline")
-    return {"plan": str(plan_path), "owner": owner, "target_revision": target,
-            "images": {role: image["digests"] for role, (image, _) in sets.items()},
-            "registered_definitions": len(planner.registered),
-            "accept_file_sha256": planner.accept_sha,
-            "accepted_unused": sorted(planner.accept_ids - planner.matched)}
+        validate_inputs(
+            ctx.config,
+            owner=owner,
+            bundle=image["bundle"],
+            image_uri=item["image_uri"],
+            worker_definition=item.get("worker_definition"),
+            deployed=role == "baseline",
+        )
+    return {
+        "plan": str(plan_path),
+        "owner": owner,
+        "target_revision": target,
+        "images": {role: image["digests"] for role, (image, _) in sets.items()},
+        "registered_definitions": len(planner.registered),
+        "accept_file_sha256": planner.accept_sha,
+        "accepted_unused": sorted(planner.accept_ids - planner.matched),
+    }
 
 
 def deregister(ctx, plan_path):
@@ -390,7 +473,8 @@ def deregister(ctx, plan_path):
     plan = release.load_plan(plan_path)
     retired = []
     for arn in plan.get("registered_definitions", []):
-        ctx.aws.call("ecs", "deregister-task-definition", {"taskDefinition": arn},
-                     deadline=ctx.deadline(60))
+        ctx.aws.call(
+            "ecs", "deregister-task-definition", {"taskDefinition": arn}, deadline=ctx.deadline(60)
+        )
         retired.append(arn.rsplit("/", 1)[-1])
     return {"deregistered": retired}

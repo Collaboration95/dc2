@@ -15,9 +15,7 @@ def test_moto_interpreter_keeps_the_venv_symlink_so_site_packages_stay_visible(
     assert v1_runtime.moto_python() == str(link)
 
 
-def test_relative_moto_interpreter_is_made_absolute_without_following_links(
-    tmp_path, monkeypatch
-):
+def test_relative_moto_interpreter_is_made_absolute_without_following_links(tmp_path, monkeypatch):
     link = tmp_path / "venv-python"
     link.symlink_to(sys.executable)
     monkeypatch.chdir(tmp_path)

@@ -28,12 +28,18 @@ REQUIRED = ("baseline", "promote-good", "rollback", "owner-isolation")
 SCHEMA_SOURCES = {"in-vpc-task", "sql-station"}
 GOOD_GATE_SECONDS = 600
 BAD_GATE_SECONDS = 300
-PLAN_KEYS = {"owner", "migration_definition", "target_revision", "good", "baseline", "bad",
-             "registered_definitions"}
+PLAN_KEYS = {
+    "owner",
+    "migration_definition",
+    "target_revision",
+    "good",
+    "baseline",
+    "bad",
+    "registered_definitions",
+}
 # A migration definition must hold the exact image being released, so it belongs to the image;
 # the plan-level one is only a default for plans whose images share a definition.
-IMAGE_KEYS = {"bundle", "image_uri", "compat_evidence", "worker_definition",
-              "migration_definition"}
+IMAGE_KEYS = {"bundle", "image_uri", "compat_evidence", "worker_definition", "migration_definition"}
 
 
 def load_plan(path):
@@ -41,8 +47,11 @@ def load_plan(path):
         plan = json.loads(Path(path).read_text())
     except (OSError, ValueError):
         raise ProofError("The release plan is unreadable JSON") from None
-    if not isinstance(plan, dict) or plan.keys() - PLAN_KEYS or not {
-            "owner", "target_revision", "good", "baseline"} <= plan.keys():
+    if (
+        not isinstance(plan, dict)
+        or plan.keys() - PLAN_KEYS
+        or not {"owner", "target_revision", "good", "baseline"} <= plan.keys()
+    ):
         raise ProofError("The release plan has missing or unsupported fields")
     if plan["owner"] not in {"media", "processing"}:
         raise ProofError("The release plan owner must be media or processing")
@@ -50,8 +59,11 @@ def load_plan(path):
         item = plan.get(name)
         if item is None and name == "bad":
             continue
-        if not isinstance(item, dict) or item.keys() - IMAGE_KEYS or not {
-                "bundle", "image_uri", "compat_evidence"} <= item.keys():
+        if (
+            not isinstance(item, dict)
+            or item.keys() - IMAGE_KEYS
+            or not {"bundle", "image_uri", "compat_evidence"} <= item.keys()
+        ):
             raise ProofError(f"The release plan's {name} image is incomplete")
         if (plan["owner"] == "processing") != bool(item.get("worker_definition")):
             raise ProofError("Only a Processing release carries a worker definition")
@@ -68,8 +80,15 @@ def call(ctx, argv):
     """One release CLI invocation with the live transport; (exit code, parsed JSON, seconds)."""
     out = io.StringIO()
     started = ctx.clock()
-    code = ctx.release_main(argv, environ={}, transport_factory=ctx.sdk, stdout=out,
-                            http=ctx.http, clock=ctx.clock, sleep=ctx.sleep)
+    code = ctx.release_main(
+        argv,
+        environ={},
+        transport_factory=ctx.sdk,
+        stdout=out,
+        http=ctx.http,
+        clock=ctx.clock,
+        sleep=ctx.sleep,
+    )
     seconds = round(ctx.clock() - started, 1)
     try:
         return code, json.loads(out.getvalue()), seconds
@@ -79,19 +98,44 @@ def call(ctx, argv):
 
 def base_args(ctx, action):
     scope = ctx.scope
-    return [action, "--config", str(ctx.state_dir / "operator-config.json"),
-            "--profile", scope["profile"], "--region", scope["region"],
-            "--account", scope["account"], "--deadline-seconds", "900"]
+    return [
+        action,
+        "--config",
+        str(ctx.state_dir / "operator-config.json"),
+        "--profile",
+        scope["profile"],
+        "--region",
+        scope["region"],
+        "--account",
+        scope["account"],
+        "--deadline-seconds",
+        "900",
+    ]
 
 
 def promote_args(ctx, plan, image):
-    smoke = ["--smoke-url", ctx.gateway_url,
-             "--smoke-credentials", str(ctx.state_dir / "smoke-credentials.json")]
-    args = [*base_args(ctx, "promote"), "--owner", plan["owner"], "--bundle", image["bundle"],
-            "--image-uri", image["image_uri"], "--migration-definition",
-            image.get("migration_definition") or plan["migration_definition"],
-            "--target-revision", plan["target_revision"],
-            "--compat-evidence", image["compat_evidence"], *smoke]
+    smoke = [
+        "--smoke-url",
+        ctx.gateway_url,
+        "--smoke-credentials",
+        str(ctx.state_dir / "smoke-credentials.json"),
+    ]
+    args = [
+        *base_args(ctx, "promote"),
+        "--owner",
+        plan["owner"],
+        "--bundle",
+        image["bundle"],
+        "--image-uri",
+        image["image_uri"],
+        "--migration-definition",
+        image.get("migration_definition") or plan["migration_definition"],
+        "--target-revision",
+        plan["target_revision"],
+        "--compat-evidence",
+        image["compat_evidence"],
+        *smoke,
+    ]
     if image.get("worker_definition"):
         args += ["--worker-definition", image["worker_definition"]]
     return args
@@ -109,8 +153,10 @@ def aliases(ctx):
 
 
 def split(table, owner):
-    return ({n: a["version"] for n, a in table.items() if a["owner"] == owner},
-            {n: a["version"] for n, a in table.items() if a["owner"] != owner})
+    return (
+        {n: a["version"] for n, a in table.items() if a["owner"] == owner},
+        {n: a["version"] for n, a in table.items() if a["owner"] != owner},
+    )
 
 
 def verdict(ok, public, private=None):
@@ -119,8 +165,10 @@ def verdict(ok, public, private=None):
 
 def smoke_summary(receipt):
     checks = (receipt or {}).get("checks", {})
-    return {"checks": checks, "all_passed": bool(checks) and all(
-        v == "PASS" for v in checks.values())}
+    return {
+        "checks": checks,
+        "all_passed": bool(checks) and all(v == "PASS" for v in checks.values()),
+    }
 
 
 def schema_read(ctx):
@@ -132,8 +180,12 @@ def schema_read(ctx):
     code, out, seconds = call(ctx, base_args(ctx, "schema"))
     result = out.get("result", {})
     revisions = result.get("schema") or {}
-    ok = bool(code == 0 and out.get("ok") and set(revisions) == {"media", "processing"}
-              and all(isinstance(v, str) and v for v in revisions.values()))
+    ok = bool(
+        code == 0
+        and out.get("ok")
+        and set(revisions) == {"media", "processing"}
+        and all(isinstance(v, str) and v for v in revisions.values())
+    )
     return ok, revisions, result.get("schema_revision_source"), seconds, out.get("error")
 
 
@@ -142,15 +194,26 @@ def baseline(ctx, proof, plan):
     own, peer = split(table, plan["owner"])
     ok, revisions, source, seconds, error = schema_read(ctx)
     peer_owner = "processing" if plan["owner"] == "media" else "media"
-    proof.intent("snapshots")["baseline"] = {"own": own, "peer": peer,
-                                            "schema_peer": revisions.get(peer_owner)}
+    proof.intent("snapshots")["baseline"] = {
+        "own": own,
+        "peer": peer,
+        "schema_peer": revisions.get(peer_owner),
+    }
     proof.save()
-    return verdict(pending is None and bool(own) and bool(peer) and ok, {
-        "owner": plan["owner"], "owner_functions": len(own), "peer_functions": len(peer),
-        "pending_release": pending is not None, "schema_read": ok,
-        "schema_revision_source": source, "schema_read_seconds": seconds,
-        "owner_schema_at_target": revisions.get(plan["owner"]) == plan["target_revision"],
-    }, {"schema": revisions, "error": error})
+    return verdict(
+        pending is None and bool(own) and bool(peer) and ok,
+        {
+            "owner": plan["owner"],
+            "owner_functions": len(own),
+            "peer_functions": len(peer),
+            "pending_release": pending is not None,
+            "schema_read": ok,
+            "schema_revision_source": source,
+            "schema_read_seconds": seconds,
+            "owner_schema_at_target": revisions.get(plan["owner"]) == plan["target_revision"],
+        },
+        {"schema": revisions, "error": error},
+    )
 
 
 def promote(ctx, proof, plan, name, image, *, expect_own_change=True):
@@ -163,9 +226,13 @@ def promote(ctx, proof, plan, name, image, *, expect_own_change=True):
     result = out.get("result", {})
     previous = snaps.get("rollback-from") or snaps["baseline"]
     public = {
-        "operation": name, "exit_code": code, "seconds": seconds,
-        "gate_seconds": GOOD_GATE_SECONDS, "within_gate": seconds <= GOOD_GATE_SECONDS,
-        "status": result.get("status"), "owner_versions_moved": own != previous["own"],
+        "operation": name,
+        "exit_code": code,
+        "seconds": seconds,
+        "gate_seconds": GOOD_GATE_SECONDS,
+        "within_gate": seconds <= GOOD_GATE_SECONDS,
+        "status": result.get("status"),
+        "owner_versions_moved": own != previous["own"],
         "peer_unchanged": peer == snaps["baseline"]["peer"],
         "pending_release_after": pending is not None,
         "schema_rollback_attempted": False,
@@ -174,10 +241,17 @@ def promote(ctx, proof, plan, name, image, *, expect_own_change=True):
         "schema_reads": len(result.get("schema_reads", [])),
         "schema_read_seconds": round(sum(r["seconds"] for r in result.get("schema_reads", [])), 1),
     }
-    ok = (code == 0 and out.get("ok") and result.get("status") == "promoted"
-          and public["schema_revision_source"] in SCHEMA_SOURCES
-          and public["within_gate"] and public["peer_unchanged"] and public["smoke"]["all_passed"]
-          and (public["owner_versions_moved"] or not expect_own_change) and not pending)
+    ok = (
+        code == 0
+        and out.get("ok")
+        and result.get("status") == "promoted"
+        and public["schema_revision_source"] in SCHEMA_SOURCES
+        and public["within_gate"]
+        and public["peer_unchanged"]
+        and public["smoke"]["all_passed"]
+        and (public["owner_versions_moved"] or not expect_own_change)
+        and not pending
+    )
     private = {"versions": result.get("versions"), "error": out.get("error")}
     if name == "promote-good":
         snaps["rollback-from"] = snaps[name]
@@ -193,10 +267,17 @@ def isolation(ctx, proof, plan):
     ok, revisions, source, seconds, error = schema_read(ctx)
     peer_owner = "processing" if plan["owner"] == "media" else "media"
     schema_same = ok and revisions.get(peer_owner) == snaps["baseline"].get("schema_peer")
-    return verdict(len(seen) >= 3 and all(seen.values()) and schema_same, {
-        "snapshots_compared": len(seen), "peer_unchanged_at_every_snapshot": all(seen.values()),
-        "peer_schema_unchanged": bool(schema_same), "schema_revision_source": source,
-        "schema_read_seconds": seconds}, {"error": error})
+    return verdict(
+        len(seen) >= 3 and all(seen.values()) and schema_same,
+        {
+            "snapshots_compared": len(seen),
+            "peer_unchanged_at_every_snapshot": all(seen.values()),
+            "peer_schema_unchanged": bool(schema_same),
+            "schema_revision_source": source,
+            "schema_read_seconds": seconds,
+        },
+        {"error": error},
+    )
 
 
 def failed_stage(code, intent):
@@ -214,7 +295,8 @@ def failed_stage(code, intent):
 
 MIGRATION_STAGE_REASON = (
     "the failing candidate failed in its migration task, so the restore path was not exercised; "
-    "use a candidate that migrates and fails only the Lambda smoke")
+    "use a candidate that migrates and fails only the Lambda smoke"
+)
 
 
 def abandoned_candidate(ctx, plan, snaps, before_own, failed_after):
@@ -223,28 +305,45 @@ def abandoned_candidate(ctx, plan, snaps, before_own, failed_after):
     The step stays a FAIL, because the restore path it exists to prove did not run; clearing the
     intent only keeps the orphan from blocking the session close and every later release.
     """
-    code, out, abandon_seconds = call(ctx, [
-        *base_args(ctx, "abandon"), "--reason",
-        "bad-candidate proof: the candidate failed in its migration task"])
+    code, out, abandon_seconds = call(
+        ctx,
+        [
+            *base_args(ctx, "abandon"),
+            "--reason",
+            "bad-candidate proof: the candidate failed in its migration task",
+        ],
+    )
     table, pending = aliases(ctx)
     own, peer = split(table, plan["owner"])
-    return verdict(False, {
-        "candidate_failed_as_expected": True, "failed_stage": "migration",
-        "failed_after_seconds": failed_after, "abandon_seconds": abandon_seconds,
-        "abandoned": bool(code == 0 and out.get("ok")
-                          and out.get("result", {}).get("status") == "abandoned"
-                          and pending is None),
-        "aliases_restored": own == before_own,
-        "peer_unchanged": peer == snaps["baseline"]["peer"],
-        "pending_release_after": pending is not None, "schema_rollback_attempted": False,
-        "reason": MIGRATION_STAGE_REASON,
-    }, {"error": out.get("error")})
+    return verdict(
+        False,
+        {
+            "candidate_failed_as_expected": True,
+            "failed_stage": "migration",
+            "failed_after_seconds": failed_after,
+            "abandon_seconds": abandon_seconds,
+            "abandoned": bool(
+                code == 0
+                and out.get("ok")
+                and out.get("result", {}).get("status") == "abandoned"
+                and pending is None
+            ),
+            "aliases_restored": own == before_own,
+            "peer_unchanged": peer == snaps["baseline"]["peer"],
+            "pending_release_after": pending is not None,
+            "schema_rollback_attempted": False,
+            "reason": MIGRATION_STAGE_REASON,
+        },
+        {"error": out.get("error")},
+    )
 
 
 def bad_candidate(ctx, proof, plan):
     if not plan.get("bad"):
-        return {"status": NOT_RUN, "public": {
-            "reason": "no failing candidate was supplied in the release plan"}}
+        return {
+            "status": NOT_RUN,
+            "public": {"reason": "no failing candidate was supplied in the release plan"},
+        }
     snaps = proof.intent("snapshots")
     before_table, _ = aliases(ctx)
     before_own, _ = split(before_table, plan["owner"])
@@ -253,24 +352,42 @@ def bad_candidate(ctx, proof, plan):
     stage = failed_stage(code, intent)
     if stage == "migration":
         return abandoned_candidate(ctx, plan, snaps, before_own, failed_after)
-    restored_code, restored, restore_seconds = call(ctx, [
-        *base_args(ctx, "restore"), "--smoke-url", ctx.gateway_url, "--smoke-credentials",
-        str(ctx.state_dir / "smoke-credentials.json")])
+    restored_code, restored, restore_seconds = call(
+        ctx,
+        [
+            *base_args(ctx, "restore"),
+            "--smoke-url",
+            ctx.gateway_url,
+            "--smoke-credentials",
+            str(ctx.state_dir / "smoke-credentials.json"),
+        ],
+    )
     table, pending = aliases(ctx)
     own, peer = split(table, plan["owner"])
     total = round(failed_after + restore_seconds, 1)
     public = {
-        "candidate_failed_as_expected": code != 0, "failed_after_seconds": failed_after,
-        "restore_seconds": restore_seconds, "total_seconds": total,
-        "gate_seconds": BAD_GATE_SECONDS, "within_gate": total <= BAD_GATE_SECONDS,
-        "aliases_restored": own == before_own, "peer_unchanged": peer == snaps["baseline"]["peer"],
-        "pending_release_after": pending is not None, "schema_rollback_attempted": False,
+        "candidate_failed_as_expected": code != 0,
+        "failed_after_seconds": failed_after,
+        "restore_seconds": restore_seconds,
+        "total_seconds": total,
+        "gate_seconds": BAD_GATE_SECONDS,
+        "within_gate": total <= BAD_GATE_SECONDS,
+        "aliases_restored": own == before_own,
+        "peer_unchanged": peer == snaps["baseline"]["peer"],
+        "pending_release_after": pending is not None,
+        "schema_rollback_attempted": False,
         "restored_smoke": smoke_summary(restored.get("result", {}).get("smoke")),
         "failed_stage": stage,
     }
-    ok = (code != 0 and restored_code == 0 and public["within_gate"]
-          and public["aliases_restored"] and public["peer_unchanged"] and not pending
-          and public["restored_smoke"]["all_passed"])
+    ok = (
+        code != 0
+        and restored_code == 0
+        and public["within_gate"]
+        and public["aliases_restored"]
+        and public["peer_unchanged"]
+        and not pending
+        and public["restored_smoke"]["all_passed"]
+    )
     return verdict(ok, public)
 
 
@@ -281,22 +398,31 @@ def offline_gates(ctx, proof, plan):
     wait, log parsing and TLS check. No alias, migration or smoke is simulated, so nothing here
     says a release works.
     """
+
     def schema_gate(_intent):
         ok, _, source, seconds, _ = schema_read(ctx)
-        return verdict(ok, {"schema_read": ok, "schema_revision_source": source,
-                            "schema_read_seconds": seconds})
+        return verdict(
+            ok,
+            {"schema_read": ok, "schema_revision_source": source, "schema_read_seconds": seconds},
+        )
 
     def gate(image):
         code, out, _ = call(ctx, [*promote_args(ctx, plan, image), "--dry-run"])
         calls = out.get("result", {}).get("planned_calls", [])
-        return verdict(code == 0 and out.get("ok") and bool(calls), {
-            "validated_offline": code == 0, "planned_calls": len(calls)})
+        return verdict(
+            code == 0 and out.get("ok") and bool(calls),
+            {"validated_offline": code == 0, "planned_calls": len(calls)},
+        )
 
-    steps = (("baseline", schema_gate),
+    steps = (
+        ("baseline", schema_gate),
         ("promote-good", lambda i: gate(plan["good"])),
         ("rollback", lambda i: gate(plan["baseline"])),
-        ("owner-isolation", lambda i: {"status": NOT_RUN, "public": {
-            "reason": "peer aliases are not simulated"}}))
+        (
+            "owner-isolation",
+            lambda i: {"status": NOT_RUN, "public": {"reason": "peer aliases are not simulated"}},
+        ),
+    )
     for name, action in steps:
         proof.step(name, action, session="window")
     if plan.get("bad"):
@@ -312,8 +438,12 @@ def run(ctx, *, plan_path):
     steps = (
         ("baseline", lambda i: baseline(ctx, proof, plan)),
         ("promote-good", lambda i: promote(ctx, proof, plan, "promote-good", plan["good"])),
-        ("rollback", lambda i: promote(ctx, proof, plan, "rollback", plan["baseline"],
-                                       expect_own_change=True)),
+        (
+            "rollback",
+            lambda i: promote(
+                ctx, proof, plan, "rollback", plan["baseline"], expect_own_change=True
+            ),
+        ),
         ("owner-isolation", lambda i: isolation(ctx, proof, plan)),
         ("bad-candidate-restore", lambda i: bad_candidate(ctx, proof, plan)),
     )

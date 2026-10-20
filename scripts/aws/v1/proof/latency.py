@@ -67,24 +67,42 @@ def configured_hash_cost():
 
 def definition_body(ctx, base, packed, command):
     container = base["containerDefinitions"][0]
-    logs = {"logDriver": container["logConfiguration"]["logDriver"],
-            "options": {**container["logConfiguration"]["options"],
-                        "awslogs-stream-prefix": "generator"}}
+    logs = {
+        "logDriver": container["logConfiguration"]["logDriver"],
+        "options": {
+            **container["logConfiguration"]["options"],
+            "awslogs-stream-prefix": "generator",
+        },
+    }
     return {
-        "family": f"{ctx.data['environment_id']}-latency-generator", "cpu": CPU, "memory": MEMORY,
-        "networkMode": "awsvpc", "requiresCompatibilities": ["FARGATE"],
+        "family": f"{ctx.data['environment_id']}-latency-generator",
+        "cpu": CPU,
+        "memory": MEMORY,
+        "networkMode": "awsvpc",
+        "requiresCompatibilities": ["FARGATE"],
         # Pull and log only: no task role, so the generator can reach nothing but the Gateway.
         "executionRoleArn": base["executionRoleArn"],
-        "runtimePlatform": base.get("runtimePlatform", {
-            "cpuArchitecture": "X86_64", "operatingSystemFamily": "LINUX"}),
-        "containerDefinitions": [{
-            "name": "generator", "image": container["image"], "essential": True,
-            "entryPoint": ["/usr/bin/env"], "command": command,
-            "environment": [{"name": "DC2_SCRIPT", "value": packed},
-                            {"name": "DC2_BASE_URL", "value": ctx.gateway_url}],
-            "logConfiguration": logs}],
-        "tags": [{"key": "deploy-project", "value": "dc2-v1"},
-                 {"key": "owner-run", "value": ctx.run_id}],
+        "runtimePlatform": base.get(
+            "runtimePlatform", {"cpuArchitecture": "X86_64", "operatingSystemFamily": "LINUX"}
+        ),
+        "containerDefinitions": [
+            {
+                "name": "generator",
+                "image": container["image"],
+                "essential": True,
+                "entryPoint": ["/usr/bin/env"],
+                "command": command,
+                "environment": [
+                    {"name": "DC2_SCRIPT", "value": packed},
+                    {"name": "DC2_BASE_URL", "value": ctx.gateway_url},
+                ],
+                "logConfiguration": logs,
+            }
+        ],
+        "tags": [
+            {"key": "deploy-project", "value": "dc2-v1"},
+            {"key": "owner-run", "value": ctx.run_id},
+        ],
     }
 
 
@@ -97,18 +115,25 @@ def collect_samples(lines):
             chunks[int(index)] = (int(total), data)
     if not chunks or sorted(chunks) != list(range(next(iter(chunks.values()))[0])):
         raise ProofError("The generator's sample chunks are incomplete")
-    return zlib.decompress(base64.b64decode("".join(chunks[i][1] for i in sorted(chunks)))
-                           ).decode()
+    return zlib.decompress(base64.b64decode("".join(chunks[i][1] for i in sorted(chunks)))).decode()
 
 
 def parse_samples(text):
     rows = []
     for line in text.splitlines():
         route, phase, user, started, ended, elapsed, code, error = line.split(",")
-        rows.append({"route": route, "phase": phase, "user": int(user),
-                     "started_at": float(started), "ended_at": float(ended),
-                     "elapsed_ms": float(elapsed), "status_code": int(code) or None,
-                     "error": error or None})
+        rows.append(
+            {
+                "route": route,
+                "phase": phase,
+                "user": int(user),
+                "started_at": float(started),
+                "ended_at": float(ended),
+                "elapsed_ms": float(elapsed),
+                "status_code": int(code) or None,
+                "error": error or None,
+            }
+        )
     return rows
 
 
@@ -119,10 +144,21 @@ def judge(result, rows):
     status = [r for r in rows if r["route"] == "status" and r["phase"] == "timed"]
     login = [r for r in rows if r["route"] == "login"]
     return (
-        summarize(status, users=users, duration_seconds=180, measurement="status",
-                  window=windows["status"]),
-        summarize(login, users=20, duration_seconds=0, measurement="login",
-                  actual_hash_cost=configured_hash_cost(), window=windows["login"]),
+        summarize(
+            status,
+            users=users,
+            duration_seconds=180,
+            measurement="status",
+            window=windows["status"],
+        ),
+        summarize(
+            login,
+            users=20,
+            duration_seconds=0,
+            measurement="login",
+            actual_hash_cost=configured_hash_cost(),
+            window=windows["login"],
+        ),
     )
 
 
@@ -138,7 +174,8 @@ def require_load_edge(ctx):
             f"The Gateway throttle is {rate:g}/s (burst {burst:g}); the 50-user load needs at "
             f"least {LOAD_EDGE_MIN_RATE}/s (burst {LOAD_EDGE_MIN_BURST}). Set "
             '"edge_open": {"rate": 100, "burst": 200} in operator-config.json and run '
-            "`session open` again, then rerun with --fresh")
+            "`session open` again, then rerun with --fresh"
+        )
 
 
 def throttled(rows, route=None):
@@ -167,37 +204,56 @@ def write_samples(ctx, proof, text):
 def generator(ctx, proof, intent):
     require_load_edge(ctx)
     worker = ctx.outputs["WorkerTaskDefinitionArn"]
-    base = ctx.aws.call("ecs", "describe-task-definition", {"taskDefinition": worker},
-                        deadline=ctx.deadline(60))["taskDefinition"]
+    base = ctx.aws.call(
+        "ecs", "describe-task-definition", {"taskDefinition": worker}, deadline=ctx.deadline(60)
+    )["taskDefinition"]
     packed, command = tasks.ship(GENERATOR)
     arn = intent.get("definition")
     try:
         if not arn:
-            registered = ctx.aws.call("ecs", "register-task-definition",
-                                      definition_body(ctx, base, packed, command),
-                                      deadline=ctx.deadline(60))
+            registered = ctx.aws.call(
+                "ecs",
+                "register-task-definition",
+                definition_body(ctx, base, packed, command),
+                deadline=ctx.deadline(60),
+            )
             arn = intent["definition"] = registered["taskDefinition"]["taskDefinitionArn"]
             proof.save()
-        task = tasks.run(ctx, intent, proof.save, label="latency", definition=arn, overrides={},
-                         timeout=900, checkpoint=proof.checkpoint)
-        reply = ctx.aws.call("ecs", "describe-task-definition", {"taskDefinition": arn},
-                             deadline=ctx.deadline(60))
+        task = tasks.run(
+            ctx,
+            intent,
+            proof.save,
+            label="latency",
+            definition=arn,
+            overrides={},
+            timeout=900,
+            checkpoint=proof.checkpoint,
+        )
+        reply = ctx.aws.call(
+            "ecs", "describe-task-definition", {"taskDefinition": arn}, deadline=ctx.deadline(60)
+        )
         group, stream = tasks.log_stream(reply, "generator", task["taskArn"])
         ctx.sleep(10)  # log delivery trails the stop
         lines = tasks.read_lines(ctx, group, stream)
     finally:
         if arn:
             try:
-                ctx.aws.call("ecs", "deregister-task-definition", {"taskDefinition": arn},
-                             deadline=ctx.deadline(60))
+                ctx.aws.call(
+                    "ecs",
+                    "deregister-task-definition",
+                    {"taskDefinition": arn},
+                    deadline=ctx.deadline(60),
+                )
                 intent["deregistered"] = True
                 proof.save()
             except Exception:
                 intent["deregistered"] = False
     found = tasks.tagged(lines, MARKER)
     if not found or not found[-1].get("ok"):
-        raise ProofError("The generator did not complete: " + str(
-            (found[-1] if found else {}).get("stage", "no result line")))
+        raise ProofError(
+            "The generator did not complete: "
+            + str((found[-1] if found else {}).get("stage", "no result line"))
+        )
     result = found[-1]
     text = collect_samples(lines)
     if sha256_text(text) != result["samples_sha256"] or len(text) != result["samples_length"]:
@@ -208,26 +264,62 @@ def generator(ctx, proof, intent):
     summary = tasks.summary(task)
     timed_status = [r for r in rows if r["route"] == "status" and r["phase"] == "timed"]
     public = {
-        "status_cycle": {k: status[k] for k in (
-            "users", "duration_seconds", "sample_count", "p90_ms", "error_rate", "eligible",
-            "status")} | {"p90_gate_ms": 700, "throttled": throttled(timed_status)},
-        "login_cycle": {k: login[k] for k in (
-            "users", "sample_count", "p90_ms", "error_rate", "eligible", "hash_cost", "status")}
-        | {"p90_gate_ms": 2000, "hash_cost_source": "configured in source, not read back",
-           "throttled": throttled(rows, "login")},
-        "routes": {label: {**described, "throttled": throttled(
-            [r for r in rows if r["phase"] == "timed"], label)}
-            for label, described in result["routes"].items()},
-        "generator": {"cpu": summary["cpu"], "memory": summary["memory"],
-                      "billed_seconds": summary["billed_seconds"], "separate_task_definition":
-                      True, "task_role": "none", "image_digests": summary["image_digests"]},
-        "samples_sha256": result["samples_sha256"], "samples_length": result["samples_length"],
-        "retries": 0, "target": "gateway",
+        "status_cycle": {
+            k: status[k]
+            for k in (
+                "users",
+                "duration_seconds",
+                "sample_count",
+                "p90_ms",
+                "error_rate",
+                "eligible",
+                "status",
+            )
+        }
+        | {"p90_gate_ms": 700, "throttled": throttled(timed_status)},
+        "login_cycle": {
+            k: login[k]
+            for k in (
+                "users",
+                "sample_count",
+                "p90_ms",
+                "error_rate",
+                "eligible",
+                "hash_cost",
+                "status",
+            )
+        }
+        | {
+            "p90_gate_ms": 2000,
+            "hash_cost_source": "configured in source, not read back",
+            "throttled": throttled(rows, "login"),
+        },
+        "routes": {
+            label: {
+                **described,
+                "throttled": throttled([r for r in rows if r["phase"] == "timed"], label),
+            }
+            for label, described in result["routes"].items()
+        },
+        "generator": {
+            "cpu": summary["cpu"],
+            "memory": summary["memory"],
+            "billed_seconds": summary["billed_seconds"],
+            "separate_task_definition": True,
+            "task_role": "none",
+            "image_digests": summary["image_digests"],
+        },
+        "samples_sha256": result["samples_sha256"],
+        "samples_length": result["samples_length"],
+        "retries": 0,
+        "target": "gateway",
         "task_definition_deregistered": intent.get("deregistered", False),
     }
-    return verdict(status["status"] == "PASS" and login["status"] == "PASS"
-                   and intent.get("deregistered"), public,
-                   {"task": summary, "samples_file": samples_file})
+    return verdict(
+        status["status"] == "PASS" and login["status"] == "PASS" and intent.get("deregistered"),
+        public,
+        {"task": summary, "samples_file": samples_file},
+    )
 
 
 def wait_for_pause(ctx, cluster, limit):
@@ -272,10 +364,26 @@ def wait_for_gate(ctx, api, public):
 def session_command(ctx, action, out, *, extra=()):
     scope = ctx.scope
     return session_cli.main(
-        [action, "--config", str(ctx.state_dir / "operator-config.json"),
-         "--profile", scope["profile"], "--region", scope["region"], "--account",
-         scope["account"], "--deadline-seconds", "600", *extra],
-        environ={}, transport_factory=ctx.sdk, stdout=out, clock=ctx.clock, sleep=ctx.sleep)
+        [
+            action,
+            "--config",
+            str(ctx.state_dir / "operator-config.json"),
+            "--profile",
+            scope["profile"],
+            "--region",
+            scope["region"],
+            "--account",
+            scope["account"],
+            "--deadline-seconds",
+            "600",
+            *extra,
+        ],
+        environ={},
+        transport_factory=ctx.sdk,
+        stdout=out,
+        clock=ctx.clock,
+        sleep=ctx.sleep,
+    )
 
 
 def close_window(ctx):
@@ -291,11 +399,18 @@ def cold_wake(ctx, proof, override=None, pause_wait=PAUSE_WAIT_SECONDS):
     cluster = spend.cluster_id(ctx, override)
     asleep, pause_waited = wait_for_pause(ctx, cluster, pause_wait)
     if not asleep:
-        why = ("no ServerlessDatabaseCapacity datapoints" if asleep is None
-               else "the database was awake (capacity above 0)")
-        return {"status": NOT_RUN, "public": {
-            "reason": f"A cold wake cannot be observed: {why}",
-            "pause_wait_seconds": pause_waited}}
+        why = (
+            "no ServerlessDatabaseCapacity datapoints"
+            if asleep is None
+            else "the database was awake (capacity above 0)"
+        )
+        return {
+            "status": NOT_RUN,
+            "public": {
+                "reason": f"A cold wake cannot be observed: {why}",
+                "pause_wait_seconds": pause_waited,
+            },
+        }
     public = {"database_paused_before": True, "pause_wait_seconds": pause_waited}
     try:
         ok = measure_wake(ctx, public)
@@ -305,9 +420,11 @@ def cold_wake(ctx, proof, override=None, pause_wait=PAUSE_WAIT_SECONDS):
     finally:  # even a failed or interrupted measurement must not leave the session in `window`
         public["window_closed"] = close_window(ctx)
     if not public["window_closed"]:
-        public["recovery"] = ("The window this step opened could not be closed: run "
-                              "`python -m scripts.aws.v1.session close --config <operator-config> "
-                              "--in-vpc-counts` (with the deploy's scope) before any other step")
+        public["recovery"] = (
+            "The window this step opened could not be closed: run "
+            "`python -m scripts.aws.v1.session close --config <operator-config> "
+            "--in-vpc-counts` (with the deploy's scope) before any other step"
+        )
     return verdict(ok and public["window_closed"], public)
 
 
@@ -321,15 +438,20 @@ def measure_wake(ctx, public):
         return False
     api = ctx.api("gateway")
     if not wait_for_gate(ctx, api, public):
-        public["reason"] = (f"The gateway still answered 429 {GATE_SETTLE_SECONDS} s after "
-                            "the window was confirmed open")
+        public["reason"] = (
+            f"The gateway still answered 429 {GATE_SETTLE_SECONDS} s after "
+            "the window was confirmed open"
+        )
         return False
     reply, _ = api.login(ctx.credentials())
     first = api.request("GET", "/api/media/jobs", timeout=70)
     second = api.request("GET", "/api/media/jobs", timeout=70)
     public |= {
-        "login_ms": reply.ms, "first_read_ms": first.ms, "second_read_ms": second.ms,
-        "statuses": [reply.status, first.status, second.status], "retries": 0,
+        "login_ms": reply.ms,
+        "first_read_ms": first.ms,
+        "second_read_ms": second.ms,
+        "statuses": [reply.status, first.status, second.status],
+        "retries": 0,
         "measured_from": "operator station (includes the network path to the Gateway)",
         "wake_observed_through": "readiness probes during session window",
     }
@@ -338,11 +460,12 @@ def measure_wake(ctx, public):
 
 def run(ctx, *, only=None, cluster=None, pause_wait=PAUSE_WAIT_SECONDS):
     proof = ctx.proof(66, REQUIRED)
-    steps = (("cold-wake", "closed", lambda i: cold_wake(ctx, proof, cluster, pause_wait)),
-             ("generator", "active", lambda i: generator(ctx, proof, i)))
+    steps = (
+        ("cold-wake", "closed", lambda i: cold_wake(ctx, proof, cluster, pause_wait)),
+        ("generator", "active", lambda i: generator(ctx, proof, i)),
+    )
     for name, kind, action in steps:
         if only and name not in only:
             continue
         proof.step(name, action, session=kind)
     return proof
-

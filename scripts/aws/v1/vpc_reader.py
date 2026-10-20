@@ -140,11 +140,16 @@ class VpcReader:
         tls = result.get("tls") or {}
         if tls.get("verified") is not True:
             raise OperationError("Database TLS was not verified inside the task")
-        self.reads.append({
-            "owner": owner, "mode": mode, "seconds": round(self.clock() - entry["started"], 1),
-            "connect_attempts": result.get("connect_attempts"),
-            "tls_protocol": tls.get("protocol"), "tls_verified": True,
-        })
+        self.reads.append(
+            {
+                "owner": owner,
+                "mode": mode,
+                "seconds": round(self.clock() - entry["started"], 1),
+                "connect_attempts": result.get("connect_attempts"),
+                "tls_protocol": tls.get("protocol"),
+                "tls_verified": True,
+            }
+        )
         return result
 
     def launch(self, owner, mode, deadline):
@@ -153,7 +158,8 @@ class VpcReader:
         if not definition or not network:
             raise OperationError(
                 "No migration task definition is known for this owner; the stack outputs "
-                "lack its MigrationTaskDefinitionArn, so the schema cannot be read in the VPC")
+                "lack its MigrationTaskDefinitionArn, so the schema cannot be read in the VPC"
+            )
         packed, command = ship()
         token = uuid.uuid4().hex
         reply = self.transport.call(
@@ -173,16 +179,20 @@ class VpcReader:
                         "assignPublicIp": network["assign_public_ip"],
                     }
                 },
-                "overrides": {"containerOverrides": [{
-                    "name": CONTAINER,
-                    "command": command,
-                    "environment": [
-                        {"name": "DC2_SCRIPT", "value": packed},
-                        {"name": "DC2_OWNER", "value": owner},
-                        {"name": "DC2_MODE", "value": mode},
-                        {"name": "DC2_RESUME_SECONDS", "value": str(self.resume_seconds)},
-                    ],
-                }]},
+                "overrides": {
+                    "containerOverrides": [
+                        {
+                            "name": CONTAINER,
+                            "command": command,
+                            "environment": [
+                                {"name": "DC2_SCRIPT", "value": packed},
+                                {"name": "DC2_OWNER", "value": owner},
+                                {"name": "DC2_MODE", "value": mode},
+                                {"name": "DC2_RESUME_SECONDS", "value": str(self.resume_seconds)},
+                            ],
+                        }
+                    ]
+                },
             },
             deadline=deadline,
         )
@@ -196,8 +206,11 @@ class VpcReader:
         give_up = entry["started"] + self.start_seconds + self.resume_seconds + 30
         while True:
             reply = self.transport.call(
-                "ecs", "describe-tasks",
-                {"cluster": self.config["cluster"], "tasks": [entry["arn"]]}, deadline=deadline)
+                "ecs",
+                "describe-tasks",
+                {"cluster": self.config["cluster"], "tasks": [entry["arn"]]},
+                deadline=deadline,
+            )
             if reply.get("failures") or len(reply.get("tasks", [])) != 1:
                 raise OperationError("In-VPC read task inventory unresolved")
             task = reply["tasks"][0]
@@ -228,13 +241,18 @@ class VpcReader:
         definition = entry["definition"]
         if definition not in self.streams:
             described = self.transport.call(
-                "ecs", "describe-task-definition", {"taskDefinition": definition},
-                deadline=self.clock() + 60)
+                "ecs",
+                "describe-task-definition",
+                {"taskDefinition": definition},
+                deadline=self.clock() + 60,
+            )
             for container in described["taskDefinition"]["containerDefinitions"]:
                 if container["name"] == CONTAINER:
                     options = container["logConfiguration"]["options"]
-                    self.streams[definition] = (options["awslogs-group"],
-                                                options["awslogs-stream-prefix"])
+                    self.streams[definition] = (
+                        options["awslogs-group"],
+                        options["awslogs-stream-prefix"],
+                    )
                     break
             else:
                 raise OperationError("The migration task definition has no logging container")
@@ -266,8 +284,10 @@ class VpcReader:
     def stop(self, arn):
         try:
             self.transport.call(
-                "ecs", "stop-task",
+                "ecs",
+                "stop-task",
                 {"cluster": self.config["cluster"], "task": arn, "reason": "dc2 in-VPC read"},
-                deadline=self.clock() + 30)
+                deadline=self.clock() + 30,
+            )
         except Exception:  # best effort: the caller is already failing with its own error
             pass

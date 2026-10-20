@@ -39,7 +39,8 @@ class FrontendGateway(Gateway):
         name = "index.html" if path == "/" else unquote(path).lstrip("/")
         file = (FRONTEND / name).resolve()
         served = file.is_file() and (
-            file.parent == FRONTEND and file.name in STATIC_FILES
+            file.parent == FRONTEND
+            and file.name in STATIC_FILES
             or file.is_relative_to(FRONTEND / "vendor")
         )
         if not served:

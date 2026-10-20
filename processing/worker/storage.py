@@ -53,12 +53,7 @@ class OutputStore:
             # full-file pass. MinIO retains its existing bounded multipart buffering.
             reader = _HashingReader(handle)
             result = self.client.put_object(
-                self.bucket,
-                key,
-                reader,
-                size,
-                content_type=media_type,
-                num_parallel_uploads=1,
+                self.bucket, key, reader, size, content_type=media_type, num_parallel_uploads=1
             )
             if not result.etag or reader.size != size or handle.read(1):
                 raise ValueError("output upload was not acknowledged")

@@ -1,1 +1,12 @@
-{}
+{
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "[python]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 4,
+    "editor.rulers": [100]
+  },
+  "[markdown]": {
+    "files.trimTrailingWhitespace": false
+  }
+}

@@ -1,5 +1,7 @@
 import base64
 import json
+import logging
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -66,9 +68,37 @@ async def test_preserves_payload_query_cookies_and_trusted_actor(app):
 async def test_missing_actor_rejected_and_health_exempt(app):
     adapter = GatewayAdapter(app, service="processing")
     assert (await adapter.invoke(event(actor=False)))["statusCode"] == 401
-    assert (await adapter.invoke(event("/api/processing/health", "GET", False)))[
-        "statusCode"
-    ] == 200
+    health = await adapter.invoke(event("/api/processing/health", "GET", False))
+    assert health["statusCode"] == 200
+    assert "cache-control" not in health["headers"]
+
+
+async def test_owner_cache_policy_replaces_mixed_case_headers_and_preserves_response():
+    async def app(scope, receive, send):
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 307,
+                "headers": [
+                    (b"CaChE-CoNtRoL", b"public, max-age=60"),
+                    (b"cache-control", b"must-revalidate"),
+                    (b"Content-Type", b"text/plain"),
+                    (b"Location", b"/next"),
+                    (b"Set-Cookie", b"session=cleared; Path=/"),
+                ],
+            }
+        )
+        await send({"type": "http.response.body", "body": b"redirect body"})
+
+    result = await GatewayAdapter(app, service="processing").invoke(event())
+    cache_headers = [name for name in result["headers"] if name.lower() == "cache-control"]
+    assert result["statusCode"] == 307
+    assert result["body"] == "redirect body"
+    assert result["headers"]["Content-Type"] == "text/plain"
+    assert result["headers"]["Location"] == "/next"
+    assert cache_headers == ["cache-control"]
+    assert result["headers"]["cache-control"] == "private, no-store"
+    assert result["cookies"] == ["session=cleared; Path=/"]
 
 
 async def test_strips_only_own_prefix_once(app):
@@ -77,14 +107,46 @@ async def test_strips_only_own_prefix_once(app):
         assert (await adapter.invoke(event(path)))["statusCode"] == 404
 
 
-async def test_no_sensitive_exception_in_response(app):
+def test_gateway_failure_and_application_5xx_are_safely_correlated(app, caplog):
+    private = "postgresql://app:secret@database.internal/media; jwt=private; cookie=session"
+
     @app.post("/fail")
     async def fail():
-        raise RuntimeError("private-dsn-password")
+        raise RuntimeError(private)
 
-    result = await GatewayAdapter(app, service="processing").invoke(event("/api/processing/fail"))
+    @app.get("/unavailable")
+    async def unavailable():
+        return Response(status_code=503)
+
+    adapter = GatewayAdapter(app, service="processing")
+    with caplog.at_level(logging.ERROR, logger="dc2.gateway"):
+        result = adapter(event("/api/processing/fail"), SimpleNamespace(aws_request_id="req-123"))
+        response = adapter(
+            event("/api/processing/unavailable", "GET"), SimpleNamespace(aws_request_id="req-456")
+        )
+
     assert result["statusCode"] == 500
     assert "private" not in result["body"]
+    assert response["statusCode"] == 503
+    records = [json.loads(record.message) for record in caplog.records]
+    assert records == [
+        {
+            "error_class": "RuntimeError",
+            "event": "request_failed",
+            "http_status": 500,
+            "operation": "gateway_asgi",
+            "outcome": "http_500",
+            "request_id": "req-123",
+        },
+        {
+            "event": "response_status",
+            "http_status": 503,
+            "operation": "gateway_http",
+            "outcome": "application_error",
+            "request_id": "req-456",
+        },
+    ]
+    assert private not in caplog.text
 
 
 async def test_bad_base64_is_bounded_error(app):

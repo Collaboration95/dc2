@@ -28,10 +28,16 @@ def test_the_files_index_html_loads_get_a_content_hash_and_the_references_follow
     for original, hashed in built["hashed"].items():
         assert re.fullmatch(r"(vendor/)?[a-z.]+\.[0-9a-f]{10}\.(js|css)", hashed), hashed
         assert f'"{hashed}"' in index and f'"{original}"' not in index
-        assert Path(by_key(built)[hashed]["path"]).read_bytes() == (
-            spa.SOURCE / original).read_bytes()
+        assert (
+            Path(by_key(built)[hashed]["path"]).read_bytes() == (spa.SOURCE / original).read_bytes()
+        )
     assert set(built["hashed"]) == {
-        "app.js", "style.css", "vendor/hls.min.js", "vendor/plyr.min.js", "vendor/plyr.css"}
+        "app.js",
+        "style.css",
+        "vendor/hls.min.js",
+        "vendor/plyr.min.js",
+        "vendor/plyr.css",
+    }
 
 
 def test_index_html_is_never_cached_and_hashed_assets_are_immutable(built):
@@ -123,8 +129,9 @@ def test_the_step_uploads_with_content_types_and_cache_headers_then_invalidates(
     assert len(template_puts) == 2 and site
     assert site[-1]["Key"] == "index.html" and site[-1]["CacheControl"] == "no-cache"
     assert all(p["ContentType"] and p["ServerSideEncryption"] == "AES256" for p in site)
-    assert {p["Bucket"] for p in site} == {next(
-        b for b in rig.sim.buckets if "frontendbucket" in b)}
+    assert {p["Bucket"] for p in site} == {
+        next(b for b in rig.sim.buckets if "frontendbucket" in b)
+    }
     batch = next(i for i in rig.sim.invalidations["E1SIMULATED"].values())["batch"]
     assert batch["Paths"]["Items"] == ["/*"]
     assert rig.steps()["frontend"] == "done"
@@ -171,18 +178,23 @@ def test_teardown_empties_the_frontend_bucket_like_every_other_owned_bucket(rig)
     assert rig.sim.buckets[frontend]["versions"]
     rig.s.confirm_run_id = "t1"
     rig.teardown()
-    removed = {(p["Bucket"], o["Key"]) for _, op, p in rig.sim.calls if op == "delete-objects"
-               for o in p["Delete"]["Objects"]}
+    removed = {
+        (p["Bucket"], o["Key"])
+        for _, op, p in rig.sim.calls
+        if op == "delete-objects"
+        for o in p["Delete"]["Objects"]
+    }
     assert (frontend, "index.html") in removed
     assert frontend not in rig.sim.buckets
 
 
 def test_a_dry_run_plans_the_upload_and_the_invalidation_without_a_network_check():
-    code, text = run_main(["deploy", *ARGS, "--run-id", "rehearsal1", "--dry-run"],
-                          today=lambda: TODAY)
-    plan = text[text.index("\n## ") + 1:]
+    code, text = run_main(
+        ["deploy", *ARGS, "--run-id", "rehearsal1", "--dry-run"], today=lambda: TODAY
+    )
+    plan = text[text.index("\n## ") + 1 :]
     assert code == 0
     assert plan.index("## applications") < plan.index("## frontend") < plan.index("## db-bootstrap")
-    frontend = plan[plan.index("## frontend"):plan.index("## db-bootstrap")]
+    frontend = plan[plan.index("## frontend") : plan.index("## db-bootstrap")]
     assert "s3api put-object" in frontend and "cloudfront create-invalidation" in frontend
     assert "--body" in frontend and "no-cache" in frontend

@@ -7,14 +7,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libexpat1 \
     && rm -rf /var/lib/apt/lists/*
 COPY pyproject.toml uv.lock ./
-# uvicorn[standard] is a base dependency for the legacy compose stack only; no V1 entrypoint
-# imports it. Excluding it and its sole-purpose transitives keeps them out of every V1 image
-# while versions and hashes still come from uv.lock.
 RUN python -m pip install --no-cache-dir uv==0.8.17 \
     && uv export --frozen --no-dev --no-emit-project \
-       --no-emit-package uvicorn --no-emit-package uvloop --no-emit-package httptools \
-       --no-emit-package watchfiles --no-emit-package websockets --no-emit-package pyyaml \
-       --no-emit-package click --extra v1-processing -o /tmp/requirements.txt \
+       --extra v1-processing -o /tmp/requirements.txt \
     && uv pip install --system --compile-bytecode --require-hashes -r /tmp/requirements.txt \
     && python -m pip uninstall -y uv && rm /tmp/requirements.txt
 COPY deploy/v1/global-bundle.pem /opt/rds/global-bundle.pem

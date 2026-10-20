@@ -57,9 +57,7 @@ async def test_hls_does_not_swallow_control_flow(monkeypatch, tmp_path, exceptio
     )
     store = SimpleNamespace(put=AsyncMock(return_value={"kind": "primary"}))
     with pytest.raises(exception):
-        await tasks.pipeline(
-            work(), cfg(), sup, None, store, tmp_path, downloader=download
-        )
+        await tasks.pipeline(work(), cfg(), sup, None, store, tmp_path, downloader=download)
 
 
 async def test_hls_failure_retains_primary(monkeypatch, tmp_path):
@@ -78,9 +76,9 @@ async def test_hls_failure_retains_primary(monkeypatch, tmp_path):
         ]
     )
     store = SimpleNamespace(put=AsyncMock(return_value={"kind": "primary"}))
-    assert await tasks.pipeline(
-            work(), cfg(), sup, None, store, tmp_path, downloader=download
-        ) == [{"kind": "primary"}]
+    assert await tasks.pipeline(work(), cfg(), sup, None, store, tmp_path, downloader=download) == [
+        {"kind": "primary"}
+    ]
 
 
 async def test_guard_loss_interrupts_download_or_upload(monkeypatch):
@@ -130,7 +128,7 @@ async def test_supervisor_deadline_and_bad_subprocess(monkeypatch):
 
 
 @pytest.mark.parametrize("alive", [False, RuntimeError("secret")])
-async def test_heartbeat_revokes_on_failure(monkeypatch, alive):
+async def test_heartbeat_revokes_on_failure(monkeypatch, alive, caplog):
     callback = (
         AsyncMock(side_effect=alive)
         if isinstance(alive, Exception)
@@ -141,6 +139,22 @@ async def test_heartbeat_revokes_on_failure(monkeypatch, alive):
         await asyncio.wait_for(sup.lost.wait(), 0.5)
         with pytest.raises(LeaseLost):
             sup.check()
+    assert '"event":"authority_revoked"' in caplog.text
+    assert '"error_class":"LeaseLost"' in caplog.text
+    assert "secret" not in caplog.text
+
+
+async def test_heartbeat_timeout_revokes_even_when_logging_fails(monkeypatch):
+    stalled = asyncio.Event()
+    monkeypatch.setattr("processing.worker.supervisor.heartbeat", lambda *_: stalled.wait())
+    monkeypatch.setattr(
+        "processing.worker.supervisor.logger.log", Mock(side_effect=RuntimeError("sink failed"))
+    )
+    async with Supervisor(None, work(), cfg(heartbeat_seconds=0.01)) as sup:
+        await asyncio.wait_for(sup.lost.wait(), 0.5)
+        with pytest.raises(LeaseLost):
+            sup.check()
+        await sup.task
 
 
 async def test_output_put_acknowledgment_without_head(monkeypatch, tmp_path):

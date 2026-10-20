@@ -9,7 +9,7 @@ from sqlalchemy.exc import OperationalError
 
 from media import handlers as media_handlers
 from processing import handlers as processing_handlers
-from runtime_support.errors import SanitizedHandlerError
+from runtime_support.errors import SanitizedHandlerError, log_safe_event
 
 HOST = "db-cluster.internal.example.com"
 LEAKY = (
@@ -76,3 +76,41 @@ def test_a_missing_context_is_logged_with_an_unknown_correlation_id(monkeypatch,
         with pytest.raises(SanitizedHandlerError):
             processing_handlers.s3_handler({}, None)
     assert json.loads(caplog.records[-1].getMessage())["correlation_id"] == "unknown"
+
+
+def test_safe_events_drop_payload_fields_and_unsafe_identifiers(caplog):
+    private = "https://user:secret@example.test/path?jwt=private"
+    with caplog.at_level(logging.ERROR, logger="dc2.handler"):
+        log_safe_event(
+            logging.getLogger("dc2.handler"),
+            event="record_failed",
+            operation="sqs_consume",
+            outcome="retry",
+            error_class="RuntimeError",
+            request_id=private,
+            job_id="not-a-uuid",
+            attempt_id="eyJhbGciOi.token.value",
+            sqlstate=private,
+            payload=private,
+        )
+
+    entry = json.loads(caplog.records[-1].getMessage())
+    assert entry == {
+        "attempt_id": None,
+        "error_class": "RuntimeError",
+        "event": "record_failed",
+        "job_id": None,
+        "operation": "sqs_consume",
+        "outcome": "retry",
+        "request_id": None,
+        "sqlstate": None,
+    }
+    assert private not in caplog.text
+
+
+def test_safe_event_logging_failure_does_not_escape():
+    class BrokenLogger:
+        def log(self, _level, _message):
+            raise OSError("logging backend unavailable")
+
+    log_safe_event(BrokenLogger(), event="record_failed", operation="sqs_consume", outcome="retry")

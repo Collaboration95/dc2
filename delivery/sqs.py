@@ -2,8 +2,12 @@
 
 import asyncio
 import json
+import logging
 
 from delivery.envelope import canonical, document
+from runtime_support.errors import log_safe_event
+
+logger = logging.getLogger("dc2.delivery")
 
 LANES = {
     "processing-commands": {"submit", "retry", "cancel"},
@@ -113,8 +117,20 @@ async def consume_batch(event, queue, handler):
     """
     failures = []
     for record in event.get("Records", []):
+        body = None
         try:
-            await handler(decode(record, queue))
-        except Exception:
+            body = decode(record, queue)
+            await handler(body)
+        except Exception as error:
+            log_safe_event(
+                logger,
+                event="record_failed",
+                operation="sqs_consume",
+                outcome="retry",
+                error_class=type(error).__name__,
+                request_id=record.get("messageId"),
+                job_id=body.get("job_id") if body else None,
+                attempt_id=body.get("attempt_id") if body else None,
+            )
             failures.append({"itemIdentifier": record["messageId"]})
     return {"batchItemFailures": failures}

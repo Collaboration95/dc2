@@ -64,9 +64,7 @@ class FakeEcs:
         return self.tasks[token]
 
     def by_arn(self):
-        return {
-            t["taskArn"]: t for token, t in self.tasks.items() if token not in self.hidden
-        }
+        return {t["taskArn"]: t for token, t in self.tasks.items() if token not in self.hidden}
 
     async def list_tasks(self, desired):
         self.calls.append("list")
@@ -78,9 +76,9 @@ class FakeEcs:
         if self.list_fails:
             raise TimeoutError("ECS unavailable")
         return [
-            arn for arn, t in self.by_arn().items() if (t["desiredStatus"] == "RUNNING") == (
-                desired == "RUNNING"
-            )
+            arn
+            for arn, t in self.by_arn().items()
+            if (t["desiredStatus"] == "RUNNING") == (desired == "RUNNING")
         ]
 
     async def describe_tasks(self, arns):
@@ -198,9 +196,7 @@ async def claim_one(factory, task):
                 .limit(1)
             )
         ).one()
-    assert await messaging.claim(
-        factory, job_id, attempt_id, SETTINGS, task_name=task["startedBy"]
-    )
+    assert await messaging.claim(factory, job_id, attempt_id, SETTINGS, task_name=task["startedBy"])
 
 
 async def tick(factory, ecs, depth, **overrides):
@@ -281,26 +277,21 @@ async def test_always_on_concurrent_wakes_never_exceed_the_cap_without_a_session
         await session.execute(
             insert(launcher_models.LauncherControl).values(id=1, enabled=True)
         )  # enabled with no session end, as nothing on the persistent environment sets one
-    results = await asyncio.gather(
-        *(tick(factory, ecs, Depth(), always_on=True) for _ in range(8))
-    )
+    results = await asyncio.gather(*(tick(factory, ecs, Depth(), always_on=True) for _ in range(8)))
     assert sum(r["launched"] for r in results) == 3
     assert len(ecs.run_calls) == 3 == len(ecs.live())
     held = [r for r in await rows(factory) if r.status in launcher.OPEN_STATES]
     assert len(held) == 3
     # Finite all the same: each task ends after its lifetime.
     assert all(
-        (r.deadline_at - r.reserved_at).total_seconds() == config().lifetime_seconds
-        for r in held
+        (r.deadline_at - r.reserved_at).total_seconds() == config().lifetime_seconds for r in held
     )
 
 
 async def test_always_on_launches_nothing_for_an_empty_queue_or_while_switched_off(factory):
     ecs = FakeEcs()
     async with factory() as session, session.begin():
-        await session.execute(
-            insert(launcher_models.LauncherControl).values(id=1, enabled=True)
-        )
+        await session.execute(insert(launcher_models.LauncherControl).values(id=1, enabled=True))
     assert (await tick(factory, ecs, Depth(), always_on=True))["outcome"] == "idle"
     await submit(factory, 2)
     assert (await tick(factory, ecs, Depth(0), always_on=True))["launched"] == 0
@@ -648,8 +639,13 @@ async def test_once_no_attempt_is_open_the_earliest_scheduled_row_is_the_next_du
     assert time.time() + 5 * 86400 < due < time.time() + 7 * 86400
     # An open launch reservation is work now, whatever else is scheduled.
     async with factory() as session, session.begin():
-        session.add(launcher_models.LaunchReservation(
-            token="t" * 32, started_by="v1-ut", status="reserved", payload={},
-            deadline_at=func.now() + timedelta(minutes=5)))
+        session.add(
+            launcher_models.LaunchReservation(
+                token="t" * 32,
+                started_by="v1-ut",
+                status="reserved",
+                payload={},
+                deadline_at=func.now() + timedelta(minutes=5),
+            )
+        )
     assert await next_due(factory) == 0.0
-

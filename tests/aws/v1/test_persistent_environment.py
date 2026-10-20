@@ -35,12 +35,26 @@ def applied_changes(rig):
 
 
 def test_the_environment_name_is_the_stack_and_implies_the_launcher(tmp_path):
-    settings = Settings(profile="dc2-agent", region="ap-southeast-1", account=ACCOUNT,
-                        run_id="live", state_dir=tmp_path, persistent=True)
+    settings = Settings(
+        profile="dc2-agent",
+        region="ap-southeast-1",
+        account=ACCOUNT,
+        run_id="live",
+        state_dir=tmp_path,
+        persistent=True,
+    )
     assert settings.env == "dc2-live" and settings.bootstrap_stack == "dc2-live-bootstrap"
     assert settings.unattended_launch is True
-    assert Settings(profile="dc2-agent", region="ap-southeast-1", account=ACCOUNT,
-                    run_id="r1", state_dir=tmp_path).env == "dc2-v1-r1"
+    assert (
+        Settings(
+            profile="dc2-agent",
+            region="ap-southeast-1",
+            account=ACCOUNT,
+            run_id="r1",
+            state_dir=tmp_path,
+        ).env
+        == "dc2-v1-r1"
+    )
 
 
 def test_the_first_deploy_creates_the_environment_open_and_marks_it_established(live):
@@ -49,8 +63,9 @@ def test_the_first_deploy_creates_the_environment_open_and_marks_it_established(
     assert list(deploy.ordered_steps(meta)) == list(PERSISTENT_STEPS)
     assert meta["established"] is True and meta["session_opened"] is True
     assert live.session.actions == ["init", "open"]
-    parameters = {p["ParameterKey"]: p["ParameterValue"] for p in change_sets(live)[-1][
-        "Parameters"]}
+    parameters = {
+        p["ParameterKey"]: p["ParameterValue"] for p in change_sets(live)[-1]["Parameters"]
+    }
     assert parameters["AlwaysOn"] == "true" and parameters["UnattendedLaunch"] == "true"
     assert (parameters["StageRateLimit"], parameters["StageBurstLimit"]) == ("20", "50")
     assert parameters["MonthlyBudgetUsd"] == "20"
@@ -84,9 +99,14 @@ def test_a_template_change_reaches_the_stack_as_an_update_of_only_that_resource(
     live.deploy()
     assert [c["ChangeSetType"] for c in change_sets(live, first)][-1] == "UPDATE"
     assert len(executed(live, first)) == 1
-    assert applied_changes(live) == [{"Action": "Modify", "LogicalResourceId": "HttpStage",
-                                      "ResourceType": "AWS::ApiGatewayV2::Stage",
-                                      "Replacement": "False"}]
+    assert applied_changes(live) == [
+        {
+            "Action": "Modify",
+            "LogicalResourceId": "HttpStage",
+            "ResourceType": "AWS::ApiGatewayV2::Stage",
+            "Replacement": "False",
+        }
+    ]
 
 
 def test_the_cost_guard_reports_but_never_blocks_an_update(live):
@@ -104,10 +124,20 @@ def test_the_first_deploy_of_an_environment_is_still_held_to_the_cost_guard(live
         live.deploy()
 
 
-@pytest.mark.parametrize("logical", ["Distribution", "DatabaseCluster", "DatabaseInstance",
-                                     "SourceBucket", "OutputBucket", "FrontendBucket"])
+@pytest.mark.parametrize(
+    "logical",
+    [
+        "Distribution",
+        "DatabaseCluster",
+        "DatabaseInstance",
+        "SourceBucket",
+        "OutputBucket",
+        "FrontendBucket",
+    ],
+)
 def test_replacing_stateful_data_fails_the_update_unless_explicitly_allowed(
-        live, monkeypatch, logical):
+    live, monkeypatch, logical
+):
     live.deploy()
     original = deploy.render_template
 
@@ -127,23 +157,33 @@ def test_replacing_stateful_data_fails_the_update_unless_explicitly_allowed(
 
 def images_at(tmp_path, sha, name="next.json"):
     path = tmp_path / name
-    path.write_text(json.dumps({o: {"source": f"{o}:{sha[:4]}", "source_sha": sha}
-                                for o in ("media", "processing", "worker")}))
+    path.write_text(
+        json.dumps(
+            {
+                o: {"source": f"{o}:{sha[:4]}", "source_sha": sha}
+                for o in ("media", "processing", "worker")
+            }
+        )
+    )
     return path
 
 
-@pytest.mark.parametrize(("paths", "owners", "migrations"), [
-    # Every image carries its commit SHA as a label, so a docs-only commit changes every image
-    # id; only the build inputs decide, and here none changed.
-    (["docs/a.md", "tests/media/x.py", "deploy/aws/v1/template.json"], [], []),
-    (["media/api/uploads.py"], ["media"], []),
-    (["media_engine/probe.py"], ["processing"], []),  # the worker is Processing's
-    (["runtime_support/settings.py"], ["media", "processing"], []),
-    (["processing/migrations/versions/x.py"], ["processing"], ["processing"]),
-    (None, ["media", "processing"], ["media", "processing"]),  # history unknown: all changed
-])
+@pytest.mark.parametrize(
+    ("paths", "owners", "migrations"),
+    [
+        # Every image carries its commit SHA as a label, so a docs-only commit changes every image
+        # id; only the build inputs decide, and here none changed.
+        (["docs/a.md", "tests/media/x.py", "deploy/aws/v1/template.json"], [], []),
+        (["media/api/uploads.py"], ["media"], []),
+        (["media_engine/probe.py"], ["processing"], []),  # the worker is Processing's
+        (["runtime_support/settings.py"], ["media", "processing"], []),
+        (["processing/migrations/versions/x.py"], ["processing"], ["processing"]),
+        (None, ["media", "processing"], ["media", "processing"]),  # history unknown: all changed
+    ],
+)
 def test_owners_are_released_only_when_their_images_build_inputs_changed(
-        live, tmp_path, monkeypatch, paths, owners, migrations):
+    live, tmp_path, monkeypatch, paths, owners, migrations
+):
     live.s.images_file = images_at(tmp_path, "a" * 40, "first.json")
     live.deploy()
     monkeypatch.setattr(deploy, "changed_paths", lambda old, new: paths)
@@ -165,8 +205,11 @@ def test_the_commit_of_each_running_image_is_known_to_the_next_deploy(live, tmp_
 
 def test_the_kill_switch_survives_routine_deploys(live):
     live.deploy()
-    journal = Journal(live.s.state_dir / "session" / "journal.json", station=live.s.station,
-                      environment=live.s.env)
+    journal = Journal(
+        live.s.state_dir / "session" / "journal.json",
+        station=live.s.station,
+        environment=live.s.env,
+    )
     journal.initialize(verified_empty=True, exclusive_station=True)  # closed, as after close
     live.deploy()
     steps = live.journal.view()["steps"]
@@ -175,24 +218,35 @@ def test_the_kill_switch_survives_routine_deploys(live):
     assert live.session.actions == ["init", "open"]
     # The stack update renders the gates closed, so CloudFormation cannot reopen them, and the
     # smoke account is not registered again through the closed API.
-    parameters = {p["ParameterKey"]: p["ParameterValue"] for p in change_sets(live)[-1][
-        "Parameters"]}
+    parameters = {
+        p["ParameterKey"]: p["ParameterValue"] for p in change_sets(live)[-1]["Parameters"]
+    }
     assert parameters["GatesOpen"] == "false" and parameters["AlwaysOn"] == "true"
     assert steps["seed"]["detail"] == {"registered": "earlier"}
-    gates = {"HttpStage", "ProcessingCommandsMapping", "MediaResultsMapping", "MediaRepairRule",
-             "ProcessingRepairRule", "ProcessingEcsEventsRule", "ProcessingS3EventsRule",
-             "ProcessingLauncherRule"}
+    gates = {
+        "HttpStage",
+        "ProcessingCommandsMapping",
+        "MediaResultsMapping",
+        "MediaRepairRule",
+        "ProcessingRepairRule",
+        "ProcessingEcsEventsRule",
+        "ProcessingS3EventsRule",
+        "ProcessingLauncherRule",
+    }
     assert {c["LogicalResourceId"] for c in applied_changes(live)} <= gates
 
 
 def release_dir(tmp_path, owner, digests):
     directory = tmp_path / "release"
     directory.mkdir()
-    bundle = {kind: {"manifest_digest": digest, "config_id": f"sha256:{kind}-id",
-                     "source_sha": "c" * 40} for kind, digest in digests.items()}
+    bundle = {
+        kind: {"manifest_digest": digest, "config_id": f"sha256:{kind}-id", "source_sha": "c" * 40}
+        for kind, digest in digests.items()
+    }
     (directory / "bundle-good.json").write_text(json.dumps(bundle))
-    (directory / "plan.json").write_text(json.dumps(
-        {"owner": owner, "good": {"bundle": "bundle-good.json"}}))
+    (directory / "plan.json").write_text(
+        json.dumps({"owner": owner, "good": {"bundle": "bundle-good.json"}})
+    )
     return directory
 
 
@@ -200,8 +254,9 @@ def test_an_adopted_release_becomes_what_the_stack_renders_for_that_owner_only(l
     live.deploy()
     before = live.journal.view()["images"]
     digests = {"api": "sha256:" + "a" * 64, "worker": "sha256:" + "b" * 64}
-    adopted = deploy.adopt_release(live.journal, "processing",
-                                   release_dir(tmp_path, "processing", digests), "g9x1")
+    adopted = deploy.adopt_release(
+        live.journal, "processing", release_dir(tmp_path, "processing", digests), "g9x1"
+    )
     images = live.journal.view()["images"]
     assert adopted == {"processing": digests["api"], "worker": digests["worker"]}
     assert images["processing"]["tag"] == "g9x1-processing"
@@ -217,21 +272,49 @@ def test_an_adopted_release_becomes_what_the_stack_renders_for_that_owner_only(l
 def test_adopting_refuses_a_plan_for_another_owner(live, tmp_path):
     live.deploy()
     with pytest.raises(DeployError, match="not media"):
-        deploy.adopt_release(live.journal, "media",
-                             release_dir(tmp_path, "processing", {"api": "sha256:" + "a" * 64}),
-                             "g9x1")
+        deploy.adopt_release(
+            live.journal,
+            "media",
+            release_dir(tmp_path, "processing", {"api": "sha256:" + "a" * 64}),
+            "g9x1",
+        )
 
 
 def test_the_cli_targets_an_environment_or_a_run_but_never_both(capsys):
     with pytest.raises(SystemExit):
-        deploy.main(["deploy", "--profile", "p", "--region", "ap-southeast-1", "--account",
-                     ACCOUNT, "--run-id", "r1", "--environment", "live", "--dry-run"])
+        deploy.main(
+            [
+                "deploy",
+                "--profile",
+                "p",
+                "--region",
+                "ap-southeast-1",
+                "--account",
+                ACCOUNT,
+                "--run-id",
+                "r1",
+                "--environment",
+                "live",
+                "--dry-run",
+            ]
+        )
     assert "not allowed with" in capsys.readouterr().err
 
 
 def test_a_dry_run_rehearses_the_environment_end_to_end(capsys):
-    code = deploy.main(["rehearse", "--profile", "p", "--region", "ap-southeast-1",
-                        "--account", ACCOUNT, "--environment", "live"])
+    code = deploy.main(
+        [
+            "rehearse",
+            "--profile",
+            "p",
+            "--region",
+            "ap-southeast-1",
+            "--account",
+            ACCOUNT,
+            "--environment",
+            "live",
+        ]
+    )
     out = capsys.readouterr().out
     assert code == 0, out
     result = json.loads(out[: out.index("\n}\n") + 2])
@@ -244,18 +327,26 @@ RESOURCES = template()["Resources"]
 
 def test_always_on_opens_every_gate_the_session_api_used_to_open():
     stage = RESOURCES["HttpStage"]["Properties"]["DefaultRouteSettings"]["Fn::If"]
-    assert stage[1] == {"ThrottlingBurstLimit": {"Ref": "StageBurstLimit"},
-                        "ThrottlingRateLimit": {"Ref": "StageRateLimit"}}
-    for name in ("MediaRepairRule", "ProcessingRepairRule", "ProcessingEcsEventsRule",
-                 "ProcessingS3EventsRule", "ProcessingLauncherRule"):
+    assert stage[1] == {
+        "ThrottlingBurstLimit": {"Ref": "StageBurstLimit"},
+        "ThrottlingRateLimit": {"Ref": "StageRateLimit"},
+    }
+    for name in (
+        "MediaRepairRule",
+        "ProcessingRepairRule",
+        "ProcessingEcsEventsRule",
+        "ProcessingS3EventsRule",
+        "ProcessingLauncherRule",
+    ):
         assert RESOURCES[name]["Properties"]["State"]["Fn::If"][1] == "ENABLED"
     for name in ("ProcessingCommandsMapping", "MediaResultsMapping"):
         assert RESOURCES[name]["Properties"]["Enabled"]["Fn::If"][1] is True
     launcher = RESOURCES["ProcessingLauncher"]["Properties"]["Environment"]["Variables"]
     assert launcher["PROCESSING_LAUNCHER_ALWAYS_ON"]["Fn::If"][:2] == ["AlwaysOnEnv", "true"]
     # The gates open only while the kill switch is off: GatesOpen=false keeps them closed.
-    assert template()["Conditions"]["AlwaysOpen"] == {"Fn::And": [
-        {"Condition": "AlwaysOnEnv"}, {"Fn::Equals": [{"Ref": "GatesOpen"}, "true"]}]}
+    assert template()["Conditions"]["AlwaysOpen"] == {
+        "Fn::And": [{"Condition": "AlwaysOnEnv"}, {"Fn::Equals": [{"Ref": "GatesOpen"}, "true"]}]
+    }
 
 
 def test_the_budget_alerts_at_half_four_fifths_and_all_of_the_monthly_amount():
@@ -263,11 +354,15 @@ def test_the_budget_alerts_at_half_four_fifths_and_all_of_the_monthly_amount():
     # Kept while the kill switch is on: it follows the environment, not the gates.
     assert budget["Condition"] == "AlwaysOnEnv"
     assert budget["Properties"]["Budget"]["BudgetLimit"] == {
-        "Amount": {"Ref": "MonthlyBudgetUsd"}, "Unit": "USD"}
+        "Amount": {"Ref": "MonthlyBudgetUsd"},
+        "Unit": "USD",
+    }
     notes = budget["Properties"]["NotificationsWithSubscribers"]
     assert [n["Notification"]["Threshold"] for n in notes] == [50, 80, 100]
-    assert all(n["Subscribers"] == [{"SubscriptionType": "SNS",
-                                     "Address": {"Ref": "BudgetAlertTopic"}}] for n in notes)
+    assert all(
+        n["Subscribers"] == [{"SubscriptionType": "SNS", "Address": {"Ref": "BudgetAlertTopic"}}]
+        for n in notes
+    )
     # An email subscription exists only when an address is configured.
     assert RESOURCES["BudgetAlertSubscription"]["Condition"] == "BudgetEmail"
 
@@ -279,13 +374,19 @@ def test_only_the_work_publishers_may_wake_the_launcher_and_only_through_its_ali
     (statement,) = invokers["Properties"]["PolicyDocument"]["Statement"]
     assert statement["Action"] == ["lambda:InvokeFunction"]
     assert statement["Resource"] == [{"Ref": "ProcessingLauncherAlias"}]
-    granted = [name for name, r in RESOURCES.items() if r["Type"] in {
-        "AWS::IAM::Policy", "AWS::IAM::Role"} and "lambda:InvokeFunction" in json.dumps(r)]
+    granted = [
+        name
+        for name, r in RESOURCES.items()
+        if r["Type"] in {"AWS::IAM::Policy", "AWS::IAM::Role"}
+        and "lambda:InvokeFunction" in json.dumps(r)
+    ]
     assert granted == ["ProcessingLauncherInvokers"]
     for name in WORK_PUBLISHERS:
         variables = RESOURCES[name]["Properties"]["Environment"]["Variables"]
         assert variables["PROCESSING_LAUNCHER_FUNCTION"]["Fn::If"][:2] == [
-            "Unattended", {"Ref": "ProcessingLauncherAlias"}]
+            "Unattended",
+            {"Ref": "ProcessingLauncherAlias"},
+        ]
 
 
 def test_a_function_version_names_everything_its_resolved_configuration_depends_on():
@@ -310,7 +411,8 @@ def test_a_function_version_names_everything_its_resolved_configuration_depends_
 
 def test_a_version_description_stays_within_lambdas_256_characters():
     image = "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processing@sha256:" + (
-        "f" * 64)
+        "f" * 64
+    )
     for name, resource in RESOURCES.items():
         if resource["Type"] != "AWS::Lambda::Version":
             continue
@@ -321,8 +423,11 @@ def test_a_version_description_stays_within_lambdas_256_characters():
             elif "Fn::If" in part:
                 rendered.append(part["Fn::If"][1])
             elif "Fn::Select" in part:
-                rendered.append(image.split("@")[1] if part["Fn::Select"][1]["Fn::Split"][0] == "@"
-                                else "dc2-live-worker:9999")
+                rendered.append(
+                    image.split("@")[1]
+                    if part["Fn::Select"][1]["Fn::Split"][0] == "@"
+                    else "dc2-live-worker:9999"
+                )
             else:  # a parameter: its longest plausible value
                 rendered.append("x" * 48)
         assert len(" ".join(rendered)) <= 256, name

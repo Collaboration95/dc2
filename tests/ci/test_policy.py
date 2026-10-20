@@ -21,6 +21,7 @@ from scripts.ci.policy import (
     image_inputs,
     validate_gate,
 )
+from scripts.dev.common import coverage_omit_patterns
 
 ROOT = Path(__file__).resolve().parents[2]
 SHA = "a" * 40
@@ -113,6 +114,14 @@ class SelectionTests(unittest.TestCase):
                 if required == {"policy-checks"}:
                     self.assertEqual(selected, required)
 
+    def test_retired_and_ci_only_compose_paths_do_not_select_the_dast_scan(self):
+        retired = classify(["docker-compose.yml"])
+        self.assertEqual(retired["mode"], "full")
+
+        fixture = classify(["docker-compose.processing.yml"])
+        self.assertFalse(fixture["selected"]["dast"])
+        self.assertTrue(fixture["selected"]["processing-intake"])
+
     def test_conservative_inputs(self):
         for paths in [
             None,
@@ -167,9 +176,9 @@ class SelectionTests(unittest.TestCase):
         self.assertFalse(image_inputs("tests/v1/test_config.py")[0])
 
     def test_event_table_and_exact_manual_source(self):
-        event = {"pull_request": {"base": {"ref": "dev/v1-integration", "sha": "base"}}}
+        event = {"pull_request": {"base": {"ref": "dev/closeout", "sha": "base"}}}
         self.assertEqual(event_selection("pull_request", event, SHA)[::2], (False, "base"))
-        for base in ["Main", "other", None]:
+        for base in ["Main", "dev/v1-integration", "other", None]:
             event["pull_request"]["base"]["ref"] = base
             self.assertTrue(event_selection("pull_request", event, SHA)[0])
         self.assertTrue(event_selection("pull_request", {}, SHA)[0])
@@ -289,8 +298,11 @@ class ServiceLaneTests(unittest.TestCase):
         self.assertTrue(plan["selected"]["processing-service"])
 
     def test_every_dockerfile_copy_source_selects_its_owner(self):
-        owners = {"media": {"media-service"}, "processing": {"processing-service"},
-                  "worker": {"processing-service"}}
+        owners = {
+            "media": {"media-service"},
+            "processing": {"processing-service"},
+            "worker": {"processing-service"},
+        }
         shared = {"media-service", "processing-service"}
         for recipe in (ROOT / "deploy/v1").glob("*.Dockerfile"):
             owner = recipe.name.split(".")[0]
@@ -323,8 +335,9 @@ class ServiceLaneTests(unittest.TestCase):
                         self.assertIn(image, changed_images([changed]))
         # Only what an image copies selects it: tests, docs and the template select none,
         # and Media's own code never selects Processing's images.
-        self.assertEqual(changed_images(["tests/media/x.py", "docs/a.md",
-                                         "deploy/aws/v1/template.json"]), set())
+        self.assertEqual(
+            changed_images(["tests/media/x.py", "docs/a.md", "deploy/aws/v1/template.json"]), set()
+        )
         self.assertEqual(changed_images(["media/api/uploads.py"]), {"media"})
         self.assertEqual(changed_images(["media_engine/x.py"]), {"worker"})
 
@@ -393,11 +406,7 @@ class SourceTests(unittest.TestCase):
             event = Path(directory) / "event.json"
             event.write_text(
                 json.dumps(
-                    {
-                        "pull_request": {
-                            "base": {"ref": "dev/v1-integration", "sha": "unreadable-base"}
-                        }
-                    }
+                    {"pull_request": {"base": {"ref": "dev/closeout", "sha": "unreadable-base"}}}
                 )
             )
             output = Path(directory) / "output"
@@ -436,8 +445,10 @@ class FullCoverageTests(unittest.TestCase):
             "argparse": argparse,
             "Path": Path,
             "json": json,
+            "ROOT": ROOT,
             "fingerprint": lambda: "same",
             "packages": lambda: ["media"],
+            "coverage_omit_patterns": coverage_omit_patterns,
         }
         exec(
             compile(ast.Module(body=[function], type_ignores=[]), "coverage-evidence-gate", "exec"),
@@ -461,7 +472,13 @@ class FullCoverageTests(unittest.TestCase):
                     for path, tier in zip(paths, tiers, strict=True):
                         path.write_text("placeholder")
                         Path(str(path) + ".json").write_text(
-                            json.dumps({"tier": tier, "fingerprint": "same"})
+                            json.dumps(
+                                {
+                                    "tier": tier,
+                                    "fingerprint": "same",
+                                    "omit": coverage_omit_patterns(ROOT),
+                                }
+                            )
                         )
                     Path(str(missing) + ".json" if metadata_missing else missing).unlink()
                     with self.subTest(missing=missing.name, metadata=metadata_missing):

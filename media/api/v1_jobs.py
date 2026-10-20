@@ -7,8 +7,8 @@ from fastapi import APIRouter, Query, Response
 
 from media.api.deps import Config, CurrentUser, Operator, Session
 from media.api.uploads import Key
-from media.projections import public_job
-from media.repositories.assets import get_asset, list_assets
+from media.projections import public_job, public_job_from_projection
+from media.repositories.assets import get_asset, list_asset_pages
 from media.schemas.edit import EditRequest
 from media.schemas.public import Accepted, PublicJob
 from media.services import v1_lifecycle
@@ -21,8 +21,11 @@ Offset = Annotated[int, Query(ge=0)]
 
 
 async def page(session, owner_id, storage, settings, limit, offset):
-    assets = await list_assets(session, owner_id, limit, offset)
-    return [await public_job(session, asset, storage, settings) for asset in assets]
+    rows = await list_asset_pages(session, owner_id, limit, offset)
+    return [
+        await public_job_from_projection(asset, projection, storage, settings)
+        for asset, projection in rows
+    ]
 
 
 @router.get("", response_model=list[PublicJob], response_model_exclude_none=True)

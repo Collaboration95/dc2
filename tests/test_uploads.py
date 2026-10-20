@@ -75,8 +75,15 @@ def events(monkeypatch: pytest.MonkeyPatch) -> list[tuple]:
 
     async def fake_create_job(_session, *, job_id, owner_id, filename, source_key):
         log.append(
-            ("insert", {"job_id": job_id, "owner_id": owner_id, "filename": filename,
-                        "source_key": source_key})
+            (
+                "insert",
+                {
+                    "job_id": job_id,
+                    "owner_id": owner_id,
+                    "filename": filename,
+                    "source_key": source_key,
+                },
+            )
         )
 
     def fake_enqueue(job_id):
@@ -137,10 +144,7 @@ async def test_the_stored_content_type_comes_from_the_bytes(client, storage, eve
 async def test_a_file_at_exactly_the_limit_is_accepted(storage, events):
     """N8: test *at* the limit, not just past it."""
     result = await upload_video(
-        file=FakeUpload(MAX_FILE_SIZE),
-        user=make_user(),
-        storage=storage,
-        session=object(),
+        file=FakeUpload(MAX_FILE_SIZE), user=make_user(), storage=storage, session=object()
     )
 
     assert "job_id" in result
@@ -149,10 +153,7 @@ async def test_a_file_at_exactly_the_limit_is_accepted(storage, events):
 
 async def test_a_file_one_byte_over_the_limit_is_rejected(storage, events):
     response = await upload_video(
-        file=FakeUpload(MAX_FILE_SIZE + 1),
-        user=make_user(),
-        storage=storage,
-        session=object(),
+        file=FakeUpload(MAX_FILE_SIZE + 1), user=make_user(), storage=storage, session=object()
     )
 
     assert response.status_code == 413
@@ -164,10 +165,7 @@ async def test_a_file_one_byte_over_the_limit_is_rejected(storage, events):
 async def test_an_oversized_upload_is_not_stored_or_recorded(storage, events):
     """Rejecting late would leave an orphan object and a phantom row."""
     await upload_video(
-        file=FakeUpload(MAX_FILE_SIZE + 1),
-        user=make_user(),
-        storage=storage,
-        session=object(),
+        file=FakeUpload(MAX_FILE_SIZE + 1), user=make_user(), storage=storage, session=object()
     )
 
     assert storage.uploads == []
@@ -176,10 +174,7 @@ async def test_an_oversized_upload_is_not_stored_or_recorded(storage, events):
 
 async def test_a_file_with_no_name_still_gets_a_key(storage, events):
     await upload_video(
-        file=FakeUpload(10, filename=None),
-        user=make_user(),
-        storage=storage,
-        session=object(),
+        file=FakeUpload(10, filename=None), user=make_user(), storage=storage, session=object()
     )
 
     assert inserts(events)[0]["filename"] == "upload.bin"
@@ -284,10 +279,7 @@ async def test_the_stream_is_rewound_after_sniffing(client, storage, events):
 async def test_the_key_never_escapes_the_jobs_own_prefix(storage, events, sent, stored):
     """The filename comes from the multipart headers, so it is attacker input."""
     await upload_video(
-        file=FakeUpload(10, filename=sent),
-        user=make_user(),
-        storage=storage,
-        session=object(),
+        file=FakeUpload(10, filename=sent), user=make_user(), storage=storage, session=object()
     )
 
     job_id = inserts(events)[0]["job_id"]
@@ -312,10 +304,7 @@ async def test_an_oversized_content_length_is_refused_before_the_body_is_read(cl
     response = await client.post(
         "/upload",
         content=b"not-really-that-big",
-        headers={
-            "content-type": "video/mp4",
-            "content-length": str(MAX_FILE_SIZE + 1),
-        },
+        headers={"content-type": "video/mp4", "content-length": str(MAX_FILE_SIZE + 1)},
     )
 
     assert response.status_code == 413
@@ -354,10 +343,7 @@ async def test_the_enqueued_id_matches_the_row_and_the_object(client, storage, e
 
 async def test_an_oversized_upload_enqueues_nothing(storage, events):
     await upload_video(
-        file=FakeUpload(MAX_FILE_SIZE + 1),
-        user=make_user(),
-        storage=storage,
-        session=object(),
+        file=FakeUpload(MAX_FILE_SIZE + 1), user=make_user(), storage=storage, session=object()
     )
 
     assert events == []

@@ -25,11 +25,11 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       UV_PYTHON_DOWNLOADS: never
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.8.17'
       - run: uv sync --locked --extra legacy --extra dev
@@ -41,7 +41,7 @@ jobs:
             -m 'not integration and not e2e' "tests/$OWNER" tests/aws tests/contracts \
             --junitxml=gates/source-tests.xml
           echo "SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Build one immutable amd64 image (never rebuild after gates)
         run: |
           test -z "$(git status --porcelain --untracked-files=no)"
@@ -58,7 +58,7 @@ jobs:
           fi
           timeout 30 docker run --rm --network none --entrypoint python "$CONFIG_ID" -c "$code"
       - name: Hard exact-image gate (zero fixable HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.CONFIG_ID }}
           format: json
@@ -99,7 +99,7 @@ jobs:
           .venv/bin/python -m scripts.aws.release --owner "$OWNER" \
             --artifact gates/owner-artifact.json > gates/publish-deploy-plan.json
           echo 'Production publish/apply DISABLED. Actual account, approval, registry receipt and private operator hooks remain required.' >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: aws-prep-${{ inputs.owner }}-${{ github.sha }}
           path: |

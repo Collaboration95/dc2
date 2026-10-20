@@ -59,9 +59,7 @@ def test_owner_release_applies_a_real_migration_and_failed_candidate_restores_al
             return sql_fetch(runtime, which, "SELECT version_num FROM alembic_version")[0][0]
 
         def rows(which):
-            return sql_fetch(runtime, which, f"SELECT count(*) FROM {TABLE_OF_RECORD[which]}")[0][
-                0
-            ]
+            return sql_fetch(runtime, which, f"SELECT count(*) FROM {TABLE_OF_RECORD[which]}")[0][0]
 
         def smoke(*args, **kwargs):
             return (
@@ -111,9 +109,7 @@ def test_owner_release_applies_a_real_migration_and_failed_candidate_restores_al
             config2, failed, journal2, args2, launched2 = release_rig("failed-station")
             bad = args2(owner)
             bad.update(
-                target_revision=head,
-                schema_revision=revision,
-                public_smoke=lambda *a, **kw: False,
+                target_revision=head, schema_revision=revision, public_smoke=lambda *a, **kw: False
             )
             with pytest.raises(OperationError, match="private intent retained"):
                 promote(config2, failed, journal2, **bad)

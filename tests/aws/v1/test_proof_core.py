@@ -7,22 +7,21 @@ import stat
 import pytest
 
 from scripts.aws.v1.proof import core, sim
-from scripts.aws.v1.proof.core import (
-    FAIL,
-    NOT_RUN,
-    PASS,
-    Api,
-    Proof,
-    ProofError,
-    SessionRefused,
-)
+from scripts.aws.v1.proof.core import FAIL, NOT_RUN, PASS, Api, Proof, ProofError, SessionRefused
 
 pytestmark = pytest.mark.unmeasured
 
 
 def make_proof(tmp_path, *, required=("a", "b"), simulated=False, guard=None, run_id="r1"):
-    return Proof(63, directory=tmp_path / "evidence", run_id=run_id, simulated=simulated,
-                 scope={"profile": "p"}, required=required, guard=guard)
+    return Proof(
+        63,
+        directory=tmp_path / "evidence",
+        run_id=run_id,
+        simulated=simulated,
+        scope={"profile": "p"},
+        required=required,
+        guard=guard,
+    )
 
 
 def ok(public=None):
@@ -50,8 +49,9 @@ def test_a_failed_step_is_retried_and_may_be_forced(tmp_path):
     assert proof.step("a", boom, session=None)["status"] == FAIL
     assert make_proof(tmp_path).step("a", ok(), session=None)["status"] == PASS
     seen = []
-    make_proof(tmp_path).step("a", lambda i: seen.append(1) or {"public": {}}, session=None,
-                              rerun=True)
+    make_proof(tmp_path).step(
+        "a", lambda i: seen.append(1) or {"public": {}}, session=None, rerun=True
+    )
     assert seen == [1]
 
 
@@ -80,8 +80,15 @@ def test_intents_survive_a_crash_so_a_rerun_resumes_instead_of_repeating(tmp_pat
 
 
 def test_the_public_view_is_screened_for_urls_arns_accounts_addresses_and_tokens(tmp_path):
-    for leak in ("https://x.example/a", "arn:aws:s3:::bucket", "123456789012",
-                 "ops@example.com", "X-Amz-Signature=abc", "A" * 45, "Set-Cookie: s=1"):
+    for leak in (
+        "https://x.example/a",
+        "arn:aws:s3:::bucket",
+        "123456789012",
+        "ops@example.com",
+        "X-Amz-Signature=abc",
+        "A" * 45,
+        "Set-Cookie: s=1",
+    ):
         proof = make_proof(tmp_path / leak[:4], required=("a",))
         step = proof.step("a", lambda i, leak=leak: {"public": {"v": leak}}, session=None)
         assert step["status"] == FAIL and "withheld" in step["public"]["error"]
@@ -91,8 +98,11 @@ def test_the_public_view_is_screened_for_urls_arns_accounts_addresses_and_tokens
 def test_hashes_numbers_and_statuses_pass_the_public_screen(tmp_path):
     proof = make_proof(tmp_path)
     digest = "ab" * 32
-    step = proof.step("a", ok({"sha256": digest, "ms": 12.5, "ok": True, "codes": [200, 204],
-                               "nested": {"p90": 1}}), session=None)
+    step = proof.step(
+        "a",
+        ok({"sha256": digest, "ms": 12.5, "ok": True, "codes": [200, 204], "nested": {"p90": 1}}),
+        session=None,
+    )
     assert step["status"] == PASS
 
 
@@ -147,8 +157,7 @@ def test_the_report_carries_statuses_and_public_numbers_only(tmp_path):
 # ---- session guard ---------------------------------------------------------------------
 def guarded(tmp_path, session, **world):
     args = argparse.Namespace(run_id="g", dry_run=True)
-    ctx = sim.build(args, session=session, world=sim.SimWorld(**world),
-                    tmp=tmp_path / "state")
+    ctx = sim.build(args, session=session, world=sim.SimWorld(**world), tmp=tmp_path / "state")
     return ctx, ctx.proof(63, ("a",))
 
 
@@ -233,8 +242,16 @@ def test_percentiles_use_nearest_rank():
 
 # ---- --fresh ----------------------------------------------------------------------------
 def fresh_proof(tmp_path, fresh, guard=None):
-    return Proof(63, directory=tmp_path / "evidence", run_id="r1", simulated=False,
-                 scope={"profile": "p"}, required=("a", "b"), guard=guard, fresh=fresh)
+    return Proof(
+        63,
+        directory=tmp_path / "evidence",
+        run_id="r1",
+        simulated=False,
+        scope={"profile": "p"},
+        required=("a", "b"),
+        guard=guard,
+        fresh=fresh,
+    )
 
 
 def test_fresh_archives_the_old_entry_and_intent_and_runs_the_step_again(tmp_path):
@@ -242,8 +259,11 @@ def test_fresh_archives_the_old_entry_and_intent_and_runs_the_step_again(tmp_pat
     first.step("a", lambda i: i.update(task="one") or {"public": {"n": 1}}, session=None)
     again = fresh_proof(tmp_path, {"a"})
     seen = []
-    again.step("a", lambda i: seen.append(dict(i)) or i.update(task="two") or {"public": {"n": 2}},
-               session=None)
+    again.step(
+        "a",
+        lambda i: seen.append(dict(i)) or i.update(task="two") or {"public": {"n": 2}},
+        session=None,
+    )
     assert seen == [{}]  # a new intent: nothing of the old task is reused
     assert again.doc["steps"]["a"]["public"] == {"n": 2}
     (attempt,) = again.doc["attempts"]["a"]

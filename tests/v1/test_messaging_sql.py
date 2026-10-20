@@ -85,6 +85,34 @@ async def test_submit_duplicate_conflict_and_rollback(factory):
     assert job.source == body["source"]
 
 
+@pytest.mark.parametrize("identity_field", ["job_id", "source"])
+async def test_retry_must_match_the_durable_job_identity(factory, identity_field):
+    submit = message()
+    assert await handle_command(factory, submit)
+    job, attempt = await state(factory)
+    retry = {
+        **submit,
+        "message_id": str(uuid4()),
+        "kind": "retry",
+        "job_id": str(job.id),
+        "attempt_id": None,
+        "payload": {"request_id": str(uuid4())},
+    }
+    if identity_field == "job_id":
+        retry["job_id"] = str(uuid4())
+    else:
+        retry["source"] = {**submit["source"], "version_id": "substituted-version"}
+
+    with pytest.raises(ValueError, match="durable owned job"):
+        await handle_command(factory, retry)
+
+    saved_job, saved_attempt = await state(factory)
+    assert saved_job.id == job.id and saved_job.current_attempt_id == attempt.id
+    assert saved_job.status == "queued" and saved_attempt.id == attempt.id
+    assert await count(factory, ProcessingInbox) == 1
+    assert await count(factory, ProcessingOutbox) == 2
+
+
 async def test_cancel_before_submit_is_permanent(factory):
     submit = message()
     cancel = {**submit, "message_id": str(uuid4()), "kind": "cancel", "source": None}

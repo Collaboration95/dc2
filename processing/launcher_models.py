@@ -25,9 +25,7 @@ class LauncherControl(Base):
     enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # A launch without a session end would be unbounded, so enabling always sets one.
     session_end_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class LaunchReservation(Base):

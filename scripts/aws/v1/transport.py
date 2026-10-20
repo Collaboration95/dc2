@@ -181,7 +181,7 @@ OPERATIONS = {
         "get-log-events": (
             {"logGroupName": _text(_LOG_NAME), "logStreamName": _text(_LOG_NAME)},
             {"startFromHead": _boolean, "nextToken": _any, "limit": _integer(1, 100)},
-        ),
+        )
     },
 }
 
@@ -200,9 +200,7 @@ def validate_arguments(service, operation, payload):
 
 
 class OperatorTransport:
-    def __init__(
-        self, clients, *, identity, account, region, clock=time.monotonic, budgets=None
-    ):
+    def __init__(self, clients, *, identity, account, region, clock=time.monotonic, budgets=None):
         """budgets maps a service to a larger network allowance (seconds, at most 70).
 
         A synchronous Lambda invocation can legitimately run for the function timeout

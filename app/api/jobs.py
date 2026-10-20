@@ -69,11 +69,7 @@ async def _to_response(job: Job, signer: OutputUrlSigner) -> JobResponse:
     )
 
 
-@router.get(
-    "",
-    response_model=list[JobResponse],
-    response_model_exclude_none=True,
-)
+@router.get("", response_model=list[JobResponse], response_model_exclude_none=True)
 async def get_jobs(
     user: CurrentUser,
     session: SessionDependency,
@@ -95,10 +91,7 @@ async def get_jobs(
     responses={404: {"model": ErrorResponse}},
 )
 async def get_job_by_id(
-    job_id: UUID,
-    user: CurrentUser,
-    session: SessionDependency,
-    signer: SignerDependency,
+    job_id: UUID, user: CurrentUser, session: SessionDependency, signer: SignerDependency
 ) -> JobResponse:
     # Another owner's job is 404, never 403: a 403 confirms the id exists.
     job = await get_job(session, job_id, owner_id=user.id)
@@ -118,9 +111,7 @@ async def get_job_by_id(
     },
 )
 async def retry_job_by_id(
-    job_id: UUID,
-    user: CurrentUser,
-    session: SessionDependency,
+    job_id: UUID, user: CurrentUser, session: SessionDependency
 ) -> dict[str, str] | Response:
     """Retry the caller's failed job using its existing source and operations."""
     try:
@@ -156,20 +147,14 @@ async def retry_job_by_id(
     },
 )
 async def edit_job_by_id(
-    job_id: UUID,
-    request: EditRequest,
-    user: CurrentUser,
-    session: SessionDependency,
+    job_id: UUID, request: EditRequest, user: CurrentUser, session: SessionDependency
 ) -> dict[str, str] | Response:
     """Create one queued batch edit from a completed job owned by the caller."""
     source = await get_job(session, job_id, owner_id=user.id)
     if source is None:
         raise ApiNotFoundError("not found")
     if source.status != JobStatus.DONE.value or not source.output_key:
-        return JSONResponse(
-            status_code=409,
-            content={"error": "only completed jobs can be edited"},
-        )
+        return JSONResponse(status_code=409, content={"error": "only completed jobs can be edited"})
 
     convert = request.operation("convert")
     extension = convert.params.format if convert is not None else "mp4"
@@ -192,19 +177,14 @@ async def edit_job_by_id(
         await delete_job(session, created.id, owner_id=user.id)
         logger.exception("job %s: edit could not be queued", created.id)
         return JSONResponse(
-            status_code=503,
-            content={"error": "edit could not be queued; please try again"},
+            status_code=503, content={"error": "edit could not be queued; please try again"}
         )
 
     return {"job_id": str(created.id)}
 
 
 async def _delete_job_and_storage(
-    session: AsyncSession,
-    storage: StorageService,
-    job_id: UUID,
-    *,
-    owner_id: UUID | None,
+    session: AsyncSession, storage: StorageService, job_id: UUID, *, owner_id: UUID | None
 ) -> Job | None:
     """Delete a job's row, then best-effort its storage objects.
 
@@ -245,15 +225,10 @@ async def _delete_job_and_storage(
 
 
 @router.delete(
-    "/{job_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    responses={404: {"model": ErrorResponse}},
+    "/{job_id}", status_code=status.HTTP_204_NO_CONTENT, responses={404: {"model": ErrorResponse}}
 )
 async def delete_job_by_id(
-    job_id: UUID,
-    user: CurrentUser,
-    session: SessionDependency,
-    storage: StorageDependency,
+    job_id: UUID, user: CurrentUser, session: SessionDependency, storage: StorageDependency
 ) -> Response:
     """Delete an upload -- for an accidental upload or general cleanup.
 
@@ -268,11 +243,7 @@ async def delete_job_by_id(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@admin_router.get(
-    "",
-    response_model=list[JobResponse],
-    response_model_exclude_none=True,
-)
+@admin_router.get("", response_model=list[JobResponse], response_model_exclude_none=True)
 async def get_all_jobs(
     _operator: OperatorUser,
     session: SessionDependency,
@@ -291,15 +262,10 @@ async def get_all_jobs(
 
 
 @admin_router.delete(
-    "/{job_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    responses={404: {"model": ErrorResponse}},
+    "/{job_id}", status_code=status.HTTP_204_NO_CONTENT, responses={404: {"model": ErrorResponse}}
 )
 async def delete_job_by_id_as_operator(
-    job_id: UUID,
-    _operator: OperatorUser,
-    session: SessionDependency,
-    storage: StorageDependency,
+    job_id: UUID, _operator: OperatorUser, session: SessionDependency, storage: StorageDependency
 ) -> Response:
     """Same as `DELETE /jobs/{id}`, but unscoped -- any user's job.
 

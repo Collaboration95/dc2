@@ -11,7 +11,7 @@ verification on a promotion candidate.
 
 | Event / target | Mode | Selection / source |
 | --- | --- | --- |
-| PR into `dev/v1-integration` | dev, unless conservative fallback | Intended base SHA to the tested merge SHA; selected lanes below |
+| PR into `dev/closeout` | dev, unless conservative fallback | Intended base SHA to the tested merge SHA; selected lanes below |
 | PR into `Main` | full | Every lane, tested PR merge commit |
 | PR into an unknown target, or unknown event | full | Every lane; do not assume dev semantics |
 | Push into `Main` | full | Every lane at the pushed SHA; regression detection, not pre-promotion proof |
@@ -40,6 +40,13 @@ Supplying an unrelated SHA while dispatching a different ref fails classificatio
 there is no alternate checkout hidden inside a reusable workflow. Use the full
 Main-promotion PR run at its current merge SHA before merging. A default-branch
 schedule or an earlier candidate's success cannot attest to the current PR.
+
+CD additionally requires the full selection receipt and the successful **Full verification**
+job for the exact source, run and attempt. Automatic CD uses only its triggering Main push
+attempt. Manual deploy/release uses a Main push or exact-source full dispatch; a PR head alone
+is insufficient. Missing artifacts, a partial tier or a rerun started during admission stop
+the operation. Preflight and emergency teardown retain their existing separate controls.
+The accepted CI identity is retained as `ci-admission.json` in the CD public artifact.
 
 ## Lane selection
 
@@ -101,7 +108,7 @@ reading its fragment. No production threshold is changed.
 aggregate rules as the others). Each runs that owner's fast tests (`make test-media`;
 `make test-processing test-media-engine`), builds and verifies **only that owner's** V1 images
 with `deploy/v1/build_and_verify.py --only` (Processing's release unit is the API image and the
-finite worker image), then runs `deploy/v1/check_runtime.py` inside each built image. They do
+finite worker image). The verifier runs `deploy/v1/check_runtime.py` inside each built image. They do
 not replace `v1-local`, whose all-three build proves the images stay isolated from each other.
 The selection inputs are the owners' real Dockerfile COPY sources, and a test checks that. The
 mapping of those directories to owners is `.github/CODEOWNERS`.
@@ -237,6 +244,35 @@ exact-source backend/frontend coverage downloads and `qualitygate.wait=true`.
 Its existing `continue-on-error` policy is retained; no new mandatory hosted
 service or subscription is enabled. Disposition artifacts distinguish not-run,
 submission, completed execution and errors. Manual `aws-prep.yml` stays manual.
+
+## Maintained tooling and source security lint
+
+The `python-tools` local composite keeps the Python version file, uv version and
+download-cache settings together. Each caller still runs its explicit locked
+dependency installation; the V1 environment remains separate from legacy,
+browser and emulator tools. CD retains its independent pinned setup. Image
+verification runs `check_runtime` as both the image user and a Lambda uid under
+read-only, reduced-capability container settings; service jobs do not repeat a
+weaker invocation afterward.
+
+All external workflow and composite-action references use immutable commit SHAs.
+Version comments identify the intended release. Update a pin through the
+authenticated `gh` CLI, resolve the selected upstream release to a commit in a
+local checkout, review it, and run the workflow contracts before merging. Do not
+replace a pin with a moving major tag. Runner and container base tags remain
+separate moving inputs; action pinning alone does not make builds reproducible.
+
+The required lint job uses the same `make lint` command as local development. It also runs
+Ruff's `S` security rules over Media, Processing,
+the media engine, contracts, delivery, runtime support, Publisher and the database
+bootstrap copied into the worker image. This is
+local security lint, not whole-program data-flow SAST. The one fixed emulator
+credential exception is documented at its restricted local endpoint call. Run
+the identical check with:
+
+```sh
+.venv/bin/ruff check --select S media processing media_engine contracts delivery runtime_support publisher scripts/aws/v1/bootstrap.py
+```
 
 ## Verification and timing limits
 

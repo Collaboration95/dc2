@@ -62,8 +62,10 @@ def run(*, require=False, which=shutil.which, runner=subprocess.run, stdout=sys.
             if result.returncode:
                 print(f"[{topology}] " + result.stdout + result.stderr, file=stdout)
                 return 1
-    print("cfn-lint: PASS for shared and separate (offline; not evidence of deployability)",
-          file=stdout)
+    print(
+        "cfn-lint: PASS for shared and separate (offline; not evidence of deployability)",
+        file=stdout,
+    )
     return 0
 
 

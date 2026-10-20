@@ -97,9 +97,7 @@ class Session:
         return False
 
 
-async def test_media_session_discards_cached_dsn_when_the_database_refuses_it(
-    secret, monkeypatch
-):
+async def test_media_session_discards_cached_dsn_when_the_database_refuses_it(secret, monkeypatch):
     engine = fake_engine(monkeypatch, media_database)
     monkeypatch.setattr(media_database, "engine_options", lambda *a, **k: {})
     monkeypatch.setattr(media_database, "async_sessionmaker", lambda *a, **k: Session)
@@ -134,9 +132,7 @@ async def test_processing_session_discards_cached_dsn_when_the_database_refuses_
 ):
     engine = fake_engine(monkeypatch, processing_database)
     monkeypatch.setattr(processing_database, "async_sessionmaker", lambda *a, **k: Session)
-    settings = ProcessingSettings(
-        postgres_dsn="postgresql://p:old@db/x", database_tls=False
-    )
+    settings = ProcessingSettings(postgres_dsn="postgresql://p:old@db/x", database_tls=False)
     first = processing_settings()
     secret.password = "rotated"
 
@@ -150,9 +146,7 @@ async def test_processing_session_discards_cached_dsn_when_the_database_refuses_
     assert ":old@" in first.postgres_dsn
 
 
-async def test_readiness_report_also_drops_a_refused_dsn_without_leaking_it(
-    secret, monkeypatch
-):
+async def test_readiness_report_also_drops_a_refused_dsn_without_leaking_it(secret, monkeypatch):
     @asynccontextmanager
     async def refused(_settings):
         raise refusal()
@@ -166,6 +160,7 @@ async def test_readiness_report_also_drops_a_refused_dsn_without_leaking_it(
     assert ":rotated@" in media_settings().postgres_dsn
 
 
+@pytest.mark.integration
 async def test_a_real_wrong_password_is_recognised_as_a_login_refusal():
     dsn = os.environ.get("V1_TEST_MEDIA_DSN")
     if not dsn:
@@ -182,7 +177,6 @@ async def test_a_real_wrong_password_is_recognised_as_a_login_refusal():
     finally:
         await engine.dispose()
     assert credentials_rejected(caught.value)
-
 
 
 # --- Lambda entrypoints that build their own engine ---------------------------------------

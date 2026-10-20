@@ -45,8 +45,7 @@ class FakeStep:
         if self.raises is not None:
             raise self.raises
         return ProcessingResult(
-            output_key=self.output_key or f"outputs/{job_id}/demo.mp4",
-            hls_key=self.hls_key,
+            output_key=self.output_key or f"outputs/{job_id}/demo.mp4", hls_key=self.hls_key
         )
 
 
@@ -116,9 +115,7 @@ async def test_a_ladder_key_reaches_the_database_and_its_absence_is_stored_as_nu
             session_factory=session_factory,
             step=FakeStep(hls_key=f"outputs/{with_ladder}/hls/master.m3u8"),
         )
-        await process_job_async(
-            without, session_factory=session_factory, step=FakeStep()
-        )
+        await process_job_async(without, session_factory=session_factory, step=FakeStep())
 
         async with session_factory() as session:
             laddered = await get_job(session, with_ladder)
@@ -152,9 +149,7 @@ async def test_failure_path_persists_failed_and_readable_error(session_factory, 
         async with session_factory() as session:
             job = await get_job(session, job_id)
         assert job.status == JobStatus.FAILED.value
-        assert job.error == (
-            "the uploaded file is no longer in storage; please upload it again"
-        )
+        assert job.error == ("the uploaded file is no longer in storage; please upload it again")
         assert "uploads/x.mp4" not in job.error, "the key must not survive the round trip"
         assert job.output_key is None
     finally:

@@ -22,12 +22,7 @@ from media.messaging_models import MediaInbox
 from tests.media.test_v1_projection import event  # noqa: F401
 
 
-async def test_projection_commits_before_successful_batch_ack(
-    session,
-    asset,
-    event,
-    monkeypatch,
-):
+async def test_projection_commits_before_successful_batch_ack(session, asset, event, monkeypatch):
     order = []
 
     @asynccontextmanager

@@ -41,9 +41,17 @@ class FakeAws:
         if "get-session-token" in argv:
             if not self.code_ok:
                 return done(argv, None, 254, "AccessDenied: MultiFactorAuthentication failed")
-            return done(argv, {"Credentials": {
-                "AccessKeyId": self.key, "SecretAccessKey": SECRET, "SessionToken": TOKEN,
-                "Expiration": EXPIRY}})
+            return done(
+                argv,
+                {
+                    "Credentials": {
+                        "AccessKeyId": self.key,
+                        "SecretAccessKey": SECRET,
+                        "SessionToken": TOKEN,
+                        "Expiration": EXPIRY,
+                    }
+                },
+            )
         if "get-caller-identity" in argv:
             return done(argv, {"Account": "866865534361" if self.account == "1" else self.account})
         raise AssertionError(f"unexpected call {words}")
@@ -88,8 +96,9 @@ def test_only_the_expiry_is_printed_never_a_key_or_token(tmp_path, capsys):
 def test_the_one_time_code_travels_in_a_private_file_not_the_argument_list(tmp_path):
     _, aws = run(tmp_path)
     assert all("123456" not in " ".join(call) for call in aws.calls)
-    assert aws.payloads == [{"SerialNumber": SERIAL, "TokenCode": "123456",
-                             "DurationSeconds": 129600}]
+    assert aws.payloads == [
+        {"SerialNumber": SERIAL, "TokenCode": "123456", "DurationSeconds": 129600}
+    ]
 
 
 def test_the_serial_comes_from_the_base_profile_and_the_exchange_uses_that_profile(tmp_path):
@@ -101,8 +110,10 @@ def test_the_serial_comes_from_the_base_profile_and_the_exchange_uses_that_profi
 def test_other_profiles_and_comments_in_the_credentials_file_survive_a_refresh(tmp_path):
     folder = tmp_path / ".aws"
     folder.mkdir()
-    original = ("# my keys\n[default]\naws_access_key_id = AKIADEFAULT\n\n"
-                "[dc2-project2]\naws_access_key_id = AKIALONGTERM\n")
+    original = (
+        "# my keys\n[default]\naws_access_key_id = AKIADEFAULT\n\n"
+        "[dc2-project2]\naws_access_key_id = AKIALONGTERM\n"
+    )
     (folder / "credentials").write_text(original)
     run(tmp_path)
     run(tmp_path)  # a second mint replaces the first instead of duplicating it
@@ -124,11 +135,18 @@ def test_a_symlinked_credentials_file_stays_a_symlink(tmp_path):
     assert "dc2-project2-mfa" in (real / "credentials").read_text()
 
 
-@pytest.mark.parametrize("args", [
-    ["--profile", "default"], ["--base-profile", "default"], ["--profile", "dc2-project2"],
-    ["--duration", "60"], ["--duration", "200000"], ["--account", "12"],
-    ["--serial", "not-an-arn"],
-])
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["--profile", "default"],
+        ["--base-profile", "default"],
+        ["--profile", "dc2-project2"],
+        ["--duration", "60"],
+        ["--duration", "200000"],
+        ["--account", "12"],
+        ["--serial", "not-an-arn"],
+    ],
+)
 def test_bad_scope_or_duration_is_refused_before_any_aws_call(tmp_path, args):
     aws = FakeAws()
     with pytest.raises(SystemExit):
@@ -200,8 +218,9 @@ def test_an_asia_key_with_a_token_is_a_session_and_reports_its_remaining_time():
 
 def test_a_session_without_a_cli_expiry_falls_back_to_the_one_mfa_session_recorded(tmp_path):
     run(tmp_path)
-    info = credentials.probe("dc2-project2-mfa", runner=exporter("ASIAEXAMPLE"), environ={},
-                             home=tmp_path, now=NOW)
+    info = credentials.probe(
+        "dc2-project2-mfa", runner=exporter("ASIAEXAMPLE"), environ={}, home=tmp_path, now=NOW
+    )
     assert info["expires_at"] == "2026-10-19T00:00:00Z"
 
 
@@ -219,8 +238,9 @@ def test_an_unclassifiable_profile_is_a_warning_and_a_failed_export_is_unknown()
 
 def test_require_mfa_session_raises_for_long_term_and_returns_the_info_otherwise():
     with pytest.raises(OperationError, match="mfa_session"):
-        credentials.require_mfa_session("p", {"kind": "long-term", "expires_at": None,
-                                              "remaining_seconds": None})
+        credentials.require_mfa_session(
+            "p", {"kind": "long-term", "expires_at": None, "remaining_seconds": None}
+        )
     ok = {"kind": "session", "expires_at": None, "remaining_seconds": None}
     assert credentials.require_mfa_session("p", ok) is ok
 
@@ -231,8 +251,11 @@ def test_preflight_blocks_long_term_credentials_for_a_cloudformation_driven_depl
 
     rig = Rig(tmp_path)
     pipeline = rig.pipeline()
-    pipeline.credential_probe = lambda _p: {"kind": "long-term", "expires_at": None,
-                                            "remaining_seconds": None}
+    pipeline.credential_probe = lambda _p: {
+        "kind": "long-term",
+        "expires_at": None,
+        "remaining_seconds": None,
+    }
     with pytest.raises(deploy.DeployError, match="Preflight blockers: credentials"):
         pipeline.preflight()
     assert not any(deploy.is_mutating(op) for _, op, _ in rig.sim.calls)
@@ -244,7 +267,10 @@ def test_preflight_accepts_an_mfa_session_and_records_its_expiry(tmp_path):
     rig = Rig(tmp_path)
     pipeline = rig.pipeline()
     pipeline.credential_probe = lambda _p: {
-        "kind": "session", "expires_at": "2026-10-19T00:00:00Z", "remaining_seconds": 90000}
+        "kind": "session",
+        "expires_at": "2026-10-19T00:00:00Z",
+        "remaining_seconds": 90000,
+    }
     checks = {c["check"]: c for c in pipeline.preflight()["checks"]}
     assert checks["credentials"]["status"] == "pass"
     assert checks["credentials"]["expires_at"] == "2026-10-19T00:00:00Z"
@@ -255,8 +281,11 @@ def test_a_destructive_teardown_also_refuses_long_term_credentials(tmp_path):
 
     rig = Rig(tmp_path, confirm_run_id="t1")
     pipeline = rig.pipeline()
-    pipeline.credential_probe = lambda _p: {"kind": "long-term", "expires_at": None,
-                                            "remaining_seconds": None}
+    pipeline.credential_probe = lambda _p: {
+        "kind": "long-term",
+        "expires_at": None,
+        "remaining_seconds": None,
+    }
     with pytest.raises(deploy.DeployError, match="mfa_session"):
         pipeline.teardown()
     assert not any(deploy.is_mutating(op) for _, op, _ in rig.sim.calls)

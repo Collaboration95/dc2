@@ -57,26 +57,43 @@ def fetch_receipt(repository: str, run_id: str) -> dict:
     root = f"repos/{repository}/actions/runs/{run_id}"
     run = gh_json(["api", root])
     attempt = run["run_attempt"]
-    pages = gh_json([
-        "api", f"{root}/attempts/{attempt}/jobs?per_page=100", "--paginate", "--slurp"
-    ])
+    pages = gh_json(
+        ["api", f"{root}/attempts/{attempt}/jobs?per_page=100", "--paginate", "--slurp"]
+    )
     artifacts = gh_json(["api", f"{root}/artifacts?per_page=100", "--paginate", "--slurp"])
     name = f"ci-selection-{attempt}"
-    available = [a for page in artifacts for a in page["artifacts"]
-                 if a["name"] == name and not a["expired"]]
+    available = [
+        a for page in artifacts for a in page["artifacts"] if a["name"] == name and not a["expired"]
+    ]
     if len(available) > 1:
         raise ValueError("ambiguous selection artifacts for this attempt")
     selection = None
     if available:
         with tempfile.TemporaryDirectory(prefix="dc2-ci-selection-") as directory:
             subprocess.run(
-                ["gh", "run", "download", run_id, "--repo", repository,
-                 "--name", name, "--dir", directory],
-                check=True, capture_output=True, text=True, timeout=60,
+                [
+                    "gh",
+                    "run",
+                    "download",
+                    run_id,
+                    "--repo",
+                    repository,
+                    "--name",
+                    name,
+                    "--dir",
+                    directory,
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=60,
             )
             selection = json.loads((Path(directory) / "ci-policy.json").read_text())
-    return {"run": run, "jobs": [job for page in pages for job in page["jobs"]],
-            "selection": selection}
+    return {
+        "run": run,
+        "jobs": [job for page in pages for job in page["jobs"]],
+        "selection": selection,
+    }
 
 
 def tested_source(receipt):
@@ -84,11 +101,13 @@ def tested_source(receipt):
     run, selection = receipt["run"], receipt.get("selection")
     if selection is None:
         return None
-    if (str(selection.get("run_id")) != str(run["id"])
-            or str(selection.get("run_attempt")) != str(run["run_attempt"])
-            or selection.get("event") != run["event"]
-            or selection.get("head_sha") != run["head_sha"]
-            or not re.fullmatch(r"[0-9a-f]{40}", selection.get("source_sha", ""))):
+    if (
+        str(selection.get("run_id")) != str(run["id"])
+        or str(selection.get("run_attempt")) != str(run["run_attempt"])
+        or selection.get("event") != run["event"]
+        or selection.get("head_sha") != run["head_sha"]
+        or not re.fullmatch(r"[0-9a-f]{40}", selection.get("source_sha", ""))
+    ):
         raise ValueError("selection provenance does not match this run/attempt/head")
     return selection["source_sha"]
 
@@ -108,61 +127,100 @@ def summarize(receipt: dict, gates: list[str], tier: str) -> dict:
         duration = None
         if not skipped and job["status"] == "completed":
             duration = seconds(start, end)
-        rows.append({
-            "id": job.get("id"), "name": job["name"], "status": job["status"],
-            "conclusion": job.get("conclusion"), "started_at": job.get("started_at"),
-            "completed_at": job.get("completed_at"), "execution_seconds": duration,
-        })
-    starts = [timestamp(row["started_at"]) for row in rows
-              if row["conclusion"] != "skipped" and row["status"] in {"completed", "in_progress"}
-              and timestamp(row["started_at"]) is not None]
+        rows.append(
+            {
+                "id": job.get("id"),
+                "name": job["name"],
+                "status": job["status"],
+                "conclusion": job.get("conclusion"),
+                "started_at": job.get("started_at"),
+                "completed_at": job.get("completed_at"),
+                "execution_seconds": duration,
+            }
+        )
+    starts = [
+        timestamp(row["started_at"])
+        for row in rows
+        if row["conclusion"] != "skipped"
+        and row["status"] in {"completed", "in_progress"}
+        and timestamp(row["started_at"]) is not None
+    ]
     first_start = min(starts, default=None)
     gate_rows = [row for row in rows if row["name"] in gates]
     missing = [name for name in gates if not any(row["name"] == name for row in rows)]
     duplicate = [name for name in gates if sum(row["name"] == name for row in rows) > 1]
-    gate_ready = bool(gates) and not missing and not duplicate and all(
-        row["status"] == "completed" and row["conclusion"] != "skipped"
-        and row["execution_seconds"] is not None and row["conclusion"] is not None
-        for row in gate_rows
+    gate_ready = (
+        bool(gates)
+        and not missing
+        and not duplicate
+        and all(
+            row["status"] == "completed"
+            and row["conclusion"] != "skipped"
+            and row["execution_seconds"] is not None
+            and row["conclusion"] is not None
+            for row in gate_rows
+        )
     )
-    gate_end = max((timestamp(row["completed_at"]) for row in gate_rows), default=None) \
-        if gate_ready else None
+    gate_end = (
+        max((timestamp(row["completed_at"]) for row in gate_rows), default=None)
+        if gate_ready
+        else None
+    )
     gate_state = "complete" if gate_ready else "incomplete"
     if missing or duplicate or any(row["conclusion"] == "skipped" for row in gate_rows):
         gate_state = "invalid"
     # Failures stay visible immediately, even if the aggregate is still pending.
-    failed = [row["name"] for row in rows if row["conclusion"] in {
-        "failure", "cancelled", "timed_out", "action_required", "startup_failure", "stale"
-    }]
+    failed = [
+        row["name"]
+        for row in rows
+        if row["conclusion"]
+        in {"failure", "cancelled", "timed_out", "action_required", "startup_failure", "stale"}
+    ]
     complete = run["status"] == "completed"
     # REST has no dedicated workflow completed_at. updated_at is an explicit proxy only.
     workflow_end = timestamp(run.get("updated_at")) if complete else None
-    durations = [row["execution_seconds"] for row in rows
-                 if row["execution_seconds"] is not None]
-    sum_complete = complete and bool(rows) and all(
-        row["conclusion"] == "skipped" or row["execution_seconds"] is not None for row in rows
+    durations = [row["execution_seconds"] for row in rows if row["execution_seconds"] is not None]
+    sum_complete = (
+        complete
+        and bool(rows)
+        and all(
+            row["conclusion"] == "skipped" or row["execution_seconds"] is not None for row in rows
+        )
     )
     return {
-        "run_id": run["id"], "url": run.get("html_url"), "head_sha": run["head_sha"],
+        "run_id": run["id"],
+        "url": run.get("html_url"),
+        "head_sha": run["head_sha"],
         "source_sha": tested_source(receipt),
         "source_sha_basis": "selection receipt" if receipt.get("selection") else "unknown",
         "selection_mode": (receipt.get("selection") or {}).get("mode"),
-        "event": run["event"], "head_branch": run.get("head_branch"),
-        "base_branches": sorted({pr["base"]["ref"] for pr in run.get("pull_requests", [])
-                                 if pr.get("base", {}).get("ref")}),
-        "tier": tier, "tier_source": "operator-supplied; verify selection artifact",
-        "attempt": run["run_attempt"], "status": run["status"],
-        "conclusion": run.get("conclusion"), "created_at": run["created_at"],
-        "run_started_at": run.get("run_started_at"), "updated_at": run.get("updated_at"),
+        "event": run["event"],
+        "head_branch": run.get("head_branch"),
+        "base_branches": sorted(
+            {
+                pr["base"]["ref"]
+                for pr in run.get("pull_requests", [])
+                if pr.get("base", {}).get("ref")
+            }
+        ),
+        "tier": tier,
+        "tier_source": "operator-supplied; verify selection artifact",
+        "attempt": run["run_attempt"],
+        "status": run["status"],
+        "conclusion": run.get("conclusion"),
+        "created_at": run["created_at"],
+        "run_started_at": run.get("run_started_at"),
+        "updated_at": run.get("updated_at"),
         "first_job_started_at": first_start.isoformat() if first_start else None,
         "timing_origin": "created_at" if run["run_attempt"] == 1 else "run_started_at",
         "queue_start_delay_seconds": seconds(origin, first_start),
-        "required_gates": gates, "required_gate_state": gate_state,
+        "required_gates": gates,
+        "required_gate_state": gate_state,
         "required_gate_conclusions": {row["name"]: row["conclusion"] for row in gate_rows},
-        "required_gate_passed": gate_ready and all(
-            row["conclusion"] == "success" for row in gate_rows
-        ),
-        "missing_gates": missing, "ambiguous_gates": duplicate,
+        "required_gate_passed": gate_ready
+        and all(row["conclusion"] == "success" for row in gate_rows),
+        "missing_gates": missing,
+        "ambiguous_gates": duplicate,
         "required_gate_seconds": seconds(origin, gate_end),
         "required_gate_execution_seconds": seconds(first_start, gate_end),
         "workflow_elapsed_seconds": seconds(origin, workflow_end),
@@ -172,16 +230,23 @@ def summarize(receipt: dict, gates: list[str], tier: str) -> dict:
         "sum_job_execution_note": "completed job wall time; not billed time; partial if unfinished",
         "selected_jobs": [row["name"] for row in rows if row["conclusion"] != "skipped"],
         "skipped_jobs": [row["name"] for row in rows if row["conclusion"] == "skipped"],
-        "failed_jobs": failed, "jobs": rows,
+        "failed_jobs": failed,
+        "jobs": rows,
     }
 
 
 def compare(baseline: list[dict], samples: list[dict]) -> dict:
     """Compare successful complete receipts only; keep incomplete runs in the raw report."""
+
     def eligible(rows):
-        return [row for row in rows if row["status"] == "completed"
-                and row["conclusion"] == "success" and row["required_gate_passed"]
-                and row["sum_job_execution_complete"]]
+        return [
+            row
+            for row in rows
+            if row["status"] == "completed"
+            and row["conclusion"] == "success"
+            and row["required_gate_passed"]
+            and row["sum_job_execution_complete"]
+        ]
 
     before, after = eligible(baseline), eligible(samples)
     metrics = {}
@@ -191,12 +256,16 @@ def compare(baseline: list[dict], samples: list[dict]) -> dict:
         old = statistics.median(b) if b else None
         new = statistics.median(a) if a else None
         metrics[key] = {
-            "baseline_median": old, "sample_median": new,
+            "baseline_median": old,
+            "sample_median": new,
             "delta_seconds": new - old if new is not None and old is not None else None,
         }
-    return {"baseline_count": len(before), "sample_count": len(after),
-            "note": "small samples; match tier/change/cache conditions before claiming a speedup",
-            "metrics": metrics}
+    return {
+        "baseline_count": len(before),
+        "sample_count": len(after),
+        "note": "small samples; match tier/change/cache conditions before claiming a speedup",
+        "metrics": metrics,
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -228,8 +297,9 @@ def main(argv: list[str] | None = None) -> int:
                 path.write_text(json.dumps(receipt, indent=2) + "\n")
         baseline += [json.loads(path.read_text()) for path in args.baseline_fixture]
         samples += [json.loads(path.read_text()) for path in args.fixture]
-        before = [summarize(r, args.baseline_gate or args.gate, args.baseline_tier)
-                  for r in baseline]
+        before = [
+            summarize(r, args.baseline_gate or args.gate, args.baseline_tier) for r in baseline
+        ]
         after = [summarize(r, args.gate, args.tier) for r in samples]
         report = {"baseline": before, "samples": after, "comparison": compare(before, after)}
         output = json.dumps(report, indent=2) + "\n"

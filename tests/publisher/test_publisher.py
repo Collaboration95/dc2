@@ -44,12 +44,7 @@ def test_cookie_survives_process_restart_and_is_secure(tmp_path):
         assert json.loads(request.content) == {"email": EMAIL, "password": "private"}
         return httpx.Response(
             201,
-            json={
-                "id": USER,
-                "email": EMAIL,
-                "role": "user",
-                "password": "DO NOT PRINT",
-            },
+            json={"id": USER, "email": EMAIL, "role": "user", "password": "DO NOT PRINT"},
             headers={
                 "set-cookie": (
                     "access_token=fixture-only; Path=/api; Secure; HttpOnly; SameSite=Strict"
@@ -259,8 +254,7 @@ def test_cli_auth_password_stdin(monkeypatch, tmp_path, capsys, command):
     install_peer(
         monkeypatch,
         lambda req: httpx.Response(
-            200,
-            json={"id": USER, "email": EMAIL, "role": "user", "token": "do-not-print"},
+            200, json={"id": USER, "email": EMAIL, "role": "user", "token": "do-not-print"}
         ),
     )
     assert cli.main(args(tmp_path, command, EMAIL, "--password-stdin")) == 0
@@ -471,9 +465,7 @@ def test_wait_failure_preserves_accepted_asset(monkeypatch, tmp_path, capsys):
 
 
 @pytest.mark.parametrize("operation", ["upload", "retry"])
-def test_cli_uncertain_auth_recovery_is_owner_scoped(
-    monkeypatch, tmp_path, capsys, operation
-):
+def test_cli_uncertain_auth_recovery_is_owner_scoped(monkeypatch, tmp_path, capsys, operation):
     directory = tmp_path / "videos"
     directory.mkdir()
     (directory / "clip.mp4").write_bytes(b"original content")
@@ -537,8 +529,11 @@ def test_cli_uncertain_auth_recovery_is_owner_scoped(
     code, later = invoke(*command)
     assert code == 0 and later["intent_key"] != lost["intent_key"]
     assert [req.headers["idempotency-key"] for req in posts] == [
-        lost["intent_key"], lost["intent_key"], other["intent_key"],
-        lost["intent_key"], later["intent_key"],
+        lost["intent_key"],
+        lost["intent_key"],
+        other["intent_key"],
+        lost["intent_key"],
+        later["intent_key"],
     ]
 
 

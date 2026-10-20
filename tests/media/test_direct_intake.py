@@ -133,6 +133,7 @@ async def test_finalize_atomic_adoption_and_replay(session, storage, reservation
 async def test_finalize_denies_invalid_reservation(session, storage, reservation, failure):
     session.scalar.return_value = reservation
     body = request(reservation)
+    enqueue = AsyncMock()
     if failure == "owner":
         session.scalar.return_value = None
     elif failure == "expired":
@@ -140,9 +141,13 @@ async def test_finalize_denies_invalid_reservation(session, storage, reservation
     else:
         body.request_id = uuid4()
     with pytest.raises(MediaError) as error:
-        await intake.finalize(session, storage, reservation.owner_id, reservation.id, body)
+        await intake.finalize(
+            session, storage, reservation.owner_id, reservation.id, body, enqueue=enqueue
+        )
     assert error.value.status_code == {"owner": 404, "expired": 410, "request": 409}[failure]
     storage.verify_direct_upload.assert_not_awaited()
+    session.add.assert_not_called()
+    enqueue.assert_not_awaited()
 
 
 async def test_finalize_rechecks_expiry_after_slow_storage(session, storage, reservation):
@@ -215,6 +220,33 @@ async def test_verify_rejects_changed_or_unversioned_object(native_store, reserv
         stat.version_id = "null"
     with pytest.raises(MediaError):
         await native_store.verify_direct_upload(reservation)
+
+
+class ObjectStoreFailure(Exception):
+    def __init__(self, code):
+        super().__init__("private storage endpoint and credential details")
+        self.code = code
+
+
+@pytest.mark.parametrize(
+    ("failure", "status"),
+    [
+        (ObjectStoreFailure("NoSuchKey"), 409),
+        (ObjectStoreFailure("NoSuchBucket"), 503),
+        (TimeoutError("timeout"), 503),
+    ],
+)
+async def test_missing_object_is_recoverable_but_other_storage_failures_stay_unavailable(
+    native_store, reservation, failure, status
+):
+    native_store.internal.stat_object.side_effect = failure
+    with pytest.raises(MediaError) as caught:
+        await native_store.verify_direct_upload(reservation)
+    assert caught.value.status_code == status
+    assert "private storage" not in str(caught.value)
+    if status == 409:
+        assert caught.value.message == "upload is incomplete; please upload the file again"
+    native_store.internal.get_object.assert_not_called()
 
 
 async def test_post_policy_limits_key_type_and_size(native_store, reservation):
@@ -445,11 +477,12 @@ async def test_cleanup_stops_at_the_invocation_deadline_without_touching_storage
     assert reservation.cleanup_attempts == 0
 
 
-async def test_absent_object_does_not_adopt_or_enqueue(session, storage, reservation):
+@pytest.mark.parametrize("status", [409, 503])
+async def test_storage_failure_does_not_adopt_or_enqueue(session, storage, reservation, status):
     session.scalar.return_value = reservation
-    storage.verify_direct_upload.side_effect = MediaError(503, "missing")
+    storage.verify_direct_upload.side_effect = MediaError(status, "source unavailable")
     enqueue = AsyncMock()
-    with pytest.raises(MediaError):
+    with pytest.raises(MediaError) as caught:
         await intake.finalize(
             session,
             storage,
@@ -458,6 +491,7 @@ async def test_absent_object_does_not_adopt_or_enqueue(session, storage, reserva
             request(reservation),
             enqueue=enqueue,
         )
+    assert caught.value.status_code == status
     assert reservation.finalized_at is None
     session.add.assert_not_called()
     enqueue.assert_not_awaited()

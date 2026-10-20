@@ -1,0 +1,521 @@
+{
+  "scope": "Local engineering validation; AWS and hosted final-candidate acceptance recorded separately",
+  "source_sha": "9bd0a598be293b1f68460e0a8288100160e78dec",
+  "working_tree_dirty": false,
+  "fingerprint": "0609b3167de0ce17ac30d70af2e2af3d47ea6db97ccb48be6d22c124415c0494",
+  "baseline": {
+    "source_sha": "daee44b61a6e8eef3f62505df69f8bfd076d68b8",
+    "ci_run": 39278870533,
+    "attempt": 2,
+    "backend_report_sha256": "6e260ff5dbdca3f61482111fcdd2ffe27de0ce022e4fac4d0992d0e8f4f725f8"
+  },
+  "coverage": {
+    "tiers": [
+      "fast",
+      "legacy-integration",
+      "processing-integration",
+      "media-integration",
+      "v1-integration"
+    ],
+    "omit": [
+      "*/migrations/*"
+    ],
+    "packages": [
+      {
+        "package": "app",
+        "combined": 93.15687540348613,
+        "raw_branch": 87.03703703703704,
+        "num_statements": 1333,
+        "num_branches": 216,
+        "covered_lines": 1255,
+        "covered_branches": 188
+      },
+      {
+        "package": "processing",
+        "combined": 93.78618294094944,
+        "raw_branch": 89.35742971887551,
+        "num_statements": 2093,
+        "num_branches": 498,
+        "covered_lines": 1985,
+        "covered_branches": 445
+      },
+      {
+        "package": "media",
+        "combined": 93.9121756487026,
+        "raw_branch": 86.68341708542714,
+        "num_statements": 1606,
+        "num_branches": 398,
+        "covered_lines": 1537,
+        "covered_branches": 345
+      },
+      {
+        "package": "media_engine",
+        "combined": 99.4186046511628,
+        "raw_branch": 98.0,
+        "num_statements": 122,
+        "num_branches": 50,
+        "covered_lines": 122,
+        "covered_branches": 49
+      },
+      {
+        "package": "publisher",
+        "combined": 97.57412398921834,
+        "raw_branch": 94.28571428571429,
+        "num_statements": 301,
+        "num_branches": 70,
+        "covered_lines": 296,
+        "covered_branches": 66
+      },
+      {
+        "package": "contracts",
+        "combined": 96.88581314878893,
+        "raw_branch": 95.83333333333333,
+        "num_statements": 217,
+        "num_branches": 72,
+        "covered_lines": 211,
+        "covered_branches": 69
+      },
+      {
+        "package": "delivery",
+        "combined": 95.03722084367246,
+        "raw_branch": 89.36170212765957,
+        "num_statements": 309,
+        "num_branches": 94,
+        "covered_lines": 299,
+        "covered_branches": 84
+      },
+      {
+        "package": "runtime_support",
+        "combined": 94.31279620853081,
+        "raw_branch": 89.62264150943396,
+        "num_statements": 316,
+        "num_branches": 106,
+        "covered_lines": 303,
+        "covered_branches": 95
+      }
+    ],
+    "bootstrap": {
+      "path": "scripts/aws/v1/bootstrap.py",
+      "status": "MEASURED",
+      "combined": 80.36529680365297,
+      "raw_branch": 71.42857142857143,
+      "covered_lines": 126,
+      "num_statements": 149,
+      "percent_covered": 80.36529680365297,
+      "percent_covered_display": "80",
+      "missing_lines": 23,
+      "excluded_lines": 0,
+      "percent_statements_covered": 84.56375838926175,
+      "percent_statements_covered_display": "85",
+      "num_branches": 70,
+      "num_partial_branches": 10,
+      "covered_branches": 50,
+      "missing_branches": 20,
+      "percent_branches_covered": 71.42857142857143,
+      "percent_branches_covered_display": "71"
+    },
+    "goals": {
+      "enforced_for_complete_backend_tiers": true,
+      "packages": {
+        "media": {
+          "combined_target": 90,
+          "raw_branch_target": 85,
+          "combined": 93.9121756487026,
+          "raw_branch": 86.68341708542714,
+          "status": "MET"
+        },
+        "processing": {
+          "combined_target": 90,
+          "raw_branch_target": 85,
+          "combined": 93.78618294094944,
+          "raw_branch": 89.35742971887551,
+          "status": "MET"
+        }
+      },
+      "recovery_modules": {
+        "media/recovery_v1.py": {
+          "combined_target": 80,
+          "raw_branch_target": 75,
+          "combined": 89.76377952755905,
+          "raw_branch": 75.0,
+          "status": "MET"
+        },
+        "processing/recovery_v1.py": {
+          "combined_target": 80,
+          "raw_branch_target": 75,
+          "combined": 88.34355828220859,
+          "raw_branch": 80.0,
+          "status": "MET"
+        }
+      }
+    },
+    "risk_modules": {
+      "media/recovery_v1.py": {
+        "path": "media/recovery_v1.py",
+        "status": "MEASURED",
+        "combined": 89.76377952755905,
+        "raw_branch": 75.0,
+        "covered_lines": 90,
+        "num_statements": 95,
+        "percent_covered": 89.76377952755905,
+        "percent_covered_display": "90",
+        "missing_lines": 5,
+        "excluded_lines": 0,
+        "percent_statements_covered": 94.73684210526316,
+        "percent_statements_covered_display": "95",
+        "num_branches": 32,
+        "num_partial_branches": 8,
+        "covered_branches": 24,
+        "missing_branches": 8,
+        "percent_branches_covered": 75.0,
+        "percent_branches_covered_display": "75"
+      },
+      "processing/recovery_v1.py": {
+        "path": "processing/recovery_v1.py",
+        "status": "MEASURED",
+        "combined": 88.34355828220859,
+        "raw_branch": 80.0,
+        "covered_lines": 112,
+        "num_statements": 123,
+        "percent_covered": 88.34355828220859,
+        "percent_covered_display": "88",
+        "missing_lines": 11,
+        "excluded_lines": 0,
+        "percent_statements_covered": 91.0569105691057,
+        "percent_statements_covered_display": "91",
+        "num_branches": 40,
+        "num_partial_branches": 8,
+        "covered_branches": 32,
+        "missing_branches": 8,
+        "percent_branches_covered": 80.0,
+        "percent_branches_covered_display": "80"
+      },
+      "processing/messaging.py": {
+        "path": "processing/messaging.py",
+        "status": "MEASURED",
+        "combined": 86.10169491525424,
+        "raw_branch": 80.26315789473684,
+        "covered_lines": 193,
+        "num_statements": 219,
+        "percent_covered": 86.10169491525424,
+        "percent_covered_display": "86",
+        "missing_lines": 26,
+        "excluded_lines": 0,
+        "percent_statements_covered": 88.12785388127854,
+        "percent_statements_covered_display": "88",
+        "num_branches": 76,
+        "num_partial_branches": 13,
+        "covered_branches": 61,
+        "missing_branches": 15,
+        "percent_branches_covered": 80.26315789473684,
+        "percent_branches_covered_display": "80"
+      },
+      "runtime_support/storage_credentials.py": {
+        "path": "runtime_support/storage_credentials.py",
+        "status": "MEASURED",
+        "combined": 92.7927927927928,
+        "raw_branch": 88.88888888888889,
+        "covered_lines": 71,
+        "num_statements": 75,
+        "percent_covered": 92.7927927927928,
+        "percent_covered_display": "93",
+        "missing_lines": 4,
+        "excluded_lines": 0,
+        "percent_statements_covered": 94.66666666666667,
+        "percent_statements_covered_display": "95",
+        "num_branches": 36,
+        "num_partial_branches": 4,
+        "covered_branches": 32,
+        "missing_branches": 4,
+        "percent_branches_covered": 88.88888888888889,
+        "percent_branches_covered_display": "89"
+      }
+    }
+  },
+  "coverage_comparison": {
+    "media": {
+      "before": {
+        "combined": 91.05263157894737,
+        "raw_branch": 82.00934579439253,
+        "num_statements": 1662,
+        "num_branches": 428,
+        "covered_lines": 1552,
+        "covered_branches": 351
+      },
+      "after": {
+        "combined": 93.9121756487026,
+        "raw_branch": 86.68341708542714,
+        "num_statements": 1606,
+        "num_branches": 398,
+        "covered_lines": 1537,
+        "covered_branches": 345
+      }
+    },
+    "processing": {
+      "before": {
+        "combined": 88.0134428678118,
+        "raw_branch": 79.21348314606742,
+        "num_statements": 2144,
+        "num_branches": 534,
+        "covered_lines": 1934,
+        "covered_branches": 423
+      },
+      "after": {
+        "combined": 93.78618294094944,
+        "raw_branch": 89.35742971887551,
+        "num_statements": 2093,
+        "num_branches": 498,
+        "covered_lines": 1985,
+        "covered_branches": 445
+      }
+    },
+    "media/recovery_v1.py": {
+      "before": {
+        "path": "media/recovery_v1.py",
+        "status": "MEASURED",
+        "combined": 59.05511811023622,
+        "raw_branch": 37.5,
+        "covered_lines": 63,
+        "num_statements": 95,
+        "percent_covered": 59.05511811023622,
+        "percent_covered_display": "59",
+        "missing_lines": 32,
+        "excluded_lines": 0,
+        "percent_statements_covered": 66.3157894736842,
+        "percent_statements_covered_display": "66",
+        "num_branches": 32,
+        "num_partial_branches": 10,
+        "covered_branches": 12,
+        "missing_branches": 20,
+        "percent_branches_covered": 37.5,
+        "percent_branches_covered_display": "38"
+      },
+      "after": {
+        "path": "media/recovery_v1.py",
+        "status": "MEASURED",
+        "combined": 89.76377952755905,
+        "raw_branch": 75.0,
+        "covered_lines": 90,
+        "num_statements": 95,
+        "percent_covered": 89.76377952755905,
+        "percent_covered_display": "90",
+        "missing_lines": 5,
+        "excluded_lines": 0,
+        "percent_statements_covered": 94.73684210526316,
+        "percent_statements_covered_display": "95",
+        "num_branches": 32,
+        "num_partial_branches": 8,
+        "covered_branches": 24,
+        "missing_branches": 8,
+        "percent_branches_covered": 75.0,
+        "percent_branches_covered_display": "75"
+      }
+    },
+    "processing/recovery_v1.py": {
+      "before": {
+        "path": "processing/recovery_v1.py",
+        "status": "MEASURED",
+        "combined": 53.987730061349694,
+        "raw_branch": 37.5,
+        "covered_lines": 73,
+        "num_statements": 123,
+        "percent_covered": 53.987730061349694,
+        "percent_covered_display": "54",
+        "missing_lines": 50,
+        "excluded_lines": 0,
+        "percent_statements_covered": 59.34959349593496,
+        "percent_statements_covered_display": "59",
+        "num_branches": 40,
+        "num_partial_branches": 5,
+        "covered_branches": 15,
+        "missing_branches": 25,
+        "percent_branches_covered": 37.5,
+        "percent_branches_covered_display": "38"
+      },
+      "after": {
+        "path": "processing/recovery_v1.py",
+        "status": "MEASURED",
+        "combined": 88.34355828220859,
+        "raw_branch": 80.0,
+        "covered_lines": 112,
+        "num_statements": 123,
+        "percent_covered": 88.34355828220859,
+        "percent_covered_display": "88",
+        "missing_lines": 11,
+        "excluded_lines": 0,
+        "percent_statements_covered": 91.0569105691057,
+        "percent_statements_covered_display": "91",
+        "num_branches": 40,
+        "num_partial_branches": 8,
+        "covered_branches": 32,
+        "missing_branches": 8,
+        "percent_branches_covered": 80.0,
+        "percent_branches_covered_display": "80"
+      }
+    }
+  },
+  "coverage_comparison_limit": "Same migration exclusion applied to both reports. Credential consolidation changes package ownership/denominators; recovery module comparisons retain their original statement/branch denominators.",
+  "test_results": {
+    "full_offline": {
+      "passed": 3662,
+      "skipped": 3,
+      "deselected": 153,
+      "subtests": 267,
+      "seconds": 124.82,
+      "source_sha": "8bb273abceca996ef30bde221d8f6e35bf75d73e",
+      "later_docs_only_at": "c85a7377c67cf59280a441c664fdc0fbadfdd4b6"
+    },
+    "coverage_fast": {
+      "passed": 2878,
+      "skipped": 3,
+      "deselected": 937,
+      "subtests": 267
+    },
+    "legacy_integration": {
+      "passed": 44,
+      "skipped": 0
+    },
+    "processing_integration": {
+      "passed": 47,
+      "skipped": 0
+    },
+    "media_integration": {
+      "passed": 39,
+      "skipped": 0
+    },
+    "v1_integration": {
+      "passed": 157,
+      "skipped": 0,
+      "required_core_and_support": 99,
+      "optional_short_encoder_cases": 13,
+      "optional_short_encoder_status": "DEFERRED_OPTIONAL_V2",
+      "manifest_sha256": "1ea9ca8bf70a2cbd44314bb08760489b7fed21d7983e18d86953b455cb195b74"
+    },
+    "frontend": {
+      "passed": 170,
+      "statement_coverage": 99.72,
+      "branch_coverage": 91.99,
+      "function_coverage": 98.64
+    },
+    "real_cfn_lint": {
+      "passed": 9
+    },
+    "cd_fresh_profile": {
+      "extras": [
+        "dev",
+        "v1-media"
+      ],
+      "passed": 450,
+      "skipped": 2
+    }
+  },
+  "skip_dispositions": [
+    "Two rendered environment cases have no applicable owner SQL/storage mode.",
+    "cfn-lint was absent from the full-run PATH; the real cfn-lint suite subsequently ran separately and passed."
+  ],
+  "images": {
+    "source_sha": "1a4426306fd59c5204e2a5fea75eab514c756fbc",
+    "status": "LOCAL_ARTIFACT_PASS",
+    "checks_passed": 73,
+    "receipt_sha256": "954e17f5aa55894ea67d1adae2ca0189d81b5d5b6a59364910003de28adba845",
+    "owners": {
+      "media": {
+        "config_id": "sha256:7945c87b11f035a5211cbe257e7edb6162bf670447feea58523ccb989ff7f454",
+        "installed_package_count": 41,
+        "size_bytes": 262250847,
+        "trivy_scan": {
+          "status": "PASS",
+          "config_id": "sha256:7945c87b11f035a5211cbe257e7edb6162bf670447feea58523ccb989ff7f454",
+          "source_sha": "1a4426306fd59c5204e2a5fea75eab514c756fbc",
+          "policy": "zero-fixable-high-critical; Debian OS and Python packages",
+          "targets": [
+            [
+              "os-pkgs",
+              "debian"
+            ],
+            [
+              "lang-pkgs",
+              "python-pkg"
+            ]
+          ],
+          "report_sha256": "sha256:83ee9ef03c4769b4980f417b32e90ab2412cd6dc6a6d00f0fc1586c2858793e5",
+          "fixable_high_critical": 0,
+          "unfixed_high_critical_count": 44,
+          "scanned_at": "2026-10-20T09:09:03.637884+00:00"
+        }
+      },
+      "processing": {
+        "config_id": "sha256:1dd437d8d62b6e70021c97fe802583722552816c47f19f9286d6c71ae5020103",
+        "installed_package_count": 37,
+        "size_bytes": 258200210,
+        "trivy_scan": {
+          "status": "PASS",
+          "config_id": "sha256:1dd437d8d62b6e70021c97fe802583722552816c47f19f9286d6c71ae5020103",
+          "source_sha": "1a4426306fd59c5204e2a5fea75eab514c756fbc",
+          "policy": "zero-fixable-high-critical; Debian OS and Python packages",
+          "targets": [
+            [
+              "os-pkgs",
+              "debian"
+            ],
+            [
+              "lang-pkgs",
+              "python-pkg"
+            ]
+          ],
+          "report_sha256": "sha256:b0c64599df672452093e44eb808aa535eea339f529857f51c6f035075aba4b90",
+          "fixable_high_critical": 0,
+          "unfixed_high_critical_count": 44,
+          "scanned_at": "2026-10-20T09:09:03.642779+00:00"
+        }
+      },
+      "worker": {
+        "config_id": "sha256:50e2d75cc3cc0fac9e89a60ff9750e790650408f915a24febf7a922a2bdfe627",
+        "installed_package_count": 34,
+        "size_bytes": 700775222,
+        "trivy_scan": {
+          "status": "PASS",
+          "config_id": "sha256:50e2d75cc3cc0fac9e89a60ff9750e790650408f915a24febf7a922a2bdfe627",
+          "source_sha": "1a4426306fd59c5204e2a5fea75eab514c756fbc",
+          "policy": "zero-fixable-high-critical; Debian OS and Python packages",
+          "targets": [
+            [
+              "os-pkgs",
+              "debian"
+            ],
+            [
+              "lang-pkgs",
+              "python-pkg"
+            ]
+          ],
+          "report_sha256": "sha256:c108ee41339ae973b7ae52f0abe073715e39ca28a0c20720ce56c5c48a99a0bd",
+          "fixable_high_critical": 0,
+          "unfixed_high_critical_count": 208,
+          "scanned_at": "2026-10-20T09:09:03.656304+00:00"
+        }
+      }
+    }
+  },
+  "scan_policy": {
+    "trivy_version": "0.70.0",
+    "database": {
+      "Version": 2,
+      "NextUpdate": "2026-10-21T07:17:35.36859973Z",
+      "UpdatedAt": "2026-10-20T07:17:35.368599961Z",
+      "DownloadedAt": "2026-10-20T08:22:09.158722Z"
+    },
+    "policy": "Zero fixable HIGH/CRITICAL; report includes unfixed findings. Counts are finding rows, not distinct CVEs."
+  },
+  "review": {
+    "reviewer_type": "AI-assisted independent source reviews",
+    "resolved": [
+      "F1: install Media test dependencies in the fresh CD environment",
+      "F2: make lease revocation and activity markers safe when logging fails",
+      "F3: attach exact-image scan receipts in manual release instructions"
+    ],
+    "full_candidate_review": "PENDING after current-API DAST integration"
+  },
+  "cloud_acceptance": "NOT_RUN",
+  "hosted_candidate_ci": "NOT_RUN",
+  "current_api_dast": "PENDING"
+}

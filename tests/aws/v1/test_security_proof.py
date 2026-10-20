@@ -31,8 +31,9 @@ def fixture(tmp_path):
 def build(tmp_path, *faults, session="open", **world):
     world.setdefault("encode_seconds", 45.0)
     args = argparse.Namespace(run_id="t", dry_run=True)
-    return sim.build(args, session=session, world=sim.SimWorld(faults=faults, **world),
-                     tmp=tmp_path / "state")
+    return sim.build(
+        args, session=session, world=sim.SimWorld(faults=faults, **world), tmp=tmp_path / "state"
+    )
 
 
 def statuses(proof):
@@ -49,11 +50,15 @@ def public(proof, name):
 
 # ---- the healthy path --------------------------------------------------------------------
 def test_a_healthy_stack_passes_what_can_run_and_marks_the_rest_not_run_with_a_reason(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     proof = security.run(build(tmp_path), fixture=fixture)
     found = statuses(proof)
     assert {n for n, s in found.items() if s == NOT_RUN} == {
-        "oversize-100mib", "playback-url-expiry", "upload-url-expiry"}
+        "oversize-100mib",
+        "playback-url-expiry",
+        "upload-url-expiry",
+    }
     assert {s for n, s in found.items() if n in security.STEPS} <= {PASS, NOT_RUN}
     for name in ("oversize-100mib", "playback-url-expiry", "upload-url-expiry"):
         assert public(proof, name)["reason"]
@@ -64,8 +69,17 @@ def test_a_healthy_stack_passes_what_can_run_and_marks_the_rest_not_run_with_a_r
 def test_user_b_gets_404_everywhere_while_user_a_gets_200_as_the_control(tmp_path, fixture):
     proof = security.run(build(tmp_path), fixture=fixture)
     seen = public(proof, "cross-owner")
-    for name in ("read", "retry", "edit", "delete", "playback_master", "playback_segment",
-                 "processing_job", "processing_retry", "processing_cancel"):
+    for name in (
+        "read",
+        "retry",
+        "edit",
+        "delete",
+        "playback_master",
+        "playback_segment",
+        "processing_job",
+        "processing_retry",
+        "processing_cancel",
+    ):
         assert seen[f"b_{name}"] == 404
     assert seen["a_read"] == seen["a_playback"] == seen["a_processing_job"] == 200
     assert seen["a_job_unchanged_after_b_retry"] and not seen["b_lists_a_job"]
@@ -85,8 +99,7 @@ def test_each_tampered_grant_and_url_is_refused_and_the_untouched_ones_worked(tm
     assert seen["mp4_lifetime_extended"] == 403 and seen["upload_control_status"] == 204
 
 
-def test_oversize_is_refused_at_reservation_and_by_storage_at_the_reserved_size(
-        tmp_path, fixture):
+def test_oversize_is_refused_at_reservation_and_by_storage_at_the_reserved_size(tmp_path, fixture):
     seen = public(security.run(build(tmp_path), fixture=fixture), "oversized-upload")
     assert seen["reservation_over_limit_status"] == 422
     assert not seen["reservation_over_limit_granted_upload"]
@@ -96,21 +109,22 @@ def test_oversize_is_refused_at_reservation_and_by_storage_at_the_reserved_size(
 
 def test_the_port_scan_reads_only_the_fixed_list_and_finds_only_80_and_443(tmp_path, fixture):
     seen = public(security.run(build(tmp_path), fixture=fixture), "port-scan")
-    assert seen["ports_scanned"] == [21, 22, 25, 80, 443, 3306, 5432, 6379, 8000, 8080, 8443,
-                                     9000]
+    assert seen["ports_scanned"] == [21, 22, 25, 80, 443, 3306, 5432, 6379, 8000, 8080, 8443, 9000]
     assert seen["open_ports"] == [80, 443] and seen["plain_http_redirects_to_https"]
     assert seen["addresses_scanned"] == 2 and seen["ipv6_scanned"] is False
 
 
 def test_the_execute_api_url_is_documented_as_reachable_with_the_authorizer_in_force(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     seen = public(security.run(build(tmp_path), fixture=fixture), "execute-api-direct")
     assert seen["classification"] == "reachable_authorizer_enforced"
     assert seen["a_reads_own_job_status"] == 200 and seen["b_reads_a_job_status"] == 404
 
 
 def test_on_an_always_on_stack_the_launcher_encodes_the_clip_and_the_harness_starts_none(
-        tmp_path, fixture, monkeypatch):
+    tmp_path, fixture, monkeypatch
+):
     ctx = build(tmp_path, launcher=True)
     sim.opt_in_launcher(ctx)
 
@@ -124,24 +138,27 @@ def test_on_an_always_on_stack_the_launcher_encodes_the_clip_and_the_harness_sta
 
 
 # ---- each open boundary fails exactly its own step ----------------------------------------
-@pytest.mark.parametrize(("fault", "steps"), [
-    ("cross-owner-open", {"cross-owner", "execute-api-direct"}),
-    ("tamper-open", {"tampered-urls"}),
-    ("oversize-open", {"oversized-upload"}),
-    ("adopts-oversize", {"oversized-upload"}),
-    ("s3-listable", {"s3-direct-denied", "tampered-urls"}),  # the unsigned variant too
-    ("port-8080-open", {"port-scan"}),
-    ("gateway-anonymous-open", {"unauthenticated", "execute-api-direct"}),
-])
-def test_a_boundary_left_open_fails_its_own_steps_and_nothing_else(
-        tmp_path, fixture, fault, steps):
+@pytest.mark.parametrize(
+    ("fault", "steps"),
+    [
+        ("cross-owner-open", {"cross-owner", "execute-api-direct"}),
+        ("tamper-open", {"tampered-urls"}),
+        ("oversize-open", {"oversized-upload"}),
+        ("adopts-oversize", {"oversized-upload"}),
+        ("s3-listable", {"s3-direct-denied", "tampered-urls"}),  # the unsigned variant too
+        ("port-8080-open", {"port-scan"}),
+        ("gateway-anonymous-open", {"unauthenticated", "execute-api-direct"}),
+    ],
+)
+def test_a_boundary_left_open_fails_its_own_steps_and_nothing_else(tmp_path, fixture, fault, steps):
     proof = security.run(build(tmp_path, fault), fixture=fixture)
     assert failing(proof) == steps
     assert set(proof.failed_now()) == steps
 
 
 def test_storage_that_takes_oversize_bytes_but_finalize_refuses_them_still_passes_and_says_so(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     proof = security.run(build(tmp_path, "no-s3-limit"), fixture=fixture)
     seen = public(proof, "oversized-upload")
     assert statuses(proof)["oversized-upload"] == PASS
@@ -150,7 +167,8 @@ def test_storage_that_takes_oversize_bytes_but_finalize_refuses_them_still_passe
 
 
 def test_a_failed_job_skips_every_step_that_needs_it_and_leaves_the_receipt_incomplete(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     ctx = build(tmp_path, encode_seconds=10_000.0)
     proof = security.run(ctx, fixture=fixture, job_timeout=30)
     found = statuses(proof)
@@ -192,7 +210,8 @@ def test_the_expiry_wait_rechecks_the_window_and_stops_when_it_closes(tmp_path, 
 
 
 def test_the_full_size_limit_uploads_one_byte_over_and_must_not_be_adopted(
-        tmp_path, fixture, monkeypatch):
+    tmp_path, fixture, monkeypatch
+):
     monkeypatch.setattr(security, "MAX_BYTES", 8192)
     ctx = build(tmp_path)
     ctx.world.max_bytes = 8192
@@ -203,7 +222,8 @@ def test_the_full_size_limit_uploads_one_byte_over_and_must_not_be_adopted(
 
 
 def test_the_full_size_limit_fails_when_the_oversize_object_is_adopted(
-        tmp_path, fixture, monkeypatch):
+    tmp_path, fixture, monkeypatch
+):
     monkeypatch.setattr(security, "MAX_BYTES", 8192)
     ctx = build(tmp_path, "adopts-oversize")
     ctx.world.max_bytes = 8192
@@ -218,8 +238,18 @@ def test_the_receipt_holds_no_credential_token_cookie_or_signed_url(tmp_path, fi
     text = proof.path.read_text().lower()
     secrets = [security.derived(ctx, label)["password"] for label in ("a", "b")]
     secrets += [security.derived(ctx, label)["email"] for label in ("a", "b")]
-    secrets += ["sim-password", "x-amz-signature", "x-amz-credential", "policy-", "sig-",
-                "set-cookie", "access_token", "https://", "http://", "203.0.113."]
+    secrets += [
+        "sim-password",
+        "x-amz-signature",
+        "x-amz-credential",
+        "policy-",
+        "sig-",
+        "set-cookie",
+        "access_token",
+        "https://",
+        "http://",
+        "203.0.113.",
+    ]
     for secret in secrets:
         assert secret.lower() not in text, secret
     assert proof.path.stat().st_mode & 0o777 == 0o600
@@ -228,16 +258,23 @@ def test_the_receipt_holds_no_credential_token_cookie_or_signed_url(tmp_path, fi
 def test_a_rerun_repeats_nothing_that_already_passed(tmp_path, fixture):
     ctx = build(tmp_path)
     security.run(ctx, fixture=fixture)
-    users, reservations, claims = len(ctx.world.users), len(ctx.world.reservations), (
-        ctx.world.claims)
+    users, reservations, claims = (
+        len(ctx.world.users),
+        len(ctx.world.reservations),
+        (ctx.world.claims),
+    )
     again = security.run(ctx, fixture=fixture)
     assert again.ran == [] and again.failed_now() == []
     assert (len(ctx.world.users), len(ctx.world.reservations), ctx.world.claims) == (
-        users, reservations, claims)
+        users,
+        reservations,
+        claims,
+    )
 
 
 def test_the_two_users_are_the_same_on_a_resume_and_a_second_register_is_not_an_error(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     ctx = build(tmp_path)
     first, second = security.account(ctx, "a"), security.account(ctx, "a")
     assert first.cookie == second.cookie and len(ctx.world.users) == 2  # smoke user + A
@@ -324,7 +361,11 @@ def test_the_connect_probe_tells_open_refused_filtered_and_unknown_apart(monkeyp
 
     monkeypatch.setattr(socket, "create_connection", connect)
     assert [security.socket_connect("192.0.2.1", port, 1.0) for port in (1, 2, 3, 4)] == [
-        "open", "closed", "filtered", "error"]
+        "open",
+        "closed",
+        "filtered",
+        "error",
+    ]
 
 
 def test_a_scan_that_cannot_resolve_the_host_is_not_run(tmp_path, fixture):
@@ -335,7 +376,8 @@ def test_a_scan_that_cannot_resolve_the_host_is_not_run(tmp_path, fixture):
 
 
 def test_an_unclassifiable_connect_failure_makes_the_scan_not_run_rather_than_pass(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     ctx = build(tmp_path)
     real = ctx.world.connect
     ctx.world.connect = lambda a, p, t: "error" if p == 3306 else real(a, p, t)
@@ -345,11 +387,18 @@ def test_an_unclassifiable_connect_failure_makes_the_scan_not_run_rather_than_pa
 
 # ---- url helpers ---------------------------------------------------------------------------
 def test_get_variants_change_one_thing_each_and_keep_the_rest():
-    url = ("https://b.s3.ap-southeast-1.amazonaws.com/out/seg0.ts?X-Amz-Algorithm=AWS4"
-           "&X-Amz-Expires=900&X-Amz-Signature=abc123")
+    url = (
+        "https://b.s3.ap-southeast-1.amazonaws.com/out/seg0.ts?X-Amz-Algorithm=AWS4"
+        "&X-Amz-Expires=900&X-Amz-Signature=abc123"
+    )
     variants = security.get_variants(url)
-    assert set(variants) == {"signature_changed", "key_changed", "lifetime_extended",
-                             "signature_removed", "unsigned"}
+    assert set(variants) == {
+        "signature_changed",
+        "key_changed",
+        "lifetime_extended",
+        "signature_removed",
+        "unsigned",
+    }
     assert security.query_of(variants["signature_changed"])["X-Amz-Signature"] == "abc120"
     assert variants["key_changed"].split("?")[0].endswith("seg0.tsx")
     assert security.query_of(variants["lifetime_extended"])["X-Amz-Expires"] == "9000"
@@ -364,22 +413,47 @@ def test_flip_always_changes_the_last_character_and_keeps_the_length():
 
 def test_only_a_4xx_counts_as_a_refusal():
     assert [security.rejected(s) for s in (None, 200, 204, 302, 400, 403, 404, 500)] == [
-        False, False, False, False, True, True, True, False]
+        False,
+        False,
+        False,
+        False,
+        True,
+        True,
+        True,
+        False,
+    ]
 
 
 def test_bucket_urls_work_for_path_style_and_virtual_hosted_hosts():
     assert security.bucket_base("https://src.s3.r.amazonaws.com/", "src") == (
-        "https://src.s3.r.amazonaws.com")
+        "https://src.s3.r.amazonaws.com"
+    )
     assert security.bucket_base("https://s3.r.amazonaws.com/src", "src") == (
-        "https://s3.r.amazonaws.com/src")
+        "https://s3.r.amazonaws.com/src"
+    )
 
 
 # ---- wiring --------------------------------------------------------------------------------
 def test_the_command_line_runs_the_harness_and_writes_issue_229(tmp_path, fixture):
     out = io.StringIO()
-    code = evidence.main(["security", "--profile", "p", "--region", "ap-southeast-1",
-                          "--account", "123456789012", "--run-id", "cli", "--dry-run",
-                          "--fixture", str(fixture)], stdout=out, world=sim.SimWorld())
+    code = evidence.main(
+        [
+            "security",
+            "--profile",
+            "p",
+            "--region",
+            "ap-southeast-1",
+            "--account",
+            "123456789012",
+            "--run-id",
+            "cli",
+            "--dry-run",
+            "--fixture",
+            str(fixture),
+        ],
+        stdout=out,
+        world=sim.SimWorld(),
+    )
     report = json.loads(out.getvalue())
     assert code == 0 and report["issue"] == "#229" and report["overall"] == "SIMULATED"
     assert report["steps"]["port-scan"]["status"] == PASS
@@ -387,18 +461,44 @@ def test_the_command_line_runs_the_harness_and_writes_issue_229(tmp_path, fixtur
 
 
 def test_the_wait_and_size_options_reach_the_harness(tmp_path, fixture):
-    parsed = evidence.build_parser().parse_args([
-        "security", "--profile", "p", "--region", "r", "--account", "1", "--run-id", "x",
-        "--fixture", "f.mp4", "--max-expiry-wait", "960", "--full-size-limit"])
+    parsed = evidence.build_parser().parse_args(
+        [
+            "security",
+            "--profile",
+            "p",
+            "--region",
+            "r",
+            "--account",
+            "1",
+            "--run-id",
+            "x",
+            "--fixture",
+            "f.mp4",
+            "--max-expiry-wait",
+            "960",
+            "--full-size-limit",
+        ]
+    )
     assert parsed.max_expiry_wait == 960 and parsed.full_size_limit
-    default = evidence.build_parser().parse_args([
-        "security", "--profile", "p", "--region", "r", "--account", "1", "--run-id", "x",
-        "--fixture", "f.mp4"])
+    default = evidence.build_parser().parse_args(
+        [
+            "security",
+            "--profile",
+            "p",
+            "--region",
+            "r",
+            "--account",
+            "1",
+            "--run-id",
+            "x",
+            "--fixture",
+            "f.mp4",
+        ]
+    )
     assert default.max_expiry_wait == security.EXPIRY_WAIT and not default.full_size_limit
 
 
-def test_the_receipt_is_summarized_with_its_not_run_steps_and_the_job_is_counted(
-        tmp_path, fixture):
+def test_the_receipt_is_summarized_with_its_not_run_steps_and_the_job_is_counted(tmp_path, fixture):
     ctx = build(tmp_path)
     security.run(ctx, fixture=fixture)
     docs = summary.load(ctx.evidence_dir, "t")

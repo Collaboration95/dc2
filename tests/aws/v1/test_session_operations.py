@@ -113,10 +113,7 @@ def invocations(cloud, function):
 def test_each_owner_is_probed_with_the_direct_readiness_event_before_intake_serves(rig):
     session, cloud, journal, owner, config = rig
     session.open(
-        ready=owner.ready,
-        repair=owner.repair,
-        intake_ready=owner.intake_ready,
-        deadline=deadline(),
+        ready=owner.ready, repair=owner.repair, intake_ready=owner.intake_ready, deadline=deadline()
     )
     probes = [c for c in cloud.calls if c["operation"] == "invoke"]
     assert {"dc2_operation": "ready"} in [c["payload"]["Payload"] for c in probes]
@@ -135,8 +132,11 @@ def test_failed_intake_probe_requiesces_intake_and_leaves_the_edge_closed(rig):
 
     def call(service, operation, payload, *, deadline):
         if operation == "invoke" and payload["FunctionName"] == "fn-MediaApi":
-            return {"StatusCode": 200, "FunctionError": False,
-                    "Payload": {"service": "media", "ready": False}}
+            return {
+                "StatusCode": 200,
+                "FunctionError": False,
+                "Payload": {"service": "media", "ready": False},
+            }
         return real(service, operation, payload, deadline=deadline)
 
     cloud.call = call
@@ -144,9 +144,7 @@ def test_failed_intake_probe_requiesces_intake_and_leaves_the_edge_closed(rig):
         session.open(
             ready=owner.ready,
             repair=owner.repair,
-            intake_ready=lambda **k: owner.intake_ready(
-                deadline=time.monotonic() + 0.05
-            ),
+            intake_ready=lambda **k: owner.intake_ready(deadline=time.monotonic() + 0.05),
             deadline=deadline(),
         )
     assert cloud.functions["fn-MediaApi"] == 0 and cloud.functions["fn-MediaAuthorizer"] == 0
@@ -157,8 +155,11 @@ def test_failed_intake_probe_requiesces_intake_and_leaves_the_edge_closed(rig):
 def test_window_serves_only_the_public_api_and_never_enables_background_work(rig):
     session, cloud, journal, owner, config = rig
     result = session.open(
-        ready=owner.ready, repair=owner.repair, intake_ready=owner.intake_ready,
-        deadline=deadline(), window=True,
+        ready=owner.ready,
+        repair=owner.repair,
+        intake_ready=owner.intake_ready,
+        deadline=deadline(),
+        window=True,
     )
     assert result["session"] == "window"
     assert set(cloud.mappings.values()) <= {"Disabled"}
@@ -426,7 +427,10 @@ def test_dry_run_prints_planned_calls_without_building_a_live_transport(action, 
     if action != "init":
         assert out["planned_calls"]
         assert {c["service"] for c in out["planned_calls"]} <= {
-            "lambda", "events", "apigatewayv2", "ecs"
+            "lambda",
+            "events",
+            "apigatewayv2",
+            "ecs",
         }
 
 
@@ -449,8 +453,18 @@ def test_live_run_uses_the_injected_transport_and_persists_the_journal(tmp_path)
         seen.append(scope)
         return cloud
 
-    assert run("init", "--config", str(config), *SCOPE, "--confirm-empty",
-               "--confirm-exclusive", transport_factory=factory)[0] == 0
+    assert (
+        run(
+            "init",
+            "--config",
+            str(config),
+            *SCOPE,
+            "--confirm-empty",
+            "--confirm-exclusive",
+            transport_factory=factory,
+        )[0]
+        == 0
+    )
     code, out = run("open", "--config", str(config), *SCOPE, transport_factory=factory)
     assert code == 0 and out["scope"]["mode"] == "live"
     assert seen[0] == {"profile": "operator", "region": "ap-southeast-1", "account": "123456789012"}
@@ -522,8 +536,13 @@ class Sqs:
 def dlq_run(tmp_path, *extra, sqs=None):
     config = operator_files(tmp_path)
     return run(
-        "dlq", "--config", str(config), *SCOPE, *extra,
-        sqs_factory=lambda scope: sqs, transport_factory=lambda scope: Cloud(),
+        "dlq",
+        "--config",
+        str(config),
+        *SCOPE,
+        *extra,
+        sqs_factory=lambda scope: sqs,
+        transport_factory=lambda scope: Cloud(),
     )
 
 
@@ -542,7 +561,12 @@ def test_dlq_redrive_needs_confirmation_and_dry_run_never_builds_a_client(tmp_pa
     code, out = dlq_run(tmp_path, "--queue", "MediaResults", "--dlq-command", "redrive", sqs=sqs)
     assert code == 1 and "--confirm-redrive" in out["error"] and not sqs.calls
     code, out = dlq_run(
-        tmp_path, "--queue", "MediaResults", "--dlq-command", "redrive", "--confirm-redrive",
+        tmp_path,
+        "--queue",
+        "MediaResults",
+        "--dlq-command",
+        "redrive",
+        "--confirm-redrive",
         sqs=sqs,
     )
     assert code == 0 and sqs.calls[0][0] == "redrive"
@@ -551,7 +575,13 @@ def test_dlq_redrive_needs_confirmation_and_dry_run_never_builds_a_client(tmp_pa
         raise AssertionError("dry-run must not build a client")
 
     code, out = run(
-        "dlq", "--config", str(operator_files(tmp_path)), *SCOPE, "--queue", "MediaResults",
-        "--dry-run", sqs_factory=forbidden,
+        "dlq",
+        "--config",
+        str(operator_files(tmp_path)),
+        *SCOPE,
+        "--queue",
+        "MediaResults",
+        "--dry-run",
+        sqs_factory=forbidden,
     )
     assert code == 0 and out["result"]["queue"] == "MediaResults"

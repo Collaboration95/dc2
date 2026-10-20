@@ -1,9 +1,12 @@
 # V1 owner images and releases
 
-These recipes consume coordinator-owned frozen dependency groups `v1-media`,
-`v1-processing`, `v1-worker`. The common base must exclude Redis/RQ (legacy is
-an explicit extra). No Mangum is needed: the owning handlers use GatewayAdapter.
-The `.requirements.in` files describe inputs; `uv.lock` supplies versions/hashes.
+These recipes consume owner-specific frozen extras `v1-media`, `v1-processing`,
+and `v1-worker` from `pyproject.toml`; `uv.lock` supplies resolved versions and
+hashes. Redis/RQ and the inherited app's multipart/auth dependencies stay in the
+explicit `legacy` extra. No Mangum is needed: the owning handlers use GatewayAdapter.
+The two API extras include Alembic because their migration tasks run from those
+images. The worker uses the shared `asyncpg` dependency for its standalone bootstrap
+task and does not install Alembic.
 `contracts`, `delivery` and `runtime_support` must be integrated before building.
 
 The retired peer-HTTP Media client, the Redis/RQ Processing worker and their settings live

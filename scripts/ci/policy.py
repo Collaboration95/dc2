@@ -53,12 +53,7 @@ V1_INPUTS = (
 # so a Media-only change never rebuilds Processing's images and vice versa. Anything shared by
 # both owners selects both.
 SERVICE_INPUTS = {
-    "media-service": (
-        "media/",
-        "tests/media/",
-        "deploy/v1/media.Dockerfile",
-        "deploy/v1/media.requirements.in",
-    ),
+    "media-service": ("media/", "tests/media/", "deploy/v1/media.Dockerfile"),
     # The finite worker is part of Processing's release unit: it copies processing/ and
     # media_engine/ and carries the database bootstrap.
     "processing-service": (
@@ -67,9 +62,7 @@ SERVICE_INPUTS = {
         "media_engine/",
         "tests/media_engine/",
         "deploy/v1/processing.Dockerfile",
-        "deploy/v1/processing.requirements.in",
         "deploy/v1/worker.Dockerfile",
-        "deploy/v1/worker.requirements.in",
         "scripts/aws/v1/bootstrap.py",
     ),
 }
@@ -103,27 +96,41 @@ _RUNTIME_INPUTS = (
     "deploy/v1/check_runtime.py",
 )
 IMAGE_BUILD_INPUTS = {
-    "media": (
-        *_RUNTIME_INPUTS, "media/", "deploy/v1/media.Dockerfile",
-        "deploy/v1/media.requirements.in",
-    ),
-    "processing": (
-        *_RUNTIME_INPUTS, "processing/", "deploy/v1/processing.Dockerfile",
-        "deploy/v1/processing.requirements.in",
-    ),
+    "media": (*_RUNTIME_INPUTS, "media/", "deploy/v1/media.Dockerfile"),
+    "processing": (*_RUNTIME_INPUTS, "processing/", "deploy/v1/processing.Dockerfile"),
     "worker": (
-        *_RUNTIME_INPUTS, "processing/", "media_engine/", "scripts/aws/v1/bootstrap.py",
-        "deploy/v1/worker.Dockerfile", "deploy/v1/worker.requirements.in",
+        *_RUNTIME_INPUTS,
+        "processing/",
+        "media_engine/",
+        "scripts/aws/v1/bootstrap.py",
+        "deploy/v1/worker.Dockerfile",
     ),
 }
 DAST_INPUTS = (
-    "media/", "processing/", "legacy/", "media_engine/", "runtime_support/", "delivery/",
-    "contracts/", "app/", "frontend/", "tests/contracts/", "compose/local/",
-    "tests/media/test_contract_security.py", "tests/processing/test_contracts.py",
-    "tests/publisher/test_https.py", "scripts/dev/runtime.py", "scripts/dev/tls.py",
-    "docker-compose.yml", "docker-compose.processing.yml", "nginx.conf",
-    "deploy/media.Dockerfile", "deploy/processing.Dockerfile", "deploy/nginx/",
-    "deploy/nginx-tls/", "deploy/dast/", "deploy/minio/", "deploy/postgres/",
+    "media/",
+    "processing/",
+    "legacy/",
+    "media_engine/",
+    "runtime_support/",
+    "delivery/",
+    "contracts/",
+    "app/",
+    "frontend/",
+    "tests/contracts/",
+    "compose/local/",
+    "tests/media/test_contract_security.py",
+    "tests/processing/test_contracts.py",
+    "tests/publisher/test_https.py",
+    "scripts/dev/runtime.py",
+    "scripts/dev/tls.py",
+    "nginx.conf",
+    "deploy/media.Dockerfile",
+    "deploy/processing.Dockerfile",
+    "deploy/nginx/",
+    "deploy/nginx-tls/",
+    "deploy/dast/",
+    "deploy/minio/",
+    "deploy/postgres/",
 )
 LEGACY_INPUTS = {
     "app": ("app/", "migrations/", "Dockerfile", "alembic.ini"),
@@ -169,8 +176,11 @@ def image_inputs(path):
 
 def changed_images(paths):
     """The V1 images whose build inputs include any of ``paths``."""
-    return {name for name, inputs in IMAGE_BUILD_INPUTS.items()
-            if any(matches(path, inputs) for path in paths)}
+    return {
+        name
+        for name, inputs in IMAGE_BUILD_INPUTS.items()
+        if any(matches(path, inputs) for path in paths)
+    }
 
 
 def service_lanes(path):
@@ -178,11 +188,7 @@ def service_lanes(path):
     shared = matches(path, SHARED_SERVICE_INPUTS) or (
         path.startswith("deploy/v1/") and path not in SERVICE_RECIPE_FILES
     )
-    return {
-        lane
-        for lane, inputs in SERVICE_INPUTS.items()
-        if shared or matches(path, inputs)
-    }
+    return {lane for lane, inputs in SERVICE_INPUTS.items() if shared or matches(path, inputs)}
 
 
 def classify(paths, *, full=False, reason="routine dev PR", source_sha="", base_sha=""):
@@ -321,7 +327,6 @@ def classify(paths, *, full=False, reason="routine dev PR", source_sha="", base_
         ) or path in {
             "deploy/media.Dockerfile",
             "deploy/processing.Dockerfile",
-            "docker-compose.yml",
             "docker-compose.processing.yml",
             "nginx.conf",
             ".env.example",
@@ -391,7 +396,7 @@ def event_selection(event_name, event, source_sha, candidate_sha=""):
         pr = event.get("pull_request", {})
         base = pr.get("base", {})
         return (
-            base.get("ref") != "dev/v1-integration",
+            base.get("ref") != "dev/closeout",
             f"PR base {base.get('ref', 'unknown')}; tested merge {source_sha}",
             base.get("sha", ""),
         )

@@ -50,6 +50,14 @@ Its deployment URL, original ownership notes and root legacy Compose instruction
 are historical; this work does not operate that deployment. Current Project 2
 commands and status are in the links above.
 
+### Retired Project 1 Compose source
+
+The former root `docker-compose.yml` is not used by the current runtime. Its exact
+historical source is commit `f9ce3b949826a7f329839cd7dc2b3a48464e1661`, path
+`docker-compose.yml`; retrieve it with
+`git show f9ce3b949826a7f329839cd7dc2b3a48464e1661:docker-compose.yml`.
+The current integrated local runtime is [`compose/local/docker-compose.yml`](../../compose/local/docker-compose.yml).
+
 ## Inherited Project 1 reference
 
 Flickpond is a practice-module team project: an asynchronous video upload and processing platform. Sprint 1 proved the request path end to end with a copy job standing in for transcoding; **sprint 2 replaced it with real FFmpeg**, added authentication and per-user ownership, a reaper that recovers jobs abandoned by a crashed worker, CI as a required check on `main`, and TLS.

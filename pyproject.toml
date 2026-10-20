@@ -8,35 +8,46 @@ version = "0.1.0"
 description = "Async video upload and processing platform"
 requires-python = ">=3.12,<3.15"
 dependencies = [
-  "alembic>=1.14,<2",
   "asyncpg>=0.30,<1",
   "boto3>=1.40,<2",
   "fastapi>=0.115,<1",
-  "httpx>=0.28,<1",
   "minio>=7.2,<8",
   "pydantic-settings>=2.7,<3",
   "sqlalchemy[asyncio]>=2.0,<3",
-  "python-multipart>=0.0.20,<1",
-  "pyjwt>=2.10,<3",
-  # Pydantic's EmailStr needs this. Hand-rolling an email regex is a
-  # well-known way to reject valid addresses.
-  "email-validator>=2.2,<3",
-  # Declared explicitly. argon2-cffi is already importable as a transitive
-  # dependency of minio, but relying on that breaks the day minio drops it.
-  "bcrypt>=4.2,<5",
+  "urllib3>=2,<3",
 ]
 
 [project.optional-dependencies]
-# The inherited application and its regression fixtures retain their queue stack and the
-# uvicorn server their compose images run.
-# V1 artifacts export only the base plus their named V1 extra.
-legacy = ["redis>=5,<7", "rq>=2,<3", "uvicorn[standard]>=0.34,<1"]
-v1-media = ["awslambdaric>=3.1,<4"]
-v1-processing = ["awslambdaric>=3.1,<4"]
+# The inherited application and its peer API use the complete legacy runtime.
+legacy = [
+  "alembic>=1.14,<2",
+  "bcrypt>=4.2,<5",
+  "email-validator>=2.2,<3",
+  "httpx>=0.28,<1",
+  "pyjwt>=2.10,<3",
+  "python-multipart>=0.0.20,<1",
+  "redis>=5,<7",
+  "rq>=2,<3",
+  "uvicorn[standard]>=0.34,<1",
+]
+# Owner extras keep API migration and authentication packages out of other images.
+v1-media = [
+  "alembic>=1.14,<2",
+  "awslambdaric>=3.1,<4",
+  # Media and the inherited app use bcrypt directly for stored password hashes.
+  "bcrypt>=4.2,<5",
+  # Pydantic's EmailStr needs this; keep its validation library explicit.
+  "email-validator>=2.2,<3",
+  "pyjwt>=2.10,<3",
+]
+v1-processing = ["alembic>=1.14,<2", "awslambdaric>=3.1,<4"]
 v1-worker = ["awslambdaric>=3.1,<4"]
 dev = [
   "aiosqlite>=0.21,<1",
+  # The operator CLI reads migration heads before planning a deployment or release.
+  "alembic>=1.14,<2",
   "fakeredis>=2.26,<3",
+  "httpx>=0.28,<1",
   "pytest>=8,<10",
   "pytest-asyncio>=0.24,<2",
   "pytest-cov>=6,<8",
@@ -68,6 +79,12 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.ruff.format]
+skip-magic-trailing-comma = true
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
 
 [tool.coverage.run]
 branch = true

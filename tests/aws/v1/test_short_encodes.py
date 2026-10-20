@@ -260,8 +260,15 @@ def test_only_the_four_publishers_may_send_to_the_short_queue_and_only_the_encod
     by_sid = {s["Sid"]: s for s in policy}
     producers = by_sid["DenyUnlistedProducers"]["Condition"]["ArnNotEquals"]["aws:PrincipalArn"]
     consumers = by_sid["DenyUnlistedConsumers"]["Condition"]["ArnNotEquals"]["aws:PrincipalArn"]
-    assert producers == [{"Fn::GetAtt": [f"{r}Role", "Arn"]} for r in (
-        "ProcessingCommands", "ProcessingRepair", "ProcessingEcsEvents", "ProcessingS3Events")]
+    assert producers == [
+        {"Fn::GetAtt": [f"{r}Role", "Arn"]}
+        for r in (
+            "ProcessingCommands",
+            "ProcessingRepair",
+            "ProcessingEcsEvents",
+            "ProcessingS3Events",
+        )
+    ]
     assert consumers == [{"Fn::GetAtt": [f"{SHORT_ENCODER}Role", "Arn"]}]
     assert "DenyInsecureTransport" in by_sid
 
@@ -278,8 +285,13 @@ def test_no_other_role_gains_a_short_queue_receive_or_the_launcher_style_ecs_gra
 
 
 def test_every_processing_publisher_gets_the_lane_environment_only_when_the_lane_exists():
-    publishers = {"ProcessingApi", "ProcessingCommands", "ProcessingRepair",
-                  "ProcessingEcsEvents", "ProcessingS3Events"}
+    publishers = {
+        "ProcessingApi",
+        "ProcessingCommands",
+        "ProcessingRepair",
+        "ProcessingEcsEvents",
+        "ProcessingS3Events",
+    }
     for name in publishers:
         variables = resources()[name]["Properties"]["Environment"]["Variables"]
         flag = variables["PROCESSING_SHORT_LANE"]
@@ -338,8 +350,7 @@ def test_the_combined_encoder_cap_is_fargates_three_plus_lambdas_two():
     env = {e["Name"]: e["Value"] for e in task["Environment"]}
     assert env["DC2_WORKER_CAP"] == "3" == str(short_lane.FARGATE_ENCODER_CAP)
     assert (
-        built[LAUNCHER]["Properties"]["Environment"]["Variables"]["PROCESSING_LAUNCHER_CAP"]
-        == "3"
+        built[LAUNCHER]["Properties"]["Environment"]["Variables"]["PROCESSING_LAUNCHER_CAP"] == "3"
     )
     config, _, _ = config_from_outputs(outputs(), station="s", environment="e")
     assert config["max_worker_tasks"] == short_lane.FARGATE_ENCODER_CAP

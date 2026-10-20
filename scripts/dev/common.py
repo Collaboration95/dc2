@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import time
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -23,6 +24,16 @@ PACKAGE_NAMES = (
 
 def packages(root: Path = ROOT) -> list[str]:
     return [name for name in PACKAGE_NAMES if (root / name).is_dir()]
+
+
+def coverage_omit_patterns(root: Path = ROOT) -> list[str]:
+    """Read the canonical coverage exclusions used by every traced tier."""
+    config = tomllib.loads((root / "pyproject.toml").read_text())
+    return config["tool"]["coverage"]["run"].get("omit", [])
+
+
+V1_BOOTSTRAP_SOURCE = "scripts.aws.v1.bootstrap"
+V1_BOOTSTRAP_FILE = "scripts/aws/v1/bootstrap.py"
 
 
 def local_env(root: Path = ROOT) -> dict[str, str]:

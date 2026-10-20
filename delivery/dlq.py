@@ -282,11 +282,13 @@ def main(argv=None, *, environ=None, verified_client=None):
     parser.add_argument("--endpoint-url")
     parser.add_argument("--source-queue-url")
     parser.add_argument(
-        "--profile", help="real AWS only: explicit profile (e.g. dc2-agent), never 'default'")
+        "--profile", help="real AWS only: explicit profile (e.g. dc2-agent), never 'default'"
+    )
     parser.add_argument("--region", help=f"real AWS only: {EXPECTED_REGION}")
     parser.add_argument(
-        "--account", help="real AWS only: 12-digit account STS must report "
-        f"(default DC2_AWS_ACCOUNT, else {EXPECTED_ACCOUNT})"
+        "--account",
+        help="real AWS only: 12-digit account STS must report "
+        f"(default DC2_AWS_ACCOUNT, else {EXPECTED_ACCOUNT})",
     )
     args = parser.parse_args(argv)
     # Validate before building a client: constructing one resolves credentials, which can

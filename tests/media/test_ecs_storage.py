@@ -12,6 +12,7 @@ from urllib3 import HTTPResponse
 from media import storage_credentials as credentials
 from media.errors import MediaError
 from media.services.storage import Storage
+from runtime_support import storage_credentials as credential_policy
 
 
 @pytest.fixture
@@ -74,7 +75,7 @@ def test_native_refresh_and_auth_token_file(container, monkeypatch, tmp_path):
             ).encode()
             return HTTPResponse(status=200, body=body)
 
-    monkeypatch.setattr(credentials, "PoolManager", lambda **kw: Transport())
+    monkeypatch.setattr(credential_policy, "PoolManager", lambda **kw: Transport())
     provider = credentials.ContainerProvider()
     assert provider.retrieve().session_token == "session-2"
     assert provider.retrieve().session_token == "session-2"
@@ -145,7 +146,7 @@ async def test_ordinary_put_rotates_token_without_reconstructing_store(
 ):
     seen = []
     native = Mock(retrieve=Mock(side_effect=[temporary("token-A"), temporary("token-B")]))
-    monkeypatch.setattr(credentials, "IamAwsProvider", lambda **kw: native)
+    monkeypatch.setattr(credential_policy, "IamAwsProvider", lambda **kw: native)
     store = Storage(settings.model_copy(update={"storage_credential_mode": "ecs"}))
 
     def request(method, url, **kw):

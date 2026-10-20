@@ -190,7 +190,7 @@ async def test_grant_binds_key_type_size_and_a_short_expiry(factory, storage):
     reserved, _ = await reserve(factory, storage, owner)
     policy = json.loads(base64.b64decode(reserved["upload"]["fields"]["policy"]))
     conditions = [c for c in policy["conditions"] if isinstance(c, (list, dict))]
-    key = f"staging/{owner}/{reserved["reservation_id"]}/source"
+    key = f"staging/{owner}/{reserved['reservation_id']}/source"
     assert ["eq", "$key", key] in conditions
     assert ["eq", "$Content-Type", "video/mp4"] in conditions
     assert ["content-length-range", 1, len(VIDEO)] in conditions
@@ -204,7 +204,7 @@ async def test_replayed_grant_after_finalize_cannot_change_the_served_source(
     _, client = s3
     owner = await make_user(factory)
     reserved, request = await reserve(factory, storage, owner)
-    key = f"staging/{owner}/{reserved["reservation_id"]}/source"
+    key = f"staging/{owner}/{reserved['reservation_id']}/source"
     post(reserved["upload"], VIDEO)
 
     asset = await finalize(factory, storage, owner, reserved, request)
@@ -238,7 +238,7 @@ async def test_finalize_pins_the_exact_version_it_verified(s3, bucket, storage, 
     _, client = s3
     owner = await make_user(factory)
     reserved, request = await reserve(factory, storage, owner)
-    key = f"staging/{owner}/{reserved["reservation_id"]}/source"
+    key = f"staging/{owner}/{reserved['reservation_id']}/source"
     post(reserved["upload"], VIDEO)
     post(reserved["upload"], VIDEO)  # An identical re-upload before finalize is legitimate.
     newest, older = versions_of(client, bucket, key)  # S3 lists the newest version first.
@@ -259,6 +259,7 @@ async def test_wrong_owner_cannot_finalize_or_observe_a_reservation(s3, storage,
     assert refusal.value.status_code == 404
     async with factory() as session:
         assert await session.scalar(select(func.count()).select_from(Asset)) == 0
+        assert await session.scalar(select(func.count()).select_from(MediaOutbox)) == 0
     # The intruder reusing the same request id gets a separate, intruder-owned reservation.
     other, _ = await reserve(factory, storage, intruder, request_id=request.request_id)
     assert other["reservation_id"] != reserved["reservation_id"]
@@ -300,7 +301,11 @@ async def test_missing_object_is_retryable_not_adopted(s3, storage, factory):
     reserved, request = await reserve(factory, storage, owner)
     with pytest.raises(MediaError) as refusal:
         await finalize(factory, storage, owner, reserved, request)
-    assert refusal.value.status_code == 503
+    assert refusal.value.status_code == 409
+    assert (await stored(factory, reserved["reservation_id"])).finalized_at is None
+    async with factory() as session:
+        assert await session.scalar(select(func.count()).select_from(Asset)) == 0
+        assert await session.scalar(select(func.count()).select_from(MediaOutbox)) == 0
     post(reserved["upload"], VIDEO)
     assert (await finalize(factory, storage, owner, reserved, request)).id == reserved["asset_id"]
 
@@ -324,13 +329,17 @@ async def test_expired_reservation_is_refused_and_its_bytes_are_reclaimed(
     _, client = s3
     owner = await make_user(factory)
     reserved, request = await reserve(factory, storage, owner)
-    key = f"staging/{owner}/{reserved["reservation_id"]}/source"
+    key = f"staging/{owner}/{reserved['reservation_id']}/source"
     post(reserved["upload"], VIDEO)
     await expire(factory, reserved["reservation_id"])
 
     with pytest.raises(MediaError) as refusal:
         await finalize(factory, storage, owner, reserved, request)
     assert refusal.value.status_code == 410
+    assert (await stored(factory, reserved["reservation_id"])).finalized_at is None
+    async with factory() as session:
+        assert await session.scalar(select(func.count()).select_from(Asset)) == 0
+        assert await session.scalar(select(func.count()).select_from(MediaOutbox)) == 0
     async with factory() as session:
         with pytest.raises(MediaError) as replay:
             await direct_intake.reserve(session, storage, owner, request)
@@ -346,7 +355,7 @@ async def test_cleanup_keeps_the_pin_removes_late_writes_and_stays_armed(
     _, client = s3
     owner = await make_user(factory)
     reserved, request = await reserve(factory, storage, owner)
-    key = f"staging/{owner}/{reserved["reservation_id"]}/source"
+    key = f"staging/{owner}/{reserved['reservation_id']}/source"
     post(reserved["upload"], VIDEO)
     asset = await finalize(factory, storage, owner, reserved, request)
     pinned = (await stored(factory, reserved["reservation_id"])).version_id

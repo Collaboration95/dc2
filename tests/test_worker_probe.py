@@ -13,10 +13,7 @@ SOURCE = Path("/tmp/source.mp4")
 
 def ffprobe_output(*, width=1920, height=1080, duration="12.5") -> str:
     return json.dumps(
-        {
-            "streams": [{"width": width, "height": height}],
-            "format": {"duration": duration},
-        }
+        {"streams": [{"width": width, "height": height}], "format": {"duration": duration}}
     )
 
 
@@ -156,8 +153,7 @@ def test_a_missing_dimension_is_refused():
 
 
 @pytest.mark.parametrize(
-    ("width", "height", "duration"),
-    [(0, 360, "3.0"), (640, 0, "3.0"), (640, 360, "0")],
+    ("width", "height", "duration"), [(0, 360, "3.0"), (640, 0, "3.0"), (640, 360, "0")]
 )
 def test_a_non_positive_dimension_or_duration_is_refused(width, height, duration):
     """A zero height would make the HLS ladder's variant choice divide by

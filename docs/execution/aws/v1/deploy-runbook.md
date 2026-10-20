@@ -645,67 +645,153 @@ inside its 600 s / 300 s gate, so a slow Fargate start is visible in the receipt
 | `migration_definition` | optional plan-level default for plans whose images share a definition (they rarely can: the release checks the digest) |
 | `registered_definitions` | the task definition revisions `release-plan` registered, for `--deregister` |
 
-```sh
-# a. What the stack is, read from the VPC (also proves the reader): current heads and their source
-python -m scripts.aws.v1.release schema --config D/operator-config.json $S
-jq '.deploy.images | map_values({tag, digest, local_id})' D/deploy-journal.json
-BASE=$(grep -l "$(jq -r .deploy.images.media.local_id D/deploy-journal.json)" \
-       docs/execution/aws/v1/evidence/local-images-*.json)  # build evidence of the deployed images
+Use Trivy CLI v0.70.0, the version pinned by the CD workflow. The commands check that version
+before scanning. With `set -euo pipefail`, a failed scan or evaluator stops the release procedure;
+repair the report and rerun the scan before proceeding.
 
-# b. A different, locally verified image set. Commit first: the image label is the commit, so a
-#    new commit is a new config id. Each build must end LOCAL_ARTIFACT_PASS.
-git switch -c release-proof-good && git commit --allow-empty -m "release proof: good image"
-python deploy/v1/build_and_verify.py --out D/release/build-good.json        # media, processing, worker
-T=$(make test-v1 | grep -Eo '[0-9]+ passed' | head -1 | cut -d' ' -f1)       # attested in the bundles
+```bash
+set -euo pipefail
+R=live                                       # the deployed environment/run in D
+D="$HOME/dc2-state/$R"                      # private state directory, outside the repo
+PROFILE=dc2-agent                            # or the approved MFA profile
+S=(--profile "$PROFILE" --region ap-southeast-1 --account 866865534361)
+OWNER=processing                             # set to media for a Media release
+GOOD_ID=g1                                   # use new immutable tag ids for every attempt
+BAD_ID=b1
+GOOD="$D/release/build-good.json"
+BAD=""                                       # set to D/release/build-bad.json to include it
+BASE_SOURCE="$D/build-baseline.json"         # original exact build evidence from deploy/CD
+BASE="$D/release/build-baseline.json"
+TRIVY_FLAGS=(--scanners vuln --pkg-types os,library --severity HIGH,CRITICAL
+             --ignore-unfixed=false --ignorefile /dev/null --exit-code 0 --format json)
 
-# c. Optional bad image. It must pass every local gate, MIGRATE, and fail only in the Lambda's
-#    own database TLS, so login and the job calls fail the smoke and the restore path runs.
-#    Do NOT replace deploy/v1/global-bundle.pem: the owner's migration task reads the same image,
-#    its TLS fails, the release stops before any alias moves and restore refuses the intent
-#    (#65 live run, 2026-10-17). Point only the Lambda handler at a valid non-RDS CA bundle.
-#    Never merge or push this branch.
-git switch -c release-proof-bad
-#   processing: first lines of processing/lambda_handler.py, BEFORE `import processing.config`
-#   (the migration task runs alembic via processing/migrations/env.py, not this module):
-#       import os, certifi; os.environ["PROCESSING_DATABASE_CA_FILE"] = certifi.where()
-#   media: the same at the top of media/lambda_handler.py, before any `media.*` import
-#   (media/config.py reads `postgres_ssl_ca` with env prefix MEDIA_):
-#       import os, certifi; os.environ["MEDIA_POSTGRES_SSL_CA"] = certifi.where()
-#   certifi must be importable in the image; if not, use "/etc/ssl/certs/ca-certificates.crt"
-#   (installed by the Dockerfiles) instead of certifi.where().
-git commit -am "release proof: Lambda-only non-RDS CA bundle (migrates, must fail the smoke)"
-python deploy/v1/build_and_verify.py --out D/release/build-bad.json
-#   If a candidate still fails in its migration task, `release abandon` clears the intent once
-#   it is proven that nothing moved (see "Release CLI actions"); the proof records that step as
-#   FAIL with failed_stage "migration", because the restore path was not exercised.
+case "$OWNER" in
+  media) IMAGES=(media) ;;
+  processing) IMAGES=(processing worker) ;;
+  *) echo "OWNER must be media or processing" >&2; exit 2 ;;
+esac
+SCAN_OWNERS=()
+BUILD_OWNERS=()
+for name in "${IMAGES[@]}"; do
+  SCAN_OWNERS+=(--owner "$name")
+  BUILD_OWNERS+=(--only "$name")
+done
+mkdir -m 700 -p "$D/release"
+test "$(trivy --version | awk '$1 == "Version:" {print $2}')" = "0.70.0"
 
-# d. Push both sets with the deploy's immutable tag convention <id>-<owner> (a private docker
-#    config, as the deploy uses); ECR scans on push. Use a new id per attempt.
-export DOCKER_CONFIG=$(mktemp -d)
-MEDIA=$(jq -r .deploy.outputs.MediaRepositoryUri D/deploy-journal.json)
-PROC=$(jq -r .deploy.outputs.ProcessingRepositoryUri D/deploy-journal.json)
-WORK=$(jq -r .deploy.outputs.WorkerRepositoryUri D/deploy-journal.json)
-aws ecr get-login-password --profile dc2-agent --region ap-southeast-1 \
-    | docker login --username AWS --password-stdin "${MEDIA%%/*}"
-for pair in "g1:good" "b1:bad"; do                      # <tag id>:<build>, the sha is its commit
-  id=${pair%%:*}; sha=$(jq -r .source_sha D/release/build-${pair##*:}.json | cut -c1-12)
-  for target in "media:$MEDIA" "processing:$PROC" "worker:$WORK"; do
-    docker tag "dc2-v1-${target%%:*}:local-$sha" "${target#*:}:$id-${target%%:*}"
-    docker push "${target#*:}:$id-${target%%:*}"
+# a. Read the current schema and deployed image identities. Keep the build receipt that supplied
+#    the deployed config IDs and original per-image source SHAs; do not rebuild the baseline.
+#    If this older manual deployment has no D/build-baseline.json, set BASE_SOURCE to the original
+#    build receipt that contains every selected deployed config ID and source SHA. Stop if none does.
+SCHEMA=$(python -m scripts.aws.v1.release schema --config "$D/operator-config.json" "${S[@]}")
+printf '%s\n' "$SCHEMA" | jq .
+TARGET=$(printf '%s\n' "$SCHEMA" | jq -er --arg owner "$OWNER" '.result.schema[$owner]')
+jq '.deploy.images | map_values({tag, digest, local_id, source_sha})' "$D/deploy-journal.json"
+test -s "$BASE_SOURCE"
+cp "$BASE_SOURCE" "$BASE"
+for name in "${IMAGES[@]}"; do
+  deployed=$(jq -er --arg n "$name" '.deploy.images[$n].local_id' "$D/deploy-journal.json")
+  deployed_sha=$(jq -er --arg n "$name" '.deploy.images[$n].source_sha' "$D/deploy-journal.json")
+  recorded=$(jq -er --arg n "$name" '.images[$n].config_id' "$BASE")
+  recorded_sha=$(jq -er --arg n "$name" '.images[$n].source_sha' "$BASE")
+  test "$deployed" = "$recorded"
+  test "$deployed_sha" = "$recorded_sha"
+done
+
+# b. Build a different exact image set. Commit first: the label and receipt use this source SHA.
+#    Every image must end LOCAL_ARTIFACT_PASS. For Media, the build is just `--only media`.
+git switch -c release-proof-good
+git commit --allow-empty -m "release proof: good image"
+python3 deploy/v1/build_and_verify.py "${BUILD_OWNERS[@]}" --out "$GOOD"
+GOOD_SHA=$(jq -er .source_sha "$GOOD")
+T=$(make test-v1 | grep -Eo '[0-9]+ passed' | head -1 | cut -d' ' -f1)
+
+# c. Optional bad image. It must pass the local build and scan gates, migrate, then fail only in
+#    the Lambda's own database TLS so the public smoke exercises restore. Never merge this branch.
+#    Keep deploy/v1/global-bundle.pem unchanged. Point only the Lambda handler at a valid non-RDS
+#    CA bundle. Before `import processing.config`, Processing can set
+#      import os, certifi; os.environ["PROCESSING_DATABASE_CA_FILE"] = certifi.where()
+#    Before any `media.*` import, Media can set
+#      import os, certifi; os.environ["MEDIA_POSTGRES_SSL_CA"] = certifi.where()
+#    If enabled, set BAD above, commit and build it.
+#    The scan loop below handles both candidate receipts:
+# BAD="$D/release/build-bad.json"
+# git switch -c release-proof-bad
+# [edit only the owning Lambda handler as described above]
+# git commit -am "release proof: Lambda-only non-RDS CA bundle"
+# python3 deploy/v1/build_and_verify.py "${BUILD_OWNERS[@]}" --out "$BAD"
+# BAD_SHA=$(jq -er .source_sha "$BAD")
+
+# d. Authenticate with a private, temporary Docker config. CD installs Trivy v0.70.0.
+export DOCKER_CONFIG
+DOCKER_CONFIG=$(mktemp -d)
+trap 'rm -rf "$DOCKER_CONFIG"' EXIT
+MEDIA=$(jq -er .deploy.outputs.MediaRepositoryUri "$D/deploy-journal.json")
+PROC=$(jq -er .deploy.outputs.ProcessingRepositoryUri "$D/deploy-journal.json")
+WORK=$(jq -er .deploy.outputs.WorkerRepositoryUri "$D/deploy-journal.json")
+aws ecr get-login-password --profile "$PROFILE" --region ap-southeast-1 \
+  | docker login --username AWS --password-stdin "${MEDIA%%/*}"
+
+# Scan each candidate's exact local config ID, evaluate and attach its receipts, then push it.
+for candidate in good bad; do
+  evidence=$GOOD; id=$GOOD_ID; sha=$GOOD_SHA
+  if [ "$candidate" = bad ]; then
+    [ -n "$BAD" ] || continue
+    test -s "$BAD"
+    evidence=$BAD; id=$BAD_ID; sha=$BAD_SHA
+  fi
+  reports="$D/release/scans/$candidate-local"
+  mkdir -m 700 -p "$reports"
+  for name in "${IMAGES[@]}"; do
+    tag=$(jq -er --arg n "$name" '.images[$n].tag' "$evidence")
+    config=$(jq -er --arg n "$name" '.images[$n].config_id' "$evidence")
+    test "$(docker image inspect --format '{{.Id}}' "$tag")" = "$config"
+    rm -f "$reports/trivy-$name.json"
+    trivy image --image-src docker "${TRIVY_FLAGS[@]}" \
+      --output "$reports/trivy-$name.json" "$config"
+  done
+  python3 -m scripts.ci.v1_scan --receipt "$evidence" --reports "$reports" \
+    --out "$reports/summary.json" --sha "$sha" --attach "${SCAN_OWNERS[@]}"
+  for name in "${IMAGES[@]}"; do
+    config=$(jq -er --arg n "$name" '.images[$n].config_id' "$evidence")
+    case "$name" in media) repo=$MEDIA ;; processing) repo=$PROC ;; worker) repo=$WORK ;; esac
+    docker tag "$config" "$repo:$id-$name"
+    docker push "$repo:$id-$name"
   done
 done
 
-# e. plan.json. It asks the registry for each digest and a COMPLETE scan with no HIGH/CRITICAL
-#    finding beyond the audited unfixed list (rerun in a minute if the scan is pending),
-#    registers one definition revision per good/bad image (the deployed definition with only the
-#    image swapped), builds the bundles and runs the release CLI's own offline gates on every
-#    image set.
-python -m scripts.aws.v1.evidence release-plan $S --state-dir D --run-id R --owner processing \
-    --baseline-evidence "$BASE" --good-run-id g1 --good-evidence D/release/build-good.json \
-    --bad-run-id b1 --bad-evidence D/release/build-bad.json \
-    --tests-passed "$T" --attest-schema-unchanged \
-    --accept-unfixed docs/execution/aws/v1/scan-accepted-unfixed-20261017.json \
-    --target-revision <processing revision printed by step a>   # default: this checkout's head
+# Rescan retained baseline images from their deployed immutable repo@digest, never a tag or a
+# rebuild. `--sha ""` tells the evaluator to preserve each baseline image's original source SHA.
+BASE_REPORTS="$D/release/scans/baseline-registry"
+mkdir -m 700 -p "$BASE_REPORTS"
+for name in "${IMAGES[@]}"; do
+  config=$(jq -er --arg n "$name" '.images[$n].config_id' "$BASE")
+  uri=$(jq -er --arg n "$name" '.deploy.images[$n].uri' "$D/deploy-journal.json")
+  digest=$(jq -er --arg n "$name" '.deploy.images[$n].digest' "$D/deploy-journal.json")
+  test "${uri##*@}" = "$digest"
+  rm -f "$BASE_REPORTS/trivy-$name.json"
+  trivy image --image-src remote "${TRIVY_FLAGS[@]}" \
+    --output "$BASE_REPORTS/trivy-$name.json" "$uri"
+done
+python3 -m scripts.ci.v1_scan --receipt "$BASE" --reports "$BASE_REPORTS" \
+  --out "$BASE_REPORTS/summary.json" --sha "" --attach "${SCAN_OWNERS[@]}"
+for name in "${IMAGES[@]}"; do
+  test "$(jq -er --arg n "$name" '.images[$n].source_sha' "$BASE")" = \
+       "$(jq -er --arg n "$name" '.images[$n].source_sha' "$BASE_SOURCE")"
+done
+
+# e. The planner fetches each registry digest and COMPLETE ECR scan. It rejects missing or
+#    pending evidence; rerun after ECR finishes, without editing or removing any scan receipt.
+#    Before writing plan.json, it hashes the raw single-image manifest and checks config.digest.
+PLAN=(python -m scripts.aws.v1.evidence release-plan "${S[@]}" --state-dir "$D" --run-id "$R"
+      --owner "$OWNER" --baseline-evidence "$BASE" --good-run-id "$GOOD_ID" --good-evidence "$GOOD")
+if [ -n "$BAD" ]; then
+  test -s "$BAD"
+  PLAN+=(--bad-run-id "$BAD_ID" --bad-evidence "$BAD")
+fi
+"${PLAN[@]}" --tests-passed "$T" --attest-schema-unchanged \
+  --accept-unfixed docs/execution/aws/v1/scan-accepted-unfixed-20261017.json \
+  --target-revision "$TARGET"
 ```
 
 `--accept-unfixed` is legitimate only for findings with no fixed version available (the pinned
@@ -715,14 +801,18 @@ accepted. Any HIGH/CRITICAL id not on the list still blocks, and the receipt rec
 ids and the list's sha256 per image.
 
 What `release-plan` checks and what it only records. Checked: the baseline evidence is the build of
-the images the deploy journal recorded; the registry digest of every baseline tag equals the digest
-the deploy recorded; the stack's own migration/worker definitions still hold those digests; no good
-or bad image equals a baseline image; every scan is COMPLETE with zero HIGH/CRITICAL beyond the
-accept list; the release gates (`validate_bundle`, digest pin, Processing worker) pass. Recorded as the operator's word:
+the images the deploy journal recorded; each baseline URI resolves to the deployed digest; each
+candidate and baseline has a fresh `scripts.ci.v1_scan` receipt for its exact config ID and original
+source SHA; each ECR scan is COMPLETE with no HIGH/CRITICAL finding beyond the accepted list; the
+stack's own migration/worker definitions still hold those digests; no good or bad image equals a
+baseline image; and the release gates (`validate_bundle`, digest pin, Processing worker) pass. The
+planner hashes the raw single-image manifest bytes, checks that hash against the selected registry
+digest, rejects an index, and checks that the manifest's `config.digest` equals the tested config ID.
+It observes that binding from the registry response; `docker push` alone does not establish it.
+Recorded as the operator's word:
 `--tests-passed` (the source tests behind the images) and `--attest-schema-unchanged` (no image adds
-a migration beyond `--target-revision`, and both directions are compatible with it). The bundle's
-`manifest_config_id` is the local config id, because `docker push` of a local image keeps it.
-Everything it writes is mode 0600 under `D/release/`.
+a migration beyond `--target-revision`, and both directions are compatible with it). Everything it
+writes is mode 0600 under `D/release/`.
 
 ### Release CLI actions
 

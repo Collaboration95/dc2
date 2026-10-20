@@ -1,7 +1,7 @@
 # Actual versus target results
 
 Compact source material for the later deck and report. It restates numbers that already exist in
-retained receipts; nothing was rerun and no target was changed. Last updated 18 October 2026. The full
+retained receipts; nothing was rerun and no target was changed. Last updated 20 October 2026. The full
 scenario-by-scenario record, including every historical FAIL and NOT_RUN, is
 [`docs/evidence-index.md`](../evidence-index.md); this page does not replace it.
 
@@ -29,11 +29,14 @@ scenario-by-scenario record, including every historical FAIL and NOT_RUN, is
 - **Inference, not finding.** Fargate task-time variability against a fast one-worker baseline is the
   most probable reason for the two-worker miss, as argued in the evidence index. No per-task CPU
   profile was captured, so the cause is unproven.
+- **Later evidence has its own rows.** The 19 October V2-live security negatives, rollback,
+  scale-to-zero backlog and stale-message repair are below, with their source limits. They do not
+  change the earlier V1 results. The frozen runtime is recorded in the
+  [release manifest](../release/demo-release-manifest.md); this table is not a current live probe.
 - **Not demonstrated:** AWS lost-message timing (NOT_RUN; the command-consumer outage of #196 is a
-  different scenario), duplicate-output check and stop-to-done time after a worker kill, AWS
-  two-user ownership/presigned-URL/port-scan negatives (#229), the Publisher's 2 person-day effort,
-  actual spend (Cost Explorer showed zero with credits and lag; no invoice reviewed), and the
-  deliberate CD bad-candidate rollback (the dispatched run was cancelled).
+  different scenario), duplicate-output check and stop-to-done time after a worker kill, the
+  Publisher's 2 person-day effort, and actual spend (Cost Explorer showed zero with credits and
+  lag; no invoice reviewed). A point-in-time Aurora pause does not establish monthly cost.
 - Verdict text in parentheses is a scope limit, for example `PASS (reaction time only)`.
 
 ## Definitions
@@ -122,5 +125,12 @@ scenario-by-scenario record, including every historical FAIL and NOT_RUN, is
 | LV-3 | r1019a CD teardown | AWS V1 r1019a (CD); run 39089615147; source 0b491e1712a9e4423e7f53bc2c813191d25669e8 | teardown of the per-run stack | receipt status | CLEAN | CLEAN | PASS | [teardown.json](../execution/aws/v1/evidence/archive-20261018/r1019a-teardown-39089615147/teardown.json) | A CD teardown now completes CLEAN once; the two r1018b CD teardown failures stand in the evidence index. |
 | LV-4 | CD bad-candidate rollback test | AWS V1 r1019a (CD); cancelled run 39089045496 (bad_candidate=true; source 784318636b690aac6ca64f0f8817ae7a15b6cae7) | deliberate faulty candidate | cancelled during the Release step | restored automatically | run cancelled before a result | **NOT_RUN (cancelled)** | [Actions run](https://github.com/Collaboration95/dc2/actions/runs/39089045496) | Not a PASS or FAIL of the rollback path. Bad-candidate restore evidence remains the operator receipts (Q7f/Q7g). |
 | LV-5 | Persistent environment deploy plus upload-to-playback smoke | AWS V2-live (stack dc2-live); run 39105817431; source d2070db68c6b3545881eb948046b8e57f47e078e | one smoke upload | request accepted to job done | none | 123.8 s | INFO (smoke PASS) | [cloud-proof-smoke-39105817431-1.json](../execution/aws/v1/evidence/archive-20261018/live-deploy-39105817431/cloud-proof-smoke-39105817431-1.json) `#63 direct-upload-e2e seconds_to_terminal` | Basic live evidence. Not completion of every #238 acceptance row; #229 security negatives are NOT_RUN. |
+| LV-6 | Security negatives on persistent environment | AWS V2-live (dc2-live); 19 October; earlier than daee44b; exact candidate SHA not recorded in merged receipt | two owners, signed upload/playback controls, oversized bytes, public endpoint probes | per negative and positive control | all selected controls pass | selected controls passed | PASS (checks run) | [cloud-proof-s229live.json](../execution/aws/v1/evidence/cloud-proof-s229live.json) `#229` | Three attempts merged; early harness failures and corrections are documented in s229-live-results.md. IPv6 was not scanned. Not repeated on daee44b. |
+| LV-7 | Automatic worker scale 0 to 3 to 0 | AWS V2-live (dc2-live); 19 October before daee44b; exact source not recorded in scaling receipt | three concurrent 20 s 640x360 clips | ECS task counts and task timestamps | 0 -> 3 -> 0 | 0 -> 3 -> 0 | PASS | [scaling-and-backlog.json](../execution/aws/v1/evidence/v2live-verify-20261019/scaling-and-backlog.json) `three_clips_concurrent` | One run, one cookie jar per Publisher process; queue-wait miss is LV-8. |
+| LV-8 | Warm-job observed queue wait | AWS V2-live (dc2-live); same run as LV-7 | same as LV-7 | observed status transitions and ECS stamps; not Processing database timestamps | <= 20 s | about 37 | **FAIL** | [scaling-and-backlog.json](../execution/aws/v1/evidence/v2live-verify-20261019/scaling-and-backlog.json) `three_clips_concurrent; encoder_task_timing_n12` | ECS created-to-started median 25.6 s across 12 tasks; this includes Fargate startup, not a measured Python-only boot time. |
+| LV-9 | Backlog at a fixed worker cap of 3 | AWS V2-live (dc2-live); 19 October before daee44b; exact source not recorded in scaling receipt | nine 20 s 640x360 clips, one run, cap 3 | first submission to last job observed done | none | 239 (2.26 jobs/min) | INFO | [scaling-and-backlog.json](../execution/aws/v1/evidence/v2live-verify-20261019/scaling-and-backlog.json) `backlog_nine_clips` | No measured cap-1/cap-2 comparison. The calculated serial baseline is not an experiment. This run left stale messages; LV-11 records the repair re-test. |
+| LV-10 | Bad-candidate Processing release restores itself | AWS V2-live (dc2-live); run 39271754470; source 7928b7c | deliberately failing candidate | candidate smoke failure to recorded restore outcome | restored automatically | restored | PASS (earlier source) | [release-processing.json](../execution/aws/v1/evidence/v2live-verify-20261019/cd-39271754470-bad-candidate-rollback/release-processing.json) `outcome; smoke.failures` | processing-jobs:503 triggered restore. Not re-proven on frozen daee44b or the quality candidate. Earlier cancelled LV-4 remains NOT_RUN. |
+| LV-11 | Stale duplicate work drains without manual purge | AWS V2-live (dc2-live); source daee44b61a6e8eef3f62505df69f8bfd076d68b8; CD 39286933644 | nine copies of a 303113-byte synthetic clip; nine Publisher processes | queue sampled every 30 s; first both-zero at 17:11:01Z | both queue counts zero within about 2 min of completion | 9/9 done; 0 visible and 0 in flight; no purge | PASS | [burst-270-recheck.json](../execution/aws/v1/evidence/v2live-verify-20261019/burst-270-recheck.json) `verdict; queue_samples_every_30s; purge_used` | One run; SQS counts are approximate. 18 sends for nine jobs means duplicate sends still occur. No claim that duplication was eliminated. |
+| LV-12 | Aurora reaches zero capacity after idle | AWS V2-live (dc2-live); source daee44b; recorded observation 19 October 18:07 UTC | after the nine-clip re-test | CloudWatch ServerlessDatabaseCapacity 1-minute maximum | 0 ACU | 0.0 ACU | PASS (point in time) | [demo-release-manifest.md](../release/demo-release-manifest.md) `Acceptance rows: Aurora auto-pause` | About 56 min after last upload. Later periodic sweeps may wake SQL; sustained idle cost and monthly spend are not measured. |
 
 <!-- table:end -->

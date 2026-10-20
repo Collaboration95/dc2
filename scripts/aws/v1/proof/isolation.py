@@ -38,8 +38,11 @@ HOLD_SECONDS = 150  # and at most this long waiting for it to reach the queue (r
 CATCH_UP_SECONDS = 120  # wait for Processing to take the command before starting the encoder
 POLL_SECONDS = 5
 WAITING = {"accepted", "queued"}  # what Media may show before Processing has acknowledged
-QUEUE_ATTRIBUTES = ["ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible",
-                    "ApproximateNumberOfMessagesDelayed"]
+QUEUE_ATTRIBUTES = [
+    "ApproximateNumberOfMessages",
+    "ApproximateNumberOfMessagesNotVisible",
+    "ApproximateNumberOfMessagesDelayed",
+]
 
 
 def mapping_id(ctx):
@@ -50,16 +53,23 @@ def mapping_id(ctx):
 
 
 def mapping_state(ctx, transport, identity):
-    reply = transport.call("lambda", "get-event-source-mapping", {"UUID": identity},
-                           deadline=ctx.deadline(LAMBDA_CALL_SECONDS))
+    reply = transport.call(
+        "lambda",
+        "get-event-source-mapping",
+        {"UUID": identity},
+        deadline=ctx.deadline(LAMBDA_CALL_SECONDS),
+    )
     return reply.get("State")
 
 
 def set_mapping(ctx, transport, identity, enabled):
     """Enable or disable the mapping and wait until Lambda reports that state."""
-    transport.call("lambda", "update-event-source-mapping",
-                   {"UUID": identity, "Enabled": enabled},
-                   deadline=ctx.deadline(LAMBDA_CALL_SECONDS))
+    transport.call(
+        "lambda",
+        "update-event-source-mapping",
+        {"UUID": identity, "Enabled": enabled},
+        deadline=ctx.deadline(LAMBDA_CALL_SECONDS),
+    )
     want = "Enabled" if enabled else "Disabled"
 
     def reached():
@@ -72,7 +82,8 @@ def set_mapping(ctx, transport, identity, enabled):
 def commands_queue_depth(ctx):
     """Messages the ProcessingCommands queue holds: visible, in flight or delayed."""
     got = ctx.sqs().get_queue_attributes(
-        QueueUrl=ctx.outputs["ProcessingCommandsQueueUrl"], AttributeNames=QUEUE_ATTRIBUTES)
+        QueueUrl=ctx.outputs["ProcessingCommandsQueueUrl"], AttributeNames=QUEUE_ATTRIBUTES
+    )
     return sum(int(got["Attributes"].get(name, 0)) for name in QUEUE_ATTRIBUTES)
 
 
@@ -113,15 +124,27 @@ def job_view(api, job_id):
 def listed(api, job_id):
     reply = api.request("GET", "/api/media/jobs")
     body = reply.json()
-    return reply.status == 200 and isinstance(body, list) and any(
-        isinstance(j, dict) and j.get("id") == job_id for j in body)
+    return (
+        reply.status == 200
+        and isinstance(body, list)
+        and any(isinstance(j, dict) and j.get("id") == job_id for j in body)
+    )
 
 
 def observe_outage(ctx, proof, api, intent, *, hold):
     """Watch the waiting upload while the consumer is off; returns what was held and seen."""
-    seen = intent.setdefault("outage", {
-        "depth_max": 0, "outbox_pending_seen": False, "progressed": False, "status": None,
-        "submission_status": None, "visible_by_id": False, "polls": 0})
+    seen = intent.setdefault(
+        "outage",
+        {
+            "depth_max": 0,
+            "outbox_pending_seen": False,
+            "progressed": False,
+            "status": None,
+            "submission_status": None,
+            "visible_by_id": False,
+            "polls": 0,
+        },
+    )
     job_id, begun = intent["job_id"], ctx.clock()
     while True:
         status, job = job_view(api, job_id)
@@ -135,8 +158,11 @@ def observe_outage(ctx, proof, api, intent, *, hold):
         seen["depth_max"] = max(seen["depth_max"], commands_queue_depth(ctx))
         proof.save()
         waited = ctx.clock() - begun
-        if seen["progressed"] or waited >= hold or (
-                seen["depth_max"] >= 1 and waited >= HOLD_MIN_SECONDS):
+        if (
+            seen["progressed"]
+            or waited >= hold
+            or (seen["depth_max"] >= 1 and waited >= HOLD_MIN_SECONDS)
+        ):
             break
         proof.checkpoint("open")
         ctx.sleep(POLL_SECONDS)
@@ -197,8 +223,9 @@ def processing_down(ctx, proof, fixture, *, gate, minutes, hold):
     if not intent.get("disabled_wall") and not intent.get("mapping_disabled"):
         before = mapping_state(ctx, transport, identity)
         if before != "Enabled":
-            raise ProofError(f"The ProcessingCommands mapping is {before}, not Enabled; "
-                             "open the session first")
+            raise ProofError(
+                f"The ProcessingCommands mapping is {before}, not Enabled; open the session first"
+            )
         intent["mapping_before"] = before
     api, _, _ = workflow.login(ctx)
     row = intent.setdefault("row", {})
@@ -214,8 +241,11 @@ def processing_down(ctx, proof, fixture, *, gate, minutes, hold):
             row["finalized"] = True
             intent["job_id"] = row["job_id"]
             proof.save()
-        outage = intent.get("outage") if intent.get("outage_checked") else observe_outage(
-            ctx, proof, api, intent, hold=hold)
+        outage = (
+            intent.get("outage")
+            if intent.get("outage_checked")
+            else observe_outage(ctx, proof, api, intent, hold=hold)
+        )
         restore(ctx, transport, intent, proof.save, quiet=False)
         if intent.get("restore") != "re-enabled":
             raise ProofError("The consumer was not re-enabled: " + intent.get("restore", "?"))
@@ -226,8 +256,11 @@ def processing_down(ctx, proof, fixture, *, gate, minutes, hold):
         final = finish_job(ctx, proof, api, intent, gate=gate, minutes=minutes)
         if not final or final["status"] not in workflow.TERMINAL:  # the gate passed: stop, record
             capacity.stop_ours(ctx, intent.get("tasks", []), "dc2 evidence: isolation gate passed")
-        stopped = workflow.wait_stopped(ctx, intent["tasks"], timeout=600,
-                                        checkpoint=proof.checkpoint) if intent["tasks"] else {}
+        stopped = (
+            workflow.wait_stopped(ctx, intent["tasks"], timeout=600, checkpoint=proof.checkpoint)
+            if intent["tasks"]
+            else {}
+        )
     except BaseException:
         # An error, an interrupt or a closed session must not leave the consumer off or an
         # encoder billing.
@@ -241,37 +274,65 @@ def processing_down(ctx, proof, fixture, *, gate, minutes, hold):
     to_done = round(ctx.wall() - intent["reenabled_wall"], 1)
     public = {
         "finalize_status": row.get("finalize_status"),
-        "mapping_before": intent.get("mapping_before"), "mapping_during": intent["mapping_during"],
-        "mapping_after": after, "mapping_restore": intent["restore"],
+        "mapping_before": intent.get("mapping_before"),
+        "mapping_during": intent["mapping_during"],
+        "mapping_after": after,
+        "mapping_restore": intent["restore"],
         "outage_seconds": round(intent["reenabled_wall"] - intent["disabled_wall"], 1),
-        "asset_visible_by_id": outage["visible_by_id"], "asset_in_list": outage["in_list"],
+        "asset_visible_by_id": outage["visible_by_id"],
+        "asset_in_list": outage["in_list"],
         "status_during_outage": outage["status"],
         "submission_status_during_outage": outage["submission_status"],
         "processing_acknowledged_during_outage": outage["progressed"],
         "commands_queue_depth_max": outage["depth_max"],
         "outbox_pending_seen": outage["outbox_pending_seen"],
-        "command_held_in": ("both" if outage["depth_max"] >= 1 and outage["outbox_pending_seen"]
-                            else "queue" if outage["depth_max"] >= 1
-                            else "outbox" if outage["outbox_pending_seen"] else "nowhere"),
-        "held_seconds": outage["held_seconds"], "consumer_catch_up_seconds": catch_up,
-        "job_status": final["status"] if final else None, "gate_seconds": gate,
-        "reenable_to_done_seconds": to_done, "within_gate": bool(
-            final and final["status"] == "done" and to_done <= gate + POLL_SECONDS),
-        "encoders_started": len(intent.get("tasks", [])), "encoders_left_running": left,
+        "command_held_in": (
+            "both"
+            if outage["depth_max"] >= 1 and outage["outbox_pending_seen"]
+            else "queue"
+            if outage["depth_max"] >= 1
+            else "outbox"
+            if outage["outbox_pending_seen"]
+            else "nowhere"
+        ),
+        "held_seconds": outage["held_seconds"],
+        "consumer_catch_up_seconds": catch_up,
+        "job_status": final["status"] if final else None,
+        "gate_seconds": gate,
+        "reenable_to_done_seconds": to_done,
+        "within_gate": bool(final and final["status"] == "done" and to_done <= gate + POLL_SECONDS),
+        "encoders_started": len(intent.get("tasks", [])),
+        "encoders_left_running": left,
         "encoder_billed_seconds": [tasks.summary(t)["billed_seconds"] for t in stopped.values()],
         "poll_interval_seconds": POLL_SECONDS,
         "scope_note": "Processing is down means its ProcessingCommands consumer is off; its API "
-                      "stays up.",
+        "stays up.",
     }
-    ok = (str(public["finalize_status"]).startswith("2") and outage["visible_by_id"]
-          and outage["in_list"] and waiting and not outage["progressed"] and held
-          and after == "Enabled" and public["within_gate"] and left == 0)
-    return {"status": PASS if ok else FAIL, "public": public,
-            "private": {"job_id": intent["job_id"], "tasks": intent.get("tasks", [])}}
+    ok = (
+        str(public["finalize_status"]).startswith("2")
+        and outage["visible_by_id"]
+        and outage["in_list"]
+        and waiting
+        and not outage["progressed"]
+        and held
+        and after == "Enabled"
+        and public["within_gate"]
+        and left == 0
+    )
+    return {
+        "status": PASS if ok else FAIL,
+        "public": public,
+        "private": {"job_id": intent["job_id"], "tasks": intent.get("tasks", [])},
+    }
 
 
 def run(ctx, *, fixture, job_timeout=900, minutes=60, hold=HOLD_SECONDS):
     proof = ctx.proof(ISSUE, REQUIRED)
-    proof.step(STEP, lambda i: processing_down(
-        ctx, proof, fixture, gate=job_timeout, minutes=minutes, hold=hold), session="open")
+    proof.step(
+        STEP,
+        lambda i: processing_down(
+            ctx, proof, fixture, gate=job_timeout, minutes=minutes, hold=hold
+        ),
+        session="open",
+    )
     return proof

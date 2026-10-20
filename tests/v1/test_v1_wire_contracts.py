@@ -295,6 +295,4 @@ def test_no_service_hardcodes_the_schema_version_it_stamps_on_a_message():
                 for key, value in zip(node.keys, node.values, strict=True):
                     if isinstance(key, ast.Constant) and key.value == "schema_version":
                         # The health endpoint reports the service's own wire version as data.
-                        assert not isinstance(value, ast.Constant) or path.name == "v1_api.py", (
-                            path
-                        )
+                        assert not isinstance(value, ast.Constant) or path.name == "v1_api.py", path

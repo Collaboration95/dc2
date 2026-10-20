@@ -114,9 +114,7 @@ async def work_rows(factory):
 async def state(factory):
     async with factory() as session:
         job = await session.scalar(select(Job))
-        attempts = (
-            await session.scalars(select(Attempt).order_by(Attempt.attempt_number))
-        ).all()
+        attempts = (await session.scalars(select(Attempt).order_by(Attempt.attempt_number))).all()
         return job, attempts
 
 
@@ -382,9 +380,7 @@ async def test_a_crash_mid_encode_is_recovered_cleaned_and_retried_on_fargate_wi
     again = await invoke(factory, settings, record, request="req-2", monkeypatch=monkeypatch)
     assert again == {"batchItemFailures": []}
     # A zombie that outlived its lease cannot commit what it uploaded.
-    zombie = SimpleNamespace(
-        job_id=job.id, attempt_id=attempt.id, lease_token=attempt.lease_token
-    )
+    zombie = SimpleNamespace(job_id=job.id, attempt_id=attempt.id, lease_token=attempt.lease_token)
     assert not await lifecycle.finish(factory, zombie, outputs=outputs_for(zombie))
     job, (attempt,) = await state(factory)
     assert job.status == "failed" and job.outputs == []
@@ -408,12 +404,7 @@ async def test_a_crash_mid_encode_is_recovered_cleaned_and_retried_on_fargate_wi
     rows = await work_rows(factory)
     assert [queue for queue, _ in rows][-1] == "processing-work"
     fargate = await messaging.claim(
-        factory,
-        job.id,
-        second.id,
-        settings,
-        envelope=rows[-1][1],
-        task_name="v1-u" + "d" * 32,
+        factory, job.id, second.id, settings, envelope=rows[-1][1], task_name="v1-u" + "d" * 32
     )
     assert await messaging.finish(factory, fargate, outputs=outputs_for(fargate))
     job, (first, second) = await state(factory)

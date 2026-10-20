@@ -128,9 +128,7 @@ async def test_happy_path_walks_queued_processing_done(store, session_factory):
     assert step.calls == [(job.id, "uploads/abc/demo.mp4")]
 
 
-async def test_an_edit_job_uses_a_fresh_processor_built_from_its_operations(
-    store, session_factory
-):
+async def test_an_edit_job_uses_a_fresh_processor_built_from_its_operations(store, session_factory):
     job = store.add(source_key="outputs/source/demo.mp4")
     job.operations = [{"operation": "downscale", "params": {"height": 480}}]
     upload_step = FakeStep(output_key="outputs/upload.mp4")
@@ -142,10 +140,7 @@ async def test_an_edit_job_uses_a_fresh_processor_built_from_its_operations(
         return edit_step
 
     outcome = await process_job_async(
-        job.id,
-        session_factory=session_factory,
-        step=upload_step,
-        edit_step_factory=edit_factory,
+        job.id, session_factory=session_factory, step=upload_step, edit_step_factory=edit_factory
     )
 
     assert outcome is JobOutcome.DONE
@@ -333,9 +328,7 @@ async def test_losing_the_row_before_recording_failure_is_logged_not_raised(
         outcome = await process_job_async(
             job.id,
             session_factory=session_factory,
-            step=FakeStep(
-                raises=ObjectStoreError("storage down", user_message="please try again")
-            ),
+            step=FakeStep(raises=ObjectStoreError("storage down", user_message="please try again")),
         )
 
     assert outcome is JobOutcome.SKIPPED

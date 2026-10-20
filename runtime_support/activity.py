@@ -29,6 +29,8 @@ import math
 import os
 import time
 
+from runtime_support.errors import log_safe_event
+
 # A writer may reuse a touch for this long, and its invocation commits within the 60 s Lambda
 # timeout of its last touch. MARGIN covers both with a minute of slack for clock skew and a
 # put that lands after a later one.
@@ -92,7 +94,14 @@ class Activity:
             self._put(self.touched, str(int(now)))
         except Exception as error:
             # The full sweep finds the write within MAX_QUIET_SECONDS; only the type is logged.
-            logger.warning("activity touch failed: %s", type(error).__name__)
+            log_safe_event(
+                logger,
+                level=logging.WARNING,
+                event="activity_touch_failed",
+                operation="activity_touch",
+                error_class=type(error).__name__,
+                outcome="full_sweep_required",
+            )
             return
         _last_touch[self.touched] = now
 
@@ -107,8 +116,11 @@ class Activity:
             return False
         now = self.clock()
         # A check from the future (or in milliseconds) is as untrustworthy as a stale one.
-        return (touched < checked - MARGIN_SECONDS and now < due
-                and 0 <= now - checked < MAX_QUIET_SECONDS)
+        return (
+            touched < checked - MARGIN_SECONDS
+            and now < due
+            and 0 <= now - checked < MAX_QUIET_SECONDS
+        )
 
     def record(self, checked_at, due_at):
         """After a pass: ``checked_at`` was taken before the SQL that found ``due_at``.
@@ -122,5 +134,12 @@ class Activity:
         due = min(due_at or float("inf"), checked_at + MAX_QUIET_SECONDS)
         try:
             self._put(self.quiet_name, f"{int(checked_at)} {int(due)}")
-        except Exception:
-            pass
+        except Exception as error:
+            log_safe_event(
+                logger,
+                level=logging.WARNING,
+                event="activity_quiet_write_failed",
+                operation="activity_record",
+                error_class=type(error).__name__,
+                outcome="full_sweep_required",
+            )

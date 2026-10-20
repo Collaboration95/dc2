@@ -43,9 +43,7 @@ def test_recipe_installs_only_the_owners_locked_extra_with_hashes(owner):
     text = RECIPES[owner]
     assert f"--extra v1-{owner}" in text
     assert "--require-hashes" in text and "--frozen" in text and "--no-dev" in text
-    assert "legacy" not in text.replace("legacy compose", "")
-    for package in LEGACY_SERVER:
-        assert f"--no-emit-package {package}" in text
+    assert "--extra legacy" not in text
 
 
 def test_v1_extras_exclude_the_queue_stack_which_only_the_legacy_extra_carries():
@@ -60,6 +58,28 @@ def test_v1_extras_exclude_the_queue_stack_which_only_the_legacy_extra_carries()
     for extra in ("v1-media", "v1-processing", "v1-worker"):
         assert names(extras[extra]).isdisjoint(queue)
     assert set(queue) <= names(extras["legacy"])
+
+
+def test_owner_extras_keep_migrations_and_media_auth_with_their_runtime():
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    extras = project["optional-dependencies"]
+
+    def names(requirements):
+        return {re.split(r"[<>=\[ ]", item, maxsplit=1)[0] for item in requirements}
+
+    assert {"alembic", "awslambdaric"} <= names(extras["v1-media"])
+    assert {"alembic", "awslambdaric"} <= names(extras["v1-processing"])
+    assert "awslambdaric" in names(extras["v1-worker"])
+    assert "alembic" not in names(extras["v1-worker"])
+    media_auth = {"bcrypt", "email-validator", "pyjwt"}
+    assert media_auth <= names(extras["v1-media"])
+    for extra in ("v1-processing", "v1-worker"):
+        assert media_auth.isdisjoint(names(extras[extra]))
+    assert {"bcrypt", "email-validator", "pyjwt", "python-multipart"} <= names(extras["legacy"])
+    assert "httpx" in names(extras["legacy"])
+    assert "httpx" in names(extras["dev"])
+    assert "httpx" not in names(project["dependencies"])
+    assert "python-multipart" not in names(project["dependencies"])
 
 
 @pytest.mark.parametrize("owner", RECIPES)
@@ -93,7 +113,11 @@ def test_the_worker_image_doubles_as_the_lambda_short_encoder_without_changing_f
     text = RECIPES["worker"]
     # Bytecode is precompiled for the read-only Lambda filesystem; Fargate ignores it.
     assert "--compile-bytecode" in text and "compileall" in text
-    assert "awslambdaric" in (ROOT / "deploy/v1/worker.requirements.in").read_text()
+    worker = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    worker_requirements = worker["optional-dependencies"]["v1-worker"]
+    assert any(
+        re.split(r"[<>=\[ ]", item, maxsplit=1)[0] == "awslambdaric" for item in worker_requirements
+    )
     # The image keeps its Fargate entrypoint: the template function overrides it, so no
     # fourth image, repository or release-promotion path exists for the experiment.
     assert 'ENTRYPOINT ["python", "-m", "awslambdaric"]' not in text
@@ -163,9 +187,22 @@ def test_migration_tasks_point_at_alembic_configs_the_api_images_copy():
         assert f"COPY {owner} ./{owner}" in RECIPES[owner]
 
 
-def test_verifier_policy_forbids_every_distribution_the_recipes_exclude():
+def test_verifier_policy_rejects_legacy_queue_and_server_distributions():
     verifier = load_verifier()
     assert {"redis", "rq", *LEGACY_SERVER} <= verifier.FORBIDDEN_EVERYWHERE
+
+
+def test_exact_image_policy_keeps_http_auth_and_migration_packages_with_their_owners():
+    verifier = load_verifier()
+    common_http = {"httpx", "httpcore", "h11", "python-multipart"}
+    media_auth = {"bcrypt", "dnspython", "email-validator", "pyjwt"}
+    for owner in RECIPES:
+        assert common_http <= verifier.FORBIDDEN_BY_OWNER[owner]
+    assert media_auth <= verifier.FORBIDDEN_BY_OWNER["processing"]
+    assert media_auth <= verifier.FORBIDDEN_BY_OWNER["worker"]
+    assert {"alembic", "mako", "markupsafe"} <= verifier.FORBIDDEN_BY_OWNER["worker"]
+    assert "alembic" not in verifier.FORBIDDEN_BY_OWNER["media"]
+    assert "alembic" not in verifier.FORBIDDEN_BY_OWNER["processing"]
     assert verifier.PLATFORM == "linux/amd64"
 
 

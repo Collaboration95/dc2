@@ -86,22 +86,13 @@ async def retry(session, owner_id, asset_id, key):
 
 async def tombstone(session, owner_id, asset_id):
     async with session.begin():
-        asset = await get_asset(
-            session,
-            asset_id,
-            owner_id,
-            include_deleted=True,
-            lock=True,
-        )
+        asset = await get_asset(session, asset_id, owner_id, include_deleted=True, lock=True)
         if asset.deleted_at:
             return
         asset.deleted_at = now()
         session.add(CleanupIntent(asset_id=asset.id))
         await command(
-            session,
-            asset,
-            "cancel",
-            message_id=uuid5(NAMESPACE_URL, f"media/cancel/{asset.id}"),
+            session, asset, "cancel", message_id=uuid5(NAMESPACE_URL, f"media/cancel/{asset.id}")
         )
 
 

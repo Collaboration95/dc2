@@ -56,9 +56,19 @@ from scripts.aws.v1.proof.core import (
 )
 
 ISSUE = 229
-STEPS = ("setup-job", "cross-owner", "unauthenticated", "tampered-urls", "oversized-upload",
-         "oversize-100mib", "s3-direct-denied", "playback-url-expiry", "upload-url-expiry",
-         "port-scan", "execute-api-direct")
+STEPS = (
+    "setup-job",
+    "cross-owner",
+    "unauthenticated",
+    "tampered-urls",
+    "oversized-upload",
+    "oversize-100mib",
+    "s3-direct-denied",
+    "playback-url-expiry",
+    "upload-url-expiry",
+    "port-scan",
+    "execute-api-direct",
+)
 REQUIRED = STEPS
 NEEDS_JOB = {"cross-owner", "tampered-urls", "s3-direct-denied", "playback-url-expiry"}
 MAX_BYTES = MAX_UPLOAD_BYTES
@@ -144,7 +154,8 @@ def grant_for(api, path, request_id):
     _, data = workflow.reserve(api, path, request_id)
     grant = data["upload"]
     if not str(grant.get("url", "")).startswith("https://") or not isinstance(
-            grant.get("fields"), dict):
+        grant.get("fields"), dict
+    ):
         raise ProofError("The upload grant is not an HTTPS presigned POST")
     return data, grant
 
@@ -159,8 +170,15 @@ def field_name(fields, wanted):
 def post_grant(ctx, grant, fields, filename, content, *, timeout=60):
     """A POST to storage with exactly these fields; never a cookie (direct() refuses one)."""
     ctype, body = multipart(fields, filename, content, CONTENT_TYPE)
-    return direct(ctx.http, "POST", grant["url"], {"content-type": ctype}, body,
-                  timeout=timeout, clock=ctx.clock)
+    return direct(
+        ctx.http,
+        "POST",
+        grant["url"],
+        {"content-type": ctype},
+        body,
+        timeout=timeout,
+        clock=ctx.clock,
+    )
 
 
 def tampered_fields(fields, change):
@@ -181,8 +199,13 @@ def tampered_fields(fields, change):
     return mutated
 
 
-UPLOAD_TAMPERING = ("signature_changed", "signature_removed", "policy_changed", "key_changed",
-                    "content_type_changed")
+UPLOAD_TAMPERING = (
+    "signature_changed",
+    "signature_removed",
+    "policy_changed",
+    "key_changed",
+    "content_type_changed",
+)
 
 
 def query_of(url):
@@ -202,8 +225,9 @@ def get_variants(url):
     return {
         "signature_changed": rebuild(edit=("X-Amz-Signature", flip(query["X-Amz-Signature"]))),
         "key_changed": rebuild(path=parts.path + "x"),
-        "lifetime_extended": rebuild(edit=("X-Amz-Expires",
-                                           str(int(query.get("X-Amz-Expires", "60")) * 10))),
+        "lifetime_extended": rebuild(
+            edit=("X-Amz-Expires", str(int(query.get("X-Amz-Expires", "60")) * 10))
+        ),
         "signature_removed": rebuild(drop="X-Amz-Signature"),
         "unsigned": urlunsplit((parts.scheme, parts.netloc, parts.path, "", "")),
     }
@@ -296,8 +320,11 @@ def setup_job(ctx, proof, fixture, *, timeout, minutes):
         final = isolation.finish_job(ctx, proof, api, intent, gate=timeout, minutes=minutes)
         if not final or final["status"] not in workflow.TERMINAL:
             capacity.stop_ours(ctx, intent["tasks"], "dc2 evidence: security gate passed")
-        stopped = workflow.wait_stopped(ctx, intent["tasks"], timeout=600,
-                                        checkpoint=proof.checkpoint) if intent["tasks"] else {}
+        stopped = (
+            workflow.wait_stopped(ctx, intent["tasks"], timeout=600, checkpoint=proof.checkpoint)
+            if intent["tasks"]
+            else {}
+        )
     except BaseException:
         capacity.stop_ours(ctx, intent["tasks"], "dc2 evidence: security step aborted")
         raise
@@ -308,15 +335,21 @@ def setup_job(ctx, proof, fixture, *, timeout, minutes):
     left = len(running)
     status = final["status"] if final else None
     public = {
-        "users_registered": 2, "job_status": status, "bytes": row.get("bytes"),
-        "upload_status": row.get("upload_status"), "finalize_status": row.get("finalize_status"),
+        "users_registered": 2,
+        "job_status": status,
+        "bytes": row.get("bytes"),
+        "upload_status": row.get("upload_status"),
+        "finalize_status": row.get("finalize_status"),
         "storage_host_is_s3": row.get("storage_host_is_s3"),
-        "encoders_started": len(intent["tasks"]), "encoders_left_running": left,
-        "encoder_billed_seconds": [tasks.summary(t)["billed_seconds"]
-                                   for t in stopped.values()],
+        "encoders_started": len(intent["tasks"]),
+        "encoders_left_running": left,
+        "encoder_billed_seconds": [tasks.summary(t)["billed_seconds"] for t in stopped.values()],
     }
-    return {"status": PASS if status == "done" and left == 0 else FAIL, "public": public,
-            "private": {"job_id": intent["job_id"], "tasks": intent["tasks"]}}
+    return {
+        "status": PASS if status == "done" and left == 0 else FAIL,
+        "public": public,
+        "private": {"job_id": intent["job_id"], "tasks": intent["tasks"]},
+    }
 
 
 # ---- ownership and authentication -----------------------------------------------------
@@ -340,10 +373,20 @@ def cross_owner(ctx, proof):
         "playback_segment": ask(ctx, b, "GET", paths["segment"]),
         "processing_job": ask(ctx, b, "GET", f"/api/processing/jobs/{pid}"),
         # A valid body, so a 404 is the owner check and not a 422 from validation.
-        "edit": ask(ctx, b, "POST", f"/api/media/jobs/{job_id}/edit", body={
-            "operations": [{"operation": "downscale", "params": {"height": 120}}]}),
-        "processing_retry": ask(ctx, b, "POST", f"/api/processing/jobs/{pid}/retry",
-                                body={"retry_request_id": str(uuid.uuid4())}),
+        "edit": ask(
+            ctx,
+            b,
+            "POST",
+            f"/api/media/jobs/{job_id}/edit",
+            body={"operations": [{"operation": "downscale", "params": {"height": 120}}]},
+        ),
+        "processing_retry": ask(
+            ctx,
+            b,
+            "POST",
+            f"/api/processing/jobs/{pid}/retry",
+            body={"retry_request_id": str(uuid.uuid4())},
+        ),
         # The destructive calls go last: if one wrongly succeeded, A's job is what shows it.
         "processing_cancel": ask(ctx, b, "DELETE", f"/api/processing/jobs/{pid}"),
         "delete": ask(ctx, b, "DELETE", f"/api/media/jobs/{job_id}"),
@@ -353,18 +396,37 @@ def cross_owner(ctx, proof):
     after = ask(ctx, a, "GET", f"/api/media/jobs/{job_id}")
     listed = listing.status == 200 and job_id in listing.body.decode("utf-8", "replace")
     leaked = pid in by_asset.body.decode("utf-8", "replace") or job_id in by_asset.body.decode(
-        "utf-8", "replace")
-    exposed = any(marker in reply.body for reply in replies.values()
-                  for marker in (b"output_url", b"hls_url", b"X-Amz-Signature"))
-    unchanged = after.status == 200 and (after.json() or {}).get("status") == "done" and (
-        (after.json() or {}).get("processing_job_id") == pid)
+        "utf-8", "replace"
+    )
+    exposed = any(
+        marker in reply.body
+        for reply in replies.values()
+        for marker in (b"output_url", b"hls_url", b"X-Amz-Signature")
+    )
+    unchanged = (
+        after.status == 200
+        and (after.json() or {}).get("status") == "done"
+        and ((after.json() or {}).get("processing_job_id") == pid)
+    )
     statuses = {f"b_{name}": reply.status for name, reply in replies.items()}
-    public = {**statuses, **controls, "b_listing_status": listing.status,
-              "b_lists_a_job": listed, "b_processing_by_asset_status": by_asset.status,
-              "b_processing_by_asset_leaks": leaked, "b_sees_output_or_playback_urls": exposed,
-              "a_job_unchanged_after_b_retry": unchanged}
-    ok = (all(s == 404 for s in statuses.values()) and all(s == 200 for s in controls.values())
-          and not listed and not leaked and not exposed and unchanged)
+    public = {
+        **statuses,
+        **controls,
+        "b_listing_status": listing.status,
+        "b_lists_a_job": listed,
+        "b_processing_by_asset_status": by_asset.status,
+        "b_processing_by_asset_leaks": leaked,
+        "b_sees_output_or_playback_urls": exposed,
+        "a_job_unchanged_after_b_retry": unchanged,
+    }
+    ok = (
+        all(s == 404 for s in statuses.values())
+        and all(s == 200 for s in controls.values())
+        and not listed
+        and not leaked
+        and not exposed
+        and unchanged
+    )
     return {"status": PASS if ok else FAIL, "public": public, "private": {"job_id": job_id}}
 
 
@@ -372,8 +434,9 @@ def forged_tokens(api):
     """Two bad session cookies, built in memory: an unsigned token and A's with a bad signature."""
     name, _, value = api.cookie.split(";")[0].partition("=")
     header = urlsafe_b64encode(b'{"alg":"none","typ":"JWT"}').rstrip(b"=").decode()
-    claims = urlsafe_b64encode(b'{"sub":"' + str(uuid.uuid4()).encode() + b'"}').rstrip(
-        b"=").decode()
+    claims = (
+        urlsafe_b64encode(b'{"sub":"' + str(uuid.uuid4()).encode() + b'"}').rstrip(b"=").decode()
+    )
     return {"alg_none": f"{name}={header}.{claims}.", "signature_changed": f"{name}={flip(value)}"}
 
 
@@ -381,13 +444,16 @@ def unauthenticated(ctx, proof):
     known = proof.doc["intents"].get("setup-job", {}).get("job_id")
     job_id = known or str(uuid.uuid4())
     pid = str(uuid.uuid4())
-    routes = (("jobs", "GET", "/api/media/jobs"), ("job", "GET", f"/api/media/jobs/{job_id}"),
-              ("retry", "POST", f"/api/media/jobs/{job_id}/retry"),
-              ("playback", "GET", f"/api/media/jobs/{job_id}/hls/master.m3u8"),
-              ("processing_job", "GET", f"/api/processing/jobs/{pid}"),
-              ("reserve", "POST", "/api/media/uploads/reservations"),
-              ("finalize", "POST", f"/api/media/uploads/reservations/{uuid.uuid4()}/finalize"),
-              ("me", "GET", "/api/media/auth/me"))
+    routes = (
+        ("jobs", "GET", "/api/media/jobs"),
+        ("job", "GET", f"/api/media/jobs/{job_id}"),
+        ("retry", "POST", f"/api/media/jobs/{job_id}/retry"),
+        ("playback", "GET", f"/api/media/jobs/{job_id}/hls/master.m3u8"),
+        ("processing_job", "GET", f"/api/processing/jobs/{pid}"),
+        ("reserve", "POST", "/api/media/uploads/reservations"),
+        ("finalize", "POST", f"/api/media/uploads/reservations/{uuid.uuid4()}/finalize"),
+        ("me", "GET", "/api/media/auth/me"),
+    )
     seen = {}
     for origin in ("frontend", "gateway"):
         api = ctx.api(origin)
@@ -403,10 +469,15 @@ def unauthenticated(ctx, proof):
     absent = {k: v for k, v in seen.items() if not k.startswith("forged_")}
     forged = {k: v for k, v in seen.items() if k.startswith("forged_")}
     ok = all(s == 401 for s in absent.values()) and all(s in (401, 403) for s in forged.values())
-    return {"status": PASS if ok else FAIL,
-            "public": {"statuses": seen, "all_401": all(s == 401 for s in seen.values()),
-                       "absent_session_all_401": all(s == 401 for s in absent.values()),
-                       "forged_token_denied": all(s in (401, 403) for s in forged.values())}}
+    return {
+        "status": PASS if ok else FAIL,
+        "public": {
+            "statuses": seen,
+            "all_401": all(s == 401 for s in seen.values()),
+            "absent_session_all_401": all(s == 401 for s in absent.values()),
+            "forged_token_denied": all(s in (401, 403) for s in forged.values()),
+        },
+    }
 
 
 # ---- signed URLs ---------------------------------------------------------------------
@@ -441,12 +512,15 @@ def tampered_urls(ctx, proof):
             bad.append(rejected(status))
         public[f"{label}_control_status"] = ranged(ctx, url).status
     controls = [public["upload_control_status"] in workflow.UPLOAD_OK] + [
-        public[f"{label}_control_status"] in {200, 206} for label in targets]
+        public[f"{label}_control_status"] in {200, 206} for label in targets
+    ]
     public["all_tampering_rejected"] = all(bad)
     public["all_controls_worked"] = all(controls)
     public["mp4_checked"] = "mp4" in targets
-    return {"status": PASS if all(bad) and all(controls) and "mp4" in targets else FAIL,
-            "public": public}
+    return {
+        "status": PASS if all(bad) and all(controls) and "mp4" in targets else FAIL,
+        "public": public,
+    }
 
 
 def playback_expiry(ctx, proof, *, max_wait):
@@ -456,23 +530,33 @@ def playback_expiry(ctx, proof, *, max_wait):
     query = query_of(url)
     try:
         lifetime = int(query["X-Amz-Expires"])
-        issued = dt.datetime.strptime(query["X-Amz-Date"], "%Y%m%dT%H%M%SZ").replace(
-            tzinfo=dt.UTC)
+        issued = dt.datetime.strptime(query["X-Amz-Date"], "%Y%m%dT%H%M%SZ").replace(tzinfo=dt.UTC)
     except (KeyError, ValueError):
         raise ProofError("The signed URL does not state its date and lifetime") from None
     left = issued.timestamp() + lifetime - ctx.wall() + EXPIRY_MARGIN
     if left > max_wait:
-        return {"status": NOT_RUN, "public": {
-            "reason": f"the signed playback URL lives {lifetime} s, more than the {max_wait} s "
-                      "this run may wait; pass --max-expiry-wait to test it. Tampering is "
-                      "covered by the tampered-urls step",
-            "signed_lifetime_seconds": lifetime, "max_wait_seconds": max_wait}}
+        return {
+            "status": NOT_RUN,
+            "public": {
+                "reason": f"the signed playback URL lives {lifetime} s, more than the {max_wait} s "
+                "this run may wait; pass --max-expiry-wait to test it. Tampering is "
+                "covered by the tampered-urls step",
+                "signed_lifetime_seconds": lifetime,
+                "max_wait_seconds": max_wait,
+            },
+        }
     control = ranged(ctx, url).status
     wait_for(ctx, proof, left)
     after = ranged(ctx, url).status
-    return {"status": PASS if control in {200, 206} and rejected(after) else FAIL, "public": {
-        "signed_lifetime_seconds": lifetime, "control_status": control,
-        "status_after_expiry": after, "waited_seconds": round(left, 1)}}
+    return {
+        "status": PASS if control in {200, 206} and rejected(after) else FAIL,
+        "public": {
+            "signed_lifetime_seconds": lifetime,
+            "control_status": control,
+            "status_after_expiry": after,
+            "waited_seconds": round(left, 1),
+        },
+    }
 
 
 def upload_expiry(ctx, proof, *, max_wait):
@@ -483,40 +567,63 @@ def upload_expiry(ctx, proof, *, max_wait):
     proof.save()
     left = parse_time(data["expires_at"]).timestamp() - ctx.wall() + EXPIRY_MARGIN
     if left > max_wait:
-        return {"status": NOT_RUN, "public": {
-            "reason": f"an upload grant lives about {round(left - EXPIRY_MARGIN)} s (fixed at "
-                      f"15 minutes in Media), more than the {max_wait} s this run may wait; "
-                      "pass --max-expiry-wait to test it. Tampering is covered by the "
-                      "tampered-urls step",
-            "grant_seconds_left": round(left - EXPIRY_MARGIN), "max_wait_seconds": max_wait}}
+        return {
+            "status": NOT_RUN,
+            "public": {
+                "reason": f"an upload grant lives about {round(left - EXPIRY_MARGIN)} s (fixed at "
+                f"15 minutes in Media), more than the {max_wait} s this run may wait; "
+                "pass --max-expiry-wait to test it. Tampering is covered by the "
+                "tampered-urls step",
+                "grant_seconds_left": round(left - EXPIRY_MARGIN),
+                "max_wait_seconds": max_wait,
+            },
+        }
     content = path.read_bytes()
     control = post_grant(ctx, grant, grant["fields"], path.name, content).status
     wait_for(ctx, proof, left)
     after = post_grant(ctx, grant, grant["fields"], path.name, content).status
     ok = control in workflow.UPLOAD_OK and rejected(after)
-    return {"status": PASS if ok else FAIL, "public": {
-        "control_status": control, "status_after_expiry": after, "waited_seconds": round(left, 1)}}
+    return {
+        "status": PASS if ok else FAIL,
+        "public": {
+            "control_status": control,
+            "status_after_expiry": after,
+            "waited_seconds": round(left, 1),
+        },
+    }
 
 
 # ---- size ------------------------------------------------------------------------------
 def finalize(a, reservation_id, request_id):
-    return a.request("POST", f"/api/media/uploads/reservations/{reservation_id}/finalize",
-                     body={"request_id": request_id})
+    return a.request(
+        "POST",
+        f"/api/media/uploads/reservations/{reservation_id}/finalize",
+        body={"request_id": request_id},
+    )
 
 
 def refused_oversize_upload(ctx, a, request_id, reserved, sent, name):
     """Reserve `reserved` bytes, send `sent`, then try to finalize: returns what happened."""
-    reply = a.request("POST", "/api/media/uploads/reservations", body={
-        "request_id": request_id, "filename": f"{name}.mp4", "content_type": CONTENT_TYPE,
-        "size_bytes": reserved, "sha256": "0" * 64})
+    reply = a.request(
+        "POST",
+        "/api/media/uploads/reservations",
+        body={
+            "request_id": request_id,
+            "filename": f"{name}.mp4",
+            "content_type": CONTENT_TYPE,
+            "size_bytes": reserved,
+            "sha256": "0" * 64,
+        },
+    )
     data = reply.json()
     if reply.status != 201 or not isinstance(data, dict) or not data.get("upload"):
         raise ProofError(f"The in-limit reservation was refused (HTTP {reply.status})")
     grant = data["upload"]
     result = {"reserve_status": reply.status}
     try:
-        stored = post_grant(ctx, grant, grant["fields"], f"{name}.mp4", b"\0" * sent,
-                            timeout=900).status
+        stored = post_grant(
+            ctx, grant, grant["fields"], f"{name}.mp4", b"\0" * sent, timeout=900
+        ).status
         result["storage_status"], result["storage_connection_closed"] = stored, False
     except OSError:  # S3 may close the connection once it has seen too many bytes
         result["storage_status"], result["storage_connection_closed"] = None, True
@@ -530,52 +637,87 @@ def refused_oversize_upload(ctx, a, request_id, reserved, sent, name):
 def oversized_upload(ctx, proof):
     a = account(ctx, "a")
     intent = proof.intent("oversized-upload")
-    refused = a.request("POST", "/api/media/uploads/reservations", body={
-        "request_id": intent.setdefault("request_id_over", str(uuid.uuid4())),
-        "filename": "oversize.mp4", "content_type": CONTENT_TYPE,
-        "size_bytes": MAX_BYTES + 1, "sha256": "0" * 64})
+    refused = a.request(
+        "POST",
+        "/api/media/uploads/reservations",
+        body={
+            "request_id": intent.setdefault("request_id_over", str(uuid.uuid4())),
+            "filename": "oversize.mp4",
+            "content_type": CONTENT_TYPE,
+            "size_bytes": MAX_BYTES + 1,
+            "sha256": "0" * 64,
+        },
+    )
     body = refused.json()
     granted = isinstance(body, dict) and bool(body.get("upload"))
     proof.save()
     size = 1024
-    result = refused_oversize_upload(ctx, a, intent.setdefault("request_id_bytes", str(
-        uuid.uuid4())), size, 2 * size, "bytes-over-reservation")
+    result = refused_oversize_upload(
+        ctx,
+        a,
+        intent.setdefault("request_id_bytes", str(uuid.uuid4())),
+        size,
+        2 * size,
+        "bytes-over-reservation",
+    )
     public = {
-        "limit_bytes": MAX_BYTES, "reservation_over_limit_status": refused.status,
+        "limit_bytes": MAX_BYTES,
+        "reservation_over_limit_status": refused.status,
         "reservation_over_limit_granted_upload": granted,
-        "reserved_bytes": size, "sent_bytes": 2 * size,
+        "reserved_bytes": size,
+        "sent_bytes": 2 * size,
         "storage_status": result["storage_status"],
         "storage_rejected_oversize": rejected(result["storage_status"]),
-        "finalize_status": result["finalize_status"], "adopted": result["adopted"],
+        "finalize_status": result["finalize_status"],
+        "adopted": result["adopted"],
         "refused_only_at_finalize": result["storage_stored_bytes"] and not result["adopted"],
     }
-    ok = rejected(refused.status) and not granted and not result["adopted"] and (
-        rejected(result["storage_status"]) or result["storage_stored_bytes"])
+    ok = (
+        rejected(refused.status)
+        and not granted
+        and not result["adopted"]
+        and (rejected(result["storage_status"]) or result["storage_stored_bytes"])
+    )
     return {"status": PASS if ok else FAIL, "public": public}
 
 
 def full_size_limit(ctx, proof, *, enabled):
     if not enabled:
-        return {"status": NOT_RUN, "public": {
-            "reason": "uploading 100 MiB plus one byte was not requested; pass "
-                      "--full-size-limit. The same size condition is exercised at the "
-                      "reserved size by oversized-upload",
-            "limit_bytes": MAX_BYTES}}
+        return {
+            "status": NOT_RUN,
+            "public": {
+                "reason": "uploading 100 MiB plus one byte was not requested; pass "
+                "--full-size-limit. The same size condition is exercised at the "
+                "reserved size by oversized-upload",
+                "limit_bytes": MAX_BYTES,
+            },
+        }
     a = account(ctx, "a")
     intent = proof.intent("oversize-100mib")
     result = refused_oversize_upload(
-        ctx, a, intent.setdefault("request_id", str(uuid.uuid4())), MAX_BYTES, MAX_BYTES + 1,
-        "limit-plus-one")
+        ctx,
+        a,
+        intent.setdefault("request_id", str(uuid.uuid4())),
+        MAX_BYTES,
+        MAX_BYTES + 1,
+        "limit-plus-one",
+    )
     proof.save()
     stopped = rejected(result["storage_status"]) or result["storage_connection_closed"]
     ok = not result["adopted"] and (stopped or result["storage_stored_bytes"])
-    return {"status": PASS if ok else FAIL, "public": {
-        "limit_bytes": MAX_BYTES, "sent_bytes": MAX_BYTES + 1,
-        "storage_status": result["storage_status"],
-        "storage_connection_closed": result["storage_connection_closed"],
-        "storage_rejected_oversize": stopped, "finalize_status": result["finalize_status"],
-        "adopted": result["adopted"],
-        "refused_only_at_finalize": result["storage_stored_bytes"] and not result["adopted"]}}
+    return {
+        "status": PASS if ok else FAIL,
+        "public": {
+            "limit_bytes": MAX_BYTES,
+            "sent_bytes": MAX_BYTES + 1,
+            "storage_status": result["storage_status"],
+            "storage_connection_closed": result["storage_connection_closed"],
+            "storage_rejected_oversize": stopped,
+            "finalize_status": result["finalize_status"],
+            "adopted": result["adopted"],
+            "refused_only_at_finalize": result["storage_stored_bytes"] and not result["adopted"],
+        },
+    }
 
 
 # ---- storage is private --------------------------------------------------------------
@@ -605,8 +747,11 @@ def s3_direct_denied(ctx, proof):
     for name, (method, url) in probes.items():
         body = b"dc2-unsigned" if method == "PUT" else None
         seen[name] = direct(ctx.http, method, url, {}, body, clock=ctx.clock).status
-    public = {"statuses": seen, "staged_object_stored": stored in workflow.UPLOAD_OK,
-              "all_denied": all(s in DENIED_STORAGE for s in seen.values())}
+    public = {
+        "statuses": seen,
+        "staged_object_stored": stored in workflow.UPLOAD_OK,
+        "all_denied": all(s in DENIED_STORAGE for s in seen.values()),
+    }
     ok = public["staged_object_stored"] and public["all_denied"]
     return {"status": PASS if ok else FAIL, "public": public}
 
@@ -648,25 +793,40 @@ def port_scan(ctx):
     jobs = [(address, port) for address in addresses for port in PORTS]
     with ThreadPoolExecutor(max_workers=16) as pool:
         states = list(pool.map(lambda job: connect(job[0], job[1], CONNECT_TIMEOUT), jobs))
-    by_port = {port: {s for (_, p), s in zip(jobs, states, strict=True) if p == port}
-               for port in PORTS}
-    summary = {port: ("open" if "open" in seen else "error" if "error" in seen
-                      else "closed" if seen == {"closed"} else "filtered")
-               for port, seen in by_port.items()}
+    by_port = {
+        port: {s for (_, p), s in zip(jobs, states, strict=True) if p == port} for port in PORTS
+    }
+    summary = {
+        port: (
+            "open"
+            if "open" in seen
+            else "error"
+            if "error" in seen
+            else "closed"
+            if seen == {"closed"}
+            else "filtered"
+        )
+        for port, seen in by_port.items()
+    }
     opened = sorted(port for port, state in summary.items() if state == "open")
     try:
         plain = direct(ctx.http, "GET", f"http://{host}/", {}, None, timeout=15, clock=ctx.clock)
         redirect = plain.status in {301, 302, 307, 308} and plain.first("location").startswith(
-            "https://")
+            "https://"
+        )
         plain_status = plain.status
     except OSError:
         redirect, plain_status = False, None
     public = {
-        "ports_scanned": list(PORTS), "addresses_scanned": len(addresses),
-        "ipv6_scanned": False, "connect_timeout_seconds": CONNECT_TIMEOUT,
-        "port_states": {str(p): s for p, s in summary.items()}, "open_ports": opened,
+        "ports_scanned": list(PORTS),
+        "addresses_scanned": len(addresses),
+        "ipv6_scanned": False,
+        "connect_timeout_seconds": CONNECT_TIMEOUT,
+        "port_states": {str(p): s for p, s in summary.items()},
+        "open_ports": opened,
         "only_80_and_443_open": opened == EXPECTED_OPEN,
-        "plain_http_status": plain_status, "plain_http_redirects_to_https": redirect,
+        "plain_http_status": plain_status,
+        "plain_http_redirects_to_https": redirect,
         "method": "tcp connect, python sockets",
     }
     if "error" in summary.values():
@@ -679,20 +839,30 @@ def port_scan(ctx):
 def execute_api_direct(ctx, proof):
     """The Gateway URL without CloudFront: refused, or reachable with the authorizer in force."""
     gateway = ctx.api("gateway")
-    probes = {"health": "/api/media/health", "media_jobs": "/api/media/jobs",
-              "processing_jobs": f"/api/processing/jobs?asset_ids={uuid.uuid4()}",
-              "admin_jobs": "/api/media/admin/jobs"}
+    probes = {
+        "health": "/api/media/health",
+        "media_jobs": "/api/media/jobs",
+        "processing_jobs": f"/api/processing/jobs?asset_ids={uuid.uuid4()}",
+        "admin_jobs": "/api/media/admin/jobs",
+    }
     statuses = {}
     for name, path in probes.items():
         try:
             statuses[name] = ask(ctx, gateway, "GET", path).status
         except OSError:
             statuses[name] = None
-    exposed = any(statuses[n] is not None and 200 <= statuses[n] < 300
-                  for n in ("media_jobs", "processing_jobs", "admin_jobs"))
+    exposed = any(
+        statuses[n] is not None and 200 <= statuses[n] < 300
+        for n in ("media_jobs", "processing_jobs", "admin_jobs")
+    )
     answers = statuses["health"] == 200 or 401 in statuses.values()
-    classification = ("anonymous_data_exposed" if exposed else
-                      "reachable_authorizer_enforced" if answers else "refused")
+    classification = (
+        "anonymous_data_exposed"
+        if exposed
+        else "reachable_authorizer_enforced"
+        if answers
+        else "refused"
+    )
     public = {"statuses": statuses, "classification": classification}
     job_id = proof.doc["intents"].get("setup-job", {}).get("job_id")
     if job_id and answers and not exposed:
@@ -701,9 +871,13 @@ def execute_api_direct(ctx, proof):
         public["b_reads_a_job_status"] = ask(ctx, b, "GET", f"/api/media/jobs/{job_id}").status
     ok = classification != "anonymous_data_exposed" and (
         public.get("a_reads_own_job_status", 200) == 200
-        and public.get("b_reads_a_job_status", 404) == 404)
-    public["note"] = ("The execute-api URL answers without CloudFront; the authorizer is the "
-                      "control." if answers else "The execute-api URL refused anonymous calls.")
+        and public.get("b_reads_a_job_status", 404) == 404
+    )
+    public["note"] = (
+        "The execute-api URL answers without CloudFront; the authorizer is the control."
+        if answers
+        else "The execute-api URL refused anonymous calls."
+    )
     return {"status": PASS if ok else FAIL, "public": public}
 
 
@@ -713,25 +887,41 @@ def account_on(ctx, label, origin):
 
 
 # ---- driver ----------------------------------------------------------------------------
-def run(ctx, *, fixture, job_timeout=900, minutes=45, only=None, max_expiry_wait=EXPIRY_WAIT,
-        full_size=False):
+def run(
+    ctx,
+    *,
+    fixture,
+    job_timeout=900,
+    minutes=45,
+    only=None,
+    max_expiry_wait=EXPIRY_WAIT,
+    full_size=False,
+):
     if ctx.fresh and (ctx.fresh is True or "setup-job" in ctx.fresh):
-        raise ProofError("--fresh would start a second encoder job: name the steps to repeat "
-                         "with --only and leave setup-job out")
+        raise ProofError(
+            "--fresh would start a second encoder job: name the steps to repeat "
+            "with --only and leave setup-job out"
+        )
     proof = ctx.proof(ISSUE, REQUIRED)
     plan = {
-        "setup-job": ("open", lambda i: setup_job(
-            ctx, proof, fixture, timeout=job_timeout, minutes=minutes)),
+        "setup-job": (
+            "open",
+            lambda i: setup_job(ctx, proof, fixture, timeout=job_timeout, minutes=minutes),
+        ),
         "cross-owner": ("active", lambda i: cross_owner(ctx, proof)),
         "unauthenticated": ("active", lambda i: unauthenticated(ctx, proof)),
         "tampered-urls": ("active", lambda i: tampered_urls(ctx, proof)),
         "oversized-upload": ("active", lambda i: oversized_upload(ctx, proof)),
         "oversize-100mib": ("active", lambda i: full_size_limit(ctx, proof, enabled=full_size)),
         "s3-direct-denied": ("active", lambda i: s3_direct_denied(ctx, proof)),
-        "playback-url-expiry": ("active", lambda i: playback_expiry(
-            ctx, proof, max_wait=max_expiry_wait)),
-        "upload-url-expiry": ("active", lambda i: upload_expiry(
-            ctx, proof, max_wait=max_expiry_wait)),
+        "playback-url-expiry": (
+            "active",
+            lambda i: playback_expiry(ctx, proof, max_wait=max_expiry_wait),
+        ),
+        "upload-url-expiry": (
+            "active",
+            lambda i: upload_expiry(ctx, proof, max_wait=max_expiry_wait),
+        ),
         "port-scan": (None, lambda i: port_scan(ctx)),
         "execute-api-direct": ("active", lambda i: execute_api_direct(ctx, proof)),
     }

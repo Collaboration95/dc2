@@ -27,10 +27,7 @@ def gateway_event(service, path):
     }
 
 
-@pytest.mark.parametrize(
-    "service,app",
-    [("media", create_v1_app()), ("processing", create_app())],
-)
+@pytest.mark.parametrize("service,app", [("media", create_v1_app()), ("processing", create_app())])
 async def test_public_health_is_served_without_any_database_work(service, app, monkeypatch):
     app.dependency_overrides[processing_config.get_settings] = lambda: ProcessingSettings(
         postgres_dsn="postgresql://runtime@unused/processing_db"
@@ -44,10 +41,7 @@ async def test_public_health_is_served_without_any_database_work(service, app, m
     forbidden.assert_not_called()
 
 
-@pytest.mark.parametrize(
-    "service,app",
-    [("media", create_v1_app()), ("processing", create_app())],
-)
+@pytest.mark.parametrize("service,app", [("media", create_v1_app()), ("processing", create_app())])
 async def test_gateway_cannot_reach_a_readiness_route(service, app):
     # The proxy route would carry /ready to the Lambda; the application must not serve it.
     for path in ("/ready", "/ready/"):

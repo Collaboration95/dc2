@@ -4,6 +4,8 @@ Start at the [root README](../README.md). Current documents first; everything un
 for provenance, begins with a "Historical" banner (or sits under `docs/history/`), and is not a description
 of V1.
 
+For a guided GC2 reading path and engineering handoff, see [the study guide](release/engineering-handoff.md).
+
 ## Current (as-built V1)
 
 | Document | What it is |

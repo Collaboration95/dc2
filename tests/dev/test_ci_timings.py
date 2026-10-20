@@ -14,21 +14,50 @@ from scripts.dev import ci_timings as timings
 def receipt():
     return {
         "run": {
-            "id": 1, "head_sha": "a" * 40, "event": "pull_request", "run_attempt": 1,
-            "status": "completed", "conclusion": "success",
-            "created_at": "2026-10-17T00:00:00Z", "run_started_at": "2026-10-17T00:00:00Z",
+            "id": 1,
+            "head_sha": "a" * 40,
+            "event": "pull_request",
+            "run_attempt": 1,
+            "status": "completed",
+            "conclusion": "success",
+            "created_at": "2026-10-17T00:00:00Z",
+            "run_started_at": "2026-10-17T00:00:00Z",
             "updated_at": "2026-10-17T00:05:00Z",
             "pull_requests": [{"base": {"ref": "dev/v1-integration"}}],
         },
         "jobs": [
-            {"id": 1, "name": "offline", "status": "completed", "conclusion": "success",
-             "started_at": "2026-10-17T00:01:00Z", "completed_at": "2026-10-17T00:03:00Z"},
-            {"id": 2, "name": "live", "status": "completed", "conclusion": "success",
-             "started_at": "2026-10-17T00:01:00Z", "completed_at": "2026-10-17T00:04:00Z"},
-            {"id": 3, "name": "gate", "status": "completed", "conclusion": "success",
-             "started_at": "2026-10-17T00:04:01Z", "completed_at": "2026-10-17T00:04:03Z"},
-            {"id": 4, "name": "images", "status": "completed", "conclusion": "skipped",
-             "started_at": "2026-10-17T00:01:07Z", "completed_at": "2026-10-17T00:01:06Z"},
+            {
+                "id": 1,
+                "name": "offline",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-17T00:01:00Z",
+                "completed_at": "2026-10-17T00:03:00Z",
+            },
+            {
+                "id": 2,
+                "name": "live",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-17T00:01:00Z",
+                "completed_at": "2026-10-17T00:04:00Z",
+            },
+            {
+                "id": 3,
+                "name": "gate",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-17T00:04:01Z",
+                "completed_at": "2026-10-17T00:04:03Z",
+            },
+            {
+                "id": 4,
+                "name": "images",
+                "status": "completed",
+                "conclusion": "skipped",
+                "started_at": "2026-10-17T00:01:07Z",
+                "completed_at": "2026-10-17T00:01:06Z",
+            },
         ],
     }
 
@@ -86,8 +115,15 @@ def test_failed_gate_has_latency_but_is_not_a_success(receipt, conclusion):
 
 def test_initially_queued_jobs_have_no_execution_duration(receipt):
     receipt["run"].update(status="queued", conclusion=None)
-    receipt["jobs"] = [{"name": "gate", "status": "queued", "conclusion": None,
-                        "started_at": "0001-01-01T00:00:00Z", "completed_at": None}]
+    receipt["jobs"] = [
+        {
+            "name": "gate",
+            "status": "queued",
+            "conclusion": None,
+            "started_at": "0001-01-01T00:00:00Z",
+            "completed_at": None,
+        }
+    ]
     result = timings.summarize(receipt, ["gate"], "dev")
     assert result["queue_start_delay_seconds"] is None
     assert result["sum_job_execution_seconds"] == 0
@@ -137,9 +173,13 @@ def test_reads_only_authenticated_gh_and_paginates_exact_attempt(monkeypatch):
     def run(command, **kwargs):
         calls.append(command)
         assert kwargs == {"check": True, "capture_output": True, "text": True, "timeout": 60}
-        response = ({"run_attempt": 2} if len(calls) == 1 else
-                    [{"jobs": [{"name": "a"}]}, {"jobs": [{"name": "b"}]}]
-                    if len(calls) == 2 else [{"artifacts": []}])
+        response = (
+            {"run_attempt": 2}
+            if len(calls) == 1
+            else [{"jobs": [{"name": "a"}]}, {"jobs": [{"name": "b"}]}]
+            if len(calls) == 2
+            else [{"artifacts": []}]
+        )
         return subprocess.CompletedProcess(command, 0, json.dumps(response))
 
     monkeypatch.setattr(subprocess, "run", run)
@@ -147,10 +187,20 @@ def test_reads_only_authenticated_gh_and_paginates_exact_attempt(monkeypatch):
     assert [job["name"] for job in result["jobs"]] == ["a", "b"]
     assert calls == [
         ["gh", "api", "repos/Collaboration95/dc2/actions/runs/123"],
-        ["gh", "api", "repos/Collaboration95/dc2/actions/runs/123/attempts/2/jobs?per_page=100",
-         "--paginate", "--slurp"],
-        ["gh", "api", "repos/Collaboration95/dc2/actions/runs/123/artifacts?per_page=100",
-         "--paginate", "--slurp"],
+        [
+            "gh",
+            "api",
+            "repos/Collaboration95/dc2/actions/runs/123/attempts/2/jobs?per_page=100",
+            "--paginate",
+            "--slurp",
+        ],
+        [
+            "gh",
+            "api",
+            "repos/Collaboration95/dc2/actions/runs/123/artifacts?per_page=100",
+            "--paginate",
+            "--slurp",
+        ],
     ]
     with pytest.raises(ValueError):
         timings.fetch_receipt("../other", "x")
@@ -158,15 +208,24 @@ def test_reads_only_authenticated_gh_and_paginates_exact_attempt(monkeypatch):
 
 def test_selection_preserves_different_pr_head_and_tested_merge(receipt):
     receipt["selection"] = {
-        "run_id": "1", "run_attempt": "1", "event": "pull_request",
-        "head_sha": "a" * 40, "source_sha": "b" * 40, "mode": "dev",
+        "run_id": "1",
+        "run_attempt": "1",
+        "event": "pull_request",
+        "head_sha": "a" * 40,
+        "source_sha": "b" * 40,
+        "mode": "dev",
     }
     result = timings.summarize(receipt, ["gate"], "dev")
     assert result["head_sha"] == "a" * 40
     assert result["source_sha"] == "b" * 40
     assert result["source_sha_basis"] == "selection receipt"
-    for key, wrong in [("run_id", "2"), ("run_attempt", "2"), ("event", "push"),
-                       ("head_sha", "c" * 40), ("source_sha", "not-a-sha")]:
+    for key, wrong in [
+        ("run_id", "2"),
+        ("run_attempt", "2"),
+        ("event", "push"),
+        ("head_sha", "c" * 40),
+        ("source_sha", "not-a-sha"),
+    ]:
         bad = copy.deepcopy(receipt)
         bad["selection"][key] = wrong
         with pytest.raises(ValueError, match="selection provenance"):
@@ -182,17 +241,28 @@ def test_fetch_downloads_only_current_attempt_selection(receipt, monkeypatch):
         if command[1:3] == ["run", "download"]:
             assert command[command.index("--name") + 1] == "ci-selection-2"
             directory = Path(command[command.index("--dir") + 1])
-            (directory / "ci-policy.json").write_text(json.dumps({
-                "run_id": "1", "run_attempt": "2", "event": "pull_request",
-                "head_sha": "a" * 40, "source_sha": "b" * 40,
-            }))
+            (directory / "ci-policy.json").write_text(
+                json.dumps(
+                    {
+                        "run_id": "1",
+                        "run_attempt": "2",
+                        "event": "pull_request",
+                        "head_sha": "a" * 40,
+                        "source_sha": "b" * 40,
+                    }
+                )
+            )
             return subprocess.CompletedProcess(command, 0, "")
         endpoint = command[2]
         if "/artifacts?" in endpoint:
-            response = [{"artifacts": [
-                {"name": "ci-selection-1", "expired": False},
-                {"name": "ci-selection-2", "expired": False},
-            ]}]
+            response = [
+                {
+                    "artifacts": [
+                        {"name": "ci-selection-1", "expired": False},
+                        {"name": "ci-selection-2", "expired": False},
+                    ]
+                }
+            ]
         elif "/jobs?" in endpoint:
             response = [{"jobs": receipt["jobs"]}]
         else:
@@ -214,10 +284,23 @@ def test_json_fixture_cli_is_offline_and_preserves_receipts(receipt, tmp_path, m
         pytest.fail("fixture mode must not invoke gh")
 
     monkeypatch.setattr(timings, "gh_json", forbidden)
-    assert timings.main([
-        "--fixture", str(fixture), "--baseline-fixture", str(fixture),
-        "--gate", "gate", "--tier", "dev", "--output", str(output),
-    ]) == 0
+    assert (
+        timings.main(
+            [
+                "--fixture",
+                str(fixture),
+                "--baseline-fixture",
+                str(fixture),
+                "--gate",
+                "gate",
+                "--tier",
+                "dev",
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
     report = json.loads(output.read_text())
     assert report["comparison"]["sample_count"] == 1
     assert report["comparison"]["metrics"]["required_gate_seconds"]["delta_seconds"] == 0

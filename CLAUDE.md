@@ -63,8 +63,10 @@ exactly — those are the only two CORS origins.
 1. **Never commit credentials or keys.** `*.pem`, `*.key` and `deploy/certbot/`
    are gitignored; check `git diff --cached --name-only` before committing.
 2. **Only nginx is published beyond loopback.** PostgreSQL, Redis, MinIO and the
-   API are pinned to `127.0.0.1` in `docker-compose.yml` and that is not
-   configurable. Use an SSH tunnel to reach them. The API enforces per-user
+   API were pinned to `127.0.0.1` in the Project 1 `docker-compose.yml` at
+   revision `f9ce3b949826a7f329839cd7dc2b3a48464e1661`; see the
+   [historical source note](docs/history/README-project1-and-pre-aws-local-stack.md#retired-project-1-compose-source).
+   Use an SSH tunnel to reach them. The API enforces per-user
    ownership since S2-03; the datastores behind it do not, so anything that
    reaches one of them directly still reads every user's data.
 3. **Every file under `tests/integration/` needs the `RUN_POSTGRES_TESTS`
@@ -85,7 +87,7 @@ Sprint 1 split five ways and ownership follows the code into `main`:
 | A (this user) | `app/worker/*`, `app/queue.py`, `app/services/media_type.py` |
 | B | `app/api/uploads.py`, `app/services/storage.py` |
 | C | `app/api/jobs.py`, `app/repositories/`, `app/models/`, `migrations/` |
-| D | `docker-compose.yml`, `nginx.conf`, `.env.example` |
+| D | Project 1 Compose (historical revision above), `nginx.conf`, `.env.example` |
 | E | `frontend/*` |
 
 ## Deployment
@@ -106,7 +108,7 @@ docker compose up -d --build --scale worker=2         # both flags matter
 
 **`--build`** or a code change silently will not ship (T-21). **`--scale
 worker=2`** or the second worker silently disappears (T-23) — the replica count
-is not in `docker-compose.yml`.
+was not in the Project 1 Compose file at the revision above.
 
 Verify by asking the application, not the environment:
 
@@ -116,10 +118,6 @@ docker compose exec api python -c "from app.config import get_settings; print(ge
 
 ## Conventions
 
-- Python 3.12, FastAPI, SQLAlchemy 2 async, Alembic, RQ, MinIO.
-- Line length 100. Ruff lint rules: `E, F, I, UP, B, ASYNC`.
-- Coverage gate `fail_under = 80` in `pyproject.toml`; actual is 85.88%
-  (`pytest --cov=app`, 11 Sep 2026).
-- Comments explain *why*, not *what*. The existing code is written that way —
-  match it.
-- Tests are named as sentences describing the behaviour being protected.
+The Project 1 stack used Python 3.12, FastAPI, SQLAlchemy, Alembic, RQ and MinIO.
+Current Python style and verification commands are defined once in
+[`CONTRIBUTING.md`](CONTRIBUTING.md).

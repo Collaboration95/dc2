@@ -13,9 +13,7 @@ from processing.worker.supervisor import AttemptDeadline, LeaseLost
 logger = logging.getLogger(__name__)
 
 
-async def pipeline(
-    work, settings, supervisor, client, store, directory, *, downloader, admit=None
-):
+async def pipeline(work, settings, supervisor, client, store, directory, *, downloader, admit=None):
     source = directory / "source"
     await supervisor.guard(downloader(client, work, settings, source))
     operations = work.operations

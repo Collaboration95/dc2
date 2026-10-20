@@ -101,8 +101,7 @@ async def reserve(session, storage, owner_id, request):
         raise MediaError(415, "unsupported media type")
     digest = fingerprint(request.model_dump(mode="json"))
     query = select(UploadReservation).where(
-        UploadReservation.owner_id == owner_id,
-        UploadReservation.request_id == request.request_id,
+        UploadReservation.owner_id == owner_id, UploadReservation.request_id == request.request_id
     )
     try:
         async with session.begin():

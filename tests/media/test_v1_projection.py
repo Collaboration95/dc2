@@ -149,13 +149,7 @@ async def test_wrong_owner_source_job_and_output_rejected(session, asset, event,
 
 
 async def test_local_status_hls_and_signed_range_capability(
-    session,
-    asset,
-    event,
-    storage,
-    settings,
-    user,
-    monkeypatch,
+    session, asset, event, storage, settings, user, monkeypatch
 ):
     app = FastAPI()
 
@@ -171,12 +165,13 @@ async def test_local_status_hls_and_signed_range_capability(
     app.dependency_overrides[get_settings] = lambda: settings
     session.get.return_value = current(event)
     monkeypatch.setattr(v1_jobs, "get_asset", AsyncMock(return_value=asset))
-    monkeypatch.setattr(v1_jobs, "list_assets", AsyncMock(return_value=[asset]))
+    monkeypatch.setattr(
+        v1_jobs, "list_asset_pages", AsyncMock(return_value=[(asset, current(event))])
+    )
     monkeypatch.setattr(v1_hls, "get_asset", AsyncMock(return_value=asset))
     storage.read_playlist.return_value = b"#EXTM3U\nv0/index.m3u8\n"
     async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app),
-        base_url="https://media.test",
+        transport=httpx.ASGITransport(app), base_url="https://media.test"
     ) as client:
         response = await client.get(f"/jobs/{asset.id}")
         assert response.status_code == 200
@@ -194,12 +189,7 @@ async def test_local_status_hls_and_signed_range_capability(
 
 
 async def test_edit_local_projection_adoption_and_submit(
-    session,
-    asset,
-    event,
-    storage,
-    user,
-    monkeypatch,
+    session, asset, event, storage, user, monkeypatch
 ):
     monkeypatch.setattr(v1_lifecycle, "get_asset", AsyncMock(return_value=asset))
     monkeypatch.setattr(v1_lifecycle, "replay", AsyncMock(return_value=None))
@@ -208,9 +198,7 @@ async def test_edit_local_projection_adoption_and_submit(
         "read_job",
         AsyncMock(
             return_value=projections.ProjectedJob(
-                job_id=asset.processing_job_id,
-                status="done",
-                outputs=event["payload"]["outputs"],
+                job_id=asset.processing_job_id, status="done", outputs=event["payload"]["outputs"]
             )
         ),
     )
@@ -221,9 +209,7 @@ async def test_edit_local_projection_adoption_and_submit(
     session.get.return_value = SimpleNamespace()
     storage.copy_output_source.return_value = (100, "b" * 64)
     request = EditRequest.model_validate(
-        {
-            "operations": [{"operation": "clip", "params": {"start": 0, "end": 3}}],
-        }
+        {"operations": [{"operation": "clip", "params": {"start": 0, "end": 3}}]}
     )
     derived = await v1_lifecycle.edit(session, storage, user.id, asset.id, request, uuid4())
     assert derived.source_asset_id == asset.id and derived.id != asset.id
@@ -266,9 +252,7 @@ async def test_cross_owner_edit_stops_before_copy(session, storage, user, monkey
     monkeypatch.setattr(v1_lifecycle, "get_asset", owned)
     monkeypatch.setattr(v1_lifecycle, "replay", AsyncMock(return_value=None))
     request = EditRequest.model_validate(
-        {
-            "operations": [{"operation": "clip", "params": {"start": 0, "end": 3}}],
-        }
+        {"operations": [{"operation": "clip", "params": {"start": 0, "end": 3}}]}
     )
     with pytest.raises(MediaError, match="not found"):
         await v1_lifecycle.edit(session, storage, user.id, parent_id, request, None)
@@ -278,12 +262,7 @@ async def test_cross_owner_edit_stops_before_copy(session, storage, user, monkey
 
 
 async def test_uncertain_copy_keeps_cleanup_and_never_submits(
-    session,
-    asset,
-    event,
-    storage,
-    user,
-    monkeypatch,
+    session, asset, event, storage, user, monkeypatch
 ):
     monkeypatch.setattr(v1_lifecycle, "get_asset", AsyncMock(return_value=asset))
     monkeypatch.setattr(v1_lifecycle, "replay", AsyncMock(return_value=None))
@@ -292,9 +271,7 @@ async def test_uncertain_copy_keeps_cleanup_and_never_submits(
         "read_job",
         AsyncMock(
             return_value=projections.ProjectedJob(
-                job_id=asset.processing_job_id,
-                status="done",
-                outputs=event["payload"]["outputs"],
+                job_id=asset.processing_job_id, status="done", outputs=event["payload"]["outputs"]
             )
         ),
     )
@@ -307,9 +284,7 @@ async def test_uncertain_copy_keeps_cleanup_and_never_submits(
     session.get.return_value = staged
     storage.copy_output_source.side_effect = OSError("copy response lost")
     request = EditRequest.model_validate(
-        {
-            "operations": [{"operation": "clip", "params": {"start": 0, "end": 3}}],
-        }
+        {"operations": [{"operation": "clip", "params": {"start": 0, "end": 3}}]}
     )
     with pytest.raises(OSError, match="copy response lost"):
         await v1_lifecycle.edit(session, storage, user.id, asset.id, request, None)
@@ -343,3 +318,34 @@ async def test_public_status_distinguishes_accepted_queued_and_cancelled(
     result = await projections.public_job(SimpleNamespace(), asset, storage, settings)
     assert (result.status, result.error) == (expected, error)
     assert result.submission_status == submission
+
+
+@pytest.mark.parametrize("include_hls", [False, True])
+async def test_completed_public_job_signs_primary_and_maps_optional_hls(
+    asset, storage, settings, include_hls
+):
+    primary_key = f"jobs/{asset.processing_job_id}/attempts/a/primary.mp4"
+    outputs = [{"kind": "primary", "object_key": primary_key, "media_type": "video/mp4"}]
+    if include_hls:
+        outputs.append(
+            {
+                "kind": "hls_manifest",
+                "object_key": f"jobs/{asset.processing_job_id}/attempts/a/master.m3u8",
+                "media_type": "application/vnd.apple.mpegurl",
+            }
+        )
+    projected = SimpleNamespace(
+        job_id=asset.processing_job_id, status="done", outputs=outputs, error=None
+    )
+
+    result = await projections.public_job_from_projection(asset, projected, storage, settings)
+
+    assert result.status == "done"
+    assert result.output_url == "https://localhost:4443/owned-output/output?signed=test"
+    storage.sign_output.assert_awaited_once_with(primary_key)
+    if include_hls:
+        assert result.hls_url == (
+            f"{settings.api_public_prefix.rstrip('/')}/jobs/{asset.id}/hls/master.m3u8"
+        )
+    else:
+        assert result.hls_url is None

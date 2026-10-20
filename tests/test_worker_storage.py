@@ -139,8 +139,7 @@ def test_copy_object_uses_server_side_copy():
             id="download_file",
         ),
         pytest.param(
-            lambda store: store.upload_file(key=LEAKY_KEY, source="/tmp/x"),
-            id="upload_file",
+            lambda store: store.upload_file(key=LEAKY_KEY, source="/tmp/x"), id="upload_file"
         ),
     ],
 )

@@ -25,14 +25,16 @@ def fixture(tmp_path):
 def build(tmp_path, session, *faults, **world):
     world.setdefault("encode_seconds", 45.0)
     args = argparse.Namespace(run_id="t", dry_run=True)
-    return sim.build(args, session=session, world=sim.SimWorld(faults=faults, **world),
-                     tmp=tmp_path / "state")
+    return sim.build(
+        args, session=session, world=sim.SimWorld(faults=faults, **world), tmp=tmp_path / "state"
+    )
 
 
 def inactive(ctx):
     """Every task definition the harness registered is deregistered, and at least one existed."""
     return bool(ctx.world.definitions) and all(
-        d["status"] == "INACTIVE" for d in ctx.world.definitions.values())
+        d["status"] == "INACTIVE" for d in ctx.world.definitions.values()
+    )
 
 
 def statuses(proof):
@@ -41,21 +43,26 @@ def statuses(proof):
 
 # ---- #63 gateway -----------------------------------------------------------------------
 def test_a_healthy_simulated_gateway_passes_every_step_but_is_still_only_simulated(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     proof = gateway.run(build(tmp_path, "open"), fixture=fixture, minutes=30)
     assert set(statuses(proof).values()) == {PASS}
     assert proof.overall() == "SIMULATED"
 
 
-@pytest.mark.parametrize(("fault", "step"), [
-    ("cors-open", "cors-preflight"),
-    ("sqs-open", "sqs-direct-send"),
-    ("crossdb-open", "cross-database"),
-    ("weak-cookie", "session-roundtrip"),
-    ("no-hls", "direct-upload-e2e"),
-])
+@pytest.mark.parametrize(
+    ("fault", "step"),
+    [
+        ("cors-open", "cors-preflight"),
+        ("sqs-open", "sqs-direct-send"),
+        ("crossdb-open", "cross-database"),
+        ("weak-cookie", "session-roundtrip"),
+        ("no-hls", "direct-upload-e2e"),
+    ],
+)
 def test_each_gateway_boundary_that_is_left_open_fails_exactly_its_own_step(
-        tmp_path, fixture, fault, step):
+    tmp_path, fixture, fault, step
+):
     proof = gateway.run(build(tmp_path, "open", fault), fixture=fixture, minutes=30)
     assert statuses(proof)[step] == FAIL
     assert [n for n, s in statuses(proof).items() if s == FAIL] == [step]
@@ -86,8 +93,7 @@ def test_a_rerun_of_the_gateway_harness_repeats_nothing_that_already_passed(tmp_
 E2E = {"direct-upload-e2e"}
 
 
-def test_the_smoke_starts_its_encoder_only_after_the_command_reached_processing(
-        tmp_path, fixture):
+def test_the_smoke_starts_its_encoder_only_after_the_command_reached_processing(tmp_path, fixture):
     # Media publishes the command 75 s after finalize (a cold consumer after a release). An
     # encoder started at finalize would long-poll 40 s, exit without claiming and strand the job.
     ctx = build(tmp_path, "open", outbox_seconds=75.0)
@@ -106,8 +112,7 @@ def test_the_smoke_starts_another_encoder_when_one_exits_without_claiming(tmp_pa
     assert proof.doc["steps"]["direct-upload-e2e"]["public"]["encoders_started"] == 2
 
 
-def test_the_smoke_stops_starting_encoders_that_keep_exiting_without_claiming(
-        tmp_path, fixture):
+def test_the_smoke_stops_starting_encoders_that_keep_exiting_without_claiming(tmp_path, fixture):
     ctx = build(tmp_path, "open", dud_encoders=9)
     proof = gateway.run(ctx, fixture=fixture, minutes=30, only=E2E)
     assert statuses(proof)["direct-upload-e2e"] == FAIL
@@ -116,11 +121,17 @@ def test_the_smoke_stops_starting_encoders_that_keep_exiting_without_claiming(
 
 
 def test_on_the_always_on_environment_the_smoke_lets_the_launcher_start_the_encoder(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     # V2-live (#236, #237): no operator batch, which the unattended session would refuse.
     args = argparse.Namespace(run_id="t", dry_run=True)
-    ctx = sim.build(args, session="open", unattended=True, tmp=tmp_path / "state",
-                    world=sim.SimWorld(encode_seconds=45.0, launcher=True))
+    ctx = sim.build(
+        args,
+        session="open",
+        unattended=True,
+        tmp=tmp_path / "state",
+        world=sim.SimWorld(encode_seconds=45.0, launcher=True),
+    )
     proof = gateway.run(ctx, fixture=fixture, minutes=30, only=E2E)
     assert statuses(proof)["direct-upload-e2e"] == PASS
     public = proof.doc["steps"]["direct-upload-e2e"]["public"]
@@ -132,13 +143,15 @@ def test_the_smoke_refuses_to_start_on_stale_work_from_an_earlier_run(tmp_path, 
     proof = gateway.run(ctx, fixture=fixture, minutes=30, only=E2E)
     assert statuses(proof)["direct-upload-e2e"] == FAIL
     assert "17 message(s)" in proof.doc["steps"]["direct-upload-e2e"]["public"]["error"]
-    assert ctx.world.jobs == {} and not [t for t in ctx.world.tasks.values()
-                                         if t["kind"] == "worker"]
+    assert ctx.world.jobs == {} and not [
+        t for t in ctx.world.tasks.values() if t["kind"] == "worker"
+    ]
 
 
 # ---- #64 capacity ----------------------------------------------------------------------
 def test_simulated_capacity_runs_one_two_and_three_encoders_then_recovers_and_drains(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     ctx = build(tmp_path, "open", encode_seconds=240.0)
     proof = capacity.run(ctx, fixture=fixture, short_fixture=fixture, minutes=30)
     assert set(statuses(proof).values()) == {PASS}
@@ -146,17 +159,16 @@ def test_simulated_capacity_runs_one_two_and_three_encoders_then_recovers_and_dr
 
 
 def test_recovery_fails_when_nothing_reacts_to_the_stopped_encoder_within_the_gate(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     ctx = build(tmp_path, "open", encode_seconds=240.0, repair_seconds=2000.0)
-    proof = capacity.run(ctx, fixture=fixture, short_fixture=fixture, minutes=30,
-                         only={"recovery"})
+    proof = capacity.run(ctx, fixture=fixture, short_fixture=fixture, minutes=30, only={"recovery"})
     assert statuses(proof)["recovery"] == FAIL
 
 
 def test_recovery_also_accepts_a_job_the_system_fails_cleanly_inside_the_gate(tmp_path, fixture):
     ctx = build(tmp_path, "open", encode_seconds=240.0, requeue=False)
-    proof = capacity.run(ctx, fixture=fixture, short_fixture=fixture, minutes=30,
-                         only={"recovery"})
+    proof = capacity.run(ctx, fixture=fixture, short_fixture=fixture, minutes=30, only={"recovery"})
     assert statuses(proof)["recovery"] == PASS
     assert proof.doc["steps"]["recovery"]["public"]["final_status"] == "failed"
 
@@ -210,8 +222,11 @@ def test_cold_wake_is_not_run_only_after_the_whole_pause_wait_shows_no_pause(tmp
     ctx = build(tmp_path, "closed", "never-pauses")
     status, public = wake(ctx)
     assert status == NOT_RUN and "awake" in public["reason"]
-    assert latency.PAUSE_WAIT_SECONDS - 60 <= public["pause_wait_seconds"] <= (
-        latency.PAUSE_WAIT_SECONDS)
+    assert (
+        latency.PAUSE_WAIT_SECONDS - 60
+        <= public["pause_wait_seconds"]
+        <= (latency.PAUSE_WAIT_SECONDS)
+    )
     assert journal_session(ctx) == "closed"  # never opened a window it had no reason to open
 
 
@@ -241,7 +256,8 @@ def test_cold_wake_fails_with_a_reason_when_the_gateway_never_settles_and_still_
 
 
 def test_cold_wake_closes_the_window_it_opened_even_when_a_measurement_raises(
-        tmp_path, monkeypatch):
+    tmp_path, monkeypatch
+):
     ctx = build(tmp_path, "closed")
     monkeypatch.setattr(latency, "wait_for_gate", lambda *a: 1 / 0)
     status, public = wake(ctx)
@@ -250,7 +266,8 @@ def test_cold_wake_closes_the_window_it_opened_even_when_a_measurement_raises(
 
 
 def test_a_raising_probe_and_a_failed_close_keep_the_timings_and_say_how_to_recover(
-        tmp_path, monkeypatch):
+    tmp_path, monkeypatch
+):
     ctx = build(tmp_path, "closed")
     answered = limited(ctx, answers=2)
     real_http = ctx.http
@@ -262,13 +279,17 @@ def test_a_raising_probe_and_a_failed_close_keep_the_timings_and_say_how_to_reco
 
     ctx.http = http
     real = latency.session_cli.main
-    monkeypatch.setattr(latency.session_cli, "main", lambda argv, **kw: (
-        1 if argv[0] == "close" else real(argv, **kw)))
+    monkeypatch.setattr(
+        latency.session_cli,
+        "main",
+        lambda argv, **kw: 1 if argv[0] == "close" else real(argv, **kw),
+    )
     status, public = wake(ctx)
     assert status == FAIL and "TimeoutError" in public["reason"]
     assert "example.invalid" not in json.dumps(public)  # the class, never the text
     assert public["gate_probes"] == 3 and public["gate_settle_seconds"] >= 2 * (
-        latency.GATE_POLL_SECONDS)
+        latency.GATE_POLL_SECONDS
+    )
     assert "window_open_seconds" in public and "login_ms" not in public
     assert public["window_closed"] is False and "session close" in public["recovery"]
 
@@ -276,8 +297,11 @@ def test_a_raising_probe_and_a_failed_close_keep_the_timings_and_say_how_to_reco
 def test_cold_wake_does_not_pass_when_its_window_could_not_be_closed(tmp_path, monkeypatch):
     ctx = build(tmp_path, "closed")
     real = latency.session_cli.main
-    monkeypatch.setattr(latency.session_cli, "main", lambda argv, **kw: (
-        1 if argv[0] == "close" else real(argv, **kw)))
+    monkeypatch.setattr(
+        latency.session_cli,
+        "main",
+        lambda argv, **kw: 1 if argv[0] == "close" else real(argv, **kw),
+    )
     status, public = wake(ctx)
     assert status == FAIL and public["window_closed"] is False
     assert "session close" in public["recovery"] and public["statuses"] == [200, 200, 200]
@@ -309,8 +333,10 @@ def test_the_generator_refuses_an_undersized_gate_before_any_side_effect(tmp_pat
 
 def test_the_smallest_adequate_gate_is_accepted(tmp_path):
     ctx = build(tmp_path, "open")
-    ctx.world.plan.stage = {"ThrottlingBurstLimit": latency.LOAD_EDGE_MIN_BURST,
-                            "ThrottlingRateLimit": latency.LOAD_EDGE_MIN_RATE}
+    ctx.world.plan.stage = {
+        "ThrottlingBurstLimit": latency.LOAD_EDGE_MIN_BURST,
+        "ThrottlingRateLimit": latency.LOAD_EDGE_MIN_RATE,
+    }
     assert statuses(latency.run(ctx, only={"generator"}))["generator"] == PASS
 
 
@@ -321,14 +347,16 @@ def test_throttled_requests_are_reported_apart_but_stay_errors_in_the_denominato
     assert step["status"] == FAIL  # gates unchanged: a 429 is still an error
     assert public["status_cycle"]["throttled"] > 0 and public["login_cycle"]["throttled"] > 0
     assert public["status_cycle"]["error_rate"] >= (
-        public["status_cycle"]["throttled"] / public["status_cycle"]["sample_count"])
+        public["status_cycle"]["throttled"] / public["status_cycle"]["sample_count"]
+    )
     assert all("throttled" in route for route in public["routes"].values())
     assert public["routes"]["status"]["throttled"] == public["status_cycle"]["throttled"]
 
 
 def test_a_healthy_run_reports_zero_throttled_requests(tmp_path):
-    public = latency.run(build(tmp_path, "open"), only={"generator"}).doc[
-        "steps"]["generator"]["public"]
+    public = latency.run(build(tmp_path, "open"), only={"generator"}).doc["steps"]["generator"][
+        "public"
+    ]
     assert public["status_cycle"]["throttled"] == public["login_cycle"]["throttled"] == 0
 
 
@@ -375,7 +403,8 @@ def test_each_attempt_keeps_its_own_raw_samples_and_the_archive_names_the_file(t
     ctx.world.faults.discard("slow-tail")
     third = latency.run(ctx, only={"generator"})  # same process settings: attempt 3 is fresh too
     assert third.doc["steps"]["generator"]["private"]["samples_file"] == (
-        "latency-samples-t-a3.csv")
+        "latency-samples-t-a3.csv"
+    )
 
 
 def test_a_samples_file_that_holds_other_samples_is_never_overwritten(tmp_path):
@@ -432,8 +461,12 @@ def test_generator_samples_round_trip_through_the_log_chunks(tmp_path):
 # ---- #67 spend -------------------------------------------------------------------------
 def test_close_state_pause_and_cost_pass_in_the_simulation_but_teardown_stays_not_run(tmp_path):
     proof = spend.run(build(tmp_path, "closed"), wait_minutes=10)
-    assert statuses(proof) == {"close-state": PASS, "pause": PASS, "cost-explorer": PASS,
-                               "teardown-receipt": NOT_RUN}
+    assert statuses(proof) == {
+        "close-state": PASS,
+        "pause": PASS,
+        "cost-explorer": PASS,
+        "teardown-receipt": NOT_RUN,
+    }
 
 
 def test_a_database_that_never_scales_to_zero_fails_the_pause_step(tmp_path):
@@ -457,8 +490,10 @@ def test_cost_categories_do_not_name_an_account_or_resource(tmp_path):
 # ---- helpers ---------------------------------------------------------------------------
 def test_peak_overlap_counts_tasks_alive_together_and_frees_before_it_starts():
     def task(start, stop):
-        return {"pullStartedAt": f"2026-10-17T10:{start:02d}:00+00:00",
-                "stoppedAt": f"2026-10-17T10:{stop:02d}:00+00:00"}
+        return {
+            "pullStartedAt": f"2026-10-17T10:{start:02d}:00+00:00",
+            "stoppedAt": f"2026-10-17T10:{stop:02d}:00+00:00",
+        }
 
     assert tasks.peak_overlap([task(0, 5), task(1, 6), task(2, 7)]) == 3
     assert tasks.peak_overlap([task(0, 5), task(5, 9)]) == 1
@@ -481,7 +516,8 @@ def uploads(monkeypatch):
 
 
 def test_a_resume_after_finalize_replays_the_reservation_and_reuses_the_same_job(
-        tmp_path, fixture, uploads):
+    tmp_path, fixture, uploads
+):
     ctx = build(tmp_path, "open")
     api, _, _ = workflow.login(ctx)
     intent = {}
@@ -494,7 +530,8 @@ def test_a_resume_after_finalize_replays_the_reservation_and_reuses_the_same_job
 
 
 def test_a_resume_that_lost_its_upload_and_job_records_still_finds_the_finalized_job(
-        tmp_path, fixture, uploads):
+    tmp_path, fixture, uploads
+):
     ctx = build(tmp_path, "open")
     api, _, _ = workflow.login(ctx)
     intent = {}
@@ -506,7 +543,8 @@ def test_a_resume_that_lost_its_upload_and_job_records_still_finds_the_finalized
 
 
 def test_a_caller_that_needs_an_upload_grant_still_rejects_a_replayed_reservation(
-        tmp_path, fixture):
+    tmp_path, fixture
+):
     ctx = build(tmp_path, "open")
     api, _, _ = workflow.login(ctx)
     intent = {}
@@ -540,10 +578,26 @@ def test_slow_status_rounds_do_not_push_the_last_round_out_of_the_judged_window(
     rows = []
     with ThreadPoolExecutor(max_workers=1) as pool:  # serial: the fake clock is not shared-safe
         start, end = generator.window_rounds(
-            request, lambda: now[0], sleep, pool, users=50, seconds=180, route="/s",
-            cookie=None, phase="timed", rows=rows, label="status")
+            request,
+            lambda: now[0],
+            sleep,
+            pool,
+            users=50,
+            seconds=180,
+            route="/s",
+            cookie=None,
+            phase="timed",
+            rows=rows,
+            label="status",
+        )
     assert len(rounds) == 180
-    window = {"started_at": start, "ended_at": end, "warmup_started_at": start,
-              "warmup_ended_at": start, "booked_deadline": end + 600}
-    assert timing_eligible(rows, users=50, duration_seconds=180, measurement="status",
-                           window=window)
+    window = {
+        "started_at": start,
+        "ended_at": end,
+        "warmup_started_at": start,
+        "warmup_ended_at": start,
+        "booked_deadline": end + 600,
+    }
+    assert timing_eligible(
+        rows, users=50, duration_seconds=180, measurement="status", window=window
+    )

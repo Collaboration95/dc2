@@ -1,0 +1,315 @@
+{
+  "active_scan_limits": {
+    "max_forwarded_requests_total": 1600,
+    "max_rule_minutes": 1,
+    "max_scan_minutes_per_service": 2,
+    "max_worker_invocations": 0,
+    "threads_per_host": 2,
+    "timeout_seconds_per_service": 300
+  },
+  "auth_proof": {
+    "cross_owner_media_delete": "DENIED_404_RESOURCE_UNCHANGED",
+    "cross_owner_media_read": "DENIED_404",
+    "cross_owner_processing_cancel": "DENIED_404_RESOURCE_UNCHANGED",
+    "cross_owner_processing_read": "DENIED_404",
+    "expired_session": "DENIED_401",
+    "fixture_uploads": 2,
+    "fixture_users": 2,
+    "forged_owner_header": "DENIED_404",
+    "missing_session": "DENIED_401",
+    "positive_owner_reads": {
+      "media": 2,
+      "processing": 2,
+      "status": "PASS"
+    },
+    "worker_invocations": 0
+  },
+  "cleanup": "PASS",
+  "cloud_scan": "NOT_RUN",
+  "disposition": "error",
+  "engine": "zap",
+  "error_detail": "ZAP scanner exit 3",
+  "error_type": "RuntimeError",
+  "exit_codes": {
+    "media": 0
+  },
+  "harness": "scripts.dev.v1_acceptance.app_runtime + scripts.dev.v1_dast.DastGateway",
+  "operation_inventory": [
+    {
+      "method": "GET",
+      "operation_id": "admin_listing_admin_jobs_get",
+      "reason": "Operator-only route; fixtures use normal user roles.",
+      "route": "/api/media/admin/jobs",
+      "scan": "excluded",
+      "service": "media"
+    },
+    {
+      "method": "DELETE",
+      "operation_id": "admin_remove_admin_jobs__job_id__delete",
+      "reason": "Operator-only route; fixtures use normal user roles.",
+      "route": "/api/media/admin/jobs/{job_id}",
+      "scan": "excluded",
+      "service": "media"
+    },
+    {
+      "method": "POST",
+      "operation_id": "login_auth_login_post",
+      "reason": "Account/session lifecycle; missing and expired sessions are checked directly.",
+      "route": "/api/media/auth/login",
+      "scan": "excluded",
+      "service": "media"
+    },
+    {
+      "method": "POST",
+      "operation_id": "logout_auth_logout_post",
+      "reason": "Account/session lifecycle; missing and expired sessions are checked directly.",
+      "route": "/api/media/auth/logout",
+      "scan": "excluded",
+      "service": "media"
+    },
+    {
+      "method": "GET",
+      "operation_id": "me_auth_me_get",
+      "route": "/api/media/auth/me",
+      "scan": "imported",
+      "service": "media"
+    },
+    {
+      "method": "POST",
+      "operation_id": "register_auth_register_post",
+      "reason": "Account/session lifecycle; missing and expired sessions are checked directly.",
+      "route": "/api/media/auth/register",
+      "scan": "excluded",
+      "service": "media"
+    },
+    {
+      "method": "GET",
+      "operation_id": "health_health_get",
+      "route": "/api/media/health",
+      "scan": "imported",
+      "service": "media"
+    },
+    {
+      "method": "GET",
+      "operation_id": "listing_jobs_get",
+      "route": "/api/media/jobs",
+      "scan": "imported",
+      "service": "media"
+    },
+    {
+      "method": "DELETE",
+      "operation_id": "remove_jobs__job_id__delete",
+      "reason": "State-changing operation; disposable fixtures check owner denial directly.",
+      "route": "/api/media/jobs/{job_id}",
+      "scan": "excluded",
+      "service": "media"
+    },
+    {
+      "method": "GET",
+      "operation_id": "read_jobs__job_id__get",
+      "route": "/api/media/jobs/{job_id}",
+      "scan": "imported",
+      "service": "media"
+    },
+    {
+      "method": "POST",
+      "operation_id": "edit_jobs__job_id__edit_post",
+      "reason": "State-changing operation; disposable fixtures check owner denial directly.",
+      "route": "/api/media/jobs/{job_id}/edit",
+      "scan": "excluded",
+      "service": "media"
+    },
+    {
+      "method": "GET",
+      "operation_id": "part_jobs__job_id__hls__path__get",
+      "reason": "May return signed storage URLs; keep the session cookie at the API origin.",
+      "route": "/api/media/jobs/{job_id}/hls/{path}",
+      "scan": "excluded",
+      "service": "media"
+    },
+    {
+      "method": "POST",
+      "operation_id": "retry_jobs__job_id__retry_post",
+      "reason": "State-changing operation; disposable fixtures check owner denial directly.",
+      "route": "/api/media/jobs/{job_id}/retry",
+      "scan": "excluded",
+      "service": "media"
+    },
+    {
+      "method": "POST",
+      "operation_id": "reserve_upload_uploads_reservations_post",
+      "reason": "Creates upload grants or adopts objects; seeded uploads cover this flow.",
+      "route": "/api/media/uploads/reservations",
+      "scan": "excluded",
+      "service": "media"
+    },
+    {
+      "method": "POST",
+      "operation_id": "finalize_upload_uploads_reservations__reservation_id__finalize_post",
+      "reason": "Creates upload grants or adopts objects; seeded uploads cover this flow.",
+      "route": "/api/media/uploads/reservations/{reservation_id}/finalize",
+      "scan": "excluded",
+      "service": "media"
+    },
+    {
+      "method": "GET",
+      "operation_id": "health_health_get",
+      "route": "/api/processing/health",
+      "scan": "imported",
+      "service": "processing"
+    },
+    {
+      "method": "GET",
+      "operation_id": "batch_jobs_get",
+      "route": "/api/processing/jobs",
+      "scan": "imported",
+      "service": "processing"
+    },
+    {
+      "method": "DELETE",
+      "operation_id": "cancel_jobs__job_id__delete",
+      "reason": "State-changing operation; disposable fixtures check owner denial directly.",
+      "route": "/api/processing/jobs/{job_id}",
+      "scan": "excluded",
+      "service": "processing"
+    },
+    {
+      "method": "GET",
+      "operation_id": "read_jobs__job_id__get",
+      "route": "/api/processing/jobs/{job_id}",
+      "scan": "imported",
+      "service": "processing"
+    },
+    {
+      "method": "POST",
+      "operation_id": "retry_jobs__job_id__retry_post",
+      "reason": "State-changing operation; disposable fixtures check owner denial directly.",
+      "route": "/api/processing/jobs/{job_id}/retry",
+      "scan": "excluded",
+      "service": "processing"
+    }
+  ],
+  "policy": "report-only-findings",
+  "private_raw_cleanup": "PASS",
+  "report_retained": true,
+  "route_coverage": {
+    "blocked_out_of_scope_requests": 81,
+    "cap_exceeded": false,
+    "in_scope_auth_denials": 0,
+    "request_cap": 1600,
+    "requests_forwarded": 186,
+    "requests_seen": 267,
+    "routes": [
+      {
+        "method": "GET",
+        "operation_id": "me_auth_me_get",
+        "responses": {
+          "2xx": 1,
+          "3xx": 0,
+          "429": 0,
+          "4xx": 0,
+          "5xx": 0
+        },
+        "route": "/api/media/auth/me",
+        "service": "media"
+      },
+      {
+        "method": "GET",
+        "operation_id": "health_health_get",
+        "responses": {
+          "2xx": 1,
+          "3xx": 0,
+          "429": 0,
+          "4xx": 0,
+          "5xx": 0
+        },
+        "route": "/api/media/health",
+        "service": "media"
+      },
+      {
+        "method": "GET",
+        "operation_id": "listing_jobs_get",
+        "responses": {
+          "2xx": 18,
+          "3xx": 0,
+          "429": 0,
+          "4xx": 108,
+          "5xx": 0
+        },
+        "route": "/api/media/jobs",
+        "service": "media"
+      },
+      {
+        "method": "GET",
+        "operation_id": "read_jobs__job_id__get",
+        "responses": {
+          "2xx": 2,
+          "3xx": 2,
+          "429": 0,
+          "4xx": 54,
+          "5xx": 0
+        },
+        "route": "/api/media/jobs/{job_id}",
+        "service": "media"
+      },
+      {
+        "method": "GET",
+        "operation_id": "health_health_get",
+        "responses": {
+          "2xx": 0,
+          "3xx": 0,
+          "429": 0,
+          "4xx": 0,
+          "5xx": 0
+        },
+        "route": "/api/processing/health",
+        "service": "processing"
+      },
+      {
+        "method": "GET",
+        "operation_id": "batch_jobs_get",
+        "responses": {
+          "2xx": 0,
+          "3xx": 0,
+          "429": 0,
+          "4xx": 0,
+          "5xx": 0
+        },
+        "route": "/api/processing/jobs",
+        "service": "processing"
+      },
+      {
+        "method": "GET",
+        "operation_id": "read_jobs__job_id__get",
+        "responses": {
+          "2xx": 0,
+          "3xx": 0,
+          "429": 0,
+          "4xx": 0,
+          "5xx": 0
+        },
+        "route": "/api/processing/jobs/{job_id}",
+        "service": "processing"
+      }
+    ],
+    "unmatched_requests": 81
+  },
+  "runtime": "real PostgreSQL; run-scoped Moto S3/SQS; V1 handlers and Media authorizer",
+  "sanitized_findings_retained": true,
+  "scan_schema_hashes": {
+    "media": "4290452bfe670b0553e008aaa4fe36370533236e53766fa399fc7d2441273302",
+    "processing": "1d93cdf3987a7f26b2e4a88c500e9390d986ed283a42c7d3771bab144b984e99"
+  },
+  "schema_hashes": {
+    "media": "ba8410640749dc675c017e8bdbd8a910f9e1ed2f09b5e3dcd4d92d711970df37",
+    "processing": "8ec2dc756fcd64ea65bbd1aed49eb0f0cdb13e80c6d79c0664d50d04e02989f6"
+  },
+  "schema_operation_counts": {
+    "media": 15,
+    "processing": 5
+  },
+  "scope": "Generated Media and Processing V1 APIs; authenticated normal owner; local only.",
+  "source_sha": "514914a1326ec92400d4ac0e9cf07012d117a0d2",
+  "target": "isolated-v1-local-gateway",
+  "zap_image": "ghcr.io/zaproxy/zaproxy:stable@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef"
+}

@@ -95,7 +95,11 @@ class Storage:
             return await run_in_threadpool(verify)
         except MediaError:
             raise
-        except Exception:
+        except Exception as error:
+            if getattr(error, "code", None) == "NoSuchKey":
+                raise MediaError(
+                    409, "upload is incomplete; please upload the file again"
+                ) from None
             raise MediaError(503, "source object unavailable; retry finalization") from None
 
     async def remove_source_versions(self, bucket, key, *, preserve_version=None):

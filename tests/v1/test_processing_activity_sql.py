@@ -21,7 +21,9 @@ pytestmark = pytest.mark.integration
 
 
 async def test_a_direct_retry_from_a_quiet_gate_records_activity_and_commits_pending_work(
-        monkeypatch, factory):  # noqa: F811
+    monkeypatch,
+    factory,  # noqa: F811
+):
     from tests.v1.test_delivery import message
 
     monkeypatch.setattr(activity, "_last_touch", {})
@@ -44,8 +46,12 @@ async def test_a_direct_retry_from_a_quiet_gate_records_activity_and_commits_pen
     app = v1_api.create_app()
     app.dependency_overrides[get_v1_session] = session
     response = await GatewayAdapter(app, service="processing").invoke(
-        processing_event("POST", f"/jobs/{job.id}/retry",
-                         json.dumps({"retry_request_id": str(uuid4())}), owner=job.owner_id)
+        processing_event(
+            "POST",
+            f"/jobs/{job.id}/retry",
+            json.dumps({"retry_request_id": str(uuid4())}),
+            owner=job.owner_id,
+        )
     )
     assert response["statusCode"] == 202
     assert [name for name, _ in ssm.puts] == [TOUCHED]

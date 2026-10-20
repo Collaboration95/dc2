@@ -137,9 +137,7 @@ async def invoke(
     outcome, acknowledge = "error", False
     try:
         with heal_on_rejection(get_settings):
-            async with asyncio.timeout(
-                max(1.0, remaining_seconds(context) - FINAL_GRACE_SECONDS)
-            ):
+            async with asyncio.timeout(max(1.0, remaining_seconds(context) - FINAL_GRACE_SECONDS)):
                 outcome, acknowledge = await encode_record(
                     record,
                     context,

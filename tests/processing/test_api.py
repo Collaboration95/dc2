@@ -40,9 +40,7 @@ async def test_rejects_credentials_before_database(application, submission, auth
             response = await client.get(f"/internal/v1/jobs/{uuid4()}", headers=headers)
         else:
             response = await client.get(
-                "/internal/v1/jobs",
-                params={"asset_ids": submission["asset_id"]},
-                headers=headers,
+                "/internal/v1/jobs", params={"asset_ids": submission["asset_id"]}, headers=headers
             )
     assert response.status_code == 401
     assert response.json() == {"error": "Missing or invalid service credentials"}
@@ -52,8 +50,7 @@ async def test_rejects_credentials_before_database(application, submission, auth
 
 async def test_unconfigured_token_fails_closed_without_database(application, submission):
     application.dependency_overrides[get_settings] = lambda: Settings(
-        postgres_dsn="postgresql://unused@unreachable/processing_db",
-        service_token="",
+        postgres_dsn="postgresql://unused@unreachable/processing_db", service_token=""
     )
 
     def forbidden_database_access():

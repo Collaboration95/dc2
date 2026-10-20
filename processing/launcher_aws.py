@@ -141,8 +141,7 @@ def config_from_environ(environ=None):
     )
 
 
-async def run(event, context, *, ecs=None, queue=None, config=None, factory=None,
-              activity=None):
+async def run(event, context, *, ecs=None, queue=None, config=None, factory=None, activity=None):
     """Dispatch a scheduled tick or an operator control event; returns counts only."""
     scheduled = not (isinstance(event, dict) and event.get("dc2_operation") == OPERATION)
     activity = activity or Activity.from_environ("PROCESSING")

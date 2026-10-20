@@ -3,6 +3,7 @@
 import json
 import socket
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -106,6 +107,78 @@ def test_coverage_combined_rate_is_distinct_from_raw_branch_rate():
     assert branch == 0
 
 
+def test_v1_coverage_rc_uses_the_pyproject_source_and_omit_policy():
+    from configparser import ConfigParser
+    from io import StringIO
+
+    from scripts.dev import v1_verify
+
+    parser = ConfigParser()
+    parser.read_file(StringIO(v1_verify.coverage_rc()))
+    configured = tomllib.loads((common.ROOT / "pyproject.toml").read_text())
+    assert parser["run"]["omit"].split() == configured["tool"]["coverage"]["run"]["omit"]
+    assert "scripts.aws.v1.bootstrap" in parser["run"]["source"].split()
+
+
+def test_package_coverage_totals_exclude_migrations_from_the_denominator():
+    files = {
+        "processing/migrations/versions/001.py": {
+            "summary": {
+                "num_statements": 10,
+                "num_branches": 2,
+                "covered_lines": 10,
+                "covered_branches": 2,
+            }
+        },
+        "processing/recovery_v1.py": {
+            "summary": {
+                "num_statements": 4,
+                "num_branches": 2,
+                "covered_lines": 3,
+                "covered_branches": 1,
+            }
+        },
+    }
+    assert coverage.package_totals(files, "processing") == {
+        "num_statements": 4,
+        "num_branches": 2,
+        "covered_lines": 3,
+        "covered_branches": 1,
+    }
+
+
+def test_bootstrap_report_is_a_separate_measured_file():
+    summary = {"num_statements": 10, "num_branches": 4, "covered_lines": 9, "covered_branches": 3}
+    result = coverage.file_report(
+        {"scripts/aws/v1/bootstrap.py": {"summary": summary}}, "scripts/aws/v1/bootstrap.py"
+    )
+    assert result["status"] == "MEASURED"
+    assert result["combined"] == 85.71428571428571
+    assert result["raw_branch"] == 75
+
+
+def test_coverage_goals_require_both_combined_and_raw_branch_targets():
+    target = {"combined": 90, "raw_branch": 85}
+    met = coverage.goal_report({"combined": 91, "raw_branch": 85}, target)
+    below = coverage.goal_report({"combined": 95, "raw_branch": 84.9}, target)
+    assert met["status"] == "MET"
+    assert below["status"] == "BELOW_GOAL"
+
+
+def test_coverage_rejects_tiers_with_different_omit_settings(tmp_path, monkeypatch):
+    data = tmp_path / ".coverage.fast"
+    data.write_bytes(b"unused")
+    data.with_suffix(data.suffix + ".json").write_text(
+        json.dumps(
+            {"fingerprint": "current", "tier": "fast", "omit": ["processing/recovery_v1.py"]}
+        )
+    )
+    monkeypatch.setattr(coverage, "fingerprint", lambda: "current")
+    monkeypatch.setattr(sys, "argv", ["coverage", "--data", str(data)])
+    with pytest.raises(SystemExit, match="Coverage omit mismatch"):
+        coverage.main()
+
+
 def test_coverage_cannot_pass_by_measuring_only_another_package():
     with pytest.raises(ValueError, match="No coverage files"):
         coverage.package_totals({"app/empty.py": {"summary": {}}}, "processing")
@@ -115,12 +188,7 @@ def test_coverage_rejects_stale_data(tmp_path, monkeypatch):
     data = tmp_path / ".coverage.fast"
     data.write_bytes(b"unused")
     data.with_suffix(data.suffix + ".json").write_text(
-        json.dumps(
-            {
-                "fingerprint": "old",
-                "tier": "fast",
-            }
-        )
+        json.dumps({"fingerprint": "old", "tier": "fast"})
     )
     monkeypatch.setattr(coverage, "fingerprint", lambda: "new")
     monkeypatch.setattr(sys, "argv", ["coverage", "--data", str(data)])
@@ -150,6 +218,7 @@ def test_coverage_includes_never_imported_production_file(tmp_path, monkeypatch)
             {
                 "fingerprint": "current",
                 "tier": "fast",
+                "omit": common.coverage_omit_patterns(tmp_path),
             }
         )
     )

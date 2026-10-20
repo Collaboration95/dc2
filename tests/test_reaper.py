@@ -35,9 +35,15 @@ async def test_reaper_deletes_only_old_orphan_objects(monkeypatch):
     async def sessions():
         yield object()
 
-    monkeypatch.setattr(reaper, "get_settings", lambda: SimpleNamespace(
-        worker_job_timeout_seconds=900, reaper_lease_seconds=1800, reaper_orphan_grace_seconds=3600
-    ))
+    monkeypatch.setattr(
+        reaper,
+        "get_settings",
+        lambda: SimpleNamespace(
+            worker_job_timeout_seconds=900,
+            reaper_lease_seconds=1800,
+            reaper_orphan_grace_seconds=3600,
+        ),
+    )
     monkeypatch.setattr(reaper, "get_session_factory", lambda: sessions)
     monkeypatch.setattr(reaper, "list_stale", list_stale)
     monkeypatch.setattr(reaper, "list_source_keys", list_source_keys)
@@ -70,16 +76,22 @@ async def test_reaper_marks_stale_processing_job_failed(monkeypatch):
     async def list_objects(prefix):
         return []
 
-    monkeypatch.setattr(reaper, "get_settings", lambda: SimpleNamespace(
-        worker_job_timeout_seconds=900, reaper_lease_seconds=1800, reaper_orphan_grace_seconds=3600
-    ))
+    monkeypatch.setattr(
+        reaper,
+        "get_settings",
+        lambda: SimpleNamespace(
+            worker_job_timeout_seconds=900,
+            reaper_lease_seconds=1800,
+            reaper_orphan_grace_seconds=3600,
+        ),
+    )
     monkeypatch.setattr(reaper, "get_session_factory", lambda: sessions)
     monkeypatch.setattr(reaper, "list_stale", list_stale)
     monkeypatch.setattr(reaper, "mark_stale_failed", mark_stale_failed)
     monkeypatch.setattr(reaper, "list_source_keys", list_source_keys)
-    monkeypatch.setattr(reaper, "get_storage_service", lambda: SimpleNamespace(
-        list_objects=list_objects
-    ))
+    monkeypatch.setattr(
+        reaper, "get_storage_service", lambda: SimpleNamespace(list_objects=list_objects)
+    )
     monkeypatch.setattr(reaper, "get_redis_connection", lambda: object())
 
     assert await reaper.run_once() == (1, 0, 0)
@@ -104,15 +116,21 @@ async def test_reaper_requeues_stale_queued_job_missing_from_rq(monkeypatch):
     async def list_objects(prefix):
         return []
 
-    monkeypatch.setattr(reaper, "get_settings", lambda: SimpleNamespace(
-        worker_job_timeout_seconds=900, reaper_lease_seconds=1800, reaper_orphan_grace_seconds=3600
-    ))
+    monkeypatch.setattr(
+        reaper,
+        "get_settings",
+        lambda: SimpleNamespace(
+            worker_job_timeout_seconds=900,
+            reaper_lease_seconds=1800,
+            reaper_orphan_grace_seconds=3600,
+        ),
+    )
     monkeypatch.setattr(reaper, "get_session_factory", lambda: sessions)
     monkeypatch.setattr(reaper, "list_stale", list_stale)
     monkeypatch.setattr(reaper, "list_source_keys", list_source_keys)
-    monkeypatch.setattr(reaper, "get_storage_service", lambda: SimpleNamespace(
-        list_objects=list_objects
-    ))
+    monkeypatch.setattr(
+        reaper, "get_storage_service", lambda: SimpleNamespace(list_objects=list_objects)
+    )
     monkeypatch.setattr(reaper, "get_redis_connection", lambda: object())
     monkeypatch.setattr(reaper.RqJob, "exists", lambda *_args, **_kwargs: False)
     monkeypatch.setattr(reaper, "enqueue_job", lambda job_id: enqueued.append(job_id))

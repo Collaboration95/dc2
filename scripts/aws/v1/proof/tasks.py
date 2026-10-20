@@ -19,8 +19,10 @@ from scripts.aws.v1.proof.core import ProofError, parse_time, seconds_between
 
 # ECS caps the whole overrides block at 8192 characters; leave room for env and the wrapper.
 MAX_SCRIPT = 6000
-WRAPPER = ("import base64,os,zlib;exec(zlib.decompress(base64.b64decode(os.environ['DC2_SCRIPT'])),"
-           "{'__name__':'__main__'})")
+WRAPPER = (
+    "import base64,os,zlib;exec(zlib.decompress(base64.b64decode(os.environ['DC2_SCRIPT'])),"
+    "{'__name__':'__main__'})"
+)
 POLL_SECONDS = 10
 
 
@@ -35,15 +37,22 @@ def ship(path):
 
 def network(config):
     net = config["network"]
-    return {"awsvpcConfiguration": {
-        "subnets": net["subnets"], "securityGroups": net["security_groups"],
-        "assignPublicIp": net["assign_public_ip"]}}
+    return {
+        "awsvpcConfiguration": {
+            "subnets": net["subnets"],
+            "securityGroups": net["security_groups"],
+            "assignPublicIp": net["assign_public_ip"],
+        }
+    }
 
 
 def describe(ctx, arn):
-    reply = ctx.aws.call("ecs", "describe-tasks",
-                         {"cluster": ctx.config["cluster"], "tasks": [arn]},
-                         deadline=ctx.deadline(60))
+    reply = ctx.aws.call(
+        "ecs",
+        "describe-tasks",
+        {"cluster": ctx.config["cluster"], "tasks": [arn]},
+        deadline=ctx.deadline(60),
+    )
     if reply.get("failures") or len(reply.get("tasks", [])) != 1:
         raise ProofError("The task could not be described; absence is not STOPPED")
     return reply["tasks"][0]
@@ -51,9 +60,12 @@ def describe(ctx, arn):
 
 def stop(ctx, arn, reason):
     try:
-        ctx.aws.call("ecs", "stop-task",
-                     {"cluster": ctx.config["cluster"], "task": arn, "reason": reason[:200]},
-                     deadline=ctx.deadline(60))
+        ctx.aws.call(
+            "ecs",
+            "stop-task",
+            {"cluster": ctx.config["cluster"], "task": arn, "reason": reason[:200]},
+            deadline=ctx.deadline(60),
+        )
     except Exception:  # best effort: the caller is already failing and re-raises its own error
         pass
 
@@ -62,24 +74,28 @@ def timings(task):
     """Pull-to-stop is what Fargate bills; keep every stamp ECS reports, as ISO strings."""
     keys = ("createdAt", "pullStartedAt", "pullStoppedAt", "startedAt", "stoppedAt")
     seen = {k: str(task[k]) for k in keys if task.get(k)}
-    billed = seconds_between(seen.get("pullStartedAt") or seen.get("createdAt"),
-                             seen.get("stoppedAt"))
+    billed = seconds_between(
+        seen.get("pullStartedAt") or seen.get("createdAt"), seen.get("stoppedAt")
+    )
     return {**seen, "billed_seconds": billed}
 
 
 def summary(task):
     return {
-        "cpu": task.get("cpu"), "memory": task.get("memory"),
+        "cpu": task.get("cpu"),
+        "memory": task.get("memory"),
         "stop_code": task.get("stopCode"),
         "stopped_reason": (task.get("stoppedReason") or "")[:120],
         "exit_codes": [c.get("exitCode") for c in task.get("containers", [])],
         "image_digests": sorted({c.get("imageDigest", "") for c in task.get("containers", [])}),
-        "task_definition": task.get("taskDefinitionArn"), **timings(task),
+        "task_definition": task.get("taskDefinitionArn"),
+        **timings(task),
     }
 
 
-def run(ctx, intent, save, *, label, definition, overrides, timeout, session="active",
-        checkpoint=None):
+def run(
+    ctx, intent, save, *, label, definition, overrides, timeout, session="active", checkpoint=None
+):
     """Launch one finite task (once per intent), wait for STOPPED, return its description.
 
     `intent` is the step's persisted dict and `save` writes it, so the token and task ARN
@@ -90,11 +106,21 @@ def run(ctx, intent, save, *, label, definition, overrides, timeout, session="ac
         save()
     arn = intent.get("task")
     if not arn:
-        reply = ctx.aws.call("ecs", "run-task", {
-            "cluster": ctx.config["cluster"], "taskDefinition": definition,
-            "launchType": "FARGATE", "count": 1, "clientToken": intent["token"],
-            "startedBy": f"dc2-proof-{label}"[:36], "networkConfiguration": network(ctx.config),
-            "overrides": overrides}, deadline=ctx.deadline(60))
+        reply = ctx.aws.call(
+            "ecs",
+            "run-task",
+            {
+                "cluster": ctx.config["cluster"],
+                "taskDefinition": definition,
+                "launchType": "FARGATE",
+                "count": 1,
+                "clientToken": intent["token"],
+                "startedBy": f"dc2-proof-{label}"[:36],
+                "networkConfiguration": network(ctx.config),
+                "overrides": overrides,
+            },
+            deadline=ctx.deadline(60),
+        )
         tasks = reply.get("tasks", [])
         if reply.get("failures") or len(tasks) != 1:
             raise ProofError(f"The {label} task could not be launched (capacity or quota)")
@@ -121,8 +147,9 @@ def log_stream(definition_reply, container, arn):
     for entry in definition_reply["taskDefinition"]["containerDefinitions"]:
         if entry["name"] == container:
             options = entry["logConfiguration"]["options"]
-            return options["awslogs-group"], f"{options['awslogs-stream-prefix']}/{container}/" + \
-                arn.rsplit("/", 1)[-1]
+            return options[
+                "awslogs-group"
+            ], f"{options['awslogs-stream-prefix']}/{container}/" + arn.rsplit("/", 1)[-1]
     raise ProofError("The task definition has no such container for logs")
 
 
@@ -148,7 +175,7 @@ def tagged(lines, marker):
     for line in lines:
         if line.startswith(marker + " "):
             try:
-                found.append(json.loads(line[len(marker) + 1:]))
+                found.append(json.loads(line[len(marker) + 1 :]))
             except ValueError:
                 continue
     return found
@@ -156,8 +183,9 @@ def tagged(lines, marker):
 
 def result(ctx, definition, container, arn, marker, *, wait=30):
     """The one tagged JSON line the task printed. Logs trail the stop by a few seconds."""
-    reply = ctx.aws.call("ecs", "describe-task-definition", {"taskDefinition": definition},
-                         deadline=ctx.deadline(60))
+    reply = ctx.aws.call(
+        "ecs", "describe-task-definition", {"taskDefinition": definition}, deadline=ctx.deadline(60)
+    )
     group, stream = log_stream(reply, container, arn)
     end = ctx.clock() + wait
     while True:
@@ -194,4 +222,3 @@ def wait_until(ctx, check, *, timeout, interval, checkpoint=None, session="activ
         if checkpoint:
             checkpoint(session)
         ctx.sleep(interval)
-

@@ -50,8 +50,10 @@ def test_the_r1017a_case_of_a_lingering_endpoint_subnets_cluster_and_task_defini
         linger(rig, "subnet/subnet-0aaa", "NotFound"),
         linger(rig, "subnet/subnet-0bbb", "NotFound"),
         linger(rig, "cluster/dc2-v1-t1", "INACTIVE", service="ecs"),
-        *(linger(rig, f"task-definition/dc2-v1-t1-worker:{i}", "INACTIVE", service="ecs")
-          for i in range(1, 7)),
+        *(
+            linger(rig, f"task-definition/dc2-v1-t1-worker:{i}", "INACTIVE", service="ecs")
+            for i in range(1, 7)
+        ),
     ]
     assert len(ghosts) == 10
     receipt = rig.teardown().receipt
@@ -59,12 +61,15 @@ def test_the_r1017a_case_of_a_lingering_endpoint_subnets_cluster_and_task_defini
     rows = observed_by_id(receipt)
     assert set(rows) == set(ghosts) and all(row["gone"] for row in rows.values())
     assert {rows[g]["observed"] for g in ghosts[:3]} == {
-        "InvalidVpcEndpointId.NotFound", "InvalidSubnetID.NotFound"}
+        "InvalidVpcEndpointId.NotFound",
+        "InvalidSubnetID.NotFound",
+    }
     assert {rows[g]["observed"] for g in ghosts[3:]} == {"INACTIVE"}
 
 
 def test_a_stack_deleted_by_the_pipeline_itself_leaves_a_clean_receipt_despite_tagging_lag(
-        tmp_path):
+    tmp_path,
+):
     made = Rig(tmp_path, skip_final_snapshot=True, confirm_run_id="t1")  # lag is on by default
     made.deploy()
     receipt = made.teardown().receipt
@@ -106,8 +111,10 @@ def test_an_ecs_resource_that_is_not_inactive_stays_reported(rig, resource):
 
 
 def test_the_runs_inactive_task_definitions_are_deleted_so_they_disappear(rig):
-    revisions = [linger(rig, f"task-definition/dc2-v1-t1-worker:{i}", "INACTIVE", service="ecs")
-                 for i in range(1, 4)]
+    revisions = [
+        linger(rig, f"task-definition/dc2-v1-t1-worker:{i}", "INACTIVE", service="ecs")
+        for i in range(1, 4)
+    ]
     receipt = rig.teardown().receipt
     (call,) = rig.ops("delete-task-definitions")
     assert call[2] == {"taskDefinitions": revisions}
@@ -128,20 +135,29 @@ def test_task_definitions_are_deleted_ten_at_a_time(rig):
 def test_a_failed_task_definition_delete_is_tolerated_and_recorded(rig):
     revision = linger(rig, "task-definition/dc2-v1-t1-worker:1", "INACTIVE", service="ecs")
     rig.sim.fail[("ecs", "delete-task-definitions")] = [
-        AwsError("ecs", "delete-task-definitions", "AccessDeniedException")]
+        AwsError("ecs", "delete-task-definitions", "AccessDeniedException")
+    ]
     receipt = rig.teardown().receipt
     assert receipt["status"] == "CLEAN"  # INACTIVE is free; a refused delete is not a leftover
     assert observed_by_id(receipt)[revision]["deletion"] == (
-        "requested but failed: AccessDeniedException")
+        "requested but failed: AccessDeniedException"
+    )
 
 
 def test_a_per_item_delete_failure_in_the_reply_is_recorded_too(rig, monkeypatch):
     revision = linger(rig, "task-definition/dc2-v1-t1-worker:1", "INACTIVE", service="ecs")
-    monkeypatch.setattr(rig.sim, "ecs_delete_task_definitions", lambda payload: {
-        "taskDefinitions": [], "failures": [{"arn": revision, "reason": "ATTACHMENT_IN_USE"}]})
+    monkeypatch.setattr(
+        rig.sim,
+        "ecs_delete_task_definitions",
+        lambda payload: {
+            "taskDefinitions": [],
+            "failures": [{"arn": revision, "reason": "ATTACHMENT_IN_USE"}],
+        },
+    )
     receipt = rig.teardown().receipt
     assert observed_by_id(receipt)[revision]["deletion"] == (
-        "requested but failed: ATTACHMENT_IN_USE")
+        "requested but failed: ATTACHMENT_IN_USE"
+    )
     assert receipt["status"] == "CLEAN"
 
 
@@ -176,8 +192,9 @@ def answer_not_found(monkeypatch, rig, operation, identifier_key, ghost_id, code
 @pytest.mark.parametrize("code", list(deploy.CLUSTER_NOT_FOUND))
 def test_an_rds_cluster_not_found_is_gone_under_either_spelling(rig, monkeypatch, code):
     ghost = linger(rig, "cluster:dc2-v1-t1-ghost", "", service="rds")
-    answer_not_found(monkeypatch, rig, "describe-db-clusters", "DBClusterIdentifier",
-                     "dc2-v1-t1-ghost", code)
+    answer_not_found(
+        monkeypatch, rig, "describe-db-clusters", "DBClusterIdentifier", "dc2-v1-t1-ghost", code
+    )
     receipt = rig.teardown().receipt
     assert observed_by_id(receipt)[ghost]["observed"] == code
     assert receipt["status"] == "CLEAN"
@@ -186,8 +203,9 @@ def test_an_rds_cluster_not_found_is_gone_under_either_spelling(rig, monkeypatch
 @pytest.mark.parametrize("code", list(deploy.INSTANCE_NOT_FOUND))
 def test_an_rds_instance_not_found_is_gone_under_either_spelling(rig, monkeypatch, code):
     ghost = linger(rig, "db:dc2-v1-t1-ghost", "", service="rds")
-    answer_not_found(monkeypatch, rig, "describe-db-instances", "DBInstanceIdentifier",
-                     "dc2-v1-t1-ghost", code)
+    answer_not_found(
+        monkeypatch, rig, "describe-db-instances", "DBInstanceIdentifier", "dc2-v1-t1-ghost", code
+    )
     receipt = rig.teardown().receipt
     assert observed_by_id(receipt)[ghost]["observed"] == code
     assert receipt["status"] == "CLEAN"
@@ -195,8 +213,11 @@ def test_an_rds_instance_not_found_is_gone_under_either_spelling(rig, monkeypatc
 
 def test_an_rds_cluster_that_still_answers_stays_with_its_status(rig):
     live = linger(rig, "cluster:dc2-v1-t1-other", "", service="rds")
-    rig.sim.clusters["dc2-v1-t1-other"] = {"status": "available", "protected": False,
-                                           "tags": dict(TAGS)}
+    rig.sim.clusters["dc2-v1-t1-other"] = {
+        "status": "available",
+        "protected": False,
+        "tags": dict(TAGS),
+    }
     receipt = rig.teardown().receipt
     (item,) = receipt["resources_remaining"]
     assert item["id"] == live and item["observed"] == "available"
@@ -213,7 +234,11 @@ def test_an_s3_bucket_that_no_longer_exists_is_gone(rig):
 
 def test_an_s3_bucket_that_still_exists_stays_reported(rig):
     rig.sim.buckets["dc2-v1-t1-stray"] = {
-        "tags": dict(TAGS), "versions": [], "markers": [], "uploads": []}
+        "tags": dict(TAGS),
+        "versions": [],
+        "markers": [],
+        "uploads": [],
+    }
     receipt = rig.teardown().receipt
     (item,) = receipt["resources_remaining"]
     assert item["id"] == "arn:aws:s3:::dc2-v1-t1-stray" and item["observed"] == "exists"
@@ -230,7 +255,8 @@ def test_a_resource_type_with_no_existence_check_stays_and_says_so(rig):
 def test_a_check_that_cannot_be_made_keeps_the_item_instead_of_guessing(rig):
     subnet = linger(rig, "subnet/subnet-0aaa", "NotFound")
     rig.sim.fail[("ec2", "describe-subnets")] = [
-        AwsError("ec2", "describe-subnets", "UnauthorizedOperation")]
+        AwsError("ec2", "describe-subnets", "UnauthorizedOperation")
+    ]
     receipt = rig.teardown().receipt
     (item,) = receipt["resources_remaining"]
     assert item["id"] == subnet and item["observed"] == "unconfirmed (UnauthorizedOperation)"
@@ -242,33 +268,46 @@ def test_the_receipt_is_written_private_with_the_observed_states(rig):
     path = rig.s.state_dir / "teardown-receipt-t1.json"
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
     assert json.loads(path.read_text())["tagging_api_observed"][0]["observed"] == (
-        "InvalidSubnetID.NotFound")
+        "InvalidSubnetID.NotFound"
+    )
 
 
 # ---- the new read and delete operations stay inside the allowlist -----------------------------
-@pytest.mark.parametrize("service,operation,payload", [
-    ("ec2", "describe-subnets", {"SubnetIds": ["subnet-0aaa"]}),
-    ("ec2", "describe-vpc-endpoints", {"VpcEndpointIds": ["vpce-0aaa"]}),
-    ("ecs", "describe-clusters", {"clusters": [arn("ecs", "cluster/c")]}),
-    ("ecs", "delete-task-definitions",
-     {"taskDefinitions": [arn("ecs", "task-definition/w:1")]}),
-])
+@pytest.mark.parametrize(
+    "service,operation,payload",
+    [
+        ("ec2", "describe-subnets", {"SubnetIds": ["subnet-0aaa"]}),
+        ("ec2", "describe-vpc-endpoints", {"VpcEndpointIds": ["vpce-0aaa"]}),
+        ("ecs", "describe-clusters", {"clusters": [arn("ecs", "cluster/c")]}),
+        (
+            "ecs",
+            "delete-task-definitions",
+            {"taskDefinitions": [arn("ecs", "task-definition/w:1")]},
+        ),
+    ],
+)
 def test_the_receipts_operations_are_allowed(service, operation, payload):
     deploy.check_operation(service, operation, payload)
 
 
-@pytest.mark.parametrize("service,operation,payload", [
-    ("ec2", "delete-subnet", {"SubnetId": "subnet-0aaa"}),
-    ("ec2", "describe-subnets", {"SubnetIds": ["subnet-0aaa", "subnet-0bbb"]}),
-    ("ec2", "describe-subnets", {"SubnetIds": ["subnet-0aaa"], "DryRun": True}),
-    ("ec2", "describe-instances", {"InstanceIds": ["i-0aaa"]}),
-    ("ecs", "delete-cluster", {"cluster": "c"}),
-    ("ecs", "delete-task-definitions",
-     {"taskDefinitions": [arn("ecs", f"task-definition/w:{i}") for i in range(11)]}),
-    ("ecs", "delete-task-definitions", {"taskDefinitions": []}),
-    ("ecs", "delete-task-definitions", {"taskDefinitions": ["x; rm -rf /"]}),
-    ("ecs", "describe-clusters", {"clusters": [], "include": ["TAGS"]}),
-])
+@pytest.mark.parametrize(
+    "service,operation,payload",
+    [
+        ("ec2", "delete-subnet", {"SubnetId": "subnet-0aaa"}),
+        ("ec2", "describe-subnets", {"SubnetIds": ["subnet-0aaa", "subnet-0bbb"]}),
+        ("ec2", "describe-subnets", {"SubnetIds": ["subnet-0aaa"], "DryRun": True}),
+        ("ec2", "describe-instances", {"InstanceIds": ["i-0aaa"]}),
+        ("ecs", "delete-cluster", {"cluster": "c"}),
+        (
+            "ecs",
+            "delete-task-definitions",
+            {"taskDefinitions": [arn("ecs", f"task-definition/w:{i}") for i in range(11)]},
+        ),
+        ("ecs", "delete-task-definitions", {"taskDefinitions": []}),
+        ("ecs", "delete-task-definitions", {"taskDefinitions": ["x; rm -rf /"]}),
+        ("ecs", "describe-clusters", {"clusters": [], "include": ["TAGS"]}),
+    ],
+)
 def test_anything_beyond_the_receipts_exact_calls_is_refused(service, operation, payload):
     with pytest.raises(DeployError):
         deploy.check_operation(service, operation, payload)

@@ -382,9 +382,7 @@ async def tick(factory, ecs, queue, config, *, launching=True):
         control = await session.get(LauncherControl, 1)
         open_rows = (
             await session.execute(
-                select(LaunchReservation.task_arn).where(
-                    LaunchReservation.status.in_(OPEN_STATES)
-                )
+                select(LaunchReservation.task_arn).where(LaunchReservation.status.in_(OPEN_STATES))
             )
         ).all()
         backlog = await queued_backlog(session)
@@ -426,8 +424,10 @@ async def set_enabled(factory, enabled, *, session_end_epoch=None):
         )
         now = await lifecycle.db_now(session)
         if enabled:
-            end = None if session_end_epoch is None else datetime.fromtimestamp(
-                session_end_epoch, UTC
+            end = (
+                None
+                if session_end_epoch is None
+                else datetime.fromtimestamp(session_end_epoch, UTC)
             )
             if end is None or end <= now:
                 raise ValueError("A future session end is required to enable the launcher")

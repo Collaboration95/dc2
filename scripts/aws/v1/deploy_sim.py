@@ -24,8 +24,12 @@ from scripts.aws.v1.deploy import PROJECT_KEY, RUN_KEY, AwsError, check_operatio
 from scripts.aws.v1.operations import HANDLERS, QUEUES
 from scripts.aws.v1_operator import sanitized_environment
 
-RETAINED = {"AWS::S3::Bucket", "AWS::ECR::Repository", "AWS::RDS::DBCluster",
-            "AWS::RDS::DBInstance"}
+RETAINED = {
+    "AWS::S3::Bucket",
+    "AWS::ECR::Repository",
+    "AWS::RDS::DBCluster",
+    "AWS::RDS::DBInstance",
+}
 LEGACY = "dc2-v1-20261015t1146-bootstrap"
 
 
@@ -66,8 +70,14 @@ class SimulatedAws:
         # decides that per property; tests name the resources they want replaced).
         self.replacing = set()
         # The previous sprint's rolled-back staging stack, so the plan shows it left alone.
-        self.stacks[LEGACY] = {"status": "ROLLBACK_COMPLETE", "tags": {}, "resources": [],
-                               "outputs": {}, "changesets": {}, "id": "legacy"}
+        self.stacks[LEGACY] = {
+            "status": "ROLLBACK_COMPLETE",
+            "tags": {},
+            "resources": [],
+            "outputs": {},
+            "changesets": {},
+            "id": "legacy",
+        }
         if seed:
             self.seed(seed)
 
@@ -96,12 +106,19 @@ class SimulatedAws:
 
     def iam_simulate_principal_policy(self, payload):
         if self.mfa_deny is None:
-            raise self.error("iam", "simulate-principal-policy", "AccessDenied",
-                             "not authorized to perform iam:SimulatePrincipalPolicy")
+            raise self.error(
+                "iam",
+                "simulate-principal-policy",
+                "AccessDenied",
+                "not authorized to perform iam:SimulatePrincipalPolicy",
+            )
         decision = "explicitDeny" if self.mfa_deny else "allowed"
-        return {"EvaluationResults": [
-            {"EvalActionName": action, "EvalResourceName": "*", "EvalDecision": decision}
-            for action in payload["ActionNames"]]}
+        return {
+            "EvaluationResults": [
+                {"EvalActionName": action, "EvalResourceName": "*", "EvalDecision": decision}
+                for action in payload["ActionNames"]
+            ]
+        }
 
     def lambda_get_account_settings(self, payload):
         return {"AccountLimit": {"ConcurrentExecutions": 10, "UnreservedConcurrentExecutions": 10}}
@@ -112,17 +129,32 @@ class SimulatedAws:
     def rds_describe_db_engine_versions(self, payload):
         if not self.engine_available:
             return {"DBEngineVersions": []}
-        return {"DBEngineVersions": [{"EngineVersion": payload["EngineVersion"],
-                                      "ServerlessV2FeaturesSupport": {
-                                          "MinCapacity": 0.0, "MaxCapacity": 256.0}}]}
+        return {
+            "DBEngineVersions": [
+                {
+                    "EngineVersion": payload["EngineVersion"],
+                    "ServerlessV2FeaturesSupport": {"MinCapacity": 0.0, "MaxCapacity": 256.0},
+                }
+            ]
+        }
 
     def budgets_describe_budgets(self, payload):
-        return {"Budgets": [{"BudgetName": self.budget_name, "TimeUnit": "MONTHLY",
-                             "BudgetLimit": {"Amount": str(self.budget_limit), "Unit": "USD"}}]}
+        return {
+            "Budgets": [
+                {
+                    "BudgetName": self.budget_name,
+                    "TimeUnit": "MONTHLY",
+                    "BudgetLimit": {"Amount": str(self.budget_limit), "Unit": "USD"},
+                }
+            ]
+        }
 
     def ce_get_cost_and_usage(self, payload):
-        return {"ResultsByTime": [{"Total": {"UnblendedCost": {"Amount": str(self.mtd),
-                                                               "Unit": "USD"}}}]}
+        return {
+            "ResultsByTime": [
+                {"Total": {"UnblendedCost": {"Amount": str(self.mtd), "Unit": "USD"}}}
+            ]
+        }
 
     def ce_get_cost_forecast(self, payload):
         if self.forecast is None:
@@ -132,10 +164,13 @@ class SimulatedAws:
     # ---- CloudFormation ------------------------------------------------------------------
     def view(self, name):
         stack = self.stacks[name]
-        return {"StackName": name, "StackId": stack["id"], "StackStatus": stack["status"],
-                "Tags": [{"Key": k, "Value": v} for k, v in stack["tags"].items()],
-                "Outputs": [{"OutputKey": k, "OutputValue": v}
-                            for k, v in stack["outputs"].items()]}
+        return {
+            "StackName": name,
+            "StackId": stack["id"],
+            "StackStatus": stack["status"],
+            "Tags": [{"Key": k, "Value": v} for k, v in stack["tags"].items()],
+            "Outputs": [{"OutputKey": k, "OutputValue": v} for k, v in stack["outputs"].items()],
+        }
 
     def cloudformation_describe_stacks(self, payload):
         name = payload["StackName"]
@@ -148,8 +183,12 @@ class SimulatedAws:
                 entry[1]()
         stack = self.stacks.get(name)
         if stack is None or stack["status"] == "DELETE_COMPLETE":
-            raise self.error("cloudformation", "describe-stacks", "ValidationError",
-                             f"Stack with id {name} does not exist")
+            raise self.error(
+                "cloudformation",
+                "describe-stacks",
+                "ValidationError",
+                f"Stack with id {name} does not exist",
+            )
         return {"Stacks": [self.view(name)]}
 
     def template_of(self, request):
@@ -161,8 +200,11 @@ class SimulatedAws:
     @staticmethod
     def included(template, parameters):
         apps = parameters.get("DeployApplications", "false") == "true"
-        return {name: res for name, res in template["Resources"].items()
-                if res.get("Condition") != "Applications" or apps}
+        return {
+            name: res
+            for name, res in template["Resources"].items()
+            if res.get("Condition") != "Applications" or apps
+        }
 
     def cloudformation_create_change_set(self, request):
         name, kind = request["StackName"], request["ChangeSetType"]
@@ -173,48 +215,76 @@ class SimulatedAws:
             if stack and stack["status"] != "REVIEW_IN_PROGRESS":
                 raise self.error("cloudformation", "create-change-set", "AlreadyExistsException")
             stack = self.stacks[name] = {
-                "status": "REVIEW_IN_PROGRESS", "id": f"id-{short(name)}",
-                "tags": tags_of(request["Tags"]), "resources": [], "outputs": {},
-                "changesets": {}, "template": None}
+                "status": "REVIEW_IN_PROGRESS",
+                "id": f"id-{short(name)}",
+                "tags": tags_of(request["Tags"]),
+                "resources": [],
+                "outputs": {},
+                "changesets": {},
+                "template": None,
+            }
         elif stack is None:
             raise self.error("cloudformation", "create-change-set", "ValidationError")
-        previous = self.included(stack["template"], stack["parameters"]) \
-            if stack.get("template") else {}
+        previous = (
+            self.included(stack["template"], stack["parameters"]) if stack.get("template") else {}
+        )
         wanted = self.included(template, parameters)
-        changed = {k for k, v in parameters.items()
-                   if (stack.get("parameters") or {}).get(k) != v} if previous else set()
+        changed = (
+            {k for k, v in parameters.items() if (stack.get("parameters") or {}).get(k) != v}
+            if previous
+            else set()
+        )
 
         def row(action, logical, res, replacement="False"):
-            return {"ResourceChange": {"Action": action, "LogicalResourceId": logical,
-                                       "ResourceType": res["Type"],
-                                       "Replacement": replacement}}
+            return {
+                "ResourceChange": {
+                    "Action": action,
+                    "LogicalResourceId": logical,
+                    "ResourceType": res["Type"],
+                    "Replacement": replacement,
+                }
+            }
 
         def modified(logical, res):
             # Changed bytes, or a reference to a parameter whose value changed.
             text = json.dumps(res, sort_keys=True)
             return text != json.dumps(previous[logical], sort_keys=True) or any(
-                f'"Ref": "{name}"' in text or f"${{{name}}}" in text for name in changed)
+                f'"Ref": "{name}"' in text or f"${{{name}}}" in text for name in changed
+            )
 
-        changes = [row("Add", logical, res) for logical, res in wanted.items()
-                   if logical not in previous]
-        changes += [row("Modify", logical, res,
-                        "True" if logical in self.replacing else "False")
-                    for logical, res in wanted.items()
-                    if logical in previous and modified(logical, res)]
-        changes += [row("Remove", logical, res) for logical, res in previous.items()
-                    if logical not in wanted]
+        changes = [
+            row("Add", logical, res) for logical, res in wanted.items() if logical not in previous
+        ]
+        changes += [
+            row("Modify", logical, res, "True" if logical in self.replacing else "False")
+            for logical, res in wanted.items()
+            if logical in previous and modified(logical, res)
+        ]
+        changes += [
+            row("Remove", logical, res)
+            for logical, res in previous.items()
+            if logical not in wanted
+        ]
         stack["changesets"][request["ChangeSetName"]] = {
             "Status": "CREATE_COMPLETE" if changes else "FAILED",
             "StatusReason": "" if changes else "The submitted information didn't contain changes.",
-            "ExecutionStatus": "AVAILABLE" if changes else "UNAVAILABLE", "Changes": changes,
-            "template": template, "parameters": parameters, "kind": kind}
+            "ExecutionStatus": "AVAILABLE" if changes else "UNAVAILABLE",
+            "Changes": changes,
+            "template": template,
+            "parameters": parameters,
+            "kind": kind,
+        }
         return {"Id": f"cs-{short(name, request['ChangeSetName'])}", "StackId": stack["id"]}
 
     def cloudformation_describe_change_set(self, payload):
         stack = self.stacks.get(payload["StackName"])
         if stack is None:  # what AWS really answers before the stack exists
-            raise self.error("cloudformation", "describe-change-set", "ValidationError",
-                             f"Stack [{payload['StackName']}] does not exist")
+            raise self.error(
+                "cloudformation",
+                "describe-change-set",
+                "ValidationError",
+                f"Stack [{payload['StackName']}] does not exist",
+            )
         found = stack.get("changesets", {}).get(payload["ChangeSetName"])
         if found is None:
             raise self.error("cloudformation", "describe-change-set", "ChangeSetNotFound")
@@ -229,8 +299,9 @@ class SimulatedAws:
         change_set["ExecutionStatus"] = "EXECUTE_COMPLETE"
         # As in AWS: executing one change set deletes the stack's other change sets.
         stack["changesets"] = {payload["ChangeSetName"]: change_set}
-        stack["status"] = "CREATE_IN_PROGRESS" if change_set["kind"] == "CREATE" \
-            else "UPDATE_IN_PROGRESS"
+        stack["status"] = (
+            "CREATE_IN_PROGRESS" if change_set["kind"] == "CREATE" else "UPDATE_IN_PROGRESS"
+        )
         failure = self.fail.get(("stack-complete", name))
         self.pending[name] = [1, lambda: self.complete_stack(name, change_set, failure)]
         return {}
@@ -240,12 +311,18 @@ class SimulatedAws:
         stack["template"], stack["parameters"] = change_set["template"], change_set["parameters"]
         if failure:
             stack["status"] = "ROLLBACK_COMPLETE"
-            stack["events"] = [{"LogicalResourceId": "Simulated", "ResourceStatus": "CREATE_FAILED",
-                                "ResourceStatusReason": failure}]
+            stack["events"] = [
+                {
+                    "LogicalResourceId": "Simulated",
+                    "ResourceStatus": "CREATE_FAILED",
+                    "ResourceStatusReason": failure,
+                }
+            ]
             return
         known = {r["logical"] for r in stack["resources"]}
         env = change_set["parameters"].get("EnvironmentId") or change_set["parameters"].get(
-            "Namespace", name)
+            "Namespace", name
+        )
         for logical, res in self.included(change_set["template"], change_set["parameters"]).items():
             if logical not in known:
                 stack["resources"].append(self.materialize(name, env, logical, res, stack))
@@ -253,7 +330,8 @@ class SimulatedAws:
         stack["outputs"] = {
             key: self.output_value(key, name, env, stack)
             for key, out in change_set["template"].get("Outputs", {}).items()
-            if out.get("Condition") != "Applications" or apps}
+            if out.get("Condition") != "Applications" or apps
+        }
         stack["status"] = "UPDATE_COMPLETE" if change_set["kind"] == "UPDATE" else "CREATE_COMPLETE"
 
     def materialize(self, stack_name, env, logical, res, stack):
@@ -266,11 +344,16 @@ class SimulatedAws:
                 physical = f"{env}-artifacts-{self.s.account}"
             versions = []
             if logical in {"SourceBucket", "OutputBucket"}:  # data a real run would have written
-                versions = [{"Key": "uploads/a.mp4", "VersionId": "v1"},
-                            {"Key": "uploads/a.mp4", "VersionId": "v2"}]
-            self.buckets[physical] = {"tags": tags, "versions": versions,
-                                      "markers": [{"Key": "uploads/a.mp4", "VersionId": "dm1"}]
-                                      if versions else [], "uploads": []}
+                versions = [
+                    {"Key": "uploads/a.mp4", "VersionId": "v1"},
+                    {"Key": "uploads/a.mp4", "VersionId": "v2"},
+                ]
+            self.buckets[physical] = {
+                "tags": tags,
+                "versions": versions,
+                "markers": [{"Key": "uploads/a.mp4", "VersionId": "dm1"}] if versions else [],
+                "uploads": [],
+            }
         elif kind == "AWS::ECR::Repository":
             physical = f"{stack_name}-{logical.lower()}-{suffix}"
             self.repos[physical] = {"tags": tags, "images": {}}
@@ -299,18 +382,26 @@ class SimulatedAws:
             "FrontendBucketName": by_logical.get("FrontendBucket"),
             "FrontendUrl": "https://d111111abcdef8.cloudfront.net",
             "DistributionId": "E1SIMULATED",
-            "VpcId": "vpc-0sim", "PrivateSubnetIds": "subnet-0p1,subnet-0p2",
+            "VpcId": "vpc-0sim",
+            "PrivateSubnetIds": "subnet-0p1,subnet-0p2",
             "PublicTaskSubnetIds": "subnet-0t1,subnet-0t2",
-            "WorkerSecurityGroupId": "sg-0worker", "MigrationSecurityGroupId": "sg-0migrate",
+            "WorkerSecurityGroupId": "sg-0worker",
+            "MigrationSecurityGroupId": "sg-0migrate",
             "DatabaseEndpoint": f"{env}.cluster-sim.{region}.rds.amazonaws.com",
             "BootstrapSecretArn": f"arn:aws:secretsmanager:{region}:{account}:secret:rds!sim",
             # The separate layout (#94): one endpoint and master secret per domain's cluster.
-            **{f"{domain}DatabaseEndpoint":
-               f"{env}-{domain.lower()}.cluster-sim.{region}.rds.amazonaws.com"
-               for domain in ("Media", "Processing")},
-            **{f"{domain}BootstrapSecretArn":
-               f"arn:aws:secretsmanager:{region}:{account}:secret:rds!sim-{domain.lower()}"
-               for domain in ("Media", "Processing")},
+            **{
+                f"{domain}DatabaseEndpoint": (
+                    f"{env}-{domain.lower()}.cluster-sim.{region}.rds.amazonaws.com"
+                )
+                for domain in ("Media", "Processing")
+            },
+            **{
+                f"{domain}BootstrapSecretArn": (
+                    f"arn:aws:secretsmanager:{region}:{account}:secret:rds!sim-{domain.lower()}"
+                )
+                for domain in ("Media", "Processing")
+            },
             "DatabaseTopology": "separate",
             "ClusterArn": f"arn:aws:ecs:{region}:{account}:cluster/{env}",
             "HttpApiId": "abc123def4",
@@ -339,9 +430,16 @@ class SimulatedAws:
 
     def cloudformation_describe_stack_resources(self, payload):
         stack = self.stacks[payload["StackName"]]
-        return {"StackResources": [
-            {"ResourceType": r["type"], "PhysicalResourceId": r["physical"],
-             "LogicalResourceId": r["logical"]} for r in stack["resources"]]}
+        return {
+            "StackResources": [
+                {
+                    "ResourceType": r["type"],
+                    "PhysicalResourceId": r["physical"],
+                    "LogicalResourceId": r["logical"],
+                }
+                for r in stack["resources"]
+            ]
+        }
 
     def cloudformation_delete_stack(self, payload):
         name = payload["StackName"]
@@ -354,8 +452,13 @@ class SimulatedAws:
         mine = {r["physical"] for r in stack["resources"]}
         if mine & set(self.instances) or mine & set(self.clusters):
             stack["status"] = "DELETE_FAILED"
-            stack["events"] = [{"LogicalResourceId": "Subnet", "ResourceStatus": "DELETE_FAILED",
-                                "ResourceStatusReason": "The subnet has dependencies"}]
+            stack["events"] = [
+                {
+                    "LogicalResourceId": "Subnet",
+                    "ResourceStatus": "DELETE_FAILED",
+                    "ResourceStatusReason": "The subnet has dependencies",
+                }
+            ]
             return
         for resource in stack["resources"]:
             if resource["type"] not in RETAINED:  # Retain resources survive the stack
@@ -369,15 +472,23 @@ class SimulatedAws:
         region, account = self.s.region, self.s.account
         ident = short(stack_name, resource["logical"])
         arn, state = {
-            "AWS::EC2::Subnet": (f"arn:aws:ec2:{region}:{account}:subnet/subnet-{ident}",
-                                 "NotFound"),
+            "AWS::EC2::Subnet": (
+                f"arn:aws:ec2:{region}:{account}:subnet/subnet-{ident}",
+                "NotFound",
+            ),
             "AWS::EC2::VPCEndpoint": (
-                f"arn:aws:ec2:{region}:{account}:vpc-endpoint/vpce-{ident}", "NotFound"),
-            "AWS::ECS::Cluster": (f"arn:aws:ecs:{region}:{account}:cluster/{stack_name}",
-                                  "INACTIVE"),
+                f"arn:aws:ec2:{region}:{account}:vpc-endpoint/vpce-{ident}",
+                "NotFound",
+            ),
+            "AWS::ECS::Cluster": (
+                f"arn:aws:ecs:{region}:{account}:cluster/{stack_name}",
+                "INACTIVE",
+            ),
             "AWS::ECS::TaskDefinition": (
                 f"arn:aws:ecs:{region}:{account}:task-definition/"
-                f"{stack_name}-{resource['logical'].lower()}:1", "INACTIVE"),
+                f"{stack_name}-{resource['logical'].lower()}:1",
+                "INACTIVE",
+            ),
         }.get(resource["type"], (None, None))
         if arn:
             self.lingering[arn] = {"state": state, "tags": dict(stack["tags"])}
@@ -406,8 +517,12 @@ class SimulatedAws:
         bucket = self.buckets.get(payload["Bucket"])
         if bucket is None:
             raise self.error("s3api", "list-objects-v2", "NoSuchBucket")
-        return {"Contents": [{"Key": key, "ETag": f'"{etag}"'}
-                             for key, etag in sorted(bucket.get("etags", {}).items())]}
+        return {
+            "Contents": [
+                {"Key": key, "ETag": f'"{etag}"'}
+                for key, etag in sorted(bucket.get("etags", {}).items())
+            ]
+        }
 
     # ---- CloudFront ---------------------------------------------------------------------------
     def cloudfront_create_invalidation(self, payload):
@@ -423,8 +538,12 @@ class SimulatedAws:
             if entry["Id"] == payload["Id"]:
                 entry["polls"] += 1
                 done = entry["polls"] > 1  # one polling round in progress, then complete
-                return {"Invalidation": {"Id": entry["Id"],
-                                         "Status": "Completed" if done else "InProgress"}}
+                return {
+                    "Invalidation": {
+                        "Id": entry["Id"],
+                        "Status": "Completed" if done else "InProgress",
+                    }
+                }
         raise self.error("cloudfront", "get-invalidation", "NoSuchInvalidation")
 
     def s3api_get_bucket_tagging(self, payload):
@@ -440,8 +559,10 @@ class SimulatedAws:
         if bucket is None:
             raise self.error("s3api", "list-object-versions", "NoSuchBucket")
         prefix = payload.get("Prefix", "")
-        return {"Versions": [v for v in bucket["versions"] if v["Key"].startswith(prefix)],
-                "DeleteMarkers": [m for m in bucket["markers"] if m["Key"].startswith(prefix)]}
+        return {
+            "Versions": [v for v in bucket["versions"] if v["Key"].startswith(prefix)],
+            "DeleteMarkers": [m for m in bucket["markers"] if m["Key"].startswith(prefix)],
+        }
 
     def s3api_delete_objects(self, payload):
         bucket = self.buckets[payload["Bucket"]]
@@ -495,7 +616,11 @@ class SimulatedAws:
         return {"imageDetails": [{"imageDigest": repo["images"][tag], "imageTags": [tag]}]}
 
     def ecr_describe_image_scan_findings(self, payload):
-        return {"imageScanFindings": {"findingSeverityCounts": {}}}
+        return {
+            "imageId": payload["imageId"],
+            "imageScanStatus": {"status": "COMPLETE"},
+            "imageScanFindings": {"findingSeverityCounts": {}},
+        }
 
     def ecr_list_images(self, payload):
         repo = self.repository(payload["repositoryName"], "list-images")
@@ -564,7 +689,10 @@ class SimulatedAws:
             raise self.error("rds", "delete-db-cluster", "InvalidParameterCombination")
         if not payload["SkipFinalSnapshot"]:
             self.snapshots[payload["FinalDBSnapshotIdentifier"]] = {
-                "cluster": identifier, "status": "creating", "tags": {}}
+                "cluster": identifier,
+                "status": "creating",
+                "tags": {},
+            }
         found["status"] = "deleting"
         return {}
 
@@ -584,9 +712,11 @@ class SimulatedAws:
         kind, identifier = arn.split(":")[-2:]
         table = self.clusters if kind == "cluster" else self.instances
         if identifier not in table:
-            raise self.error("rds", "list-tags-for-resource",
-                             "DBClusterNotFoundFault" if kind == "cluster"
-                             else "DBInstanceNotFound")
+            raise self.error(
+                "rds",
+                "list-tags-for-resource",
+                "DBClusterNotFoundFault" if kind == "cluster" else "DBInstanceNotFound",
+            )
         return {"TagList": [{"Key": k, "Value": v} for k, v in table[identifier]["tags"].items()]}
 
     # ---- SSM / Secrets Manager / Logs --------------------------------------------------------
@@ -615,20 +745,30 @@ class SimulatedAws:
         return {"TagList": [{"Key": k, "Value": v} for k, v in tags.items()]}
 
     def ssm_get_parameters_by_path(self, payload):
-        return {"Parameters": [{"Name": n} for n in sorted(self.params)
-                               if n.startswith(payload["Path"])]}
+        return {
+            "Parameters": [
+                {"Name": n} for n in sorted(self.params) if n.startswith(payload["Path"])
+            ]
+        }
 
     def secretsmanager_get_secret_value(self, payload):
         # One master credential per cluster, so a test can see which cluster got which.
         suffix = short(payload["SecretId"])
-        return {"SecretString": json.dumps({"username": "dc2bootstrap",
-                                            "password": f"simulated-master-password-{suffix}"})}
+        return {
+            "SecretString": json.dumps(
+                {"username": "dc2bootstrap", "password": f"simulated-master-password-{suffix}"}
+            )
+        }
 
     def logs_describe_log_groups(self, payload):
         region, account = self.s.region, self.s.account
-        return {"logGroups": [
-            {"logGroupName": n, "arn": f"arn:aws:logs:{region}:{account}:log-group:{n}:*"}
-            for n in sorted(self.groups) if n.startswith(payload["logGroupNamePrefix"])]}
+        return {
+            "logGroups": [
+                {"logGroupName": n, "arn": f"arn:aws:logs:{region}:{account}:log-group:{n}:*"}
+                for n in sorted(self.groups)
+                if n.startswith(payload["logGroupNamePrefix"])
+            ]
+        }
 
     def logs_delete_log_group(self, payload):
         if payload["logGroupName"] not in self.groups:
@@ -645,8 +785,12 @@ class SimulatedAws:
     # ---- ECS ------------------------------------------------------------------------------------
     def ecs_run_task(self, payload):
         arn = f"arn:aws:ecs:{self.s.region}:{self.s.account}:task/sim/{payload['clientToken'][:12]}"
-        self.tasks[arn] = {"definition": payload["taskDefinition"], "polls": 0, "stopped": False,
-                           "started_by": payload.get("startedBy")}
+        self.tasks[arn] = {
+            "definition": payload["taskDefinition"],
+            "polls": 0,
+            "stopped": False,
+            "started_by": payload.get("startedBy"),
+        }
         staged = self.param_values.get(f"/dc2/{self.s.env}/bootstrap-input")
         if "bootstrap" in payload["taskDefinition"] and staged:
             # What a real bootstrap task does: set the roles' passwords from its input.
@@ -668,15 +812,21 @@ class SimulatedAws:
             else:
                 stopped = task["stopped"] or task["polls"] > 1
             code = next((c for key, c in self.task_exit.items() if key in task["definition"]), 0)
-            out.append({"taskArn": arn, "taskDefinitionArn": task["definition"],
-                        "startedBy": task.get("started_by"),
-                        "lastStatus": "STOPPED" if stopped else "RUNNING",
-                        "containers": [{"exitCode": code}] if stopped else []})
+            out.append(
+                {
+                    "taskArn": arn,
+                    "taskDefinitionArn": task["definition"],
+                    "startedBy": task.get("started_by"),
+                    "lastStatus": "STOPPED" if stopped else "RUNNING",
+                    "containers": [{"exitCode": code}] if stopped else [],
+                }
+            )
         return {"tasks": out, "failures": missing}
 
     def ecs_list_tasks(self, payload):
-        return {"taskArns": [a for a, t in self.tasks.items()
-                             if not t["stopped"] and t["polls"] <= 1]}
+        return {
+            "taskArns": [a for a, t in self.tasks.items() if not t["stopped"] and t["polls"] <= 1]
+        }
 
     def ecs_stop_task(self, payload):
         self.tasks[payload["task"]]["stopped"] = True
@@ -689,8 +839,12 @@ class SimulatedAws:
         if entry is None:  # one the run registered and still has: active
             return {"taskDefinition": {"taskDefinitionArn": arn, "status": "ACTIVE"}}
         if entry["state"] == "NotFound":  # what ECS says once a definition is fully deleted
-            raise self.error("ecs", "describe-task-definition", "ClientException",
-                             "Unable to describe task definition.")
+            raise self.error(
+                "ecs",
+                "describe-task-definition",
+                "ClientException",
+                "Unable to describe task definition.",
+            )
         return {"taskDefinition": {"taskDefinitionArn": arn, "status": entry["state"]}}
 
     def ecs_describe_clusters(self, payload):
@@ -715,40 +869,72 @@ class SimulatedAws:
     def describe_ec2(self, operation, payload, key, plural, code):
         """NotFound for a resource that is gone or never listed; else the state the entry holds."""
         ident = payload[key][0]
-        entry = next((e for arn, e in self.lingering.items()
-                      if arn.startswith("arn:aws:ec2:") and arn.endswith("/" + ident)), None)
+        entry = next(
+            (
+                e
+                for arn, e in self.lingering.items()
+                if arn.startswith("arn:aws:ec2:") and arn.endswith("/" + ident)
+            ),
+            None,
+        )
         if entry is None or entry["state"] == "NotFound":
             raise self.error("ec2", operation, code, f"The ID '{ident}' does not exist")
         return {plural: [{"State": entry["state"]}]}
 
     def ec2_describe_vpcs(self, payload):
-        return self.describe_ec2("describe-vpcs", payload, "VpcIds", "Vpcs",
-                                 "InvalidVpcID.NotFound")
+        return self.describe_ec2(
+            "describe-vpcs", payload, "VpcIds", "Vpcs", "InvalidVpcID.NotFound"
+        )
 
     def ec2_describe_subnets(self, payload):
-        return self.describe_ec2("describe-subnets", payload, "SubnetIds", "Subnets",
-                                 "InvalidSubnetID.NotFound")
+        return self.describe_ec2(
+            "describe-subnets", payload, "SubnetIds", "Subnets", "InvalidSubnetID.NotFound"
+        )
 
     def ec2_describe_security_groups(self, payload):
-        return self.describe_ec2("describe-security-groups", payload, "GroupIds",
-                                 "SecurityGroups", "InvalidGroup.NotFound")
+        return self.describe_ec2(
+            "describe-security-groups",
+            payload,
+            "GroupIds",
+            "SecurityGroups",
+            "InvalidGroup.NotFound",
+        )
 
     def ec2_describe_route_tables(self, payload):
-        return self.describe_ec2("describe-route-tables", payload, "RouteTableIds",
-                                 "RouteTables", "InvalidRouteTableID.NotFound")
+        return self.describe_ec2(
+            "describe-route-tables",
+            payload,
+            "RouteTableIds",
+            "RouteTables",
+            "InvalidRouteTableID.NotFound",
+        )
 
     def ec2_describe_internet_gateways(self, payload):
-        return self.describe_ec2("describe-internet-gateways", payload, "InternetGatewayIds",
-                                 "InternetGateways", "InvalidInternetGatewayID.NotFound")
+        return self.describe_ec2(
+            "describe-internet-gateways",
+            payload,
+            "InternetGatewayIds",
+            "InternetGateways",
+            "InvalidInternetGatewayID.NotFound",
+        )
 
     def ec2_describe_egress_only_internet_gateways(self, payload):
-        return self.describe_ec2("describe-egress-only-internet-gateways", payload,
-                                 "EgressOnlyInternetGatewayIds", "EgressOnlyInternetGateways",
-                                 "InvalidGatewayID.NotFound")
+        return self.describe_ec2(
+            "describe-egress-only-internet-gateways",
+            payload,
+            "EgressOnlyInternetGatewayIds",
+            "EgressOnlyInternetGateways",
+            "InvalidGatewayID.NotFound",
+        )
 
     def ec2_describe_vpc_endpoints(self, payload):
-        return self.describe_ec2("describe-vpc-endpoints", payload, "VpcEndpointIds",
-                                 "VpcEndpoints", "InvalidVpcEndpointId.NotFound")
+        return self.describe_ec2(
+            "describe-vpc-endpoints",
+            payload,
+            "VpcEndpointIds",
+            "VpcEndpoints",
+            "InvalidVpcEndpointId.NotFound",
+        )
 
     # ---- tagging ------------------------------------------------------------------------
     def resourcegroupstaggingapi_get_resources(self, payload):
@@ -770,8 +956,10 @@ class SimulatedAws:
             add(f"arn:aws:rds:{region}:{account}:cluster-snapshot:{name}", snap["tags"])
         for name, stack in self.stacks.items():
             if stack["status"] != "DELETE_COMPLETE":
-                add(f"arn:aws:cloudformation:{region}:{account}:stack/{name}/{stack['id']}",
-                    stack["tags"])
+                add(
+                    f"arn:aws:cloudformation:{region}:{account}:stack/{name}/{stack['id']}",
+                    stack["tags"],
+                )
         for arn, entry in self.lingering.items():
             add(arn, entry["tags"])
         return {"ResourceTagMappingList": found}
@@ -782,9 +970,15 @@ class SimulatedAws:
         tags = {PROJECT_KEY: "dc2-v1", RUN_KEY: meta["run_id"]}
         resources = meta["resources"]
         for stack in resources.get("stacks", []):
-            self.stacks[stack] = {"status": "CREATE_COMPLETE", "id": f"id-{short(stack)}",
-                                  "tags": dict(tags), "resources": [], "outputs": {},
-                                  "changesets": {}, "template": None}
+            self.stacks[stack] = {
+                "status": "CREATE_COMPLETE",
+                "id": f"id-{short(stack)}",
+                "tags": dict(tags),
+                "resources": [],
+                "outputs": {},
+                "changesets": {},
+                "template": None,
+            }
         for name in resources.get("buckets", []):
             self.buckets[name] = {"tags": dict(tags), "versions": [], "markers": [], "uploads": []}
         for name in resources.get("repositories", []):
@@ -841,8 +1035,13 @@ def daemon_inspect(argv):
         raise ValueError("Only `docker image inspect --format <template> <image>` is allowed")
     try:
         done = subprocess.run(
-            ["docker", *argv], env=sanitized_environment(), capture_output=True, text=True,
-            timeout=20, check=False)
+            ["docker", *argv],
+            env=sanitized_environment(),
+            capture_output=True,
+            text=True,
+            timeout=20,
+            check=False,
+        )
     except (OSError, subprocess.SubprocessError):
         return None
     answer = done.stdout.strip()
@@ -880,5 +1079,11 @@ def simulated_http(method, url, headers, body, timeout):
     raise AwsError("http", method, "DryRunNoNetwork", "a dry run performs no network I/O")
 
 
-__all__ = ["SimulatedAws", "SimulatedDocker", "ObservingDocker", "simulated_http",
-           "HANDLERS", "QUEUES"]
+__all__ = [
+    "SimulatedAws",
+    "SimulatedDocker",
+    "ObservingDocker",
+    "simulated_http",
+    "HANDLERS",
+    "QUEUES",
+]

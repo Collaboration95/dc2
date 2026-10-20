@@ -18,10 +18,7 @@ def dsn(service: str, role: str) -> str:
     default_password = f"dc2_local_{service}" + ("_migrate" if role == "migrator" else "")
     password = os.getenv(f"{service.upper()}_{suffix}_PASSWORD", default_password)
     port = os.getenv("P2_POSTGRES_PORT", "55432")
-    return (
-        f"postgresql://{service}_{role}:{quote(password, safe='')}"
-        f"@127.0.0.1:{port}/{service}_db"
-    )
+    return f"postgresql://{service}_{role}:{quote(password, safe='')}@127.0.0.1:{port}/{service}_db"
 
 
 @pytest.mark.parametrize("service", ["media", "processing"])

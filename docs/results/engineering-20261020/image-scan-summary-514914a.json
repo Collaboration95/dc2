@@ -1,0 +1,101 @@
+{
+  "scan": "V1 exact-config Debian OS and Python packages",
+  "images": [
+    {
+      "owner": "media",
+      "role": "Media API (Lambda)",
+      "dockerfile": "deploy/v1/media.Dockerfile",
+      "source_sha": "514914a1326ec92400d4ac0e9cf07012d117a0d2",
+      "local_image_config_id": "sha256:09ab8d885a7cb3ac3b2dd853eb75b92fbfb5327143402432da636c0f2e155dc0",
+      "registry_digest": null,
+      "report": "trivy-media.json",
+      "fixable_high_critical": [],
+      "unfixed_high_critical_count": 44,
+      "scan": {
+        "status": "PASS",
+        "config_id": "sha256:09ab8d885a7cb3ac3b2dd853eb75b92fbfb5327143402432da636c0f2e155dc0",
+        "source_sha": "514914a1326ec92400d4ac0e9cf07012d117a0d2",
+        "policy": "zero-fixable-high-critical; Debian OS and Python packages",
+        "targets": [
+          [
+            "os-pkgs",
+            "debian"
+          ],
+          [
+            "lang-pkgs",
+            "python-pkg"
+          ]
+        ],
+        "report_sha256": "sha256:238097d4441cecc318256ae492647095c84f50944cfd340644950c81b6a91f5e",
+        "fixable_high_critical": 0,
+        "unfixed_high_critical_count": 44,
+        "scanned_at": "2026-10-20T10:34:23.289645+00:00"
+      },
+      "verdict": "PASS"
+    },
+    {
+      "owner": "processing",
+      "role": "Processing API (Lambda)",
+      "dockerfile": "deploy/v1/processing.Dockerfile",
+      "source_sha": "514914a1326ec92400d4ac0e9cf07012d117a0d2",
+      "local_image_config_id": "sha256:c3f5abc34d6837b1c63f64a291f839a84da094c39cb81080933d092ff926fc1c",
+      "registry_digest": null,
+      "report": "trivy-processing.json",
+      "fixable_high_critical": [],
+      "unfixed_high_critical_count": 44,
+      "scan": {
+        "status": "PASS",
+        "config_id": "sha256:c3f5abc34d6837b1c63f64a291f839a84da094c39cb81080933d092ff926fc1c",
+        "source_sha": "514914a1326ec92400d4ac0e9cf07012d117a0d2",
+        "policy": "zero-fixable-high-critical; Debian OS and Python packages",
+        "targets": [
+          [
+            "os-pkgs",
+            "debian"
+          ],
+          [
+            "lang-pkgs",
+            "python-pkg"
+          ]
+        ],
+        "report_sha256": "sha256:a322c3d8049120b84aeb8a9b6f5b75e80a35b98189b7d832c6e860694ec76710",
+        "fixable_high_critical": 0,
+        "unfixed_high_critical_count": 44,
+        "scanned_at": "2026-10-20T10:34:23.292179+00:00"
+      },
+      "verdict": "PASS"
+    },
+    {
+      "owner": "worker",
+      "role": "finite encoder worker (Fargate task)",
+      "dockerfile": "deploy/v1/worker.Dockerfile",
+      "source_sha": "514914a1326ec92400d4ac0e9cf07012d117a0d2",
+      "local_image_config_id": "sha256:48450c5083c2ab5aa6beef48427edc8bc53c30b7f888f7093bd06e6f2775af68",
+      "registry_digest": null,
+      "report": "trivy-worker.json",
+      "fixable_high_critical": [],
+      "unfixed_high_critical_count": 208,
+      "scan": {
+        "status": "PASS",
+        "config_id": "sha256:48450c5083c2ab5aa6beef48427edc8bc53c30b7f888f7093bd06e6f2775af68",
+        "source_sha": "514914a1326ec92400d4ac0e9cf07012d117a0d2",
+        "policy": "zero-fixable-high-critical; Debian OS and Python packages",
+        "targets": [
+          [
+            "os-pkgs",
+            "debian"
+          ],
+          [
+            "lang-pkgs",
+            "python-pkg"
+          ]
+        ],
+        "report_sha256": "sha256:4dc499aa07e3edc4c37e16bdfbd84ffc9ed8b8925e7a94cf486e565549751861",
+        "fixable_high_critical": 0,
+        "unfixed_high_critical_count": 208,
+        "scanned_at": "2026-10-20T10:34:23.298374+00:00"
+      },
+      "verdict": "PASS"
+    }
+  ]
+}

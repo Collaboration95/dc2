@@ -10,6 +10,7 @@ from legacy.processing_rq.config import LegacySettings as Settings
 from processing import storage_credentials
 from processing.recovery import CleanupStore
 from processing.worker.storage import OutputStore
+from runtime_support import storage_credentials as credential_policy
 
 
 @pytest.fixture
@@ -70,7 +71,7 @@ async def test_writer_and_cleanup_use_separate_native_providers(ecs, monkeypatch
         )
     )
     factory = Mock(return_value=native)
-    monkeypatch.setattr(storage_credentials, "IamAwsProvider", factory)
+    monkeypatch.setattr(credential_policy, "IamAwsProvider", factory)
     writer, cleanup = OutputStore(ecs), CleanupStore(ecs)
     assert factory.call_count == 2
     seen = []
@@ -101,8 +102,8 @@ async def test_writer_and_cleanup_use_separate_native_providers(ecs, monkeypatch
 def test_native_transport_is_bounded_and_failure_has_no_fallback(ecs, monkeypatch):
     pool = Mock()
     native = Mock(retrieve=Mock(side_effect=RuntimeError("secret-endpoint-token")))
-    monkeypatch.setattr(storage_credentials, "PoolManager", pool)
-    monkeypatch.setattr(storage_credentials, "IamAwsProvider", Mock(return_value=native))
+    monkeypatch.setattr(credential_policy, "PoolManager", pool)
+    monkeypatch.setattr(credential_policy, "IamAwsProvider", Mock(return_value=native))
     provider = storage_credentials.ContainerProvider()
     assert pool.call_args.kwargs["retries"] is False
     assert pool.call_args.kwargs["timeout"].connect_timeout == 1

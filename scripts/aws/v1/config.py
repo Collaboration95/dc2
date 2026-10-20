@@ -133,8 +133,9 @@ def parameters(config):
         if type(config["gates_open"]) is not bool:
             raise ValueError("Gates-open flag must be a JSON boolean")
         result["GatesOpen"] = str(config["gates_open"]).lower()
-    result.update({name: config[key] for key, name in ALWAYS_ON_PARAMETERS.items()
-                   if key in config})
+    result.update(
+        {name: config[key] for key, name in ALWAYS_ON_PARAMETERS.items() if key in config}
+    )
     result.update({name: arns[key] for key, name in PARAMETERS.items()})
     result.update({f"{key.title()}ImageUri": uri for key, uri in images.items()})
     handler_config = config.get("handlers", {})

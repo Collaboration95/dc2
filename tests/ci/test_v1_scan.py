@@ -19,7 +19,10 @@ def receipt():
 def report(owner, vulns=(), image_id=None):
     return {
         "Metadata": {"ImageID": image_id or f"sha256:{owner}"},
-        "Results": [{"Vulnerabilities": list(vulns)}],
+        "Results": [
+            {"Class": "os-pkgs", "Type": "debian", "Vulnerabilities": list(vulns)},
+            {"Class": "lang-pkgs", "Type": "python-pkg"},
+        ],
     }
 
 
@@ -81,6 +84,46 @@ class ScanGateTests(unittest.TestCase):
             self.run_gate(self.clean(), rcpt={"images": {}})["worker"]["verdict"].startswith("FAIL")
         )
 
+    def test_incomplete_reports_fail_for_each_recipe(self):
+        for owner in OWNERS:
+            for results in (
+                None,
+                [],
+                [{}],
+                "bad",
+                [1],
+                [{"Class": "os-pkgs", "Type": "debian"}],
+                [{"Class": "lang-pkgs", "Type": "python-pkg"}],
+            ):
+                with self.subTest(owner=owner, results=results):
+                    reports = self.clean()
+                    reports[owner]["Results"] = results
+                    self.assertIn("FAIL", self.run_gate(reports)[owner]["verdict"])
+            reports = self.clean()
+            del reports[owner]["Results"]
+            self.assertIn("FAIL", self.run_gate(reports)[owner]["verdict"])
+
+    def test_clean_targets_allow_omitted_null_and_empty_vulnerability_lists(self):
+        for value in (None, []):
+            reports = self.clean()
+            for content in reports.values():
+                for target in content["Results"]:
+                    target["Vulnerabilities"] = value
+            self.assertTrue(all(e["verdict"] == "PASS" for e in self.run_gate(reports).values()))
+        self.assertTrue(all(e["verdict"] == "PASS" for e in self.run_gate(self.clean()).values()))
+
+    def test_python_findings_block_the_exact_candidate(self):
+        reports = self.clean()
+        reports["media"]["Results"][1]["Vulnerabilities"] = [vuln("CRITICAL", "2")]
+        self.assertIn("fixable HIGH/CRITICAL", self.run_gate(reports)["media"]["verdict"])
+
+    def test_bad_json_is_a_failed_disposition_and_owner_scans_can_be_independent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "trivy-media.json").write_text("{")
+            result = evaluate(receipt(), tmp, owners=["media"])
+        self.assertEqual(len(result), 1)
+        self.assertIn("FAIL", result[0]["verdict"])
+
 
 class WorkflowWiringTests(unittest.TestCase):
     def setUp(self):
@@ -99,10 +142,10 @@ class WorkflowWiringTests(unittest.TestCase):
         self.assertLess(self.job.index("trivy-worker.json"), gate)
         self.assertLess(gate, upload)
         self.assertIn("if: always()\n        run: python3 -m scripts.ci.v1_scan", self.job)
-        self.assertIn(
-            "if: always()\n        uses: actions/upload-artifact@v4\n        with:\n"
-            "          name: v1-image-scans-",
+        self.assertRegex(
             self.job,
+            r"if: always\(\)\n        uses: actions/upload-artifact@[0-9a-f]{40}"
+            r"(?: #[^\n]*)?\n        with:\n          name: v1-image-scans-",
         )
 
     def test_docs_only_change_selects_no_image_work(self):

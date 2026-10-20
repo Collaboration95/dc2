@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 
 from scripts.aws.transport import OperationError, safe_record
+from scripts.ci.v1_scan import findings, validate_report
 
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 SOURCE = re.compile(r"[0-9a-f]{40}\Z")
@@ -69,19 +70,11 @@ def prepublication_proof(*, owner, source, inspect, tests, artifact_test, trivy_
     ):
         raise OperationError("Image architecture/source label mismatch")
     image = digest(info["Id"])
-    trivy = json.loads(trivy_bytes)
-    if (
-        trivy.get("Metadata", {}).get("ImageID") != image
-        or not trivy.get("Results")
-        or not any(r.get("Class") == "os-pkgs" for r in trivy["Results"])
-    ):
-        raise OperationError("Trivy OS package report must identify scanned config ID")
-    findings = sum(
-        1
-        for r in trivy["Results"]
-        for v in r.get("Vulnerabilities", [])
-        if v.get("Severity") in {"HIGH", "CRITICAL"} and v.get("FixedVersion")
-    )
+    try:
+        trivy = validate_report(json.loads(trivy_bytes), image)
+    except ValueError as error:
+        raise OperationError(str(error)) from None
+    fixable, _ = findings(trivy)
     proof = {
         "owner": owner,
         "platform": "linux/amd64",
@@ -94,7 +87,7 @@ def prepublication_proof(*, owner, source, inspect, tests, artifact_test, trivy_
             "config_id": image,
             "source_sha": source,
             "report_sha256": "sha256:" + hashlib.sha256(trivy_bytes).hexdigest(),
-            "fixable_high_critical": findings,
+            "fixable_high_critical": len(fixable),
         },
         "publication_status": "NOT_RUN",
         "deployment_status": "NOT_RUN",
@@ -193,23 +186,41 @@ def publication_plan(proof, *, repository, account_id, region):
 def registry_receipt(proof, response):
     """Bind raw registry manifest bytes and reported registry digest to tested ID."""
     validate_prepublication(proof)
-    if response.get("failures") or len(response.get("images", [])) != 1:
+    receipt = manifest_receipt(proof["config_id"], response)
+    return validate({**proof, **receipt})
+
+
+def manifest_receipt(config_id, response):
+    """The raw-byte/config binding shared by deploy and full artifact receipts."""
+    digest(config_id)
+    if (
+        not isinstance(response, dict)
+        or response.get("failures")
+        or not isinstance(response.get("images"), list)
+        or len(response["images"]) != 1
+    ):
         raise OperationError("Missing or ambiguous registry receipt")
-    image = response["images"][0]
-    raw = image["imageManifest"].encode()
-    reported = digest(image["imageId"]["imageDigest"])
+    try:
+        image = response["images"][0]
+        raw = image["imageManifest"].encode()
+        reported = digest(image["imageId"]["imageDigest"])
+        manifest = json.loads(raw)
+    except (KeyError, TypeError, AttributeError, ValueError):
+        raise OperationError("Malformed registry manifest receipt") from None
     if "sha256:" + hashlib.sha256(raw).hexdigest() != reported:
         raise OperationError("Registry digest does not match returned manifest bytes")
-    manifest = json.loads(raw)
-    if "manifests" in manifest or manifest.get("config", {}).get("digest") != proof["config_id"]:
+    if (
+        not isinstance(manifest, dict)
+        or "manifests" in manifest
+        or not isinstance(manifest.get("config"), dict)
+        or manifest["config"].get("digest") != config_id
+    ):
         raise OperationError("Registry manifest/index does not reference tested config")
-    result = {
-        **proof,
+    return {
         "manifest_digest": reported,
-        "manifest_config_id": proof["config_id"],
+        "manifest_config_id": config_id,
         "publication_status": "receipt-verified",
     }
-    return validate(result)
 
 
 if __name__ == "__main__":

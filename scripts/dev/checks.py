@@ -5,7 +5,16 @@ import json
 import shutil
 from pathlib import Path
 
-from scripts.dev.common import PYTHON, ROOT, fingerprint, local_env, packages, run
+from scripts.dev.common import (
+    PYTHON,
+    ROOT,
+    V1_BOOTSTRAP_FILE,
+    coverage_omit_patterns,
+    fingerprint,
+    local_env,
+    packages,
+    run,
+)
 
 COVERAGE_DIR = ROOT / "artifacts/coverage"
 
@@ -69,6 +78,7 @@ def measure(command: list[str], tier: str, env: dict[str, str], timeout: int) ->
                 "fingerprint": fingerprint(),
                 "tier": tier,
                 "packages": packages(),
+                "omit": coverage_omit_patterns(),
             }
         )
         + "\n"
@@ -96,7 +106,8 @@ def fast(*, coverage: bool = False, domain: str | None = None) -> Path | None:
     command = pytest_args() + paths + ignored + ["-m", selection]
     if coverage:
         return measure(command, "fast", fast_env(), 120)
-    run(command, label=f"test-python-{domain or 'fast'}", timeout=120, env=fast_env())
+    # The full untraced suite includes operator rehearsals omitted from coverage-fast.
+    run(command, label=f"test-python-{domain or 'fast'}", timeout=180, env=fast_env())
     return None
 
 
@@ -170,13 +181,48 @@ def integration(*, coverage: bool = False) -> list[Path]:
     return fragments
 
 
-def lint() -> None:
-    paths = packages() + [
+def lint_paths() -> list[str]:
+    return packages() + [
         str(p)
-        for p in ("legacy", "tests", "migrations", "scripts/dev", "scripts/evidence", "scripts/aws")
+        for p in (
+            "legacy",
+            "tests",
+            "migrations",
+            "scripts/dev",
+            "scripts/evidence",
+            "scripts/aws",
+            "scripts/ci",
+            "deploy/v1",
+        )
         if (ROOT / p).exists()
     ]
+
+
+def lint() -> None:
+    paths = lint_paths()
     run([str(PYTHON), "-m", "ruff", "check", *paths], label="lint", timeout=60)
+    run(
+        [
+            str(PYTHON),
+            "-m",
+            "ruff",
+            "check",
+            "--select",
+            "S",
+            *[name for name in packages() if name != "app"],
+            V1_BOOTSTRAP_FILE,
+        ],
+        label="source-security-lint",
+        timeout=60,
+    )
+
+
+def format_check() -> None:
+    run(
+        [str(PYTHON), "-m", "ruff", "format", "--check", *lint_paths()],
+        label="format-check",
+        timeout=60,
+    )
 
 
 def clean() -> None:
@@ -199,6 +245,7 @@ def main() -> None:
             "test-python",
             "test-frontend",
             "lint",
+            "format-check",
             "coverage",
             "coverage-fast",
             "coverage-frontend",
@@ -217,6 +264,8 @@ def main() -> None:
         frontend()
     if args.action == "lint":
         lint()
+    if args.action == "format-check":
+        format_check()
     if args.action == "coverage-fast":
         fast(coverage=True)
     if args.action == "coverage-frontend":

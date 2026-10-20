@@ -15,6 +15,7 @@ later requires another explicit operator batch.
 import argparse
 import asyncio
 import json
+import logging
 import math
 import os
 import signal
@@ -22,6 +23,7 @@ import sys
 import tempfile
 import time
 from contextlib import suppress
+from functools import partial
 from pathlib import Path
 from uuid import UUID
 
@@ -35,7 +37,10 @@ from processing.worker.source import SourceStore
 from processing.worker.storage import OutputStore
 from processing.worker.supervisor import AttemptDeadline, LeaseLost, Supervisor
 from processing.worker.tasks import pipeline
+from runtime_support.errors import log_safe_event
 from runtime_support.settings import credentials_rejected
+
+logger = logging.getLogger("dc2.processing.worker")
 
 
 def native_sqs(region):
@@ -57,7 +62,7 @@ def native_sqs(region):
             region_name=region,
             endpoint_url=endpoint,
             aws_access_key_id="local",
-            aws_secret_access_key="local",
+            aws_secret_access_key="local",  # noqa: S106 - restricted local emulator above
             config=Config(connect_timeout=3, read_timeout=25, retries={"total_max_attempts": 1}),
         )
     from processing.storage_credentials import validate_container_environment
@@ -129,6 +134,14 @@ async def execute_message(
         finish = finish or messaging.finish
         disposition = disposition or messaging.work_disposition
     job_id, attempt_id = UUID(envelope["job_id"]), UUID(envelope["attempt_id"])
+    record_event = partial(
+        log_safe_event,
+        logger,
+        operation="encode",
+        job_id=job_id,
+        attempt_id=attempt_id,
+        task_id=task_name,
+    )
     # This API atomically validates source/owner/asset/current attempt and the
     # SubmissionGuard fence in the owned database before any native GET.
     try:
@@ -164,24 +177,57 @@ async def execute_message(
             # Visibility uncertainty revokes authority before durable completion.
             await supervisor.renew_authority()
             supervisor.check()
-            return await finish(factory, work, outputs=outputs)
-        except (LeaseLost, asyncio.CancelledError):
-            return False
-        except AttemptDeadline:
+            finished = await finish(factory, work, outputs=outputs)
+            record_event(
+                event="attempt_finished",
+                outcome="done_recorded" if finished else "lease_lost_retry",
+                level=logging.INFO if finished else logging.WARNING,
+            )
+            return finished
+        except (LeaseLost, asyncio.CancelledError, AttemptDeadline) as error:
             # An absolute task deadline cannot authorize another database write.
+            outcome = {
+                "LeaseLost": "lease_lost_retry",
+                "CancelledError": "cancelled_retry",
+                "AttemptDeadline": "deadline_retry",
+            }.get(type(error).__name__, "retry")
+            record_event(
+                event="attempt_interrupted",
+                outcome=outcome,
+                error_class=type(error).__name__,
+                level=logging.WARNING,
+            )
             return False
         except NotAdmitted:
             if redirect is None:
                 raise
             return await redirect(factory, work)
-        except Exception:
+        except Exception as error:
             try:
                 await supervisor.renew_authority()
-                return await finish(
+                finished = await finish(
                     factory, work, error="The source or edit could not be processed"
                 )
             except (LeaseLost, AttemptDeadline):
+                record_event(
+                    event="attempt_failed",
+                    outcome="business_failure_unrecorded_retry",
+                    error_class=type(error).__name__,
+                )
                 return False
+            except Exception as finish_error:
+                record_event(
+                    event="attempt_failed",
+                    outcome="failure_recording_error",
+                    error_class=type(finish_error).__name__,
+                )
+                raise
+            record_event(
+                event="attempt_failed",
+                outcome="business_failure_recorded" if finished else "lease_lost_retry",
+                error_class=type(error).__name__,
+            )
+            return finished
 
 
 async def run(
@@ -290,20 +336,23 @@ async def run(
             )
 
         complete = await execute(
-            factory,
-            envelope,
-            settings,
-            renew=renew,
-            deadline=deadline,
-            task_name=name,
+            factory, envelope, settings, renew=renew, deadline=deadline, task_name=name
         )
         if complete is SKIPPED:
             continue
         if complete is STALE or complete:
             await call(
-                sqs.delete_message,
-                QueueUrl=queue_url,
-                ReceiptHandle=message["ReceiptHandle"],
+                sqs.delete_message, QueueUrl=queue_url, ReceiptHandle=message["ReceiptHandle"]
+            )
+            log_safe_event(
+                logger,
+                event="message_acknowledged",
+                level=logging.INFO,
+                operation="sqs_delete",
+                outcome="stale" if complete is STALE else "processed",
+                job_id=envelope["job_id"],
+                attempt_id=envelope["attempt_id"],
+                task_id=name,
             )
         if complete is STALE:
             handled -= 1
@@ -312,8 +361,19 @@ async def run(
         # Exactly one encode per task, successful or uncertain. Only a completed one sweeps up
         # afterwards: after an uncertain end the task is out of time or authority.
         if complete and drain_disposition is not None:
-            with suppress(Exception):
+            try:
                 await drain()
+            except Exception as error:
+                log_safe_event(
+                    logger,
+                    event="drain_failed",
+                    operation="stale_message_drain",
+                    outcome="drain_incomplete",
+                    error_class=type(error).__name__,
+                    job_id=envelope["job_id"],
+                    attempt_id=envelope["attempt_id"],
+                    task_id=name,
+                )
         return 0 if complete else 1
     return 0
 
@@ -416,6 +476,8 @@ async def async_main(args):
 
 
 def main():
+    logging.basicConfig(format="%(message)s")
+    logger.setLevel(logging.INFO)
     parser = argparse.ArgumentParser(description="Finite SQS Processing encoder")
     parser.add_argument("--deadline", type=float, required=True)
     parser.add_argument("--name", required=True)
@@ -434,8 +496,16 @@ def main():
         except WorkerConfigurationError as error:
             print(f"worker configuration error: {error}", file=sys.stderr)
             return 1
-        except Exception:
+        except Exception as error:
             # Do not emit SDK URLs, queue bodies, credentials or database DSNs.
+            log_safe_event(
+                logger,
+                event="worker_failed",
+                operation="worker_run",
+                outcome="exit_failure",
+                error_class=type(error).__name__,
+                task_id=args.name,
+            )
             return 1
 
     with suppress(KeyboardInterrupt):

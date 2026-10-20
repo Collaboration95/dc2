@@ -320,9 +320,7 @@ def test_operator_batches_are_refused_while_the_launcher_owns_worker_starts(rig)
 def test_unattended_open_needs_a_launcher_stack_a_full_open_and_a_session_end(rig, tmp_path):
     session, cloud, journal, owner, _, hooks = rig
     with pytest.raises(OperationError, match="full open"):
-        session.open(
-            ready=owner.ready, repair=owner.repair, deadline=deadline(), launcher=hooks
-        )
+        session.open(ready=owner.ready, repair=owner.repair, deadline=deadline(), launcher=hooks)
     with pytest.raises(OperationError, match="full open"):
         session.open(
             ready=owner.ready,
@@ -552,10 +550,7 @@ async def test_observation_treats_missing_as_gone_but_any_other_failure_as_fatal
 class ClientError(Exception):
     def __init__(self, status, code):
         super().__init__(code)
-        self.response = {
-            "ResponseMetadata": {"HTTPStatusCode": status},
-            "Error": {"Code": code},
-        }
+        self.response = {"ResponseMetadata": {"HTTPStatusCode": status}, "Error": {"Code": code}}
 
 
 class Client:
@@ -636,8 +631,7 @@ def test_runtime_configuration_comes_from_the_stack_environment():
     assert launcher_aws.config_from_environ(environ).always_on is True
 
 
-async def test_a_wake_is_a_tick_that_waits_briefly_for_the_queue_to_show_the_new_work(
-        monkeypatch):
+async def test_a_wake_is_a_tick_that_waits_briefly_for_the_queue_to_show_the_new_work(monkeypatch):
     seen = []
 
     async def tick(factory, ecs, queue, cfg):

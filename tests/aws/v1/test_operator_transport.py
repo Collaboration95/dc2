@@ -46,8 +46,16 @@ VALID = [
     ("ecs", "list-tasks", {"cluster": "c", "desiredStatus": "RUNNING"}),
     ("ecs", "describe-tasks", {"cluster": "c", "tasks": ["arn:aws:ecs:r:1:task/c/abc"]}),
     ("ecs", "stop-task", {"cluster": "c", "task": "abc", "reason": "session close"}),
-    ("logs", "get-log-events", {"logGroupName": "/dc2/tasks", "logStreamName": "Media/m/abc",
-                                "startFromHead": True, "nextToken": "f/1"}),
+    (
+        "logs",
+        "get-log-events",
+        {
+            "logGroupName": "/dc2/tasks",
+            "logStreamName": "Media/m/abc",
+            "startFromHead": True,
+            "nextToken": "f/1",
+        },
+    ),
     (
         "apigatewayv2",
         "update-stage",
@@ -152,10 +160,19 @@ def test_account_must_be_an_explicit_twelve_digit_input(account):
 
 
 def test_a_copied_task_definition_may_keep_its_task_role_but_gains_no_other_field():
-    base = {"family": "f", "containerDefinitions": [{}], "cpu": "256", "memory": "512",
-            "networkMode": "awsvpc", "requiresCompatibilities": ["FARGATE"],
-            "executionRoleArn": "arn:aws:iam::123456789012:role/e"}
-    validate_arguments("ecs", "register-task-definition", {
-        **base, "taskRoleArn": "arn:aws:iam::123456789012:role/t"})
+    base = {
+        "family": "f",
+        "containerDefinitions": [{}],
+        "cpu": "256",
+        "memory": "512",
+        "networkMode": "awsvpc",
+        "requiresCompatibilities": ["FARGATE"],
+        "executionRoleArn": "arn:aws:iam::123456789012:role/e",
+    }
+    validate_arguments(
+        "ecs",
+        "register-task-definition",
+        {**base, "taskRoleArn": "arn:aws:iam::123456789012:role/t"},
+    )
     with pytest.raises(OperationError):
         validate_arguments("ecs", "register-task-definition", {**base, "volumes": []})

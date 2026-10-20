@@ -48,13 +48,20 @@ class SlowDatabase(PlanTransport):
             self.calls.append({"service": service, "operation": operation, "payload": payload})
             raise OperationError("injected: the database is resuming")
         event = payload.get("Payload") if isinstance(payload, dict) else None
-        if operation == "invoke" and isinstance(event, dict) and event.get(
-                "dc2_operation") == "launcher" and self.launcher_failures:
+        if (
+            operation == "invoke"
+            and isinstance(event, dict)
+            and event.get("dc2_operation") == "launcher"
+            and self.launcher_failures
+        ):
             self.launcher_failures -= 1
             self.calls.append({"service": service, "operation": operation, "payload": payload})
             # What a Lambda that timed out on the paused database answers.
-            return {"StatusCode": 200, "FunctionError": "Unhandled",
-                    "Payload": {"errorType": "ConnectionTimeout", "errorMessage": "secret-host"}}
+            return {
+                "StatusCode": 200,
+                "FunctionError": "Unhandled",
+                "Payload": {"errorType": "ConnectionTimeout", "errorMessage": "secret-host"},
+            }
         return super().call(service, operation, payload, deadline=deadline)
 
 
@@ -62,7 +69,9 @@ def build(tmp_path, cloud, *, retry=240):
     directory = tmp_path / "private"
     directory.mkdir(mode=0o700)
     all_outputs = outputs() | {
-        f"{LAUNCHER}FunctionName": "fn-launcher", f"{LAUNCHER}RuleName": "rule-launcher"}
+        f"{LAUNCHER}FunctionName": "fn-launcher",
+        f"{LAUNCHER}RuleName": "rule-launcher",
+    }
     config, hooks, _ = config_from_outputs(all_outputs, station="s", environment="e2e")
     journal = Journal(directory / "session.json", station="s", environment="e2e")
     journal.initialize(verified_empty=True, exclusive_station=True)
@@ -79,8 +88,12 @@ def zero_counts():
 
 def close(session, launcher):
     reader = zero_counts()
-    return session.close(drain=reader.drain, outcomes=reader.outcomes,
-                         deadline=session.clock() + 600, launcher=launcher)
+    return session.close(
+        drain=reader.drain,
+        outcomes=reader.outcomes,
+        deadline=session.clock() + 600,
+        launcher=launcher,
+    )
 
 
 def test_a_close_waits_out_a_database_that_is_still_resuming(tmp_path):

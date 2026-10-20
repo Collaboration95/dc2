@@ -195,10 +195,14 @@ def test_v1_packages_define_none_of_the_peer_era_submission_or_token_surface():
                 continue
             tree = ast.parse(path.read_text())
             names = {
-                n.name if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef)
-                else n.attr if isinstance(n, ast.Attribute)
-                else n.id if isinstance(n, ast.Name)
-                else n.target.id if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name)
+                n.name
+                if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef)
+                else n.attr
+                if isinstance(n, ast.Attribute)
+                else n.id
+                if isinstance(n, ast.Name)
+                else n.target.id
+                if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name)
                 else None
                 for n in ast.walk(tree)
             }

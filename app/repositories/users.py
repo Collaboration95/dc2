@@ -12,11 +12,7 @@ class EmailAlreadyRegisteredError(RuntimeError):
 
 
 async def create_user(
-    session: AsyncSession,
-    *,
-    email: str,
-    password_hash: str,
-    role: UserRole = UserRole.USER,
+    session: AsyncSession, *, email: str, password_hash: str, role: UserRole = UserRole.USER
 ) -> User:
     user = User(email=email.strip().lower(), password_hash=password_hash, role=role.value)
     session.add(user)

@@ -11,6 +11,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from scripts.ci.policy import classify
+
 ROOT = Path(__file__).resolve().parents[2]
 CD_SCRIPT = ROOT / "scripts/ci/cd.sh"
 SHA = "0123456789abcdef0123456789abcdef01234567"
@@ -23,10 +25,7 @@ def workflow():
 
 def test_every_action_is_pinned_to_a_commit(workflow):
     uses = [
-        step["uses"]
-        for job in workflow["jobs"].values()
-        for step in job["steps"]
-        if "uses" in step
+        step["uses"] for job in workflow["jobs"].values() for step in job["steps"] if "uses" in step
     ]
     assert uses
     assert all(re.fullmatch(r"[\w./-]+@[0-9a-f]{40}", ref) for ref in uses), uses
@@ -92,7 +91,7 @@ def test_the_wrapped_entry_points_are_the_existing_ones():
 
 def test_every_deploy_call_targets_the_persistent_environment_and_state_follows_it():
     script = CD_SCRIPT.read_text()
-    assert '--environment "$CD_ENVIRONMENT"' in script and "--run-id \"$CD_RUN_ID\"" not in script
+    assert '--environment "$CD_ENVIRONMENT"' in script and '--run-id "$CD_RUN_ID"' not in script
     assert "--unattended-launch" not in script  # the environment always deploys the launcher
     assert script.count("s3://$CD_STATE_BUCKET/envs/$CD_ENVIRONMENT/") == 2
 
@@ -101,13 +100,20 @@ def test_green_ci_on_main_updates_the_environment_in_place(workflow):
     trigger = workflow[True]["workflow_run"]
     assert trigger == {"workflows": ["CI"], "types": ["completed"], "branches": ["Main"]}
     condition = workflow["jobs"]["gate"]["if"]
-    for clause in ("conclusion == 'success'", "event == 'push'",
-                   "head_repository.full_name == github.repository"):
+    for clause in (
+        "conclusion == 'success'",
+        "event == 'push'",
+        "head_repository.full_name == github.repository",
+    ):
         assert clause in condition
     assert "workflow_run' && 'deploy'" in workflow["env"]["CD_OPERATION"]
     assert "workflow_run.head_sha" in workflow["env"]["CD_SHA"]
-    checkouts = [s for job in workflow["jobs"].values() for s in job["steps"]
-                 if s.get("uses", "").startswith("actions/checkout")]
+    checkouts = [
+        s
+        for job in workflow["jobs"].values()
+        for s in job["steps"]
+        if s.get("uses", "").startswith("actions/checkout")
+    ]
     assert checkouts and all(s["with"]["ref"] == "${{ env.CD_SHA }}" for s in checkouts)
 
 
@@ -117,9 +123,11 @@ def test_releases_run_online_and_cd_never_closes_or_reopens_the_environment():
     assert "scripts.aws.v1.session" not in script
     calls = [line for line in script.splitlines() if "scripts.aws.v1.release " in line]
     assert len(calls) == 3  # promote, restore, abandon
-    for call in ('local promote=(--config "$config" "${SCOPE[@]}" --online',
-                 'local restore=(--config "$config" "${SCOPE[@]}" --online',
-                 'release abandon --config "$config" "${SCOPE[@]}" --online'):
+    for call in (
+        'local promote=(--config "$config" "${SCOPE[@]}" --online',
+        'local restore=(--config "$config" "${SCOPE[@]}" --online',
+        'release abandon --config "$config" "${SCOPE[@]}" --online',
+    ):
         assert call in script, call
     # No task definition revision is ever deregistered by CD: another record may name it.
     assert "--deregister" not in script
@@ -140,19 +148,28 @@ def test_script_is_executable_and_parses():
 
 @pytest.fixture
 def gate(tmp_path):
-    """Run `cd.sh gate` with a fake `gh` that answers the workflow-runs query."""
-    if not shutil.which("jq"):
-        pytest.skip("jq is not installed")
-    # gh applies --jq itself, so the fake must as well or the real filter would go untested.
+    """Real gh CLI contracts, backed only by local fixtures; no GitHub/network calls."""
     (tmp_path / "gh").write_text(
-        '#!/bin/sh\nwhile [ $# -gt 0 ]; do\n'
-        '  if [ "$1" = --jq ]; then jq "$2" "$FAKE_RUNS"; exit; fi\n  shift\ndone\n'
+        "#!/usr/bin/env python3\n"
+        "import json, os, pathlib, sys\n"
+        "args = sys.argv[1:]\n"
+        "data = json.loads(pathlib.Path(os.environ['FAKE_RUNS']).read_text())\n"
+        "if args[:2] == ['run', 'list']:\n"
+        "    print(json.dumps(data)); sys.exit()\n"
+        "run_id = int(args[2])\n"
+        "r = next(r for r in data if r['databaseId'] == run_id)\n"
+        "if args[:2] == ['run', 'view']:\n"
+        "    print(json.dumps(r)); sys.exit()\n"
+        "if args[:2] == ['run', 'download']:\n"
+        "    if r.get('missing_artifact'): sys.exit(1)\n"
+        "    directory = pathlib.Path(args[args.index('--dir') + 1])\n"
+        "    (directory / 'ci-policy.json').write_text(json.dumps(r.get('selection')))\n"
     )
     (tmp_path / "gh").chmod(0o755)
 
     def run(runs, **overrides):
         reply = tmp_path / "runs.json"
-        reply.write_text(json.dumps({"workflow_runs": runs}))
+        reply.write_text(json.dumps(runs))
         env = {
             **os.environ,
             "PATH": f"{tmp_path}:{os.environ['PATH']}",
@@ -163,6 +180,8 @@ def gate(tmp_path):
             "CD_SHA": SHA,
             "CD_REPO": "Collaboration95/dc2",
             "CD_EVENT": "workflow_dispatch",
+            "CD_CI_RUN_ID": "1",
+            "CD_CI_RUN_ATTEMPT": "1",
             "CD_BUDGET_USD": "30",
             "CD_PLANNED_HOURS": "3",
             "CD_FORECAST_USD": "5",
@@ -176,14 +195,30 @@ def gate(tmp_path):
     return run
 
 
-def ci_run(conclusion, *, status="completed", created="2026-10-18T00:00:00Z"):
+def ci_run(
+    conclusion,
+    *,
+    status="completed",
+    created="2026-10-18T00:00:00Z",
+    run_id=1,
+    attempt=1,
+    event="push",
+):
+    plan = classify([], full=True, source_sha=SHA)
+    plan.update(run_id=str(run_id), run_attempt=str(attempt), event=event, head_sha=SHA)
     return {
-        "id": 1,
+        "databaseId": run_id,
+        "attempt": attempt,
+        "headSha": SHA,
+        "headBranch": "Main",
         "status": status,
         "conclusion": conclusion,
-        "event": "pull_request",
-        "html_url": "https://github.com/x/y/actions/runs/1",
-        "created_at": created,
+        "event": event,
+        "workflowName": "CI",
+        "url": f"https://github.com/x/y/actions/runs/{run_id}",
+        "createdAt": created,
+        "jobs": [{"name": "Full verification", "status": "completed", "conclusion": "success"}],
+        "selection": plan,
     }
 
 
@@ -195,19 +230,19 @@ def test_gate_accepts_a_green_ci_run(gate):
 def test_gate_refuses_a_commit_that_never_ran_ci(gate):
     done = gate([])
     assert done.returncode == 1
-    assert "No CI run exists" in done.stdout
+    assert "No CI run exists" in done.stderr
 
 
 def test_gate_refuses_a_failed_latest_run_even_after_an_older_green_one(gate):
-    done = gate([ci_run("success"), ci_run("failure", created="2026-10-18T01:00:00Z")])
+    done = gate([ci_run("success"), ci_run("failure", run_id=2, created="2026-10-18T01:00:00Z")])
     assert done.returncode == 1
-    assert "failure" in done.stdout
+    assert "failure" in done.stderr
 
 
 def test_gate_refuses_while_ci_is_still_running(gate):
     done = gate([ci_run(None, status="in_progress")])
     assert done.returncode == 1
-    assert "still running" in done.stdout
+    assert "still running" in done.stderr
 
 
 def test_gate_validates_inputs_before_trusting_ci(gate):
@@ -225,8 +260,16 @@ def test_a_non_dispatch_trigger_may_only_run_the_read_only_preflight(gate):
 def test_a_ci_completion_may_only_deploy_and_still_needs_green_ci_for_its_commit(gate):
     assert gate([ci_run("success")], CD_EVENT="workflow_run").returncode == 0
     assert gate([ci_run("failure")], CD_EVENT="workflow_run").returncode == 1
-    assert gate([ci_run("success")], CD_EVENT="workflow_run", CD_OPERATION="teardown",
-                CD_EXECUTE="true", CD_CONFIRM="live").returncode == 1
+    assert (
+        gate(
+            [ci_run("success")],
+            CD_EVENT="workflow_run",
+            CD_OPERATION="teardown",
+            CD_EXECUTE="true",
+            CD_CONFIRM="live",
+        ).returncode
+        == 1
+    )
 
 
 def test_an_executed_teardown_needs_the_environment_name_typed_again(gate):
@@ -241,12 +284,21 @@ def test_an_executed_teardown_needs_the_environment_name_typed_again(gate):
 def test_a_bad_candidate_is_only_accepted_for_an_executed_release(gate):
     ok = {"CD_OPERATION": "release", "CD_OWNER": "processing", "CD_EXECUTE": "true"}
     assert gate([ci_run("success")], CD_BAD_CANDIDATE="true", **ok).returncode == 0
-    assert gate([ci_run("success")], CD_BAD_CANDIDATE="true", **{**ok, "CD_EXECUTE": "false"}
-                ).returncode == 1
-    assert gate([ci_run("success")], CD_BAD_CANDIDATE="true", CD_OPERATION="deploy",
-                CD_EXECUTE="true").returncode == 1
-    assert gate([ci_run("success")], CD_BAD_CANDIDATE="false", CD_OPERATION="deploy"
-                ).returncode == 0
+    assert (
+        gate(
+            [ci_run("success")], CD_BAD_CANDIDATE="true", **{**ok, "CD_EXECUTE": "false"}
+        ).returncode
+        == 1
+    )
+    assert (
+        gate(
+            [ci_run("success")], CD_BAD_CANDIDATE="true", CD_OPERATION="deploy", CD_EXECUTE="true"
+        ).returncode
+        == 1
+    )
+    assert (
+        gate([ci_run("success")], CD_BAD_CANDIDATE="false", CD_OPERATION="deploy").returncode == 0
+    )
 
 
 def test_the_bad_candidate_input_reaches_the_script_off_by_default(workflow):
@@ -263,7 +315,8 @@ def test_the_bad_candidate_input_reaches_the_script_off_by_default(workflow):
     ],
 )
 def test_the_bad_candidate_changes_only_the_lambda_handler_and_commits_it_locally(
-        tmp_path, owner, handler, variable):
+    tmp_path, owner, handler, variable
+):
     repo = tmp_path / "repo"
     (repo / owner).mkdir(parents=True)
     original = '"""entrypoint"""\n\nfrom contracts import x\n'
@@ -274,10 +327,19 @@ def test_the_bad_candidate_changes_only_the_lambda_handler_and_commits_it_locall
     subprocess.run([*git, "add", "."], cwd=repo, check=True)
     subprocess.run([*git, "commit", "-qm", "base"], cwd=repo, check=True)
     before = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True)
-    env = {**os.environ, "CD_ENVIRONMENT": "live", "CD_OPERATION": "release",
-           "RUNNER_TEMP": str(tmp_path)}
-    done = subprocess.run(["bash", str(CD_SCRIPT), "inject-bad-candidate", owner], env=env,
-                          cwd=repo, capture_output=True, text=True)
+    env = {
+        **os.environ,
+        "CD_ENVIRONMENT": "live",
+        "CD_OPERATION": "release",
+        "RUNNER_TEMP": str(tmp_path),
+    }
+    done = subprocess.run(
+        ["bash", str(CD_SCRIPT), "inject-bad-candidate", owner],
+        env=env,
+        cwd=repo,
+        capture_output=True,
+        text=True,
+    )
     assert done.returncode == 0, done.stdout + done.stderr
     patched = (repo / handler).read_text()
     # The assignment comes before every import of the service, and the original is intact.
@@ -293,13 +355,12 @@ def test_the_bad_candidate_changes_only_the_lambda_handler_and_commits_it_locall
 
 def script_function(name):
     """One function of cd.sh, as text, so its logic runs without the rest of the script."""
-    found = re.search(rf"^{name}\(\) \{{.*?^\}}\n", CD_SCRIPT.read_text(), re.M | re.S)
+    found = re.search(rf"^{name}\(\) [{{(].*?^[}})]\n", CD_SCRIPT.read_text(), re.M | re.S)
     assert found, name
     return found.group(0)
 
 
-def test_an_owner_with_changed_migrations_stays_deferred_after_the_other_owners_adoption(
-        tmp_path):
+def test_an_owner_with_changed_migrations_stays_deferred_after_the_other_owners_adoption(tmp_path):
     # Media releases first and its adoption re-runs the deploy, which rewrites the images step:
     # Processing's changed migrations must still hold it back (attestation, not green CI).
     if not shutil.which("jq"):
@@ -307,10 +368,23 @@ def test_an_owner_with_changed_migrations_stays_deferred_after_the_other_owners_
     journal = tmp_path / "deploy-journal.json"
 
     def write(migrations):
-        journal.write_text(json.dumps({"deploy": {"steps": {"images": {"detail": {
-            "changed_owners": ["media", "processing"],
-            "changed_images": ["media", "processing", "worker"],
-            "migrations_changed": migrations}}}}}))
+        journal.write_text(
+            json.dumps(
+                {
+                    "deploy": {
+                        "steps": {
+                            "images": {
+                                "detail": {
+                                    "changed_owners": ["media", "processing"],
+                                    "changed_images": ["media", "processing", "worker"],
+                                    "migrations_changed": migrations,
+                                }
+                            }
+                        }
+                    }
+                }
+            )
+        )
 
     write(["processing"])
     stubs = f"""
@@ -332,4 +406,175 @@ release_changed_owners images.json "media processing"
     assert done.returncode == 1, done.stdout + done.stderr
     assert done.stdout.splitlines() == [
         "RELEASED media media",
-        "FAIL: processing changed migrations; release it by hand with attest_additive=true"]
+        "FAIL: processing changed migrations; release it by hand with attest_additive=true",
+    ]
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "pr-head",
+        "source",
+        "dev",
+        "deselected",
+        "run",
+        "attempt",
+        "event",
+        "head",
+        "missing",
+        "skipped",
+        "failed",
+        "duplicate",
+        "expired",
+        "cancelled",
+    ],
+)
+def test_full_source_admission_refuses_incomplete_or_mixed_evidence(gate, change):
+    run = ci_run("success")
+    selection = run["selection"]
+    if change == "pr-head":
+        run["event"] = selection["event"] = "pull_request"
+        selection["source_sha"] = "a" * 40
+    elif change == "source":
+        selection["source_sha"] = "b" * 40
+    elif change == "dev":
+        selection["mode"] = "dev"
+    elif change == "deselected":
+        selection["selected"]["images"] = False
+    elif change == "run":
+        selection["run_id"] = "2"
+    elif change == "attempt":
+        selection["run_attempt"] = "2"
+    elif change == "event":
+        selection["event"] = "pull_request"
+    elif change == "head":
+        selection["head_sha"] = "c" * 40
+    elif change == "missing":
+        run["jobs"] = []
+    elif change in {"skipped", "failed"}:
+        run["jobs"][0]["conclusion"] = change
+    elif change == "duplicate":
+        run["jobs"] *= 2
+    elif change == "expired":
+        run["missing_artifact"] = True
+    elif change == "cancelled":
+        run["conclusion"] = "cancelled"
+    done = gate([run])
+    assert done.returncode != 0, done.stdout + done.stderr
+
+
+def test_full_exact_dispatch_is_accepted_and_records_run_attempt(gate, tmp_path):
+    done = gate([ci_run("success", event="workflow_dispatch", attempt=2)])
+    assert done.returncode == 0, done.stdout + done.stderr
+    receipt = json.loads((tmp_path / "cd-out/public/ci-admission.json").read_text())
+    assert (receipt["source_sha"], receipt["run_id"], receipt["run_attempt"], receipt["tier"]) == (
+        SHA,
+        1,
+        2,
+        "full",
+    )
+
+
+def test_automatic_cd_uses_only_the_triggering_run_and_attempt(gate):
+    old = ci_run("failure")
+    later = ci_run("success", run_id=2, created="2026-10-18T01:00:00Z")
+    assert gate([old, later], CD_EVENT="workflow_run").returncode != 0
+    old["conclusion"] = "success"
+    later["conclusion"] = "failure"
+    assert gate([old, later], CD_EVENT="workflow_run").returncode == 0
+    assert gate([old], CD_EVENT="workflow_run", CD_CI_RUN_ATTEMPT="2").returncode != 0
+    assert gate([old], CD_EVENT="workflow_run", CD_CI_RUN_ID="").returncode != 0
+
+
+def test_emergency_teardown_does_not_depend_on_ci_availability(gate):
+    done = gate([], CD_OPERATION="teardown", CD_EXECUTE="true", CD_CONFIRM="live")
+    assert done.returncode == 0, done.stdout + done.stderr
+
+
+@pytest.mark.parametrize(
+    "fault", ["clean", "os", "python", "incomplete", "wrong-config", "error", "no-output"]
+)
+def test_cd_scans_the_selected_exact_candidate_before_publication(tmp_path, fault):
+    if not shutil.which("jq"):
+        pytest.skip("jq is not installed")
+    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    config_id = "sha256:" + "1" * 64
+    build = tmp_path / "build.json"
+    build.write_text(
+        json.dumps(
+            {
+                "status": "LOCAL_ARTIFACT_PASS",
+                "images": {
+                    "media": {
+                        "config_id": config_id,
+                        "source_sha": sha,
+                        "tag": "mutable-media-tag",
+                        "trivy_scan": {"status": "PASS"},
+                    }
+                },
+            }
+        )
+    )
+    binary = tmp_path / "bin"
+    binary.mkdir()
+    (binary / "trivy").write_text(
+        "#!/usr/bin/env python3\n"
+        "import json, os, pathlib, sys\n"
+        "fault = os.environ['SCAN_FAULT']\n"
+        "pathlib.Path(os.environ['SCAN_ARGS']).write_text(json.dumps(sys.argv[1:]))\n"
+        "if fault == 'error': sys.exit(2)\n"
+        "if fault == 'no-output': sys.exit(0)\n"
+        "config = sys.argv[-1] if fault != 'wrong-config' else 'sha256:' + '2' * 64\n"
+        "results = [{'Class': 'os-pkgs', 'Type': 'debian'}, "
+        "{'Class': 'lang-pkgs', 'Type': 'python-pkg'}]\n"
+        "if fault in ['os', 'python']:\n"
+        "    results[fault == 'python']['Vulnerabilities'] = "
+        "[{'Severity': 'HIGH', 'FixedVersion': '2', 'VulnerabilityID': 'CVE-X'}]\n"
+        "if fault == 'incomplete': results.pop()\n"
+        "pathlib.Path(sys.argv[sys.argv.index('--output') + 1]).write_text("
+        "json.dumps({'Metadata': {'ImageID': config}, 'Results': results}))\n"
+    )
+    (binary / "trivy").chmod(0o755)
+    output = tmp_path / "public"
+    output.mkdir()
+    env = {
+        **os.environ,
+        "PATH": f"{binary}:{os.environ['PATH']}",
+        "SCAN_FAULT": fault,
+        "SCAN_ARGS": str(tmp_path / "argv.json"),
+    }
+    import sys
+
+    shell = f"""
+set -euo pipefail
+CD_STATE='{tmp_path}'
+PUBLIC='{output}'
+PY='{sys.executable}'
+fail() {{ echo "FAIL: $*"; exit 1; }}
+{script_function("scan_images")}
+scan_images '{build}' local media
+# This stands for the next publication step; failure must prevent reaching it.
+touch '{tmp_path / "published"}'
+"""
+    done = subprocess.run(["bash", "-c", shell], env=env, cwd=ROOT, capture_output=True, text=True)
+    assert (done.returncode == 0) is (fault == "clean"), done.stdout + done.stderr
+    assert (tmp_path / "published").exists() is (fault == "clean")
+    argv = json.loads((tmp_path / "argv.json").read_text())
+    assert argv[-1] == config_id and "mutable-media-tag" not in argv
+    assert argv[argv.index("--image-src") + 1] == "docker"
+    scan = json.loads(build.read_text())["images"]["media"]["trivy_scan"]
+    if fault != "clean":
+        assert scan["status"] != "PASS"
+    if fault == "clean":
+        assert scan["status"] == "PASS" and scan["source_sha"] == sha
+        assert len(scan["targets"]) == 2 and scan["report_sha256"].startswith("sha256:")
+
+
+def test_cd_installs_the_existing_scanner_only_for_image_delivery(workflow):
+    setup = next(
+        step
+        for step in workflow["jobs"]["run"]["steps"]
+        if step.get("uses", "").startswith("aquasecurity/setup-trivy@")
+    )
+    assert "CD_EXECUTE == 'true'" in setup["if"]
+    assert setup["with"]["version"] == "v0.70.0"

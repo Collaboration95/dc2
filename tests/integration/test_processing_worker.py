@@ -177,8 +177,7 @@ async def test_real_worker_source_digest_failure(factory, submission, fixture_vi
             id="out-of-source-crop",
         ),
         pytest.param(
-            {"operation": "clip", "params": {"start": 0, "end": 3}},
-            id="over-duration-clip",
+            {"operation": "clip", "params": {"start": 0, "end": 3}}, id="over-duration-clip"
         ),
     ],
 )
@@ -239,11 +238,7 @@ async def test_real_worker_source_invalid_edit_has_failed_attempt_and_public_pro
     assert read.outputs == [] and store.keys == []
     assert [request.method for request in requests] == ["POST", "GET"]
     validate_response(
-        "processing",
-        "/jobs/{job_id}",
-        "get",
-        200,
-        read.model_dump(mode="json", exclude_none=True),
+        "processing", "/jobs/{job_id}", "get", 200, read.model_dump(mode="json", exclude_none=True)
     )
     # Exercise the actual MM public projection of the persisted current P result.
     # The MM Asset is in memory here; this is not a live MM database/HTTP claim.

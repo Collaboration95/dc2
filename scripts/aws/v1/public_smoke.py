@@ -130,10 +130,7 @@ class PublicSmoke:
         data = self._json(body)
         if status != 200:
             return status
-        ok = isinstance(data, dict) and (data.get("status"), data.get("service")) == (
-            "ok",
-            service,
-        )
+        ok = isinstance(data, dict) and (data.get("status"), data.get("service")) == ("ok", service)
         if service == "processing":
             ok = ok and data.get("schema_version") == 1
         return True if ok else "contract"

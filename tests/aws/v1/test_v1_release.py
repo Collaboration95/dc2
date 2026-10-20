@@ -350,10 +350,7 @@ def test_operator_transport_requires_project_identity_and_bounded_clients():
     calls = []
     client.get_alias = lambda **payload: calls.append(payload) or {"FunctionVersion": "1"}
     transport = OperatorTransport(
-        {"lambda": client},
-        identity={"Account": ACCOUNT},
-        account=ACCOUNT,
-        region="ap-southeast-1",
+        {"lambda": client}, identity={"Account": ACCOUNT}, account=ACCOUNT, region="ap-southeast-1"
     )
     assert (
         transport.call(
@@ -511,12 +508,23 @@ def test_restore_reads_the_schema_before_it_checks_quiescence(setup):
         return True
 
     receipt = restore(
-        config, aws, journal, schema_revision=options["schema_revision"], quiescent=quiescent,
-        public_smoke=lambda *a, **k: True, deadline=options["deadline"])
+        config,
+        aws,
+        journal,
+        schema_revision=options["schema_revision"],
+        quiescent=quiescent,
+        public_smoke=lambda *a, **k: True,
+        deadline=options["deadline"],
+    )
     assert receipt["status"] == "restored"
     # An in-VPC read is an ECS task in the same cluster, so it must finish before the check.
-    assert log == [("quiescent", "processing"), ("prefetch", ("media", "processing")),
-                   ("read", "media"), ("read", "processing"), ("quiescent", "processing")]
+    assert log == [
+        ("quiescent", "processing"),
+        ("prefetch", ("media", "processing")),
+        ("read", "media"),
+        ("read", "processing"),
+        ("quiescent", "processing"),
+    ]
 
 
 def test_a_plain_schema_reader_without_prefetch_is_still_accepted(setup):
@@ -555,13 +563,15 @@ def test_restore_refuses_a_failed_migration_and_abandon_clears_it(setup):
     assert intent["phase"] == "preparing" and not intent.get("migration_complete")
     assert intent["versions"] == {} and intent["moved"] == {}
     with pytest.raises(OperationError, match="Reconcile/finish migration"):
-        restore(config, aws, journal, public_smoke=lambda *a, **k: True,
-                **abandon_args(options))
+        restore(config, aws, journal, public_smoke=lambda *a, **k: True, **abandon_args(options))
     writes = [op for _, op, _ in aws.calls if op in {"update-alias", "publish-version"}]
-    receipt = abandon(config, aws, journal, reason="migration failed",
-                      **abandon_args(options))
-    assert receipt == {"owner": "processing", "status": "abandoned",
-                       "versions_published_unaliased": [], "schema": "prior"}
+    receipt = abandon(config, aws, journal, reason="migration failed", **abandon_args(options))
+    assert receipt == {
+        "owner": "processing",
+        "status": "abandoned",
+        "versions_published_unaliased": [],
+        "schema": "prior",
+    }
     with journal.locked() as state:
         assert state["pending_release"] is None
         (record,) = state["abandoned_releases"]
@@ -722,7 +732,8 @@ def test_abandon_refuses_a_task_that_describe_fails_for_a_reason_other_than_miss
 
 
 def test_abandon_still_refuses_a_lost_runtask_inside_its_replay_window_when_ecs_lists_nothing(
-        setup):
+    setup,
+):
     config, aws, journal, options = failed_migration(setup)
     lost_launch(aws, journal)
     aws.tasks.clear()
@@ -814,8 +825,7 @@ def test_abandon_refuses_an_intent_whose_prior_alias_has_no_revision_recorded(se
     refused(setup, "revision differs", mutate=mutate)
 
 
-def test_abandon_refuses_a_running_media_migration_even_though_media_quiescence_ignores_ecs(
-        setup):
+def test_abandon_refuses_a_running_media_migration_even_though_media_quiescence_ignores_ecs(setup):
     config, aws, journal, options = failed_migration(setup, "media")
     aws.tasks["migration-task"]["lastStatus"] = "RUNNING"
     with pytest.raises(OperationError, match="not stopped"):
@@ -825,14 +835,21 @@ def test_abandon_refuses_a_running_media_migration_even_though_media_quiescence_
 
 def with_source(item, source):
     gate = {"source_sha": source}
-    return {**item, "source_sha": source, "tests": {**item["tests"], **gate},
-            "artifact_test": {**item["artifact_test"], **gate}, "scan": {**item["scan"], **gate}}
+    return {
+        **item,
+        "source_sha": source,
+        "tests": {**item["tests"], **gate},
+        "artifact_test": {**item["artifact_test"], **gate},
+        "scan": {**item["scan"], **gate},
+    }
 
 
 def test_a_processing_release_may_keep_one_image_as_it_runs_but_not_both():
     # V2-live: a worker-only change rebuilds the worker and keeps the running API image.
-    bundle = {"api": with_source(proof("processing", "lambda-api"), "a" * 40),
-              "worker": proof("processing", "finite-worker")}
+    bundle = {
+        "api": with_source(proof("processing", "lambda-api"), "a" * 40),
+        "worker": proof("processing", "finite-worker"),
+    }
     with pytest.raises(OperationError, match="share frozen source"):
         validate_bundle(bundle, owner="processing")
     bundle["api"]["retained"] = True

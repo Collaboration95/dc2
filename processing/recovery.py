@@ -75,9 +75,7 @@ async def recover_expired(factory, *, limit=100, on_change=None, job_filter=None
                 job,
                 attempt,
                 now,
-                "Processing exceeded its time limit"
-                if attempt.deadline_at <= now
-                else INTERRUPTED,
+                "Processing exceeded its time limit" if attempt.deadline_at <= now else INTERRUPTED,
                 on_change,
             )
             recovered += 1

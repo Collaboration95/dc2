@@ -10,6 +10,7 @@ differences are tabulated, not hidden.
 | [ddd.md](ddd.md) | #187 | Ubiquitous language, two bounded contexts, aggregates and invariants, commands and events, context map, platform view, delta from Figure 3 |
 | [decisions.md](decisions.md) | #188 | ADR register (AD-01 to AD-26 with status), proposal to as-built deviations, inconsistencies found, architectural limitations |
 | [views.md](views.md) | #188 | Tiers and layers, nodes and subsystems, physical AWS view, persistence design, upload to play sequence |
+| [use-case-design.md](use-case-design.md) | Current engineering reference | UC1–7 flows and test references, shared analysis/design models, analysis-to-design mapping, grouped sequences and three design-problem bundles; V2-live mode is called out separately from V1 views |
 
 Diagrams are Mermaid blocks inside the pages. `python3 docs/architecture/render_diagrams.py`
 renders each block marked `%% img: <name>` to [`img/<name>.svg`](img/). The proposal's own images
