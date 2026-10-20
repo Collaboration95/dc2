@@ -93,9 +93,10 @@ async def test_poll_visibility_delete_and_payload():
         await queue.visibility("processing-work", "receipt", 43201)
 
 
-async def test_partial_batch_poison_and_handler_rollback():
+async def test_partial_batch_poison_and_handler_rollback(caplog):
     good, failed = message(), message()
-    handler = AsyncMock(side_effect=[None, RuntimeError("database rolled back")])
+    private = "postgresql://app:secret@database.internal/media?token=private"
+    handler = AsyncMock(side_effect=[None, RuntimeError(private)])
     event = {
         "Records": [
             {"messageId": "good", "body": json.dumps(good)},
@@ -113,6 +114,20 @@ async def test_partial_batch_poison_and_handler_rollback():
         ]
     }
     assert handler.await_count == 2
+    record = next(
+        item for item in caplog.records if json.loads(item.message).get("request_id") == "failed"
+    )
+    logged = json.loads(record.message)
+    assert private not in caplog.text
+    assert logged == {
+        "attempt_id": failed["attempt_id"],
+        "error_class": "RuntimeError",
+        "event": "record_failed",
+        "job_id": failed["job_id"],
+        "operation": "sqs_consume",
+        "outcome": "retry",
+        "request_id": "failed",
+    }
 
 
 @pytest.mark.parametrize(

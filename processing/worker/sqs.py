@@ -15,6 +15,7 @@ later requires another explicit operator batch.
 import argparse
 import asyncio
 import json
+import logging
 import math
 import os
 import signal
@@ -35,7 +36,10 @@ from processing.worker.source import SourceStore
 from processing.worker.storage import OutputStore
 from processing.worker.supervisor import AttemptDeadline, LeaseLost, Supervisor
 from processing.worker.tasks import pipeline
+from runtime_support.errors import log_safe_event
 from runtime_support.settings import credentials_rejected
+
+logger = logging.getLogger("dc2.processing.worker")
 
 
 def native_sqs(region):
@@ -88,6 +92,20 @@ class _Unencoded(str):
 # dead), SKIPPED keeps it for the redrive policy.
 STALE = _Unencoded("stale")
 SKIPPED = _Unencoded("skipped")
+
+
+def _log_attempt_event(event, outcome, *, job_id, attempt_id, task_name, error=None):
+    fields = {
+        "event": event,
+        "operation": "encode",
+        "outcome": outcome,
+        "job_id": job_id,
+        "attempt_id": attempt_id,
+        "task_id": task_name,
+    }
+    if error is not None:
+        fields["error_class"] = type(error).__name__
+    log_safe_event(logger, **fields)
 
 
 def decode_work(body):
@@ -164,24 +182,85 @@ async def execute_message(
             # Visibility uncertainty revokes authority before durable completion.
             await supervisor.renew_authority()
             supervisor.check()
-            return await finish(factory, work, outputs=outputs)
-        except (LeaseLost, asyncio.CancelledError):
+            finished = await finish(factory, work, outputs=outputs)
+            _log_attempt_event(
+                "attempt_finished",
+                "done_recorded" if finished else "lease_lost_retry",
+                job_id=job_id,
+                attempt_id=attempt_id,
+                task_name=task_name,
+            )
+            return finished
+        except LeaseLost as error:
+            _log_attempt_event(
+                "attempt_interrupted",
+                "lease_lost_retry",
+                job_id=job_id,
+                attempt_id=attempt_id,
+                task_name=task_name,
+                error=error,
+            )
             return False
-        except AttemptDeadline:
+        except asyncio.CancelledError as error:
+            _log_attempt_event(
+                "attempt_interrupted",
+                "cancelled_retry",
+                job_id=job_id,
+                attempt_id=attempt_id,
+                task_name=task_name,
+                error=error,
+            )
+            return False
+        except AttemptDeadline as error:
             # An absolute task deadline cannot authorize another database write.
+            _log_attempt_event(
+                "attempt_interrupted",
+                "deadline_retry",
+                job_id=job_id,
+                attempt_id=attempt_id,
+                task_name=task_name,
+                error=error,
+            )
             return False
         except NotAdmitted:
             if redirect is None:
                 raise
             return await redirect(factory, work)
-        except Exception:
+        except Exception as error:
             try:
                 await supervisor.renew_authority()
-                return await finish(
+                finished = await finish(
                     factory, work, error="The source or edit could not be processed"
                 )
             except (LeaseLost, AttemptDeadline):
+                _log_attempt_event(
+                    "attempt_failed",
+                    "business_failure_unrecorded_retry",
+                    job_id=job_id,
+                    attempt_id=attempt_id,
+                    task_name=task_name,
+                    error=error,
+                )
                 return False
+            except Exception as finish_error:
+                _log_attempt_event(
+                    "attempt_failed",
+                    "failure_recording_error",
+                    job_id=job_id,
+                    attempt_id=attempt_id,
+                    task_name=task_name,
+                    error=finish_error,
+                )
+                raise
+            _log_attempt_event(
+                "attempt_failed",
+                "business_failure_recorded" if finished else "lease_lost_retry",
+                job_id=job_id,
+                attempt_id=attempt_id,
+                task_name=task_name,
+                error=error,
+            )
+            return finished
 
 
 async def run(
@@ -305,6 +384,15 @@ async def run(
                 QueueUrl=queue_url,
                 ReceiptHandle=message["ReceiptHandle"],
             )
+            log_safe_event(
+                logger,
+                event="message_acknowledged",
+                operation="sqs_delete",
+                outcome="stale" if complete is STALE else "processed",
+                job_id=envelope["job_id"],
+                attempt_id=envelope["attempt_id"],
+                task_id=name,
+            )
         if complete is STALE:
             handled -= 1
             stale += 1
@@ -312,8 +400,19 @@ async def run(
         # Exactly one encode per task, successful or uncertain. Only a completed one sweeps up
         # afterwards: after an uncertain end the task is out of time or authority.
         if complete and drain_disposition is not None:
-            with suppress(Exception):
+            try:
                 await drain()
+            except Exception as error:
+                log_safe_event(
+                    logger,
+                    event="drain_failed",
+                    operation="stale_message_drain",
+                    outcome="drain_incomplete",
+                    error_class=type(error).__name__,
+                    job_id=envelope["job_id"],
+                    attempt_id=envelope["attempt_id"],
+                    task_id=name,
+                )
         return 0 if complete else 1
     return 0
 
@@ -434,8 +533,16 @@ def main():
         except WorkerConfigurationError as error:
             print(f"worker configuration error: {error}", file=sys.stderr)
             return 1
-        except Exception:
+        except Exception as error:
             # Do not emit SDK URLs, queue bodies, credentials or database DSNs.
+            log_safe_event(
+                logger,
+                event="worker_failed",
+                operation="worker_run",
+                outcome="exit_failure",
+                error_class=type(error).__name__,
+                task_id=args.name,
+            )
             return 1
 
     with suppress(KeyboardInterrupt):

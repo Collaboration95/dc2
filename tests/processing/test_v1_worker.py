@@ -1,5 +1,7 @@
 import asyncio
 import hashlib
+import json
+import logging
 import subprocess
 import sys
 import time
@@ -366,42 +368,120 @@ async def test_claim_rejects_substitution_before_get_or_encode():
 
 
 @pytest.mark.parametrize("loss_at", [1, 2])
-async def test_no_completion_after_visibility_loss(monkeypatch, loss_at):
+async def test_no_completion_after_visibility_loss(monkeypatch, loss_at, caplog):
     monkeypatch.setattr("processing.worker.supervisor.heartbeat", AsyncMock(return_value=True))
     monkeypatch.setattr(sqs, "pipeline", AsyncMock(return_value=[{"kind": "primary"}]))
     work = SimpleNamespace(source={})
     finish = AsyncMock(return_value=True)
     renew = AsyncMock(side_effect=[None] * (loss_at - 1) + [OSError("receipt gone")])
-    assert not await sqs.execute_message(
-        None,
-        envelope(),
-        settings(),
-        renew=renew,
-        deadline=time.monotonic() + 60,
-        claim=AsyncMock(return_value=work),
-        finish=finish,
-        source=SimpleNamespace(download=AsyncMock()),
-        store=object(),
-    )
+    with caplog.at_level(logging.ERROR, logger="dc2.processing.worker"):
+        assert not await sqs.execute_message(
+            None,
+            envelope(),
+            settings(),
+            renew=renew,
+            deadline=time.monotonic() + 60,
+            claim=AsyncMock(return_value=work),
+            finish=finish,
+            source=SimpleNamespace(download=AsyncMock()),
+            store=object(),
+        )
     finish.assert_not_awaited()
+    record = next(
+        json.loads(item.message)
+        for item in caplog.records
+        if json.loads(item.message).get("event") == "attempt_interrupted"
+    )
+    assert record["outcome"] == "lease_lost_retry"
+    assert "receipt gone" not in caplog.text
 
 
-async def test_completion_only_through_processing_owned_finish(monkeypatch):
+async def test_completion_only_through_processing_owned_finish(monkeypatch, caplog):
     monkeypatch.setattr("processing.worker.supervisor.heartbeat", AsyncMock(return_value=True))
     monkeypatch.setattr(sqs, "pipeline", AsyncMock(return_value=[{"kind": "primary"}]))
     finish = AsyncMock(return_value=True)
-    assert await sqs.execute_message(
-        None,
-        envelope(),
-        settings(),
-        renew=AsyncMock(),
-        deadline=time.monotonic() + 60,
-        claim=AsyncMock(return_value=SimpleNamespace(source={})),
-        finish=finish,
-        source=SimpleNamespace(download=AsyncMock()),
-        store=object(),
-    )
+    body = envelope()
+    work = SimpleNamespace(source={})
+    with caplog.at_level(logging.ERROR, logger="dc2.processing.worker"):
+        assert await sqs.execute_message(
+            None,
+            body,
+            settings(),
+            renew=AsyncMock(),
+            deadline=time.monotonic() + 60,
+            claim=AsyncMock(return_value=work),
+            finish=finish,
+            source=SimpleNamespace(download=AsyncMock()),
+            store=object(),
+        )
     assert finish.call_args.kwargs["outputs"] == [{"kind": "primary"}]
+    record = json.loads(caplog.records[-1].message)
+    assert record["outcome"] == "done_recorded"
+    assert record["job_id"] == body["job_id"]
+    assert record["attempt_id"] == body["attempt_id"]
+
+
+async def test_a_recorded_business_failure_is_distinct_from_done_and_keeps_ack_semantics(
+    monkeypatch, caplog
+):
+    monkeypatch.setattr("processing.worker.supervisor.heartbeat", AsyncMock(return_value=True))
+    private = "https://signed.example/source?token=private"
+    monkeypatch.setattr(sqs, "pipeline", AsyncMock(side_effect=RuntimeError(private)))
+    body = envelope()
+    finish = AsyncMock(return_value=True)
+    work = SimpleNamespace(source={})
+    client = Mock()
+    client.receive_message.return_value = {
+        "Messages": [{"Body": "work", "ReceiptHandle": "receipt-1"}]
+    }
+
+    async def execute(factory, decoded, configured, **kwargs):
+        return await sqs.execute_message(
+            factory,
+            decoded,
+            configured,
+            **kwargs,
+            claim=AsyncMock(return_value=work),
+            finish=finish,
+            source=SimpleNamespace(download=AsyncMock()),
+            store=object(),
+        )
+
+    with caplog.at_level(logging.ERROR, logger="dc2.processing.worker"):
+        code = await sqs.run(
+            None,
+            settings(),
+            client,
+            "local-queue",
+            end_epoch=time.time() + 60,
+            name="task-123",
+            decode=lambda _: body,
+            execute=execute,
+        )
+
+    assert code == 0
+    client.delete_message.assert_called_once_with(QueueUrl="local-queue", ReceiptHandle="receipt-1")
+    finish.assert_awaited_once_with(None, work, error="The source or edit could not be processed")
+    records = [json.loads(item.message) for item in caplog.records]
+    record = next(item for item in records if item.get("event") == "attempt_failed")
+    assert record == {
+        "attempt_id": body["attempt_id"],
+        "error_class": "RuntimeError",
+        "event": "attempt_failed",
+        "job_id": body["job_id"],
+        "operation": "encode",
+        "outcome": "business_failure_recorded",
+        "task_id": "task-123",
+    }
+    assert {
+        "attempt_id": body["attempt_id"],
+        "event": "message_acknowledged",
+        "job_id": body["job_id"],
+        "operation": "sqs_delete",
+        "outcome": "processed",
+        "task_id": "task-123",
+    } in records
+    assert private not in caplog.text
 
 
 @pytest.mark.parametrize("changed", [None, "size", "digest", "version", "unversioned"])
@@ -530,7 +610,11 @@ async def test_receipt_renewal_and_ack_order():
 
 async def test_blocked_receive_obeys_absolute_deadline():
     client = Mock()
-    client.receive_message.side_effect = lambda **_: time.sleep(1.1)
+
+    def blocked_receive(**_):
+        time.sleep(1.1)
+
+    client.receive_message.side_effect = blocked_receive
     with pytest.raises(TimeoutError):
         await sqs.run(None, settings(), client, "local", end_epoch=time.time() + 1.01, name="task")
 
@@ -655,10 +739,19 @@ async def test_the_post_encode_sweep_is_bounded_by_the_stale_allowance():
     assert client.delete_message.call_count == 4
 
 
-async def test_a_failed_sweep_does_not_change_the_tasks_successful_outcome():
+async def test_a_failed_sweep_does_not_change_the_tasks_successful_outcome(caplog):
     client = Mock()
     client.receive_message.side_effect = [*receipts("work"), RuntimeError("queue down")]
-    assert await drained(client, []) == 0
+    with caplog.at_level(logging.ERROR, logger="dc2.processing.worker"):
+        assert await drained(client, []) == 0
+    record = next(
+        json.loads(item.message)
+        for item in caplog.records
+        if json.loads(item.message).get("event") == "drain_failed"
+    )
+    assert record["outcome"] == "drain_incomplete"
+    assert record["error_class"] == "RuntimeError"
+    assert record["task_id"] == "task"
 
 
 async def test_an_uncertain_encode_does_not_sweep_the_queue():
