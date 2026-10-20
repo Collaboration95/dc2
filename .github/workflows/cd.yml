@@ -105,6 +105,8 @@ env:
   CD_EXECUTE: ${{ (github.event_name == 'workflow_run' || inputs.execute) && 'true' || 'false' }}
   CD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
   CD_EVENT: ${{ github.event_name }}
+  CD_CI_RUN_ID: ${{ github.event.workflow_run.id }}
+  CD_CI_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
   CD_OWNER: ${{ inputs.owner }}
   CD_ATTEST_ADDITIVE: ${{ inputs.attest_additive && 'true' || 'false' }}
   CD_BAD_CANDIDATE: ${{ inputs.bad_candidate && 'true' || 'false' }}
@@ -146,6 +148,14 @@ jobs:
           CD_REPO: ${{ github.repository }}
           CD_EVENT: ${{ github.event_name }}
         run: scripts/ci/cd.sh gate
+      - name: Retain exact-source CI admission
+        if: env.CD_OPERATION == 'deploy' || env.CD_OPERATION == 'release'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cd-admission-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cd-out/public/ci-admission.json
+          if-no-files-found: error
+          retention-days: 60
 
   run:
     name: ${{ github.event_name == 'workflow_run' && 'deploy' || inputs.operation || 'preflight' }} ${{ inputs.environment || 'live' }}
@@ -171,6 +181,13 @@ jobs:
         with:
           version: '0.8.17'
       - run: uv sync --locked --extra dev
+
+      # Same Trivy version/setup used by the existing v0.36.0 scan action. Scan the selected
+      # CD candidate config IDs before push; retained companions are rescanned by digest.
+      - uses: aquasecurity/setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514 # v0.2.6
+        if: (env.CD_OPERATION == 'deploy' || env.CD_OPERATION == 'release') && env.CD_EXECUTE == 'true'
+        with:
+          version: v0.70.0
 
       # Credentials go into the named profile dc2-gha, not into the environment: the deploy
       # tooling refuses ambient AWS_* credentials. Four hours covers a deploy (50-80 min) with

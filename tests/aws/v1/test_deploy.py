@@ -1885,6 +1885,7 @@ def admitted_resume(rig):
         digest = "sha256:" + hashlib.sha256(raw.encode()).hexdigest()
         manifests[digest] = raw
         repository = recorded["uri"].split("@", 1)[0]
+        rig.sim.repos[repository.split("/", 1)[1]]["images"][recorded["tag"]] = digest
         rig.journal.mutate(lambda d, n=name, dig=digest, uri=repository, sha=source_sha:
                            d["images"][n].update(digest=dig, uri=f"{uri}@{dig}", source_sha=sha))
         image = {"tag": "unused-local-tag", "config_id": config_id, "source_sha": source_sha}
@@ -1913,6 +1914,21 @@ def test_first_deploy_resume_rechecks_complete_zero_scans_without_local_images(r
         assert image["registry_gate"]["ecr_scan"]["status"] == "COMPLETE"
         assert image["scan_severity_counts"] == {}
         assert image["registry_gate"]["registry"]["manifest_digest"] == image["digest"]
+
+
+def test_a_failed_images_step_resumes_its_pushed_digests_without_rebuild_or_repush(rig):
+    pipeline = admitted_resume(rig)
+    rig.journal.mutate(lambda d: d["steps"]["images"].update(status="failed"))
+
+    def registry_login_only(argv, *, stdin=None):
+        assert argv[0] == "login", "a pushed config must not require the previous runner's daemon"
+        return "Login Succeeded"
+
+    pipeline.docker = registry_login_only
+    result = pipeline.run_step("images", pipeline.step_images)
+    assert result["images"] == {name: image["digest"]
+                                for name, image in rig.journal.view()["images"].items()}
+    assert rig.steps()["images"] == "done"
 
 
 @pytest.mark.parametrize("fault", ["pending", "missing", "failed", "denied", "high", "counts",

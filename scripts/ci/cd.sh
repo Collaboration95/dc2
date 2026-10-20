@@ -31,6 +31,7 @@ CD_OUT="${RUNNER_TEMP:-/tmp}/cd-out"
 PUBLIC="$CD_OUT/public"
 SCOPE=(--profile "$CD_PROFILE" --region "$CD_REGION" --account "$CD_ACCOUNT")
 PY=.venv/bin/python
+ACCEPT_UNFIXED=docs/execution/aws/v1/scan-accepted-unfixed-20261017.json
 export PYTHONPATH="$PWD"
 mkdir -p "$PUBLIC"
 
@@ -112,19 +113,10 @@ cmd_gate() {
       return 0
       ;;
   esac
-  local runs total running latest
-  runs=$(gh api "repos/$CD_REPO/actions/workflows/ci.yml/runs?head_sha=$CD_SHA&per_page=100" \
-    --jq '.workflow_runs | sort_by(.created_at)
-          | map({id, status, conclusion, event, url: .html_url})')
-  total=$(jq length <<<"$runs")
-  [ "$total" -gt 0 ] || fail "No CI run exists for $CD_SHA; push it through a pull request first"
-  running=$(jq '[.[] | select(.status != "completed")] | length' <<<"$runs")
-  [ "$running" -eq 0 ] || fail "CI is still running for $CD_SHA"
-  latest=$(jq -c 'last' <<<"$runs")
-  [ "$(jq -r .conclusion <<<"$latest")" = success ] ||
-    fail "The latest CI run for $CD_SHA is $(jq -r .conclusion <<<"$latest"): $(jq -r .url <<<"$latest")"
-  echo "CI is green for $CD_SHA: $(jq -r .url <<<"$latest")"
-  summary "CI gate passed: $(jq -r .url <<<"$latest")"
+  # Recovery and read-only inspection remain available even when CI evidence has expired.
+  case "$CD_OPERATION" in
+    deploy | release) python3 -m scripts.ci.cd_gate ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------------- state
@@ -175,6 +167,60 @@ cmd_preflight() {
 }
 
 # ---------------------------------------------------------------------------------- deploy
+scan_images() ( # receipt local|registry|resume image...; reports survive state sync
+  set -euo pipefail
+  local build="$1" mode="$2" name config_id reference image_src
+  shift 2
+  [ "$#" -gt 0 ] || fail "An explicit image set is required for the Trivy gate"
+  local reports="$CD_STATE/scans/g${GITHUB_RUN_ID:-0}x${GITHUB_RUN_ATTEMPT:-1}/$(basename "$build" .json)-$mode"
+  mkdir -p "$reports"
+  local args=(--receipt "$build" --reports "$reports" --out "$reports/summary.json" --attach)
+  if [ "$mode" = registry ] || [ "$mode" = resume ]; then
+    # Always rescan retained/resumed immutable digests; never rebuild an old recipe.
+    local docker_config
+    docker_config=$(mktemp -d)
+    export DOCKER_CONFIG="$docker_config"
+    trap 'rm -rf "$docker_config"' EXIT
+    aws ecr get-login-password --profile "$CD_PROFILE" --region "$CD_REGION" |
+      docker login --username AWS --password-stdin \
+        "$CD_ACCOUNT.dkr.ecr.$CD_REGION.amazonaws.com" >/dev/null
+  fi
+  if [ "$mode" = registry ]; then
+    args+=(--sha "") # retained owner companions keep their original source
+  elif [ "$mode" = local ] || [ "$mode" = resume ]; then
+    args+=(--sha "$(git rev-parse HEAD)")
+  else
+    fail "Unknown scan image source '$mode'"
+  fi
+  # Invalidate previous acceptance before invoking a scanner. A process failure or a scanner
+  # that writes no report must never leave a reusable PASS from an earlier attempt.
+  jq 'reduce $ARGS.positional[] as $name (. ; .images[$name].trivy_scan = {status: "NOT_RUN"})' \
+    "$build" --args "$@" >"$reports/build-pending.json"
+  chmod 600 "$reports/build-pending.json"
+  mv "$reports/build-pending.json" "$build"
+  for name in "$@"; do
+    config_id=$(jq -er --arg name "$name" '.images[$name].config_id' "$build")
+    reference="$config_id"
+    image_src=docker
+    if [ "$mode" = registry ] ||
+      { [ "$mode" = resume ] && [ -n "$(journal_value ".deploy.images.$name.digest")" ]; }; then
+      reference=$(journal_value ".deploy.images.$name.uri")
+      [[ "$reference" == *@sha256:* ]] || fail "No immutable deployed digest for $name"
+      image_src=remote
+    fi
+    # A scanner-process failure exits before an old report can be admitted. Policy validation
+    # requires both Debian and Python targets even when they contain no HIGH/CRITICAL rows.
+    rm -f "$reports/trivy-$name.json"
+    trivy image --image-src "$image_src" \
+      --scanners vuln --pkg-types os,library --severity HIGH,CRITICAL --ignore-unfixed=false \
+      --ignorefile /dev/null --exit-code 0 --format json --output "$reports/trivy-$name.json" \
+      "$reference"
+    args+=(--owner "$name")
+  done
+  "$PY" -m scripts.ci.v1_scan "${args[@]}"
+  cp "$reports/summary.json" "$PUBLIC/scan-$(basename "$build" .json)-$mode.json"
+)
+
 # The first deploy creates the environment from this commit's images. Every later deploy is an
 # in-place update: the stack is updated as a change set from this checkout (code untouched),
 # then every owner whose image changed ships through its own release, smoke and restore.
@@ -197,24 +243,30 @@ cmd_deploy() {
   fi
   mkdir -p "$CD_STATE"
   chmod 700 "$CD_STATE"
-  local baseline="$CD_STATE/build-baseline.json" images
+  local baseline="$CD_STATE/build-baseline.json" images scan_mode=local
   if [ "$(journal_value .deploy.established)" = true ]; then
     # Built to compare with what runs; only a changed owner's images are ever pushed.
     images="$CD_OUT/build-candidate.json"
     python3 deploy/v1/build_and_verify.py --out "$images"
-  elif [ -f "$baseline" ] && [ "$(journal_value .deploy.steps.images.status)" = done ]; then
-    # A first deploy resumed after its images step pushed: a rebuild would change the local
-    # image id and the deploy refuses that (ECR tags are immutable).
-    echo "The images step already finished in an earlier attempt; keeping its build evidence."
+  elif [ -f "$baseline" ] &&
+    [ "$(journal_value '[.deploy.images[] | select(.local_id)] | length')" -gt 0 ]; then
+    # Keep even a partial push's evidence. Rescan pushed digests; an unpushed config must still
+    # exist locally. Never rebuild over an immutable tag or erase its original source.
+    echo "A first deploy already started publishing; keeping its original build evidence."
     images="$baseline"
+    scan_mode=resume
   else
     # Native linux/amd64 on the runner, so no emulation. The evidence file is what --images takes.
     python3 deploy/v1/build_and_verify.py --out "$baseline"
     images="$baseline"
   fi
+  if [ "$(journal_value .deploy.established)" != true ]; then
+    scan_images "$images" "$scan_mode" media processing worker
+  fi
   local code=0
   deploy_cli deploy --state-dir "$CD_STATE" --images "$images" --seed-email "$CD_SEED_EMAIL" \
-    --assume-empty-counts "${COST[@]}" --execute | tee "$CD_OUT/deploy-raw.json" || code=$?
+    --accept-unfixed "$ACCEPT_UNFIXED" --assume-empty-counts "${COST[@]}" --execute \
+    | tee "$CD_OUT/deploy-raw.json" || code=$?
   jq '{ok, mode, run_id, steps}' "$CD_OUT/deploy-raw.json" >"$PUBLIC/deploy.json" || true
   [ "$code" -eq 0 ] || return "$code"
   local owners
@@ -398,8 +450,9 @@ release_owner() { # owner build-evidence automatic rebuilt-image...
   if [ "$owner" = processing ]; then names=(processing worker); fi
   mkdir -m 700 -p "$CD_STATE/release"
   if [ "$automatic" = true ]; then summary "Releasing **$owner**: rebuilt ${rebuilt[*]}."; fi
-  local sha docker_config uri_key repo name kept=()
-  sha=$(jq -r .source_sha "$build" | cut -c1-12)
+  scan_images "$build" local "${rebuilt[@]}"
+  scan_images "$baseline" registry "${names[@]}"
+  local docker_config uri_key repo name kept=()
   docker_config=$(mktemp -d)
   export DOCKER_CONFIG="$docker_config"
   for name in "${names[@]}"; do
@@ -412,7 +465,8 @@ release_owner() { # owner build-evidence automatic rebuilt-image...
     if [[ " ${rebuilt[*]} " == *" $name "* ]]; then
       aws ecr get-login-password --profile "$CD_PROFILE" --region "$CD_REGION" |
         docker login --username AWS --password-stdin "${repo%%/*}" >/dev/null
-      docker tag "dc2-v1-$name:local-$sha" "$repo:$rel-$name"
+      # Publish the accepted config itself; a mutable local tag cannot substitute a rebuild.
+      docker tag "$(jq -er --arg name "$name" '.images[$name].config_id' "$build")" "$repo:$rel-$name"
       docker push --quiet "$repo:$rel-$name"
     else
       # Kept as it runs: the running manifest gains this release's tag, nothing is rebuilt.
@@ -449,7 +503,7 @@ release_owner() { # owner build-evidence automatic rebuilt-image...
       --run-id "$CD_ENVIRONMENT" --owner "$owner" --baseline-evidence "$baseline" \
       --good-run-id "$rel" --good-evidence "$good" --tests-passed "$tests" \
       --attest-schema-unchanged \
-      --accept-unfixed docs/execution/aws/v1/scan-accepted-unfixed-20261017.json \
+      --accept-unfixed "$ACCEPT_UNFIXED" \
       --out "$CD_STATE/release" >"$CD_OUT/release-plan.json"; then
       planned=0
       break
