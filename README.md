@@ -214,6 +214,7 @@ Only course dates are shown. The other activities are listed in sequence for the
 | — | Code and demo release freeze | Pin the tested commit, images, configuration and fixtures. Save the demo recording and rollback path. Only a blocker fix can reopen this release; rerun affected checks and refresh its evidence. |
 | — | Rehearse and package | Finish slides and speaker ownership. Run a timed full-team rehearsal, including the demo fallback and Q&A. Verify submission links and upload instructions. |
 | 26 October 2026, 14:35–15:15 | Team 17 presentation | The allocated 40 minutes include Q&A. Present the frozen release, actual results, known limitations and each member's contribution. |
+| 31 October 2026, 23:59 (tentative) | Code submission | Internal team date, not a course date. Submit the code reference, pipeline scripts and test scripts. |
 | — | Complete report draft | Incorporate presentation feedback and assemble the complete report using the course template. |
 | — | Review report and evidence | Check the architecture against the delivered system, reconcile effort and results, test repository and recording links, and have every member review the report. |
 | — | Report and submission freeze | Lock the report, code reference, scripts and evidence index. Check the exported document and final submission package. |

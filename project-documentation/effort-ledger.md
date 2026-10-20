@@ -14,40 +14,59 @@ team-agreed allocation, not timesheets. One person-day (pd) is counted as 8 hour
 | Ibrahim Mammadov | 1brahim74 | Flickpond (track A: worker, queue, media type) |
 | Nguyen Kim Long | — | Own Project 1 team (not Flickpond) |
 
+## Specialisms
+
+The effort is equal, but each member specialised. Each member led the work in their area and reviewed
+the other two members' work.
+
+| Member | Specialism | Led |
+|---|---|---|
+| Guruprasath Gopal | **Cloud and delivery:** AWS and CI/CD | Reproducible baseline; AWS environment (CloudFormation stack, Lambda, ECS Fargate encoders, Aurora Serverless, S3, CloudFront); CI quality gates and image scans; the CD workflow (deploy, release, rollback); the close-out CD and Aurora-pause fixes; the release freeze |
+| Ibrahim Mammadov | **Backend services:** Processing and Media | Extracting Processing (its own database, migrations, worker and recovery); adapting Media (asset records, Processing client, retry); boundary security (service token, owner checks, database roles, presigned URLs) |
+| Nguyen Kim Long | **Domain, contracts and verification** | Domain analysis and DDD; the service contracts and OpenAPI documents; Publisher CLI and contract tests; the scaling, recovery and playback experiments; the queue-drain re-test; evidence index |
+
 ## Project 2 effort by work package
 
 | # | Work package (proposal §4.1) | Planned pd | Guruprasath | Ibrahim | Long | Actual pd |
 |---|---|---|---|---|---|---|
 | 1 | Freeze baseline, reproducible local setup, fix the inherited scan finding | 2 | 2 | | | 2 |
 | 2 | Domain analysis, service contracts and OpenAPI documents | 3 | | | 3 | 3 |
-| 3 | Extract Processing: service, own database and migrations, workers and recovery | 6 | | 6 | | 6 |
+| 3 | Extract Processing: service, own database and migrations, workers and recovery | 6 | | 5 | | 5 |
 | 4 | Adapt Media Management: asset records, Processing client, web routes and retry | 3 | | 3 | | 3 |
-| 5 | Boundary security: service token, owner checks, database roles, presigned URLs, negative tests | 3 | 3 | | | 3 |
+| 5 | Boundary security: service token, owner checks, database roles, presigned URLs, negative tests | 3 | | 2 | | 2 |
 | 6 | Publisher CLI and contract tests | 2 | | | 2 | 2 |
-| 7 | AWS environment, per-service deployment, CD pipeline, smoke test | 4 | 4 | | | 4 |
+| 7 | AWS environment, per-service deployment, CI/CD pipeline (deploy, release, rollback), smoke test | 4 | 6 | | | 6 |
 | 8 | Experiments: scaling, load, recovery and playback; raw results | 3 | | | 3 | 3 |
-| 9 | Integration fixes and repeat checks (incl. the 19 Oct close-out fixes #265–#273) | 2 | 1 | 1 | 1 | 3 |
+| 9 | Integration fixes and repeat checks (close-out fixes #265–#273 and their re-tests) | 2 | 2 | | 1 | 3 |
 | 10 | Progress report, presentation and final report (to date) | 3 | 1 | 1 | 1 | 3 |
 | 11 | Release freeze and evidence index (#255, #189; not in the proposal) | 0 | | | 1 | 1 |
 | | **Total** | **31** | **11** | **11** | **11** | **33** |
 
 Project 2 to date: 33 pd (264 h), **11 pd (88 h) per member**. The total is 2 pd over the 31 pd
-estimate. The cause was the integration and close-out work on 18–19 October, which included the CD
-fixes, the Aurora pause fix and the queue drain fix. The presentation and the final report will add
+estimate. Work package 7 grew from 4 to 6 pd because the CD workflow (#178) was added on 18–19
+October. The close-out fixes also added time: the CD script bugs, the Aurora pause and the queue
+drain. Processing and boundary security came in 1 pd under their estimates each. The presentation and the final report will add
 effort after 20 October. Update this table when they are done.
 
 ## Project 1 effort
 
-Members came from different Project 1 teams, so Project 1 hours are per member.
+Team 17 combines members from two Project 1 teams. Prof Boon Kui Heng approved the three-member team
+on 22 September 2026 (Team17-Proposal §1). Project 2 does not continue any member's own Project 1
+work. As the proposal states, it carries over the frozen code of a different Project 1, FlickPond
+(`Flickpond/Media_player`, commit `890c5ec`), and uses it as the baseline (Team17-Proposal §1, §4.4).
 
-| Member | Project 1 pd | Source |
-|---|---|---|
-| Guruprasath Gopal | **TBD** (member to supply) | |
-| Ibrahim Mammadov | 10 (planned) | Flickpond proposal §6: 10.0 pd per member |
-| Nguyen Kim Long | **TBD** (member to supply) | |
+- **Carried over, not claimed:** FFmpeg processing, HLS output, worker replicas and the basic CI
+  workflow are inherited FlickPond capabilities. They are not counted as Project 2 effort, and
+  Project 2 did not add any missing Project 1 features.
+- **Project 1 effort:** each member spent effort on their own Project 1 team's project. That effort is
+  reported with that project and is not repeated here. The FlickPond effort behind the inherited
+  baseline belongs to the FlickPond team, so it is not attributed to Team 17.
+- **Counted here:** only Project 2 work, which starts from the frozen baseline: 11 pd per member
+  (above).
 
-The average across both projects is (Project 1 pd + 11) / 2 per member. Fill it in once the two
-TBD values are known. The presentation needs this figure (briefing).
+When the presentation asks for average effort across both projects, report Project 2 as measured
+here. Report Project 1 as each member's own Project 1 figure, stated as carried over from a different
+project.
 
 ## Milestones: plan against actual
 
@@ -59,6 +78,7 @@ TBD values are known. The presentation needs this figure (briefing).
 | 15–20 Oct | Security controls and tests; AWS deployment and pipeline; experiments | AWS deploy code 15 Oct; `project2-v1` tagged 18 Oct; `dc2-live` up 18 Oct; CD 18–19 Oct; #229 security and #238/#186 scaling verified 19 Oct; freeze 20 Oct | `docs/release/demo-release-manifest.md`, `docs/evidence-index.md` |
 | 21–25 Oct | Fixes, rehearsal, presentation preparation | Pending | #192 |
 | 26 Oct, 14:35–15:15 | Team 17 presentation | Pending | |
+| 31 Oct, 23:59 (tentative) | Code submission (internal date; not set by the course) | Pending | #257 |
 | 27 Oct–16 Nov | Final report with presentation feedback | Pending | #193 |
 
 ## Progress report
