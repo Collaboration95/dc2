@@ -244,6 +244,8 @@ async def test_missing_object_is_recoverable_but_other_storage_failures_stay_una
         await native_store.verify_direct_upload(reservation)
     assert caught.value.status_code == status
     assert "private storage" not in str(caught.value)
+    if status == 409:
+        assert caught.value.message == "upload is incomplete; please upload the file again"
     native_store.internal.get_object.assert_not_called()
 
 

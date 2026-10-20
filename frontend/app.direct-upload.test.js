@@ -92,7 +92,7 @@ it("stops after a refused storage upload and offers a retry without finalizing",
 });
 
 it.each([
-  { status: 409, error: "upload is incomplete; retry finalization", attempts: 1 },
+  { status: 409, error: "upload is incomplete; please upload the file again", attempts: 1 },
   { status: 410, error: "upload reservation expired", attempts: 1 },
   { status: 503, error: "source object unavailable; retry finalization", attempts: 2, retryVisible: true },
 ])("shows a safe finalize $status outcome", async ({ status, error, attempts, retryVisible }) => {
@@ -113,6 +113,7 @@ it.each([
   expect(page.status.textContent).not.toContain("server-key");
   expect(page.activeJob.hidden).toBe(false);
   if (retryVisible) expect(page.jobActions.hidden).toBe(false);
+  if (status === 409) expect(page.fileInput.disabled).toBe(false);
   expect(page.calls.some(([url]) => url.includes("/jobs/public-asset"))).toBe(false);
 });
 
