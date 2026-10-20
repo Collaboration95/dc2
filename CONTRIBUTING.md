@@ -9,6 +9,10 @@ commands are local and read-only; `make test` uses the offline fast suite. Forma
 change. Add short comments to explain important reasons or invariants, and keep type annotations on
 changed public interfaces. Avoid broad lint or formatter suppressions.
 
+Keep released migration files unchanged. Routine formatting excludes migration versions because
+deployment compares their bytes with the running release. Format a new migration explicitly before
+its first release; use a new migration for later schema changes. Migration lint remains enabled.
+
 `make lint` also runs Ruff security rules on the current runtime, Publisher and deployed bootstrap.
 Both lint and formatting cover the CI helpers and V1 image-verification scripts.
 
