@@ -101,7 +101,7 @@ reading its fragment. No production threshold is changed.
 aggregate rules as the others). Each runs that owner's fast tests (`make test-media`;
 `make test-processing test-media-engine`), builds and verifies **only that owner's** V1 images
 with `deploy/v1/build_and_verify.py --only` (Processing's release unit is the API image and the
-finite worker image), then runs `deploy/v1/check_runtime.py` inside each built image. They do
+finite worker image). The verifier runs `deploy/v1/check_runtime.py` inside each built image. They do
 not replace `v1-local`, whose all-three build proves the images stay isolated from each other.
 The selection inputs are the owners' real Dockerfile COPY sources, and a test checks that. The
 mapping of those directories to owners is `.github/CODEOWNERS`.

@@ -99,10 +99,10 @@ class WorkflowWiringTests(unittest.TestCase):
         self.assertLess(self.job.index("trivy-worker.json"), gate)
         self.assertLess(gate, upload)
         self.assertIn("if: always()\n        run: python3 -m scripts.ci.v1_scan", self.job)
-        self.assertIn(
-            "if: always()\n        uses: actions/upload-artifact@v4\n        with:\n"
-            "          name: v1-image-scans-",
+        self.assertRegex(
             self.job,
+            r"if: always\(\)\n        uses: actions/upload-artifact@[0-9a-f]{40}"
+            r"(?: #[^\n]*)?\n        with:\n          name: v1-image-scans-",
         )
 
     def test_docs_only_change_selects_no_image_work(self):
