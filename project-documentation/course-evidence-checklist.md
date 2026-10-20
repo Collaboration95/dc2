@@ -46,8 +46,9 @@ patch-specific rows after integration and verification.
 The attached deliverable sources are the SWE5006 briefing slides 5–6; report template sections
 Introduction, Project Conduct and System Design (including the transition strategy, each use case,
 analysis/design views, one design problem per member and schema); the progress template; and its
-presentation guide. The supplied text extracts are under
-`/tmp/dc2-quality-audit-20261020-19b8/course/`. Their examples do not change the project scope.
+presentation guide. These came from the user-supplied `course_files_export.zip` (not republished
+in this repository), SHA-256 `fec5e4dc9fd2d40af96fdda8f5bcf59a88e2fe8f3a73000390cbb3aac385858c`.
+The three sample proposals are examples, not additional project requirements.
 
 ## Current GC2 outcome cross-check
 
@@ -75,8 +76,8 @@ presentation guide. The supplied text extracts are under
 
 ## Source map
 
-- Attached SWE5006/GC1 engineering material: `/tmp/dc2-quality-audit-20261020-19b8/course/` and
-  the audit trace at `/tmp/dc2-quality-audit-20261020-19b8/reports/requirements.txt`.
+- Attached SWE5006/GC1 engineering material: the briefing deck, report template, progress template,
+  presentation guidelines and three sample proposals in `course_files_export.zip` identified above.
 - Current GC2 source set and authority: [project-documentation index](README.md),
   [briefing requirements](briefing-requirements.txt), [current template](original-reference/02%20Project%20Report%20Template%20for%20Practice%20Project.docx),
   [current presentation guide](original-reference/04%20Project%20Presentation%20Guidelines%20%26%20Schedule.pdf)
