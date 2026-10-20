@@ -23,7 +23,7 @@ features or numerical targets.
 - **Normal:** authenticate; Media reserves an owner-scoped S3 grant; client uploads directly to versioned S3; finalize verifies bytes and pins the VersionId, then atomically adopts the Asset and stages `submit`; return `202` and Asset/job ID.
 - **Exceptions:** anonymous, unsupported type, declared oversize, wrong owner, changed request or expired reservation is refused. Missing, truncated, changed or unversioned bytes are not adopted and enqueue no work. S3 refusing an oversized body can surface as `503` at finalize on the frozen release (#271); the limit still holds. Reusing a request key with changed input conflicts.
 - **Post:** one owned Asset, immutable verified source and one durable command; replay returns the same Asset without a second command.
-- **Tests:** [`test_publisher_direct_post_encode_projection_and_ownership`](../../tests/v1/test_workflow_acceptance.py#L19), [`test_finalize_pins_the_exact_version_it_verified`](../../tests/v1/test_direct_intake_s3.py#L237), [`test_wrong_owner_cannot_finalize_or_observe_a_reservation`](../../tests/v1/test_direct_intake_s3.py#L253), [`test_missing_object_is_retryable_not_adopted`](../../tests/v1/test_direct_intake_s3.py#L298). The full workflow test requires a local runtime attachment; it marks browser rendering and AWS IAM NOT_RUN.
+- **Tests:** [`test_publisher_direct_post_encode_projection_and_ownership`](../../tests/v1/test_workflow_acceptance.py#L19), [`test_finalize_pins_the_exact_version_it_verified`](../../tests/v1/test_direct_intake_s3.py#L237), [`test_wrong_owner_cannot_finalize_or_observe_a_reservation`](../../tests/v1/test_direct_intake_s3.py#L253), [`test_missing_object_is_retryable_not_adopted`](../../tests/v1/test_direct_intake_s3.py#L299). The full workflow test requires a local runtime attachment; it marks browser rendering and AWS IAM NOT_RUN.
 
 ### UC-2 — Process video into playable outputs
 
@@ -33,7 +33,7 @@ features or numerical targets.
 - **Normal:** consume command; create Job/Attempt; claim under DB-clock lease and task binding; verify pinned source; probe/encode primary MP4 and optional HLS; commit terminal state/result before work ACK; update Media projection.
 - **Exceptions:** duplicates/reordering are fenced. Dependency, FFmpeg or deadline failure becomes visible `failed`; expired lease does not auto-requeue. HLS/probe failure can omit HLS while retaining MP4. Poison messages follow DLQ policy.
 - **Post:** success has exactly one primary and optional HLS; failure is visible; output keys are scoped to job/attempt.
-- **Tests:** [`test_success_output_namespace_validation_and_atomic_terminal_result`](../../tests/v1/test_messaging_sql.py#L294), [`test_a_failing_ladder_leaves_the_mp4_and_reports_no_ladder`](../../tests/test_worker_ffmpeg.py#L157), [`test_publisher_direct_post_encode_projection_and_ownership`](../../tests/v1/test_workflow_acceptance.py#L19).
+- **Tests:** [`test_success_output_namespace_validation_and_atomic_terminal_result`](../../tests/v1/test_messaging_sql.py#L322), [`test_a_failing_ladder_leaves_the_mp4_and_reports_no_ladder`](../../tests/test_worker_ffmpeg.py#L157), [`test_publisher_direct_post_encode_projection_and_ownership`](../../tests/v1/test_workflow_acceptance.py#L19).
 
 ### UC-3 — Track status and access playback
 
@@ -53,7 +53,7 @@ features or numerical targets.
 - **Normal:** send bodyless retry with idempotency key; Media checks owner, failed projection and pinned source; Processing serializes by SubmissionGuard and creates a new Attempt. Replay returns that attempt; no bytes are uploaded again.
 - **Exceptions:** foreign/deleted job is not found; non-failed state or changed request conflicts; stale old-attempt worker/result cannot finish or overwrite the current attempt.
 - **Post:** source identity is unchanged and one new Attempt is queued, or an explicit safe error remains visible.
-- **Tests:** [`test_publisher_retry_reuses_the_stored_source_after_a_transient_encode_failure`](../../tests/v1/test_workflow_acceptance.py#L111), [`test_retry_idempotency_and_cancel_fence_old_and_current_attempts`](../../tests/v1/test_messaging_sql.py#L262), [`test_retry_and_cancel_are_commands`](../../tests/media/test_v1_projection.py#L234). The workflow test deletes the local source before retry.
+- **Tests:** [`test_publisher_retry_reuses_the_stored_source_after_a_transient_encode_failure`](../../tests/v1/test_workflow_acceptance.py#L111), [`test_retry_idempotency_and_cancel_fence_old_and_current_attempts`](../../tests/v1/test_messaging_sql.py#L290), [`test_retry_and_cancel_are_commands`](../../tests/media/test_v1_projection.py#L220). The workflow test deletes the local source before retry.
 
 ### UC-5 — Bulk-publish a folder and report results
 
@@ -63,7 +63,7 @@ features or numerical targets.
 - **Normal:** authenticate; submit eligible files through the published API; continue through the batch and report one outcome/job reference per file. `status`, `output` and bodyless `retry` share the public contract.
 - **Exceptions:** one invalid/refused file does not hide later successes; transport uncertainty preserves accepted IDs and request keys; sensitive server error text is withheld.
 - **Post:** per-file outcomes survive the command; any failure makes the batch exit nonzero without losing successful references. Publisher has no service/database imports or DB credentials.
-- **Tests:** [`test_cli_mixed_batch_keeps_every_file_outcome`](../../tests/publisher/test_publisher.py#L228), [`test_module_entry_and_import_boundary`](../../tests/publisher/test_publisher.py#L365), [`test_public_schema_conformance_and_explicit_ca`](../../tests/publisher/test_publisher.py#L386).
+- **Tests:** [`test_cli_mixed_batch_keeps_every_file_outcome`](../../tests/publisher/test_publisher.py#L223), [`test_module_entry_and_import_boundary`](../../tests/publisher/test_publisher.py#L359), [`test_public_schema_conformance_and_explicit_ca`](../../tests/publisher/test_publisher.py#L380).
 
 ### UC-6 — Scale processing capacity independently
 
@@ -73,7 +73,7 @@ features or numerical targets.
 - **Normal:** V2-live work sends wake the backlog launcher; a one-minute schedule is fallback. It checks SQL and visible SQS demand, reserves slots and starts finite Fargate tasks up to three. V1 1/2/3 experiments and V2-live cap-3 evidence are separate.
 - **Exceptions:** no visible queue work means no launch; ambiguous RunTask replies retain their reservation until resolved; uncertain inventory/database fails closed; excess work stays queued. This is bounded task launch, not a general autoscaling service.
 - **Post:** Processing capacity varies without changing Media; concurrent triggers stay within three reserved/running slots.
-- **Tests:** [`test_always_on_concurrent_wakes_never_exceed_the_cap_without_a_session_end`](../../tests/v1/test_launcher_sql.py#L274), [`test_a_backlog_of_ten_launches_at_most_three_and_later_ticks_add_none`](../../tests/v1/test_launcher_sql.py#L233), [`test_a_lost_runtask_response_is_resolved_by_token_without_a_second_launch`](../../tests/v1/test_launcher_sql.py#L326). See [results](../results/actual-vs-target.md#scaling) and [manifest](../release/demo-release-manifest.md#worker-cap-resources-limits).
+- **Tests:** [`test_always_on_concurrent_wakes_never_exceed_the_cap_without_a_session_end`](../../tests/v1/test_launcher_sql.py#L270), [`test_a_backlog_of_ten_launches_at_most_three_and_later_ticks_add_none`](../../tests/v1/test_launcher_sql.py#L229), [`test_a_lost_runtask_response_is_resolved_by_token_without_a_second_launch`](../../tests/v1/test_launcher_sql.py#L317). See [results](../results/actual-vs-target.md#scaling) and [manifest](../release/demo-release-manifest.md#worker-cap-resources-limits).
 
 ### UC-7 — Release Processing and demonstrate rollback
 
@@ -83,7 +83,7 @@ features or numerical targets.
 - **Normal:** after initial deploy, green Main CI may update the persistent stack; only changed owners release. Validate candidate, move that owner's aliases/task definition, run smoke and adopt release; Media is unchanged for a Processing-only release.
 - **Exceptions:** failed gates stop promotion; failed smoke restores previous image; failed restore leaves a durable recovery intent. Migrations are not reversed automatically. Session close defers release. Recorded cloud bad-candidate restore is source `7928b7c`, not frozen `daee44b`.
 - **Post:** success records owner image and smoke; failure records restore or unresolved recovery. Release and smoke timing are separate.
-- **Tests:** [`test_owner_release_applies_a_real_migration_and_failed_candidate_restores_aliases`](../../tests/v1/test_release_acceptance.py#L31), [`test_pending_intent_before_mutation_and_real_bad_candidate_restore`](../../tests/aws/test_aws_release.py#L58), [`test_owners_are_released_only_when_their_images_build_inputs_changed`](../../tests/aws/v1/test_persistent_environment.py#L145), [`test_success_promotes_exact_image_and_persists_only_processing`](../../tests/dev/test_release.py#L207). Offline tests do not prove a live `daee44b` rollback.
+- **Tests:** [`test_owner_release_applies_a_real_migration_and_failed_candidate_restores_aliases`](../../tests/v1/test_release_acceptance.py#L31), [`test_pending_intent_before_mutation_and_real_bad_candidate_restore`](../../tests/aws/test_aws_release.py#L58), [`test_owners_are_released_only_when_their_images_build_inputs_changed`](../../tests/aws/v1/test_persistent_environment.py#L184), [`test_success_promotes_exact_image_and_persists_only_processing`](../../tests/dev/test_release.py#L205). Offline tests do not prove a live `daee44b` rollback.
 
 ## Shared analysis class model
 
@@ -237,10 +237,10 @@ sequenceDiagram
   Media-->>Owner: state and authorized output access
   Owner->>Playback: play MP4 or available HLS
   alt invalid, expired or unowned request
-    Media-->>Client: refusal; no Asset or work accepted
+    Media-->>Client: refusal, no Asset or work accepted
   else processing fails
     Processing-->>Media: visible failed state
-    Media-->>Owner: failed; stored-source retry is available
+    Media-->>Owner: failed, stored-source retry is available
   end
 ```
 
@@ -261,7 +261,7 @@ sequenceDiagram
     end
   end
   opt a previously accepted job failed (UC-4)
-    Maya->>Media: retry with request key; no file bytes
+    Maya->>Media: retry with request key, no file bytes
     Media->>Processing: retry stored source
     Processing-->>Media: same attempt on replay, otherwise new attempt
     Media-->>Maya: retry outcome
@@ -287,7 +287,7 @@ sequenceDiagram
     Operations->>Processing: restore previous image
     Operations-->>Sam: restored or recovery still required
   end
-  Note over Sam,Operations: A failed admission gate stops before promotion; no restore is needed
+  Note over Sam,Operations: A failed admission gate stops before promotion, no restore is needed
 ```
 
 ### Implemented sequence: UC-1–UC-3 upload, process and play
@@ -322,8 +322,8 @@ sequenceDiagram
   Media->>Source: inspect and hash exact object version (outside row lock)
   Media->>MDB: transaction: pin + Asset + submit outbox
   Media-->>Client: 202 Asset/job reference
-  Repair->>MDB: reserve due outbox row; commit claim
-  Repair->>Q: send submit; update row under claim token
+  Repair->>MDB: reserve due outbox row, commit claim
+  Repair->>Q: send submit, update row under claim token
   Q->>Command: deliver command
   Command->>PDB: transaction: inbox + guard + Job + Attempt + work/result outbox
   Command->>Q: publish work and queued result through outbox
@@ -333,21 +333,21 @@ sequenceDiagram
   Launcher->>Worker: RunTask with stable token and finite deadline
   Worker->>Q: receive one work message
   Worker->>PDB: claim current Attempt, bind task and lease
-  Worker->>Source: GET pinned VersionId; verify digest
-  Worker->>Worker: probe and encode MP4; attempt optional HLS
+  Worker->>Source: GET pinned VersionId, verify digest
+  Worker->>Worker: probe and encode MP4, attempt optional HLS
   Worker->>Output: write job/attempt-scoped output versions
-  Worker->>PDB: finish under live lease; state + result outbox
+  Worker->>PDB: finish under live lease, state + result outbox
   Worker->>Q: delete work only after durable outcome
-  Note over PDB,Q: Repair/event hints publish result outbox; worker cannot send results
+  Note over PDB,Q: Repair/event hints publish result outbox, worker cannot send results
   Q->>Results: deliver result at least once
   Results->>MDB: inbox + version/attempt-fenced projection commit
   Owner->>GW: GET own job status
   GW->>Media: trusted Actor context
   Media->>MDB: owner-filtered Asset + local projection
-  Media-->>Owner: status and signed MP4 link; optional HLS route
-  Owner->>Output: range-read MP4; HLS segments use signed redirects
+  Media-->>Owner: status and signed MP4 link, optional HLS route
+  Owner->>Output: range-read MP4, HLS segments use signed redirects
   alt missing or refused upload object
-    Media-->>Client: error; no Asset adoption and no submit outbox
+    Media-->>Client: error, no Asset adoption and no submit outbox
   else stale / duplicate result
     Results->>MDB: ignore old version or reject conflicting message
   end
@@ -385,14 +385,14 @@ sequenceDiagram
   opt UC-4: owner retries a failed job
     Maya->>GW: bodyless retry + Idempotency-Key
     GW->>Media: trusted owner context
-    Media->>MDB: require owned failed projection; read pinned source
+    Media->>MDB: require owned failed projection, read pinned source
     Media->>MDB: stage retry command in transaction
     Repair->>MDB: claim retry outbox row
     Repair->>Q: send retry
     Q->>Commands: deliver at least once
     Commands->>PDB: inbox + SubmissionGuard + new Attempt transaction
     alt same retry key replayed
-      Commands->>PDB: return existing Attempt; no duplicate attempt
+      Commands->>PDB: return existing Attempt, no duplicate attempt
     else old worker finishes late
       Commands->>PDB: lease / attempt fence rejects stale finish
     end
@@ -417,34 +417,34 @@ sequenceDiagram
   participant Publisher as Processing work publisher
   participant ECS as Fargate tasks
   alt UC-6: capacity follows backlog within fixed cap
-    Publisher->>Launcher: async wake after work send; periodic tick is fallback
+    Publisher->>Launcher: async wake after work send, periodic tick is fallback
     Launcher->>Q: check visible demand
     Launcher->>DB: reserve bounded slots under row lock
     Launcher->>ECS: RunTask with stable client token
     opt RunTask reply is lost
       Launcher->>DB: keep reservation until token inventory resolves it
-      Launcher->>ECS: inspect same token; never blindly launch twice
+      Launcher->>ECS: inspect same token, never blindly launch twice
     end
     ECS-->>DB: task claims one Attempt under its lease
-    Note over DB,ECS: concurrent wakes share the SQL cap; at most three workers
+    Note over DB,ECS: concurrent wakes share the SQL cap, at most three workers
   else UC-7: release an owner after CI
     Main->>CD: green Main CI identity
-    CD->>Deploy: CloudFormation UPDATE; reject unapproved state replacement
+    CD->>Deploy: CloudFormation UPDATE, reject unapproved state replacement
     CD->>Release: lock + durable pending owner intent
     Release->>Image: verify tested digest and scan evidence
     Release->>DB: check schema compatibility / migration fence
     Release->>ECS: update only Processing-owned task definition if needed
     Release->>Smoke: move owner aliases and run smoke
     alt smoke and gates pass
-      Smoke-->>Release: pass; record and adopt exact release
-      Release-->>CD: success; peer owner unchanged
+      Smoke-->>Release: pass, record and adopt exact release
+      Release-->>CD: success, peer owner unchanged
     else smoke fails
       Smoke-->>Release: failure
       Release->>Image: restore previous owner image and alias state
       Release-->>CD: restored or recovery intent retained
     end
-    Note over Release,DB: image rollback only; schema is not automatically reversed
-    Sam->>CD: session close remains an emergency gate; closed gate defers release
+    Note over Release,DB: image rollback only, schema is not automatically reversed
+    Sam->>CD: session close remains an emergency gate, closed gate defers release
   end
 ```
 
