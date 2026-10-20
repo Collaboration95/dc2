@@ -139,6 +139,11 @@ classDiagram
   class Actor
   class Envelope
   class Source
+  class LauncherControl
+  class LaunchReservation
+  class Planner
+  class Journal
+  class CLITransport
   User "1" --> "0..*" Asset : owner_id
   Asset "1" --> "0..1" UploadReservation : adopted upload
   Asset "1" --> "0..1" SourceVersion : derived source pin
@@ -150,12 +155,19 @@ classDiagram
   Job "1" --> "0..*" Output : terminal descriptors
   Actor ..> Asset : scopes owner API access
   Envelope --> Source : immutable source reference
+  LauncherControl "1" --> "0..*" LaunchReservation : caps outstanding slots
+  LaunchReservation ..> AttemptTask : resolves finite task identity
+  Planner --> CLITransport : verifies registry and task receipts
+  Planner --> Journal : reads deployed baseline
 ```
 
 `User`, `Asset`, reservations, pins, projections, Jobs and Attempts persist in their owning database;
 `Actor`, `Envelope`, `Source` and `Output` are contract/value types. `ProcessingProjection` is Media's
 copy, not a shared cross-database ORM object. `Actor` is the API identity context; it is not nested
 inside the queue `Envelope`. The schema diagrams above remain the canonical table views.
+`LauncherControl` and `LaunchReservation` are Processing-owned SQL types. `Planner`, `Journal`
+and `CLITransport` are operator-tool classes; release transitions themselves are functions in
+`scripts/aws/v1/release.py`, not another domain service or an invented coordinator class.
 
 ## Analysis-to-design mapping
 
@@ -271,10 +283,11 @@ sequenceDiagram
   Operations->>Processing: promote candidate and run smoke
   alt smoke succeeds
     Operations-->>Sam: exact release and smoke result
-  else smoke or gate fails
+  else candidate smoke fails after promotion
     Operations->>Processing: restore previous image
     Operations-->>Sam: restored or recovery still required
   end
+  Note over Sam,Operations: A failed admission gate stops before promotion; no restore is needed
 ```
 
 ### Implemented sequence: UC-1–UC-3 upload, process and play
@@ -401,9 +414,10 @@ sequenceDiagram
   participant DB as SQL backlog / launch reservations
   participant Q as SQS work queue
   participant Launcher as Backlog launcher
+  participant Publisher as Processing work publisher
   participant ECS as Fargate tasks
   alt UC-6: capacity follows backlog within fixed cap
-    Q->>Launcher: async wake; periodic tick is fallback
+    Publisher->>Launcher: async wake after work send; periodic tick is fallback
     Launcher->>Q: check visible demand
     Launcher->>DB: reserve bounded slots under row lock
     Launcher->>ECS: RunTask with stable client token

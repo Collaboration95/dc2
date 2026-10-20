@@ -9,7 +9,7 @@ from minio.credentials import Credentials, IamAwsProvider, Provider, StaticProvi
 from urllib3 import PoolManager, Timeout
 
 
-def validate_container_environment():
+def validate_container_environment() -> None:
     relative = os.environ.get("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
     full = os.environ.get("AWS_CONTAINER_CREDENTIALS_FULL_URI")
     if bool(relative) == bool(full) or os.environ.get("AWS_WEB_IDENTITY_TOKEN_FILE"):
@@ -46,7 +46,7 @@ class ContainerProvider(Provider):
         )
         self._native = self._factory()
 
-    def retrieve(self):
+    def retrieve(self) -> Credentials:
         # Serialize native cache refresh: credentials/token are one immutable value.
         with self._lock:
             try:
@@ -80,7 +80,7 @@ class LambdaProvider(Provider):
     tuple across operations, which may receive rotated credentials.
     """
 
-    def retrieve(self):
+    def retrieve(self) -> Credentials:
         try:
             if not os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
                 raise ValueError("not a Lambda runtime")
@@ -102,7 +102,7 @@ class LambdaProvider(Provider):
             raise ValueError("Lambda storage credentials unavailable") from None
 
 
-def credential_provider(mode, access, secret):
+def credential_provider(mode: str, access: str | None, secret: str | None) -> Provider | None:
     """Build a provider from explicit owner settings without importing owner configuration."""
     if mode not in {"static", "ecs", "lambda"}:
         raise ValueError("Invalid storage credential mode")
