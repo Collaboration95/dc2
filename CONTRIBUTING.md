@@ -11,3 +11,7 @@ changed public interfaces. Avoid broad lint or formatter suppressions.
 
 `make lint` also runs Ruff security rules on the current runtime, Publisher and deployed bootstrap.
 Both lint and formatting cover the CI helpers and V1 image-verification scripts.
+
+For frontend test-tool changes, use a Node version supported by `frontend/package.json`, run
+`npm ci`, `npm run test:coverage`, and `npm audit --audit-level=high` from `frontend/`.
+CI uses Node 22 and blocks known high or critical findings in this locked development toolchain.

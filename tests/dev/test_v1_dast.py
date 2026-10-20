@@ -164,6 +164,50 @@ def test_report_shape_requires_a_nonempty_local_zap_site():
             v1_dast.validate_report(invalid, port)
 
 
+@pytest.mark.parametrize("key", ["@version", "@generated"])
+@pytest.mark.parametrize("value", ["", "  ", None, 17, {}])
+def test_report_rejects_blank_or_invalid_metadata(key, value):
+    report = zap_report(4443)
+    report[key] = value
+    with pytest.raises(RuntimeError, match="invalid shape"):
+        v1_dast.validate_report(report, 4443)
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("pluginid", None),
+        ("pluginid", "private payload"),
+        ("pluginid", True),
+        ("riskcode", None),
+        ("riskcode", "9"),
+        ("riskcode", False),
+        ("confidence", None),
+        ("confidence", "unknown"),
+        ("confidence", 9),
+        ("count", None),
+        ("count", -1),
+        ("count", 1.5),
+        ("count", "NaN"),
+        ("count", 100001),
+        ("count", True),
+    ],
+)
+def test_report_and_sanitizer_reject_malformed_alert_fields(key, value):
+    alert = {"pluginid": "10021", "riskcode": "1", "confidence": "2", "count": "3"}
+    alert[key] = value
+    report = zap_report(4443, [alert])
+    with pytest.raises(RuntimeError, match="alert record is malformed"):
+        v1_dast.validate_report(report, 4443)
+    with pytest.raises(RuntimeError, match="alert record is malformed"):
+        v1_dast.sanitized_findings("media", report)
+
+
+def test_report_rejects_an_empty_alert_instead_of_recording_an_unknown_finding():
+    with pytest.raises(RuntimeError, match="alert record is malformed"):
+        v1_dast.validate_report(zap_report(4443, [{}]), 4443)
+
+
 def test_sanitized_findings_are_report_only_and_drop_raw_evidence():
     report = zap_report(
         4443,

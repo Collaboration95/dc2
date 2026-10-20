@@ -307,8 +307,10 @@ def validate_report(report, port, host="127.0.0.1"):
     """Reject empty, malformed, or nonlocal ZAP JSON before calling a scan executed."""
     if (
         not isinstance(report, dict)
-        or not isinstance(report.get("@version"), str)
-        or not isinstance(report.get("@generated"), str)
+        or not all(
+            isinstance(report.get(key), str) and report[key].strip()
+            for key in ("@version", "@generated")
+        )
         or not isinstance(report.get("site"), list)
         or not report["site"]
     ):
@@ -323,32 +325,41 @@ def validate_report(report, port, host="127.0.0.1"):
             or not all(isinstance(alert, dict) for alert in site["alerts"])
         ):
             raise RuntimeError("ZAP JSON report includes invalid or out-of-scope site data")
+        for alert in site["alerts"]:
+            alert_fields(alert)
+
+
+def alert_fields(alert):
+    """Validate the bounded fields retained from a ZAP alert, without exposing its payload."""
+    if not isinstance(alert, dict):
+        raise RuntimeError("ZAP alert record is malformed")
+    plugin_id = str(alert.get("pluginid", ""))
+    risk = str(alert.get("riskcode", ""))
+    confidence = str(alert.get("confidence", "")).strip().casefold()
+    count = str(alert.get("count", ""))
+    if (
+        not re.fullmatch(r"[0-9]{1,10}", plugin_id)
+        or risk not in {"0", "1", "2", "3"}
+        or confidence not in {"0", "1", "2", "3", "4", "low", "medium", "high"}
+        or not re.fullmatch(r"[0-9]{1,6}", count)
+        or int(count) > 100000
+    ):
+        raise RuntimeError("ZAP alert record is malformed")
+    return {
+        "plugin_id": plugin_id,
+        "risk_code": risk,
+        "confidence": confidence,
+        "count": int(count),
+    }
 
 
 def sanitized_findings(service, report):
     """Keep alert identifiers and severity only; drop site, route, parameter and evidence data."""
-    findings = []
-    for site in report["site"]:
-        for alert in site["alerts"]:
-            try:
-                count = max(0, min(int(alert.get("count", 0)), 100000))
-            except (TypeError, ValueError):
-                count = 0
-            plugin_id = str(alert.get("pluginid", ""))
-            risk = str(alert.get("riskcode", ""))
-            confidence = str(alert.get("confidence", "unknown")).strip().casefold()
-            findings.append(
-                {
-                    "service": service,
-                    "plugin_id": plugin_id if plugin_id.isdigit() else "unknown",
-                    "risk_code": risk if risk in {"0", "1", "2", "3"} else "unknown",
-                    "confidence": confidence
-                    if confidence in {"0", "1", "2", "3", "4", "low", "medium", "high"}
-                    else "unknown",
-                    "count": count,
-                }
-            )
-    return findings
+    return [
+        {"service": service, **alert_fields(alert)}
+        for site in report["site"]
+        for alert in site["alerts"]
+    ]
 
 
 def _run_zap(private, ca_file, schema_file, timeout=ZAP_TIMEOUT_SECONDS):
