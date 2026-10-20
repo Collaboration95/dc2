@@ -1,0 +1,857 @@
+{
+  "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+  "environment": "dc2-live",
+  "frontend_url": "https://d1e1dpefd6hp9x.cloudfront.net",
+  "api_url": "https://nqxf2hclhi.execute-api.ap-southeast-1.amazonaws.com",
+  "scope": "Engineering delivery and point-in-time read-back; not team acceptance of a new submission freeze",
+  "prior_team_accepted_source": "daee44b61a6e8eef3f62505df69f8bfd076d68b8",
+  "ci": {
+    "run_id": 39415935595,
+    "url": "https://github.com/Collaboration95/dc2/actions/runs/39415935595",
+    "attempt": 1,
+    "event": "push",
+    "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+    "mode": "full",
+    "conclusion": "success",
+    "job_outcomes": {
+      "success": 25,
+      "skipped": 3
+    },
+    "skipped": [
+      "SonarCloud SAST (advisory)",
+      "V1 local verification / V1 image-affecting paths changed",
+      "SonarCloud full coverage analysis (advisory)"
+    ],
+    "image_checks": 73,
+    "image_scans": {
+      "scan": "V1 exact-config Debian OS and Python packages",
+      "images": [
+        {
+          "owner": "media",
+          "role": "Media API (Lambda)",
+          "dockerfile": "deploy/v1/media.Dockerfile",
+          "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+          "local_image_config_id": "sha256:0a86bb2235991854f3d690b4a1a0a24bb5baf297fc8a72621dffd47c26d3ad76",
+          "registry_digest": null,
+          "report": "trivy-media.json",
+          "fixable_high_critical": [],
+          "unfixed_high_critical_count": 44,
+          "scan": {
+            "status": "PASS",
+            "config_id": "sha256:0a86bb2235991854f3d690b4a1a0a24bb5baf297fc8a72621dffd47c26d3ad76",
+            "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+            "policy": "zero-fixable-high-critical; Debian OS and Python packages",
+            "targets": [
+              [
+                "os-pkgs",
+                "debian"
+              ],
+              [
+                "lang-pkgs",
+                "python-pkg"
+              ]
+            ],
+            "report_sha256": "sha256:e77f1fa8157f528de1df5bae7d91b0a39e141d73029854fc9bccbbd7eb4e341b",
+            "fixable_high_critical": 0,
+            "unfixed_high_critical_count": 44,
+            "scanned_at": "2026-10-20T11:38:03.841609+00:00"
+          },
+          "verdict": "PASS"
+        },
+        {
+          "owner": "processing",
+          "role": "Processing API (Lambda)",
+          "dockerfile": "deploy/v1/processing.Dockerfile",
+          "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+          "local_image_config_id": "sha256:4c2a4dd5eb4a7fefa9872c8b2f7720aeb6d908ce5ad87186c30936c95fff790e",
+          "registry_digest": null,
+          "report": "trivy-processing.json",
+          "fixable_high_critical": [],
+          "unfixed_high_critical_count": 44,
+          "scan": {
+            "status": "PASS",
+            "config_id": "sha256:4c2a4dd5eb4a7fefa9872c8b2f7720aeb6d908ce5ad87186c30936c95fff790e",
+            "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+            "policy": "zero-fixable-high-critical; Debian OS and Python packages",
+            "targets": [
+              [
+                "os-pkgs",
+                "debian"
+              ],
+              [
+                "lang-pkgs",
+                "python-pkg"
+              ]
+            ],
+            "report_sha256": "sha256:fefae1660b006a310a3625674eca1a71a86f99b3b5490958f19e5c9397a3ab44",
+            "fixable_high_critical": 0,
+            "unfixed_high_critical_count": 44,
+            "scanned_at": "2026-10-20T11:38:03.847021+00:00"
+          },
+          "verdict": "PASS"
+        },
+        {
+          "owner": "worker",
+          "role": "finite encoder worker (Fargate task)",
+          "dockerfile": "deploy/v1/worker.Dockerfile",
+          "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+          "local_image_config_id": "sha256:8f7879fead7a49eebdc087b239be3ab81cc37087a47f0f40f8b5095b27b932cf",
+          "registry_digest": null,
+          "report": "trivy-worker.json",
+          "fixable_high_critical": [],
+          "unfixed_high_critical_count": 208,
+          "scan": {
+            "status": "PASS",
+            "config_id": "sha256:8f7879fead7a49eebdc087b239be3ab81cc37087a47f0f40f8b5095b27b932cf",
+            "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+            "policy": "zero-fixable-high-critical; Debian OS and Python packages",
+            "targets": [
+              [
+                "os-pkgs",
+                "debian"
+              ],
+              [
+                "lang-pkgs",
+                "python-pkg"
+              ]
+            ],
+            "report_sha256": "sha256:7248e0f72427f037ea73a6628654e97b207c7d16d56f23bc72a660857006697e",
+            "fixable_high_critical": 0,
+            "unfixed_high_critical_count": 208,
+            "scanned_at": "2026-10-20T11:38:03.864585+00:00"
+          },
+          "verdict": "PASS"
+        }
+      ]
+    },
+    "coverage": {
+      "tiers": [
+        "fast",
+        "legacy-integration",
+        "processing-integration",
+        "media-integration",
+        "v1-integration"
+      ],
+      "omit": [
+        "*/migrations/*"
+      ],
+      "packages": [
+        {
+          "package": "app",
+          "combined": 93.15687540348613,
+          "raw_branch": 87.03703703703704,
+          "num_statements": 1333,
+          "num_branches": 216,
+          "covered_lines": 1255,
+          "covered_branches": 188
+        },
+        {
+          "package": "processing",
+          "combined": 93.90196835198765,
+          "raw_branch": 89.35742971887551,
+          "num_statements": 2093,
+          "num_branches": 498,
+          "covered_lines": 1988,
+          "covered_branches": 445
+        },
+        {
+          "package": "media",
+          "combined": 93.9121756487026,
+          "raw_branch": 86.68341708542714,
+          "num_statements": 1606,
+          "num_branches": 398,
+          "covered_lines": 1537,
+          "covered_branches": 345
+        },
+        {
+          "package": "media_engine",
+          "combined": 99.4186046511628,
+          "raw_branch": 98.0,
+          "num_statements": 122,
+          "num_branches": 50,
+          "covered_lines": 122,
+          "covered_branches": 49
+        },
+        {
+          "package": "publisher",
+          "combined": 97.57412398921834,
+          "raw_branch": 94.28571428571429,
+          "num_statements": 301,
+          "num_branches": 70,
+          "covered_lines": 296,
+          "covered_branches": 66
+        },
+        {
+          "package": "contracts",
+          "combined": 97.0,
+          "raw_branch": 96.15384615384616,
+          "num_statements": 222,
+          "num_branches": 78,
+          "covered_lines": 216,
+          "covered_branches": 75
+        },
+        {
+          "package": "delivery",
+          "combined": 95.03722084367246,
+          "raw_branch": 89.36170212765957,
+          "num_statements": 309,
+          "num_branches": 94,
+          "covered_lines": 299,
+          "covered_branches": 84
+        },
+        {
+          "package": "runtime_support",
+          "combined": 94.31279620853081,
+          "raw_branch": 89.62264150943396,
+          "num_statements": 316,
+          "num_branches": 106,
+          "covered_lines": 303,
+          "covered_branches": 95
+        }
+      ],
+      "bootstrap": {
+        "path": "scripts/aws/v1/bootstrap.py",
+        "status": "MEASURED",
+        "combined": 80.36529680365297,
+        "raw_branch": 71.42857142857143,
+        "covered_lines": 126,
+        "num_statements": 149,
+        "percent_covered": 80.36529680365297,
+        "percent_covered_display": "80",
+        "missing_lines": 23,
+        "excluded_lines": 0,
+        "percent_statements_covered": 84.56375838926175,
+        "percent_statements_covered_display": "85",
+        "num_branches": 70,
+        "num_partial_branches": 10,
+        "covered_branches": 50,
+        "missing_branches": 20,
+        "percent_branches_covered": 71.42857142857143,
+        "percent_branches_covered_display": "71"
+      },
+      "goals": {
+        "enforced_for_complete_backend_tiers": true,
+        "packages": {
+          "media": {
+            "combined_target": 90,
+            "raw_branch_target": 85,
+            "combined": 93.9121756487026,
+            "raw_branch": 86.68341708542714,
+            "status": "MET"
+          },
+          "processing": {
+            "combined_target": 90,
+            "raw_branch_target": 85,
+            "combined": 93.90196835198765,
+            "raw_branch": 89.35742971887551,
+            "status": "MET"
+          }
+        },
+        "recovery_modules": {
+          "media/recovery_v1.py": {
+            "combined_target": 80,
+            "raw_branch_target": 75,
+            "combined": 89.76377952755905,
+            "raw_branch": 75.0,
+            "status": "MET"
+          },
+          "processing/recovery_v1.py": {
+            "combined_target": 80,
+            "raw_branch_target": 75,
+            "combined": 88.34355828220859,
+            "raw_branch": 80.0,
+            "status": "MET"
+          }
+        }
+      },
+      "risk_modules": {
+        "media/recovery_v1.py": {
+          "path": "media/recovery_v1.py",
+          "status": "MEASURED",
+          "combined": 89.76377952755905,
+          "raw_branch": 75.0,
+          "covered_lines": 90,
+          "num_statements": 95,
+          "percent_covered": 89.76377952755905,
+          "percent_covered_display": "90",
+          "missing_lines": 5,
+          "excluded_lines": 0,
+          "percent_statements_covered": 94.73684210526316,
+          "percent_statements_covered_display": "95",
+          "num_branches": 32,
+          "num_partial_branches": 8,
+          "covered_branches": 24,
+          "missing_branches": 8,
+          "percent_branches_covered": 75.0,
+          "percent_branches_covered_display": "75"
+        },
+        "processing/recovery_v1.py": {
+          "path": "processing/recovery_v1.py",
+          "status": "MEASURED",
+          "combined": 88.34355828220859,
+          "raw_branch": 80.0,
+          "covered_lines": 112,
+          "num_statements": 123,
+          "percent_covered": 88.34355828220859,
+          "percent_covered_display": "88",
+          "missing_lines": 11,
+          "excluded_lines": 0,
+          "percent_statements_covered": 91.0569105691057,
+          "percent_statements_covered_display": "91",
+          "num_branches": 40,
+          "num_partial_branches": 8,
+          "covered_branches": 32,
+          "missing_branches": 8,
+          "percent_branches_covered": 80.0,
+          "percent_branches_covered_display": "80"
+        },
+        "processing/messaging.py": {
+          "path": "processing/messaging.py",
+          "status": "MEASURED",
+          "combined": 86.10169491525424,
+          "raw_branch": 80.26315789473684,
+          "covered_lines": 193,
+          "num_statements": 219,
+          "percent_covered": 86.10169491525424,
+          "percent_covered_display": "86",
+          "missing_lines": 26,
+          "excluded_lines": 0,
+          "percent_statements_covered": 88.12785388127854,
+          "percent_statements_covered_display": "88",
+          "num_branches": 76,
+          "num_partial_branches": 13,
+          "covered_branches": 61,
+          "missing_branches": 15,
+          "percent_branches_covered": 80.26315789473684,
+          "percent_branches_covered_display": "80"
+        },
+        "runtime_support/storage_credentials.py": {
+          "path": "runtime_support/storage_credentials.py",
+          "status": "MEASURED",
+          "combined": 92.7927927927928,
+          "raw_branch": 88.88888888888889,
+          "covered_lines": 71,
+          "num_statements": 75,
+          "percent_covered": 92.7927927927928,
+          "percent_covered_display": "93",
+          "missing_lines": 4,
+          "excluded_lines": 0,
+          "percent_statements_covered": 94.66666666666667,
+          "percent_statements_covered_display": "95",
+          "num_branches": 36,
+          "num_partial_branches": 4,
+          "covered_branches": 32,
+          "missing_branches": 4,
+          "percent_branches_covered": 88.88888888888889,
+          "percent_branches_covered_display": "89"
+        }
+      }
+    },
+    "v1_acceptance": {
+      "status": "PASS",
+      "elapsed_seconds": 152.865,
+      "required_integration_counts": {
+        "core": {
+          "selected": 95,
+          "passed": 95,
+          "skipped": 0,
+          "failed": 0
+        },
+        "support": {
+          "selected": 3,
+          "passed": 3,
+          "skipped": 0,
+          "failed": 0
+        },
+        "real_password": {
+          "selected": 1,
+          "passed": 1,
+          "skipped": 0,
+          "failed": 0
+        }
+      },
+      "optional_short_encoder_cases": 13,
+      "optional_status": "DEFERRED_OPTIONAL_V2"
+    },
+    "dast": {
+      "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+      "disposition": "executed",
+      "exit_codes": {
+        "media": 0,
+        "processing": 0
+      },
+      "route_coverage": {
+        "blocked_out_of_scope_requests": 146,
+        "cap_exceeded": false,
+        "in_scope_auth_denials": 0,
+        "request_cap": 1600,
+        "requests_forwarded": 317,
+        "requests_seen": 463,
+        "routes": [
+          {
+            "method": "GET",
+            "operation_id": "me_auth_me_get",
+            "responses": {
+              "2xx": 1,
+              "3xx": 0,
+              "429": 0,
+              "4xx": 0,
+              "5xx": 0
+            },
+            "route": "/api/media/auth/me",
+            "service": "media"
+          },
+          {
+            "method": "GET",
+            "operation_id": "health_health_get",
+            "responses": {
+              "2xx": 1,
+              "3xx": 0,
+              "429": 0,
+              "4xx": 0,
+              "5xx": 0
+            },
+            "route": "/api/media/health",
+            "service": "media"
+          },
+          {
+            "method": "GET",
+            "operation_id": "listing_jobs_get",
+            "responses": {
+              "2xx": 18,
+              "3xx": 0,
+              "429": 0,
+              "4xx": 108,
+              "5xx": 0
+            },
+            "route": "/api/media/jobs",
+            "service": "media"
+          },
+          {
+            "method": "GET",
+            "operation_id": "read_jobs__job_id__get",
+            "responses": {
+              "2xx": 2,
+              "3xx": 2,
+              "429": 0,
+              "4xx": 54,
+              "5xx": 0
+            },
+            "route": "/api/media/jobs/{job_id}",
+            "service": "media"
+          },
+          {
+            "method": "GET",
+            "operation_id": "health_health_get",
+            "responses": {
+              "2xx": 1,
+              "3xx": 0,
+              "429": 0,
+              "4xx": 0,
+              "5xx": 0
+            },
+            "route": "/api/processing/health",
+            "service": "processing"
+          },
+          {
+            "method": "GET",
+            "operation_id": "batch_jobs_get",
+            "responses": {
+              "2xx": 2,
+              "3xx": 0,
+              "429": 0,
+              "4xx": 70,
+              "5xx": 0
+            },
+            "route": "/api/processing/jobs",
+            "service": "processing"
+          },
+          {
+            "method": "GET",
+            "operation_id": "read_jobs__job_id__get",
+            "responses": {
+              "2xx": 2,
+              "3xx": 2,
+              "429": 0,
+              "4xx": 54,
+              "5xx": 0
+            },
+            "route": "/api/processing/jobs/{job_id}",
+            "service": "processing"
+          }
+        ],
+        "unmatched_requests": 146
+      },
+      "cleanup": "PASS",
+      "private_raw_cleanup": "PASS",
+      "cloud_scan": "NOT_RUN"
+    },
+    "dast_risk_entries": {
+      "1": 8,
+      "0": 8
+    },
+    "sonar": {
+      "engine": "sonar",
+      "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+      "configured": false,
+      "disposition": "NOT_RUN / not configured"
+    }
+  },
+  "cd": {
+    "run_id": 39416747925,
+    "url": "https://github.com/Collaboration95/dc2/actions/runs/39416747925",
+    "attempt": 1,
+    "event": "workflow_run",
+    "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+    "conclusion": "success",
+    "admission": {
+      "status": "PASS",
+      "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+      "run_id": 39415935595,
+      "run_attempt": 1,
+      "event": "push",
+      "tier": "full",
+      "required_gate": "Full verification",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/39415935595/attempts/1"
+    },
+    "owner_promotions": {
+      "media": {
+        "owner": "media",
+        "release": "g39416747925x1",
+        "outcome": "promoted",
+        "smoke": {
+          "owner": "media",
+          "versions": {
+            "dc2-live-MediaApi-dIhvUhrRl6vK": "6",
+            "dc2-live-MediaAuthorizer-AFIZjqGLFM7K": "6",
+            "dc2-live-MediaResults-k0tWVFCrG00Z": "6",
+            "dc2-live-MediaRepair-9a7msxztPxVn": "6"
+          },
+          "checks": {
+            "media-health": "PASS",
+            "processing-health": "PASS",
+            "anonymous-denied": "PASS",
+            "login": "PASS",
+            "media-jobs": "PASS",
+            "processing-jobs": "PASS",
+            "upload-reserve": "PASS"
+          },
+          "failures": []
+        },
+        "versions": {
+          "dc2-live-MediaApi-dIhvUhrRl6vK": "6",
+          "dc2-live-MediaAuthorizer-AFIZjqGLFM7K": "6",
+          "dc2-live-MediaResults-k0tWVFCrG00Z": "6",
+          "dc2-live-MediaRepair-9a7msxztPxVn": "6"
+        }
+      },
+      "processing": {
+        "owner": "processing",
+        "release": "g39416747925x1",
+        "outcome": "promoted",
+        "smoke": {
+          "owner": "processing",
+          "versions": {
+            "dc2-live-ProcessingApi-BtWaSh35nXin": "10",
+            "dc2-live-ProcessingCommands-F463dvM5FvHW": "9",
+            "dc2-live-ProcessingRepair-eaHk0u5KAjZj": "9",
+            "dc2-live-ProcessingEcsEvents-Dh8TwTw7ucpe": "9",
+            "dc2-live-ProcessingS3Events-v30PRnnANRdc": "9",
+            "dc2-live-ProcessingLauncher-UDHLVDRz5xuI": "9"
+          },
+          "checks": {
+            "media-health": "PASS",
+            "processing-health": "PASS",
+            "anonymous-denied": "PASS",
+            "login": "PASS",
+            "media-jobs": "PASS",
+            "processing-jobs": "PASS"
+          },
+          "failures": []
+        },
+        "versions": {
+          "dc2-live-ProcessingApi-BtWaSh35nXin": "10",
+          "dc2-live-ProcessingCommands-F463dvM5FvHW": "9",
+          "dc2-live-ProcessingRepair-eaHk0u5KAjZj": "9",
+          "dc2-live-ProcessingEcsEvents-Dh8TwTw7ucpe": "9",
+          "dc2-live-ProcessingS3Events-v30PRnnANRdc": "9",
+          "dc2-live-ProcessingLauncher-UDHLVDRz5xuI": "9"
+        }
+      }
+    },
+    "deploy_step": {
+      "completedAt": "2026-10-20T12:04:26Z",
+      "conclusion": "success",
+      "name": "Deploy",
+      "startedAt": "2026-10-20T11:42:39Z"
+    },
+    "post_deploy_playback_step": {
+      "completedAt": "2026-10-20T12:06:34Z",
+      "conclusion": "success",
+      "name": "Smoke test, upload to playback",
+      "startedAt": "2026-10-20T12:04:26Z"
+    },
+    "direct_upload_e2e": {
+      "public": {
+        "bytes": 43153,
+        "encoder_exit_codes": [
+          0
+        ],
+        "encoders_left_running": 0,
+        "encoders_started": 1,
+        "finalize_ms": 843.2,
+        "hls_url_present": true,
+        "job_status": "done",
+        "master_is_playlist": true,
+        "master_status": 200,
+        "mp4_fetch_bytes": 1024,
+        "mp4_fetch_status": 206,
+        "mp4_ok": true,
+        "output_url_present": true,
+        "playlist_not_cached": true,
+        "reserve_ms": 704.4,
+        "seconds_to_terminal": 88.2,
+        "segment_fetch_bytes": 1024,
+        "segment_fetch_status": 206,
+        "segment_redirects_to_s3": true,
+        "segment_status": 307,
+        "served_by_cloudfront": true,
+        "storage_host_is_s3": true,
+        "transitions": [
+          [
+            0.3,
+            "accepted"
+          ],
+          [
+            69.3,
+            "queued"
+          ],
+          [
+            88.2,
+            "done"
+          ]
+        ],
+        "upload_ms": 925.5,
+        "upload_status": 204,
+        "variant_status": 200
+      },
+      "seconds": 125.237,
+      "status": "PASS"
+    },
+    "smoke_generated_at": "2026-10-20T12:06:34Z",
+    "timing_note": "Automatic deploy calls release_changed_owners inside Deploy, including promotion and stack adoption. The following upload/playback step therefore ran after both owner releases. The separate manual Release steps were correctly skipped."
+  },
+  "aws_readback": {
+    "read_at": "2026-10-20T12:15:58.930698+00:00",
+    "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+    "scope": "Read-only deployment journal, ECR manifest, live Lambda aliases and ECS task definition verification",
+    "journal_sha256": "27f90618a8a8c0dce5eec3735d10b8080ba91df3ed170060d1bf3a7f3a10d73f",
+    "images": {
+      "media": {
+        "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+        "registry_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-mediarepository-t4jnrurabxho@sha256:24bd78a88f790754c2ebb712baa06218527e43674b94af9a87ccf93be1c6987c",
+        "registry_digest": "sha256:24bd78a88f790754c2ebb712baa06218527e43674b94af9a87ccf93be1c6987c",
+        "config_id": "sha256:3f1dd48a14d0e0b127014b8190fd1ca01dac94e7c58803d44b835b3b0d2597f3",
+        "manifest_config_binding": "PASS"
+      },
+      "processing": {
+        "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+        "registry_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processingrepository-fajxzf2rv6c2@sha256:d5ca122a8e799a63bbbe9c265a2258a31cf015581da7008a92165d8d2d7ab5b1",
+        "registry_digest": "sha256:d5ca122a8e799a63bbbe9c265a2258a31cf015581da7008a92165d8d2d7ab5b1",
+        "config_id": "sha256:d93733420a04c6bb685fd0982b0b6c3ad4695547103bb7a38c1aadc2aa37ecd0",
+        "manifest_config_binding": "PASS"
+      },
+      "worker": {
+        "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+        "registry_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-workerrepository-ghq0nwvxnahk@sha256:1d89e73ab5c53a87828122840f17a094d51e071d9bb63b5c737524a55749b1a5",
+        "registry_digest": "sha256:1d89e73ab5c53a87828122840f17a094d51e071d9bb63b5c737524a55749b1a5",
+        "config_id": "sha256:d7cbf2f5f972ab3c9c32f24c504674d66dfa4e518018a82b7e564b2e2203de1c",
+        "manifest_config_binding": "PASS"
+      }
+    },
+    "functions": {
+      "dc2-live-MediaApi-dIhvUhrRl6vK": {
+        "owner": "media",
+        "alias": "live",
+        "version": "7",
+        "promotion_receipt_version": "6",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-mediarepository-t4jnrurabxho@sha256:24bd78a88f790754c2ebb712baa06218527e43674b94af9a87ccf93be1c6987c",
+        "status": "PASS"
+      },
+      "dc2-live-MediaAuthorizer-AFIZjqGLFM7K": {
+        "owner": "media",
+        "alias": "live",
+        "version": "7",
+        "promotion_receipt_version": "6",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-mediarepository-t4jnrurabxho@sha256:24bd78a88f790754c2ebb712baa06218527e43674b94af9a87ccf93be1c6987c",
+        "status": "PASS"
+      },
+      "dc2-live-MediaResults-k0tWVFCrG00Z": {
+        "owner": "media",
+        "alias": "live",
+        "version": "7",
+        "promotion_receipt_version": "6",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-mediarepository-t4jnrurabxho@sha256:24bd78a88f790754c2ebb712baa06218527e43674b94af9a87ccf93be1c6987c",
+        "status": "PASS"
+      },
+      "dc2-live-MediaRepair-9a7msxztPxVn": {
+        "owner": "media",
+        "alias": "live",
+        "version": "7",
+        "promotion_receipt_version": "6",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-mediarepository-t4jnrurabxho@sha256:24bd78a88f790754c2ebb712baa06218527e43674b94af9a87ccf93be1c6987c",
+        "status": "PASS"
+      },
+      "dc2-live-ProcessingApi-BtWaSh35nXin": {
+        "owner": "processing",
+        "alias": "live",
+        "version": "11",
+        "promotion_receipt_version": "10",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processingrepository-fajxzf2rv6c2@sha256:d5ca122a8e799a63bbbe9c265a2258a31cf015581da7008a92165d8d2d7ab5b1",
+        "status": "PASS"
+      },
+      "dc2-live-ProcessingCommands-F463dvM5FvHW": {
+        "owner": "processing",
+        "alias": "live",
+        "version": "10",
+        "promotion_receipt_version": "9",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processingrepository-fajxzf2rv6c2@sha256:d5ca122a8e799a63bbbe9c265a2258a31cf015581da7008a92165d8d2d7ab5b1",
+        "status": "PASS"
+      },
+      "dc2-live-ProcessingRepair-eaHk0u5KAjZj": {
+        "owner": "processing",
+        "alias": "live",
+        "version": "10",
+        "promotion_receipt_version": "9",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processingrepository-fajxzf2rv6c2@sha256:d5ca122a8e799a63bbbe9c265a2258a31cf015581da7008a92165d8d2d7ab5b1",
+        "status": "PASS"
+      },
+      "dc2-live-ProcessingEcsEvents-Dh8TwTw7ucpe": {
+        "owner": "processing",
+        "alias": "live",
+        "version": "10",
+        "promotion_receipt_version": "9",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processingrepository-fajxzf2rv6c2@sha256:d5ca122a8e799a63bbbe9c265a2258a31cf015581da7008a92165d8d2d7ab5b1",
+        "status": "PASS"
+      },
+      "dc2-live-ProcessingS3Events-v30PRnnANRdc": {
+        "owner": "processing",
+        "alias": "live",
+        "version": "10",
+        "promotion_receipt_version": "9",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processingrepository-fajxzf2rv6c2@sha256:d5ca122a8e799a63bbbe9c265a2258a31cf015581da7008a92165d8d2d7ab5b1",
+        "status": "PASS"
+      },
+      "dc2-live-ProcessingLauncher-UDHLVDRz5xuI": {
+        "owner": "processing",
+        "alias": "live",
+        "version": "10",
+        "promotion_receipt_version": "9",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processingrepository-fajxzf2rv6c2@sha256:d5ca122a8e799a63bbbe9c265a2258a31cf015581da7008a92165d8d2d7ab5b1",
+        "status": "PASS"
+      }
+    },
+    "pending_release": false,
+    "worker": {
+      "task_definition_arn": "arn:aws:ecs:ap-southeast-1:866865534361:task-definition/dc2-live-worker:10",
+      "status": "ACTIVE",
+      "containers": [
+        {
+          "name": "worker",
+          "image": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-workerrepository-ghq0nwvxnahk@sha256:1d89e73ab5c53a87828122840f17a094d51e071d9bb63b5c737524a55749b1a5"
+        }
+      ],
+      "image_binding": "PASS"
+    },
+    "version_note": "Promotion receipts precede adoption. The later stack adoption publishes an additional version using the same immutable image. This read-back records the final live aliases and verifies their image digests.",
+    "outcome": "PASS",
+    "deployed_image_trivy_scans": {
+      "media": {
+        "status": "PASS",
+        "config_id": "sha256:3f1dd48a14d0e0b127014b8190fd1ca01dac94e7c58803d44b835b3b0d2597f3",
+        "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+        "policy": "zero-fixable-high-critical; Debian OS and Python packages",
+        "targets": [
+          [
+            "os-pkgs",
+            "debian"
+          ],
+          [
+            "lang-pkgs",
+            "python-pkg"
+          ]
+        ],
+        "report_sha256": "sha256:e29829ed6728b69e2a32a2c199918c335bc3340e42fe5555b23494d41c41f1c7",
+        "fixable_high_critical": 0,
+        "unfixed_high_critical_count": 44,
+        "scanned_at": "2026-10-20T12:22:26.942210+00:00",
+        "image_revision_label": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+        "unfixed_high_critical_finding_rows": 44
+      },
+      "processing": {
+        "status": "PASS",
+        "config_id": "sha256:d93733420a04c6bb685fd0982b0b6c3ad4695547103bb7a38c1aadc2aa37ecd0",
+        "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+        "policy": "zero-fixable-high-critical; Debian OS and Python packages",
+        "targets": [
+          [
+            "os-pkgs",
+            "debian"
+          ],
+          [
+            "lang-pkgs",
+            "python-pkg"
+          ]
+        ],
+        "report_sha256": "sha256:fe9a06f19a56fd493ebfdc26bda0cbc7cb5b1724f6e46a85e47780fa56305aed",
+        "fixable_high_critical": 0,
+        "unfixed_high_critical_count": 44,
+        "scanned_at": "2026-10-20T12:22:27.316160+00:00",
+        "image_revision_label": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+        "unfixed_high_critical_finding_rows": 44
+      },
+      "worker": {
+        "status": "PASS",
+        "config_id": "sha256:d7cbf2f5f972ab3c9c32f24c504674d66dfa4e518018a82b7e564b2e2203de1c",
+        "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+        "policy": "zero-fixable-high-critical; Debian OS and Python packages",
+        "targets": [
+          [
+            "os-pkgs",
+            "debian"
+          ],
+          [
+            "lang-pkgs",
+            "python-pkg"
+          ]
+        ],
+        "report_sha256": "sha256:0d863de3f3a3513285ec93160a843c04b4567b116f772a3bf21f14b050cfb81a",
+        "fixable_high_critical": 0,
+        "unfixed_high_critical_count": 208,
+        "scanned_at": "2026-10-20T12:22:27.718653+00:00",
+        "image_revision_label": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+        "unfixed_high_critical_finding_rows": 208
+      }
+    }
+  },
+  "artifact_sha256": {
+    "ci_policy": "ecab7e21d06d152b82fb07ac3e8b91507b8997ad13f73ebc8bb1697085195000",
+    "ci_coverage": "0a923f3ebd0704376670b5f0a2502f31ac3e4004f42c3deeca5f1cf42771c8a7",
+    "ci_v1_manifest": "f5846c18c4544cca429db8de4dedb6af6133ab48719f1f90bc2f2cecce19bc87",
+    "ci_images": "db04dc489b759cdfe6a5b7cc4e68475f256be6c9d30789305714a6250e38daf8",
+    "ci_scan_summary": "0d0e9853fb9b7e97e2f231dac319ebc952cc0b24ba395c7e0afe06423198a9b4",
+    "cd_admission": "5692832df2324a4222026692eb6df37602877e350d3310c3fb6d7ba0013ccfcf",
+    "cd_media_promotion": "8ea55e1eb55edbf58837688e72d93599e77992b379bacffaf4370ff651551dd7",
+    "cd_processing_promotion": "82b96cf97466e29204643efaf99a0df6262a72fe186c086d8cbd519ebee377cd",
+    "cd_playback": "8206fe949eb40494101a0b5020ca695845b0b330740e1bac7b473ca5b4e1a239",
+    "aws_readback": "5071e3de8849d5039c49343580e111430d5da37a0ba02a4e750d69d10e2cd134"
+  },
+  "limits": [
+    "This is one post-deployment smoke, not a new load/scaling benchmark, queue-latency result, Aurora pause/cost measurement, restore drill or comprehensive cloud security audit.",
+    "The cloud-proof artifact keeps issue #63 overall INCOMPLETE while its direct-upload-e2e step is PASS; other unexecuted issue proofs remain NOT_RUN.",
+    "Local DAST findings are report-only and do not scan AWS edge/IAM. The earlier local scanner exit-3 failure is retained and not claimed fixed.",
+    "Owner promotion receipts precede stack adoption and name earlier Lambda version numbers; AWS read-back validates the later live aliases against the same source-bound immutable image digests.",
+    "Unfixed image vulnerability rows remain; Sonar source analysis was not configured.",
+    "Individual effort, course submission receipts and replacement team freeze acceptance require actual team confirmation."
+  ]
+}
