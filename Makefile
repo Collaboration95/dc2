@@ -9,7 +9,7 @@ export npm_config_cache := $(CURDIR)/.cache/npm
 export RUFF_CACHE_DIR := $(CURDIR)/.cache/ruff
 export PLAYWRIGHT_BROWSERS_PATH := $(CURDIR)/.local/playwright
 
-.PHONY: help setup setup-v1 setup-browser doctor doctor-infra lint test test-python test-frontend coverage \
+.PHONY: help setup setup-v1 setup-browser doctor doctor-infra lint format-check test test-python test-frontend coverage \
         coverage-report integration integration-coverage clean test-app test-processing test-media \
         test-media-engine test-publisher test-cli publisher up down logs smoke-infra images env status local-tls \
         browser browser-install browser-open browser-trust-smoke capacity-install capacity-start capacity-status capacity-stop capacity-env capacity-reap capacity-renew \
@@ -34,6 +34,9 @@ doctor-infra: ## Also diagnose Docker, FFmpeg, TLS and foundation helper availab
 
 lint: ## Lint all current backend packages, tests, migrations and dev helpers
 	$(PYTHON) -m scripts.dev.checks lint
+
+format-check: ## Check Ruff formatting without changing files
+	$(PYTHON) -m scripts.dev.checks format-check
 
 test: ## Fast Python and frontend suites; no real services or live browser
 	$(PYTHON) -m scripts.dev.checks test

@@ -1,3 +1,0 @@
-# Declarative input; resolved versions/hashes come exclusively from uv.lock.
-# Export: uv export --frozen --no-dev --no-emit-project --extra v1-media
-awslambdaric>=3,<4

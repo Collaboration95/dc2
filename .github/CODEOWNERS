@@ -7,7 +7,6 @@
 /media/                              @Collaboration95
 /tests/media/                        @Collaboration95
 /deploy/v1/media.Dockerfile          @Collaboration95
-/deploy/v1/media.requirements.in     @Collaboration95
 
 # Processing service: Lambda API, finite worker, encoder engine, their images and tests.
 /processing/                         @Collaboration95
@@ -15,15 +14,14 @@
 /media_engine/                       @Collaboration95
 /tests/media_engine/                 @Collaboration95
 /deploy/v1/processing.Dockerfile     @Collaboration95
-/deploy/v1/processing.requirements.in @Collaboration95
 /deploy/v1/worker.Dockerfile         @Collaboration95
-/deploy/v1/worker.requirements.in    @Collaboration95
 
 # Shared by both services: a change here is a change to both release units.
 /contracts/                          @Collaboration95
 /delivery/                           @Collaboration95
 /runtime_support/                    @Collaboration95
 /tests/contracts/                    @Collaboration95
+/pyproject.toml                      @Collaboration95
 /deploy/v1/check_runtime.py          @Collaboration95
 /deploy/v1/build_and_verify.py       @Collaboration95
 

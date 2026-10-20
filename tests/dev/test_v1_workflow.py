@@ -19,8 +19,12 @@ def v1():
 
 @pytest.fixture
 def steps(v1):
-    return {s["name"]: s for lane in ("v1-offline", "v1-local")
-            for s in v1["jobs"][lane]["steps"] if "name" in s}
+    return {
+        s["name"]: s
+        for lane in ("v1-offline", "v1-local")
+        for s in v1["jobs"][lane]["steps"]
+        if "name" in s
+    }
 
 
 def test_v1_workflow_defaults_to_every_flow_for_dispatch_and_call(v1):
@@ -37,9 +41,14 @@ def test_v1_job_requires_the_browser_leg_and_collects_coverage(v1):
 
 
 def test_v1_job_requires_a_pinned_cfn_lint_that_stays_out_of_the_lockfile(steps):
-    install = steps["Install locked V1 checks and isolated lint tools (no legacy extra)"]["run"]
+    install = next(
+        step["run"]
+        for step in steps.values()
+        if "uv sync --locked --extra dev" in step.get("run", "")
+    )
     assert "uv pip install" in install and "cfn-lint==" in install
     assert "uv sync --locked" in install
+    assert "--extra v1-media" in install and "--extra legacy" not in install
     lint = steps["Lint the V1 template (render, snapshot freshness, cfn-lint required)"]["run"]
     assert "make lint-cfn" in lint and "--require" in lint
     assert "cfn-lint" not in (ROOT / "uv.lock").read_text()

@@ -1,4 +1,4 @@
-# Standalone first extraction milestone. Does not modify the inherited stack or volumes.
+# CI-only PostgreSQL fixture; the integrated local runtime is compose/local/docker-compose.yml.
 name: dc2-processing
 services:
   postgres:
@@ -20,51 +20,6 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
-
-  redis:
-    image: redis:7-alpine
-    ports: ["127.0.0.1:${P2_REDIS_PORT:-56379}:6379"]
-    healthcheck:
-      test: [CMD, redis-cli, ping]
-      interval: 2s
-      timeout: 3s
-      retries: 30
-
-  processing-migrate:
-    build:
-      context: .
-      dockerfile: deploy/processing.Dockerfile
-    image: dc2-processing:dev
-    command: ["python", "-m", "alembic", "-c", "processing/alembic.ini", "upgrade", "head"]
-    environment:
-      PROCESSING_POSTGRES_DSN: postgresql+asyncpg://processing_migrator:${PROCESSING_MIGRATION_PASSWORD:-dc2_local_processing_migrate}@postgres:5432/processing_db
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  processing:
-    image: dc2-processing:dev
-    build:
-      context: .
-      dockerfile: deploy/processing.Dockerfile
-    environment:
-      PROCESSING_POSTGRES_DSN: postgresql+asyncpg://processing_runtime:${PROCESSING_RUNTIME_PASSWORD:-dc2_local_processing}@postgres:5432/processing_db
-      PROCESSING_SERVICE_TOKEN: ${PROCESSING_SERVICE_TOKEN:?Set PROCESSING_SERVICE_TOKEN in .env}
-      PROCESSING_REDIS_URL: redis://redis:6379/0
-      PROCESSING_QUEUE_NAME: ${PROCESSING_QUEUE_NAME:-processing-ci}
-
-    ports:
-      - "127.0.0.1:${PROCESSING_PORT:-8010}:8000"
-    depends_on:
-      processing-migrate:
-        condition: service_completed_successfully
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
 
 volumes:
   processing-postgres:

@@ -82,6 +82,32 @@ FORBIDDEN_EVERYWHERE = {
     "pyyaml",
     "click",
 }
+FORBIDDEN_BY_OWNER = {
+    "media": {"httpx", "httpcore", "h11", "python-multipart"},
+    "processing": {
+        "httpx",
+        "httpcore",
+        "h11",
+        "python-multipart",
+        "bcrypt",
+        "dnspython",
+        "email-validator",
+        "pyjwt",
+    },
+    "worker": {
+        "httpx",
+        "httpcore",
+        "h11",
+        "python-multipart",
+        "bcrypt",
+        "dnspython",
+        "email-validator",
+        "pyjwt",
+        "alembic",
+        "mako",
+        "markupsafe",
+    },
+}
 # Top-level source directories each image may carry under /app (plus the two lock inputs).
 APP_ALLOWED = {
     "media": {"contracts", "delivery", "media", "runtime_support"},
@@ -223,6 +249,8 @@ def verify_contents(owner: str, tag: str, built: dict) -> dict:
     packages = set(summary.get("installed_packages", {}))
     found = sorted(FORBIDDEN_EVERYWHERE & packages)
     record(f"{owner}: no legacy-queue/dev/test distributions", not found, found)
+    non_owner = sorted(FORBIDDEN_BY_OWNER[owner] & packages)
+    record(f"{owner}: no non-owner HTTP/auth/migration distributions", not non_owner, non_owner)
     if kind == "lambda-api":
         record(f"{owner}: Lambda runtime client present", "awslambdaric" in packages)
         dpkg = docker_run(tag, ["-W", "ffmpeg"], entrypoint="dpkg-query")
@@ -636,8 +664,11 @@ def worker_ffmpeg_under_lambda_constraints(tag):
     result = docker_run(tag, ["-c", script], entrypoint="sh", user=LAMBDA_UID, timeout=300)
     seconds = result.stdout.strip().splitlines()[-1:] or [""]
     ok = result.returncode == 0 and seconds[0].startswith("1.")
-    record("worker: FFmpeg encodes and probes a clip under the Lambda constraints", ok,
-           result.stderr[-300:])
+    record(
+        "worker: FFmpeg encodes and probes a clip under the Lambda constraints",
+        ok,
+        result.stderr[-300:],
+    )
     return {"ok": ok}
 
 

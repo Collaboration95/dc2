@@ -170,13 +170,25 @@ def integration(*, coverage: bool = False) -> list[Path]:
     return fragments
 
 
-def lint() -> None:
-    paths = packages() + [
+def lint_paths() -> list[str]:
+    return packages() + [
         str(p)
         for p in ("legacy", "tests", "migrations", "scripts/dev", "scripts/evidence", "scripts/aws")
         if (ROOT / p).exists()
     ]
+
+
+def lint() -> None:
+    paths = lint_paths()
     run([str(PYTHON), "-m", "ruff", "check", *paths], label="lint", timeout=60)
+
+
+def format_check() -> None:
+    run(
+        [str(PYTHON), "-m", "ruff", "format", "--check", *lint_paths()],
+        label="format-check",
+        timeout=60,
+    )
 
 
 def clean() -> None:
@@ -199,6 +211,7 @@ def main() -> None:
             "test-python",
             "test-frontend",
             "lint",
+            "format-check",
             "coverage",
             "coverage-fast",
             "coverage-frontend",
@@ -217,6 +230,8 @@ def main() -> None:
         frontend()
     if args.action == "lint":
         lint()
+    if args.action == "format-check":
+        format_check()
     if args.action == "coverage-fast":
         fast(coverage=True)
     if args.action == "coverage-frontend":

@@ -109,9 +109,11 @@ only that certificate, or start Chrome with the printed `--ignore-certificate-er
 and a throwaway `--user-data-dir`. It is emulated, not AWS evidence, and each start resets that run's
 buckets and queues. It does not keep Moto state across restarts or start dependencies for you.
 
-Other useful targets: `make lint`, `make test` (fast Python and frontend suites), `make lint-cfn`
-(renders and lints the CloudFormation template offline), `make v1-images` (builds and verifies the three
-images; local evidence only).
+Python conventions and local checks are in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+Other useful targets include `make lint`, `make format-check`, `make test` (fast Python and frontend
+suites), `make lint-cfn` (renders and lints the CloudFormation template offline), and `make v1-images`
+(builds and verifies the three images; local evidence only).
 
 ## Deploy to AWS
 
