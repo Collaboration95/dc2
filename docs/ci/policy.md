@@ -262,7 +262,8 @@ local checkout, review it, and run the workflow contracts before merging. Do not
 replace a pin with a moving major tag. Runner and container base tags remain
 separate moving inputs; action pinning alone does not make builds reproducible.
 
-The required lint job also runs Ruff's `S` security rules over Media, Processing,
+The required lint job uses the same `make lint` command as local development. It also runs
+Ruff's `S` security rules over Media, Processing,
 the media engine, contracts, delivery, runtime support, Publisher and the database
 bootstrap copied into the worker image. This is
 local security lint, not whole-program data-flow SAST. The one fixed emulator

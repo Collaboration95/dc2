@@ -104,15 +104,6 @@ jobs:
       - uses: ./.github/actions/python-tools
       - run: uv sync --locked --extra legacy --extra dev --extra browser
       - run: make lint
-      - name: Security lint for deployed Python and Publisher sources
-        run: >-
-          .venv/bin/ruff check --select S
-          media processing media_engine contracts delivery runtime_support publisher
-          scripts/aws/v1/bootstrap.py
-      - name: Lint and check formatting for CI helpers (outside inherited lint path)
-        run: |
-          .venv/bin/ruff check scripts/ci tests/ci
-          .venv/bin/ruff format --check scripts/ci tests/ci
       - run: make format-check
       - run: .venv/bin/python -m scripts.dev.checks coverage-fast
       # The no-legacy V1 offline suite deliberately excludes these AWS2 contracts;

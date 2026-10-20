@@ -8,6 +8,7 @@ from pathlib import Path
 from scripts.dev.common import (
     PYTHON,
     ROOT,
+    V1_BOOTSTRAP_FILE,
     coverage_omit_patterns,
     fingerprint,
     local_env,
@@ -182,7 +183,16 @@ def integration(*, coverage: bool = False) -> list[Path]:
 def lint_paths() -> list[str]:
     return packages() + [
         str(p)
-        for p in ("legacy", "tests", "migrations", "scripts/dev", "scripts/evidence", "scripts/aws")
+        for p in (
+            "legacy",
+            "tests",
+            "migrations",
+            "scripts/dev",
+            "scripts/evidence",
+            "scripts/aws",
+            "scripts/ci",
+            "deploy/v1",
+        )
         if (ROOT / p).exists()
     ]
 
@@ -190,6 +200,20 @@ def lint_paths() -> list[str]:
 def lint() -> None:
     paths = lint_paths()
     run([str(PYTHON), "-m", "ruff", "check", *paths], label="lint", timeout=60)
+    run(
+        [
+            str(PYTHON),
+            "-m",
+            "ruff",
+            "check",
+            "--select",
+            "S",
+            *[name for name in packages() if name != "app"],
+            V1_BOOTSTRAP_FILE,
+        ],
+        label="source-security-lint",
+        timeout=60,
+    )
 
 
 def format_check() -> None:
