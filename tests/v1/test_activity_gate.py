@@ -107,7 +107,7 @@ def test_a_write_is_recorded_before_it_happens_at_most_once_a_minute_and_never_b
     assert ssm.puts[-1] == (TOUCHED, "1061")
 
 
-def test_a_pass_records_quiet_only_when_nothing_is_due_now_and_never_for_long():
+def test_a_pass_records_quiet_only_when_nothing_is_due_now_and_never_for_long(caplog):
     ssm = Ssm()
     gate(ssm).record(9_000, 0.0)  # work due now: nothing written, the next tick runs SQL
     gate(ssm).record(9_000, 8_999.0)
@@ -117,6 +117,8 @@ def test_a_pass_records_quiet_only_when_nothing_is_due_now_and_never_for_long():
     assert ssm.puts == [(QUIET, "9000 9500"), (QUIET, f"9000 {9_000 + MAX_QUIET_SECONDS}")]
     ssm.fail = True
     gate(ssm).record(9_000, None)  # a failed write only costs SQL
+    assert "activity quiet marker write failed: TimeoutError" in caplog.text
+    assert "ssm unreachable" not in caplog.text
 
 
 def test_the_gate_exists_only_where_the_stack_deployed_its_markers():

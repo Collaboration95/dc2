@@ -57,7 +57,7 @@ def native_sqs(region):
             region_name=region,
             endpoint_url=endpoint,
             aws_access_key_id="local",
-            aws_secret_access_key="local",
+            aws_secret_access_key="local",  # noqa: S106 - restricted local emulator above
             config=Config(connect_timeout=3, read_timeout=25, retries={"total_max_attempts": 1}),
         )
     from processing.storage_credentials import validate_container_environment

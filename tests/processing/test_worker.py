@@ -130,7 +130,7 @@ async def test_supervisor_deadline_and_bad_subprocess(monkeypatch):
 
 
 @pytest.mark.parametrize("alive", [False, RuntimeError("secret")])
-async def test_heartbeat_revokes_on_failure(monkeypatch, alive):
+async def test_heartbeat_revokes_on_failure(monkeypatch, alive, caplog):
     callback = (
         AsyncMock(side_effect=alive)
         if isinstance(alive, Exception)
@@ -141,6 +141,8 @@ async def test_heartbeat_revokes_on_failure(monkeypatch, alive):
         await asyncio.wait_for(sup.lost.wait(), 0.5)
         with pytest.raises(LeaseLost):
             sup.check()
+    assert "encoder authority revoked: LeaseLost" in caplog.text
+    assert "secret" not in caplog.text
 
 
 async def test_output_put_acknowledgment_without_head(monkeypatch, tmp_path):

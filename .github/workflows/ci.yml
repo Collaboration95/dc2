@@ -112,6 +112,10 @@ jobs:
           cache-dependency-glob: uv.lock
       - run: uv sync --locked --extra legacy --extra dev --extra browser
       - run: make lint
+      - name: Security lint for deployed Python and Publisher sources
+        run: >-
+          .venv/bin/ruff check --select S
+          media processing media_engine contracts delivery runtime_support publisher
       - name: Lint CI helpers (outside inherited lint path)
         run: .venv/bin/ruff check scripts/ci tests/ci
       - run: .venv/bin/python -m scripts.dev.checks coverage-fast

@@ -122,5 +122,5 @@ class Activity:
         due = min(due_at or float("inf"), checked_at + MAX_QUIET_SECONDS)
         try:
             self._put(self.quiet_name, f"{int(checked_at)} {int(due)}")
-        except Exception:
-            pass
+        except Exception as error:
+            logger.warning("activity quiet marker write failed: %s", type(error).__name__)

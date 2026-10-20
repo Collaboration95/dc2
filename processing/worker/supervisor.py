@@ -1,12 +1,15 @@
 """Responsive lease/deadline supervision independent of download/encode/upload."""
 
 import asyncio
+import logging
 import os
 import signal
 import time
 from contextlib import suppress
 
 from processing.lifecycle import heartbeat
+
+logger = logging.getLogger(__name__)
 
 
 class LeaseLost(Exception):
@@ -72,9 +75,9 @@ class Supervisor:
                 if not alive:
                     break
                 await asyncio.sleep(min(self.settings.heartbeat_seconds, remaining))
-        except Exception:
+        except Exception as error:
             # Infrastructure uncertainty revokes authority rather than extending a lease.
-            pass
+            logger.warning("encoder authority revoked: %s", type(error).__name__)
         self.lost.set()
 
     async def guard(self, awaitable):
