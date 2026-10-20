@@ -665,7 +665,7 @@ def run_scan(run_id, output):
         "report_retained": False,
         "source_sha": "unknown",
         "cloud_scan": "NOT_RUN",
-        "harness": "scripts.dev.v1_acceptance.app_runtime + scripts.dev.v1_gateway.DastGateway",
+        "harness": "scripts.dev.v1_acceptance.app_runtime + scripts.dev.v1_dast.DastGateway",
         "runtime": "real PostgreSQL; run-scoped Moto S3/SQS; V1 handlers and Media authorizer",
         "cleanup": "PENDING",
     }

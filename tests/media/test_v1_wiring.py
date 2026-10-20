@@ -126,6 +126,10 @@ async def test_exported_handler_reads_owned_projection_without_peer(
         data = json.loads(detail["body"])
         assert data["status"] == "done" and data["output_url"] == signed_url
         owned_asset.assert_awaited_once_with(session, asset.id, user.id)
+        listing.return_value = []
+        empty = await handler.invoke(event("/jobs", user, settings))
+        assert empty["statusCode"] == 200 and json.loads(empty["body"]) == []
+        assert empty["headers"]["cache-control"] == "private, no-store"
         assert storage.sign_output.await_count == 2
 
         health = await handler.invoke(event("/health", user, settings))
