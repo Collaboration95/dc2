@@ -30,7 +30,6 @@ jobs:
     timeout-minutes: 25
     env:
       DAST_RUN_ID: dast-${{ github.run_id }}-${{ github.run_attempt }}
-      DAST_REPORT_DIR: ${{ runner.temp }}/v1-dast-reports
       V1_MOTO_PYTHON: ${{ github.workspace }}/.cache/v1-moto/bin/python
       UV_CACHE_DIR: ${{ github.workspace }}/.cache/uv
       UV_PYTHON_DOWNLOADS: never
@@ -71,10 +70,10 @@ jobs:
       - name: Start unique local PostgreSQL and Moto namespace
         run: .venv/bin/python -m scripts.dev.v1_runtime up --run-id "$DAST_RUN_ID"
       - name: Seed two owners and run bounded authenticated current-V1 ZAP scans
-        run: .venv/bin/python -m scripts.dev.v1_dast scan --run-id "$DAST_RUN_ID" --output "$DAST_REPORT_DIR"
+        run: .venv/bin/python -m scripts.dev.v1_dast scan --run-id "$DAST_RUN_ID" --output "$RUNNER_TEMP/v1-dast-reports"
       - name: Always tear down this run and remove its local data
         if: always()
-        run: .venv/bin/python -m scripts.dev.v1_dast cleanup --run-id "$DAST_RUN_ID" --output "$DAST_REPORT_DIR"
+        run: .venv/bin/python -m scripts.dev.v1_dast cleanup --run-id "$DAST_RUN_ID" --output "$RUNNER_TEMP/v1-dast-reports"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
