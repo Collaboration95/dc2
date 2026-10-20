@@ -1,4 +1,4 @@
-name: DAST (isolated extracted services)
+name: DAST (isolated current V1 APIs)
 
 on:
   workflow_call:
@@ -18,8 +18,6 @@ on:
   # CI owns PR selection and calls this workflow once per candidate.
 
 concurrency:
-  # A reusable workflow inherits github.workflow from its caller. Prefixing the
-  # group prevents this scan from cancelling its own full-CI parent.
   group: dast-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 permissions:
@@ -27,33 +25,36 @@ permissions:
 
 jobs:
   dast:
-    name: Integrated Media public API; private contracts prepared separately
+    name: Authenticated Media and Processing V1 local APIs
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      RUN_ID: dast-${{ github.run_id }}-${{ github.run_attempt }}
-      GH_TOKEN: ${{ github.token }}
+      DAST_RUN_ID: dast-${{ github.run_id }}-${{ github.run_attempt }}
+      DAST_REPORT_DIR: ${{ runner.temp }}/v1-dast-reports
+      V1_MOTO_PYTHON: ${{ github.workspace }}/.cache/v1-moto/bin/python
       UV_CACHE_DIR: ${{ github.workspace }}/.cache/uv
       UV_PYTHON_DOWNLOADS: never
       PYTHONPATH: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Identify exact scan source and execution policy
+      - name: Identify exact source and unique local namespace
         env:
           CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           REQUIRED_CANDIDATE: ${{ inputs.required_candidate }}
         run: |
-          python3 - <<'PYSOURCE'
+          python3 - <<'PY'
           import os, re, subprocess
           source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
-          assert source == os.environ['GITHUB_SHA'], 'Scan checkout differs from tested event SHA'
+          assert source == os.environ['GITHUB_SHA'], 'DAST checkout differs from the event SHA'
           if os.environ['GITHUB_EVENT_NAME'] == 'workflow_dispatch' and os.environ['REQUIRED_CANDIDATE'] != 'true':
               candidate = os.environ['CANDIDATE_SHA']
               assert re.fullmatch('[0-9a-fA-F]{40}', candidate) and candidate.lower() == source, 'Dispatch on the exact candidate ref and provide candidate_sha'
+          run_id = os.environ['DAST_RUN_ID']
+          assert re.fullmatch(r'dast-[0-9]+-[0-9]+', run_id), 'Expected a unique DAST run namespace'
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as stream:
-              stream.write('DAST source: `' + source + '`. Scheduled scans use the default branch.\n')
-              stream.write('Full CI requires successful scan execution; dev PR scans are advisory to Dev gate. Findings are report-only at every tier.\n')
-          PYSOURCE
+              stream.write(f'DAST source: `{source}`. Local namespace: `{run_id}`. Scheduled scans use the default branch.\n')
+              stream.write('Target: disposable loopback V1 Gateway/authorizer and generated Media/Processing schemas. AWS/cloud scans: NOT_RUN.\n')
+          PY
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
@@ -63,132 +64,27 @@ jobs:
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
-      - run: uv sync --locked --extra legacy --extra dev
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: .cache/minio
-          key: minio-source-20960b6a2ddb9594ee418035b3c7c7fe92ae6a12
-      - name: Prepare pinned storage through authenticated gh
-        run: .venv/bin/python -c 'from scripts.dev.runtime import fetch_minio; fetch_minio()'
-      - name: Prepare private token/owner contracts offline (not private DAST)
-        id: contracts
+      - name: Install locked V1 harness and offline test dependencies
+        run: |
+          uv sync --locked --extra legacy --extra dev --extra v1-media --extra v1-processing --extra v1-worker
+          uv venv --allow-existing --python .venv/bin/python .cache/v1-moto
+          uv pip install --python "$V1_MOTO_PYTHON" 'moto[server]==5.2.4'
+      - name: Verify DAST policy and offline private contracts (not DAST)
         run: |
           .venv/bin/python -m pytest -p scripts.dev.pytest_plugin --offline-fast \
-            -m 'not integration and not e2e' tests/contracts tests/media/test_contract_security.py \
-            tests/processing/test_contracts.py
-      - name: Start isolated integrated stack with its own private env/CA/volumes
-        id: stack
-        run: .venv/bin/python -m scripts.dev.runtime up --run-id "$RUN_ID"
-      - name: Prepare authenticated public Media schema with normal CA trust
-        id: prepare
-        run: |
-          mkdir -p zap-private zap-reports
-          chmod 700 zap-private
-          chmod 700 zap-reports
-          .venv/bin/python - <<'PY'
-          import json, os, ssl
-          from pathlib import Path
-          import httpx
-          run = Path('.local/runs') / os.environ['RUN_ID']
-          state = json.loads((run/'state.json').read_text())
-          base = state['public_url']
-          ctx = ssl.create_default_context(cafile=str(run/'tls/ca.crt'))
-          with httpx.Client(base_url=base, verify=ctx, timeout=20, trust_env=False) as client:
-              schema = client.get('/api/openapi.json'); schema.raise_for_status()
-              spec = schema.json()
-              assert spec['info']['title'] == 'FlickPond Media Management'
-              # No service token is sent to public edge or scanner. Exclude source
-              # grants/admin endpoints; their token+owner scope is prepared offline.
-              spec['paths'] = {p:v for p,v in spec['paths'].items() if not
-                               (p.startswith('/internal/') or p.startswith('/admin/'))}
-              spec['servers'] = [{'url':base+'/api'}]
-              Path('zap-private/openapi.json').write_text(json.dumps(spec))
-              response = client.post('/api/auth/register', json={'email':'dast@example.com',
-                                                              'password':'Dast-only-password-123!'})
-              response.raise_for_status()
-              token = client.cookies.get('access_token')
-              assert token
-              assert client.get('/api/auth/me').status_code == 200
-              print('::add-mask::'+token)
-              with open(os.environ['GITHUB_ENV'],'a') as env:
-                  env.write('DAST_COOKIE=access_token='+token+'\n')
-          PY
-      - name: Run public authenticated ZAP; raw auth-bearing output stays private
-        id: zap
-        env:
-          DAST_COOKIE: ${{ env.DAST_COOKIE }}
-        run: |
-          set +e
-          docker run --rm --network host --workdir /zap/wrk --user "$(id -u):$(id -g)" \
-            --env HOME=/tmp --env DAST_COOKIE --env RUN_ID \
-            --volume "$PWD/zap-private:/zap/wrk:rw" \
-            --volume "$PWD/.local/runs/$RUN_ID/tls/ca.crt:/tmp/dast-ca.crt:ro" \
-            --entrypoint sh \
-            ghcr.io/zaproxy/zaproxy:stable@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef \
-            -c 'mkdir -p /tmp/dc2-zap/policies
-                cp /home/zap/.ZAP/policies/API-Minimal.policy /tmp/dc2-zap/policies/ || exit 3
-                cp "$JAVA_HOME/lib/security/cacerts" /tmp/dast-trust || exit 3
-                keytool -importcert -noprompt -alias dc2-dast -file /tmp/dast-ca.crt \
-                  -keystore /tmp/dast-trust -storepass changeit >/dev/null 2>&1 || exit 3
-                export _JAVA_OPTIONS="-Djavax.net.ssl.trustStore=/tmp/dast-trust -Djavax.net.ssl.trustStorePassword=changeit -Duser.home=/tmp"
-                zap-api-scan.py -t /zap/wrk/openapi.json -f openapi -J raw-report.json -T 10 \
-                  -z "-dir /tmp/dc2-zap -config replacer.full_list(0).description=dc2-auth \
-                      -config replacer.full_list(0).enabled=true \
-                      -config replacer.full_list(0).matchtype=REQ_HEADER \
-                      -config replacer.full_list(0).matchstr=Cookie \
-                      -config replacer.full_list(0).regex=false \
-                      -config replacer.full_list(0).replacement=$DAST_COOKIE"' \
-              > zap-private/scanner-private.log 2>&1
-          status=$?
-          set -e
-          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
-          case "$status" in 0|1|2) ;; *) echo 'ZAP execution failed; private raw log is not published'; exit 1 ;; esac
-      - name: Retain sanitized findings and honest scope/disposition
+            -m 'not integration and not e2e' tests/dev/test_v1_dast.py tests/contracts \
+            tests/media/test_contract_security.py tests/processing/test_contracts.py
+      - name: Start unique local PostgreSQL and Moto namespace
+        run: .venv/bin/python -m scripts.dev.v1_runtime up --run-id "$DAST_RUN_ID"
+      - name: Seed two owners and run bounded authenticated current-V1 ZAP scans
+        run: .venv/bin/python -m scripts.dev.v1_dast scan --run-id "$DAST_RUN_ID" --output "$DAST_REPORT_DIR"
+      - name: Always tear down this run and remove its local data
         if: always()
-        env:
-          ZAP_OUTCOME: ${{ steps.zap.outcome }}
-          ZAP_EXIT: ${{ steps.zap.outputs.exit_code }}
-          CONTRACT_OUTCOME: ${{ steps.contracts.outcome }}
-        run: |
-          .venv/bin/python - <<'PY'
-          import json, os, shutil
-          from pathlib import Path
-          from scripts.aws.artifacts import scan_disposition
-          raw = Path('zap-private/raw-report.json')
-          executed = os.environ['ZAP_OUTCOME']=='success' and raw.exists()
-          outcome = 'executed' if executed else ('skipped' if os.environ['ZAP_OUTCOME']=='skipped' else 'error')
-          selected = []
-          if executed:
-              report = json.loads(raw.read_text())
-              for site in report.get('site',[]):
-                  for alert in site.get('alerts',[]):
-                      # URLs, request/response bodies, headers, evidence and cookie
-                      # replacement config are never retained in uploaded artifacts.
-                      selected.append({k:alert.get(k) for k in ('pluginid','riskcode','confidence','count')})
-          destination = Path('zap-reports'); destination.mkdir(exist_ok=True)
-          disposition = scan_disposition('zap', outcome=outcome, target='isolated-integrated-media-public',
-              scope='public authenticated owner; internal token+owner contracts offline only',report_retained=executed)
-          disposition.update(exit_code=os.environ['ZAP_EXIT'],private_contracts=os.environ['CONTRACT_OUTCOME'],
-                             cloud_scan='NOT_RUN',source_sha=os.environ['GITHUB_SHA'],
-                             event=os.environ['GITHUB_EVENT_NAME'],
-                             findings_policy='report-only; execution errors fail the scan job')
-          (destination/'scan-disposition.json').write_text(json.dumps(disposition,indent=2))
-          if executed:
-              (destination/'sanitized-findings.json').write_text(json.dumps(selected,indent=2))
-          shutil.rmtree('zap-private',ignore_errors=True)
-          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as stream:
-              stream.write('ZAP: '+outcome+'. Findings remain report-only; execution errors fail.\n')
-              stream.write('Private Processing/source-grant contracts: '+os.environ['CONTRACT_OUTCOME']+' (offline, not DAST).\n')
-          if os.environ['ZAP_OUTCOME'] == 'success' and not executed:
-              raise SystemExit('ZAP returned without a report; scan execution is not proven')
-          PY
+        run: .venv/bin/python -m scripts.dev.v1_dast cleanup --run-id "$DAST_RUN_ID" --output "$DAST_REPORT_DIR"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
-          name: extracted-service-scan-${{ github.run_id }}
-          path: zap-reports/*.json
+          name: v1-dast-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/v1-dast-reports/*.json
           if-no-files-found: warn
           retention-days: 14
-      - name: Close only this runner's isolated namespace (no cloud cleanup)
-        if: always()
-        run: .venv/bin/python -m scripts.dev.runtime down --run-id "$RUN_ID"
