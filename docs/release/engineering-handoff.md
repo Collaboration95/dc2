@@ -38,6 +38,28 @@ The submitted proposal is the “before” for the GC2 design comparison; it is 
 4. Media maintains a versioned projection of Processing state for owner-facing reads. Playback URLs are signed at read time; HLS is optional and MP4 remains the fallback. Retry uses the previously verified source and creates a new fenced attempt; it does not ask the user to upload the file again.
 5. V1 used per-run stacks and operator-started finite Fargate batches. The later V2-live mode keeps one persistent stack, updates it after green Main CI, launches finite workers from SQL backlog, and caps workers at three. Its 0→N→0 launcher is an operator/platform capability, not a new product dashboard or general-purpose autoscaling service. The detailed [architecture views](../architecture/views.md) describe V1; read them with the V2 qualifications in the [manifest](demo-release-manifest.md) and [AD-27](../architecture/decisions.md).
 
+### Existing AWS services and their jobs
+
+ECR and CloudWatch are already part of the project. Study the
+[generated infrastructure](../../deploy/aws/v1/template.json) and
+[operator runbook](../execution/aws/v1/deploy-runbook.md) alongside this map:
+
+| Service | Responsibility and useful explanation |
+|---|---|
+| CloudFront and a private S3 frontend bucket | Serve the web client. Source and output objects use separate private, versioned S3 buckets and scoped access. |
+| API Gateway HTTP API and Lambda | Route public Media/Processing operations; the Media authorizer supplies trusted identity. Repair, delivery and launcher functions support the asynchronous workflow. |
+| Aurora PostgreSQL | Store separate Media/Processing logical databases, roles and migrations on one shared cluster. SSM activity markers let idle scheduled work avoid unnecessary SQL connections. |
+| SQS and dead-letter queues | Deliver commands, work and results at least once. Durable inbox/outbox state and attempt fences handle replay. |
+| ECS Fargate and EventBridge | Run finite encoder tasks within the cap; work publication wakes the launcher and scheduled checks provide a fallback. |
+| ECR | Hold three immutable image repositories. Local Trivy checks and release-time ECR/manifest checks serve different purposes. |
+| CloudWatch, SNS and Budgets | Provide existing logs, metrics, dashboard, alarms and budget notifications. This pass adds bounded, redacted failure events to the existing logs. |
+| IAM, SSM and RDS-managed secret | Separate service permissions, runtime configuration and privileged database bootstrap access. GitHub delivery uses OIDC instead of stored long-lived AWS keys. |
+
+The retained manifest observed 13 alarms in `OK` on an earlier source and one Aurora zero-ACU
+point on the frozen source. Neither observation proves current alarm response, sustained idle cost
+or a restore drill. Extra X-Ray infrastructure, a showcase site and a logo were left outside this
+course-first engineering pass; the work focuses on the existing system and its evidence.
+
 ## Personas and demonstrable UC-1–UC-7 journey
 
 Maya, Arun, Jules, and Sam are fictional planning personas, not interviewed customers, application roles, or authorship evidence. Maya’s course-team context does not imply shared accounts, student access, or an LMS. Sam is an operator, not a product administrator. Persona definitions and stable UC IDs are in [business-scope.json](../../project-roadmap/business-scope.json); use the linked [UC/design catalogue](../architecture/use-case-design.md) for preconditions, normal and exception flows, tests, and design views.

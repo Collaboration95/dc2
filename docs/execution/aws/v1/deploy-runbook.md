@@ -651,7 +651,7 @@ repair the report and rerun the scan before proceeding.
 
 ```bash
 set -euo pipefail
-R=r1018a                                     # the deployed environment/run in D
+R=live                                       # the deployed environment/run in D
 D="$HOME/dc2-state/$R"                      # private state directory, outside the repo
 PROFILE=dc2-agent                            # or the approved MFA profile
 S=(--profile "$PROFILE" --region ap-southeast-1 --account 866865534361)
