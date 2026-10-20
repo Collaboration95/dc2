@@ -106,7 +106,8 @@ def fast(*, coverage: bool = False, domain: str | None = None) -> Path | None:
     command = pytest_args() + paths + ignored + ["-m", selection]
     if coverage:
         return measure(command, "fast", fast_env(), 120)
-    run(command, label=f"test-python-{domain or 'fast'}", timeout=120, env=fast_env())
+    # The full untraced suite includes operator rehearsals omitted from coverage-fast.
+    run(command, label=f"test-python-{domain or 'fast'}", timeout=180, env=fast_env())
     return None
 
 
