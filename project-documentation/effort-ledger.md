@@ -50,16 +50,23 @@ effort after 20 October. Update this table when they are done.
 
 ## Project 1 effort
 
-Members came from different Project 1 teams, so Project 1 hours are per member.
+Team 17 combines members from two Project 1 teams. Prof Boon Kui Heng approved the three-member team
+on 22 September 2026 (Team17-Proposal §1). Project 2 does not continue any member's own Project 1
+work. As the proposal states, it carries over the frozen code of a different Project 1, FlickPond
+(`Flickpond/Media_player`, commit `890c5ec`), and uses it as the baseline (Team17-Proposal §1, §4.4).
 
-| Member | Project 1 pd | Source |
-|---|---|---|
-| Guruprasath Gopal | **TBD** (member to supply) | |
-| Ibrahim Mammadov | 10 (planned) | Flickpond proposal §6: 10.0 pd per member |
-| Nguyen Kim Long | **TBD** (member to supply) | |
+- **Carried over, not claimed:** FFmpeg processing, HLS output, worker replicas and the basic CI
+  workflow are inherited FlickPond capabilities. They are not counted as Project 2 effort, and
+  Project 2 did not add any missing Project 1 features.
+- **Project 1 effort:** each member spent effort on their own Project 1 team's project. That effort is
+  reported with that project and is not repeated here. The FlickPond effort behind the inherited
+  baseline belongs to the FlickPond team, so it is not attributed to Team 17.
+- **Counted here:** only Project 2 work, which starts from the frozen baseline: 11 pd per member
+  (above).
 
-The average across both projects is (Project 1 pd + 11) / 2 per member. Fill it in once the two
-TBD values are known. The presentation needs this figure (briefing).
+When the presentation asks for average effort across both projects, report Project 2 as measured
+here. Report Project 1 as each member's own Project 1 figure, stated as carried over from a different
+project.
 
 ## Milestones: plan against actual
 
