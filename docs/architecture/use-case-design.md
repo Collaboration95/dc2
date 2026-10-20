@@ -1,10 +1,11 @@
 # Flickpond use-case and design catalogue
 
-Reusable engineering reference for the seven in-scope use cases. It describes the integrated
-engineering candidate and identifies differences from the accepted V2-live runtime
-`daee44b61a6e8eef3f62505df69f8bfd076d68b8`. The [engineering handoff](../release/engineering-handoff.md)
-records current verification and delivery status; the [release manifest](../release/demo-release-manifest.md)
-remains the authority for the frozen cloud release. This catalogue is not a final report or presentation.
+Reusable engineering reference for the seven in-scope use cases. It describes the engineering
+runtime delivered at `629119c5b3bd390ce072df0a43fe926cd7a161c7` and identifies differences from the
+prior team freeze `daee44b61a6e8eef3f62505df69f8bfd076d68b8`. The
+[engineering handoff](../release/engineering-handoff.md) records current verification and delivery;
+the [release manifest](../release/demo-release-manifest.md) preserves the earlier freeze.
+This catalogue is not a final report or presentation.
 
 Maya, Arun, Jules and Sam are fictional planning personas, not interviewed users, application roles
 or authorship evidence ([persona source](../../project-roadmap/business-scope.json)). Maya's course
@@ -20,7 +21,7 @@ features or numerical targets.
 
 - **Pre:** account exists or is created; caller owns a supported video ≤100 MiB.
 - **Normal:** authenticate; Media reserves an owner-scoped S3 grant; client uploads directly to versioned S3; finalize verifies bytes and pins the VersionId, then atomically adopts the Asset and stages `submit`; return `202` and Asset/job ID.
-- **Exceptions:** anonymous, unsupported type, declared oversize, wrong owner, changed request or expired reservation is refused. Missing, truncated, changed or unversioned bytes are not adopted and enqueue no work. The candidate returns recoverable `409` for a missing upload object; real storage outages remain `503`. The frozen release can return `503` after S3 refuses an oversized body (#271). Both versions enforce the size limit. Reusing a request key with changed input conflicts.
+- **Exceptions:** anonymous, unsupported type, declared oversize, wrong owner, changed request or expired reservation is refused. Missing, truncated, changed or unversioned bytes are not adopted and enqueue no work. The engineering release returns recoverable `409` for a missing upload object; real storage outages remain `503`. The earlier frozen release can return `503` after S3 refuses an oversized body (#271). Both versions enforce the size limit. Reusing a request key with changed input conflicts.
 - **Post:** one owned Asset, immutable verified source and one durable command; replay returns the same Asset without a second command.
 - **Tests:** [`test_publisher_direct_post_encode_projection_and_ownership`](../../tests/v1/test_workflow_acceptance.py#L19), [`test_finalize_pins_the_exact_version_it_verified`](../../tests/v1/test_direct_intake_s3.py#L237), [`test_wrong_owner_cannot_finalize_or_observe_a_reservation`](../../tests/v1/test_direct_intake_s3.py#L253), [`test_missing_object_is_retryable_not_adopted`](../../tests/v1/test_direct_intake_s3.py#L299). The full workflow test requires a local runtime attachment; it marks browser rendering and AWS IAM NOT_RUN.
 
@@ -205,14 +206,14 @@ and `CLITransport` are operator-tool classes; release transitions themselves are
   image and resolved task definitions are pinned and checked; owner and peer identities, migration
   compatibility, smoke result and absolute deadline are checked before completion. A failed smoke
   restores image/alias state; the schema is not rolled back. A failed restore keeps recovery intent
-  for an explicit resume. The candidate additionally requires exact-source full CI admission and
+  for an explicit resume. The engineering release additionally requires exact-source full CI admission and
   fresh image scans, and binds registry manifest bytes to the scanned config. These controls have
   offline counterexample tests; current delivery evidence is in the engineering handoff.
 
 ## Grouped sequence views
 
 The analysis views use only business concepts. They are explanatory, not historical artifacts. The
-implementation views describe persistent V2-live behavior, including the candidate changes above. Existing detailed V1 sequence
+implementation views describe persistent V2-live behavior, including the engineering changes above. Existing detailed V1 sequence
 and state diagrams remain in [views.md §5](views.md#5-representative-use-case-upload-process-play) and
 are not silently relabeled as V2.
 
@@ -482,7 +483,7 @@ views are explanatory where noted, not historical UML artifacts.
   tests](../../tests/v1/test_launcher_sql.py#L233), [release restore
   test](../../tests/aws/test_aws_release.py#L58). Retained cloud results are bounded: V2-live
   measured 9 clips at fixed cap 3 only; a frozen-source bad-candidate rollback was not run. The
-  candidate admission and scan controls are covered by offline counterexample tests; they do not
+  engineering admission and scan controls are covered by offline counterexample tests; they do not
   retroactively establish scan evidence for the frozen release.
 
 ### 2. Durable asynchronous Processing handoff
@@ -555,10 +556,10 @@ Data/schema links: [Media ER diagram](img/views-er-media.svg), [Processing ER di
 
 ## Verification boundary
 
-The integrated candidate shares native credential policy, uses an owner-local asset/projection
+The engineering release shares native credential policy, uses an owner-local asset/projection
 join, classifies missing uploads as `409`, and protects failure handling from diagnostic errors.
-Required integration tests use native pytest marker discovery; lint and formatting use one
-maintained scope. All eight Mermaid blocks rendered successfully. Test links identify the relevant
+Required integration tests use native pytest marker discovery. Lint and formatting share maintained
+directories; routine formatting preserves migration versions. All eight Mermaid blocks rendered successfully. Test links identify the relevant
 assertions, while the [engineering handoff](../release/engineering-handoff.md) records actual runs,
 source identities, image scans and remaining limits. Local PostgreSQL/Moto tests do not establish
-AWS IAM, Aurora or Fargate behavior. The published freeze changes only through a verified release.
+AWS IAM, Aurora or Fargate behavior. Current delivery and the prior team freeze retain separate source identities.

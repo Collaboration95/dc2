@@ -4,8 +4,8 @@ This guide is a reading path for learning the as-built FlickPond project and pre
 
 ## Start with source identity
 
-- The accepted persistent V2-live release is source `daee44b61a6e8eef3f62505df69f8bfd076d68b8`. The [release manifest](demo-release-manifest.md) records its image identities, read-back on 20 October 2026, and evidence limits. The project’s frozen `project2-v1` tag is `f33b2a899fe2a1b7f1dab8480e03904d80838701`; it is a different, earlier release.
-- The documentation snapshot described in the handoff notes was Main at `f9ce3b949826a7f329839cd7dc2b3a48464e1661`, after the freeze. The engineering candidate has separate source-bound verification below. It has not replaced the accepted cloud release; use `daee44b` as the release identity and fallback until replacement delivery is verified.
+- The verified engineering runtime is source `629119c5b3bd390ce072df0a43fe926cd7a161c7`, delivered to `dc2-live` on 20 October 2026. Both owners promoted, upload-to-playback passed after deployment, and read-only AWS checks matched all three images, ten live Lambda aliases and the ECS worker definition. Use the [delivery receipt](../results/engineering-20261020/delivery-629119c.json) and the hosted results below for the current live story.
+- The prior team-accepted freeze remains source `daee44b61a6e8eef3f62505df69f8bfd076d68b8`. Its [release manifest](demo-release-manifest.md) is a retained historical record; this engineering delivery does not invent team acceptance of a replacement submission freeze. The frozen `project2-v1` tag is `f33b2a899fe2a1b7f1dab8480e03904d80838701`, a different, earlier release. Main at `f9ce3b9` was the documentation snapshot before this engineering pass. Later documentation-only commits are not new runtime image identities.
 - Baseline hashes need care. The submitted proposal names inherited baseline `890c5ec`; decision D-01 says the working plan used local `8854537` instead. That Git object is not present in this checkout, so do not claim a fresh code diff between those baseline hashes. See the [project decisions](../../project-roadmap/records/project-decisions.txt), [effort ledger](../../project-documentation/effort-ledger.md), and [baseline inspection](../../project-documentation/project-2-baseline-and-plan.txt).
 
 ## Recommended reading order
@@ -13,7 +13,7 @@ This guide is a reading path for learning the as-built FlickPond project and pre
 1. [Project documentation index](../../project-documentation/README.md), [GC2 briefing interpretation](../../project-documentation/briefing-requirements.txt), and the submitted [Team 17 proposal](../../project-documentation/Team17-Proposal.docx): learn the current scope and course authority.
 2. [Project 1 history](../history/README-project1-and-pre-aws-local-stack.md), the [baseline inspection](../../project-documentation/project-2-baseline-and-plan.txt), and the [effort ledger](../../project-documentation/effort-ledger.md): separate inherited capability from Team 17’s work and from team-level effort allocation.
 3. [Root README](../../README.md), [DDD model](../architecture/ddd.md), [architecture decisions](../architecture/decisions.md), [architecture views](../architecture/views.md), and the [UC/design catalogue](../architecture/use-case-design.md): follow the business and implementation boundaries.
-4. [Release manifest](demo-release-manifest.md), [results against targets](../results/actual-vs-target.md), and [evidence index](../evidence-index.md): compare results by source, environment, workload, and verdict.
+4. [Current engineering delivery](../results/engineering-20261020/delivery-629119c.json), the earlier [release manifest](demo-release-manifest.md), [results against targets](../results/actual-vs-target.md), and [evidence index](../evidence-index.md): compare results by source, environment, workload, and verdict.
 5. [Course evidence checklist](../../project-documentation/course-evidence-checklist.md): map the inherited course bundle to current GC2 requirements and identify submission or human-confirmation work.
 
 ## What changed from inherited GC1 to GC2
@@ -26,7 +26,7 @@ The Project 1 system already had a FastAPI browser application, owner accounts a
 
 - On 22 September–4 October, the three-member Team 17 exception, focused scope, and proposal were recorded. The new scope became UC-1–UC-7, with two product clients and operator evidence. The ledger assigns work packages and milestones; it is not individual time tracking or proof of personal authorship.
 - A 9 October roadmap snapshot still said implementation had not started. Treat it as a dated planning record, not current status. Implementation and integration are recorded from 8–14 October; cloud delivery, CI/CD, experiments, and closeout followed through 20 October.
-- The persistent `dc2-live` environment was deployed on 18 October, updated and read back on 19–20 October, and frozen at `daee44b` on 20 October. The release manifest is the authority for that runtime. Later candidate commits are not deployed merely because they are newer.
+- The persistent `dc2-live` environment was deployed on 18 October, updated and read back on 19–20 October, and frozen at `daee44b` on 20 October. The later engineering release `629119c` has its own verified CI/CD and AWS read-back below. The earlier manifest remains the authority for the historical freeze.
 
 ### Architecture evolution
 
@@ -69,7 +69,7 @@ Maya, Arun, Jules, and Sam are fictional planning personas, not interviewed cust
 | **Maya (P-01), content owner** | UC-1 upload; UC-2 process; UC-3 status/playback; UC-4 stored-source retry; UC-5 batch publish | Authenticate with Publisher, submit a small prepared folder, retain each per-file outcome and one job ID, then open the web app to show owner status and a completed MP4 or available HLS. Use retry only for a known failed job that is already recorded. | One owner account; no shared classroom, LMS, or student access. Do not cause a live failure just to show retry. The CLI batch is nonrecursive and skips directories/symlinks. |
 | **Arun (P-02), another owner** | UC-1–UC-4 | Use the browser for one supported upload, follow its status, and play a completed result. If a known failed job exists, show that retry reuses the stored source. | This helps explain personal ownership and MP4 fallback. HLS is best effort, not guaranteed for every source. Do not turn a local V1 run into V2-live proof. |
 | **Jules (P-03), integrator** | UC-1, UC-3, UC-4, UC-5 | Show the OpenAPI contract and Publisher README/commands; demonstrate `status`, `output`, or bodyless `retry`, and the import-boundary test. | Publisher is a thin API client, not a third portal; it has no player or database access. Retry is an implemented command; transport polling is bounded. |
-| **Sam (P-04), operator** | UC-6 capacity; UC-7 release/restore | Show recorded scaling results and the exact frozen release/CI/CD identities. Show a prior bad-candidate restore with its source SHA. | Do not deploy, scale, inject a fault, or perform rollback during the presentation. The recorded bad-candidate restore is from `7928b7c`, not `daee44b`. |
+| **Sam (P-04), operator** | UC-6 capacity; UC-7 release/restore | Show recorded scaling results, the current `629119c` delivery receipt, and the earlier team freeze. Show a prior bad-candidate restore with its source SHA. | Do not deploy, scale, inject a fault, or perform rollback during the presentation. The recorded bad-candidate restore is from `7928b7c`, not the current engineering release. |
 
 A safe end-to-end presentation sequence is: Maya’s accepted job → background Processing → Maya’s status and playback → Jules’s public-contract reuse → Sam’s recorded capacity and release evidence. Keep a ready test file below 100 MiB and use only prepared accounts/data. Cloud state may have changed since the manifest read; check availability through the team’s approved access before relying on a live path. Keep a recorded or local fallback labeled with its actual source and environment.
 
@@ -93,7 +93,7 @@ The briefing interpretation asks progress reports to state completed work, each 
 
 Follow the invariant to the test, not just the module name. Useful examples include owner denial and forged identity, exact source VersionId pinning, outbox lost-send replay, inbox duplicate handling, attempt/lease fencing, stored-source retry, output namespace checks, launcher cap and ambiguous RunTask replies, Publisher import boundaries, and release restoration. The [UC/design catalogue](../architecture/use-case-design.md) links the relevant tests and states whether each reference is code, local test, AWS evidence, or not run.
 
-Recent candidate engineering work has a few bounded maintainability measures:
+This engineering pass has a few bounded maintainability measures:
 
 - The shared native storage-credential policy went from 253 to 175 source lines (78 fewer before Ruff formatting), while owner modules keep thin Media/Processing facades. The intent is to reduce policy drift while preserving endpoint restrictions, refresh locking, expiry, and safe errors.
 - The Media asset-page query now uses one owner-local outer join instead of an N+1 projection lookup. Focused SQLite tests assert one SELECT at several page sizes and retain ordering/visibility cases. Do not claim a PostgreSQL latency improvement from those tests.
@@ -101,6 +101,7 @@ Recent candidate engineering work has a few bounded maintainability measures:
 - Ruff formatting was applied across maintained Python. It increases physical line count in formatted files; describe it as consistent formatting, not a total-repository LOC reduction. Targeted code and dependency reductions are separate measures.
 - Native pytest discovery now runs the required integration cohort automatically. The integrated local run recorded 99/99 required cases and 157/157 selected cases overall, with no selected skips. Thirteen cases for the optional, disabled short-encoder lane remain explicitly deferred. See the source-bound validation below.
 - The obsolete 300-line root Compose file, 45 lines of unused CI services and 11 lines of duplicate dependency inputs were removed. Active legacy consumers and historical evidence remain available. Ten workflow setup blocks now share one small Python-tool action.
+- Released migration files retain their original bytes. Routine formatting excludes migration versions, while migration lint and the deployment compatibility guard remain enabled. All three migration directories match the pre-engineering baseline; format new migrations explicitly before their first release.
 - Release admission checks the exact tested source, full CI run and attempt. Both new and retained images need fresh scans; registry manifest bytes must bind the deployed digest to the scanned config. The manual procedure follows the same policy.
 - Missing upload objects return recoverable `409`, while real storage failures remain `503`. Bounded diagnostics record safe failure context, and a failed log sink cannot prevent lease revocation or fail best-effort activity markers.
 - Authenticated responses and responses that set session cookies now use `Cache-Control: private, no-store`, including owner status and signed playback URLs. Public health responses retain their existing policy. Regression tests cover headers, redirects, login/logout cookies, empty lists and completed jobs.
@@ -121,7 +122,7 @@ Use the current course’s six-part order as a study outline, not a slide draft 
 
 Have these backup evidence items ready for questions:
 
-- Frozen source/images and successful CI/CD identity: manifest source `daee44b`; CI run `39278870533` (attempt 2) and deploy run `39286933644`. The manifest says the per-image scan details and deploy smoke JSON were not re-read, so do not assert their uninspected contents.
+- Current source/images and successful delivery: runtime source `629119c`; CI run `39415935595` and CD run `39416747925`, both attempt 1. The [delivery receipt](../results/engineering-20261020/delivery-629119c.json) includes exact image/config bindings and final alias read-back. The earlier team freeze is `daee44b`; keep its older receipts and limits separate.
 - Capacity: V1 AWS used six clips and one run per cap: 0.483, 0.700, and 1.134 jobs/min at caps 1, 2, and 3. Cap 2 was 1.449× and **missed** its 1.6× target; cap 3 was 2.347× and passed its 2.1× target. The proposed 30-clip AWS workload was not run. V2-live used one nine-clip, fixed-cap-3 run: 239 seconds and 2.26 jobs/min; it is not a 1/2/3 comparison.
 - Queue wait: V2-live measured about 37 seconds against a 20-second target. Keep this miss visible.
 - Security: the retained #229 AWS negative checks preceded the final frozen source. The frozen #271 behavior is described below; do not convert an earlier-source test into exact-freeze proof.
@@ -138,12 +139,12 @@ Have these backup evidence items ready for questions:
 - **What does rollback prove?** One earlier-source bad-candidate restore. It does not establish exact-frozen-source rollback or schema rollback.
 - **What is not in scope?** Search, moderation workflow, product analytics, sharing/tenancy, student/LMS access, billing, a developer portal, live streaming, or a third client.
 
-One frozen-release limitation is important for the live story: the 100 MiB cap held, and an S3-refused oversized object was not adopted, but finalize could return 503 instead of the ideal client error (#271). Candidate code changes classify a missing object as recoverable 409 while retaining 503 for other storage failures; that candidate behavior is not deployed proof. HLS remains best effort, active-media retention is not generally specified, one-day backups do not establish a restore drill, and current live availability after the manifest read is unknown.
+The earlier frozen release enforced the 100 MiB cap but could return 503 after S3 refused an oversized object (#271). The engineering release includes the tested fix: a missing object returns recoverable 409 without adoption or work publication; storage failures still return 503. Post-deployment upload/playback passed, but a fresh oversized-upload negative test on AWS was not part of that smoke. HLS remains best effort, active-media retention is not generally specified, and one-day backups do not establish a restore drill. Check live availability again before the presentation.
 
 ## Current engineering validation and delivery
 
-The following results are local engineering evidence. The accepted cloud runtime remains
-`daee44b61a6e8eef3f62505df69f8bfd076d68b8`. No replacement deployment is claimed here.
+The table first records local evidence at its original source. Subsequent full hosted CI and
+cloud delivery at `629119c` are recorded below; the local receipts have not been relabeled.
 
 | Check | Observed result | Source and evidence |
 |---|---|---|
@@ -182,7 +183,35 @@ The new private/no-store behavior is demonstrated by application tests. Public h
 remain outside that policy. These are report-only findings requiring this context, not a clean-scan
 claim or evidence of an AWS edge vulnerability.
 
-**Remaining delivery checks:** hosted full CI, including the Linux DAST path, and controlled cloud
-delivery on the final candidate. The local receipts above and the earlier precursor receipts keep
-their original source identities. Local PostgreSQL, Moto, RIE and fake release transports do not
-prove AWS IAM, Aurora pause, actual API Gateway behavior, Fargate timing or current live availability.
+### Hosted verification and cloud delivery
+
+Engineering was merged through [#280](https://github.com/Collaboration95/dc2/pull/280), the workflow
+startup correction [#281](https://github.com/Collaboration95/dc2/pull/281), and the migration-history
+correction [#282](https://github.com/Collaboration95/dc2/pull/282). The source-bound
+[delivery receipt](../results/engineering-20261020/delivery-629119c.json) retains the results and
+artifact hashes below.
+
+| Check | Verified outcome |
+|---|---|
+| [Main CI `39415935595`](https://github.com/Collaboration95/dc2/actions/runs/39415935595), attempt 1 | Full verification on exact source `629119c`: 25 jobs succeeded; three intentional skips were the unneeded image-path helper and two unconfigured Sonar analyses. All five coverage tiers, 99 required V1 cases, 73 image checks, exact-config vulnerability gates and Linux DAST passed. |
+| [CD `39416747925`](https://github.com/Collaboration95/dc2/actions/runs/39416747925), attempt 1 | Admission matched that Main CI run, source and attempt. Media and Processing both promoted successfully; owner health/authentication checks passed. |
+| Deployed image scans | Retained CD Trivy reports match the actual deployed config IDs and OCI source labels for all three images. Zero fixable HIGH/CRITICAL findings; unfixed finding rows remain 44/44/208. These are the deployed builds, separately verified from the CI image builds. |
+| Post-deployment upload and playback | The `Deploy` step, including owner promotion and stack adoption, finished at 12:04:26 UTC. The following smoke completed at 12:06:34 UTC: direct upload returned 204, the job reached `done`, the encoder exited 0, and MP4 plus HLS playlist/segment playback passed. This is one smoke run, not a scaling benchmark or closure of every item in the cloud-proof packet. |
+| Read-only AWS read-back | All three journal source identities are `629119c`. Raw ECR manifest digests and their config IDs match the recorded images; all ten live Lambda aliases and the active ECS worker definition use the expected immutable images. No release is pending. The sanitized receipt contains the identifiers; the private journal was removed locally after extraction. |
+
+Owner promotion receipts precede stack adoption, which publishes another version of the same
+image. The final read-back observes Media version 7, Processing API version 11 and the other
+Processing functions at version 10. Use the verified image digests and final alias read-back when
+comparing these with the earlier promotion-version numbers.
+
+Two delivery failures were corrected before completion. The first workflow attempt failed before
+creating jobs because a runner context was used at job configuration time; #281 fixed it and all
+five workflows passed actionlint. The first deployment of `6a49d34` promoted Processing but held
+Media because formatting changed an existing migration's bytes. #282 restored those exact bytes
+and preserved the compatibility guard; the subsequent full CI and deployment above passed.
+
+The current receipt does not replace older performance or recovery experiments. The 37-second
+queue-wait miss, V1 cap-2 scaling miss, unrun 30-clip comparison, earlier-source rollback and security
+checks, and point-in-time Aurora pause observation retain their original sources and limits.
+Final report/deck authoring, recording assembly, Canvas receipts, actual contribution/effort and
+replacement team-freeze acceptance remain for the submission phase and team confirmation.
