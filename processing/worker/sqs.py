@@ -23,6 +23,7 @@ import sys
 import tempfile
 import time
 from contextlib import suppress
+from functools import partial
 from pathlib import Path
 from uuid import UUID
 
@@ -94,20 +95,6 @@ STALE = _Unencoded("stale")
 SKIPPED = _Unencoded("skipped")
 
 
-def _log_attempt_event(event, outcome, *, job_id, attempt_id, task_name, error=None):
-    fields = {
-        "event": event,
-        "operation": "encode",
-        "outcome": outcome,
-        "job_id": job_id,
-        "attempt_id": attempt_id,
-        "task_id": task_name,
-    }
-    if error is not None:
-        fields["error_class"] = type(error).__name__
-    log_safe_event(logger, **fields)
-
-
 def decode_work(body):
     # Canonical validation is intentionally lazy so legacy engine helpers remain
     # independently importable. The transport receives only versioned V1 work.
@@ -147,6 +134,14 @@ async def execute_message(
         finish = finish or messaging.finish
         disposition = disposition or messaging.work_disposition
     job_id, attempt_id = UUID(envelope["job_id"]), UUID(envelope["attempt_id"])
+    record_event = partial(
+        log_safe_event,
+        logger,
+        operation="encode",
+        job_id=job_id,
+        attempt_id=attempt_id,
+        task_id=task_name,
+    )
     # This API atomically validates source/owner/asset/current attempt and the
     # SubmissionGuard fence in the owned database before any native GET.
     try:
@@ -183,43 +178,24 @@ async def execute_message(
             await supervisor.renew_authority()
             supervisor.check()
             finished = await finish(factory, work, outputs=outputs)
-            _log_attempt_event(
-                "attempt_finished",
-                "done_recorded" if finished else "lease_lost_retry",
-                job_id=job_id,
-                attempt_id=attempt_id,
-                task_name=task_name,
+            record_event(
+                event="attempt_finished",
+                outcome="done_recorded" if finished else "lease_lost_retry",
+                level=logging.INFO if finished else logging.WARNING,
             )
             return finished
-        except LeaseLost as error:
-            _log_attempt_event(
-                "attempt_interrupted",
-                "lease_lost_retry",
-                job_id=job_id,
-                attempt_id=attempt_id,
-                task_name=task_name,
-                error=error,
-            )
-            return False
-        except asyncio.CancelledError as error:
-            _log_attempt_event(
-                "attempt_interrupted",
-                "cancelled_retry",
-                job_id=job_id,
-                attempt_id=attempt_id,
-                task_name=task_name,
-                error=error,
-            )
-            return False
-        except AttemptDeadline as error:
+        except (LeaseLost, asyncio.CancelledError, AttemptDeadline) as error:
             # An absolute task deadline cannot authorize another database write.
-            _log_attempt_event(
-                "attempt_interrupted",
-                "deadline_retry",
-                job_id=job_id,
-                attempt_id=attempt_id,
-                task_name=task_name,
-                error=error,
+            outcome = {
+                "LeaseLost": "lease_lost_retry",
+                "CancelledError": "cancelled_retry",
+                "AttemptDeadline": "deadline_retry",
+            }.get(type(error).__name__, "retry")
+            record_event(
+                event="attempt_interrupted",
+                outcome=outcome,
+                error_class=type(error).__name__,
+                level=logging.WARNING,
             )
             return False
         except NotAdmitted:
@@ -233,32 +209,23 @@ async def execute_message(
                     factory, work, error="The source or edit could not be processed"
                 )
             except (LeaseLost, AttemptDeadline):
-                _log_attempt_event(
-                    "attempt_failed",
-                    "business_failure_unrecorded_retry",
-                    job_id=job_id,
-                    attempt_id=attempt_id,
-                    task_name=task_name,
-                    error=error,
+                record_event(
+                    event="attempt_failed",
+                    outcome="business_failure_unrecorded_retry",
+                    error_class=type(error).__name__,
                 )
                 return False
             except Exception as finish_error:
-                _log_attempt_event(
-                    "attempt_failed",
-                    "failure_recording_error",
-                    job_id=job_id,
-                    attempt_id=attempt_id,
-                    task_name=task_name,
-                    error=finish_error,
+                record_event(
+                    event="attempt_failed",
+                    outcome="failure_recording_error",
+                    error_class=type(finish_error).__name__,
                 )
                 raise
-            _log_attempt_event(
-                "attempt_failed",
-                "business_failure_recorded" if finished else "lease_lost_retry",
-                job_id=job_id,
-                attempt_id=attempt_id,
-                task_name=task_name,
-                error=error,
+            record_event(
+                event="attempt_failed",
+                outcome="business_failure_recorded" if finished else "lease_lost_retry",
+                error_class=type(error).__name__,
             )
             return finished
 
@@ -387,6 +354,7 @@ async def run(
             log_safe_event(
                 logger,
                 event="message_acknowledged",
+                level=logging.INFO,
                 operation="sqs_delete",
                 outcome="stale" if complete is STALE else "processed",
                 job_id=envelope["job_id"],
@@ -515,6 +483,8 @@ async def async_main(args):
 
 
 def main():
+    logging.basicConfig(format="%(message)s")
+    logger.setLevel(logging.INFO)
     parser = argparse.ArgumentParser(description="Finite SQS Processing encoder")
     parser.add_argument("--deadline", type=float, required=True)
     parser.add_argument("--name", required=True)

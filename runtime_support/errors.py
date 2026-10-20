@@ -60,7 +60,7 @@ def _safe_event_value(name: str, value):
     return None
 
 
-def log_safe_event(event_logger, **fields) -> None:
+def log_safe_event(event_logger, *, level=logging.ERROR, **fields) -> None:
     """Write a bounded structured event from a fixed set of non-payload fields."""
     safe = {
         name: _safe_event_value(name, value)
@@ -68,8 +68,8 @@ def log_safe_event(event_logger, **fields) -> None:
         if name in _EVENT_FIELDS
     }
     try:
-        event_logger.error(json.dumps(safe, separators=(",", ":"), sort_keys=True))
-    except Exception:
+        event_logger.log(level, json.dumps(safe, separators=(",", ":"), sort_keys=True))
+    except Exception:  # noqa: S110 - logging failure must not change business/retry outcomes
         # Diagnostics must never change the handler, retry or acknowledgement outcome.
         pass
 

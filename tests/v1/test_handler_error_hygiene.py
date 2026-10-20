@@ -110,7 +110,7 @@ def test_safe_events_drop_payload_fields_and_unsafe_identifiers(caplog):
 
 def test_safe_event_logging_failure_does_not_escape():
     class BrokenLogger:
-        def error(self, _message):
+        def log(self, _level, _message):
             raise OSError("logging backend unavailable")
 
     log_safe_event(BrokenLogger(), event="record_failed", operation="sqs_consume", outcome="retry")

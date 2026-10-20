@@ -374,7 +374,7 @@ async def test_no_completion_after_visibility_loss(monkeypatch, loss_at, caplog)
     work = SimpleNamespace(source={})
     finish = AsyncMock(return_value=True)
     renew = AsyncMock(side_effect=[None] * (loss_at - 1) + [OSError("receipt gone")])
-    with caplog.at_level(logging.ERROR, logger="dc2.processing.worker"):
+    with caplog.at_level(logging.INFO, logger="dc2.processing.worker"):
         assert not await sqs.execute_message(
             None,
             envelope(),
@@ -402,7 +402,7 @@ async def test_completion_only_through_processing_owned_finish(monkeypatch, capl
     finish = AsyncMock(return_value=True)
     body = envelope()
     work = SimpleNamespace(source={})
-    with caplog.at_level(logging.ERROR, logger="dc2.processing.worker"):
+    with caplog.at_level(logging.INFO, logger="dc2.processing.worker"):
         assert await sqs.execute_message(
             None,
             body,
@@ -417,6 +417,7 @@ async def test_completion_only_through_processing_owned_finish(monkeypatch, capl
     assert finish.call_args.kwargs["outputs"] == [{"kind": "primary"}]
     record = json.loads(caplog.records[-1].message)
     assert record["outcome"] == "done_recorded"
+    assert caplog.records[-1].levelno == logging.INFO
     assert record["job_id"] == body["job_id"]
     assert record["attempt_id"] == body["attempt_id"]
 
@@ -447,7 +448,7 @@ async def test_a_recorded_business_failure_is_distinct_from_done_and_keeps_ack_s
             store=object(),
         )
 
-    with caplog.at_level(logging.ERROR, logger="dc2.processing.worker"):
+    with caplog.at_level(logging.INFO, logger="dc2.processing.worker"):
         code = await sqs.run(
             None,
             settings(),
@@ -481,6 +482,14 @@ async def test_a_recorded_business_failure_is_distinct_from_done_and_keeps_ack_s
         "outcome": "processed",
         "task_id": "task-123",
     } in records
+    assert (
+        next(
+            r
+            for r in caplog.records
+            if json.loads(r.message).get("event") == "message_acknowledged"
+        ).levelno
+        == logging.INFO
+    )
     assert private not in caplog.text
 
 
@@ -742,7 +751,7 @@ async def test_the_post_encode_sweep_is_bounded_by_the_stale_allowance():
 async def test_a_failed_sweep_does_not_change_the_tasks_successful_outcome(caplog):
     client = Mock()
     client.receive_message.side_effect = [*receipts("work"), RuntimeError("queue down")]
-    with caplog.at_level(logging.ERROR, logger="dc2.processing.worker"):
+    with caplog.at_level(logging.INFO, logger="dc2.processing.worker"):
         assert await drained(client, []) == 0
     record = next(
         json.loads(item.message)
