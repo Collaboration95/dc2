@@ -214,10 +214,11 @@ async def source_for_asset(session, asset):
     return descriptor
 
 
-async def read_job(session, asset):
-    current = await session.get(ProcessingProjection, asset.id)
+def _projected_job(current):
     if current is None:
         return None
+    if isinstance(current, ProjectedJob):
+        return current
     return ProjectedJob(
         job_id=current.job_id,
         status=current.status,
@@ -226,8 +227,18 @@ async def read_job(session, asset):
     )
 
 
+async def read_job(session, asset):
+    return _projected_job(await session.get(ProcessingProjection, asset.id))
+
+
 async def public_job(session, asset, storage, settings):
-    job = await read_job(session, asset)
+    return await public_job_from_projection(
+        asset, await read_job(session, asset), storage, settings
+    )
+
+
+def public_job_schema(asset, job):
+    """Map owned asset and projection data into the public schema without I/O."""
     result = PublicJob(
         id=asset.id,
         filename=asset.filename,
@@ -248,13 +259,19 @@ async def public_job(session, asset, storage, settings):
             result.error = "Processing was cancelled"
         else:
             result.error = job.error if job.status == "failed" else None
-        if job.status == "done":
-            primary = next(o for o in job.outputs if o.kind == "primary")
-            result.output_url = await storage.sign_output(primary.object_key)
-            hls = next((o for o in job.outputs if o.kind == "hls_manifest"), None)
-            if hls:
-                result.hls_url = (
-                    f"{settings.api_public_prefix.rstrip('/')}/jobs/{asset.id}/hls/"
-                    f"{PurePosixPath(hls.object_key).name}"
-                )
+    return result
+
+
+async def public_job_from_projection(asset, current, storage, settings):
+    job = _projected_job(current)
+    result = public_job_schema(asset, job)
+    if job and job.status == "done":
+        primary = next(o for o in job.outputs if o.kind == "primary")
+        result.output_url = await storage.sign_output(primary.object_key)
+        hls = next((o for o in job.outputs if o.kind == "hls_manifest"), None)
+        if hls:
+            result.hls_url = (
+                f"{settings.api_public_prefix.rstrip('/')}/jobs/{asset.id}/hls/"
+                f"{PurePosixPath(hls.object_key).name}"
+            )
     return result

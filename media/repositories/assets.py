@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from media.errors import MediaError
 from media.models import Asset, RequestKey
+from media.projection_models import ProcessingProjection
 
 
 def fingerprint(value: dict) -> str:
@@ -75,3 +76,18 @@ async def list_assets(session, owner_id, limit, offset, *, lock=False):
             query.order_by(Asset.created_at.desc(), Asset.id).limit(limit).offset(offset)
         )
     )
+
+
+async def list_asset_pages(session, owner_id, limit, offset):
+    """Return visible assets and their optional local result in one bounded read."""
+    query = (
+        select(Asset, ProcessingProjection)
+        .outerjoin(ProcessingProjection, ProcessingProjection.asset_id == Asset.id)
+        .where(Asset.deleted_at.is_(None))
+    )
+    if owner_id is not None:
+        query = query.where(Asset.owner_id == owner_id)
+    rows = await session.execute(
+        query.order_by(Asset.created_at.desc(), Asset.id).limit(limit).offset(offset)
+    )
+    return list(rows)

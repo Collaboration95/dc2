@@ -171,7 +171,9 @@ async def test_local_status_hls_and_signed_range_capability(
     app.dependency_overrides[get_settings] = lambda: settings
     session.get.return_value = current(event)
     monkeypatch.setattr(v1_jobs, "get_asset", AsyncMock(return_value=asset))
-    monkeypatch.setattr(v1_jobs, "list_assets", AsyncMock(return_value=[asset]))
+    monkeypatch.setattr(
+        v1_jobs, "list_asset_pages", AsyncMock(return_value=[(asset, current(event))])
+    )
     monkeypatch.setattr(v1_hls, "get_asset", AsyncMock(return_value=asset))
     storage.read_playlist.return_value = b"#EXTM3U\nv0/index.m3u8\n"
     async with httpx.AsyncClient(
@@ -343,3 +345,37 @@ async def test_public_status_distinguishes_accepted_queued_and_cancelled(
     result = await projections.public_job(SimpleNamespace(), asset, storage, settings)
     assert (result.status, result.error) == (expected, error)
     assert result.submission_status == submission
+
+
+@pytest.mark.parametrize("include_hls", [False, True])
+async def test_completed_public_job_signs_primary_and_maps_optional_hls(
+    asset, storage, settings, include_hls
+):
+    primary_key = f"jobs/{asset.processing_job_id}/attempts/a/primary.mp4"
+    outputs = [{"kind": "primary", "object_key": primary_key, "media_type": "video/mp4"}]
+    if include_hls:
+        outputs.append(
+            {
+                "kind": "hls_manifest",
+                "object_key": f"jobs/{asset.processing_job_id}/attempts/a/master.m3u8",
+                "media_type": "application/vnd.apple.mpegurl",
+            }
+        )
+    projected = SimpleNamespace(
+        job_id=asset.processing_job_id,
+        status="done",
+        outputs=outputs,
+        error=None,
+    )
+
+    result = await projections.public_job_from_projection(asset, projected, storage, settings)
+
+    assert result.status == "done"
+    assert result.output_url == "https://localhost:4443/owned-output/output?signed=test"
+    storage.sign_output.assert_awaited_once_with(primary_key)
+    if include_hls:
+        assert result.hls_url == (
+            f"{settings.api_public_prefix.rstrip('/')}/jobs/{asset.id}/hls/master.m3u8"
+        )
+    else:
+        assert result.hls_url is None

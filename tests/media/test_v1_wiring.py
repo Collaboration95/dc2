@@ -84,7 +84,7 @@ async def test_exported_handler_reads_owned_projection_without_peer(settings, us
 
     listing = AsyncMock(return_value=[])
     monkeypatch.setattr(deps, "get_session", auth_sessions)
-    monkeypatch.setattr(v1_jobs, "list_assets", listing)
+    monkeypatch.setattr(v1_jobs, "list_asset_pages", listing)
     app.dependency_overrides[get_settings] = lambda: settings
     app.dependency_overrides[get_session] = lambda: session
     app.dependency_overrides[get_storage] = lambda: SimpleNamespace()
