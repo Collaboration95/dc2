@@ -5,7 +5,7 @@ This guide is a reading path for learning the as-built FlickPond project and pre
 ## Start with source identity
 
 - The accepted persistent V2-live release is source `daee44b61a6e8eef3f62505df69f8bfd076d68b8`. The [release manifest](demo-release-manifest.md) records its image identities, read-back on 20 October 2026, and evidence limits. The project’s frozen `project2-v1` tag is `f33b2a899fe2a1b7f1dab8480e03904d80838701`; it is a different, earlier release.
-- The documentation snapshot described in the handoff notes was Main at `f9ce3b949826a7f329839cd7dc2b3a48464e1661`, after the freeze. The checkout used to prepare this guide is candidate source `ef1b8e01c119514ec2074c908ad55e110d66fc9b`. Candidate code changes have not been deployed. Until the parent completes integration and verification, use `daee44b` as the release identity and fallback.
+- The documentation snapshot described in the handoff notes was Main at `f9ce3b949826a7f329839cd7dc2b3a48464e1661`, after the freeze. The engineering candidate has separate source-bound verification below. It has not replaced the accepted cloud release; use `daee44b` as the release identity and fallback until replacement delivery is verified.
 - Baseline hashes need care. The submitted proposal names inherited baseline `890c5ec`; decision D-01 says the working plan used local `8854537` instead. That Git object is not present in this checkout, so do not claim a fresh code diff between those baseline hashes. See the [project decisions](../../project-roadmap/records/project-decisions.txt), [effort ledger](../../project-documentation/effort-ledger.md), and [baseline inspection](../../project-documentation/project-2-baseline-and-plan.txt).
 
 ## Recommended reading order
@@ -77,7 +77,10 @@ Recent candidate engineering work has a few bounded maintainability measures:
 - The Media asset-page query now uses one owner-local outer join instead of an N+1 projection lookup. Focused SQLite tests assert one SELECT at several page sizes and retain ordering/visibility cases. Do not claim a PostgreSQL latency improvement from those tests.
 - Candidate image dependency exports narrowed from 44 packages per image to 40 for Media, 36 for Processing, and 33 for the worker. These are package counts, not image-size measurements.
 - Ruff formatting was applied across maintained Python. It increases physical line count in formatted files; describe it as consistent formatting, not a total-repository LOC reduction. Targeted code and dependency reductions are separate measures.
-- A new real PostgreSQL/Moto integration cohort recorded 99/99 required core cases and 157/157 selected cases overall on source `a9bf1c43f5584d74d4986d885156f229561dd344` (run `t3-91448b6d-commit-20261020`). That child source is separate from this checkout and its result is not hosted CI, cloud acceptance, or final integrated-source verification. The single parent-owned validation section below controls the current disposition.
+- Native pytest discovery now runs the required integration cohort automatically. The integrated local run recorded 99/99 required cases and 157/157 selected cases overall, with no selected skips. Thirteen cases for the optional, disabled short-encoder lane remain explicitly deferred. See the source-bound validation below.
+- The obsolete 300-line root Compose file, 45 lines of unused CI services and 11 lines of duplicate dependency inputs were removed. Active legacy consumers and historical evidence remain available. Ten workflow setup blocks now share one small Python-tool action.
+- Release admission checks the exact tested source, full CI run and attempt. Both new and retained images need fresh scans; registry manifest bytes must bind the deployed digest to the scanned config. The manual procedure follows the same policy.
+- Missing upload objects return recoverable `409`, while real storage failures remain `503`. Bounded diagnostics record safe failure context, and a failed log sink cannot prevent lease revocation or fail best-effort activity markers.
 
 These checks improve confidence in specific behaviors; they do not establish complete coverage, exactly-once delivery, or general reliability. Read the [evidence index](../evidence-index.md) and [actual-vs-target results](../results/actual-vs-target.md) with each workload and source label intact.
 
@@ -113,8 +116,32 @@ Have these backup evidence items ready for questions:
 
 One frozen-release limitation is important for the live story: the 100 MiB cap held, and an S3-refused oversized object was not adopted, but finalize could return 503 instead of the ideal client error (#271). Candidate code changes classify a missing object as recoverable 409 while retaining 503 for other storage failures; that candidate behavior is not deployed proof. HLS remains best effort, active-media retention is not generally specified, one-day backups do not establish a restore drill, and current live availability after the manifest read is unknown.
 
-## Parent-owned current validation — finalize this section after integration
+## Current engineering validation and delivery
 
-At handoff, the accepted release remains frozen at `daee44b61a6e8eef3f62505df69f8bfd076d68b8`; candidate code in this checkout has not been deployed. The 99/99 core integration cases and 157/157 selected cases above belong to child source `a9bf1c43f5584d74d4986d885156f229561dd344`, not this checkout. Parent native-pytest-discovery and integrated-source verification are still required. The parent is addressing independent-review findings F1 (CD test dependencies), F2 (logger-sink failures must not interrupt failure handling), and F3 (manual release runbook must attach exact-image scan receipts). A separate DAST handoff on source `bc6a3e12badab3b1d69ec0f8a9f98ecdaa53515d` records a successful two-owner local handler/auth harness, but no active ZAP scan ran; fixture proof is not an active-scan pass. Final integrated tests, DAST, exact image builds/scans, and hosted CI are not established by this guide. The accepted `daee44b` runtime remains the fallback.
+The following results are local engineering evidence. The accepted cloud runtime remains
+`daee44b61a6e8eef3f62505df69f8bfd076d68b8`. No replacement deployment is claimed here.
 
-After integration, replace this whole section with the integrated source SHA and date, exact run/evidence links, commands, pass/fail/skip results and limits, DAST disposition, image/scan identity, hosted-CI identity, and whether any authorized release occurred. Keep the freeze status explicit; do not copy child-source results forward as final-source results.
+| Check | Observed result | Source and evidence |
+|---|---|---|
+| Complete offline regression | 3,662 passed; 267 subtests; three documented skips. About 125 seconds; the local wrapper now permits 180 seconds without retries. | Runtime source `8bb273a`; subsequent `c85a737` changes only design documentation. [Validation receipt](../results/engineering-20261020/local-validation-9bd0a59.json). The real cfn-lint suite subsequently passed separately; the other two skips have no applicable credential mode. |
+| All five backend coverage tiers | Fast 2,878 passed; inherited integration 44, Processing integration 47, Media integration 39; V1 157. No selected integration skips. All package and recovery goals passed. | Clean candidate `9bd0a598be293b1f68460e0a8288100160e78dec`; [combined receipt](../results/engineering-20261020/local-validation-9bd0a59.json) and [V1 manifest](../results/engineering-20261020/v1-local-9bd0a59.json). |
+| Frontend | 170 passed; 99.72% statement and 91.99% branch coverage. | Frontend source unchanged in this pass; local Vitest coverage. |
+| Exact image execution | 73/73 checks passed across all three Linux amd64 images: packaging, imports, Lambda RIE handlers, migration/bootstrap and FFmpeg checks. | Clean source `1a4426306fd59c5204e2a5fea75eab514c756fbc`; [image receipt](../results/engineering-20261020/local-images-1a44263.json). Installed distributions are 41/37/34 including pip; owner exports are 40/36/33. Docker-reported sizes are 262,250,847 / 258,200,210 / 700,775,222 bytes, respectively. These sizes are not a controlled before/after comparison. |
+| Exact image vulnerability scans | Trivy 0.70.0 passed the zero **fixable** HIGH/CRITICAL gate for all three config IDs. Unfixed finding rows remain: Media 44, Processing 44, worker 208. | [Scan receipts and report hashes](../results/engineering-20261020/image-scan-summary-1a44263.json); database updated 20 October. This is not a claim of zero vulnerabilities. |
+| Style and design references | Required ordinary/security lint and formatting pass over the maintained Python scope; 486 tracked Python ASTs were unchanged by the mechanical formatting commit. All eight Mermaid diagrams rendered; local guide/catalogue/checklist links resolve. | Formatting commit `ef1b8e0`, rendered-reference repair `c85a737`; [style guide](../../CONTRIBUTING.md). |
+| Independent review fixes | Fresh CD dependency profile: 450 passed, two expected skips. Log-sink regressions: 55 passed. Integrated scan/planner checks: 71 passed and 21 subtests. | Reviews found and prompted fixes for missing CD authentication dependencies, logging interrupting failure handling, and missing manual scan-attachment instructions. These were AI-assisted reviews, not a claim of member review or authorship. |
+
+Coverage comparisons apply the same migration exclusion to the retained `daee44b` CI report and the
+new five-tier report. Media combined/branch coverage changed from **91.05% / 82.01%** to
+**93.91% / 86.68%**; Processing from **88.01% / 79.21%** to **93.79% / 89.36%**. Shared credential
+code changes package ownership and denominators, so part of a package-level change is structural.
+The recovery modules retain the same measured statements and branches: Media improved from
+**59.06% / 37.50%** to **89.76% / 75.00%**, and Processing from **53.99% / 37.50%** to
+**88.34% / 80.00%**. The deployed bootstrap is now measured separately at **80.37% / 71.43%**;
+it has no new coverage floor.
+
+**Remaining delivery checks:** the active current-API ZAP integration, its final review, and hosted
+full CI on the final candidate are still in progress. The local receipts above keep their original
+source identities. Update this paragraph with final scan/CI/release identities before calling the
+engineering delivery complete. Local PostgreSQL, Moto, RIE and fake release transports do not prove
+AWS IAM, Aurora pause, actual API Gateway behavior, Fargate timing or current live availability.
