@@ -80,6 +80,7 @@ async def test_verified_owner_filters_database_query_and_public_identity(app, pa
         event(f"/jobs/{pair[0].id}", owner=pair[0].owner_id)
     )
     assert result["statusCode"] == 200
+    assert result["headers"]["cache-control"] == "private, no-store"
     data = json.loads(result["body"])
     assert data["processing_job_id"] == str(pair[0].id)
     assert data["asset_id"] == str(pair[0].asset_id)
@@ -88,6 +89,20 @@ async def test_verified_owner_filters_database_query_and_public_identity(app, pa
     assert pair[0].owner_id in query.params.values()
     assert pair[0].id in query.params.values()
     assert "jobs.owner_id =" in str(query) and "submission_guards.owner_id =" in str(query)
+
+
+async def test_verified_owner_list_is_private_no_store(app, pair):
+    session = AsyncMock()
+    session.execute.return_value = [pair]
+    app.dependency_overrides[get_v1_session] = lambda: session
+    request = event("/jobs", owner=pair[0].owner_id)
+    request["rawQueryString"] = f"asset_ids={pair[0].asset_id}"
+
+    result = await GatewayAdapter(app, service="processing").invoke(request)
+
+    assert result["statusCode"] == 200
+    assert result["headers"]["cache-control"] == "private, no-store"
+    assert json.loads(result["body"])[0]["processing_job_id"] == str(pair[0].id)
 
 
 async def test_wrong_owner_is_not_found(app, pair):
@@ -211,6 +226,7 @@ async def test_public_health_never_opens_a_database_session(app):
     app.dependency_overrides[get_v1_session] = forbidden
     result = await GatewayAdapter(app, service="processing").invoke(event("/health"))
     assert result["statusCode"] == 200
+    assert "cache-control" not in result["headers"]
     assert json.loads(result["body"])["service"] == "processing"
 
 

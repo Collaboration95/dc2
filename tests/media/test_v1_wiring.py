@@ -14,6 +14,7 @@ from media.api import deps, v1_hls, v1_jobs
 from media.config import get_settings
 from media.database import get_session
 from media.lambda_handler import handler
+from media.projections import ProjectedJob
 from media.services.security import issue_token
 from media.services.storage import get_storage
 
@@ -75,29 +76,61 @@ def test_default_media_app_is_v1_and_legacy_peer_app_is_explicit():
     assert not hasattr(entry, "legacy_app") and not hasattr(entry, "create_app")
 
 
-async def test_exported_handler_reads_owned_projection_without_peer(settings, user, monkeypatch):
+async def test_exported_handler_reads_owned_projection_without_peer(
+    settings, user, asset, monkeypatch
+):
     app = handler.app
-    session = SimpleNamespace()
+    projection = ProjectedJob(
+        job_id=asset.processing_job_id,
+        status="done",
+        outputs=[
+            {"kind": "primary", "object_key": "jobs/attempt/output.mp4", "media_type": "video/mp4"}
+        ],
+    )
+    session = SimpleNamespace(get=AsyncMock(return_value=projection))
+    signed_url = "https://storage.example/output.mp4?X-Amz-Signature=fixture"
+    storage = SimpleNamespace(sign_output=AsyncMock(return_value=signed_url))
 
     async def auth_sessions(request, config):
         yield SimpleNamespace(get=AsyncMock(return_value=user))
 
-    listing = AsyncMock(return_value=[])
+    listing = AsyncMock(return_value=[(asset, projection)])
+    owned_asset = AsyncMock(return_value=asset)
     monkeypatch.setattr(deps, "get_session", auth_sessions)
+    monkeypatch.setattr(v1_jobs, "get_asset", owned_asset)
     monkeypatch.setattr(v1_jobs, "list_asset_pages", listing)
     app.dependency_overrides[get_settings] = lambda: settings
     app.dependency_overrides[get_session] = lambda: session
-    app.dependency_overrides[get_storage] = lambda: SimpleNamespace()
+    app.dependency_overrides[get_storage] = lambda: storage
 
     def forbidden_peer():
         raise AssertionError("V1 invoked the HTTP peer")
 
     app.dependency_overrides[get_peer] = forbidden_peer
     try:
+        identity = await handler.invoke(event("/auth/me", user, settings))
+        assert identity["statusCode"] == 200
+        assert json.loads(identity["body"])["id"] == str(user.id)
+        assert identity["headers"]["cache-control"] == "private, no-store"
+
         result = await handler.invoke(event("/jobs", user, settings))
         assert result["statusCode"] == 200
-        assert json.loads(result["body"]) == []
+        assert result["headers"]["cache-control"] == "private, no-store"
+        rows = json.loads(result["body"])
+        assert rows[0]["status"] == "done" and rows[0]["output_url"] == signed_url
         listing.assert_awaited_once_with(session, user.id, 50, 0)
+
+        detail = await handler.invoke(event(f"/jobs/{asset.id}", user, settings))
+        assert detail["statusCode"] == 200
+        assert detail["headers"]["cache-control"] == "private, no-store"
+        data = json.loads(detail["body"])
+        assert data["status"] == "done" and data["output_url"] == signed_url
+        owned_asset.assert_awaited_once_with(session, asset.id, user.id)
+        assert storage.sign_output.await_count == 2
+
+        health = await handler.invoke(event("/health", user, settings))
+        assert health["statusCode"] == 200
+        assert "cache-control" not in health["headers"]
         for path in ("/upload", "/internal/v1/assets/" + str(uuid4()) + "/source-access"):
             assert (await handler.invoke(event(path, user, settings, method="POST")))[
                 "statusCode"

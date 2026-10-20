@@ -92,7 +92,7 @@ async def test_lambda_mode_refuses_plain_http(settings):
         await deps.current_user(request, settings.model_copy(update={"runtime_mode": "lambda"}))
 
 
-async def test_auth_public_base64_body_and_cookie_flags(settings, monkeypatch):
+async def test_auth_public_base64_body_and_cookie_flags(settings, user, monkeypatch):
     from contracts.gateway import GatewayAdapter
     from media.api import auth
 
@@ -118,13 +118,23 @@ async def test_auth_public_base64_body_and_cookie_flags(settings, monkeypatch):
     request["isBase64Encoded"] = True
     adapter = GatewayAdapter(app, service="media")
     assert (await adapter.invoke(request))["statusCode"] == 401
+    session.scalar.return_value = user
+    monkeypatch.setattr(auth, "verify_password", lambda *args: True)
+    logged_in = await adapter.invoke(request)
+    assert logged_in["statusCode"] == 200
+    assert logged_in["headers"]["cache-control"] == "private, no-store"
+    assert logged_in["cookies"]
+
     response = await adapter.invoke(event("/auth/logout", method="POST"))
     assert response["statusCode"] == 204
+    assert response["headers"]["cache-control"] == "private, no-store"
     assert all(
         flag in response["cookies"][0]
         for flag in ["Secure", "HttpOnly", "SameSite=strict", "Path=/"]
     )
-    assert (await handler.invoke(event("/health")))["statusCode"] == 200
+    health = await handler.invoke(event("/health"))
+    assert health["statusCode"] == 200
+    assert "cache-control" not in health["headers"]
     request["rawPath"] = "/api/processing/auth/login"
     assert (await adapter.invoke(request))["statusCode"] == 404
     request["rawPath"] = "/api/media/api/media/auth/login"

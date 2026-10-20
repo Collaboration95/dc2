@@ -68,9 +68,37 @@ async def test_preserves_payload_query_cookies_and_trusted_actor(app):
 async def test_missing_actor_rejected_and_health_exempt(app):
     adapter = GatewayAdapter(app, service="processing")
     assert (await adapter.invoke(event(actor=False)))["statusCode"] == 401
-    assert (await adapter.invoke(event("/api/processing/health", "GET", False)))[
-        "statusCode"
-    ] == 200
+    health = await adapter.invoke(event("/api/processing/health", "GET", False))
+    assert health["statusCode"] == 200
+    assert "cache-control" not in health["headers"]
+
+
+async def test_owner_cache_policy_replaces_mixed_case_headers_and_preserves_response():
+    async def app(scope, receive, send):
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 307,
+                "headers": [
+                    (b"CaChE-CoNtRoL", b"public, max-age=60"),
+                    (b"cache-control", b"must-revalidate"),
+                    (b"Content-Type", b"text/plain"),
+                    (b"Location", b"/next"),
+                    (b"Set-Cookie", b"session=cleared; Path=/"),
+                ],
+            }
+        )
+        await send({"type": "http.response.body", "body": b"redirect body"})
+
+    result = await GatewayAdapter(app, service="processing").invoke(event())
+    cache_headers = [name for name in result["headers"] if name.lower() == "cache-control"]
+    assert result["statusCode"] == 307
+    assert result["body"] == "redirect body"
+    assert result["headers"]["Content-Type"] == "text/plain"
+    assert result["headers"]["Location"] == "/next"
+    assert cache_headers == ["cache-control"]
+    assert result["headers"]["cache-control"] == "private, no-store"
+    assert result["cookies"] == ["session=cleared; Path=/"]
 
 
 async def test_strips_only_own_prefix_once(app):

@@ -146,6 +146,11 @@ async def invoke_asgi(app, event: dict, *, service: str, request_id=None) -> dic
             output_cookies.append(value)
         else:
             output_headers[name] = value
+    if actor is not None or output_cookies:
+        for name in tuple(output_headers):
+            if name.lower() == "cache-control":
+                del output_headers[name]
+        output_headers["cache-control"] = "private, no-store"
     data = b"".join(m.get("body", b"") for m in messages if m["type"] == "http.response.body")
     try:
         output_body, encoded = data.decode("utf-8"), False
