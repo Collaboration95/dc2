@@ -256,13 +256,14 @@ replace a pin with a moving major tag. Runner and container base tags remain
 separate moving inputs; action pinning alone does not make builds reproducible.
 
 The required lint job also runs Ruff's `S` security rules over Media, Processing,
-the media engine, contracts, delivery, runtime support and Publisher. This is
+the media engine, contracts, delivery, runtime support, Publisher and the database
+bootstrap copied into the worker image. This is
 local security lint, not whole-program data-flow SAST. The one fixed emulator
 credential exception is documented at its restricted local endpoint call. Run
 the identical check with:
 
 ```sh
-.venv/bin/ruff check --select S media processing media_engine contracts delivery runtime_support publisher
+.venv/bin/ruff check --select S media processing media_engine contracts delivery runtime_support publisher scripts/aws/v1/bootstrap.py
 ```
 
 ## Verification and timing limits

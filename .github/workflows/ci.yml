@@ -108,6 +108,7 @@ jobs:
         run: >-
           .venv/bin/ruff check --select S
           media processing media_engine contracts delivery runtime_support publisher
+          scripts/aws/v1/bootstrap.py
       - name: Lint CI helpers (outside inherited lint path)
         run: .venv/bin/ruff check scripts/ci tests/ci
       - run: .venv/bin/python -m scripts.dev.checks coverage-fast
