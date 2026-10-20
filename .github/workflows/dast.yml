@@ -37,7 +37,7 @@ jobs:
       UV_PYTHON_DOWNLOADS: never
       PYTHONPATH: ${{ github.workspace }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Identify exact scan source and execution policy
         env:
           CANDIDATE_SHA: ${{ inputs.candidate_sha }}
@@ -54,17 +54,17 @@ jobs:
               stream.write('DAST source: `' + source + '`. Scheduled scans use the default branch.\n')
               stream.write('Full CI requires successful scan execution; dev PR scans are advisory to Dev gate. Findings are report-only at every tier.\n')
           PYSOURCE
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.8.17'
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
       - run: uv sync --locked --extra legacy --extra dev
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .cache/minio
           key: minio-source-20960b6a2ddb9594ee418035b3c7c7fe92ae6a12
@@ -182,7 +182,7 @@ jobs:
           if os.environ['ZAP_OUTCOME'] == 'success' and not executed:
               raise SystemExit('ZAP returned without a report; scan execution is not proven')
           PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: extracted-service-scan-${{ github.run_id }}

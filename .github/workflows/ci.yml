@@ -58,7 +58,7 @@ jobs:
       dast: ${{ steps.policy.outputs.dast }}
       v1: ${{ steps.policy.outputs.v1 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - name: Classify intended base and exact tested candidate
@@ -66,7 +66,7 @@ jobs:
         env:
           CANDIDATE_SHA: ${{ inputs.candidate_sha }}
         run: python3 scripts/ci/policy.py classify > ci-policy.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ci-selection-${{ github.run_attempt }}
           path: ci-policy.json
@@ -80,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python3 -m unittest discover -s tests/ci -v
 
   planning:
@@ -90,7 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python3 scripts/planning/validate_v1_plan.py
 
   lint-and-unit:
@@ -100,11 +100,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.8.17'
           enable-cache: true
@@ -126,7 +126,7 @@ jobs:
           .venv/bin/python -m pytest -q -p scripts.dev.pytest_plugin --offline-fast
           tests/aws/test_cloud_worker.py tests/aws/test_definitions.py
           -m 'not integration and not e2e' --no-cov
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: fast-coverage-data
           path: artifacts/coverage/.coverage.fast*
@@ -141,17 +141,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.8.17'
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
@@ -160,7 +160,7 @@ jobs:
       - run: .venv/bin/python -m scripts.dev.checks coverage-frontend
       - name: Normalize frontend coverage paths
         run: node frontend/scripts/normalize-lcov.mjs frontend/coverage/lcov.info
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: frontend-coverage
           path: frontend/coverage/lcov.info
@@ -174,7 +174,7 @@ jobs:
     timeout-minutes: 2
     needs: [classify, policy-checks, planning, lint-and-unit, frontend, legacy-integration, processing-intake, media-integration, media-service, processing-service, publisher-https, browser-trust, v1-local, secret-scan]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Require every selected dev check; validate intentional skips
         env:
           CI_PLAN: ${{ needs.classify.outputs.plan }}
@@ -209,18 +209,18 @@ jobs:
       MINIO_REGION: us-east-1
       MINIO_USE_SSL: 'false'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.8.17'
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
       - run: uv sync --locked --extra legacy --extra dev --extra browser
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .cache/minio
           key: minio-source-20960b6a2ddb9594ee418035b3c7c7fe92ae6a12
@@ -228,8 +228,8 @@ jobs:
         run: |
           test -f scripts/dev/runtime.py || { echo 'Runtime helper pending foundation integration'; exit 2; }
           .venv/bin/python -c 'from scripts.dev.runtime import fetch_minio; fetch_minio()'
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: deploy/dast/minio.Dockerfile
@@ -250,7 +250,7 @@ jobs:
           sudo apt-get install -y ffmpeg
           .venv/bin/python -m alembic upgrade head
       - run: make integration-coverage
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: legacy-coverage-data
           path: artifacts/coverage/.coverage.legacy-integration*
@@ -271,18 +271,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.8.17'
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
       - run: uv sync --locked --extra legacy --extra dev --extra browser
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .cache/minio
           key: minio-source-20960b6a2ddb9594ee418035b3c7c7fe92ae6a12
@@ -298,9 +298,9 @@ jobs:
               output.write('processing=' + env['DC2_PROCESSING_IMAGE'] + '\n')
               output.write('minio=' + env['DC2_MINIO_IMAGE'] + '\n')
           PYTHON
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Build actual Processing API and worker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: deploy/processing.Dockerfile
@@ -309,7 +309,7 @@ jobs:
           cache-from: type=gha,scope=processing
           cache-to: type=gha,scope=processing,mode=max
       - name: Load cached pinned storage image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: deploy/dast/minio.Dockerfile
@@ -327,7 +327,7 @@ jobs:
           sudo apt-get install -y ffmpeg
       - name: Run real owned PostgreSQL Redis and storage acceptance
         run: .venv/bin/python -m scripts.dev.owned_checks --run-id ci-processing --no-build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: processing-coverage-data
           path: artifacts/coverage/.coverage.processing-integration*
@@ -352,11 +352,11 @@ jobs:
       MEDIA_MIGRATION_DSN: postgresql+asyncpg://media_migrator:dc2_local_media_migrate@127.0.0.1:55432/media_db
       PROCESSING_SERVICE_TOKEN: ci-only-unused-processing-token
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.8.17'
           enable-cache: true
@@ -368,7 +368,7 @@ jobs:
           docker compose -f docker-compose.processing.yml up -d --wait --wait-timeout 120 postgres
           .venv/bin/python -m alembic -c media/alembic.ini upgrade head
       - run: make integration-coverage
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: media-coverage-data
           path: artifacts/coverage/.coverage.media-integration*
@@ -394,11 +394,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.8.17'
           enable-cache: true
@@ -414,7 +414,7 @@ jobs:
           docker run --rm --entrypoint python "$tag" /opt/check_runtime.py lambda-api media
       - name: Retain the image receipt (config ID, checks; no secrets)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: media-service-image-${{ github.run_attempt }}
           path: ${{ runner.temp }}/media-image.json
@@ -428,11 +428,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.8.17'
           enable-cache: true
@@ -452,7 +452,7 @@ jobs:
           docker run --rm --entrypoint python "dc2-v1-worker:local-$short" /opt/check_runtime.py finite-worker worker
       - name: Retain the image receipt (config IDs, checks; no secrets)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: processing-service-images-${{ github.run_attempt }}
           path: ${{ runner.temp }}/processing-images.json
@@ -466,11 +466,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.8.17'
           enable-cache: true
@@ -492,18 +492,18 @@ jobs:
     # Cold setup/build plus bounded full client acceptance and evidence/cleanup.
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.8.17'
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
       - run: uv sync --locked --extra legacy --extra dev --extra browser
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             .cache/minio
@@ -550,9 +550,9 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write('image=' + env['DC2_MINIO_IMAGE'] + '\n')
           PY
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Restore or build pinned storage image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: deploy/dast/minio.Dockerfile
@@ -593,7 +593,7 @@ jobs:
       - name: Retain browser trust and full acceptance evidence
         if: always()
         timeout-minutes: 2
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: browser-e2e-evidence
           path: |
@@ -633,18 +633,18 @@ jobs:
     needs: [classify, lint-and-unit, legacy-integration, processing-intake, media-integration, v1-local]
     if: needs.classify.outputs.coverage_gate == 'true'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version-file: .python-version
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.8.17'
           enable-cache: true
           cache-local-path: .cache/uv
           cache-dependency-glob: uv.lock
       - run: uv sync --locked --extra legacy --extra dev --extra browser
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: '*-coverage-data'
           path: artifacts/coverage
@@ -652,7 +652,7 @@ jobs:
       - run: >-
           make coverage-report
           COVERAGE_INPUTS='artifacts/coverage/.coverage.fast artifacts/coverage/.coverage.legacy-integration artifacts/coverage/.coverage.processing-integration artifacts/coverage/.coverage.media-integration artifacts/coverage/.coverage.v1-integration'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: python-coverage
           path: |
@@ -686,7 +686,7 @@ jobs:
           test "$TRUST_RESULT" = success
           test "$V1_RESULT" = success
           test "$COVERAGE_RESULT" = success
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Require every requested full check, including images and scan execution
         env:
           CI_PLAN: ${{ needs.classify.outputs.plan }}
@@ -711,15 +711,15 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.classify.outputs.security_matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       # These are the inherited topology's three artifacts. V1 artifact validation
       # runs in v1.yml; this matrix does not attest to Lambda/Fargate vulnerability scans.
       - name: Require scan selection for new live images
         run: |
           test -f deploy/media.Dockerfile
           test ! -f deploy/worker.Dockerfile || { echo 'Add distinct worker image to scan matrix'; exit 1; }
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: ${{ matrix.file }}
@@ -738,7 +738,7 @@ jobs:
           Path('image-source.json').write_text(json.dumps({'source_sha': os.environ['GITHUB_SHA'], 'image_ref': os.environ['IMAGE_REF'], 'image_id': digest}))
           PYIMAGE
       # Scan the actual loaded candidate. Never weaken the inherited promotion policy.
-      - uses: aquasecurity/trivy-action@v0.36.0
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ matrix.tag }}
           format: json
@@ -748,7 +748,7 @@ jobs:
           severity: CRITICAL,HIGH
       - name: Retain exact candidate scan findings and identity
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: container-scan-${{ matrix.name }}-${{ github.run_id }}
           path: |
@@ -766,7 +766,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       # The binary rather than gitleaks-action: the action needs a licence key for
@@ -808,7 +808,7 @@ jobs:
               stream.write('Sonar: ' + ('configured; analysis advisory at every tier' if configured else 'NOT_RUN / not configured; no analysis or quality-gate result') + '.\n')
           Path('sonar-configuration.json').write_text(json.dumps({'engine': 'sonar', 'source_sha': os.environ['GITHUB_SHA'], 'configured': configured, 'disposition': 'configured; analysis pending' if configured else 'NOT_RUN / not configured'}))
           PYSONAR
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sonar-configuration-${{ github.run_id }}
           path: sonar-configuration.json
@@ -827,7 +827,7 @@ jobs:
       SONAR_PROJECT_KEY: ${{ vars['SONAR_PROJECT_KEY'] }}
       SONAR_ORGANIZATION: ${{ vars['SONAR_ORGANIZATION'] }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - name: Run advisory source analysis; completed result remains linked in scanner metadata
@@ -857,7 +857,7 @@ jobs:
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as stream:
               stream.write('Sonar: ' + status + '. Submission does not imply completed analysis or a clean quality gate.\n')
           PYSCAN
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: sonar-disposition-${{ github.run_id }}
@@ -881,15 +881,15 @@ jobs:
       SONAR_PROJECT_KEY: ${{ vars['SONAR_PROJECT_KEY'] }}
       SONAR_ORGANIZATION: ${{ vars['SONAR_ORGANIZATION'] }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - name: Download exact-source Python coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: python-coverage
       - name: Download exact-source frontend coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: frontend-coverage
           path: frontend/coverage
@@ -917,7 +917,7 @@ jobs:
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as stream:
               stream.write('Full Sonar: ' + status + '. Advisory; wrapper success alone is not a clean scan.\n')
           PYSCAN
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: sonar-full-disposition-${{ github.run_id }}
