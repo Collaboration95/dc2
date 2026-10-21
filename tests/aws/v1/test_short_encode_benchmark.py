@@ -314,6 +314,79 @@ def test_a_lambda_job_that_was_redirected_or_retried_is_not_a_success(tmp_path, 
     assert public["successes"] == 0
 
 
+# --- Queue wait, and the Fargate arm on the always-on stack --------------------------------
+
+
+def test_every_job_records_server_side_queue_wait_and_processing_time(tmp_path, fixture):
+    proof, first, second = run_both(tmp_path, fixture)
+    lam = proof.doc["steps"]["lambda"]["public"]
+    assert lam["queue_wait"]["all"]["count"] == 3
+    assert lam["queue_wait"]["cold"]["median_seconds"] > lam["queue_wait"]["warm"]["median_seconds"]
+    assert lam["processing"]["count"] == 3
+    far = proof.doc["steps"]["fargate"]["public"]
+    # A cold Fargate encoder starts after its task does, far above a cold Lambda start.
+    assert far["queue_wait"]["cold"]["median_seconds"] > lam["queue_wait"]["cold"]["median_seconds"]
+    verdict = proof.doc["steps"]["compare"]["public"]
+    assert verdict["keep_rule"]["lambda_queue_wait_median_within_target"] is True
+    assert verdict["queue_wait_target_seconds"] == short_encode.QUEUE_WAIT_TARGET_SECONDS
+    assert lam["queue_wait"]["cold"]["count"] == 1 and lam["queue_wait"]["warm"]["count"] == 2
+
+
+def over_size_fixture(tmp_path):
+    path = tmp_path / "over.mp4"
+    with path.open("wb") as handle:
+        handle.truncate(short_lane.MAX_SOURCE_BYTES + 1)
+    return path
+
+
+def test_the_fargate_arm_measures_a_fixture_over_the_size_bound_on_the_lane_stack(
+    tmp_path, fixture
+):
+    # With the lane on, a source over 64 MiB is queued for Fargate at dispatch, so the standard
+    # lane can still be timed on the always-on stack, where the launcher starts every encoder.
+    args = argparse.Namespace(run_id="t", dry_run=True)
+    world = sim.SimWorld(lambda_lane=True, launcher=True)
+    ctx = sim.build(args, session="open", world=world, tmp=tmp_path / "live", unattended=True)
+    big = over_size_fixture(tmp_path)
+    proof = short_encode.run(ctx, arm="fargate", fixture=big, fixture_seconds=24.0, jobs=2)
+    public = proof.doc["steps"]["fargate"]["public"]
+    assert statuses(proof)["fargate"] == PASS, public
+    assert public["executor_start"] == "launcher" and public["encoders_started"] == 2
+    assert public["cold"]["count"] == 2 and public["warm"]["count"] == 0
+    assert public["fixture_bytes"] == short_lane.MAX_SOURCE_BYTES + 1
+    assert public["cost_usd_per_success"] > 0 and public["encoders_left_running"] == 0
+    assert not ctx.world.invocations, "an over-bound source never reaches the Lambda lane"
+    # The same stack then runs the Lambda arm on a short fixture; the keep rule compares warm
+    # Lambda with the cold Fargate that launcher-started encoders always are.
+    short_encode.run(
+        ctx, arm="lambda", fixture=fixture, fixture_seconds=24.0, jobs=3, idle_minutes=0
+    )
+    verdict = short_encode.run(ctx, arm="compare").doc["steps"]["compare"]["public"]
+    assert verdict["fargate"]["executor_start"] == "launcher"
+    assert verdict["keep_rule"]["lambda_warm_median_lower"] is True
+    assert verdict["meets_keep_rule"] is True
+
+
+def test_the_fargate_arm_still_refuses_a_short_fixture_on_the_lane_stack(tmp_path, fixture):
+    ctx = build(tmp_path, "lane", lambda_lane=True)
+    proof = short_encode.run(ctx, arm="fargate", fixture=fixture, fixture_seconds=24.0, jobs=2)
+    assert statuses(proof)["fargate"] == FAIL
+    assert "over the size bound" in proof.doc["steps"]["fargate"]["public"]["error"]
+
+
+def test_the_lambda_arm_still_refuses_a_fixture_over_the_size_bound(tmp_path):
+    ctx = build(tmp_path, "lane", lambda_lane=True)
+    with pytest.raises(ProofError, match="size bound"):
+        short_encode.run(
+            ctx,
+            arm="lambda",
+            fixture=over_size_fixture(tmp_path),
+            fixture_seconds=24.0,
+            jobs=2,
+            idle_minutes=0,
+        )
+
+
 # --- Wiring ----------------------------------------------------------------------------------
 
 

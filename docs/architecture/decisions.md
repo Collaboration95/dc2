@@ -167,7 +167,7 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   ECS (`DC2_WORKER_CAP` is documentary). Work arriving later stays queued until another batch.
 - **Alternatives.** An ECS service with autoscaling (always-on cost; the proposal also put
   autoscaling out of scope); AWS Batch (not a V1 dependency); Lambda for short encodes (#93) and a
-  launcher Lambda for unattended starts (#68), both opt-in. #68 ran on AWS in `r1018b` (see below); #93 is [NOT_RUN].
+  launcher Lambda for unattended starts (#68), both opt-in. #68 ran on AWS in `r1018b` (see below); #93 is enabled on `dc2-live` and measured there (queue wait 0.26 s against 32.6 s on Fargate, see AD-22).
 - **Trade-off.** No autoscaling; at most three concurrent encodes; submissions are not processed
   until someone starts a batch, so a Publisher job on its own would sit queued.
 - **Evidence.** [AWS] `run-1/2/3`: 1, 2, 3 encoders running together (peak concurrency read from task
@@ -340,7 +340,7 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
 - **Alternatives.** Separate branches (the original gating, #80).
 - **Trade-off.** V1 images and the migration history carry code and tables only the experiments use
   (`launcher_control`, `launch_reservations`). #68 ran in the cloud in `r1018b` (6 clips: 0.787 jobs/min,
-  0.69x the operator batch); #93 and #94 are [NOT_RUN].
+  0.69x the operator batch); #93 was enabled on `dc2-live` on 21 October and measured there: 5 jobs per arm, median queue wait 0.26 s against 32.6 s, billed compute $0.0003 against $0.0021 per encode, cold-start end-to-end 4 s slower than Fargate on one sample ([Code/AWS] `docs/results/engineering-20261021/short-lane-sl1021.json`); #94 is [NOT_RUN].
 - **Evidence.** [Code] `docs/execution/aws/v2/*.md`, `definitions.py`, `tests/aws/v1/test_database_topology.py`.
 
 ### AD-23 One CloudFormation stack, applied in two phases

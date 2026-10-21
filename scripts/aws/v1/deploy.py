@@ -206,7 +206,7 @@ ALLOWED = {
     "sts": {"get-caller-identity"},
     # simulate-principal-policy only evaluates policy text; it changes nothing in the account.
     "iam": {"list-mfa-devices", "simulate-principal-policy"},
-    "lambda": {"get-account-settings"},
+    "lambda": {"get-account-settings", "get-event-source-mapping"},
     "service-quotas": {"get-service-quota"},
     "budgets": {"describe-budgets"},
     "ce": {"get-cost-and-usage", "get-cost-forecast"},
