@@ -104,7 +104,14 @@ the same code the Fargate worker runs.
   (`tests/v1/test_short_encoder_sql.py`), including "crash mid-encode, recovery, cleanup,
   zombie finish refused, Fargate retry, exactly one commit".
 
-## Concurrency arithmetic (account limit 10, nothing reservable)
+## Concurrency arithmetic (written for an account limit of 10, nothing reservable)
+
+**Update, 21 October 2026:** the account's Lambda concurrency limit is now **1000** (read with
+`lambda get-account-settings`; 1000 unreserved), so the squeeze described here no longer applies
+and a reservation is possible. The decision was not to change anything for the live enablement:
+the mapping still caps the encoder at its minimum of 2 and nothing is reserved. The pinned
+arithmetic and `ACCOUNT_CONCURRENCY = 10` in `processing/short_lane.py` are the design's original
+worst case, kept as written.
 
 New AWS accounts here have a Lambda concurrency limit of **10**, and at that size no
 concurrency can be reserved (AWS keeps 10 unreserved). So the encoder cannot be given a
@@ -146,11 +153,58 @@ only with new arithmetic.
    deploy). This creates the short queue and DLQ, the function and alias, the mapping (created
    **closed**), the producer grants, and sets `PROCESSING_SHORT_LANE=true` plus the queue URL on
    the four dispatching functions.
-3. `session open` enables the mapping with the others and `session close` disables it. It
-   joins the close-proof quiescence check. It is **not** part of a release promotion
+   * **Persistent environment (`dc2-live`).** CD renders its parameters from `Settings` in
+     `scripts/aws/v1/deploy.py`, not from a file in the state bucket, so the switch is the module
+     constant `PERSISTENT_LAMBDA_SHORT_ENCODES` (enabled by #296). Every CD path reads it: the
+     review, the deploy and the stack update that adopts a release. The mapping is created
+     **enabled** (`AlwaysOpen`). Reverting is that constant set to `False`; the next CD deploy
+     removes the lane and the dispatchers fall back to Fargate.
+   * **Per-run stack.** Pass `--lambda-short-encodes` to `scripts.aws.v1.deploy deploy`
+     (refused together with `--environment`).
+3. `session open` enables the mapping with the others and `session close` disables it (on the
+   always-on environment the mapping is already enabled and `session close` is the kill switch).
+   It joins the close-proof quiescence check. It is **not** part of a release promotion
    (`owner_functions` excludes it): it runs the worker image, which a Processing release does not
-   promote.
-4. Disable: set the parameter back to `false` and redeploy. Let the short queue drain first (its DLQ and queue depth are reported by the harness); the queue and function are deleted with the stack resources, and dispatchers fall back to the standard lane as soon as the URL is gone.
+   promote. On the persistent environment the stack update that adopts a release moves it (see
+   the next section).
+4. Disable: set the parameter back to `false` (on `dc2-live`, the constant) and redeploy. Let the short queue drain first (its DLQ and queue depth are reported by the harness); the queue and function are deleted with the stack resources, and dispatchers fall back to the standard lane as soon as the URL is gone.
+
+## The always-on environment (AD-27) and the lane
+
+This document was written for per-run stacks and a booked session. The persistent environment
+`dc2-live` (AD-27) differs in five ways that matter here. Each was read from the code and, where
+a real PostgreSQL case exists, run; the live results are under "Results on dc2-live".
+
+* **Launcher wake.** `launcher_trigger.WakeOnWork` invokes the launcher only after a send to
+  `processing-work`. A short-lane send goes to `processing-work-short` and wakes nothing. The
+  launcher's demand is `min(queued attempts in SQL, visible messages in the standard queue)`, so a
+  short job that sits in the short queue adds to the SQL side and not the queue side: no Fargate
+  task is started for it. A redirected job (over the duration or height bound) gets a successor
+  attempt whose outbox row is published to the standard queue by the minute repair tick, which is
+  a work publisher and does wake the launcher.
+* **`repair_work` and the lane.** A work message is one outbox row per `(attempt, state version)`,
+  and the row carries its queue. Repair re-arms an existing row, so a re-send goes to the lane the
+  attempt was dispatched to; a missing row is staged through `short_lane.work_lane`, which applies
+  the size bound and the sticky Fargate fallback (any earlier `lambda-` binding sends the job to
+  the standard lane). A message left in the short queue because the executor could not claim is
+  re-sent by the same repair pass, about a minute later, not after the 960 s visibility timeout.
+* **Activity markers and Aurora.** Idle ticks skip SQL while the SSM `quiet` marker is valid, and
+  the markers are written by the writers (the command consumer, the Media and Processing APIs) and
+  by the repair pass. The short encoder is not a writer and does not need to be: it only acts on
+  an attempt that is already `queued` or `processing`, for which `next_due` is 0 and no quiet value
+  is in force. Its heartbeat and its commit keep Aurora awake while it works; when the job is done
+  the next repair pass finds nothing due, writes `quiet`, and the cluster can pause.
+* **Per-owner release.** The short encoder is not in `owner_functions`, so a Processing release
+  does not move it. It follows the worker image through the stack: its code and the description of
+  its published version name `WorkerImageUri`, which `adopt-release` rewrites and the following
+  `deploy --stop-after applications` renders, so the alias moves exactly when the worker image
+  does (pinned by `tests/aws/v1/test_persistent_environment.py`). Its mapping is in the Processing
+  owner's consumers, so a release's online invariant requires it enabled and the kill switch
+  (`session close`) disables it. Between a release and its adoption the function runs the previous
+  worker image, like the launcher's task definition; a release is additive, so that is safe.
+* **What the CD smoke now exercises.** The smoke's 3 s clip is short, so on `dc2-live` it takes
+  the Lambda lane. The Fargate worker path is exercised by sources over the bounds, which is also
+  how the measurement times Fargate on the same stack.
 
 ## Measurement plan (not yet run)
 
