@@ -13,7 +13,8 @@
     {"id": "CVE-2026-67215", "package": "cjson", "reason": "no fixed version in Debian 13 (trixie) for the pinned python:3.12-slim base as of 2026-10-17", "reviewed_on": "2026-10-17"},
     {"id": "CVE-2026-67216", "package": "cjson", "reason": "no fixed version in Debian 13 (trixie) for the pinned python:3.12-slim base as of 2026-10-17", "reviewed_on": "2026-10-17"},
     {"id": "CVE-2026-29036", "package": "cjson", "reason": "no fixed version in Debian 13 (trixie) for the pinned python:3.12-slim base as of 2026-10-17", "reviewed_on": "2026-10-17"},
-    {"id": "CVE-2026-52490", "package": "tiff", "reason": "no fixed version in Debian 13 (trixie) for the pinned python:3.12-slim base as of 2026-10-17 (CRITICAL)", "reviewed_on": "2026-10-17"}
+    {"id": "CVE-2026-52490", "package": "tiff", "reason": "no fixed version in Debian 13 (trixie) for the pinned python:3.12-slim base as of 2026-10-17 (CRITICAL)", "reviewed_on": "2026-10-17"},
+    {"id": "CVE-2025-52290", "package": "ffmpeg", "reason": "unfixed in Debian 13 (trixie) and unstable (security tracker, 2026-10-22): NULL dereference DoS on a crafted media file in the worker's ffmpeg 7.1.5-0+deb13u1; the worker is a finite task with no inbound network and an output-only role", "reviewed_on": "2026-10-22"}
   ],
   "verified_by": "apt list --upgradable on the pinned base (empty) and the ECR basic scan of the deployed images, 2026-10-17"
 }
