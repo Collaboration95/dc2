@@ -22,6 +22,12 @@ from urllib.parse import urlsplit
 from scripts.aws.transport import OperationError
 
 MAX_BODY = 1_000_000
+# An auto-paused Aurora cluster needs time to resume, and the first database-backed call meets it:
+# Media gives up on its connection after about ten seconds and answers 503 (the gateway may answer
+# 502/504). Only these statuses and a transport failure count as "the database is still waking".
+DATABASE_WAKING = frozenset({502, 503, 504})
+# Pauses between login attempts for a caller that expects to meet a paused database (the deploy).
+DATABASE_WAKE_BACKOFF = (5, 10, 15)
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -84,12 +90,25 @@ class PublicSmoke:
     """Callable with the release hook shape public_smoke(owner, versions, worker, *, deadline)."""
 
     def __init__(
-        self, base_url, credentials, *, http=urllib_http, clock=time.monotonic, reserve=True
+        self,
+        base_url,
+        credentials,
+        *,
+        http=urllib_http,
+        clock=time.monotonic,
+        reserve=True,
+        sleep=time.sleep,
+        wake_backoff=(),
     ):
+        """`wake_backoff` is the pauses between login attempts while the database may be waking.
+
+        Empty (the default, for a release smoke that runs after its migration has used the
+        database) means a single attempt."""
         self.base = validate_base_url(base_url)
         self.credentials, self.http, self.clock, self.reserve = credentials, http, clock, reserve
+        self.sleep, self.wake_backoff = sleep, tuple(wake_backoff)
         self.checks, self.failures, self.receipt = {}, [], {}
-        self.cookie = None
+        self.cookie, self.login_attempts = None, []
 
     # -- plumbing -----------------------------------------------------------------
     def _request(self, method, path, deadline, body=None, cookie=None):
@@ -139,10 +158,36 @@ class PublicSmoke:
         status, _, _ = self._request("GET", "/api/media/jobs", deadline)
         return True if status in {401, 403} else status
 
+    def _login_attempts(self, deadline):
+        """The login POST, repeated while a paused database is waking.
+
+        Login is the first call that needs the database (health and the anonymous denial do not).
+        Only a 502/503/504 or a transport failure is retried, with the configured pauses and only
+        while the deadline leaves room for the pause and another request; any other status ends
+        the check at once, and a 503 that outlasts the pauses is still the failure. Every
+        attempt's status is kept for the receipt."""
+        attempts = len(self.wake_backoff) + 1
+        for attempt in range(attempts):
+            try:
+                reply = self._request(
+                    "POST", "/api/media/auth/login", deadline, body=self.credentials
+                )
+            except OperationError:
+                raise
+            except Exception:
+                reply = ("error", {}, b"")  # a transport failure; no detail is kept
+            status = reply[0]
+            self.login_attempts.append(status)
+            if status not in DATABASE_WAKING and status != "error":
+                break
+            last = attempt == attempts - 1
+            if last or deadline - self.clock() <= self.wake_backoff[attempt] + 1:
+                break
+            self.sleep(self.wake_backoff[attempt])
+        return reply
+
     def _login(self, deadline):
-        status, headers, body = self._request(
-            "POST", "/api/media/auth/login", deadline, body=self.credentials
-        )
+        status, headers, body = self._login_attempts(deadline)
         if status != 200:
             return status
         cookies = headers.get("set-cookie", [])
@@ -195,7 +240,7 @@ class PublicSmoke:
         return True if ok else "contract"
 
     def __call__(self, owner, versions, worker_definition, *, deadline):
-        self.checks, self.failures, self.cookie = {}, [], None
+        self.checks, self.failures, self.cookie, self.login_attempts = {}, [], None, []
         self._check("media-health", lambda: self._health("media", deadline))
         self._check("processing-health", lambda: self._health("processing", deadline))
         self._check("anonymous-denied", lambda: self._anonymous_denied(deadline))
@@ -209,5 +254,8 @@ class PublicSmoke:
             "versions": dict(versions),
             "checks": dict(self.checks),
             "failures": list(self.failures),
+            # One status per login try ("error" for a transport failure): [503, 200] shows that
+            # the database was still waking on the first try. Statuses only, never a body.
+            "login_attempts": list(self.login_attempts),
         }
         return not self.failures
