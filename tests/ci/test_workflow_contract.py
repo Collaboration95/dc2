@@ -85,7 +85,8 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn(
             "if: always()\n        run: .venv/bin/python -m scripts.dev.v1_dast cleanup", dast
         )
-        self.assertNotIn("continue-on-error", jobs(dast)["dast"])
+        # Only the SARIF publication step may fail without failing the scan job.
+        self.assertEqual(jobs(dast)["dast"].count("continue-on-error"), 1)
         self.assertNotIn("needs:", self.jobs["sonar-config"])
         self.assertIn("NOT_RUN / not configured", self.jobs["sonar-config"])
         self.assertNotIn("download-artifact", self.jobs["sast"])
@@ -104,6 +105,30 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("image-source.json", security)
         self.assertIn("trivy-findings.json", security)
         self.assertNotIn("matrix.image.", security)
+
+    def test_sarif_publication_is_distinct_conditional_and_never_a_gate(self):
+        steps, categories = [], []
+        for name in ("ci", "v1", "dast"):
+            text = (ROOT / f".github/workflows/{name}.yml").read_text()
+            self.assertNotIn("security-events", text.split("\njobs:\n", 1)[0], name)
+            for job, body in jobs(text).items():
+                uploads = [x for x in re.split(r"\n      - ", body) if "upload-sarif@" in x]
+                caller = "uses: ./.github/workflows/" in body
+                # Only a job that uploads (or calls a workflow whose job does) may write.
+                self.assertEqual(
+                    "security-events: write" in body, bool(uploads) or caller, (name, job)
+                )
+                steps += uploads
+        self.assertEqual(len(steps), 7)  # Ruff, Trivy (CI matrix and three V1), ZAP, gitleaks.
+        for step in steps:
+            categories.append(re.search(r"category: (\S+)", step).group(1))
+            # Publishing must not change what passes: failed scans still upload, forks cannot.
+            self.assertIn("continue-on-error: true", step)
+            self.assertIn("always()", step)
+            self.assertIn("github.event.pull_request.head.repo.full_name", step)
+        self.assertEqual(len(categories), len(set(categories)), categories)
+        self.assertIn("--redact", self.jobs["secret-scan"])
+        self.assertIn("--report-format sarif", self.jobs["secret-scan"])
 
     def test_docs_job_never_installs_runtime_or_starts_services(self):
         body = self.jobs["policy-checks"] + self.jobs["planning"]

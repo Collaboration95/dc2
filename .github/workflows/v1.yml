@@ -196,6 +196,9 @@ jobs:
     if: ${{ !cancelled() && (inputs.images || (inputs.auto_images && (needs.image-paths.result != 'success' || needs.image-paths.outputs.changed == 'true'))) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write # upload-sarif for the image scans only
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -255,6 +258,68 @@ jobs:
           path: docs/execution/aws/v1/evidence/local-images-*.json
           if-no-files-found: warn
           retention-days: 60
+      # Publication only, after the gate and the retained reports. The Security tab shows what the
+      # gate enforces: HIGH/CRITICAL findings that have a fix. Unfixed rows stay in the JSON reports.
+      - name: Export the media image findings as SARIF
+        if: always()
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: dc2-v1-media:local-${{ steps.short.outputs.sha12 }}
+          format: sarif
+          output: trivy-media.sarif
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+      - name: Export the processing image findings as SARIF
+        if: always()
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: dc2-v1-processing:local-${{ steps.short.outputs.sha12 }}
+          format: sarif
+          output: trivy-processing.sarif
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+      - name: Export the worker image findings as SARIF
+        if: always()
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: dc2-v1-worker:local-${{ steps.short.outputs.sha12 }}
+          format: sarif
+          output: trivy-worker.sarif
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+      - name: Summarize image findings
+        if: always()
+        run: python3 -m scripts.ci.sarif summary 'V1 image scans (fixable HIGH/CRITICAL)' trivy-media.sarif trivy-processing.sarif trivy-worker.sarif >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish the media image findings to code scanning
+        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: trivy-media.sarif
+          category: trivy-v1-media
+      - name: Publish the processing image findings to code scanning
+        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: trivy-processing.sarif
+          category: trivy-v1-processing
+      - name: Publish the worker image findings to code scanning
+        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: trivy-worker.sarif
+          category: trivy-v1-worker
 
   v1-result:
     name: V1 requested checks
