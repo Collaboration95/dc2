@@ -117,7 +117,7 @@ TOC_FIELD = (
     'w:pos="9016"/></w:tabs></w:pPr><w:r><w:fldChar w:fldCharType="begin"/></w:r>'
     '<w:r><w:instrText xml:space="preserve"> TOC \\o "1-2" \\h \\z \\u </w:instrText></w:r>'
     '<w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>Update this field to show the '
-    "table of contents.</w:t></w:r><w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>"
+    'table of contents.</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>'
 )
 
 WORD_SCRIPT = r"""
@@ -152,8 +152,7 @@ def build_reference(tmp: Path) -> Path:
                 xml = data.decode("utf-8")
                 for style_id, style in EXTRA_STYLES.items():
                     pattern = re.compile(
-                        r'<w:style [^>]*w:styleId="%s"[^>]*>.*?</w:style>' % re.escape(style_id),
-                        re.S,
+                        rf'<w:style [^>]*w:styleId="{re.escape(style_id)}"[^>]*>.*?</w:style>', re.S
                     )
                     xml = pattern.sub("", xml)
                     xml = xml.replace("</w:styles>", style.replace("\n", "") + "</w:styles>")
@@ -194,7 +193,7 @@ def balance_tables(text: str) -> str:
             weights.append(max((min(longest, 14) + 2) * 1.7, min(average, 90) * 0.55, 8))
         total = sum(weights)
         new = []
-        for align, weight in zip(aligns, weights):
+        for align, weight in zip(aligns, weights, strict=False):
             dashes = "-" * max(3, round(120 * weight / total))
             left = ":" if align.startswith(":") else ""
             right = ":" if align.endswith(":") else ""
@@ -208,11 +207,11 @@ def number_figures(text: str) -> str:
     numbers: dict[str, int] = {}
     for key in re.findall(r"\{#fig:([\w-]+)\}", text):
         if key in numbers:
-            sys.exit("duplicate figure label %s" % key)
+            sys.exit(f"duplicate figure label {key}")
         numbers[key] = len(numbers) + 1
     missing = sorted(set(re.findall(r"\{@fig:([\w-]+)\}", text)) - set(numbers))
     if missing:
-        sys.exit("unknown figure references: %s" % ", ".join(missing))
+        sys.exit("unknown figure references: {}".format(", ".join(missing)))
     text = re.sub(r"\{#fig:([\w-]+)\}", lambda m: str(numbers[m.group(1)]), text)
     return re.sub(r"\{@fig:([\w-]+)\}", lambda m: str(numbers[m.group(1)]), text)
 
@@ -220,7 +219,7 @@ def number_figures(text: str) -> str:
 def run_pandoc(reference: Path, out: Path) -> None:
     sources = sorted(SRC.glob("*.md"))
     if not sources:
-        sys.exit("no sources in %s" % SRC)
+        sys.exit(f"no sources in {SRC}")
     combined = out.with_suffix(".md")
     text = number_figures("\n\n".join(p.read_text(encoding="utf-8") for p in sources))
     text = balance_tables(text)
@@ -248,13 +247,13 @@ def heading_numbering(template_numbering: str, numbering: str) -> str:
     num = re.search(r'<w:num w:numId="1"[^>]*>.*?</w:num>', template_numbering, re.S).group(0)
     abstract_id = re.search(r'<w:abstractNumId w:val="(\d+)"', num).group(1)
     abstract = re.search(
-        r'<w:abstractNum [^>]*w:abstractNumId="%s"[^>]*>.*?</w:abstractNum>' % abstract_id,
+        rf'<w:abstractNum [^>]*w:abstractNumId="{abstract_id}"[^>]*>.*?</w:abstractNum>',
         template_numbering,
         re.S,
     ).group(0)
     new_id = "990"
-    abstract = re.sub(r'w:abstractNumId="\d+"', 'w:abstractNumId="%s"' % new_id, abstract, count=1)
-    num = re.sub(r'<w:abstractNumId w:val="\d+"', '<w:abstractNumId w:val="%s"' % new_id, num)
+    abstract = re.sub(r'w:abstractNumId="\d+"', f'w:abstractNumId="{new_id}"', abstract, count=1)
+    num = re.sub(r'<w:abstractNumId w:val="\d+"', f'<w:abstractNumId w:val="{new_id}"', num)
     first_num = numbering.find("<w:num ")
     if first_num == -1:
         numbering = numbering.replace("</w:numbering>", abstract + num + "</w:numbering>")
@@ -304,12 +303,12 @@ def landscape_sections(document: str) -> str:
     )
 
     def marker(name: str) -> re.Pattern:
-        return re.compile(r"<w:p>(?:(?!<w:p>).)*?%s.*?</w:p>" % name, re.S)
+        return re.compile(rf"<w:p>(?:(?!<w:p>).)*?{name}.*?</w:p>", re.S)
 
     document = marker("LANDSCAPE-START").sub(
-        lambda _: "<w:p><w:pPr>%s</w:pPr></w:p>" % portrait, document
+        lambda _: f"<w:p><w:pPr>{portrait}</w:pPr></w:p>", document
     )
-    return marker("LANDSCAPE-END").sub(lambda _: "<w:p><w:pPr>%s</w:pPr></w:p>" % landscape, document)
+    return marker("LANDSCAPE-END").sub(lambda _: f"<w:p><w:pPr>{landscape}</w:pPr></w:p>", document)
 
 
 def postprocess(body: Path, out: Path) -> None:
@@ -323,12 +322,17 @@ def postprocess(body: Path, out: Path) -> None:
             elif item.filename == "docProps/core.xml":
                 xml = data.decode("utf-8")
                 for tag, value in (
-                    ("dc:title", "Project Report for FlickPond: A Reusable Cloud Media Processing Platform"),
+                    (
+                        "dc:title",
+                        "Project Report for FlickPond: A Reusable Cloud Media Processing Platform",
+                    ),
                     ("dc:creator", "Team 17: Guruprasath Gopal, Ibrahim Mammadov, Nguyen Kim Long"),
                     ("dc:subject", "SWE5001 Architecting Scalable Systems practice module report"),
                 ):
-                    xml = re.sub(r"<%s>.*?</%s>|<%s\s*/>" % (tag, tag, tag), "", xml, flags=re.S)
-                    xml = xml.replace("</cp:coreProperties>", "<%s>%s</%s></cp:coreProperties>" % (tag, value, tag))
+                    xml = re.sub(rf"<{tag}>.*?</{tag}>|<{tag}\s*/>", "", xml, flags=re.S)
+                    xml = xml.replace(
+                        "</cp:coreProperties>", f"<{tag}>{value}</{tag}></cp:coreProperties>"
+                    )
                 data = xml.encode("utf-8")
             elif item.filename == "[Content_Types].xml":
                 xml = data.decode("utf-8")
@@ -371,7 +375,9 @@ def main() -> None:
         pages = REPO / ".claude" / "report-work" / "pages"
         shutil.rmtree(pages, ignore_errors=True)
         pages.mkdir()
-        subprocess.run(["pdftoppm", "-png", "-r", "70", str(OUT_PDF), str(pages / "page")], check=True)
+        subprocess.run(
+            ["pdftoppm", "-png", "-r", "70", str(OUT_PDF), str(pages / "page")], check=True
+        )
         print("pages in", pages)
 
 

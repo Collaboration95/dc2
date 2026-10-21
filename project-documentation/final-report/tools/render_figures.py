@@ -48,7 +48,9 @@ CHROME = os.environ.get(
 )
 SCALE = 2  # device scale factor for every PNG
 PAD = 12  # user units of margin kept around cropped hand-drawn SVGs
-MMDC_PACKAGE = "@mermaid-js/mermaid-cli@12.0.0"  # pinned: later/earlier versions style diagrams differently
+MMDC_PACKAGE = (
+    "@mermaid-js/mermaid-cli@12.0.0"  # pinned: later/earlier versions style diagrams differently
+)
 MAX_CSS_PX = 7000  # Chrome refuses window sizes much beyond this once multiplied by SCALE
 
 # (glob relative to the repo root) -> every match becomes figures/<file stem>.png
@@ -141,7 +143,9 @@ def chrome_run(args: list[str], profile: Path, timeout: int = 180) -> subprocess
 ROOT_TAG = re.compile(r"<svg\b[^>]*>", re.S)
 
 
-def set_root(svg: str, view_box: tuple[float, float, float, float], width: float, height: float) -> str:
+def set_root(
+    svg: str, view_box: tuple[float, float, float, float], width: float, height: float
+) -> str:
     """Give the root <svg> an explicit viewBox and pixel size (drops %, max-width)."""
     match = ROOT_TAG.search(svg)
     if match is None:
@@ -239,7 +243,15 @@ def render_mermaid(source: Path, target: Path, scratch: Path) -> None:
                 "maxTextSize": 200000,
                 **{
                     kind: {"useMaxWidth": False}
-                    for kind in ("flowchart", "sequence", "class", "er", "state", "gantt", "journey")
+                    for kind in (
+                        "flowchart",
+                        "sequence",
+                        "class",
+                        "er",
+                        "state",
+                        "gantt",
+                        "journey",
+                    )
                 },
             }
         ),

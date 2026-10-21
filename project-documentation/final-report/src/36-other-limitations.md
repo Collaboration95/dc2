@@ -22,7 +22,7 @@ listed below. Where another section explains the rationale, the table points the
 | F-01 | Lecturer accepted the proposal and asked for detailed DDD to confirm the service choice | The DDD model and context map (section 3.1.4); AD-01 confirmed |
 | D-01 | Baseline is the team's local frozen FlickPond checkout `8854537` (the proposal named `890c5ec`) | Inherited capability is identified separately from Team 17's work |
 | D-06 | One progress report, due 16 October | Project-conduct reporting (section 2) |
-| Freeze, 20 Oct | Team-accepted demo release frozen at `daee44b` (`docs/release/demo-release-manifest.md`); afterwards, only blocker repairs with verification and a manifest update | Later engineering releases (`629119c`, and the 21 October scan-policy fix) are recorded as post-freeze addenda with their own receipts |
+| Freeze, 20 Oct | Team-accepted demo release frozen at `daee44b` (`docs/release/demo-release-manifest.md`); afterwards, only blocker repairs with verification and a manifest update | Later engineering releases (`629119c` on 20 October, `c7c489c` on 21 October) are recorded as post-freeze addenda with their own receipts and blocker justification |
 | #271 | A 503 instead of a 4xx when S3 refused an oversized upload was accepted as a known limitation at the freeze | Fixed in the later engineering release: a missing upload object now returns a recoverable 409, and real storage failures remain 503. The 100 MiB cap was enforced throughout. |
 
 Rationale already given elsewhere is not repeated here:

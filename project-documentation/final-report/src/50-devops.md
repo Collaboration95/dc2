@@ -50,8 +50,8 @@ per-service images and CODEOWNERS, not by separate repositories.
   **Dev gate**.
 - Into `Main`, it runs every lane. The aggregate check is **Full verification**.
 
-Since 15 October, every first-parent commit on `Main` is a PR merge, and 26 of the 27 PRs into
-`Main` merged with all checks green. The exception, #194, merged with the advisory third-party
+Since 15 October, every first-parent commit on `Main` is a PR merge. Up to #284, 26 of the 27 PRs
+into `Main` merged with all checks green. The exception, #194, merged with the advisory third-party
 GitGuardian check failing.
 
 **Authentication and access of developers.**
@@ -116,9 +116,9 @@ check to pass and validates every intentional skip, so a lane cannot silently di
 | SonarCloud SAST (advisory) | Skipped while Sonar is unconfigured |
 | Dev gate / Full verification | Policy gate over the selected checks |
 
-On the latest `Main` run (39531399249, source `4ae6a0b`), all 25 selected jobs passed and the 3
-skips were intentional. Wall-clock time was 7 min 9 s, because the jobs run in parallel; the
-longest job, the browser trust suite, took 405 s. Across the project, CI ran 246 times. Artifacts
+On a representative full `Main` run (39531399249, source `4ae6a0b`, 21 October), all 25 selected
+jobs passed and the 3 skips were intentional. Wall-clock time was 7 min 9 s, because the jobs run in parallel; the
+longest job, the browser trust suite, took 405 s. By the morning of 21 October, CI had run 246 times. Artifacts
 are bound to their source SHA: coverage fragments, image scan reports, DAST findings and selection
 records.
 
@@ -184,6 +184,8 @@ smoke-tests production with an automatic restore on failure.
 | 39286933644 | `daee44b` | Deploy of the team-accepted frozen demo release |
 | 39416747925 | `629119c` | Both owners promoted, deployed-image scans clean, upload-to-playback smoke passed, read-back of 3 images, 10 aliases and the worker definition |
 | 39532075705 | `4ae6a0b` | **Failed**: the scan of the retained Media rollback image found 1 fixable HIGH/CRITICAL (see below) |
+| 39542434067 | `6155951` | **Failed**: the stack-level public smoke met a paused Aurora cluster; login answered 503 (see below) |
+| 39545554380 | `c7c489c` | **Success**: both owners promoted, with the old images' advisory recorded; zero fixable HIGH/CRITICAL in the deployed images; upload-to-playback smoke PASS, job `done` in 101.2 s; 3 images, 10 aliases and the worker definition read back (`docs/results/engineering-20261021/delivery-c7c489c.json`) |
 
 **The 21 October scan incident.** This was the only time the release gate blocked a correct
 release. The handling shows how the pipeline is meant to be operated.
@@ -211,7 +213,29 @@ release. The handling shows how the pipeline is meant to be operated.
    - Scanner errors and wrong-image reports fail in both modes.
    - Tests pin each rule. The real failing report, replayed through the scanner, fails in strict
      mode and is recorded in retained mode.
-4. **Redelivery.** {{CD-REDELIVERY}}
+4. **A second, latent defect.** With the scan fixed, CD run 39542434067 (`6155951`) reached the
+   stack-level public smoke and failed with `login:503`. The update changed no migration, so
+   nothing had touched the database before the smoke. Aurora had auto-paused at 0 ACU. The login
+   is the smoke's first database-backed call, and it met a cluster that was still resuming:
+   MediaApi gave up after about 10.7 s and answered 503, and capacity read 1.0 ACU moments later.
+   PRs #287 and #288 let the deploy's smoke retry **only the login**, only on 502/503/504 or a
+   transport failure, after 5, 10 and 15 s, within a 180 s deadline. Every attempt is recorded.
+   Any other status, or a 503 that outlasts the pauses, still fails. The release smoke, which
+   runs after its migration has woken the database, is not retried.
+5. **Redelivery.** CD run 39545554380, on `c7c489c` and admitted by `Main` CI 39544952625,
+   succeeded:
+   - gate job 7 s; Deploy step, including both owner releases and stack adoption, 22 min 56 s;
+     upload-to-playback smoke 2 min 27 s;
+   - the smoke job reached `done` 101.2 s after acceptance, with MP4 and HLS served;
+   - the release receipts list the certifi advisory against the three *replaced* images;
+   - read-back confirmed the deployed digests: Media `sha256:dafbb19d…`, Processing
+     `sha256:3c83e4ba…` and worker `sha256:eed6fbbb…`, with the ten `live` aliases and
+     `dc2-live-worker:12` matching.
+
+   The receipt is `docs/results/engineering-20261021/delivery-c7c489c.json`. The documentation
+   follow-up (#289, #290) redeployed with no releases, and its smoke passed in 116.1 s. Two things
+   remain unexercised: the wake retry did not fire in the live run, and the replaced image's
+   rollback was not run. The receipt records both.
 
 This incident motivates the scheduled weekly rescan of retained images (AISS-13).
 

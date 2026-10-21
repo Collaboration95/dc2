@@ -68,9 +68,9 @@ presentation and report phase.**
 | Use cases UC-1 to UC-7 | All implemented and tested; cloud evidence for each (section 4) |
 | Architecture | Two bounded contexts; asynchronous contracts; persistent AWS environment (AD-27) |
 | Live environment | `dc2-live` up since 18 October; scales to zero; torn down once, after 16 November |
-| Release identity | Team-accepted demo freeze at `daee44b` (20 October). Later engineering release `629119c` (20 October), verified end to end with an upload-to-playback smoke and a read-back of all images and aliases. The 21 October scan-policy fix is recorded below. |
-| CI | Latest `Main` CI run 39531399249: 25 jobs passed, 3 intentional skips, 7 min 9 s |
-| CD | Run 39532075705 (21 October) **failed** at the release scan of the retained Media rollback image. Fixed by AD-28 and redelivered (section 5.3). |
+| Release identity | Team-accepted demo freeze at `daee44b` (20 October). Engineering release `629119c` (20 October). The current verified release is **`c7c489c` (21 October)**: the certifi remediation plus two delivery fixes, delivered by CD 39545554380 with an upload-to-playback smoke and a read-back of all images and aliases. The manifest records it as a post-freeze addendum. |
+| CI | Every `Main` run green. Code release `c7c489c`: CI 39544952625 (Full verification); latest documentation push `1d68eff`: CI 39550093697 |
+| CD | Two runs failed on 21 October, at the scan of the retained rollback image (39532075705) and at a cold-database login in the deploy smoke (39542434067). Both were fixed without weakening a gate (AD-28; PRs #285–#288) and redelivered by run 39545554380 (section 5.3). `Main` and `dev/closeout` are both at `1d68eff`. |
 | Evidence | Results against every proposal target, including three measured misses (section 4) |
 | Submission | Presentation 26 October 14:35–15:15 SGT; code submission 31 October (internal date); final report 16 November |
 
@@ -139,7 +139,7 @@ Mammadov and NKL is Nguyễn Kim Long.
   Ibrahim Mammadov, that is FlickPond itself. The inherited FlickPond capabilities are credited to
   the FlickPond team and are not counted here.
 
-**Delivery metrics (GitHub and CI, 21 October).** All commits, pull requests and issues in the
+**Delivery metrics (GitHub and CI, collected on 21 October before PRs #285–#290).** All commits, pull requests and issues in the
 repository were made through one GitHub account, `Collaboration95`, which owns the repository. The
 git history therefore cannot attribute work to individual members; the effort table above is the
 attribution of record.

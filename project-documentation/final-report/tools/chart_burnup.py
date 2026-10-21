@@ -37,12 +37,20 @@ out = [
     "GitHub issues, cumulative opened and closed per day (UTC), 12–21 October 2026</text>",
 ]
 for v in range(0, ymax + 1, 40):
-    out.append(f'<line x1="{L}" x2="{L + pw}" y1="{y(v):.1f}" y2="{y(v):.1f}" stroke="#e6e6e3" stroke-width="1"/>')
-    out.append(f'<text x="{L - 10}" y="{y(v) + 4:.1f}" font-size="12" text-anchor="end" fill="#5c5c58">{v}</text>')
-out.append(f'<line x1="{L}" x2="{L + pw}" y1="{y(0):.1f}" y2="{y(0):.1f}" stroke="#8a8a85" stroke-width="1"/>')
+    out.append(
+        f'<line x1="{L}" x2="{L + pw}" y1="{y(v):.1f}" y2="{y(v):.1f}" stroke="#e6e6e3" stroke-width="1"/>'
+    )
+    out.append(
+        f'<text x="{L - 10}" y="{y(v) + 4:.1f}" font-size="12" text-anchor="end" fill="#5c5c58">{v}</text>'
+    )
+out.append(
+    f'<line x1="{L}" x2="{L + pw}" y1="{y(0):.1f}" y2="{y(0):.1f}" stroke="#8a8a85" stroke-width="1"/>'
+)
 for i, r in enumerate(rows):
     label = r["date"][8:] + " Oct"
-    out.append(f'<text x="{x(i):.1f}" y="{y(0) + 20:.1f}" font-size="12" text-anchor="middle" fill="#5c5c58">{label}</text>')
+    out.append(
+        f'<text x="{x(i):.1f}" y="{y(0) + 20:.1f}" font-size="12" text-anchor="middle" fill="#5c5c58">{label}</text>'
+    )
 out.append(
     f'<text x="18" y="{T + ph / 2:.1f}" font-size="12" fill="#5c5c58" '
     f'transform="rotate(-90 18 {T + ph / 2:.1f})" text-anchor="middle">Issues (count)</text>'
@@ -50,7 +58,9 @@ out.append(
 for key, name, colour, dash in series:
     pts = " ".join(f"{x(i):.1f},{y(int(r[key])):.1f}" for i, r in enumerate(rows))
     dash_attr = f' stroke-dasharray="{dash}"' if dash else ""
-    out.append(f'<polyline points="{pts}" fill="none" stroke="{colour}" stroke-width="2.5"{dash_attr}/>')
+    out.append(
+        f'<polyline points="{pts}" fill="none" stroke="{colour}" stroke-width="2.5"{dash_attr}/>'
+    )
     for i, r in enumerate(rows):
         out.append(
             f'<circle cx="{x(i):.1f}" cy="{y(int(r[key])):.1f}" r="4" fill="{colour}" stroke="#ffffff" stroke-width="2"/>'
@@ -65,7 +75,9 @@ lx, ly = L, H - 16
 for j, (_, name, colour, dash) in enumerate(series):
     dash_attr = f' stroke-dasharray="{dash}"' if dash else ""
     ox = lx + j * 180
-    out.append(f'<line x1="{ox}" x2="{ox + 28}" y1="{ly - 4}" y2="{ly - 4}" stroke="{colour}" stroke-width="2.5"{dash_attr}/>')
+    out.append(
+        f'<line x1="{ox}" x2="{ox + 28}" y1="{ly - 4}" y2="{ly - 4}" stroke="{colour}" stroke-width="2.5"{dash_attr}/>'
+    )
     out.append(f'<text x="{ox + 36}" y="{ly}" font-size="12" fill="#1f1f1f">{name}</text>')
 out.append("</svg>")
 (ROOT / "figures" / "src" / "report-burnup.svg").write_text("\n".join(out))

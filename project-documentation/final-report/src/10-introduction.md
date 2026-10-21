@@ -35,6 +35,7 @@ proposal and asked the team to confirm the microservice choice through detailed 
   **Publisher CLI**.
 - The persistent AWS environment `dc2-live` (ap-southeast-1) has run since 18 October. It scales
   to zero when idle, and the CD pipeline updates it in place after every green CI run on `Main`.
+  The current release, `c7c489c`, was delivered and verified on 21 October.
 - All seven use cases in the proposal are implemented, with automated tests and recorded cloud
   evidence. Measured misses against the proposal targets are reported as misses (section 4).
 - The team presents on **26 October 2026, 14:35–15:15 SGT**. The final report is due on

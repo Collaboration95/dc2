@@ -485,7 +485,11 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   `tests/ci/test_v1_scan.py`, `tests/aws/test_artifacts.py`, `tests/aws/v1/test_release_plan.py`,
   `tests/dev/test_cd_workflow.py`; the real baseline report from run 39532075705 replayed through the
   scanner gives `FAIL` strict and `RETAINED_FIXABLE` retained. PR #285 into `dev/closeout`, #286 into
-  `Main`. [AWS] the redelivery is recorded in `docs/release/engineering-handoff.md`.
+  `Main`. [AWS] CD run 39545554380 on `c7c489c` promoted both owners with the finding recorded against
+  the three replaced images and passed its upload-to-playback smoke; receipt
+  `docs/results/engineering-20261021/delivery-c7c489c.json`. That run also carries the companion
+  deploy-smoke fix for a paused database (#287, #288), which the first redelivery attempt
+  (39542434067, `login:503`) exposed.
 
 ## 4. Proposal to as-built deviations
 

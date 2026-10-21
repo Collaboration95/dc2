@@ -42,7 +42,11 @@ deployed and reused**. The contribution, measured against the inherited baseline
    affected the *retained rollback* image, and the gate blocked the very release that remediated
    it. AD-28 keeps both scans and handles that case explicitly instead of weakening the gate
    (section 5.3).
-7. **Keep misses visible.** Two-worker scaling (1.449× against 1.6×), Processing release time
+7. **A fix can uncover the next defect.** Once the scan gate let the remediation through, the
+   deploy smoke met a database that had paused since the last release, and login returned 503.
+   The smoke now waits for a waking database for one call only, with every attempt recorded,
+   instead of being retried wholesale.
+8. **Keep misses visible.** Two-worker scaling (1.449× against 1.6×), Processing release time
    (10.1–10.3 min against 10 min) and queue wait (37 s against 20 s) are reported as measured. The
    targets were not changed after the fact.
 
