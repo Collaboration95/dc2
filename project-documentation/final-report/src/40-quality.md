@@ -15,7 +15,9 @@ is in `docs/results/actual-vs-target.md` (with its CSV) and `docs/evidence-index
 | Scalability | V2-live automatic scale 0 → 3 → 0 | 0 → 3 → 0 with 3 concurrent clips; 9-clip backlog at cap 3 in 239 s (2.26 jobs/min) | PASS (no 1/2/3 comparison) |
 | Performance | 50 users polling status for 3 min: p90 ≤ 700 ms, < 1 % errors | p90 **58.2 ms**, 9,000 requests, 0 errors (in-region generator) | PASS |
 | Performance | 20 concurrent logins: p90 < 2 s | p90 **178 ms** (20 samples) | PASS |
-| Performance | Warm-job queue wait ≤ 20 s (V2-live) | about **37 s**; Fargate start median 25.6 s | **FAIL** |
+| Performance | Warm-job queue wait ≤ 20 s (V2-live), standard Fargate lane | about **37 s**; Fargate start median 25.6 s (5-job `sl1021` Fargate arm: 32.6 s median) | **FAIL** |
+| Performance | Same wait on the Lambda short-encode lane (≤ 60 s clips, `sl1021`, 5 jobs, 24 s clip) | median **0.26 s** (max 2.6 s) against 32.6 s on Fargate; processing 5.3 s against 8.0 s; billed compute USD 0.0003 against 0.0021 per encode; 0 failures | PASS (queue wait) |
+| Performance | Submit-to-done, same run (no proposal target; 20 s end to end is the aim) | Lambda cold 92.0 s (n = 1), warm median 45.2 s; Fargate median 87.7 s | **FAIL** against 20 s on both lanes |
 | Availability | Worker killed mid-encode: re-queued or failed within 5 min | Stop detected in **5.8 s**; lease expiry marks the job `failed`; retry creates a new attempt | PASS (reaction time only) |
 | Availability | Lost queue entry re-enqueued within 2 min | 23.5 s (local pre-V1); ≤ 120 s asserted on a simulated clock (local V1) | PASS locally; **NOT_RUN** on AWS |
 | Availability | Processing temporarily unavailable while Media accepts uploads | Command consumer off for 48 s: Media answered 202 and held the command; job `done` 58.9 s after re-enable | PASS (consumer only) |
@@ -57,9 +59,15 @@ is in `docs/results/actual-vs-target.md` (with its CSV) and `docs/evidence-index
   Fargate task-time variability against a fast single-worker baseline is the most probable cause,
   but no per-task CPU profile was captured, so the cause is an inference. The three-worker result
   (2.347×) passed, and the median queue wait fell at each step.
-- **Queue-wait miss.** The V2-live wait of about 37 s is a deliberate trade-off of scale-to-zero:
-  no encoder runs idle, so each burst pays a Fargate start (median 25.6 s) plus image pull. The
-  target was not revised, and AISS-02 records the options.
+- **Queue-wait miss, and the short lane.** The standard-lane wait of about 37 s is a deliberate
+  trade-off of scale-to-zero: no encoder runs idle, so each burst pays a Fargate start (median
+  25.6 s) plus image pull. On 21 October the Lambda short-encode lane (#93, AD-22) was enabled on
+  `dc2-live`: clips of at most 60 s, 64 MiB and 1080p are read by a Lambda (3008 MB, concurrency 2)
+  and the queue wait fell to 0.26 s in a five-job comparison **[AWS]**. That is one 24 s clip, five
+  jobs per arm (the Fargate arm used the same streams padded to route to the standard lane), so
+  it shows the effect but not its spread. The end-to-end target is still missed: 35–80 s per job
+  outside queue wait and encode is unexplained on both lanes. The target was not revised, and
+  AISS-01 records the options.
 
 ## Availability
 
@@ -88,11 +96,13 @@ is in `docs/results/actual-vs-target.md` (with its CSV) and `docs/evidence-index
 
 **Limits, stated plainly.**
 
-- The platform is **not highly available** in the strict sense. One Aurora instance in one region
-  is a shared failure boundary (AISS-01); zone and region failover are out of scope (section 1.4.2).
+- The platform is **not highly available** in the strict sense. Each service now has its own
+  Aurora cluster (AD-29), so a database failure no longer takes both services down, but each
+  cluster is one instance in one region with no replica; zone and region failover are out of
+  scope (section 1.4.2).
 - Backups are kept one day, and no restore drill was run.
 - No uptime SLA is claimed.
-- The lost-queue-entry timing was not measured on AWS (AISS-06).
+- The lost-queue-entry timing was not measured on AWS (AISS-05).
 
 ## Security
 
@@ -108,8 +118,9 @@ is in `docs/results/actual-vs-target.md` (with its CSV) and `docs/evidence-index
 | Input validation | Type allow-list and a 100 MiB cap, enforced at four points: the frontend, the grant, the S3 POST policy and the Publisher. Finalize checks size, hash and file signature at a pinned version. Envelope validation rejects secret- or URL-like payloads. HLS file names are allow-listed. |
 | Network | No inbound security-group rules except the database's internal rule; no NAT; private subnets for Lambdas and Aurora; only ports 80/443 public (80 redirects) |
 | Secrets | SSM SecureStrings scoped per role; RDS-managed master secret; gitleaks secret scanning; receipts sanitized before commit |
-| Supply chain and testing | Ruff security lint (flake8-bandit rules); Trivy on all three exact images in CI and again on the deployed builds in CD (zero *fixable* HIGH/CRITICAL gate); ECR scan on push; authenticated OWASP ZAP DAST; dependency audits (npm audit: 0 findings) |
-| Intrusion detection and prevention | Not deployed. There is no WAF, GuardDuty or IDS/IPS (AISS-03). The compensating controls are the authorizer, the stage throttle (20 rps, burst 50), the budget alarm and the per-service error alarms. |
+| Supply chain and testing | Ruff security lint (flake8-bandit rules); Trivy on all three exact images in CI and again on the deployed builds in CD (zero *fixable* HIGH/CRITICAL gate); ECR scan on push; authenticated OWASP ZAP DAST; CodeQL (Python, JavaScript/TypeScript, GitHub Actions); gitleaks; dependency audits (npm audit: 0 findings); Dependabot alerts enabled |
+| Scanner results and triage | Every scanner publishes SARIF to GitHub code scanning (the repository's Security tab). On 22 October the 12 High CodeQL alerts were triaged: all are in test, proof-harness or developer-script code, none in deployed code, and each was dismissed with a recorded reason. The open alerts are ZAP low and informational findings on the OpenAPI documentation pages. One CVE is accepted unfixed: CVE-2025-52290 in `ffmpeg` (no fix in Debian 13; the worker is a finite task with no inbound network), recorded in `docs/execution/aws/v1/scan-accepted-unfixed-20261017.json` |
+| Intrusion detection and prevention | Not deployed. There is no WAF, GuardDuty or IDS/IPS (AISS-02). The compensating controls are the authorizer, the stage throttle (20 rps, burst 50), the budget alarm and the per-service error alarms. |
 
 **Verification.** The proposal's negative tests were run on AWS: on V1 stacks `r1017b`/`r1018b`,
 and in full on the persistent `dc2-live` environment for issue #229 on 19 October **[AWS]**.

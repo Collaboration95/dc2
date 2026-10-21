@@ -46,9 +46,9 @@ The table summarises what Team 17 inherited and what it added.
 | Area | Inherited from FlickPond (Project 1) | Added by Team 17 (Project 2) |
 |:------------|:-----------------------------|:------------------------------------------|
 | Service structure | One FastAPI application; workers and recovery task share its job code | Two bounded contexts, Media Management and Processing, found through DDD and connected only by asynchronous, versioned contracts |
-| Data ownership | One database; jobs reference users | `media_db` and `processing_db` with separate migration histories and least-privilege roles; no cross-database keys |
+| Data ownership | One database; jobs reference users | `media_db` and `processing_db`, each on its own Aurora cluster, with separate migration histories and least-privilege roles; no cross-database keys |
 | Reuse | One browser application | A second, independent client (Publisher CLI) built against the published API only |
-| Runtime | One VM with nginx, Redis/RQ and MinIO | Serverless AWS: CloudFront, API Gateway, Lambda container images, SQS, Aurora Serverless v2, S3 and finite ECS Fargate encoders that scale 0 → 3 → 0 |
+| Runtime | One VM with nginx, Redis/RQ and MinIO | Serverless AWS: CloudFront, API Gateway, Lambda container images, SQS, Aurora Serverless v2, S3 and finite ECS Fargate encoders that scale 0 → 3 → 0, and a Lambda lane for short clips |
 | Security | Login, owner checks, TLS, signed output links, CI scans | Media-owned Gateway authorizer, trusted actor context, per-handler IAM roles, queue resource policies, bounded direct-to-S3 upload grants, pinned source versions, cloud negative tests |
 | Delivery | Tests and scans in CI; manual deployment | Path-filtered per-service CI lanes, image scans and DAST; GitHub Actions CD over OIDC with per-owner release, smoke test and automatic restore |
 | Evidence | Load tests that mostly read one completed video | Scaling, latency, recovery, release, security and reuse experiments with retained receipts |
@@ -114,9 +114,10 @@ and one AWS environment. There are three levels of scope:
 
 - **Architected.** The two-context platform, its contracts, the AWS topology and the operating
   model.
-- **Implemented.** Everything architected, plus three opt-in experiments kept off by default
-  (AD-22): an unattended encoder launcher (later adopted as the V2-live default), short encodes on
-  Lambda, and one database cluster per service.
+- **Implemented.** Everything architected, plus three experiments built behind flags
+  (AD-22): an unattended encoder launcher, a Lambda short-encode lane (#93) and one database
+  cluster per service (#94, AD-29). All three run on the persistent V2-live environment; the last
+  two were enabled and delivered by CD on 21 October.
 - **Experimentally verified.** The results in section 4. Each result is labelled with the
   environment that produced it: local, AWS V1 per-run stack, or the persistent V2-live
   environment.
