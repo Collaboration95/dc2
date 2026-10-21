@@ -1,0 +1,22 @@
+flowchart LR
+  subgraph ci["Continuous integration (ci.yml)"]
+    direction TB
+    pr["Pull request"] --> cls["Select policy:<br/>dev (changed lanes)<br/>or full (every lane)"]
+    cls --> lanes["Lint, security lint, unit tests<br/>Frontend tests + npm audit<br/>Integration tiers (PostgreSQL, FFmpeg)<br/>Per-service image build + runtime check<br/>V1 flows on PostgreSQL + Moto<br/>Browser and Publisher acceptance<br/>Trivy on exact images · gitleaks · ZAP DAST<br/>Coverage gate ≥ 80 % per package"]
+    lanes --> gate["Dev gate / Full verification"]
+    gate --> merge["Merge: integration branch → Main"]
+    merge --> full["Push CI on Main (full)"]
+  end
+  subgraph cd["Continuous delivery (cd.yml, cd.sh)"]
+    direction TB
+    adm["Admission: exact SHA had<br/>green push CI"] --> oidc["Assume deploy role via OIDC<br/>(aws environment only)"]
+    oidc --> pre["Preflight: change set may not<br/>replace Aurora, buckets, CDN"]
+    pre --> upd["CloudFormation UPDATE"]
+    upd --> rel["Per changed owner: build, scan candidate<br/>and retained image, push, move aliases"]
+    rel --> chk{"Owner smoke<br/>passes?"}
+    chk -- "no" --> rst["Restore previous aliases"]
+    chk -- "yes" --> adopt["Adopt images into stack"]
+    adopt --> smk["Upload-to-playback smoke"]
+    smk --> rcpt["Redacted results artifact,<br/>state bucket, sanitized receipt"]
+  end
+  ci -- "green push CI triggers CD (workflow_run)" --> cd

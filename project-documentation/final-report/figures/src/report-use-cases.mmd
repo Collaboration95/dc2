@@ -1,0 +1,34 @@
+flowchart LR
+  owner["«actor»<br/>Content owner<br/>(Maya, Arun)"]
+  integ["«actor»<br/>Integrator<br/>(Jules, Publisher CLI)"]
+  op["«actor»<br/>Operator<br/>(Sam, CD pipeline)"]
+  subgraph sys["FlickPond platform: in scope"]
+    direction TB
+    uc1(["UC-1 Register, log in, upload"])
+    uc3(["UC-3 Track status and play"])
+    uc4(["UC-4 Retry from stored source"])
+    ext(["Edit and delete an asset"])
+    uc5(["UC-5 Bulk-publish a folder"])
+    uc2(["UC-2 Process to MP4 and HLS"])
+    uc6(["UC-6 Scale processing alone"])
+    uc7(["UC-7 Release Processing,<br/>smoke test, roll back"])
+  end
+  subgraph out["Out of scope"]
+    direction TB
+    x1(["Share with other viewers"])
+    x2(["Search, moderation, analytics"])
+    x3(["Password reset, profiles, tags"])
+    x4(["Multi-region failover"])
+  end
+  owner --- uc1
+  owner --- uc3
+  owner --- uc4
+  owner --- ext
+  integ --- uc5
+  op --- uc6
+  op --- uc7
+  uc1 -. "«include»" .-> uc2
+  uc5 -. "«include» UC-1, UC-3, UC-4" .-> uc1
+  sys ~~~ out
+  classDef oos fill:#f4f4f4,stroke:#999,stroke-dasharray:4 3,color:#555
+  class x1,x2,x3,x4 oos

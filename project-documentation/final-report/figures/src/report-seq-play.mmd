@@ -1,0 +1,23 @@
+%%{init: {"sequence": {"wrap": true, "width": 130, "actorMargin": 40, "messageMargin": 28, "noteMargin": 6}}}%%
+sequenceDiagram
+  autonumber
+  participant PR as Processing repair<br/>or event Lambda
+  participant Q as SQS media-results
+  participant RS as MediaResults
+  participant DB as media_db
+  actor C as Browser or Publisher
+  participant M as MediaApi
+  participant S as S3 output bucket
+  PR->>Q: publish due outbox rows (results v2, v3)
+  Q->>RS: results (any order, at least once)
+  RS->>DB: inbox dedupe, validate_transition, projection → done
+  C->>M: GET /api/media/jobs/{id} (via Gateway, trusted actor)
+  M->>DB: owner-filtered asset + projection
+  M-->>C: done, presigned MP4 URL (900 s), hls_url (no-store)
+  C->>S: GET MP4 with Range (206)
+  C->>M: GET .../hls/master.m3u8
+  M->>S: read playlist
+  M-->>C: playlist
+  C->>M: GET .../hls/v1/seg00000.ts
+  M-->>C: 307 to presigned S3 URL
+  C->>S: GET segment

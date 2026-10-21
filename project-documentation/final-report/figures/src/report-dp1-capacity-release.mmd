@@ -1,0 +1,20 @@
+flowchart LR
+  subgraph before["Before: V1 booked sessions (AD-19)"]
+    direction TB
+    b1["Operator laptop or CD dispatch"] --> b2["Create per-run stack<br/>(about 25 min)"]
+    b2 --> b3["session open:<br/>enable consumers, raise throttle"]
+    b3 --> b4["session batch:<br/>RunTask 1 to 3 encoders"]
+    b4 --> b5["session close:<br/>drain, disable, throttle 0"]
+    b5 --> b6["Delete stack<br/>(25 to 40 min)"]
+  end
+  subgraph after["After: V2-live persistent environment (AD-27)"]
+    direction TB
+    a1["Green CI on Main"] --> a2["CD admission:<br/>exact source, full CI run"]
+    a2 --> a3["CloudFormation UPDATE<br/>change set, no replacement"]
+    a3 --> a4["Per-owner release only if<br/>that owner's image inputs changed"]
+    a4 --> a5["Smoke; restore on failure;<br/>adopt images into stack"]
+    w1["Work message sent"] --> w2["Launcher: SQL reservation,<br/>stable RunTask token"]
+    w2 --> w3["0 to 3 finite encoders"]
+    w3 --> w4["Tasks exit when idle: back to 0"]
+  end
+  before ~~~ after

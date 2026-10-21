@@ -1,0 +1,15 @@
+flowchart LR
+  subgraph before["Before: proposal design (AD-06)"]
+    direction TB
+    c0["Client with JWT cookie"] --> m0["Media API verifies JWT"]
+    m0 -- "private HTTP call<br/>service token + X-Owner-Id" --> p0["Processing API trusts header"]
+  end
+  subgraph after["After: as built (AD-09, AD-20)"]
+    direction TB
+    c1["Browser or Publisher<br/>(session cookie)"] --> g1["API Gateway route"]
+    g1 --> a1["MediaAuthorizer:<br/>verify JWT, read current user row"]
+    a1 -- "context: owner_id, role" --> g2["Gateway adapter:<br/>drops x-owner-id, x-role, cookie"]
+    g2 --> p1["Processing API: Actor from context,<br/>owner-filtered queries"]
+    g2 --> m1["Media API: owner-filtered queries"]
+  end
+  before ~~~ after
