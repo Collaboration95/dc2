@@ -193,3 +193,20 @@ def test_missing_or_fake_trivy_report_rejected(report):
             artifact_test=proof["artifact_test"],
             trivy_bytes=json.dumps(report).encode(),
         )
+
+
+def test_a_digest_carried_by_several_tags_is_still_one_registry_receipt():
+    from scripts.aws.artifacts import registry_receipt
+
+    proof = artifact("processing", NEW)
+    raw = json.dumps({"config": {"digest": proof["config_id"]}, "schemaVersion": 2})
+    digest = "sha256:" + hashlib.sha256(raw.encode()).hexdigest()
+
+    def entry(tag):
+        return {"imageManifest": raw, "imageId": {"imageDigest": digest, "imageTag": tag}}
+
+    receipt = {"images": [entry("g1x1-processing"), entry("g1x2-processing")]}
+    assert registry_receipt(proof, receipt)["manifest_digest"] == digest
+    receipt["images"].append(entry("g1x2-processing"))
+    with pytest.raises(OperationError, match="ambiguous"):
+        registry_receipt(proof, receipt)
