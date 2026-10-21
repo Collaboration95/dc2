@@ -6286,7 +6286,7 @@
           ]
         },
         "Timeout": 900,
-        "MemorySize": 3584,
+        "MemorySize": 3008,
         "EphemeralStorage": {
           "Size": 2048
         },
@@ -6384,7 +6384,7 @@
                   }
                 ]
               },
-              "7cb07876e3b3",
+              "342aa6862468",
               {
                 "Ref": "ProcessingShortEncoderHandler"
               }
