@@ -162,7 +162,10 @@ def test_the_function_budget_is_the_documented_one_and_reserves_nothing():
     function = resources()[SHORT_ENCODER]["Properties"]
     assert "ReservedConcurrentExecutions" not in function  # the account limit forbids it
     assert function["Timeout"] == short_lane.LAMBDA_TIMEOUT_SECONDS <= 900
-    assert function["MemorySize"] == short_lane.MEMORY_MB == 3584
+    assert function["MemorySize"] == short_lane.MEMORY_MB == 3008
+    # This account's ceiling: CloudFormation refused 3584 on dc2-live ("less than or equal to
+    # 3008", CD run 39596145564) and rolled the stack back. Raise only after a limit increase.
+    assert short_lane.MEMORY_MB <= 3008
     assert function["EphemeralStorage"] == {"Size": short_lane.EPHEMERAL_STORAGE_MB}
     assert 512 <= short_lane.EPHEMERAL_STORAGE_MB <= 10240
     variables = function["Environment"]["Variables"]
