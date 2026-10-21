@@ -78,9 +78,9 @@ presentation and report phase.**
 
 | Item | Disposition |
 |:------------------------------------------|:------------------------------------------------------------|
-| Three measured misses: two-worker scaling 1.449× (target 1.6×); Processing release 10.1–10.3 min (target 10 min); queue wait about 37 s (target 20 s) | Reported against the unchanged targets. Improvement options are in AISS-03 and AISS-04 (section 3.4). |
-| Evidence not established on AWS: lost-queue-entry timing, duplicate-output check after a worker kill, a restore drill, actual spend | AISS-14. The final October bill is read before 16 November. |
-| Optional V2 experiments #68 and #80 | #68 (unattended launcher) was adopted into V2-live. #80 (separate V2 branches) is not needed, because the experiments live behind template flags (AD-22). |
+| Three measured misses: two-worker scaling 1.449× (target 1.6×); Processing release 10.1–10.3 min (target 10 min); queue wait about 37 s (target 20 s) | Reported against the unchanged targets. Improvement options are in AISS-02 (section 3.4). |
+| Evidence not established on AWS: lost-queue-entry timing, duplicate-output check after a worker kill, a restore drill, actual spend | AISS-06. The final October bill is read before 16 November. |
+| Optional V2 experiments #68 and #80 | Closed on 21 October. #68 (unattended launcher) was adopted into V2-live, so it was closed as completed. #80 (the optional V2 migration epic) was closed as not planned, because the experiments live behind template flags (AD-22). |
 | Presentation deck and rehearsal (#192), recordings (#254) | Prepared from this report and the frozen demo release before 26 October |
 | Presentation feedback | Incorporated into the final submission after 26 October, as the briefing requires |
 | Course administration (#257) | Canvas checks for the progress-report receipt, peer assessment and the final upload; owned by Guruprasath Gopal |
