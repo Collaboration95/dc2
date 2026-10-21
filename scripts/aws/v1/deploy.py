@@ -49,7 +49,7 @@ from scripts.aws.v1 import config as render_config
 from scripts.aws.v1 import credentials, operations, session_cli
 from scripts.aws.v1 import frontend as spa
 from scripts.aws.v1.artifacts import ScanPending, registry_scan
-from scripts.aws.v1.definitions import SEPARATE, DatabaseOptions
+from scripts.aws.v1.definitions import SEPARATE, SHARED, DatabaseOptions
 from scripts.aws.v1.definitions import template as render_template
 from scripts.aws.v1.hooks import refuse_ambient_credentials
 from scripts.aws.v1.migration import migrate
@@ -70,6 +70,7 @@ PROJECT_KEY, PROJECT_VALUE, RUN_KEY = "deploy-project", "dc2-v1", "owner-run"
 # Observed 2026-10-16: ROLLBACK_COMPLETE, no resources (FlickPondRequireMFA denied CreateBucket).
 LEGACY_BOOTSTRAP_STACK = "dc2-v1-20261015t1146-bootstrap"
 DEFAULT_BUDGET_NAME = "flickpond-monthly"
+SPLIT_ACTIONS = ("split-database", "finish-database-split")
 FARGATE_VCPU_QUOTA_CODE = "L-3032A538"
 HEALTHY = {"CREATE_COMPLETE", "UPDATE_COMPLETE"}
 CAPABILITIES = ["CAPABILITY_NAMED_IAM"]
@@ -105,6 +106,26 @@ ALWAYS_ON_OPEN_MINUTES = 60
 # queue drain first (docs/execution/aws/v2/lambda-short-encodes.md, "How to enable").
 PERSISTENT_LAMBDA_SHORT_ENCODES = True
 INVOCATION_HISTORY = 20
+# Splitting a shared stack into one cluster per service (#94), in the order it happens. The
+# journal's `database_split.state` is the last one reached, so a rerun resumes after it: a
+# deploy archives the step log, and a half-done split must not start over.
+SPLIT_PROGRESS = (
+    "started",  # Processing was idle
+    "snapshotted",  # the manual pre-split snapshot is available
+    "cloned",  # the stack update created Processing's clone
+    "clone-reconciled",  # the clone has Processing's logins and fresh passwords
+    "old-frozen",  # the same logins on Media's cluster have throwaway passwords
+    "switched",  # Processing's DSN parameters name the clone
+    "verified",  # the public smoke passed on the new layout
+    "cleaned",  # each cluster dropped its peer's database
+)
+# The marker the launcher reads, so "idle" here means what it means there.
+PROCESSING_QUEUES = (
+    "ProcessingCommandsQueueUrl",
+    "ProcessingWorkQueueUrl",
+    "ProcessingShortWorkQueueUrl",
+)
+IDLE_WAIT_SECONDS = 600
 TEARDOWN_STEPS = (
     "td-inventory",
     "td-session-close",
@@ -235,6 +256,8 @@ ALLOWED = {
         "describe-db-engine-versions",
         "add-tags-to-resource",
         "describe-db-cluster-snapshots",
+        "create-db-cluster-snapshot",
+        "delete-db-cluster-snapshot",
     },
     "ssm": {
         "describe-parameters",
@@ -242,7 +265,10 @@ ALLOWED = {
         "delete-parameter",
         "list-tags-for-resource",
         "get-parameters-by-path",
+        "get-parameter",
     },
+    # The queue depth a split waits on: nothing queued, delayed or in flight (#94).
+    "sqs": {"get-queue-attributes"},
     "secretsmanager": {"get-secret-value"},
     "logs": {
         "describe-log-groups",
@@ -271,6 +297,7 @@ ALLOWED = {
 INSTANCE_NOT_FOUND = ("DBInstanceNotFound", "DBInstanceNotFoundFault")
 CLUSTER_NOT_FOUND = ("DBClusterNotFoundFault", "DBClusterNotFound")
 SNAPSHOT_NOT_FOUND = ("DBClusterSnapshotNotFound", "DBClusterSnapshotNotFoundFault")
+SNAPSHOT_EXISTS = ("DBClusterSnapshotAlreadyExists", "DBClusterSnapshotAlreadyExistsFault")
 # The tagging API keeps listing a deleted resource for a while (the 2026-10-17 r1017a teardown
 # reported ten that were all gone). Each hit is therefore asked of the service that owns it:
 # ARN resource type -> (EC2 describe operation, request key). An unlisted type is never guessed.
@@ -574,6 +601,9 @@ class Settings:
     station: str = "dc2-deploy-station"
     # The opt-in V2 database layout (#94); the defaults are V1's one cluster.
     database: DatabaseOptions = dataclasses.field(default_factory=DatabaseOptions)
+    # A stack that opts in may move from the shared layout to one cluster per service in place
+    # (`split-database`); without it a layout is fixed when the environment is created.
+    split_from_shared: bool = False
     # The opt-in V2 launcher (#68): renders UnattendedLaunch=true; off keeps the V1 template.
     unattended_launch: bool = False
     # The opt-in V2 Lambda short-encode lane (#93): renders LambdaShortEncodes=true. A persistent
@@ -689,6 +719,8 @@ class Pipeline:
         self.today = today or (lambda: dt.datetime.now(dt.UTC).date())
         self.plan, self.step = [], "init"
         self.mfa_answers = {}  # principal ARN -> mfa_required() answer, simulated once per run
+        self.removable = ()  # logical ids a change set may remove (only a split names any)
+        self.wall = time.time  # the wall clock the idle markers are read against
         self.deferred, self.journal_held, self.receipt = [], False, None
         self.simulated = bool(getattr(aws, "simulated", False))
         # A simulation has no credentials to classify; it answers like an MFA session.
@@ -1232,7 +1264,10 @@ class Pipeline:
             self.mark(self.step, "started", change_set=change_set, no_changes=True)
             return self._finish_stack(stack)
         changes = review_changes(
-            description.get("Changes", []), kind, allow_replacement=self.s.allow_replacement
+            description.get("Changes", []),
+            kind,
+            allow_replacement=self.s.allow_replacement,
+            removable=self.removable,
         )
         self.mark(
             self.step,
@@ -2075,6 +2110,32 @@ class Pipeline:
             ) from None
         return dict.fromkeys(OWNERS, pair)
 
+    def run_bootstrap(self, payload):
+        """One finite bootstrap task, given `payload` as its temporary private input."""
+        db_bootstrap.validate_input(payload)
+        outputs = self.outputs()
+        name = f"/dc2/{self.s.env}/bootstrap-input"
+        self.put_parameter(name, json.dumps(payload))
+        try:
+            return self.finite_task(
+                "bootstrap",
+                outputs["BootstrapTaskDefinitionArn"],
+                outputs["MigrationSecurityGroupId"],
+            )
+        finally:
+            self.aws("ssm", "delete-parameter", {"Name": name}, tolerate=("ParameterNotFound",))
+
+    def master(self, host, secret_arn):
+        """The bootstrap connection to a cluster: its AWS-managed master credential."""
+        secret = self.aws("secretsmanager", "get-secret-value", {"SecretId": secret_arn})
+        found = json.loads(secret["SecretString"])
+        return {
+            "host": host,
+            "port": 5432,
+            "user": found["username"],
+            "password": found["password"],
+        }
+
     def step_db_bootstrap(self):
         """Privileged role/database bootstrap, then the five runtime/migration parameters.
 
@@ -2108,22 +2169,7 @@ class Pipeline:
             payload = {"databases": connections, "role_passwords": passwords}
         else:  # V1's input, unchanged: one connection serves both domains
             payload = {**connections["media"], "role_passwords": passwords}
-        db_bootstrap.validate_input(payload)
-        self.put_parameter(base + "bootstrap-input", json.dumps(payload))
-        result = {}
-        try:
-            result = self.finite_task(
-                "bootstrap",
-                outputs["BootstrapTaskDefinitionArn"],
-                outputs["MigrationSecurityGroupId"],
-            )
-        finally:
-            self.aws(
-                "ssm",
-                "delete-parameter",
-                {"Name": base + "bootstrap-input"},
-                tolerate=("ParameterNotFound",),
-            )
+        result = self.run_bootstrap(payload)
         for key, (role, database) in {
             "media_runtime_dsn": ("media_runtime", "media_db"),
             "media_migration_dsn": ("media_migrator", "media_db"),
@@ -2483,6 +2529,339 @@ class Pipeline:
             "database_pause": result.get("database_pause", "NOT_OBSERVED"),
         }
 
+    # ---- splitting a shared stack into one cluster per service (#94) ----------------------
+    # `split-database` is an explicit action, never part of `deploy`: it needs the released
+    # worker image (the bootstrap task carries the new logic), which CD only has once the
+    # release of that commit has been adopted. Everything it does is journaled in
+    # `database_split` so that an interrupted run resumes after the last state it reached.
+    def split_record(self):
+        return self.meta().get("database_split") or {}
+
+    def split_reached(self, state):
+        reached = self.split_record().get("state")
+        return reached is not None and SPLIT_PROGRESS.index(reached) >= SPLIT_PROGRESS.index(state)
+
+    def split_mark(self, state, **detail):
+        self.journal.mutate(
+            lambda d: d.setdefault("database_split", {}).update(state=state, **detail)
+        )
+
+    def split_passwords_path(self):
+        return self.s.state_dir / "split-passwords.json"
+
+    def split_passwords(self, *, create=True):
+        """Processing's new login passwords: private (0600), never journaled, kept until the
+        DSN parameters are published, like `bootstrap_passwords`."""
+        roles = db_bootstrap.credential_roles(("processing",))
+        with contextlib.suppress(OSError, ValueError):
+            saved = json.loads(self.split_passwords_path().read_text())
+            if set(saved) == set(roles) and all(isinstance(v, str) and v for v in saved.values()):
+                return saved
+        if not create:
+            raise DeployError(
+                "The clone's login passwords are gone (the state directory was lost); "
+                "reconcile it again by resetting database_split.state to 'cloned'"
+            )
+        self.retire_task("bootstrap")  # a finished task would hold passwords nobody has
+        passwords = {role: secrets.token_urlsafe(32) for role in roles}
+        self.write_private(self.split_passwords_path(), json.dumps(passwords))
+        return passwords
+
+    def processing_idle(self):
+        """(idle, evidence): nothing due in SQL, queued, delayed or running for Processing.
+
+        The repair pass proves in SQL that nothing is due and records it in the `quiet` marker
+        the launcher reads (runtime_support.activity); a backlog or an attempt in flight makes
+        it write nothing, so both read as "not quiet". The queues and the encoders that run
+        are asked directly as well.
+        """
+        from runtime_support.activity import Activity
+
+        outputs = self.outputs()
+        prefix = f"/dc2/{self.s.env}/activity/processing/"
+        pipeline = self
+
+        class Markers:  # Activity reads its two markers through the audited transport
+            def get_parameter(self, Name):
+                return pipeline.aws("ssm", "get-parameter", {"Name": Name})
+
+        quiet = Activity(
+            prefix + "touched", prefix + "quiet", client=Markers(), clock=self.wall
+        ).quiet()
+        queued = 0
+        for key in PROCESSING_QUEUES:
+            if key in outputs:
+                found = self.aws(
+                    "sqs",
+                    "get-queue-attributes",
+                    {
+                        "QueueUrl": outputs[key],
+                        "AttributeNames": [
+                            "ApproximateNumberOfMessages",
+                            "ApproximateNumberOfMessagesNotVisible",
+                            "ApproximateNumberOfMessagesDelayed",
+                        ],
+                    },
+                )
+                queued += sum(int(v) for v in found.get("Attributes", {}).values())
+        running = self.aws(
+            "ecs", "list-tasks", {"cluster": outputs["ClusterArn"], "desiredStatus": "RUNNING"}
+        ).get("taskArns", [])
+        evidence = {"quiet": quiet, "queued_messages": queued, "running_tasks": len(running)}
+        return quiet and not queued and not running, evidence
+
+    def step_split_precheck(self):
+        """Refuse to start while Processing has work: a write between the clone and the DSN
+        switch is lost, so the window is made as small as the check can make it."""
+        if self.split_reached("started"):
+            return {"skipped": "past this check", **self.split_record().get("idle_before", {})}
+        seen = {}
+
+        def idle():
+            ok, seen["evidence"] = self.processing_idle()
+            if not ok:
+                self.say(f"waiting for Processing to be idle: {seen['evidence']}")
+            return ok, None
+
+        self.poll(idle, what="Processing to be idle", timeout=IDLE_WAIT_SECONDS, interval=30)
+        evidence = {**seen["evidence"], "checked_at": now()}
+        self.split_mark("started", started_at=now(), idle_before=evidence)
+        return evidence
+
+    def step_split_snapshot(self):
+        """A manual snapshot of the shared cluster: the way back if the split goes wrong."""
+        if self.split_reached("snapshotted"):
+            return {"skipped": "taken", "snapshot": self.split_record().get("snapshot")}
+        clusters = self.meta()["resources"].get("db_clusters", [])
+        if len(clusters) != 1:
+            raise DeployError("A shared stack has exactly one Aurora cluster to split")
+        name = f"{self.s.env}-pre-split-{self.today():%Y%m%d}"
+        self.aws(
+            "rds",
+            "create-db-cluster-snapshot",
+            {
+                "DBClusterIdentifier": clusters[0],
+                "DBClusterSnapshotIdentifier": name,
+                "Tags": self.s.tags,
+            },
+            tolerate=SNAPSHOT_EXISTS,
+        )
+
+        def available():
+            found = self.aws(
+                "rds", "describe-db-cluster-snapshots", {"DBClusterSnapshotIdentifier": name}
+            )
+            return found["DBClusterSnapshots"][0]["Status"] == "available", None
+
+        self.poll(available, what="the pre-split snapshot", timeout=1800)
+        self.split_mark("snapshotted", snapshot=name)
+        return {"snapshot": name}
+
+    def step_split_clone(self):
+        """Update the stack to the separate layout: Media keeps its cluster, instance and
+        security group (same logical ids, same data), and Processing gets a copy-on-write
+        clone of that cluster. The encoder's network can no longer reach Media's cluster."""
+        if self.split_reached("cloned"):
+            return {"skipped": "cloned"}
+        shared = self.s.database
+        self.s.database = dataclasses.replace(shared, topology=SEPARATE, clone_processing=True)
+        self.removable = ("DatabaseFromWorker",)
+        try:
+            applied = self.step_applications()
+        except BaseException:
+            self.s.database = shared  # a failed update changed nothing the journal knows of
+            raise
+        finally:
+            self.removable = ()
+        # Only now does the journal say separate: until the update has succeeded, `deploy` must
+        # keep rendering the layout the stack really has, and after it, never the old one (a
+        # change set that removes the clone is refused as a removal).
+        layout = self.s.database
+        self.journal.mutate(lambda d: d.update(database=layout.as_dict()))
+        logical = self.meta()["resources"].get("db_logical", {})
+        clone = next(
+            (c for c, name in logical.items() if name == "ProcessingDatabaseCluster"), None
+        )
+        if clone is None:
+            raise DeployError("The stack update did not create Processing's cluster")
+        described = self.aws("rds", "describe-db-clusters", {"DBClusterIdentifier": clone})
+        created = described["DBClusters"][0]["ClusterCreateTime"]
+        self.split_mark("cloned", clone_created_at=created)
+        return {"clone_created_at": created, "outputs": applied["outputs"]}
+
+    def step_split_login(self):
+        """Reconcile Processing's logins on the clone, with passwords nobody has used yet."""
+        if self.split_reached("clone-reconciled"):
+            return {"skipped": "reconciled"}
+        host, secret = self.database_endpoints(self.outputs())["processing"]
+        result = self.run_bootstrap(
+            {
+                "databases": {"processing": self.master(host, secret)},
+                "role_passwords": self.split_passwords(),
+            }
+        )
+        self.split_mark("clone-reconciled")
+        return {"bootstrap_task": result.get("task")}
+
+    def step_split_freeze(self):
+        """Give Processing's logins on Media's cluster passwords that are thrown away.
+
+        Lambdas that cached the old DSN are refused from here on and re-read the parameter (the
+        refusal is the credential rotation they already survive), so nothing can write to the
+        old copy after this: a failed request is retried, a lost write cannot happen.
+        """
+        if self.split_reached("old-frozen"):
+            return {"skipped": "frozen"}
+        host, secret = self.database_endpoints(self.outputs())["media"]
+        throwaway = {
+            role: secrets.token_urlsafe(32)
+            for role in db_bootstrap.credential_roles(("processing",))
+        }
+        result = self.run_bootstrap(
+            {"databases": {"processing": self.master(host, secret)}, "role_passwords": throwaway}
+        )
+        self.split_mark("old-frozen")
+        return {"bootstrap_task": result.get("task")}
+
+    def step_split_switch(self):
+        """Point Processing's DSN parameters at the clone, and record what the window cost."""
+        if self.split_reached("switched"):
+            return {"skipped": "switched"}
+        from runtime_support.activity import MARGIN_SECONDS
+
+        passwords = self.split_passwords(create=False)
+        host = self.database_endpoints(self.outputs())["processing"][0]
+        base = f"/dc2/{self.s.env}/"
+        for key, role in (
+            ("processing_runtime_dsn", "processing_runtime"),
+            ("processing_migration_dsn", "processing_migrator"),
+        ):
+            dsn = (
+                f"postgresql://{quote(role, safe='')}:{quote(passwords[role], safe='')}"
+                f"@{host}:5432/processing_db"
+            )
+            self.put_parameter(base + key, dsn)
+        switched = now()
+        # Every Processing writer records a touch before it commits (runtime_support.activity),
+        # and a write that lands at time W leaves a marker of at least W minus MARGIN_SECONDS.
+        # A marker older than the clone by that much therefore proves nothing was written after it.
+        clone = dt.datetime.fromisoformat(self.split_record()["clone_created_at"])
+        marker = self.aws("ssm", "get-parameter", {"Name": f"{base}activity/processing/touched"})
+        try:
+            touched = float(marker["Parameter"]["Value"])
+            writes = "none" if touched < clone.timestamp() - MARGIN_SECONDS else "possible"
+        except (KeyError, TypeError, ValueError):
+            writes = "unknown"
+        window = max(0, (dt.datetime.fromisoformat(switched) - clone).total_seconds())
+        self.split_mark(
+            "switched",
+            switched_at=switched,
+            clone_to_switch_seconds=round(window),
+            writes_after_clone=writes,
+        )
+        self.split_passwords_path().unlink(missing_ok=True)
+        return {"clone_to_switch_seconds": round(window), "writes_after_clone": writes}
+
+    def step_split_verify(self):
+        """The public smoke on the new layout. A warm Lambda is refused once by the old cluster
+        before it re-reads its DSN, so the first attempts may fail; one that passes can only
+        be talking to the clone."""
+        if self.split_reached("verified"):
+            return {"skipped": "verified"}
+        failure = None
+        for _ in range(6):
+            try:
+                result = self.step_public_smoke()
+                break
+            except DeployError as error:
+                failure = error
+                self.sleep(10)
+        else:
+            raise failure
+        self.split_mark("verified", verified_at=now())
+        return result
+
+    def split_database(self):
+        """Move an established shared stack to one Aurora cluster per service, keeping its data.
+
+        Idle check, manual snapshot, stack update (Processing's cluster is a copy-on-write
+        clone of the one that holds both databases), logins reconciled on the clone, the old
+        copy's logins frozen, DSN switch, smoke. Each cluster still holds the peer's database
+        until `finish-database-split`, which drops it once a stronger smoke has passed.
+        """
+        if not (self.s.persistent and self.established()):
+            raise DeployError("split-database applies to an established --environment")
+        if self.s.database.topology == SEPARATE and not self.split_record():
+            return {"split": "not needed: created with one cluster per service"}
+        if self.s.database.topology == SHARED and not self.s.split_from_shared:
+            raise DeployError("Splitting a shared stack needs --database-split-from-shared")
+        if self.split_reached("verified"):
+            return {"split": "already split", "state": self.split_record()["state"]}
+        results = {}
+        for name, action in (
+            ("split-precheck", self.step_split_precheck),
+            ("split-snapshot", self.step_split_snapshot),
+            ("split-clone", self.step_split_clone),
+            ("split-login", self.step_split_login),
+            ("split-freeze", self.step_split_freeze),
+            ("split-switch", self.step_split_switch),
+            ("split-verify", self.step_split_verify),
+        ):
+            if name == "split-snapshot" and not (self.s.execute or self.s.dry_run):
+                raise AwaitingExecute(
+                    "Processing is idle; re-run with --execute to snapshot, clone and switch"
+                )
+            results[name] = self.run_step(name, action)
+        return results
+
+    def step_split_cleanup(self, verified_by):
+        endpoints = self.database_endpoints(self.outputs())
+        self.run_bootstrap(
+            {
+                "databases": {d: self.master(*endpoints[d]) for d in OWNERS},
+                "action": db_bootstrap.DROP_PEERS,
+            }
+        )
+        self.split_mark("cleaned", cleaned_at=now(), verified_by=verified_by)
+        record = self.split_record()
+        receipt = {
+            k: record[k]
+            for k in (
+                "state",
+                "snapshot",
+                "idle_before",
+                "clone_created_at",
+                "switched_at",
+                "clone_to_switch_seconds",
+                "writes_after_clone",
+                "verified_at",
+                "cleaned_at",
+                "verified_by",
+            )
+            if k in record
+        }
+        self.write_private(
+            self.s.state_dir / "database-split-receipt.json", json.dumps(receipt, indent=2)
+        )
+        return {"cleaned_at": record["cleaned_at"]}
+
+    def finish_database_split(self, verified_by):
+        """Drop each cluster's copy of its peer's database, once a smoke has verified the split.
+
+        `verified_by` names the smoke that passed (CD passes its upload-to-playback label); it
+        is recorded, so the drop can be traced to the evidence that allowed it."""
+        if not self.split_reached("verified"):
+            raise DeployError("The split has not been verified; run split-database first")
+        if self.split_reached("cleaned"):
+            return {"cleanup": "already done"}
+        if not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", verified_by or ""):
+            raise DeployError("--verified-by must name the smoke that passed")
+        return {
+            "split-cleanup": self.run_step(
+                "split-cleanup", lambda: self.step_split_cleanup(verified_by)
+            )
+        }
+
     # ---- orchestration -------------------------------------------------------------------
     def deploy(self, *, stop_after=None, revisions=None):
         if self.s.persistent:
@@ -2791,11 +3170,15 @@ class Pipeline:
     def snapshot_name(self, cluster):
         """The final snapshot's id. V1's single cluster keeps `<env>-final`; each cluster of a
         separate layout needs its own, since a snapshot identifier is unique in the account."""
-        logical = self.meta()["resources"].get("db_logical", {}).get(cluster, "")
-        domain = {"MediaDatabaseCluster": "media", "ProcessingDatabaseCluster": "processing"}
-        return (
-            f"{self.s.env}-{domain[logical]}-final" if logical in domain else f"{self.s.env}-final"
-        )
+        meta = self.meta()
+        logical = meta["resources"].get("db_logical", {}).get(cluster, "")
+        # Media's cluster keeps V1's logical id in the separate layout (it may be a split stack's
+        # original), so the id alone cannot say which domain a cluster holds.
+        domain = {"DatabaseCluster": "media", "ProcessingDatabaseCluster": "processing"}
+        topology = meta.get("database", {}).get("topology", self.s.database.topology)
+        if topology == SEPARATE and logical in domain:
+            return f"{self.s.env}-{domain[logical]}-final"
+        return f"{self.s.env}-final"
 
     def td_database(self):
         """Instances first, then the clusters with deletion protection lifted.
@@ -2860,6 +3243,16 @@ class Pipeline:
                 ),
                 what=f"cluster {cluster} deletion",
                 timeout=3600,
+            )
+        # The manual snapshot a split took is deleted with the rest when final snapshots are
+        # skipped (a throwaway); otherwise it is kept and reported like the final ones.
+        pre_split = self.split_record().get("snapshot")
+        if pre_split and self.s.skip_final_snapshot:
+            self.aws(
+                "rds",
+                "delete-db-cluster-snapshot",
+                {"DBClusterSnapshotIdentifier": pre_split},
+                tolerate=SNAPSHOT_NOT_FOUND,
             )
         # Every snapshot any attempt requested, so a resume tags the earlier attempt's too.
         snapshots = self.meta().get("final_snapshots") or []
@@ -3068,6 +3461,13 @@ class Pipeline:
                 "aurora-snapshot",
                 snapshot,
                 "final snapshot kept by default; delete it once the data is not needed",
+            )
+        pre_split = self.split_record().get("snapshot")
+        if pre_split and not self.s.skip_final_snapshot:
+            left(
+                "aurora-snapshot",
+                pre_split,
+                "pre-split snapshot kept; delete it once the split is trusted",
             )
         tagged = self.aws(
             "resourcegroupstaggingapi",
@@ -3353,8 +3753,11 @@ def summarize(rows):
     return [{k: row[k] for k in keys} for row in rows][:200]
 
 
-def review_changes(changes, kind, *, allow_replacement=False):
-    """Flatten and vet a change set: creates add only, updates never remove or replace state."""
+def review_changes(changes, kind, *, allow_replacement=False, removable=()):
+    """Flatten and vet a change set: creates add only, updates never remove or replace state.
+
+    `removable` names the few resources a deliberate change may take away (a network rule).
+    """
     rows = []
     for change in changes:
         item = change.get("ResourceChange", {})
@@ -3371,7 +3774,7 @@ def review_changes(changes, kind, *, allow_replacement=False):
     if kind == "CREATE" and any(r["Action"] != "Add" for r in rows):
         raise DeployError("An initial stack may only Add resources")
     for row in rows:
-        if row["Action"] == "Remove":
+        if row["Action"] == "Remove" and row["LogicalResourceId"] not in removable:
             raise DeployError(f"Change set removes {row['LogicalResourceId']}; refusing")
         replaced = row["Replacement"] in {"True", "Conditional"}
         if replaced and row["ResourceType"] in STATEFUL and not allow_replacement:
@@ -3432,7 +3835,18 @@ def build_parser():
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("action", choices=["deploy", "teardown", "rehearse", "status", "adopt-release"])
+    p.add_argument(
+        "action",
+        choices=[
+            "deploy",
+            "teardown",
+            "rehearse",
+            "status",
+            "adopt-release",
+            "split-database",
+            "finish-database-split",
+        ],
+    )
     p.add_argument(
         "--profile",
         required=True,
@@ -3523,6 +3937,18 @@ def build_parser():
         "or one per domain. Fixed for the run: a resume must repeat it",
     )
     p.add_argument(
+        "--database-split-from-shared",
+        action="store_true",
+        help="--environment with --database-topology separate: allow a stack whose journal still "
+        "says shared to be split in place by `split-database` (Processing's cluster becomes a "
+        "copy-on-write clone of Media's, which keeps its data). `deploy` keeps rendering the "
+        "shared layout until then; a stack created separate ignores it. Never the reverse",
+    )
+    p.add_argument(
+        "--verified-by",
+        help="finish-database-split: the smoke that passed on the split layout (recorded)",
+    )
+    p.add_argument(
         "--database-auto-pause-seconds",
         type=int,
         default=300,
@@ -3604,6 +4030,8 @@ def main(
     try:
         if args.dry_run and args.execute:
             raise DeployError("--dry-run and --execute are mutually exclusive")
+        if args.action in SPLIT_ACTIONS and args.dry_run:
+            raise DeployError(f"{args.action} has no dry run; omit --execute to review it")
         rehearse = args.action == "rehearse"
         dry = args.dry_run or rehearse
         state, temp = prepare_state(args, dry)
@@ -3649,6 +4077,7 @@ def main(
             sql_config=args.sql_config,
             station=args.station,
             database=database,
+            split_from_shared=args.database_split_from_shared,
             unattended_launch=args.unattended_launch,
             lambda_short_encodes=args.lambda_short_encodes,
         )
@@ -3793,22 +4222,33 @@ def adopt_release(journal, owner, release_dir, tag):
     return adopted
 
 
-def check_database_layout(journal, wanted):
-    """A run's database topology is fixed when it is created.
+def check_database_layout(journal, wanted, *, split_ok=False):
+    """The layout this run renders: a run's database topology is fixed when it is created.
 
     The topology decides which resources and outputs exist; flipping it on a live stack would
-    add a cluster without moving data, or ask CloudFormation to remove a database. Auto-pause
-    and the ACU ceiling are in-place cluster settings and may be changed on a resume. A
-    journal written before this option existed is V1's layout.
+    add a cluster without moving data, or ask CloudFormation to remove a database. The one
+    exception is a stack that opted in (`split_ok`): asked for `separate` while its journal
+    still says shared, it keeps rendering shared, and only `split-database`, which clones the
+    data first, changes the layout. Never the reverse. Auto-pause and the ACU ceiling are
+    in-place cluster settings and may be changed on a resume. A journal written before this
+    option existed is V1's layout.
     """
     created = DatabaseOptions(**journal.view().get("database", {}))
-    if created.topology != wanted.topology:
+    if created.topology != wanted.topology and not (
+        split_ok and (created.topology, wanted.topology) == (SHARED, SEPARATE)
+    ):
         raise DeployError(
             f"This run was created with database topology {created.topology}; use a new "
             "--run-id for another layout (a live stack's topology cannot be changed)"
         )
-    if created != wanted:
-        journal.mutate(lambda d: d.update(database=wanted.as_dict()))
+    # The layout is the journal's (it may carry the clone option); only the in-place settings
+    # come from this run.
+    chosen = dataclasses.replace(
+        created, auto_pause_seconds=wanted.auto_pause_seconds, max_capacity=wanted.max_capacity
+    )
+    if chosen != created:
+        journal.mutate(lambda d: d.update(database=chosen.as_dict()))
+    return chosen
 
 
 def execute(
@@ -3850,11 +4290,15 @@ def execute(
     if not journal.exists():
         if args.action == "teardown" and not settings.dry_run:
             raise DeployError("No journal for this run; nothing recorded to tear down")
+        if args.action in SPLIT_ACTIONS:
+            raise DeployError("No journal for this environment; nothing to split")
         journal.create(meta)
     elif journal.view()["account"] != settings.account:
         raise DeployError("Journal belongs to a different account")
-    elif args.action in {"deploy", "rehearse"}:
-        check_database_layout(journal, settings.database)
+    elif args.action in {"deploy", "rehearse", *SPLIT_ACTIONS}:
+        settings.database = check_database_layout(
+            journal, settings.database, split_ok=settings.split_from_shared
+        )
     revisions = {"media": args.media_revision, "processing": args.processing_revision}
     plans, receipt = [], None
 
@@ -3879,6 +4323,15 @@ def execute(
                 deploy.deploy(stop_after=args.stop_after, revisions=revisions)
             finally:
                 plans += deploy.plan
+        if args.action in SPLIT_ACTIONS:
+            split = pipeline()
+            try:
+                if args.action == "split-database":
+                    split.split_database()
+                else:
+                    split.finish_database_split(args.verified_by)
+            finally:
+                plans += split.plan
         if args.action in {"teardown", "rehearse"}:
             down = pipeline()
             try:
@@ -3911,6 +4364,8 @@ def execute(
             out["image_inspect"] = inspected
         if args.json:
             out["plan"] = plans
+    if args.action in SPLIT_ACTIONS:
+        out["database_split"] = journal.view().get("database_split")
     if receipt:
         out["resources_remaining_receipt"] = receipt
     print(json.dumps(out, indent=2), file=stdout)

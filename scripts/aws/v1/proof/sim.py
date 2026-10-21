@@ -319,7 +319,7 @@ class SimWorld:
         ids = self.cluster_ids() if self.database else {"cluster": "sim-cluster"}
         logical = {
             "cluster": "DatabaseCluster",
-            "media": "MediaDatabaseCluster",
+            "media": "DatabaseCluster",
             "processing": "ProcessingDatabaseCluster",
         }
         return {

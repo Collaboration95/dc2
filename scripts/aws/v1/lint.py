@@ -46,8 +46,13 @@ def run(*, require=False, which=shutil.which, runner=subprocess.run, stdout=sys.
         print("cfn-lint not installed: SKIPPED (CI passes --require)", file=stdout)
         return 2 if require else 0
     # Every layout the generator can render is linted, not only the committed one: the V2
-    # separate-cluster template (#94) has no snapshot and would otherwise never be checked.
-    layouts = {SHARED: built, SEPARATE: template(DatabaseOptions(SEPARATE))}
+    # separate-cluster template (#94) has no snapshot and would otherwise never be checked, and
+    # nor would the one a split stack keeps rendering (Processing's cluster as a clone).
+    layouts = {
+        SHARED: built,
+        SEPARATE: template(DatabaseOptions(SEPARATE)),
+        "split": template(DatabaseOptions(SEPARATE, clone_processing=True)),
+    }
     with tempfile.TemporaryDirectory(prefix="dc2-cfn-lint-") as directory:
         for topology, body in layouts.items():
             rendered = Path(directory) / f"template-{topology}.json"
@@ -63,7 +68,7 @@ def run(*, require=False, which=shutil.which, runner=subprocess.run, stdout=sys.
                 print(f"[{topology}] " + result.stdout + result.stderr, file=stdout)
                 return 1
     print(
-        "cfn-lint: PASS for shared and separate (offline; not evidence of deployability)",
+        "cfn-lint: PASS for shared, separate and split (offline; not evidence of deployability)",
         file=stdout,
     )
     return 0

@@ -102,6 +102,9 @@ env:
   # A CI completion on Main is an executed deploy of the default environment.
   CD_OPERATION: ${{ github.event_name == 'workflow_run' && 'deploy' || inputs.operation || 'preflight' }}
   CD_ENVIRONMENT: ${{ inputs.environment || 'live' }}
+  # Opt-in to splitting a shared Aurora cluster into one per service in place (AD-29, #94): the
+  # persistent environment `live` (dc2-live) only. Another environment keeps its recorded layout.
+  CD_DATABASE_SPLIT: ${{ (inputs.environment || 'live') == 'live' && 'true' || 'false' }}
   CD_EXECUTE: ${{ (github.event_name == 'workflow_run' || inputs.execute) && 'true' || 'false' }}
   CD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
   CD_EVENT: ${{ github.event_name }}

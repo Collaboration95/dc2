@@ -1,10 +1,12 @@
 # V2 experiment: one Aurora cluster per domain, and Aurora's pause behaviour (#94)
 
-Status: **implemented locally, cloud evidence NOT_RUN, merge decision PENDING.** Nothing here has
-touched AWS. The tests prove the template, the pipeline and the harness against fakes and the
-simulation. They do not prove that CloudFormation accepts the separate layout, how fast a
-second cluster resumes, whether load on one domain really leaves the other cluster paused, or
-what any of it costs. Those are what the measurement plan below is for.
+Status: **the separate layout and the in-place split of a live shared stack are implemented and
+were rehearsed on a throwaway environment (AD-29, `docs/results/engineering-20261021/`); the
+live cutover of `dc2-live` is PENDING.** The V1 shared layout stays the default for a per-run
+stack and its template is unchanged. The measurement plan below (does a second cluster resume
+fast enough, does load on one domain leave the other paused) is still NOT_RUN; the split does
+not depend on it, because the decision to give each service its own cluster was taken for
+failure isolation (report limitation AISS-01), not for cost.
 
 V1 is the default and the baseline. A stack deployed without the options below is one Aurora
 cluster holding `media_db` and `processing_db`, pausing after 300 s with a 2 ACU ceiling, and its
@@ -32,16 +34,20 @@ before it pauses, and the ACU ceiling.
    A CloudFormation parameter would add a parameter and conditions to every V1 template, and one
    template cannot swap one resource set for another without a condition on every output, rule
    and reference. Rendering keeps V1's bytes unchanged and makes each layout a plain, lintable
-   document. The cost: the layout of a live stack cannot be flipped (see "Switching").
-2. **`separate` adds a second cluster, instance and security group; nothing else.** Resource names
-   stay V1's for `shared`. For `separate` they are `MediaDatabaseCluster`/`Instance`/
-   `SecurityGroup` and the `Processing` set, with the same encryption, TLS group, deletion
-   protection, backup and `Retain` policies as V1's cluster. The outputs name each domain's
-   endpoint and master credential (`MediaDatabaseEndpoint`, `MediaBootstrapSecretArn`, and the
-   Processing pair) and add `DatabaseTopology: separate`, so nothing can read the wrong cluster
-   through a name that fits both. The **application database model does not change**: each
-   service still reads its own DSN parameter for its own `<domain>_db`; only the host in that
-   DSN differs.
+   document. The cost: the layout of a live stack is not a parameter someone can flip (see
+   "Switching").
+2. **`separate` adds a second cluster, instance and security group; nothing else.** **Media keeps
+   V1's logical ids** (`DatabaseCluster`, `DatabaseInstance`, `DatabaseSecurityGroup`,
+   `DatabaseFromLambda`/`DatabaseFromMigration`), and Processing's set is the `Processing`
+   prefix (`ProcessingDatabaseCluster`, ...), with the same encryption, TLS group, deletion
+   protection, backup and `Retain` policies as V1's cluster. A test proves Media's resources
+   render byte-for-byte as V1's, so a shared stack that is updated to `separate` keeps its
+   cluster, its instance and its data in place and only gains Processing's set. The outputs
+   name each domain's endpoint and master credential (`MediaDatabaseEndpoint`,
+   `MediaBootstrapSecretArn`, and the Processing pair) and add `DatabaseTopology: separate`, so
+   nothing can read the wrong cluster through a name that fits both. The **application database
+   model does not change**: each service still reads its own DSN parameter for its own
+   `<domain>_db`; only the host in that DSN differs.
 3. **The pipeline is keyed per domain.** `deploy --database-topology separate`:
    `db-bootstrap` reads both clusters' master credentials and sends the bootstrap task a
    `databases: {media: {...}, processing: {...}}` input (V1's single-connection input is still
@@ -49,7 +55,9 @@ before it pauses, and the ACU ceiling.
    domain only, so a cluster never learns of the peer's roles. The four DSN parameters each name
    their own domain's cluster, and the owner migration tasks, which only read their own
    parameters, need no change. `td-database` requests every deletion before waiting on any and
-   takes one final snapshot per cluster (`<env>-media-final`, `<env>-processing-final`).
+   takes one final snapshot per cluster (`<env>-media-final`, `<env>-processing-final`; Media's
+   cluster is told from Processing's by the journal's recorded topology, since its logical id is
+   V1's).
 4. **The network follows the layout.** Each cluster has its own security group, and the encoder
    (Fargate worker) network can reach only Processing's cluster. Lambda and the migration task
    are shared by both domains today, so both clusters admit them. This is a real but narrow

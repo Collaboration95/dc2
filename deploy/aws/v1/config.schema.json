@@ -59,6 +59,10 @@
       "enum": ["shared", "separate"],
       "description": "V2 experiment (#94): one Aurora cluster holding both databases (default, V1) or one cluster per domain. Chosen when the template is rendered; never change it on a live stack"
     },
+    "database_clone_processing": {
+      "type": "boolean",
+      "description": "Separate layout only. Render Processing's cluster as a copy-on-write clone of Media's (a stack split from the shared layout in place); create-only in CloudFormation, so a stack created this way keeps it"
+    },
     "database_auto_pause_seconds": {
       "type": "integer",
       "minimum": 300,
