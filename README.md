@@ -77,8 +77,8 @@ Why these are microservices and not one app split into folders (each point has a
 Honest limits: one CloudFormation stack, a monorepo with one lockfile, and **three** source directories
 copied into every image (`contracts/`, `delivery/` and `runtime_support/`, see the Dockerfiles in
 [`deploy/v1/`](deploy/v1/)). Database ownership is logical: Media and Processing each own a database and
-migrations, but both live on **one Aurora cluster**, which is a shared failure and capacity boundary
-that role separation does not remove. Processing also depends on the **Media-owned Lambda authorizer**
+migrations, and each has its **own Aurora cluster** (AD-29), so a failure or capacity limit in one
+database does not reach the other. Processing also depends on the **Media-owned Lambda authorizer**
 for caller identity (AD-09): every Processing request is authenticated by Media's code, although Processing holds neither Media's secret nor its database. See
 [limitations](docs/architecture/decisions.md#6-architectural-limitations).
 

@@ -32,7 +32,7 @@ operations. Genuine cloud evidence remains open and Blocked until obtained.
 | Public entry | Generated CloudFront HTTPS URL serves the preserved frontend; `/api` forwards to API Gateway HTTP API with explicit `/media/*` and `/processing/*` groups and separate Lambda API applications |
 | Media Management | Own users, login/roles, assets, reservations, source grants, ownership and playback; its own API, result/reconciliation handlers, roles and release |
 | Processing | Own jobs, attempts, retry, cancellation, leases and output descriptors; its own API, command/recovery handlers, worker image, roles and release |
-| Databases | One Aurora PostgreSQL Serverless v2 cluster initially, two logical databases, distinct runtime/migration credentials and histories; no cross-database service queries. The cluster remains a shared capacity/failure boundary |
+| Databases | One Aurora PostgreSQL Serverless v2 cluster per service (AD-29; V1 began with one shared cluster), two databases, distinct runtime/migration credentials and histories; no cross-database service queries. Each cluster is its own capacity/failure boundary |
 | Messaging | Three SQS Standard queues: `processing-commands`, `processing-work`, `media-results`, each with a matching DLQ. SQL remains authoritative for jobs, leases, inboxes and outboxes |
 | Encoding | Reuse FFmpeg/probe/edit/MP4/HLS on disposable Fargate workers, initial 2 vCPU / 4 GiB each, one active encode per worker, zero idle tasks, total cap three including unresolved launch reservations |
 | Starts | V1 uses bounded operator batches adapted from the existing journal/RunTask design. Late work stays visibly queued until another batch. Unattended starts are V2, not a claimed V1 capability |
