@@ -592,9 +592,16 @@ RELEASED_SHA = "e" * 40  # the retained image's own source, not the checkout bei
 REGISTRY_REF = "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/media@sha256:" + "a" * 64
 
 
-@pytest.mark.parametrize("mode", ["registry", "retained"])
 @pytest.mark.parametrize(
-    "fault", ["clean", "os", "python", "incomplete", "wrong-config", "error", "no-output"]
+    ("mode", "fault"),
+    [
+        # A kept image is still gated; the scanner-failure paths are the same code in both modes.
+        *[("registry", f) for f in ("clean", "os", "python", "error")],
+        *[
+            ("retained", f)
+            for f in ("clean", "os", "python", "incomplete", "wrong-config", "error", "no-output")
+        ],
+    ],
 )
 def test_only_a_replaced_rollback_target_may_record_fixable_findings_on_rescan(
     tmp_path, mode, fault

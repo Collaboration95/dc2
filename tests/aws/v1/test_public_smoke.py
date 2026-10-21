@@ -33,6 +33,10 @@ class Gateway:
             version = self.faults.get("schema", 1)
             return json_(200, {"status": "ok", "service": "processing", "schema_version": version})
         if path == "/api/media/auth/login":
+            replies = self.faults.get("login_replies")  # statuses in order; the last one repeats
+            status = (replies.pop(0) if len(replies) > 1 else replies[0]) if replies else 200
+            if status != 200:
+                return json_(status, {"error": "unavailable"})
             if self.faults.get("login"):
                 return json_(401, {"error": "invalid email or password"})
             cookie = self.faults.get("cookie", SECURE_COOKIE)
@@ -112,6 +116,87 @@ def test_failed_login_skips_authenticated_checks_and_never_records_the_credentia
     assert run(check) is False
     assert "media-jobs" not in check.checks
     assert CREDENTIALS["password"] not in json.dumps(check.receipt)
+
+
+WAKE = (5, 10, 15)
+
+
+def waking(gateway, sleeps, **kwargs):
+    """A smoke for a database that may be paused: three pauses, recorded instead of slept."""
+    return smoke(gateway, sleep=sleeps.append, wake_backoff=WAKE, **kwargs)
+
+
+def test_a_release_smoke_does_not_retry_unless_asked_to():
+    # After its migration the database is awake, so a 503 there is a real failure at once.
+    gateway = Gateway(login_replies=[503, 200])
+    check = smoke(gateway, sleep=lambda _s: pytest.fail("must not pause"))
+    assert run(check) is False
+    assert check.failures == ["login:503"] and check.receipt["login_attempts"] == [503]
+    assert sum(p == "/api/media/auth/login" for _, p, *_ in gateway.requests) == 1
+
+
+def test_a_database_that_is_still_waking_is_waited_for_and_the_attempts_are_recorded():
+    sleeps = []
+    gateway = Gateway(login_replies=[503, 504, 200])
+    check = waking(gateway, sleeps)
+    assert run(check) is True
+    assert set(check.checks.values()) == {"PASS"}
+    assert sleeps == [5, 10]
+    assert check.receipt["login_attempts"] == [503, 504, 200]
+    # The first calls that need no database are made once; only the login is repeated.
+    paths = [p for _, p, *_ in gateway.requests]
+    assert paths.count("/api/media/health") == 1 and paths.count("/api/media/auth/login") == 3
+    # A later run starts its record afresh.
+    assert run(check) is True and check.receipt["login_attempts"] == [200]
+
+
+def test_a_transport_failure_while_the_database_wakes_is_retried_without_leaking_detail():
+    sleeps, seen = [], []
+    gateway = Gateway()
+
+    def flaky(method, url, headers, body, timeout):
+        if url.endswith("/auth/login") and not seen:
+            seen.append(url)
+            raise TimeoutError("secret-host.internal timed out")
+        return gateway(method, url, headers, body, timeout)
+
+    check = smoke(flaky, sleep=sleeps.append, wake_backoff=WAKE)
+    assert run(check) is True
+    assert check.receipt["login_attempts"] == ["error", 200] and sleeps == [5]
+    assert "secret-host" not in json.dumps(check.receipt)
+
+
+def test_a_503_that_outlasts_the_pauses_is_still_a_failed_login():
+    sleeps = []
+    check = waking(Gateway(login_replies=[503]), sleeps)
+    assert run(check) is False
+    assert check.failures == ["login:503"]
+    assert sleeps == [5, 10, 15] and check.receipt["login_attempts"] == [503] * 4
+    assert "media-jobs" not in check.checks  # nothing authenticated runs without a session
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 404, 409, 429, 500])
+def test_any_other_login_status_fails_at_once_even_when_waiting_is_allowed(status):
+    sleeps = []
+    check = waking(Gateway(login_replies=[status, 200]), sleeps)
+    assert run(check) is False
+    assert check.failures == [f"login:{status}"]
+    assert sleeps == [] and check.receipt["login_attempts"] == [status]
+
+
+def test_a_wake_retry_never_runs_past_the_deadline():
+    sleeps = []
+    now = [100.0]
+    check = waking(Gateway(login_replies=[503]), sleeps, clock=lambda: now[0])
+    # Three seconds left: not enough for the five-second pause plus another request.
+    assert check("media", {}, None, deadline=103.0) is False
+    assert sleeps == [] and check.receipt["login_attempts"] == [503]
+    assert check.failures == ["login:503"]
+    # Room for the first pause only (the clock does not move while sleeping in this test).
+    sleeps.clear()
+    now[0] = 100.0
+    assert check("media", {}, None, deadline=100.0 + 5 + 1 + 0.5) is False
+    assert sleeps == [5] and check.receipt["login_attempts"] == [503, 503]
 
 
 def test_transport_errors_fail_the_check_without_leaking_detail():
