@@ -1,6 +1,8 @@
 # FlickPond: a reusable cloud media processing platform
 
 Team 17, SWE5001 Architecting Scalable Systems Practice Module (NUS, September to November 2026).
+The [showcase study guide](https://collaboration95.github.io/dc2/) explains the project from the
+basics through AWS, CI/CD and implementation details, with diagrams and practice questions.
 Start here. This page describes the system as built (V1, git tag `project2-v1`). Earlier planning and
 Project 1 material is labelled historical and listed at the end.
 

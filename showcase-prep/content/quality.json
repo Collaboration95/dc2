@@ -1,0 +1,347 @@
+{
+  "id": "quality",
+  "title": "What the checks really tell you",
+  "kicker": "Testing, coverage and security evidence",
+  "summary": "Connect each test layer to the risk it covers, read statement and branch coverage honestly, and describe security scans without claiming more than they did.",
+  "opening_answer": "The project combines focused unit tests, owned service integrations, browser and command-line acceptance, exact-source coverage, image checks, and bounded dynamic scans. Each layer answers a different question; a passing summary is meaningful only when its scope, source and limits are clear.",
+  "sections": [
+    {
+      "id": "quality-layers",
+      "title": "Tests are layers of evidence",
+      "level": 1,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "A test is useful when you can finish the sentence: “This check makes me more confident that …” A unit test can show a rule works for chosen inputs. A database integration can show that the rule survives real persistence and transaction behavior. A browser flow can show that users and services fit together over HTTPS. None proves everything around it. Strong test strategy layers evidence so a cheap check catches simple mistakes early and a realistic check exercises boundaries that mocks cannot reproduce."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Layer",
+            "What it proves",
+            "What it cannot prove alone"
+          ],
+          "rows": [
+            [
+              "Unit and offline",
+              "A focused rule or adapter responds correctly to controlled inputs.",
+              "Real database, storage, browser or cloud behavior."
+            ],
+            [
+              "Owned integration",
+              "The service works with its actual local PostgreSQL, Redis or storage dependencies and owned boundaries.",
+              "AWS-managed networking, IAM or production load."
+            ],
+            [
+              "Browser and HTTPS",
+              "Client trust, cookie persistence, navigation and request composition work in the tested local harness.",
+              "Every browser, device, deployed edge or cloud identity."
+            ],
+            [
+              "Image and runtime checks",
+              "The built image starts and has expected user, files and runtime configuration.",
+              "That the image is free of every vulnerability or correct under production traffic."
+            ],
+            [
+              "Dynamic scan",
+              "A bounded set of requests did not reveal a reported issue within tested routes and rules.",
+              "Unscanned methods, cloud configuration or unknown vulnerabilities."
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "The path classifier selects evidence by ownership and risk. The Python fast lane uses Python 3.12, locked `uv` dependencies, Ruff lint/format checks and a coverage-aware pytest subset. Owner integrations bring in real local services where needed. Full mode adds the legacy PostgreSQL/MinIO/FFmpeg regression, Media and Processing integrations, Publisher HTTPS/browser checks, V1 acceptance and image/security evidence. The catalog below names the tools and what each contributes; the exact selected jobs are in the workflow and receipt."
+        },
+        {
+          "type": "p",
+          "text": "Tool map: Python 3.12 and `uv` provide the pinned runtime and locked environments; `pytest`/coverage exercise unit and integration behavior; Ruff checks style and security patterns. Vitest checks frontend behavior and coverage. Docker builds and executes the three Linux amd64 images; PostgreSQL backs real local database tests, Moto emulates AWS S3/SQS locally, and Playwright drives browser flows. Trivy scans exact image configurations for Debian OS and Python packages. ZAP runs bounded local authenticated DAST. `actionlint` validates workflow syntax; `cfn-lint` checks CloudFormation templates offline. Alembic owns schema history and migration compatibility checks; AWS CLI is used by operator scripts and read-only deployment verification. GitHub Actions assumes AWS roles through OIDC, avoiding stored long-lived AWS keys. Each tool has a limited target: local emulation and lint do not prove deployed AWS behavior."
+        },
+        {
+          "type": "p",
+          "text": "The 20 October offline receipt is source `514914a`, not the later hosted Main source. Its complete regression recorded 3,697 passed, 267 subtests and two documented skips in 123.21 seconds; the same command passed 177 frontend tests. V1 recorded 157 selected cases, including 99 required cases; 13 optional short-encoder cases remain deferred. Offline evidence uses real PostgreSQL 16 plus Moto S3/SQS emulation for relevant V1 flows, not AWS-managed services. Hosted Main Full CI `39415935595` is a separate result for `629119c`. The same source passed 73/73 exact-image execution checks across three Linux amd64 images, including packaging, imports, Lambda handlers, migration/bootstrap and FFmpeg checks."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "layers",
+            "title": "Evidence builds outward",
+            "layers": [
+              {
+                "label": "Rule",
+                "sub": "Unit behavior",
+                "detail": "Fast feedback for a specific decision or transformation."
+              },
+              {
+                "label": "Service",
+                "sub": "Real local dependencies",
+                "detail": "Persistence and service-owned boundaries under realistic local adapters."
+              },
+              {
+                "label": "User path",
+                "sub": "Browser and HTTPS",
+                "detail": "Client trust and application composition across the route."
+              },
+              {
+                "label": "Candidate",
+                "sub": "Image and release",
+                "detail": "The built artifact and promotion path are checked separately."
+              }
+            ],
+            "caption": "Each layer adds a different observation. No layer inherits proof from a neighboring layer automatically."
+          }
+        },
+        {
+          "type": "callout",
+          "title": "Name the boundary",
+          "text": "“The database integration passed against local PostgreSQL” is precise. “The AWS database is proven” is not supported by a local test.",
+          "tone": "note"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/ci/policy.md",
+          "label": "Selected test layers and evidence boundaries"
+        },
+        {
+          "path": ".github/workflows/ci.yml",
+          "label": "Jobs and service integration setup"
+        },
+        {
+          "path": "scripts/dev/checks.py",
+          "label": "Coverage-aware test commands"
+        }
+      ]
+    },
+    {
+      "id": "coverage-branches",
+      "title": "Coverage is a map, not a grade",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Coverage asks which measured statements and decision outcomes ran during a test set. Statement coverage can miss a branch: a line containing `if` may execute while only one side is taken. The project tracks raw branch coverage as well as a combined statement-plus-branch measure. Branches matter in recovery code, where outcomes such as “lease is still current” and “lease has expired” must behave differently."
+        },
+        {
+          "type": "p",
+          "text": "The combined backend gate joins five source-matched fragments: fast tests, legacy integration, Processing integration, Media integration and V1 integration. Each fragment includes metadata, and the validator checks the fingerprint against current source and expected omissions. A missing fragment or stale fingerprint is an error. Without those checks, combining numbers from different source versions could create a reassuring total that no single revision actually earned."
+        },
+        {
+          "type": "p",
+          "text": "The global combined floor is 80%. In addition, Media and Processing each target 90% combined and 85% raw branches; the two recovery modules each target 80% combined and 75% raw branches. Package targets focus on owned service code, while recovery targets focus on high-risk state transitions. The report distinguishes these explicit floors from measurements reported without a floor. A green total does not erase a below-goal high-risk module."
+        },
+        {
+          "type": "p",
+          "text": "For current local measured results, use the 20 October clean-source receipt `514914a`. Media is 93.91% combined and 86.68% raw branch; Processing is 93.90% and 89.36%. Media recovery is 89.76% combined / 75.00% raw branch; Processing recovery is 88.34% / 80.00%. These meet their respective 90/85 package and 80/75 recovery floors. The hosted Main receipt later reports the same coverage measurements for source `629119c` in Full CI run `39415935595`; do not silently attribute the local `514914a` evidence to Main. Vitest 4.1.12 changed AST coverage mapping from Vitest 2, so the frontend percentages are a new tooling baseline, not a direct trend comparison. The 177 frontend tests measured 96.24% statement, 90.69% branch, 92.24% function and 99.55% line coverage, clearing four 90% floors. Vitest 4.1.12 changed AST coverage mapping from Vitest 2, so these percentages establish a new frontend tooling baseline rather than a direct trend comparison."
+        },
+        {
+          "type": "code",
+          "language": "text",
+          "text": "combined = (covered statements + covered branches) / (statements + branches)\nraw branch = covered branches / all measured branches\n\nReport: threshold + actual + source SHA + contributing test tiers"
+        },
+        {
+          "type": "p",
+          "text": "Coverage is not a direct measure of test quality. A line may execute without a meaningful assertion; a test may pass through a branch without checking the expected result. Coverage helps identify untouched behavior and missing outcomes. Read it alongside what tests assert, especially for retries, races, ownership and failures. Good coverage makes blind spots easier to discuss. It does not make a shallow assertion strong, nor does a lower number automatically mean a defect. It is one instrument in a review, so explain which behavior a missing branch represents and whether another test checks that invariant."
+        },
+        {
+          "type": "qa",
+          "q": "Why report raw branch coverage separately?",
+          "a": "A combined figure can look healthy because many statements ran, while an important decision exercised only one outcome. Raw branches make that gap visible."
+        }
+      ],
+      "sources": [
+        {
+          "path": "scripts/dev/coverage.py",
+          "label": "Combined formula and package and recovery goals"
+        },
+        {
+          "path": "pyproject.toml",
+          "label": "Global coverage configuration and floor"
+        },
+        {
+          "path": ".github/workflows/ci.yml",
+          "label": "Five source-specific fragments and artifacts"
+        },
+        {
+          "path": "docs/results/engineering-20261020/local-validation-514914a.json",
+          "label": "Current source-bound local coverage and goals"
+        },
+        {
+          "path": "docs/results/engineering-20261020/delivery-629119c.json",
+          "label": "Current hosted Main coverage and CI identity"
+        }
+      ]
+    },
+    {
+      "id": "contracts-security",
+      "title": "Contracts and security checks target different risks",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "A distributed service often receives the same instruction more than once. A sender can lose an acknowledgement and retry even though the receiver committed the first request. Idempotency tests ask whether repeating an operation leaves one correct logical result. Fencing tests ask whether an old worker or stale lease holder is prevented from publishing after a newer attempt owns the work. These tests cover time and ownership, not merely the shape of one request."
+        },
+        {
+          "type": "p",
+          "text": "The V1 contract fixtures freeze important public messages and response shapes. Producer and consumer checks validate envelopes, ownership, source identifiers and attempt/version fields. Persistence and recovery tests exercise tombstones, replay windows, reservation finalization and late-completion boundaries. A fixture proves compatibility with the recorded contract; it does not by itself prove real recovery timing or AWS delivery behavior. Executable and integration tests provide adjacent but distinct evidence."
+        },
+        {
+          "type": "p",
+          "text": "Security checks also come in different forms. Ruff’s security rule set (`ruff check --select S`) is a static lint pass over source patterns. It can catch risky coding constructs early, but it is not a full security audit and it does not scan a built operating system. Trivy scans exact built images, including operating-system and Python package targets. The policy fails on fixable HIGH or CRITICAL findings; unfixed rows are retained and counted, not silently treated as fixed. “Zero fixable high/critical” does not mean “zero findings.”"
+        },
+        {
+          "type": "p",
+          "text": "SonarCloud is a separate advisory analysis, not a substitute for Ruff or Trivy. In Main CI `39415935595`, both Sonar analyses were intentionally skipped because project configuration/credentials were not available. Record `NOT_RUN`; no clean Sonar result exists for this run."
+        },
+        {
+          "type": "p",
+          "text": "The current exact-config Trivy receipts are from 20 October. For each of the Media, Processing and worker images, both the local validation scan at source `514914a` and the deployed-image scan after delivery at source `629119c` found zero fixable HIGH/CRITICAL rows. Unfixed rows remain 44 for Media, 44 for Processing and 208 for the worker in each set. These are finding rows, not distinct CVEs; repeated packages or image reports can repeat a vulnerability. CI scans identify the local Docker config ID and source; post-deploy scans freshly scan the retained deployed config/manifest identities. Neither result means zero vulnerabilities, and freshness/identity checks are part of the gate."
+        },
+        {
+          "type": "callout",
+          "title": "Static lint is one instrument",
+          "text": "Ruff checks source patterns. Trivy checks packages inside the exact image. SonarCloud analysis is a separate advisory service. Their scopes do not substitute for one another.",
+          "tone": "tip"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/execution/aws/v1/contracts/README.md",
+          "label": "Message, retry, tombstone and fencing contracts"
+        },
+        {
+          "path": "tests/v1/test_contract_fixtures.py",
+          "label": "Frozen executable contract checks"
+        },
+        {
+          "path": "docs/ci/policy.md",
+          "label": "Ruff and image scan rules"
+        },
+        {
+          "path": "scripts/ci/v1_scan.py",
+          "label": "Exact image and fixable severity gate"
+        },
+        {
+          "path": ".github/workflows/ci.yml",
+          "label": "Sonar disposition and scan jobs"
+        },
+        {
+          "path": "docs/results/engineering-20261020/image-scan-summary-514914a.json",
+          "label": "Exact-config local Trivy scan rows"
+        },
+        {
+          "path": "docs/results/engineering-20261020/delivery-629119c.json",
+          "label": "Main CI and deployed image scan receipts"
+        }
+      ]
+    },
+    {
+      "id": "dast-evidence",
+      "title": "Dynamic scans have a bounded view",
+      "level": 3,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "V1 dynamic application security testing launches a disposable local Gateway and authorizer harness, uses real PostgreSQL plus run-scoped Moto S3/SQS, then runs a pinned ZAP scanner against loopback HTTPS. It generates or validates the Media and Processing schemas and selects seven eligible GET routes from a 20-operation inventory (15 Media, 5 Processing). Request methods, routes, time and request volume are bounded; excluded state-changing or sensitive routes are blocked or tested with direct fixtures. This is authenticated local DAST, not a scan of AWS Gateway or every API operation."
+        },
+        {
+          "type": "p",
+          "text": "The 20 October local validation receipt is tied to clean source `514914a`. The initial unmodified DAST attempt completed Media but stopped before Processing requests; a separate confirmation completed both service scans. The confirmation exercised all seven selected routes successfully, with 317 handler requests and 146 out-of-scope probes blocked; no in-scope auth denial, server error or request-cap hit occurred. Eight low and eight informational entries remain. Do not collapse the failed first attempt and successful confirmation into a single flawless run, or call report-only findings a clean scan."
+        },
+        {
+          "type": "p",
+          "text": "Full hosted Main CI `39415935595` separately passed its Linux DAST job for exact source `629119c`. That is source-bound workflow evidence, while the detailed 317-request counts above belong to the local confirmation at `514914a`. Neither scans AWS infrastructure. A green full gate means required workflow jobs and artifacts passed at that source; a `NOT_RUN` instrument, excluded route, local emulator or report-only alert retains its own boundary."
+        },
+        {
+          "type": "p",
+          "text": "Avoid net lines-of-code claims as a quality score. Better evidence is a smaller or clearer implementation paired with preserved behavior and tests: shared native storage-credential policy fell from 253 to 175 source lines (78 fewer before Ruff formatting); the Media asset page now uses one owner-local outer join instead of an N+1 projection query, with focused SQLite assertions that one SELECT serves several page sizes; and image dependency exports narrowed from 44 packages to 40 Media, 36 Processing and 33 worker packages. These are targeted simplifications and package counts, not a claim that total repository LOC decreased or that SQLite proves PostgreSQL latency."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "compare",
+            "title": "Security evidence boundaries",
+            "columns": [
+              "Check",
+              "Looks at",
+              "Does not establish"
+            ],
+            "rows": [
+              [
+                "Ruff security rules",
+                "Source patterns",
+                "Image package inventory or runtime safety"
+              ],
+              [
+                "Trivy image scan",
+                "OS and Python packages in exact image",
+                "No unfixed findings or no application flaws"
+              ],
+              [
+                "SonarCloud",
+                "Submitted source and optional coverage",
+                "A result when status is NOT_RUN"
+              ],
+              [
+                "Local ZAP DAST",
+                "Seven selected GET routes on loopback gateway",
+                "AWS or all 20 API operations"
+              ]
+            ],
+            "caption": "Pair finding status with the tool, exact target and recorded execution state."
+          }
+        },
+        {
+          "type": "qa",
+          "q": "The DAST inventory says 20 operations. Were all 20 scanned?",
+          "a": "No. The API inventory has 20 operations, and the active scan imports seven eligible GET routes. Other operations are excluded for explicit reasons and have direct contract checks where applicable."
+        },
+        {
+          "type": "qa",
+          "q": "How should I describe SonarCloud when it did not run?",
+          "a": "Say `NOT_RUN`: both advisory Sonar analyses were skipped in Main CI `39415935595` because configuration/credentials were unavailable. No Sonar pass is established."
+        },
+        {
+          "type": "qa",
+          "q": "What does zero fixable HIGH/CRITICAL mean?",
+          "a": "The exact image config or deployed manifest had no HIGH/CRITICAL row with an available fix under the gate. The current receipts still list 44/44/208 unfixed finding rows across Media/Processing/worker; these are rows, not distinct CVEs."
+        },
+        {
+          "type": "qa",
+          "q": "Why is fewer code not enough to claim better quality?",
+          "a": "A repository-wide LOC total does not show preserved behavior or covered failure paths. Explain a concrete simplification (one SELECT instead of N+1, shared credential code, or narrower dependency exports) alongside the tests and exact source-bound results; do not claim net LOC decreased."
+        }
+      ],
+      "sources": [
+        {
+          "path": "scripts/dev/v1_dast.py",
+          "label": "Route inventory, method scope and exclusions"
+        },
+        {
+          "path": ".github/workflows/dast.yml",
+          "label": "Exact-source local scan execution and cloud limitation"
+        },
+        {
+          "path": "docs/ci/policy.md",
+          "label": "Security policy and status meanings"
+        },
+        {
+          "path": "docs/results/engineering-20261020/local-validation-514914a.json",
+          "label": "Local source-bound DAST receipt"
+        },
+        {
+          "path": "docs/results/engineering-20261020/delivery-629119c.json",
+          "label": "Hosted Main CI source and run identity"
+        }
+      ]
+    }
+  ],
+  "takeaways": [
+    "Tests provide layered evidence; explain what each tool proves and which environment it touched.",
+    "The 20 October coverage results meet the explicit Media/Processing and recovery module goals; cite source and scope.",
+    "Offline regression, hosted Main CI, deployed-image scans and post-deploy smoke are separate receipts.",
+    "Trivy zero-fixable gates coexist with 44/44/208 unfixed finding rows; counts are not distinct CVEs.",
+    "Ruff, Trivy, SonarCloud, ZAP, actionlint and cfn-lint inspect different targets; report NOT_RUN and exclusions honestly.",
+    "Meaningful simplifications are supported by specific query, policy and dependency evidence, not a net LOC claim."
+  ]
+}

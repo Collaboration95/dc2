@@ -1,0 +1,431 @@
+{
+  "id": "architecture",
+  "title": "How the platform fits together",
+  "kicker": "Architecture, from the owner’s first upload to playback",
+  "summary": "Follow the current Media and Processing design through its domain boundaries, durable hand-offs, worker path, and the trade-offs that keep the system understandable.",
+  "opening_answer": "Media owns people, uploads, and playback access. Processing owns jobs and encoding attempts. They coordinate through versioned messages and each keeps its own database. A worker turns a pinned source version into outputs; Media then exposes those outputs only to the owner.",
+  "takeaways": [
+    "Media owns the Asset and a local copy of Processing status; Processing owns Job, Attempt, and output descriptors.",
+    "SQL is authoritative. Queues wake consumers, while outbox, inbox, repair, and version fences handle duplicate, delayed, or missing messages.",
+    "Uploads go straight to versioned object storage; the exact verified version is pinned before work is accepted.",
+    "A successful encode is not enough for playback: Media checks ownership and projection state before issuing short-lived access.",
+    "The old app package is not the current runtime architecture."
+  ],
+  "sections": [
+    {
+      "id": "start-with-the-domain",
+      "title": "Start with the work the system promises",
+      "level": 1,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Think of Flickpond as a place where an owner submits a video, asks for a transformation, and later watches the result. The visible item is an **Asset**: a video owned by one account, together with its source identity and edit operations. Its identifier is also the public job identifier, so clients can keep one reference from upload through status and playback."
+        },
+        {
+          "type": "p",
+          "text": "Processing work has a different life from the Asset. One Asset can have one Processing **Job**, and that Job can have several numbered **Attempts** over time. A retry does not overwrite the first attempt; it creates a fresh attempt from the accepted source. This distinction makes it possible to explain which try failed, which one is current, and which output belongs to it."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "A simple mental model",
+            "steps": [
+              {
+                "label": "Owner",
+                "sub": "account + Asset",
+                "detail": "The account owns the Asset, source pin, public status, and right to play the outputs."
+              },
+              {
+                "label": "Job",
+                "sub": "one per Asset",
+                "detail": "Processing gives the accepted request a job identity and keeps its lifecycle."
+              },
+              {
+                "label": "Attempt",
+                "sub": "one try",
+                "detail": "Each run has a unique number and identity; retries create another attempt."
+              }
+            ],
+            "caption": "Click a box to see which context owns that concept. The Asset is the user-facing anchor; Job and Attempt describe the asynchronous work."
+          }
+        },
+        {
+          "type": "qa",
+          "q": "Why are Job and Attempt separate?",
+          "a": "A job describes the requested processing over time. An attempt records one execution. Keeping them separate means a retry can be new work without erasing the failure history or confusing old and new outputs."
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/ddd.md",
+          "label": "Ubiquitous language and ownership"
+        },
+        {
+          "path": "docs/architecture/use-case-design.md",
+          "label": "Use cases and shared class model"
+        },
+        {
+          "path": "media/models.py",
+          "label": "Media Asset model"
+        },
+        {
+          "path": "processing/models.py",
+          "label": "Processing Job and Attempt models"
+        }
+      ]
+    },
+    {
+      "id": "two-contexts",
+      "title": "Two owners, with a deliberate seam",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "The design has two bounded contexts: Media Management and Processing. Each has its own vocabulary, rules, database role, and code owner. **Media** owns accounts, ownership checks, upload reservations, pinned sources, public job reads, playback signing, deletion, and cleanup. **Processing** owns jobs, attempts, leases, retries, cancellation, output records, and encoder claims."
+        },
+        {
+          "type": "p",
+          "text": "They use separate PostgreSQL databases and roles (`media_db` and `processing_db`) on one Aurora cluster. Each service can query its own tables and migration history. They do not join across databases or share ORM models. IDs crossing the seam are values in a contract, not foreign keys into the other service. This creates a clear ownership boundary, although the shared cluster remains a common capacity and failure boundary."
+        },
+        {
+          "type": "p",
+          "text": "Media keeps a `ProcessingProjection`, a local read model of the latest accepted Processing state. A browser can ask Media for an owned Asset and its status in one domain. Media does not open a Processing database connection to answer that question. When a result arrives, Media validates it and updates its copy. Before the first result, Media can show `accepted`, a Media-side state that Processing does not emit."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "Who owns each decision",
+            "steps": [
+              {
+                "label": "Media",
+                "sub": "identity + files",
+                "detail": "Media decides who owns an Asset, which bytes are accepted, and whether a playback link may be issued."
+              },
+              {
+                "label": "Contracts",
+                "sub": "shared message shape",
+                "detail": "Versioned values describe actors, sources, and envelopes; they do not move database ownership."
+              },
+              {
+                "label": "Processing",
+                "sub": "jobs + attempts",
+                "detail": "Processing decides which attempt is current and whether a worker may claim or finish it."
+              }
+            ],
+            "caption": "The shared contract is a narrow language at the seam. It does not turn either service into a client of the other’s tables."
+          }
+        },
+        {
+          "type": "p",
+          "text": "Identity and playback stay with Media because those rules need the owner and Asset together. The user row, owner filter, source pin, and playback signer live in Media’s database. Splitting identity into a third service would make ordinary ownership and playback decisions depend on extra network calls, without creating a useful independent lifecycle. The architecture chooses two business services, not one service for every noun."
+        },
+        {
+          "type": "qa",
+          "q": "Is the Media authorizer a third service?",
+          "a": "No. It is a separate execution role running Media code and reading Media’s user records. Service boundaries follow owned rules, data, and release units, not the number of deployed functions."
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/ddd.md",
+          "label": "Bounded contexts and why identity stays in Media"
+        },
+        {
+          "path": "docs/architecture/views.md",
+          "label": "Logical and persistence views"
+        },
+        {
+          "path": "docs/architecture/decisions.md",
+          "label": "AD-01, AD-02, AD-21"
+        },
+        {
+          "path": "media/projection_models.py",
+          "label": "Media-owned projection model"
+        }
+      ]
+    },
+    {
+      "id": "client-to-accepted-source",
+      "title": "From client bytes to an accepted command",
+      "level": 1,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "A browser or Publisher client first asks Media for an upload reservation. It sends a request key plus filename, declared content type, byte length, and SHA-256. Media validates the request and creates an owner-scoped reservation with a server-chosen S3 key. It returns a short-lived presigned POST. The client sends the bytes directly to S3, so a large video body does not travel through API Gateway or a Lambda function."
+        },
+        {
+          "type": "p",
+          "text": "The client then calls `finalize`. Media verifies the uploaded object’s actual size, checksum, media type signature, and S3 VersionId. Verification happens outside SQL row locks because streaming bytes can take time. Media then locks the reservation and, in one database transaction, records the exact VersionId, creates the Asset, and stages a `submit` message. The accepted source is therefore not “whatever is currently at this key”; it is the immutable version Media checked."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "The intake promise",
+            "steps": [
+              {
+                "label": "Reserve",
+                "sub": "owner-scoped grant",
+                "detail": "Media fixes the key and expected file facts, then returns a short-lived upload grant."
+              },
+              {
+                "label": "Upload",
+                "sub": "direct to S3",
+                "detail": "The client transfers bytes to object storage without routing the video through the API."
+              },
+              {
+                "label": "Verify",
+                "sub": "pin exact version",
+                "detail": "Media checks stored bytes and records the S3 VersionId it actually verified."
+              },
+              {
+                "label": "Accept",
+                "sub": "Asset + command",
+                "detail": "One transaction adopts the Asset and records the command that will request processing."
+              }
+            ],
+            "caption": "Four steps show the client-to-platform boundary. A missing or changed upload is rejected before it becomes accepted work."
+          }
+        },
+        {
+          "type": "p",
+          "text": "This protocol has a cost: the client hashes the file before upload, and the system needs a versioned bucket plus cleanup for abandoned or late writes. That complexity buys a strong promise: the worker can later read the same bytes that Media accepted. A replay of an upload grant may create another object version, but the accepted source remains pinned to its original VersionId."
+        },
+        {
+          "type": "p",
+          "text": "Idempotency makes uncertainty manageable. If a client repeats a reservation or finalization after a lost response, the request key lets Media return the already accepted item. Reusing the same key with different request data produces a conflict. This is especially important for Publisher: a transport timeout does not prove that the server failed to accept the file."
+        },
+        {
+          "type": "qa",
+          "q": "What if S3 has no object when finalize runs?",
+          "a": "Media does not create an Asset or enqueue work. The missing upload is a recoverable client error, so the caller can retry or inspect the reservation without processing an unverified source."
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/use-case-design.md",
+          "label": "UC-1 register, upload, and finalize"
+        },
+        {
+          "path": "media/api/uploads.py",
+          "label": "Reservation and finalize endpoints"
+        },
+        {
+          "path": "media/services/direct_intake.py",
+          "label": "Verification, version pin, and adoption transaction"
+        },
+        {
+          "path": "publisher/README.md",
+          "label": "Public client upload protocol"
+        }
+      ]
+    },
+    {
+      "id": "messages-and-recovery",
+      "title": "Messages carry work across the seam",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Media and Processing do not call each other synchronously to create a job. Instead, Media’s transaction writes an outbox row beside the Asset change. A repair publisher later sends that row to the `processing-commands` queue. Processing consumes the command, records it in its inbox, creates its Job and Attempt, and stages a work message. A finite worker consumes `processing-work`. When state changes, Processing stages a result snapshot for the `media-results` queue; Media consumes it into the projection."
+        },
+        {
+          "type": "p",
+          "text": "Why an outbox? A database commit and an SQS send cannot be one atomic operation. If the API changed SQL and then tried to send directly, a crash between the two could leave an accepted Asset with no command. With an outbox, the durable state change and intent-to-send commit together. A separate publisher can retry delivery. A claim token fences the publisher: after network I/O it acknowledges a row only if it still owns the claim."
+        },
+        {
+          "type": "p",
+          "text": "Delivery is at least once, and Standard SQS can duplicate or reorder messages. The inbox stores a message ID and canonical body hash in the same transaction as the domain update. Repeating the same ID and body becomes a no-op; reusing an ID with different content is a conflict. Repair can reconstruct work from Processing’s SQL state if a queue entry is lost. These safeguards make the system recoverable; they do not make SQS exactly once."
+        },
+        {
+          "type": "p",
+          "text": "Ordering is guarded at the domain level. Processing serializes submit, retry, and cancel with a per-Asset `SubmissionGuard`. Result snapshots carry increasing `state_version` values and attempt identity. Media ignores an older version, rejects conflicting content at the same version, and refuses an output outside the expected job/attempt path. An old worker may still finish a computation, but it cannot take authority from the current attempt."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "Durable hand-off",
+            "steps": [
+              {
+                "label": "Commit",
+                "sub": "state + outbox",
+                "detail": "A state update and its message intent share one SQL transaction."
+              },
+              {
+                "label": "Publish",
+                "sub": "retry safely",
+                "detail": "A publisher sends outside the SQL lock and acknowledges with a claim token."
+              },
+              {
+                "label": "Consume",
+                "sub": "inbox + state",
+                "detail": "The consumer deduplicates and commits domain state before queue acknowledgement."
+              },
+              {
+                "label": "Repair",
+                "sub": "rebuild missing work",
+                "detail": "A repair pass uses SQL as authority when transport delivery is missing or delayed."
+              }
+            ],
+            "caption": "The queue moves notifications and work; SQL records what the system has committed."
+          }
+        },
+        {
+          "type": "qa",
+          "q": "Does inbox deduplication mean exactly-once processing?",
+          "a": "No. It makes repeated delivery of a message ID and body harmless for the domain transaction. Delivery can still repeat, and repair is still needed for the SQL-to-queue gap."
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/ddd.md",
+          "label": "Messages, outbox/inbox, and state fences"
+        },
+        {
+          "path": "docs/architecture/decisions.md",
+          "label": "AD-11 SQS with SQL outbox and inbox"
+        },
+        {
+          "path": "delivery/sql.py",
+          "label": "Durable staging, claiming, and inbox acceptance"
+        },
+        {
+          "path": "processing/recovery_v1.py",
+          "label": "Repair of missing queued work"
+        }
+      ]
+    },
+    {
+      "id": "worker-to-playback",
+      "title": "From a worker lease to owner playback",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "The worker does not trust a queue message enough to start encoding. It asks Processing to claim the named Job and Attempt. Processing checks the source descriptor, owner and Asset identity, current-attempt status, submission guard, and finite task binding. If eligible, it creates a lease token and timestamps using the database clock. Heartbeats and finish operations must present that same live token before the deadline."
+        },
+        {
+          "type": "p",
+          "text": "The worker downloads the pinned source, probes it, validates requested edits, and runs FFmpeg. Outputs live beneath `jobs/{job_id}/attempts/{attempt_id}/`. A successful attempt must report exactly one primary output; HLS is optional. Processing commits terminal state and result before the SQS work message is deleted. If a worker dies or loses its lease, its late completion is fenced out; the attempt becomes a visible failure/abandonment path and an owner retry creates a new Attempt."
+        },
+        {
+          "type": "p",
+          "text": "When Media receives a result, it checks that the source matches its own accepted pin and that output keys belong to the stated attempt. It applies the state-version and attempt fences before updating `ProcessingProjection`. For MP4 playback, Media checks ownership and signs a short-lived S3 URL. For HLS, Media returns the playlist body and redirects segment requests to signed S3 locations. The playlist response is private and not cached. A foreign owner or unknown Asset appears not found."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "Work becomes playback",
+            "steps": [
+              {
+                "label": "Claim",
+                "sub": "live lease",
+                "detail": "Processing grants one finite task temporary authority for the current attempt."
+              },
+              {
+                "label": "Encode",
+                "sub": "pinned input",
+                "detail": "The worker reads the accepted version and writes namespaced outputs."
+              },
+              {
+                "label": "Project",
+                "sub": "fenced result",
+                "detail": "Media accepts only a current, valid snapshot into its own read model."
+              },
+              {
+                "label": "Play",
+                "sub": "owner check",
+                "detail": "Media authorizes the owner and signs access to the completed output."
+              }
+            ],
+            "caption": "A successful encode is only one stage. Projection validation and owner authorization make the final playback capability safe to issue."
+          }
+        },
+        {
+          "type": "p",
+          "text": "Failure example: suppose attempt 1 stalls, the owner retries, and attempt 2 starts. If the first worker wakes later and reports success, Processing’s lease/current-attempt checks prevent it from finishing as the authority. If a stale result nevertheless reaches Media through delayed delivery, the attempt number and state version prevent it from replacing attempt 2. The old output remains scoped under attempt 1 and is not the current playback result."
+        },
+        {
+          "type": "qa",
+          "q": "Why can a signed link expire?",
+          "a": "The link is a short-lived capability to read one output. A fresh owner-authorized read can mint another; the system does not expose a permanent public object URL."
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/use-case-design.md",
+          "label": "UC-2 processing and UC-3 playback"
+        },
+        {
+          "path": "processing/lifecycle.py",
+          "label": "Lease, claim, heartbeat, and finish rules"
+        },
+        {
+          "path": "processing/worker/tasks.py",
+          "label": "Probe, edit, output, and optional HLS pipeline"
+        },
+        {
+          "path": "media/projections.py",
+          "label": "Result validation and public playback projection"
+        },
+        {
+          "path": "media/api/v1_hls.py",
+          "label": "Owner-checked HLS playlist and segment handling"
+        }
+      ]
+    },
+    {
+      "id": "tradeoffs-and-legacy",
+      "title": "Know the boundaries and the trade-offs",
+      "level": 3,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "This architecture limits coordination; it does not remove shared infrastructure. Media and Processing have separate databases and IAM roles, but they share one Aurora cluster. A database pause or cluster problem can affect both. Media can accept and durably hold a command while Processing is unavailable, but encoding waits for finite worker capacity. In the V1 operating path, a person starts bounded batches; an opt-in V2-live launcher can wake finite tasks up to its cap. Neither is an always-running encoder fleet."
+        },
+        {
+          "type": "p",
+          "text": "The Publisher CLI is a separate integrator, not another business service. It uses the public HTTPS API and has no application, database, or storage imports. That boundary lets another team automate folder publishing without receiving service credentials. The public contract is documented in the current OpenAPI files; `contracts/` serves as the shared message language between service images."
+        },
+        {
+          "type": "p",
+          "text": "Keep the historical distinction clear in a presentation. Root-level `app/` and `app/worker/` contain an earlier monolithic runtime and are useful as history, but the current AWS-oriented V1 paths are `media/`, `processing/`, `contracts/`, `delivery/`, and `runtime_support/`. Some current files even say that behavior was extracted from `app`, such as `media/api/v1_hls.py`. Do not describe the old `app` worker or Redis/RQ as the active V1 path. The current design records SQS plus SQL outbox/inbox and finite workers."
+        },
+        {
+          "type": "p",
+          "text": "A useful design test is: does this abstraction protect a real invariant, boundary, or repeated policy? Repositories centralize owner-filtered SQL reads; application services compose business actions; adapters contain storage and transport behavior; contracts define cross-boundary values. More layers would not automatically help. A pass-through wrapper used once, another service for every feature, or a generic workflow engine would increase navigation and release coordination without protecting a rule."
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/ddd.md",
+          "label": "Platform roles and legacy comparison"
+        },
+        {
+          "path": "docs/architecture/decisions.md",
+          "label": "AD-11, AD-12, AD-13, AD-24, AD-26, AD-27"
+        },
+        {
+          "path": "runtime_support/storage_credentials.py",
+          "label": "Shared native storage credential policy"
+        },
+        {
+          "path": "publisher/README.md",
+          "label": "Public API client boundary"
+        },
+        {
+          "path": "app/worker/tasks.py",
+          "label": "Historical monolithic worker path"
+        },
+        {
+          "path": "processing/worker/sqs.py",
+          "label": "Current queue worker entry point"
+        }
+      ]
+    }
+  ]
+}

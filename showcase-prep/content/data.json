@@ -1,0 +1,363 @@
+{
+  "id": "data",
+  "title": "How does work survive failures?",
+  "kicker": "Data, messages and recovery",
+  "summary": "Follow one accepted video through durable state, duplicate messages, worker leases and safe retries.",
+  "opening_answer": "We assume requests can be repeated, messages can arrive more than once and workers can die. SQL records the authoritative state. Outbox and inbox records bridge the queue boundary, source versions pin the exact bytes, and attempt leases prevent an old worker from completing newer work.",
+  "sections": [
+    {
+      "id": "three-records",
+      "title": "An asset, a job and an attempt are different things",
+      "level": 1,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "An asset is the owner’s video resource. A job is the work requested for that asset. An attempt is one try at executing that job. Keeping those ideas separate is what makes a retry understandable: the source stays the same, but the new attempt has its own identity and execution history."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Record",
+            "Owner",
+            "Why keep it?"
+          ],
+          "rows": [
+            [
+              "User, Asset, UploadReservation, SourceVersion",
+              "Media",
+              "Know who owns the resource and which bytes were accepted."
+            ],
+            [
+              "ProcessingProjection",
+              "Media",
+              "Serve the owner’s list/status without reading Processing’s database."
+            ],
+            [
+              "Job, Attempt, RetryRequest",
+              "Processing",
+              "Track requested work, each execution and repeated retry requests."
+            ],
+            [
+              "SubmissionGuard, CleanupIntent",
+              "Owning service",
+              "Serialize conflicting commands and make cleanup retryable."
+            ],
+            [
+              "Inbox and outbox rows",
+              "Both, in separate databases",
+              "Remember received messages and durable send intentions."
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "The visible job state is queued, processing, done, failed or cancelled. Attempt records are more detailed: an attempt can also be abandoned, and a successful attempt uses the state succeeded. A job can move from failed back to queued when a legitimate retry creates a new attempt. That is not the same event as the queue redelivering an old message."
+        },
+        {
+          "type": "qa",
+          "q": "What is the difference between retrying a job and receiving a duplicate message?",
+          "a": "A legitimate retry creates a new attempt for accepted work. A duplicate message repeats the same transport instruction and should not accidentally create a second logical operation."
+        }
+      ],
+      "sources": [
+        {
+          "path": "media/models.py",
+          "label": "Media-owned records"
+        },
+        {
+          "path": "media/upload_models.py",
+          "label": "Upload and immutable source records"
+        },
+        {
+          "path": "processing/models.py",
+          "label": "Job, attempt and recovery records"
+        }
+      ]
+    },
+    {
+      "id": "acceptance",
+      "title": "Uploading bytes is not yet accepting work",
+      "level": 1,
+      "blocks": [
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "The three-part upload contract",
+            "steps": [
+              {
+                "label": "Reserve",
+                "sub": "Owner + request identity",
+                "detail": "Media records an owner-scoped reservation with size, hash, type, expiry and a server-chosen S3 key. It returns a constrained presigned POST grant."
+              },
+              {
+                "label": "Send bytes",
+                "sub": "Client directly to S3",
+                "detail": "The client sends the file to the reserved object destination. The API does not proxy the full video body."
+              },
+              {
+                "label": "Finalize",
+                "sub": "Verify → pin → commit",
+                "accent": true,
+                "detail": "Media verifies the object, pins its S3 VersionId, then commits the asset and processing outbox intent together."
+              }
+            ],
+            "caption": "Only finalization adopts the source. A successful storage response alone is not proof of an accepted job."
+          }
+        },
+        {
+          "type": "p",
+          "text": "The reservation expires after 15 minutes and the source limit is 100 MiB. Finalization checks the actual stored object rather than trusting the client’s filename or declaration. A hash identifies the expected bytes; the S3 VersionId identifies the exact object version the worker must read. Overwriting the same key later must not silently change an accepted source."
+        },
+        {
+          "type": "p",
+          "text": "If the object is missing, finalization now returns a recoverable 409 with a safe message and adopts no asset or processing command. A genuine storage outage remains 503. An expired reservation is 410. These statuses tell a client whether to retry the same upload, start a new reservation, or treat storage as temporarily unavailable."
+        },
+        {
+          "type": "qa",
+          "q": "Why pin a VersionId when the object already has a key?",
+          "a": "A key names a location whose contents can change. The version pin selects the exact accepted bytes, so a later write to that key cannot replace the source for an already accepted job."
+        }
+      ],
+      "sources": [
+        {
+          "path": "media/services/direct_intake.py",
+          "label": "reserve and finalize"
+        },
+        {
+          "path": "contracts/v1.py",
+          "label": "Immutable Source contract and upload limit"
+        },
+        {
+          "path": "tests/v1/test_direct_intake_s3.py",
+          "label": "Direct-upload transactional tests"
+        }
+      ]
+    },
+    {
+      "id": "outbox",
+      "title": "The failure between saving and sending",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Suppose Media saves an accepted asset, then crashes before sending its processing command to SQS. Without a durable record of the intended message, the asset could remain accepted forever without any work. Reversing the order is also unsafe: the queue could receive work for a database transaction that later rolls back."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "Make the intention durable first",
+            "steps": [
+              {
+                "label": "One transaction",
+                "sub": "Asset + outbox row",
+                "accent": true,
+                "detail": "The local SQL commit records the business change and its message intention together. Either both commit or neither does."
+              },
+              {
+                "label": "Publish later",
+                "sub": "Outbox → SQS",
+                "detail": "A publisher claims a due row, sends outside the database lock, then records the outcome. Lost replies can cause another send."
+              },
+              {
+                "label": "Accept once",
+                "sub": "Inbox + owned state",
+                "detail": "The consumer checks message identity, updates its own state and stages resulting messages in a transaction before acknowledging delivery."
+              }
+            ],
+            "caption": "This closes a lost-intent gap. It does not turn two databases and SQS into one transaction or guarantee exactly-once delivery."
+          }
+        },
+        {
+          "type": "p",
+          "text": "The inbox records a message ID and body hash. Repeating the same ID and meaning can be recognized; reusing the ID for different content is a conflict. Outbox publication has its own claim token so an obsolete publisher cannot casually overwrite a later publisher’s outcome. SQL row locking and uniqueness constraints support these decisions under concurrency."
+        },
+        {
+          "type": "qa",
+          "q": "Why is an outbox needed if SQS is already durable?",
+          "a": "SQS can preserve a message after it receives it. The outbox protects the earlier gap between committing our database state and successfully sending that message. It stores the intent in the same transaction as the business change."
+        },
+        {
+          "type": "qa",
+          "q": "Can we say exactly-once processing?",
+          "a": "No. The transport is at-least-once. Inbox identity checks, idempotent state transitions and worker fences aim to preserve one correct logical result despite duplicates; they do not change the delivery guarantee."
+        }
+      ],
+      "sources": [
+        {
+          "path": "delivery/sql.py",
+          "label": "stage, accept and publish_due"
+        },
+        {
+          "path": "delivery/sqs.py",
+          "label": "Queue authority and batch acknowledgement"
+        },
+        {
+          "path": "tests/v1/test_messaging_sql.py",
+          "label": "Transactional messaging behavior"
+        }
+      ]
+    },
+    {
+      "id": "lease",
+      "title": "Why a worker needs a lease",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Starting a container is not permission to finish any job it chooses. A worker claims a current attempt and receives a time-limited lease token. Heartbeats extend its authority while it remains healthy. The database clock, current attempt and token determine whether a finish operation is valid."
+        },
+        {
+          "type": "p",
+          "text": "Imagine worker A stalls. Recovery marks its attempt no longer live and allows later work. If A eventually wakes and uploads output, it must not replace the result of worker B. A fence checks that A still owns the current attempt and lease before accepting completion. Attempt-specific output paths also stop one attempt from overwriting another’s namespace."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Failure",
+            "Mechanism",
+            "What the mechanism prevents"
+          ],
+          "rows": [
+            [
+              "Lost command send response",
+              "Durable outbox replay + inbox deduplication",
+              "A transient send ambiguity losing accepted work or creating duplicate logical work."
+            ],
+            [
+              "Worker dies mid-encode",
+              "Lease/deadline checks and recovery",
+              "A job remaining silently owned forever."
+            ],
+            [
+              "Old worker finishes late",
+              "Current-attempt and token checks",
+              "Stale completion overwriting newer state."
+            ],
+            [
+              "Result snapshots arrive out of order",
+              "Monotonic state_version and attempt checks",
+              "An older status replacing a newer Media projection."
+            ],
+            [
+              "Concurrent launcher triggers",
+              "SQL reservations and stable ECS launch identity",
+              "Multiple launchers independently filling the same available capacity slot."
+            ]
+          ]
+        },
+        {
+          "type": "qa",
+          "q": "Why is a queue visibility timeout not enough to protect completion?",
+          "a": "It controls message delivery visibility, not ownership of the authoritative job state. A worker can continue running after its message becomes visible again. The SQL attempt and lease fence decides whether that worker may still publish completion."
+        }
+      ],
+      "sources": [
+        {
+          "path": "processing/lifecycle.py",
+          "label": "claim, heartbeat, live and finish"
+        },
+        {
+          "path": "processing/recovery_v1.py",
+          "label": "Recovery of durable work"
+        },
+        {
+          "path": "media/projections.py",
+          "label": "Versioned result application"
+        },
+        {
+          "path": "tests/v1/test_launcher_sql.py",
+          "label": "Concurrent and ambiguous task launches"
+        }
+      ]
+    },
+    {
+      "id": "idempotency",
+      "title": "A repeated click is an identity problem",
+      "level": 3,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "A timeout does not tell a client whether the server committed. Publisher keeps a stable intent key for an uncertain mutation, scoped to the API base and authenticated owner. A repeat uses the same identity and original content. Once acceptance is confirmed, publishing the file again is a new user intention. This is not automatic directory synchronization or global deduplication of every identical video."
+        },
+        {
+          "type": "p",
+          "text": "Media stores request identities and fingerprints. Reusing a key with different content is rejected rather than guessing the caller’s intention. Reservation finalization rechecks the row under a lock after object verification, so simultaneous finalize requests cannot both independently adopt it. The expensive object check runs outside SQL row locks to avoid holding a database transaction hostage during storage I/O."
+        },
+        {
+          "type": "code",
+          "language": "Illustrative pseudocode — the actual code is linked below",
+          "text": "verify_the_object_without_holding_a_row_lock()\nwith owner_database_transaction():\n    reservation = lock_and_reload_reservation()\n    if already_finalized:\n        return_existing_asset()\n    pin_verified_version()\n    save_asset()\n    stage_processing_command()\n# The outbox publisher sends after this transaction commits."
+        },
+        {
+          "type": "qa",
+          "q": "Why not generate a fresh request key after every timeout?",
+          "a": "The earlier request may already have committed. A fresh key means a new intention and could submit duplicate work. Reusing the original identity lets the server recognize the uncertain replay."
+        }
+      ],
+      "sources": [
+        {
+          "path": "publisher/README.md",
+          "label": "Intent persistence, owner scope and replay semantics"
+        },
+        {
+          "path": "media/services/direct_intake.py",
+          "label": "Verification outside locks and locked adoption"
+        },
+        {
+          "path": "media/models.py",
+          "label": "RequestKey and RetryIntent"
+        }
+      ]
+    },
+    {
+      "id": "cleanup",
+      "title": "Deletion and repair are workflows too",
+      "level": 3,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Deleting a resource touches SQL state and object storage, so it has the same distributed-failure problem as processing. The application records a tombstone or cleanup intention, hides deleted content from the owner’s normal view, and retries object cleanup. A late result must not make a deleted asset visible again. A submission guard also handles cancellation that arrives before submission."
+        },
+        {
+          "type": "p",
+          "text": "Repair must be bounded. Continually rereading old upload reservations can keep a supposedly idle database awake. The cleanup fix backs off rescans and eventually retires clean records after the relevant horizon; failed scans are not prematurely declared finished. The retained earlier freeze observed Aurora at zero capacity about 56 minutes after the last upload. That is a point-in-time observation, not proof of a monthly bill."
+        },
+        {
+          "type": "p",
+          "text": "Know the remaining limit: configured backups are not a demonstrated restore drill, and the repository does not define a general retention deadline for all active media. Reliable failure handling is a set of explicit invariants and bounded repair paths, not a claim that failure is impossible."
+        },
+        {
+          "type": "qa",
+          "q": "Why not immediately remove every database row when an owner deletes a video?",
+          "a": "Some durable state is needed to reject late messages, remember cancellation and finish cleanup after failures. Hiding the resource and recording deletion intent can be safer than forgetting the operation before all external effects are complete."
+        }
+      ],
+      "sources": [
+        {
+          "path": "media/recovery_v1.py",
+          "label": "Media repair and cleanup"
+        },
+        {
+          "path": "processing/messaging.py",
+          "label": "Submit/retry/cancel handling"
+        },
+        {
+          "path": "media/services/direct_intake.py",
+          "label": "Cleanup rescan backoff and retirement"
+        },
+        {
+          "path": "docs/release/demo-release-manifest.md",
+          "label": "Recorded Aurora pause at the earlier freeze"
+        }
+      ]
+    }
+  ],
+  "takeaways": [
+    "Distinguish an asset, job, attempt and lease.",
+    "Explain the save-then-send failure gap and the outbox solution.",
+    "Explain why duplicates are expected and why a stale worker must be fenced.",
+    "Distinguish an uncertain retry of one request from a new user intention."
+  ]
+}
