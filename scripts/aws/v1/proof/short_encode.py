@@ -31,7 +31,7 @@ import re
 from pathlib import Path
 
 from processing import short_lane
-from scripts.aws.v1.proof import tasks, workflow
+from scripts.aws.v1.proof import capacity, tasks, unattended, workflow
 from scripts.aws.v1.proof.context import LAMBDA_CALL_SECONDS
 from scripts.aws.v1.proof.core import FAIL, PASS, ProofError, percentile
 from scripts.aws.workers import describe_tasks
@@ -43,6 +43,8 @@ ARMS = ("fargate", "lambda")
 POLL_SECONDS = 2
 SETTLE_SECONDS = 180  # CloudWatch Logs delivery trails an invocation by a few seconds
 FREE_EPHEMERAL_MB = 512  # Lambda bills ephemeral storage only above this
+# The design's acceptance rule and the V2-live queue-wait target (LV-8): queued_at to started_at.
+QUEUE_WAIT_TARGET_SECONDS = 20
 COST_BASIS = (
     "billed compute only: Lambda GB-seconds + ephemeral GB-seconds + request, with the REPORT "
     "Init Duration added to Billed Duration (conservative); Fargate pull-to-stop seconds "
@@ -162,6 +164,14 @@ def summarize(rows, *, arm, costs, extra=None):
     good = [r for r in rows if r["success"]]
     cold = [r["seconds"] for r in rows if r["phase"] == "cold" and r["status"] == "done"]
     warm = [r["seconds"] for r in rows if r["phase"] == "warm" and r["status"] == "done"]
+
+    def stamped(key, phase=None):
+        return [
+            r[key]
+            for r in rows
+            if r.get(key) is not None and (phase is None or r["phase"] == phase)
+        ]
+
     total = sum(costs)
     return {
         "arm": arm,
@@ -170,6 +180,14 @@ def summarize(rows, *, arm, costs, extra=None):
         "failures": len(rows) - len(good),
         "cold": spread(cold),
         "warm": spread(warm),
+        # The Processing API's own attempt stamps (queued_at -> started_at -> finished_at), so
+        # they carry no client clock skew and no polling error.
+        "queue_wait": {
+            "all": spread(stamped("queue_wait_seconds")),
+            "cold": spread(stamped("queue_wait_seconds", "cold")),
+            "warm": spread(stamped("queue_wait_seconds", "warm")),
+        },
+        "processing": spread(stamped("processing_seconds")),
         "retries": sum(r.get("retries", 0) for r in rows),
         "status_regressions": sum(r.get("regressions", 0) for r in rows),
         "poll_interval_seconds": POLL_SECONDS,
@@ -210,12 +228,14 @@ def attempt_ids(ctx, processing_job_id):
 
 
 # ---- the arms ---------------------------------------------------------------------------------
-def check_fixture(fixture, seconds):
+def check_fixture(fixture, seconds, *, allow_over_size=False):
+    """``allow_over_size`` is the Fargate arm on a stack that has the lane: a source over the
+    size bound is routed to the standard lane at dispatch, whatever the flag says."""
     fixture = Path(fixture)
     if not fixture.is_file():
         raise ProofError("The fixture file does not exist")
     size = fixture.stat().st_size
-    if not 0 < size <= short_lane.MAX_SOURCE_BYTES:
+    if size <= 0 or (size > short_lane.MAX_SOURCE_BYTES and not allow_over_size):
         raise ProofError("The fixture is outside the Lambda lane's size bound")
     if not 0 < seconds <= short_lane.MAX_DURATION_SECONDS:
         raise ProofError("--fixture-seconds must be the fixture's real duration, within the bound")
@@ -240,7 +260,18 @@ def submit_and_wait(ctx, proof, api, fixture, row, timeout):
     )
     ok, detail = workflow.playback(ctx, api, job) if job["status"] == "done" else (False, {})
     row["playback_ok"] = ok
+    attempt_stamps(api, row)
     return job
+
+
+def attempt_stamps(api, row):
+    """Queue wait and processing time from the job's Processing document (server-side stamps)."""
+    pid = row.get("processing_job_id")
+    if not pid or row.get("status") != "done":
+        return
+    reply = api.request("GET", f"/api/processing/jobs/{pid}")
+    wait, run, number = capacity.attempt_times(reply.json() if reply.status == 200 else None)
+    row.update(queue_wait_seconds=wait, processing_seconds=run, attempt_number=number)
 
 
 def finish_row(ctx, row, *, expected_invocations=None):
@@ -260,14 +291,82 @@ def finish_row(ctx, row, *, expected_invocations=None):
     return row
 
 
+def fargate_launcher_arm(ctx, proof, intent, *, fixture, jobs, timeout):
+    """V2-live: the launcher starts every encoder, so this arm submits and watches.
+
+    Jobs run one at a time, so every task that appears between a submit and the job's end is
+    that job's, and each job is a cold start (the launcher starts its encoder after the submit,
+    which is what a user of the always-on environment gets). Cost is every worker task that
+    ran, claimed or not, so an idle respawn would count against the arm.
+    """
+    prices, api = load_prices(), workflow.login(ctx)[0]
+    rows = intent.setdefault("rows", [{} for _ in range(jobs)])
+    for row in rows:
+        row["phase"] = "cold"
+        if row.get("done"):
+            continue
+        if "before" not in row:
+            row["before"] = sorted(unattended.worker_tasks(ctx))
+            proof.save()
+        submit_and_wait(ctx, proof, api, fixture, row, timeout)
+        new = sorted(a for a in unattended.worker_tasks(ctx) if a not in row["before"])
+        final = (
+            workflow.wait_stopped(ctx, new, timeout=600, checkpoint=proof.checkpoint) if new else {}
+        )
+        described = [tasks.summary(t) for t in final.values()]
+        row["encoders_started"] = len(new)
+        row["billed_seconds"] = sum(d["billed_seconds"] or 0 for d in described)
+        row["task_exit_codes"] = [c for d in described for c in d["exit_codes"]]
+        row["cost"] = sum(
+            fargate_cost(
+                d["billed_seconds"] or 0,
+                vcpu=int(d["cpu"]) / 1024,
+                memory_gib=int(d["memory"]) / 1024,
+                prices=prices,
+            )
+            for d in described
+        )
+        finish_row(ctx, row)
+        row["success"] = row["success"] and len(new) == 1
+        row["done"] = True
+        proof.save()
+    left = len(workflow.live_tasks(ctx))
+    public = summarize(
+        rows,
+        arm="fargate",
+        costs=[r["cost"] for r in rows],
+        extra={
+            "executor_start": "launcher",
+            "encoder_billed_seconds": [r["billed_seconds"] for r in rows],
+            "encoders_started": sum(r["encoders_started"] for r in rows),
+            "encoders_left_running": left,
+            "retries": 0,
+            "fixture_bytes": rows[0].get("bytes"),
+        },
+    )
+    ok = public["failures"] == 0 and left == 0
+    return {
+        "status": PASS if ok else FAIL,
+        "public": public,
+        "private": {"jobs": [r.get("job_id") for r in rows]},
+    }
+
+
 def fargate_arm(ctx, proof, intent, *, fixture, jobs, minutes, timeout):
-    if f"{FUNCTION}FunctionName" in ctx.outputs:
+    # A source over the size bound goes to the standard lane at dispatch, so on a stack that
+    # has the lane a fixture over the bound still measures Fargate.
+    if f"{FUNCTION}FunctionName" in ctx.outputs and (
+        Path(fixture).stat().st_size <= short_lane.MAX_SOURCE_BYTES
+    ):
         raise ProofError(
             "This stack has the Lambda lane, so these jobs would run on Lambda. Measure the "
-            "Fargate arm on a stack deployed with LambdaShortEncodes=false"
+            "Fargate arm on a stack deployed with LambdaShortEncodes=false, or with a fixture "
+            "over the size bound"
         )
     if workflow.live_tasks(ctx):
         raise ProofError("Encoder tasks are already running; wait for the drain first")
+    if workflow.launcher_owns_workers(ctx):
+        return fargate_launcher_arm(ctx, proof, intent, fixture=fixture, jobs=jobs, timeout=timeout)
     prices, api = load_prices(), workflow.login(ctx)[0]
     rows = intent.setdefault("rows", [{} for _ in range(jobs)])
     costs, billed = [], []
@@ -462,13 +561,27 @@ def compare(proof):
     def median_pair(phase):
         return lam[phase]["median_seconds"], f[phase]["median_seconds"]
 
+    def lambda_queue_wait():
+        return ((lam.get("queue_wait") or {}).get("all") or {}).get("median_seconds")
+
+    # With launcher-started encoders (V2-live) Fargate has no warm job: every encoder starts after
+    # the submit. The Lambda warm median is then compared with that cold Fargate median, which is
+    # the Fargate a user of the always-on environment gets.
+    launcher = f.get("executor_start") == "launcher"
     rule = {
         "no_failures_on_either_arm": f["failures"] == 0 and lam["failures"] == 0,
         "lambda_cold_start_observed": bool(lam.get("cold_start_observed")),
         "lambda_no_retries_or_redirects": lam["retries"] == 0
         and lam.get("redirected_to_fargate", 0) == 0,
         "lambda_cold_median_lower": lower(*median_pair("cold")),
-        "lambda_warm_median_lower": lower(*median_pair("warm")),
+        "lambda_warm_median_lower": (
+            lower(lam["warm"]["median_seconds"], f["cold"]["median_seconds"])
+            if launcher
+            else lower(*median_pair("warm"))
+        ),
+        "lambda_queue_wait_median_within_target": (
+            lambda_queue_wait() is not None and lambda_queue_wait() <= QUEUE_WAIT_TARGET_SECONDS
+        ),
         "lambda_cost_per_success_not_higher": (
             lam["cost_usd_per_success"] is not None
             and f["cost_usd_per_success"] is not None
@@ -483,9 +596,17 @@ def compare(proof):
     return {
         "public": {
             "fargate": {k: f[k] for k in ("successes", "failures", "cold", "warm")}
-            | {"cost_usd_per_success": f["cost_usd_per_success"]},
+            | {
+                "cost_usd_per_success": f["cost_usd_per_success"],
+                "queue_wait": f.get("queue_wait"),
+                "executor_start": f.get("executor_start", "operator"),
+            },
             "lambda": {k: lam[k] for k in ("successes", "failures", "cold", "warm", "retries")}
-            | {"cost_usd_per_success": lam["cost_usd_per_success"]},
+            | {
+                "cost_usd_per_success": lam["cost_usd_per_success"],
+                "queue_wait": lam.get("queue_wait"),
+            },
+            "queue_wait_target_seconds": QUEUE_WAIT_TARGET_SECONDS,
             "cost_ratio_lambda_over_fargate": ratio,
             "keep_rule": rule,
             "meets_keep_rule": all(rule.values()),
@@ -517,7 +638,7 @@ def run(
         raise ProofError("--arm is fargate, lambda or compare")
     if not 2 <= jobs <= 20:
         raise ProofError("--jobs is 2..20: one cold job and at least one warm job")
-    check_fixture(fixture, fixture_seconds)
+    check_fixture(fixture, fixture_seconds, allow_over_size=arm == "fargate")
     if arm == "fargate":
         proof.step(
             "fargate",
