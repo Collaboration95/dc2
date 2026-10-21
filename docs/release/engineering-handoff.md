@@ -144,7 +144,8 @@ The earlier frozen release enforced the 100 MiB cap but could return 503 after S
 ## Current engineering validation and delivery
 
 The table first records local evidence at its original source. Subsequent full hosted CI and
-cloud delivery at `629119c` are recorded below; the local receipts have not been relabeled.
+cloud delivery at `629119c` are recorded below; the local receipts have not been relabeled. The
+cloud delivery was refreshed at `c7c489c` on 21 October (last subsection).
 
 | Check | Observed result | Source and evidence |
 |---|---|---|
@@ -215,3 +216,39 @@ queue-wait miss, V1 cap-2 scaling miss, unrun 30-clip comparison, earlier-source
 checks, and point-in-time Aurora pause observation retain their original sources and limits.
 Final report/deck authoring, recording assembly, Canvas receipts, actual contribution/effort and
 replacement team-freeze acceptance remain for the submission phase and team confirmation.
+
+### Delivery recovery after the certifi advisory (21 October)
+
+The `629119c` delivery above was current on 20 October. Later that day certifi published
+GHSA-6q48-6c7w-9gw2 (the emSign root CAs with compromised intermediate keys; fixed in 2026.10.19;
+Trivy lists no CVE id for it). `94f7463` updated the lock file and #284 followed on Main as `4ae6a0b`.
+Delivering it took two further fixes, because two automatic CD runs failed before any owner release
+was promoted. The live aliases stayed on the `629119c` images each time.
+
+| CD run | Source | Result | Cause |
+|---|---|---|---|
+| [`39532075705`](https://github.com/Collaboration95/dc2/actions/runs/39532075705) | `4ae6a0b` | `Deploy` failed with `media: FAIL: Trivy has 1 fixable HIGH/CRITICAL`; the smoke was skipped | The new candidate scanned clean. The gate then rescanned the running Media image as the rollback baseline (`sha256:24bd78a88f79...`, source `629119c`), which carried certifi 2026.7.22. The advisory was published after that image shipped, so the gate blocked the release that removes it. Processing and the worker carried the same finding. |
+| [`39542434067`](https://github.com/Collaboration95/dc2/actions/runs/39542434067) | `6155951` | `Deploy` failed 3.5 minutes in with `PublicSmoke failed: login:503`; the smoke was skipped | The update changed no migration, Aurora had auto-paused, and the smoke's login, the first call that needs the database, met a cluster still resuming (MediaApi logged a 10.7 s request ending in 503). The smoke made one attempt. |
+| [`39545554380`](https://github.com/Collaboration95/dc2/actions/runs/39545554380) | `c7c489c` | success | Admission matched Main CI [`39544952625`](https://github.com/Collaboration95/dc2/actions/runs/39544952625) (full verification). |
+
+The fixes were #285 and #287 into `dev/closeout`, then #286 and #288 into Main. A replaced rollback
+target's fixable findings are now recorded as `RETAINED_FIXABLE` (annotation, run summary, release
+receipt) instead of blocking its own replacement; the candidate and every kept image must still scan
+clean, and only the release plan's baseline accepts that status. The smoke's login is retried after
+5, 10 and 15 s for 502/503/504 or a transport failure only. Reasons and trade-offs are in the PR
+bodies' "Tech decisions" and the runbook's "Database wake" paragraph. #286's first CI attempt failed
+only on the 120 s fast-suite budget (a runner stall; the same job took 95 s on #285) and passed on
+a rerun of the failed jobs with no change.
+
+| Check | Verified outcome |
+|---|---|
+| Image scans of the deployed builds | Zero fixable HIGH/CRITICAL for Media, Processing and the worker (`sha256:baa16e0f22fd...`, `dd59f5eb3149...`, `c689aaef57dc...`); unfixed rows remain 44/44/208. The three replaced images each recorded GHSA-6q48-6c7w-9gw2 as `RETAINED_FIXABLE`. |
+| Owner promotions | Media and Processing both promoted; owner health, authentication, jobs and (Media) reservation checks passed. |
+| Post-deployment upload and playback | `Deploy` ran 22 min 56 s and the smoke step 2 min 27 s. Direct upload returned 204, the job reached `done` after 101.2 s, the encoder exited 0, and MP4 plus HLS playback passed through CloudFront. One run, not a benchmark. |
+| Read-only AWS read-back | All three journal source identities are `c7c489c`. Media `sha256:dafbb19d3aa6...`, Processing `sha256:3c83e4baf7b9...`, worker `sha256:eed6fbbbac75...`: ECR manifests match their config IDs, all ten live Lambda aliases (Media version 9, ProcessingApi 13, other Processing 12) and the active worker definition (`dc2-live-worker:12`) use them, and no release is pending. `/api/media/health` and the CloudFront frontend answered 200. |
+
+The sanitized [delivery receipt](../results/engineering-20261021/delivery-c7c489c.json) retains
+these results and the artifact hashes. The wake retry did not fire in the live run (the first login
+succeeded), so it is shown by tests only. Restoring a replaced image was not exercised; it would
+return the previous build with the certifi finding. The post-freeze addendum in the
+[release manifest](demo-release-manifest.md) records the change of identity.
