@@ -245,6 +245,37 @@ Its existing `continue-on-error` policy is retained; no new mandatory hosted
 service or subscription is enabled. Disposition artifacts distinguish not-run,
 submission, completed execution and errors. Manual `aws-prep.yml` stays manual.
 
+## Publishing to the Security tab
+
+Security → Code scanning is free for this public repository and lists every tool's alerts in
+one place. Publishing adds no gate: each tool keeps its own pass/fail rule, and the publish
+steps are `continue-on-error`, so a failed upload cannot fail a job.
+
+| Tool | Runs in | Category | What is published |
+|---|---|---|---|
+| CodeQL (Actions, JavaScript/TypeScript, Python) | GitHub-managed default setup; no workflow file | `/language:*` | Default query suite, on pushes to Main, pull requests and weekly |
+| Trivy, legacy images | `ci.yml` `security` matrix | `trivy-app`, `trivy-media`, `trivy-processing` | HIGH/CRITICAL findings that have a fix, the gate's own policy |
+| Trivy, V1 images | `v1.yml` `images` | `trivy-v1-media`, `trivy-v1-processing`, `trivy-v1-worker` | The same policy, per exact image |
+| OWASP ZAP | `dast.yml` | `zap-dast` | One alert per service and ZAP rule (risk, count, link to the rule), converted by `scripts/ci/sarif.py` from the sanitized findings; an executed scan only |
+| Ruff `S` rules | `ci.yml` `lint-and-unit` | `ruff-security` | The same paths as the `make lint` security step (`checks.py security-sarif`) |
+| gitleaks | `ci.yml` `secret-scan` | `gitleaks` | Whole-history scan with `--redact`, so no secret value reaches the report |
+
+Dependabot alerts are enabled (Security → Dependabot); automatic security-update pull requests
+are not. Only the jobs that upload hold `security-events: write`, and the two reusable-workflow
+callers grant it so their called job can; every other job keeps `contents: read`. Uploads use
+`always()` so a failing scan still publishes, and are skipped for pull requests from forks, whose
+token is read-only. A tool with no findings still appears under Tools with zero alerts. Each
+scanner job also writes a severity-count table to its run summary.
+
+What stays artifact-only: the full Trivy JSON reports with unfixed HIGH/CRITICAL rows
+(`container-scan-<image>-<run>` and `v1-image-scans-<sha>`, 60 days), the sanitized ZAP JSON
+(`v1-dast-<run>-<attempt>`, 14 days), which keeps no route, URL or evidence, and the Sonar
+configuration record while Sonar is unconfigured. ZAP's packaged API scan has no SARIF output and
+its raw report is deleted on purpose, so the Security tab shows rule-level DAST alerts anchored on
+the committed OpenAPI document, not request-level detail. CD's own pre-deploy Trivy scan
+(`scripts/ci/cd.sh`) does not upload SARIF. Trivy alerts name a path inside the image, not a
+repository file.
+
 ## Maintained tooling and source security lint
 
 The `python-tools` local composite keeps the Python version file, uv version and
@@ -287,6 +318,10 @@ and tested merge source, missing diff, exact manual source, schema/selection
 wiring, failures/cancellations/unexpected skips, docs validator failure, and each
 missing mandatory coverage fragment or metadata file. Existing browser acceptance
 and V1 workflow regression assertions remain intact.
+
+The traced fast suite (`coverage-fast`) has a 180 s budget, raised from 120 s because hosted
+runs normally take 95-115 s and a runner stall intermittently crossed the old limit; its job
+limit is 5 minutes. A hung run still fails once, and nothing retries it.
 
 The warm 2–3 minute routine dev target is **not a measured result**. Changes that
 affect inherited runtime or V1 images deliberately request longer checks. Compare

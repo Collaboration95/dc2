@@ -74,6 +74,50 @@ def test_the_first_deploy_creates_the_environment_open_and_marks_it_established(
     assert config["edge_open"] == {"rate": 20, "burst": 50}
 
 
+def test_the_environment_runs_the_short_encode_lane_through_one_constant(live, monkeypatch):
+    # #93: CD renders the persistent environment from Settings alone, so the constant is the
+    # whole declaration. A per-run stack has to ask for the lane, as before.
+    assert deploy.PERSISTENT_LAMBDA_SHORT_ENCODES is True
+    assert live.s.lambda_short_encodes is True
+    live.deploy()
+    parameters = {
+        p["ParameterKey"]: p["ParameterValue"] for p in change_sets(live)[-1]["Parameters"]
+    }
+    assert parameters["LambdaShortEncodes"] == "true"
+    # Reverting is that constant alone: the parameter then renders absent, which is the template's
+    # default (false), so the next update removes the lane.
+    monkeypatch.setattr(deploy, "PERSISTENT_LAMBDA_SHORT_ENCODES", False)
+    reverted = Settings(
+        profile="dc2-agent",
+        region="ap-southeast-1",
+        account=ACCOUNT,
+        run_id="live",
+        state_dir=live.s.state_dir,
+        persistent=True,
+    )
+    assert reverted.lambda_short_encodes is False
+
+
+def test_the_short_encode_flag_is_refused_for_a_persistent_environment(capsys):
+    code = deploy.main(
+        [
+            "deploy",
+            "--profile",
+            "p",
+            "--region",
+            "ap-southeast-1",
+            "--account",
+            ACCOUNT,
+            "--environment",
+            "live",
+            "--lambda-short-encodes",
+            "--dry-run",
+        ]
+    )
+    assert code == 1
+    assert "PERSISTENT_LAMBDA_SHORT_ENCODES" in capsys.readouterr().out
+
+
 def test_a_second_deploy_reruns_every_step_as_an_in_place_update_and_recreates_nothing(live):
     live.deploy()
     first = len(live.sim.calls)
@@ -226,6 +270,7 @@ def test_the_kill_switch_survives_routine_deploys(live):
     gates = {
         "HttpStage",
         "ProcessingCommandsMapping",
+        "ProcessingShortEncoderMapping",  # #93: the kill switch closes the short lane too
         "MediaResultsMapping",
         "MediaRepairRule",
         "ProcessingRepairRule",
@@ -267,6 +312,22 @@ def test_an_adopted_release_becomes_what_the_stack_renders_for_that_owner_only(l
     # A new published version is what moves each Processing alias; Media is untouched.
     assert {"ProcessingApiVersion", "ProcessingLauncherVersion", "WorkerTaskDefinition"} <= modified
     assert not [name for name in modified if name.startswith("Media")]
+
+
+def test_the_short_encoder_follows_the_worker_image_that_a_release_adopts():
+    # A Processing release promotes the worker task definition but not this function (it is not
+    # in owner_functions), so the stack update that adoption triggers is the only thing that
+    # moves it. Its code and its published version must therefore name the WORKER image
+    # parameter, which adoption rewrites: a function on ProcessingImageUri would never move,
+    # and one on neither would run a stale encoder indefinitely.
+    function = RESOURCES["ProcessingShortEncoder"]["Properties"]
+    assert function["Code"] == {"ImageUri": {"Ref": "WorkerImageUri"}}
+    version = RESOURCES["ProcessingShortEncoderVersion"]["Properties"]["Description"]
+    parts = version["Fn::Join"][1]
+    assert {"Fn::Select": [1, {"Fn::Split": ["@", {"Ref": "WorkerImageUri"}]}]} in parts
+    assert RESOURCES["ProcessingShortEncoderAlias"]["Properties"]["FunctionVersion"] == {
+        "Fn::GetAtt": ["ProcessingShortEncoderVersion", "Version"]
+    }
 
 
 def test_adopting_refuses_a_plan_for_another_owner(live, tmp_path):

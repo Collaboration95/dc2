@@ -279,3 +279,26 @@ def selection_of(monkeypatch, *, coverage):
 def test_coverage_run_skips_unmeasured_tests_but_the_plain_fast_run_keeps_them(monkeypatch):
     assert "unmeasured" in selection_of(monkeypatch, coverage=True)
     assert "unmeasured" not in selection_of(monkeypatch, coverage=False)
+
+
+def test_fast_coverage_budget_absorbs_a_runner_stall(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(
+        checks, "measure", lambda command, tier, env, timeout: seen.update(t=timeout)
+    )
+    checks.fast(coverage=True)
+    assert seen["t"] == checks.FAST_COVERAGE_TIMEOUT == 180
+
+
+def test_security_sarif_covers_the_same_paths_as_the_security_lint_and_never_gates(monkeypatch):
+    commands = []
+    monkeypatch.setattr(checks, "run", lambda command, **kwargs: commands.append(command))
+    monkeypatch.setattr(checks, "SECURITY_SARIF", Path("/tmp/ruff-security.sarif"))
+    monkeypatch.setattr(Path, "mkdir", lambda *a, **k: None)
+    checks.lint()
+    checks.security_sarif()
+    gate, export = commands[1], commands[2]
+    assert gate[-len(checks.security_lint_args()) :] == checks.security_lint_args()
+    assert checks.security_lint_args()[:2] == ["--select", "S"]
+    assert export[4 : 4 + len(checks.security_lint_args())] == checks.security_lint_args()
+    assert "--exit-zero" in export and export[export.index("--output-format") + 1] == "sarif"

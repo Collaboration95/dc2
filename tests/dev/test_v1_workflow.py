@@ -1,6 +1,7 @@
 """The V1 verification entry stays wired into CI and cannot quietly weaken."""
 
 import os
+import re
 from pathlib import Path
 
 import pytest
@@ -107,10 +108,7 @@ def test_new_marked_tests_run_automatically_and_separate_flows_remain_excluded(
         "    def test_parameters(self, value):\n        assert value > 0\n\n"
         "def test_unit_not_in_this_tier():\n    assert False\n"
     )
-    for path in (
-        *v1_verify.EXISTING_INTEGRATION_SUITES,
-        *v1_verify.OPTIONAL_INTEGRATION_DISPOSITIONS,
-    ):
+    for path in v1_verify.EXISTING_INTEGRATION_SUITES:
         (tmp_path / path).write_text(
             "import pytest\npytestmark = pytest.mark.integration\n"
             "def test_owned_by_another_flow():\n    assert False\n"
@@ -135,6 +133,23 @@ def test_new_marked_tests_run_automatically_and_separate_flows_remain_excluded(
         "tests/v1/test_new.py::TestNew::test_parameters[1]",
         "tests/v1/test_new.py::TestNew::test_parameters[2]",
     }
+
+
+def test_the_short_encoder_cases_are_in_the_required_cohort_not_deferred():
+    # #93 went live on the persistent environment: its 13 integration cases are no longer an
+    # explicit exception, so the cohort must not ignore them and the registry must count them.
+    ignored = [a for a in v1_verify.REQUIRED_INTEGRATION_ARGS if a.startswith("--ignore=")]
+    assert f"--ignore={v1_verify.SHORT_ENCODER_INTEGRATION_SUITE}" not in ignored
+    assert v1_verify.SHORT_ENCODER_INTEGRATION_SUITE not in v1_verify.EXISTING_INTEGRATION_SUITES
+    assert not hasattr(v1_verify, "OPTIONAL_INTEGRATION_DISPOSITIONS")
+    suite = ROOT / v1_verify.SHORT_ENCODER_INTEGRATION_SUITE
+    cases = len(re.findall(r"^(?:async )?def test_", suite.read_text(), flags=re.MULTILINE))
+    assert cases == v1_verify.SHORT_ENCODER_INTEGRATION_CASES
+    result = {
+        "node_ids": [f"{v1_verify.SHORT_ENCODER_INTEGRATION_SUITE}::test_{n}" for n in range(cases)]
+    }
+    counts = v1_verify.summarize_required_nodes(result)["short_encoder"]
+    assert counts == {"selected": cases, "passed": cases, "skipped": 0, "failed": 0}
 
 
 def test_explicit_local_test_environment_contains_owned_admin_dsns_endpoints_and_tls(
