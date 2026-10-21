@@ -688,3 +688,59 @@ def test_release_requires_a_fresh_exact_cd_image_os_and_python_scan(tmp_path, fa
     with pytest.raises(ProofError, match="Trivy"):
         make(ctx, builds, tmp_path)
     assert not (tmp_path / "plan" / "plan.json").exists()
+
+
+GHSA = "GHSA-6q48-6c7w-9gw2 certifi"
+
+
+def retain(path, *names):
+    """Make a build evidence's scans read as cd.sh records a replaced rollback target's."""
+    data = json.loads(path.read_text())
+    for name in names:
+        data["images"][name]["trivy_scan"].update(
+            status="RETAINED_FIXABLE", fixable_high_critical=1, fixable_ids=[GHSA]
+        )
+    path.write_text(json.dumps(data))
+
+
+def test_a_baseline_that_a_newer_advisory_made_fixable_still_plans_the_release_that_replaces_it(
+    tmp_path,
+):
+    # The deployed image shipped clean; the advisory came out afterwards and the candidate fixes it.
+    # Blocking here would keep the vulnerable image in production forever.
+    _, ctx, builds = stack(tmp_path)
+    retain(builds["baseline"], "media")
+    make(ctx, builds, tmp_path)
+    baseline = json.loads((tmp_path / "plan" / "bundle-baseline.json").read_text())
+    assert baseline["api"]["scan"]["status"] == "RETAINED_FIXABLE"
+    assert baseline["api"]["scan"]["fixable_ids"] == [GHSA]
+    assert baseline["api"]["scan"]["fixable_high_critical"] == 1  # the finding stays visible
+    good = json.loads((tmp_path / "plan" / "bundle-good.json").read_text())
+    assert good["api"]["scan"]["status"] == "PASS"
+    assert good["api"]["scan"]["fixable_high_critical"] == 0
+    # It is a rollback target for the plan and for nothing else.
+    assert validate_bundle(baseline, owner="media", deployed=True)
+    with pytest.raises(Exception, match="exact-artifact gate"):
+        validate_bundle(baseline, owner="media")
+    assert validate_bundle(good, owner="media")
+
+
+@pytest.mark.parametrize("role", ["good", "bad"])
+def test_an_image_the_release_would_leave_running_can_never_carry_a_retained_scan(tmp_path, role):
+    # Kept images come from the baseline evidence into the good set, so the set that remains in
+    # production is held to the strict policy whatever the baseline was allowed to record.
+    _, ctx, builds = stack(tmp_path)
+    retain(builds[role], "media")
+    with pytest.raises(ProofError, match="Trivy"):
+        make(ctx, builds, tmp_path, bad=role == "bad")
+    assert not (tmp_path / "plan" / "plan.json").exists()
+
+
+def test_a_retained_baseline_scan_must_still_be_the_exact_fresh_image_scan(tmp_path):
+    _, ctx, builds = stack(tmp_path)
+    retain(builds["baseline"], "media")
+    data = json.loads(builds["baseline"].read_text())
+    data["images"]["media"]["trivy_scan"]["scanned_at"] = "2020-01-01T00:00:00+00:00"
+    builds["baseline"].write_text(json.dumps(data))
+    with pytest.raises(ProofError, match="Trivy scan expired"):
+        make(ctx, builds, tmp_path)

@@ -1,12 +1,14 @@
 """The V1 image scan gate: identity, failure propagation and workflow wiring."""
 
+import contextlib
+import io
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
 from scripts.ci.policy import classify
-from scripts.ci.v1_scan import OWNERS, evaluate
+from scripts.ci.v1_scan import OWNERS, RETAINED, evaluate, main, scan_receipt, validate_scan
 
 ROOT = Path(__file__).resolve().parents[2]
 SHA = "b" * 40
@@ -123,6 +125,119 @@ class ScanGateTests(unittest.TestCase):
             result = evaluate(receipt(), tmp, owners=["media"])
         self.assertEqual(len(result), 1)
         self.assertIn("FAIL", result[0]["verdict"])
+
+
+def raw(content):
+    return json.dumps(content).encode()
+
+
+class RetainedBaselineTests(unittest.TestCase):
+    """A rollback target this release replaces may record fixable findings; nothing else may."""
+
+    CONFIG = f"sha256:{'1' * 64}"
+    GHSA = "GHSA-6q48-6c7w-9gw2"
+
+    def scan(self, content, *, retained, config=None):
+        return scan_receipt(
+            raw(content), config_id=config or self.CONFIG, source_sha=SHA, retained=retained
+        )
+
+    def fixable(self, *ids):
+        return report(
+            "x",
+            [{**vuln("CRITICAL", "2"), "VulnerabilityID": i, "PkgName": "certifi"} for i in ids],
+            image_id=self.CONFIG,
+        )
+
+    def test_a_fixable_finding_fails_unless_the_image_is_a_replaced_rollback_target(self):
+        with self.assertRaisesRegex(ValueError, "1 fixable HIGH/CRITICAL"):
+            self.scan(self.fixable(self.GHSA), retained=False)
+        scan = self.scan(self.fixable(self.GHSA), retained=True)
+        self.assertEqual(scan["status"], RETAINED)
+        self.assertEqual(scan["fixable_high_critical"], 1)
+        self.assertEqual(scan["fixable_ids"], [f"{self.GHSA} certifi"])
+
+    def test_a_clean_image_is_a_plain_pass_in_either_mode(self):
+        for retained in (False, True):
+            scan = self.scan(self.fixable(), retained=retained)
+            self.assertEqual(scan["status"], "PASS")
+            self.assertEqual(scan["fixable_high_critical"], 0)
+            self.assertNotIn("fixable_ids", scan)
+
+    def test_retained_mode_still_refuses_an_unusable_report(self):
+        broken = self.fixable(self.GHSA)
+        for content, config in (
+            (broken, f"sha256:{'2' * 64}"),  # scanned a different image
+            ({**broken, "Results": broken["Results"][:1]}, None),  # no Python target
+            ({"Metadata": broken["Metadata"]}, None),  # no results at all
+        ):
+            with self.subTest(content=content.keys(), config=config):
+                with self.assertRaises(ValueError):
+                    self.scan(content, retained=True, config=config)
+
+    def test_only_a_baseline_validator_accepts_a_retained_receipt(self):
+        scan = self.scan(self.fixable(self.GHSA), retained=True)
+        with self.assertRaisesRegex(ValueError, "Trivy scan"):
+            validate_scan(scan, config_id=self.CONFIG, source_sha=SHA)
+        self.assertIs(
+            validate_scan(scan, config_id=self.CONFIG, source_sha=SHA, retained=True), scan
+        )
+
+    def test_a_retained_receipt_must_name_exactly_the_findings_it_counts(self):
+        good = self.scan(self.fixable(self.GHSA), retained=True)
+        for change in (
+            {"fixable_ids": []},
+            {"fixable_ids": [f"{self.GHSA} certifi", "CVE-2026-1 libx"]},
+            {"fixable_ids": [1]},
+            {"fixable_high_critical": 0},
+            {"status": "PASS"},  # a pass cannot list findings
+            {"config_id": f"sha256:{'3' * 64}"},
+            {"source_sha": "c" * 40},
+            {"scanned_at": "2020-01-01T00:00:00+00:00"},
+        ):
+            with self.subTest(change=change):
+                with self.assertRaises(ValueError):
+                    validate_scan(
+                        {**good, **change}, config_id=self.CONFIG, source_sha=SHA, retained=True
+                    )
+
+    def test_the_cli_records_the_finding_and_exits_zero_only_in_retained_mode(self):
+        content = self.fixable(self.GHSA)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            (path / "trivy-media.json").write_text(json.dumps(content))
+            build = path / "build.json"
+            build.write_text(
+                json.dumps({"images": {"media": {"source_sha": SHA, "config_id": self.CONFIG}}})
+            )
+            args = [
+                "--receipt",
+                str(build),
+                "--reports",
+                str(path),
+                "--out",
+                str(path / "summary.json"),
+                "--sha",
+                "",
+                "--attach",
+                "--owner",
+                "media",
+            ]
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(main(args), 1)
+            self.assertEqual(
+                json.loads(build.read_text())["images"]["media"]["trivy_scan"]["status"], "FAIL"
+            )
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(main([*args, "--retained"]), 0)
+            attached = json.loads(build.read_text())["images"]["media"]["trivy_scan"]
+            self.assertEqual(attached["status"], RETAINED)
+            self.assertEqual(attached["fixable_ids"], [f"{self.GHSA} certifi"])
+            self.assertIn("RETAINED: 1 fixable HIGH/CRITICAL", out.getvalue())
+            summary = json.loads((path / "summary.json").read_text())["images"][0]
+            self.assertEqual(summary["fixable_high_critical"], [f"{self.GHSA} certifi"])
+            self.assertTrue(summary["verdict"].startswith("RETAINED:"))
 
 
 class WorkflowWiringTests(unittest.TestCase):
