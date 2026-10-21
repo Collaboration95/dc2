@@ -22,6 +22,7 @@ import zlib
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlsplit
 
+from processing import short_lane
 from scripts.aws.v1 import operations, release_cli
 from scripts.aws.v1.deploy import DeployJournal
 from scripts.aws.v1.proof import generator
@@ -319,7 +320,7 @@ class SimWorld:
         ids = self.cluster_ids() if self.database else {"cluster": "sim-cluster"}
         logical = {
             "cluster": "DatabaseCluster",
-            "media": "MediaDatabaseCluster",
+            "media": "DatabaseCluster",
             "processing": "ProcessingDatabaseCluster",
         }
         return {
@@ -624,6 +625,7 @@ class SimWorld:
                 "task": None,
                 "submit_t": self.clock.t + self.outbox_seconds,
                 "delivered": False,
+                "bytes": found["stored_bytes"],
             },
         )
         self.deliver(self.clock.t)
@@ -907,15 +909,31 @@ class SimWorld:
         running = sum(
             1 for j in self.jobs.values() if j.get("lambda") and j["status"] == "processing"
         )
+        # Dispatch admits by size only (processing.short_lane.admit_source): a larger source is
+        # queued for Fargate, whatever the flag says.
         for job in sorted(
-            (j for j in self.jobs.values() if j["status"] == "queued" and j.get("delivered", True)),
+            (
+                j
+                for j in self.jobs.values()
+                if j["status"] == "queued"
+                and j.get("delivered", True)
+                and j.get("bytes", 0) <= short_lane.MAX_SOURCE_BYTES
+            ),
             key=lambda j: j["queued_at"],
         ):
             if running >= 2:
                 break
             cold = self.last_invocation is None or now - self.last_invocation > 600
             seconds = self.lambda_seconds[0 if cold else 1]
-            job.update(status="processing", **{"lambda": True}, finish_at=now + seconds)
+            # Server-side stamps: the attempt starts a moment after it was queued (the mapping's
+            # poll and, cold, the image start), not when this lazy tick happens to notice it.
+            job.update(
+                status="processing",
+                **{"lambda": True},
+                started_t=job["queued_at"] + (2.0 if cold else 0.5),
+                finished_t=now + seconds,
+                finish_at=now + seconds,
+            )
             request = uuid.uuid4().hex[:16]
             self.invocations.append(
                 {"job": job["pid"], "request": request, "cold": cold, "at": now, "seconds": seconds}

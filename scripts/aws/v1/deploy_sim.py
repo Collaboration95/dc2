@@ -17,7 +17,9 @@ import hashlib
 import json
 import re
 import subprocess
+import time
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 
 from scripts.aws.v1.deploy import PROJECT_KEY, RUN_KEY, AwsError, check_operation, redact
@@ -60,6 +62,8 @@ class SimulatedAws:
         self.pending, self.puts, self.invalidations = {}, [], {}
         self.role_passwords = None  # the passwords the database holds after the last bootstrap
         self.bootstrap_input = None  # what the last bootstrap task was given (all fake values)
+        self.bootstrap_inputs = []  # ... and every one, in order
+        self.queue_depth = {}  # queue URL -> messages in it (a split waits for none)
         self.version_seq = 0
         self.stop_lag = 0  # describe-tasks rounds a stopped task keeps reporting RUNNING
         # The tagging API is eventually consistent: it keeps listing resources a service has
@@ -306,11 +310,16 @@ class SimulatedAws:
         self.pending[name] = [1, lambda: self.complete_stack(name, change_set, failure)]
         return {}
 
+    def cloudformation_delete_change_set(self, payload):
+        self.stacks[payload["StackName"]]["changesets"].pop(payload["ChangeSetName"], None)
+        return {}
+
     def complete_stack(self, name, change_set, failure=None):
         stack = self.stacks[name]
         if failure and change_set["kind"] == "UPDATE":
             # As in AWS (dc2-live, 2026-10-21): the previous template and resources stay, and the
             # stack is left in UPDATE_ROLLBACK_COMPLETE, which accepts the next update.
+            change_set["ExecutionStatus"] = "EXECUTE_FAILED"
             stack["status"] = "UPDATE_ROLLBACK_COMPLETE"
             stack["events"] = [
                 {
@@ -335,9 +344,14 @@ class SimulatedAws:
         env = change_set["parameters"].get("EnvironmentId") or change_set["parameters"].get(
             "Namespace", name
         )
-        for logical, res in self.included(change_set["template"], change_set["parameters"]).items():
+        wanted = self.included(change_set["template"], change_set["parameters"])
+        for logical, res in wanted.items():
             if logical not in known:
                 stack["resources"].append(self.materialize(name, env, logical, res, stack))
+        # A removed resource goes with the update, unless it is one the stack retains.
+        stack["resources"] = [
+            r for r in stack["resources"] if r["logical"] in wanted or r["type"] in RETAINED
+        ]
         apps = change_set["parameters"].get("DeployApplications", "false") == "true"
         stack["outputs"] = {
             key: self.output_value(key, name, env, stack)
@@ -371,7 +385,12 @@ class SimulatedAws:
             self.repos[physical] = {"tags": tags, "images": {}}
         elif kind == "AWS::RDS::DBCluster":
             physical = f"{stack_name}-{logical.lower()}-{suffix}"
-            self.clusters[physical] = {"status": "available", "protected": True, "tags": tags}
+            self.clusters[physical] = {
+                "status": "available",
+                "protected": True,
+                "tags": tags,
+                "created": datetime.now(UTC).isoformat(),
+            }
         elif kind == "AWS::RDS::DBInstance":
             physical = f"{stack_name}-{logical.lower()}-{suffix}"
             self.instances[physical] = {"status": "available", "tags": tags}
@@ -402,18 +421,15 @@ class SimulatedAws:
             "DatabaseEndpoint": f"{env}.cluster-sim.{region}.rds.amazonaws.com",
             "BootstrapSecretArn": f"arn:aws:secretsmanager:{region}:{account}:secret:rds!sim",
             # The separate layout (#94): one endpoint and master secret per domain's cluster.
-            **{
-                f"{domain}DatabaseEndpoint": (
-                    f"{env}-{domain.lower()}.cluster-sim.{region}.rds.amazonaws.com"
-                )
-                for domain in ("Media", "Processing")
-            },
-            **{
-                f"{domain}BootstrapSecretArn": (
-                    f"arn:aws:secretsmanager:{region}:{account}:secret:rds!sim-{domain.lower()}"
-                )
-                for domain in ("Media", "Processing")
-            },
+            # Media's is the cluster the shared layout already had, so nothing about it moves.
+            "MediaDatabaseEndpoint": f"{env}.cluster-sim.{region}.rds.amazonaws.com",
+            "MediaBootstrapSecretArn": f"arn:aws:secretsmanager:{region}:{account}:secret:rds!sim",
+            "ProcessingDatabaseEndpoint": (
+                f"{env}-processing.cluster-sim.{region}.rds.amazonaws.com"
+            ),
+            "ProcessingBootstrapSecretArn": (
+                f"arn:aws:secretsmanager:{region}:{account}:secret:rds!sim-processing"
+            ),
             "DatabaseTopology": "separate",
             "ClusterArn": f"arn:aws:ecs:{region}:{account}:cluster/{env}",
             "HttpApiId": "abc123def4",
@@ -440,10 +456,10 @@ class SimulatedAws:
     def cloudformation_describe_stack_events(self, payload):
         return {"StackEvents": self.stacks[payload["StackName"]].get("events", [])}
 
-    def cloudformation_describe_stack_resources(self, payload):
+    def cloudformation_list_stack_resources(self, payload):
         stack = self.stacks[payload["StackName"]]
         return {
-            "StackResources": [
+            "StackResourceSummaries": [
                 {
                     "ResourceType": r["type"],
                     "PhysicalResourceId": r["physical"],
@@ -664,7 +680,11 @@ class SimulatedAws:
             del self.clusters[payload["DBClusterIdentifier"]]
             self.after_cluster_delete(payload["DBClusterIdentifier"])
             return {"DBClusters": [{"Status": "deleting"}]}
-        return {"DBClusters": [{"Status": found["status"]}]}
+        return {
+            "DBClusters": [
+                {"Status": found["status"], "ClusterCreateTime": found.get("created", "")}
+            ]
+        }
 
     def after_cluster_delete(self, identifier):
         for snapshot in self.snapshots.values():
@@ -708,11 +728,33 @@ class SimulatedAws:
         found["status"] = "deleting"
         return {}
 
+    def rds_create_db_cluster_snapshot(self, payload):
+        name = payload["DBClusterSnapshotIdentifier"]
+        if payload["DBClusterIdentifier"] not in self.clusters:
+            raise self.error("rds", "create-db-cluster-snapshot", "DBClusterNotFoundFault")
+        if name in self.snapshots:
+            raise self.error("rds", "create-db-cluster-snapshot", "DBClusterSnapshotAlreadyExists")
+        self.snapshots[name] = {
+            "cluster": payload["DBClusterIdentifier"],
+            "status": "creating",
+            "manual": True,  # available from the second look, like a real snapshot's progress
+            "tags": tags_of(payload.get("Tags", [])),
+        }
+        return {}
+
+    def rds_delete_db_cluster_snapshot(self, payload):
+        if self.snapshots.pop(payload["DBClusterSnapshotIdentifier"], None) is None:
+            raise self.error("rds", "delete-db-cluster-snapshot", "DBClusterSnapshotNotFound")
+        return {}
+
     def rds_describe_db_cluster_snapshots(self, payload):
         found = self.snapshots.get(payload["DBClusterSnapshotIdentifier"])
         if found is None:
             raise self.error("rds", "describe-db-cluster-snapshots", "DBClusterSnapshotNotFound")
-        return {"DBClusterSnapshots": [{"Status": found["status"]}]}
+        status = found["status"]
+        if found.get("manual"):
+            found["status"] = "available"
+        return {"DBClusterSnapshots": [{"Status": status}]}
 
     def rds_add_tags_to_resource(self, payload):
         snapshot = payload["ResourceName"].rsplit(":", 1)[1]
@@ -755,6 +797,24 @@ class SimulatedAws:
     def ssm_list_tags_for_resource(self, payload):
         tags = self.params.get(payload["ResourceId"], {})
         return {"TagList": [{"Key": k, "Value": v} for k, v in tags.items()]}
+
+    def ssm_get_parameter(self, payload):
+        """The activity markers the stack creates: by default nothing has written for ages."""
+        name = payload["Name"]
+        if name in self.param_values:
+            value = self.param_values[name]
+        elif name.endswith("/activity/processing/touched"):
+            value = "0"
+        elif name.endswith("/activity/processing/quiet"):
+            now = time.time()
+            value = f"{int(now - 600)} {int(now + 1200)}"
+        else:
+            raise self.error("ssm", "get-parameter", "ParameterNotFound")
+        return {"Parameter": {"Name": name, "Value": value}}
+
+    def sqs_get_queue_attributes(self, payload):
+        depth = str(self.queue_depth.get(payload["QueueUrl"], 0))
+        return {"Attributes": dict.fromkeys(payload["AttributeNames"], depth)}
 
     def ssm_get_parameters_by_path(self, payload):
         return {
@@ -807,7 +867,8 @@ class SimulatedAws:
         if "bootstrap" in payload["taskDefinition"] and staged:
             # What a real bootstrap task does: set the roles' passwords from its input.
             self.bootstrap_input = json.loads(staged)
-            self.role_passwords = self.bootstrap_input["role_passwords"]
+            self.bootstrap_inputs.append(self.bootstrap_input)
+            self.role_passwords = self.bootstrap_input.get("role_passwords", self.role_passwords)
         return {"tasks": [{"taskArn": arn}], "failures": []}
 
     def ecs_describe_tasks(self, payload):

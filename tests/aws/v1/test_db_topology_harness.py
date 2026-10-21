@@ -254,7 +254,7 @@ def test_a_separate_stack_is_told_apart_by_the_journals_logical_names_or_by_over
     journal_with(
         ctx,
         db_clusters=["x", "y"],
-        db_logical={"x": "ProcessingDatabaseCluster", "y": "MediaDatabaseCluster"},
+        db_logical={"x": "ProcessingDatabaseCluster", "y": "DatabaseCluster"},
     )
     assert db_topology.cluster_ids(ctx) == {"media": "y", "processing": "x"}
     with pytest.raises(ProofError, match="--media-cluster"):

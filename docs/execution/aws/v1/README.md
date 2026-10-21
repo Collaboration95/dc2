@@ -65,9 +65,8 @@ manifest; without the browser flag it stays `NOT_RUN`. `cloud_acceptance` is alw
    The opt-in Lambda short-encode benchmark (#93) is likewise developed ahead of the tag, off by
    default; see [`../v2/lambda-short-encodes.md`](../v2/lambda-short-encodes.md) (cloud evidence
    NOT_RUN, merge decision pending).
-   The opt-in database layout and pause/capacity experiment (#94, one Aurora cluster per domain)
-   follows the same rule; see [`../v2/database-topology.md`](../v2/database-topology.md) (cloud
-   evidence NOT_RUN, V1's single cluster stays the default).
+   The database layout (#94, one Aurora cluster per service, AD-29) is described in
+   [`../v2/database-topology.md`](../v2/database-topology.md); `live` is split in place by CD.
 
 ---
 

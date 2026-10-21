@@ -1,10 +1,12 @@
 # V2 experiment: bounded short encodes on Lambda (#93)
 
-Status: **implemented locally, cloud evidence NOT_RUN, merge decision PENDING.** Nothing here
-has touched AWS. The tests prove the admission rule, the routing, the fencing and the recovery
-paths against fakes and against real PostgreSQL plus Moto and FFmpeg. They do not prove Lambda
-cold-start time, the real cost of a short encode, IAM evaluation, or how the event source
-mapping behaves under SQS. Those are what the measurement plan below is for.
+Status: **enabled on the persistent environment `dc2-live` since 21 October 2026**
+(`PERSISTENT_LAMBDA_SHORT_ENCODES`, PRs #296, #298 and #300; memory is 3008 MB, the account
+maximum). A first live comparison against Fargate is in "Results on dc2-live" below: the lane
+removes the queue wait and costs about one seventh as much per encode, but the strict keep rule
+is **not** met on the cold-start median (one sample, 4 s over). The keep rule below was written
+for per-run stacks; on `dc2-live` the lane stays on and the revert is the constant. Per-run
+stacks are unchanged: the flag defaults to false there.
 
 V1 is the default and the baseline: a stack built without `LambdaShortEncodes=true` contains
 none of this, every dispatcher keeps sending to the one `ProcessingWork` queue, and every
@@ -104,7 +106,14 @@ the same code the Fargate worker runs.
   (`tests/v1/test_short_encoder_sql.py`), including "crash mid-encode, recovery, cleanup,
   zombie finish refused, Fargate retry, exactly one commit".
 
-## Concurrency arithmetic (account limit 10, nothing reservable)
+## Concurrency arithmetic (written for an account limit of 10, nothing reservable)
+
+**Update, 21 October 2026:** the account's Lambda concurrency limit is now **1000** (read with
+`lambda get-account-settings`; 1000 unreserved), so the squeeze described here no longer applies
+and a reservation is possible. The decision was not to change anything for the live enablement:
+the mapping still caps the encoder at its minimum of 2 and nothing is reserved. The pinned
+arithmetic and `ACCOUNT_CONCURRENCY = 10` in `processing/short_lane.py` are the design's original
+worst case, kept as written.
 
 New AWS accounts here have a Lambda concurrency limit of **10**, and at that size no
 concurrency can be reserved (AWS keeps 10 unreserved). So the encoder cannot be given a
@@ -146,13 +155,60 @@ only with new arithmetic.
    deploy). This creates the short queue and DLQ, the function and alias, the mapping (created
    **closed**), the producer grants, and sets `PROCESSING_SHORT_LANE=true` plus the queue URL on
    the four dispatching functions.
-3. `session open` enables the mapping with the others and `session close` disables it. It
-   joins the close-proof quiescence check. It is **not** part of a release promotion
+   * **Persistent environment (`dc2-live`).** CD renders its parameters from `Settings` in
+     `scripts/aws/v1/deploy.py`, not from a file in the state bucket, so the switch is the module
+     constant `PERSISTENT_LAMBDA_SHORT_ENCODES` (enabled by #296). Every CD path reads it: the
+     review, the deploy and the stack update that adopts a release. The mapping is created
+     **enabled** (`AlwaysOpen`). Reverting is that constant set to `False`; the next CD deploy
+     removes the lane and the dispatchers fall back to Fargate.
+   * **Per-run stack.** Pass `--lambda-short-encodes` to `scripts.aws.v1.deploy deploy`
+     (refused together with `--environment`).
+3. `session open` enables the mapping with the others and `session close` disables it (on the
+   always-on environment the mapping is already enabled and `session close` is the kill switch).
+   It joins the close-proof quiescence check. It is **not** part of a release promotion
    (`owner_functions` excludes it): it runs the worker image, which a Processing release does not
-   promote.
-4. Disable: set the parameter back to `false` and redeploy. Let the short queue drain first (its DLQ and queue depth are reported by the harness); the queue and function are deleted with the stack resources, and dispatchers fall back to the standard lane as soon as the URL is gone.
+   promote. On the persistent environment the stack update that adopts a release moves it (see
+   the next section).
+4. Disable: set the parameter back to `false` (on `dc2-live`, the constant) and redeploy. Let the short queue drain first (its DLQ and queue depth are reported by the harness); the queue and function are deleted with the stack resources, and dispatchers fall back to the standard lane as soon as the URL is gone.
 
-## Measurement plan (not yet run)
+## The always-on environment (AD-27) and the lane
+
+This document was written for per-run stacks and a booked session. The persistent environment
+`dc2-live` (AD-27) differs in five ways that matter here. Each was read from the code and, where
+a real PostgreSQL case exists, run; the live results are under "Results on dc2-live".
+
+* **Launcher wake.** `launcher_trigger.WakeOnWork` invokes the launcher only after a send to
+  `processing-work`. A short-lane send goes to `processing-work-short` and wakes nothing. The
+  launcher's demand is `min(queued attempts in SQL, visible messages in the standard queue)`, so a
+  short job that sits in the short queue adds to the SQL side and not the queue side: no Fargate
+  task is started for it. A redirected job (over the duration or height bound) gets a successor
+  attempt whose outbox row is published to the standard queue by the minute repair tick, which is
+  a work publisher and does wake the launcher.
+* **`repair_work` and the lane.** A work message is one outbox row per `(attempt, state version)`,
+  and the row carries its queue. Repair re-arms an existing row, so a re-send goes to the lane the
+  attempt was dispatched to; a missing row is staged through `short_lane.work_lane`, which applies
+  the size bound and the sticky Fargate fallback (any earlier `lambda-` binding sends the job to
+  the standard lane). A message left in the short queue because the executor could not claim is
+  re-sent by the same repair pass, about a minute later, not after the 960 s visibility timeout.
+* **Activity markers and Aurora.** Idle ticks skip SQL while the SSM `quiet` marker is valid, and
+  the markers are written by the writers (the command consumer, the Media and Processing APIs) and
+  by the repair pass. The short encoder is not a writer and does not need to be: it only acts on
+  an attempt that is already `queued` or `processing`, for which `next_due` is 0 and no quiet value
+  is in force. Its heartbeat and its commit keep Aurora awake while it works; when the job is done
+  the next repair pass finds nothing due, writes `quiet`, and the cluster can pause.
+* **Per-owner release.** The short encoder is not in `owner_functions`, so a Processing release
+  does not move it. It follows the worker image through the stack: its code and the description of
+  its published version name `WorkerImageUri`, which `adopt-release` rewrites and the following
+  `deploy --stop-after applications` renders, so the alias moves exactly when the worker image
+  does (pinned by `tests/aws/v1/test_persistent_environment.py`). Its mapping is in the Processing
+  owner's consumers, so a release's online invariant requires it enabled and the kill switch
+  (`session close`) disables it. Between a release and its adoption the function runs the previous
+  worker image, like the launcher's task definition; a release is additive, so that is safe.
+* **What the CD smoke now exercises.** The smoke's 3 s clip is short, so on `dc2-live` it takes
+  the Lambda lane. The Fargate worker path is exercised by sources over the bounds, which is also
+  how the measurement times Fargate on the same stack.
+
+## Measurement plan
 
 The two arms are different stack states, because with the flag on every admitted job goes to
 Lambda. Run them in order with one fixture and one run id:
@@ -215,5 +271,50 @@ otherwise, do not merge the flag into a release.
 * `scripts/aws/v1/deploy.py` has one small change for this experiment: `logs filter-log-events`
   is added to the read-only allowlist so the harness can read the encoder's REPORT lines. No
   other deploy, bootstrap or simulation file for the deploy path is touched.
-* Cloud evidence is NOT_RUN; every number in the receipts from `--dry-run` or `rehearse` is
-  simulated.
+* The only cloud evidence is one 5-job-per-arm run on `dc2-live` (below). Every number in the
+  receipts from `--dry-run` or `rehearse` is simulated.
+
+## Results on dc2-live (21 October 2026)
+
+Receipt: [`docs/results/engineering-20261021/short-lane-sl1021.json`](../../../results/engineering-20261021/short-lane-sl1021.json);
+rows LV-S1 to LV-S4 in [`actual-vs-target`](../../../results/actual-vs-target.md). Verified first:
+the `ProcessingShortEncoder` function (3008 MB, 900 s, 2048 MB `/tmp`), its event source mapping
+`Enabled`, and both `/health` routes returning 200.
+
+The two arms ran on the same stack, not on two stack states: with the lane on, a source over the
+64 MiB bound is routed to the standard lane at dispatch, so the Fargate arm used the same 24 s
+640x360 H.264/AAC clip with a 70 MiB `free` atom appended (75.9 MB, identical streams). The
+launcher starts every Fargate encoder after the submit, so each Fargate job is a cold start and
+the Lambda warm median is compared with that.
+
+| Measure (5 jobs each) | Lambda lane | Fargate (launcher) |
+|---|---|---|
+| Queue wait `queued_at` to `started_at`, median | **0.26 s** (max 2.6 s) | 32.6 s (26.0 to 33.7) |
+| Processing `started_at` to `finished_at`, median | 5.3 s | 8.0 s |
+| Submit to done: cold | 92.0 s (n=1) | 87.7 s median (72.3 to 113.6) |
+| Submit to done: warm median | 45.2 s (38.5 to 88.1, n=4) | not separable |
+| Billed compute per success | $0.0003 | $0.0021 (ratio 0.14) |
+| Failures, retries, redirects, DLQ, queue leftovers | 0, 0, 0, 0, 0 | 0 failures, 0 tasks left |
+
+Keep rule: no failures, a cold start observed, no retries, warm median lower, queue wait within
+20 s and cost not higher all PASS; **cold median lower FAILS** (92.0 against 87.7 s). Reading it:
+
+* The lane does what it was built for. It removes the 26 to 34 s Fargate start from the queue
+  wait (the LV-8 miss) and costs about a seventh per short encode. The Lambda cold start itself
+  is small: 2.6 s queue wait, 9.1 s billed including `Init Duration`, against 5.3 s warm.
+* End-to-end latency is dominated by something neither lane controls. Queue wait plus processing
+  is 5.6 s for a warm Lambda job, yet submit to done is 38 to 88 s; on Fargate 40 s of 87 s is
+  unaccounted for. Upload, reserve and finalize take under 1 s on Lambda. The remaining time is
+  between the finalize and `queued_at`, or between `finished_at` and Media showing `done`; this
+  run did not attribute it. It is the next thing to look at for the end-to-end 20 s target.
+* The cold-start comparison is one sample and the first job after an idle spell probably also paid
+  for the Aurora resume, which is outside the lane. Do not read the 4 s as a Lambda defect.
+
+Limits: five jobs per arm, one run, one clip; Fargate cold and warm cannot be separated under the
+launcher; the Fargate file is 30x larger (more S3 download); shared services are excluded from
+cost. Not run: the two Moto-backed cases in `tests/v1/test_short_encoder_sql.py` (need `make
+v1-up`; the real FFmpeg encode they cover happened live). The other nine PostgreSQL cases passed
+against a local PostgreSQL 16.
+
+The harness needed one fix: `lambda get-event-source-mapping` was missing from the read-only
+allowlist in `scripts/aws/v1/deploy.py`, so the Lambda arm stopped before submitting anything.

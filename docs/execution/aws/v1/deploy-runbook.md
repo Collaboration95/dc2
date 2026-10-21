@@ -99,8 +99,26 @@ record of the V1 proof runs. The decision is AD-27 in
   schedules). While it is on, deploys render the template with `GatesOpen=false` (so an update
   cannot reopen a gate), skip the seed and the smoke, and defer releases. `session open
   --unattended` turns it off. `session status` reports any drift from the recorded state.
+- **One Aurora cluster per service (AD-29).** CD passes `--database-topology separate
+  --database-split-from-shared` on every call. A new environment is created with a cluster per
+  service. An environment that still has V1's shared cluster keeps rendering it from `deploy`
+  until `split-database` has run, which CD does after the releases of the same run are adopted
+  (the bootstrap task that does it is part of the worker image): Processing must be idle
+  (`quiet` marker, empty queues, no encoder), a manual snapshot `<env>-pre-split-<date>` is taken,
+  the stack is updated so that Processing's cluster is a copy-on-write clone of the one that
+  holds both databases (Media's cluster, instance and security group keep their logical ids and
+  stay in place), Processing's logins are reconciled on the clone, the same logins on the old
+  cluster get throwaway passwords, Processing's two DSN parameters are pointed at the clone and
+  the public smoke runs. After the upload-to-playback smoke passes, `finish-database-split
+  --verified-by <smoke label>` drops each cluster's copy of the other database and logins. The
+  state is `database_split.state` in the journal, so a failed run resumes after the last state it
+  reached; the secret-free receipt is `database-split-receipt.json`. Details, the window in which
+  a Processing write would be lost and the way back are in
+  [`../v2/database-topology.md`](../v2/database-topology.md).
 - **Teardown.** Not routine. `cd.yml` refuses an executed teardown unless `confirm` repeats the
-  environment name.
+  environment name. A split environment takes one final snapshot per cluster
+  (`<env>-media-final`, `<env>-processing-final`); with `skip_final_snapshot` the pre-split
+  snapshot goes too, otherwise it is kept and listed in the receipt.
 
 ## Before the first real run
 
