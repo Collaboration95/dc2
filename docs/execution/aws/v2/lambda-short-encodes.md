@@ -24,12 +24,12 @@ them.
 
 | Bound | Value | Why |
 |---|---|---|
-| Source duration | 60 s | Encode time scales with seconds of video; the primary plus the HLS ladder of 60 s of 1080p is expected well under two minutes on about 2 vCPU. The only measured datum so far is a local 24 s fixture, so the margin is wide on purpose. |
+| Source duration | 60 s | Encode time scales with seconds of video; the primary plus the HLS ladder of 60 s of 1080p was expected well under two minutes on about 2 vCPU, and is about 15 % longer on the 1.7 vCPU the Lambda has (see Memory). The only measured datum when this was written was a local 24 s fixture, so the margin is wide on purpose. |
 | Source size | 64 MiB | A cheap pre-filter and the only bound known at dispatch. 8.9 Mbit/s over a full 60 s covers an ordinary 1080p phone clip, and keeps the worst `/tmp` footprint (source plus outputs, bounded at 5x the source, 320 MiB) well inside 2 GiB. |
 | Source height | 1080 px | Bounds the ladder and the per-second decode cost. |
 | Full-pipeline deadline | 720 s | The pipeline (claim, download, probe, encode, upload, commit) must end inside `900 s - 180 s` of headroom. Headroom covers killing the FFmpeg process group, one fenced failure write, temp removal and a database reconnect. 720 s is also about 6x the expected encode time. |
 | Lambda timeout | 900 s | Service maximum. |
-| Memory | 3584 MB | About 2 vCPU (1769 MB is one vCPU): the same compute as the 2 vCPU Fargate task, so the comparison is per equal CPU and not per cheapest configuration. |
+| Memory | 3008 MB | About 1.7 vCPU (1769 MB is one vCPU). The design chose 3584 MB (about 2 vCPU, the same compute as the 2 vCPU Fargate task), but this account refuses more than 3008 MB (CloudFormation on `dc2-live`, 21 October: "`MemorySize` ... must have value less than or equal to 3008", CD run 39596145564, rolled back); more needs a support request. The comparison with Fargate is therefore at 85 % of its CPU, so a Lambda encode is expected to run about 15 % longer, and the cost per second falls with the memory (GB-seconds). The 720 s pipeline deadline is still about 6x the expected encode time. |
 | Ephemeral storage | 2048 MB | See the size bound. 512 MB is included in the function price; 1.5 GB is billed. |
 
 Everything else runs on Fargate: longer, larger or taller sources, a job whose Lambda attempt
