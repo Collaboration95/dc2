@@ -455,10 +455,10 @@ class SimulatedAws:
     def cloudformation_describe_stack_events(self, payload):
         return {"StackEvents": self.stacks[payload["StackName"]].get("events", [])}
 
-    def cloudformation_describe_stack_resources(self, payload):
+    def cloudformation_list_stack_resources(self, payload):
         stack = self.stacks[payload["StackName"]]
         return {
-            "StackResources": [
+            "StackResourceSummaries": [
                 {
                     "ResourceType": r["type"],
                     "PhysicalResourceId": r["physical"],

@@ -520,3 +520,10 @@ def test_a_rolled_back_clone_update_is_retried_with_the_same_bytes(live):
     assert not ops(live, "create-db-cluster-snapshot", start)
     assert live.journal.view()["database_split"]["state"] == "verified"
     assert live.sim.stacks["dc2-live"]["status"] == "UPDATE_COMPLETE"
+
+
+def test_a_stacks_resources_are_listed_because_describing_them_stops_at_one_hundred():
+    # The persistent stack has about 200 resources; `describe-stack-resources` returned the first
+    # 100, so Processing's cluster was never recorded (rehearsal, 21 October 2026).
+    assert "list-stack-resources" in deploy.ALLOWED["cloudformation"]
+    assert "describe-stack-resources" not in deploy.ALLOWED["cloudformation"]

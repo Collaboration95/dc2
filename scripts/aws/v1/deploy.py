@@ -226,7 +226,7 @@ ALLOWED = {
         "execute-change-set",
         "delete-change-set",
         "describe-stack-events",
-        "describe-stack-resources",
+        "list-stack-resources",
         "delete-stack",
     },
     "s3api": {
@@ -1349,7 +1349,7 @@ class Pipeline:
         found = (
             self.aws(
                 "cloudformation",
-                "describe-stack-resources",
+                "list-stack-resources",
                 {"StackName": stack},
                 tolerate=("ValidationError",),
             )
@@ -1357,7 +1357,7 @@ class Pipeline:
         )
         rows = [
             (r["ResourceType"], r["PhysicalResourceId"], r["LogicalResourceId"])
-            for r in found.get("StackResources", [])
+            for r in found.get("StackResourceSummaries", [])
             if r.get("PhysicalResourceId")
         ]
         self.record_resources(stack, rows, {})
@@ -1382,10 +1382,12 @@ class Pipeline:
     def _finish_stack(self, stack):
         current = self.stack(stack)
         outputs = {o["OutputKey"]: o["OutputValue"] for o in current.get("Outputs", [])}
-        resources = self.aws("cloudformation", "describe-stack-resources", {"StackName": stack})
+        # `list-` pages through every resource; `describe-stack-resources` stops at 100, and
+        # this stack has about 200 (the split's clone cluster was past the cut: 2026-10-21).
+        resources = self.aws("cloudformation", "list-stack-resources", {"StackName": stack})
         return outputs, [
             (r["ResourceType"], r["PhysicalResourceId"], r["LogicalResourceId"])
-            for r in resources.get("StackResources", [])
+            for r in resources.get("StackResourceSummaries", [])
         ]
 
     def record_resources(self, stack, rows, outputs):
