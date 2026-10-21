@@ -310,8 +310,24 @@ class SimulatedAws:
         self.pending[name] = [1, lambda: self.complete_stack(name, change_set, failure)]
         return {}
 
+    def cloudformation_delete_change_set(self, payload):
+        self.stacks[payload["StackName"]]["changesets"].pop(payload["ChangeSetName"], None)
+        return {}
+
     def complete_stack(self, name, change_set, failure=None):
         stack = self.stacks[name]
+        if failure and change_set["kind"] == "UPDATE":
+            # As in AWS: the stack is put back as it was and the change set is marked failed.
+            change_set["ExecutionStatus"] = "EXECUTE_FAILED"
+            stack["status"] = "UPDATE_ROLLBACK_COMPLETE"
+            stack["events"] = [
+                {
+                    "LogicalResourceId": "Simulated",
+                    "ResourceStatus": "UPDATE_FAILED",
+                    "ResourceStatusReason": failure,
+                }
+            ]
+            return
         stack["template"], stack["parameters"] = change_set["template"], change_set["parameters"]
         if failure:
             stack["status"] = "ROLLBACK_COMPLETE"

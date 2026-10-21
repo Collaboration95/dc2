@@ -110,11 +110,78 @@ written before the option existed is V1's layout.
 
 ### Switching and reverting
 
-* **There is no in-place switch.** Changing a live stack from `shared` to `separate` would add an
-  empty cluster without moving Processing's data, and the reverse would ask CloudFormation to
-  remove a database. The deploy refuses a mismatched resume. To change layout, deploy a new run
-  id and tear the old one down (the teardown receipt takes a final snapshot per cluster).
-* **Revert** is deploying V1 without the flag under a new run id. Nothing in V1 depends on this.
+* **A layout is not a parameter.** Rendering `separate` over a stack that has `shared` would add
+  an *empty* Processing cluster without moving its data, so the deploy refuses a resume whose
+  `--database-topology` differs from the journal. The one exception is below.
+* **`shared` to `separate` is allowed in place, by `split-database`, for a stack that opts in**
+  with `--database-split-from-shared` (CD sets `CD_DATABASE_SPLIT` for the persistent environment
+  `live` only). It keeps every account, asset and job. See "Splitting a live shared stack".
+* **`separate` to `shared` stays refused.** It would ask CloudFormation to remove a database.
+* **Revert** of a per-run stack is deploying V1 without the flag under a new run id. Reverting a
+  split stack is restoring the manual snapshot `<env>-pre-split-<date>` into a new cluster (it
+  still holds both databases as they were), or the stack's own continuous backup.
+
+## Splitting a live shared stack (AD-29)
+
+`dc2-live` was created before there was a `separate` layout, so it has one cluster that holds
+`media_db` and `processing_db` (report limitation AISS-01). The split gives each service its own
+cluster **without a second copy of the data pipeline, a dump or a restore**: Media keeps the
+existing cluster, and Processing's cluster is an Aurora **copy-on-write clone** of it.
+
+```text
+deploy                       (releases first: the bootstrap that splits ships in the worker image)
+split-database --execute     split-precheck   Processing idle: nothing due in SQL, no queued,
+                                              delayed or in-flight message, no running encoder
+                             split-snapshot   manual snapshot <env>-pre-split-<date>
+                             split-clone      stack update: separate layout, Processing's
+                                              cluster restored from Media's (copy-on-write)
+                             split-login      reconcile processing_* logins on the clone
+                             split-freeze     throw away the processing_* passwords on the old
+                                              cluster (Lambdas that cached the old DSN are
+                                              refused and re-read the parameter)
+                             split-switch     processing DSN parameters -> the clone
+                             split-verify     public smoke (upload to playback) on the new layout
+smoke                        the CD smoke, then:
+finish-database-split        drop processing_db (and its roles) from Media's cluster and
+                             media_db (and its roles) from Processing's, recorded with the
+                             label of the smoke that allowed it
+```
+
+Why the steps are shaped this way:
+
+* **Journaled and resumable.** `database_split.state` moves `started`, `snapshotted`, `cloned`,
+  `clone-reconciled`, `old-frozen`, `switched`, `verified`, `cleaned`; a rerun resumes after the
+  last one. The journal's `database` layout changes to `separate` only after the stack update
+  has succeeded, so `deploy` never renders a layout the stack does not have.
+* **A rolled-back clone update can be retried.** The stack is back as it was
+  (`UPDATE_ROLLBACK_COMPLETE`), which the deploy now treats as updatable, and a failed change
+  set of the same name is deleted and recreated instead of refused; a stack whose *creation*
+  rolled back is still refused. The journal keeps saying `shared` until an update has
+  succeeded, so a rerun resumes at the clone step without a second snapshot.
+* **The clone's properties are write-only and create-only**, so `separate` keeps rendering
+  `SourceDBClusterIdentifier`, `RestoreType` and `UseLatestRestorableTime` for the life of the
+  stack (`clone_processing`, journaled with the layout). Dropping them would replace the cluster,
+  which the change-set review refuses. The same review lets this one update remove
+  `DatabaseFromWorker` (the encoder's access to Media's cluster) and nothing else.
+* **Media's cluster is never replaced or deleted.** It keeps its logical id, its
+  deletion protection and its `Retain` policy, and teardown still takes a final snapshot of each
+  cluster.
+* **The lost-write window is made small and measured.** Processing must be idle before the clone
+  is taken. The clone is a point-in-time copy; the window is from the clone's creation to the
+  DSN switch. Every Processing writer records a touch before it commits, so a marker older than
+  the clone proves nothing was written after it (`writes_after_clone: none`); `possible` or
+  `unknown` is recorded rather than hidden. The old cluster's Processing logins are frozen
+  before the switch, so a late write is refused instead of landing in the old copy.
+* **The drop is a pipeline step.** `finish-database-split` runs in the same bootstrap task as the
+  roles do, with the master credential, after a smoke passed; it refuses to run if a cluster
+  does not hold its own database. Nothing is dropped by hand.
+* **Resource costs.** The second cluster is paused at 0 ACU like the first and costs its managed
+  master credential and storage while idle (`$0.51` a month, see "Cost implications"); the clone
+  starts at the source's storage and diverges as each side writes.
+
+The split writes `database-split-receipt.json` to the state directory (timings, the idle
+evidence, the snapshot name, the smoke); CD publishes it with the smoke result. It carries no
+identifier and no credential.
 
 ## Cost implications
 

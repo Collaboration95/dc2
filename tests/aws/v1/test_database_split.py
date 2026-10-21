@@ -501,3 +501,22 @@ def test_a_failed_stack_update_leaves_the_journal_on_the_layout_the_stack_still_
     assert live.journal.view().get("database", {}).get("topology", SHARED) == SHARED
     assert live.s.database.topology == SHARED and live.s.database.clone_processing is False
     assert live.journal.view()["database_split"]["state"] == "snapshotted"
+    assert live.sim.stacks["dc2-live"]["status"] == "UPDATE_ROLLBACK_COMPLETE"
+
+
+def test_a_rolled_back_clone_update_is_retried_with_the_same_bytes(live):
+    live.sim.fail[("stack-complete", "dc2-live")] = "clone refused"
+    with pytest.raises(DeployError, match="clone refused"):
+        split(live)
+    del live.sim.fail[("stack-complete", "dc2-live")]
+    start = len(live.sim.calls)
+    split(live)
+    # The failed change set of the same name is replaced, not reused, and nothing is snapshotted
+    # or checked for idleness again.
+    assert [n for _, n in ops(live, "delete-change-set", start)] == [
+        {"StackName": "dc2-live", "ChangeSetName": n["ChangeSetName"]}
+        for _, n in ops(live, "create-change-set", start)
+    ]
+    assert not ops(live, "create-db-cluster-snapshot", start)
+    assert live.journal.view()["database_split"]["state"] == "verified"
+    assert live.sim.stacks["dc2-live"]["status"] == "UPDATE_COMPLETE"

@@ -73,6 +73,9 @@ DEFAULT_BUDGET_NAME = "flickpond-monthly"
 SPLIT_ACTIONS = ("split-database", "finish-database-split")
 FARGATE_VCPU_QUOTA_CODE = "L-3032A538"
 HEALTHY = {"CREATE_COMPLETE", "UPDATE_COMPLETE"}
+# A rolled-back update put the stack back as it was, so it can be updated again; a stack whose
+# creation rolled back cannot, and still has to be resolved by hand.
+UPDATABLE = HEALTHY | {"UPDATE_ROLLBACK_COMPLETE"}
 CAPABILITIES = ["CAPABILITY_NAMED_IAM"]
 DEPLOY_STEPS = (
     "preflight",
@@ -221,6 +224,7 @@ ALLOWED = {
         "create-change-set",
         "describe-change-set",
         "execute-change-set",
+        "delete-change-set",
         "describe-stack-events",
         "describe-stack-resources",
         "delete-stack",
@@ -1212,8 +1216,8 @@ class Pipeline:
             self.say(f"stack {stack} is {current['StackStatus']}; waiting")
             self._wait_stack(stack)
             return self._finish_stack(stack)
-        kind = "UPDATE" if current and current["StackStatus"] in HEALTHY else "CREATE"
-        if current and current["StackStatus"] not in HEALTHY | {"REVIEW_IN_PROGRESS"}:
+        kind = "UPDATE" if current and current["StackStatus"] in UPDATABLE else "CREATE"
+        if current and current["StackStatus"] not in UPDATABLE | {"REVIEW_IN_PROGRESS"}:
             raise DeployError(f"Stack {stack} is {current['StackStatus']}; resolve before resuming")
         applied = self.detail(self.step).get("applied")
         if kind == "UPDATE" and applied == change_set:
@@ -1240,6 +1244,15 @@ class Pipeline:
                 tolerate=("ChangeSetNotFound", "ChangeSetNotFoundException"),
             )
         )
+        if existing and existing.get("ExecutionStatus") in {"EXECUTE_FAILED", "OBSOLETE"}:
+            # An earlier attempt at these exact bytes failed and rolled back (or was overtaken);
+            # nothing it did remains, so the change set is replaced rather than reused.
+            self.aws(
+                "cloudformation",
+                "delete-change-set",
+                {"StackName": stack, "ChangeSetName": change_set},
+            )
+            existing = None
         if existing is None:
             self.aws("cloudformation", "create-change-set", request)
             # Recorded at once: even a stack that later fails belongs to this run's teardown.
