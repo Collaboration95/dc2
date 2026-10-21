@@ -73,8 +73,11 @@ DEFAULT_BUDGET_NAME = "flickpond-monthly"
 SPLIT_ACTIONS = ("split-database", "finish-database-split")
 FARGATE_VCPU_QUOTA_CODE = "L-3032A538"
 HEALTHY = {"CREATE_COMPLETE", "UPDATE_COMPLETE"}
-# A rolled-back update put the stack back as it was, so it can be updated again; a stack whose
-# creation rolled back cannot, and still has to be resolved by hand.
+# A failed update that CloudFormation rolled back leaves the previous, working stack, and AWS
+# accepts a new update on it (observed 2026-10-21 on dc2-live: the first deploy of the short
+# lane was rolled back, and the next deploy was refused as "resolve before resuming" until
+# this was added). It is deliberately not HEALTHY: an update that ENDS in this state failed,
+# and _wait_stack must still say so.
 UPDATABLE = HEALTHY | {"UPDATE_ROLLBACK_COMPLETE"}
 CAPABILITIES = ["CAPABILITY_NAMED_IAM"]
 DEPLOY_STEPS = (

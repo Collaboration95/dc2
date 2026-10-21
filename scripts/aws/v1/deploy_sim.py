@@ -317,7 +317,8 @@ class SimulatedAws:
     def complete_stack(self, name, change_set, failure=None):
         stack = self.stacks[name]
         if failure and change_set["kind"] == "UPDATE":
-            # As in AWS: the stack is put back as it was and the change set is marked failed.
+            # As in AWS (dc2-live, 2026-10-21): the previous template and resources stay, and the
+            # stack is left in UPDATE_ROLLBACK_COMPLETE, which accepts the next update.
             change_set["ExecutionStatus"] = "EXECUTE_FAILED"
             stack["status"] = "UPDATE_ROLLBACK_COMPLETE"
             stack["events"] = [

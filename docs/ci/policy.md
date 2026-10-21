@@ -334,3 +334,12 @@ offline tests cannot demonstrate hosted integration, image or browser timings.
 Agent wait behavior and measured hosted receipts are owned by #165.
 
 Measured hosted results and limitations: [results-20261017.md](results-20261017.md).
+
+## Code scanning triage (2026-10-21)
+
+Twelve open High CodeQL alerts (python 9, JavaScript 3) were reviewed. None was in
+live service code (`media/`, `processing/`, deployed frontend): all sit in tests,
+the offline AWS proof harness or local dev scripts. Fixed: 0. Dismissed: 12
+(`used in tests` 11, `false positive` 1, each with a comment on the alert).
+Open ZAP findings (Low/informational, alerts 13-28 on the OpenAPI documents) were
+left alone by decision.
