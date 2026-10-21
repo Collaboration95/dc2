@@ -72,6 +72,12 @@ LEGACY_BOOTSTRAP_STACK = "dc2-v1-20261015t1146-bootstrap"
 DEFAULT_BUDGET_NAME = "flickpond-monthly"
 FARGATE_VCPU_QUOTA_CODE = "L-3032A538"
 HEALTHY = {"CREATE_COMPLETE", "UPDATE_COMPLETE"}
+# A failed update that CloudFormation rolled back leaves the previous, working stack, and AWS
+# accepts a new update on it (observed 2026-10-21 on dc2-live: the first deploy of the short
+# lane was rolled back, and the next deploy was refused as "resolve before resuming" until
+# this was added). It is deliberately not HEALTHY: an update that ENDS in this state failed,
+# and _wait_stack must still say so.
+UPDATABLE = HEALTHY | {"UPDATE_ROLLBACK_COMPLETE"}
 CAPABILITIES = ["CAPABILITY_NAMED_IAM"]
 DEPLOY_STEPS = (
     "preflight",
@@ -1180,8 +1186,8 @@ class Pipeline:
             self.say(f"stack {stack} is {current['StackStatus']}; waiting")
             self._wait_stack(stack)
             return self._finish_stack(stack)
-        kind = "UPDATE" if current and current["StackStatus"] in HEALTHY else "CREATE"
-        if current and current["StackStatus"] not in HEALTHY | {"REVIEW_IN_PROGRESS"}:
+        kind = "UPDATE" if current and current["StackStatus"] in UPDATABLE else "CREATE"
+        if current and current["StackStatus"] not in UPDATABLE | {"REVIEW_IN_PROGRESS"}:
             raise DeployError(f"Stack {stack} is {current['StackStatus']}; resolve before resuming")
         applied = self.detail(self.step).get("applied")
         if kind == "UPDATE" and applied == change_set:
