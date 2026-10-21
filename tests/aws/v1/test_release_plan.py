@@ -410,7 +410,7 @@ def test_a_malformed_accept_file_is_refused_before_the_registry_is_asked(tmp_pat
 
 def test_the_committed_accept_file_is_valid_and_names_each_cve_once():
     ids, _ = release_plan.load_accept("docs/execution/aws/v1/scan-accepted-unfixed-20261017.json")
-    assert len(ids) == 14 and "CVE-2026-52490" in ids
+    assert len(ids) == 15 and {"CVE-2026-52490", "CVE-2025-52290"} <= ids
 
 
 def test_the_command_passes_the_accept_file_through(tmp_path):
