@@ -137,3 +137,46 @@ Accepted on 20 October 2026 by Guruprasath Gopal on behalf of Team 17. Steps 4 a
 
 The freeze reopens if any of these change: the `live` alias of any function, the worker task definition
 revision, a non-documentation change on Main, a migration head, the contract version, or the worker cap.
+
+## Post-freeze addendum, 21 October 2026: blocker repair of the delivery pipeline
+
+Everything above is the team-accepted freeze at `daee44b` and is left as written. Checklist step 6
+allows only blocker repairs with affected verification and an updated manifest. This addendum is
+that record. The images named in "Images actually deployed" were first replaced on 20 October by the
+engineering delivery at `629119c` (see [`delivery-629119c.json`](../results/engineering-20261020/delivery-629119c.json)),
+and again on 21 October by the repair below. The aliases, task definition and digests above no
+longer describe what runs.
+
+**Blocker.** On 20 October at 19:35 UTC certifi published GHSA-6q48-6c7w-9gw2: its bundle trusted
+emSign root CAs whose intermediate CA keys were compromised, so a TLS client using the bundle could be
+shown a forged certificate (CRITICAL; fixed in 2026.10.19). All three images carried certifi 2026.7.22.
+The dependency was updated on Main (`94f7463`, `4ae6a0b`), but the automatic delivery could not ship
+it. Run 39532075705 failed because the gate rescanned the *running* image as the rollback baseline and
+refused to replace it for the very finding being fixed (#285, #286). Run 39542434067 then failed
+because the deploy smoke's login met an auto-paused Aurora cluster with no retry (#287, #288). Neither
+fix changes product behaviour, a migration head, the contract version or the worker cap; they change
+`scripts/ci/cd.sh`, `scripts/ci/v1_scan.py`, the release-plan artifact checks, `scripts/aws/v1/deploy.py`
+and `public_smoke.py`, their tests and the runbook.
+
+**Affected verification.** Full CI on the delivered source, Main CI
+[39544952625](https://github.com/Collaboration95/dc2/actions/runs/39544952625) (success); the CD run
+[39545554380](https://github.com/Collaboration95/dc2/actions/runs/39545554380) (success; admission matched
+that CI run), whose own upload-to-playback smoke passed (`seconds_to_terminal` 101.2); Trivy on the three
+deployed images (zero fixable HIGH/CRITICAL; unfixed rows 44/44/208); and a read-only read-back of ECR,
+the ten Lambda aliases and the worker task definition. Receipt:
+[`delivery-c7c489c.json`](../results/engineering-20261021/delivery-c7c489c.json).
+
+| Field | Value after the repair (read 21 October, UTC) |
+|---|---|
+| Source SHA | `c7c489c526098c9515e9eb7e24ab9ca846118027` (`origin/Main`) |
+| Media image | `sha256:dafbb19d3aa624d8c2dcbac710c2f1eed40c52ec436cd311b8a265bf70a9da94`, tag `g39545554380x1-media`; the four Media Lambdas at alias version 9; `dc2-live-mediamigration:9` |
+| Processing image | `sha256:3c83e4baf7b9a682b8e3c794f957d848a2c5dac31017182f285d1146822d939e`, tag `g39545554380x1-processing`; ProcessingApi version 13, the other five Processing functions version 12; `dc2-live-processingmigration:12` |
+| Finite encoder worker | `sha256:eed6fbbbac75b12d77e13ca61e010af4e36932dfb451018ccdc1e0786e2e8ab0`, tag `g39545554380x1-worker`; `dc2-live-worker:12` |
+| Previous images (rollback reference) | Media `sha256:24bd78a88f79...`, Processing `sha256:d5ca122a8e79...`, worker `sha256:1d89e73ab5c5...`, all source `629119c`. Each carries the certifi finding. Restoring them was not exercised. |
+
+Limits. This is not a replacement freeze: the team has not accepted one, and that needs the team's
+actual confirmation. No tag was created and `project2-v1` is untouched. The wake retry did not fire in
+the live run (the first login succeeded), so it is evidenced by tests only. The retained-baseline rule
+relaxes only Trivy findings on an image the release replaces; the candidate and any kept image still
+must scan to zero fixable HIGH/CRITICAL. Schema heads, the contract version and the worker cap are
+unchanged from the sources above but were not re-read for this addendum.
