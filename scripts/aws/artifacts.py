@@ -199,6 +199,24 @@ def registry_receipt(proof, response, *, deployed=False):
     return validate({**proof, **receipt}, deployed=deployed)
 
 
+def _one_image_many_tags(images):
+    """One entry, or several that are the same manifest under different tags.
+
+    A lookup by digest returns an entry per tag on that digest; a rebuild that reproduces an
+    image gets a second and third tag (observed 2026-10-22 on dc2-live's Processing image).
+    """
+    if len(images) == 1:
+        return True
+    ids = [i.get("imageId") if isinstance(i.get("imageId"), dict) else {} for i in images]
+    tags = [i.get("imageTag") for i in ids]
+    return (
+        len({i.get("imageManifest") for i in images}) == 1
+        and len({i.get("imageDigest") for i in ids}) == 1
+        and all(isinstance(t, str) and t for t in tags)
+        and len(set(tags)) == len(tags)
+    )
+
+
 def manifest_receipt(config_id, response):
     """The raw-byte/config binding shared by deploy and full artifact receipts."""
     digest(config_id)
@@ -206,7 +224,9 @@ def manifest_receipt(config_id, response):
         not isinstance(response, dict)
         or response.get("failures")
         or not isinstance(response.get("images"), list)
-        or len(response["images"]) != 1
+        or not response["images"]
+        or not all(isinstance(i, dict) for i in response["images"])
+        or not _one_image_many_tags(response["images"])
     ):
         raise OperationError("Missing or ambiguous registry receipt")
     try:
