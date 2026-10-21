@@ -794,6 +794,28 @@ fi
   --target-revision "$TARGET"
 ```
 
+**A baseline that a newer advisory made fixable.** The baseline rescan above is strict, which is
+right for an image the release keeps running (it joins the new set). But an image the release
+*replaces* is only the rollback target: its digest is immutable and cannot be rebuilt, and an
+advisory published after it shipped (the 20 Oct certifi/emSign advisory, GHSA-6q48-6c7w-9gw2,
+failed CD run 39532075705 this way) would otherwise block the very release that removes the
+finding. For those images scan with `--retained` (CD does this for every image the release
+rebuilds, and keeps the strict scan for the others):
+
+```bash
+python3 -m scripts.ci.v1_scan --receipt "$BASE" --reports "$BASE_REPORTS" \
+  --out "$BASE_REPORTS/summary.json" --sha "" --attach --retained --owner media   # replaced owners only
+```
+
+A fixable HIGH/CRITICAL finding then yields `trivy_scan.status = RETAINED_FIXABLE` with
+`fixable_ids`, verdict `RETAINED:` and exit 0, and CD annotates the run, writes the run summary
+and adds `rollback_target_findings` to `release-<owner>.json`. Nothing else is relaxed: the
+candidate must still scan to zero fixable findings first, the report must still be complete and name
+the config ID, the ECR scan above still applies, and the release plan accepts the retained status
+only for its `baseline` role (so a kept image, the good and bad sets, `release promote` and the
+harness `rollback` promotion of that baseline all still require `PASS`). Restoring the baseline
+puts back what was already running, so it adds no exposure; removing it is the remediation.
+
 `--accept-unfixed` is legitimate only for findings with no fixed version available (the pinned
 base's Debian packages, confirmed by an empty `apt list --upgradable`); re-check each id before
 every release and drop any that now has a fix. A fixable finding must be fixed by rebuilding, not

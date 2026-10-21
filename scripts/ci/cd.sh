@@ -167,7 +167,7 @@ cmd_preflight() {
 }
 
 # ---------------------------------------------------------------------------------- deploy
-scan_images() ( # receipt local|registry|resume image...; reports survive state sync
+scan_images() ( # receipt local|registry|retained|resume image...; reports survive state sync
   set -euo pipefail
   local build="$1" mode="$2" name config_id reference image_src
   shift 2
@@ -175,7 +175,7 @@ scan_images() ( # receipt local|registry|resume image...; reports survive state 
   local reports="$CD_STATE/scans/g${GITHUB_RUN_ID:-0}x${GITHUB_RUN_ATTEMPT:-1}/$(basename "$build" .json)-$mode"
   mkdir -p "$reports"
   local args=(--receipt "$build" --reports "$reports" --out "$reports/summary.json" --attach)
-  if [ "$mode" = registry ] || [ "$mode" = resume ]; then
+  if [ "$mode" = registry ] || [ "$mode" = retained ] || [ "$mode" = resume ]; then
     # Always rescan retained/resumed immutable digests; never rebuild an old recipe.
     local docker_config
     docker_config=$(mktemp -d)
@@ -185,8 +185,12 @@ scan_images() ( # receipt local|registry|resume image...; reports survive state 
       docker login --username AWS --password-stdin \
         "$CD_ACCOUNT.dkr.ecr.$CD_REGION.amazonaws.com" >/dev/null
   fi
-  if [ "$mode" = registry ]; then
+  if [ "$mode" = registry ] || [ "$mode" = retained ]; then
     args+=(--sha "") # retained owner companions keep their original source
+    # An image this release replaces is a rollback target only: its fixable findings are recorded
+    # as RETAINED_FIXABLE rather than blocking the release that remediates them. Everything else
+    # (an incomplete or wrong report, a scanner failure) still fails.
+    if [ "$mode" = retained ]; then args+=(--retained); fi
   elif [ "$mode" = local ] || [ "$mode" = resume ]; then
     args+=(--sha "$(git rev-parse HEAD)")
   else
@@ -202,7 +206,7 @@ scan_images() ( # receipt local|registry|resume image...; reports survive state 
     config_id=$(jq -er --arg name "$name" '.images[$name].config_id' "$build")
     reference="$config_id"
     image_src=docker
-    if [ "$mode" = registry ] ||
+    if [ "$mode" = registry ] || [ "$mode" = retained ] ||
       { [ "$mode" = resume ] && [ -n "$(journal_value ".deploy.images.$name.digest")" ]; }; then
       reference=$(journal_value ".deploy.images.$name.uri")
       [[ "$reference" == *@sha256:* ]] || fail "No immutable deployed digest for $name"
@@ -427,6 +431,39 @@ cmd_release() {
   release_owner "$owner" "$build" false "${rebuilt[@]}"
 }
 
+# Rescan what runs now, from its deployed immutable digest, before the release moves anything.
+# The candidate was scanned first and must have zero fixable HIGH/CRITICAL (scan_images local, which
+# fails the job), so what a release leaves running is always clean. The baseline is then two things:
+#  - an image the release keeps as it runs stays in production and joins the new set: strict, so
+#    a fixable finding in it still blocks the release (rebuild that image too);
+#  - an image the release replaces is only the rollback target, and its digest cannot be rebuilt.
+#    A fixable finding published after it shipped is recorded loudly (warning, run summary, the
+#    public scan summary and release receipt) instead of blocking the very release that removes it;
+#    blocking would keep the vulnerable image in production. Restoring it is no new exposure, and
+#    the release plan accepts it as a baseline only, never as something to promote.
+scan_baseline() { # baseline "replaced names" name...
+  local baseline="$1" swapped="$2" name replaced=() held=() found
+  shift 2
+  # A summary left by the other owner's release in this run must not read as this one's.
+  rm -f "$PUBLIC/scan-$(basename "$baseline" .json)-retained.json"
+  for name in "$@"; do
+    if [[ " $swapped " == *" $name "* ]]; then replaced+=("$name"); else held+=("$name"); fi
+  done
+  if [ "${#held[@]}" -gt 0 ]; then scan_images "$baseline" registry "${held[@]}"; fi
+  if [ "${#replaced[@]}" -gt 0 ]; then scan_images "$baseline" retained "${replaced[@]}"; fi
+  found=$(retained_findings "$baseline" |
+    jq -r 'map("\(.owner) (source \(.source_sha[:12])): \(.findings | join(", "))") | join("; ")')
+  [ -n "$found" ] || return 0
+  echo "::warning title=Rollback target has fixable HIGH/CRITICAL findings::$found"
+  summary "**Rollback target not clean** (recorded, not gating; this release replaces it): $found"
+}
+
+retained_findings() { # baseline-evidence; JSON list of the rollback-target findings just recorded
+  jq -c '[.images[] | select(.verdict | startswith("RETAINED"))
+      | {owner, source_sha, findings: .fixable_high_critical}]' \
+    "$PUBLIC/scan-$(basename "$1" .json)-retained.json" 2>/dev/null || echo '[]'
+}
+
 # One owner's release on the always-on environment, online: nothing is closed. The release CLI's
 # --online mode holds the online invariant instead of quiescence (consumers and schedules on as
 # recorded). A promoted release is then adopted: its images become the journal's and the stack
@@ -451,7 +488,7 @@ release_owner() { # owner build-evidence automatic rebuilt-image...
   mkdir -m 700 -p "$CD_STATE/release"
   if [ "$automatic" = true ]; then summary "Releasing **$owner**: rebuilt ${rebuilt[*]}."; fi
   scan_images "$build" local "${rebuilt[@]}"
-  scan_images "$baseline" registry "${names[@]}"
+  scan_baseline "$baseline" "${rebuilt[*]}" "${names[@]}"
   local docker_config uri_key repo name kept=()
   docker_config=$(mktemp -d)
   export DOCKER_CONFIG="$docker_config"
@@ -548,9 +585,12 @@ release_owner() { # owner build-evidence automatic rebuilt-image...
     # The plan's task definition revisions stay registered: they cost nothing, and a revision
     # another record still names must never disappear.
   fi
+  # rollback_target_findings: fixable HIGH/CRITICAL ids that the replaced image carried, if any.
   jq -n --arg outcome "$outcome" --arg owner "$owner" --arg release "$rel" \
+    --argjson retained "$(retained_findings "$baseline")" \
     --slurpfile result "$CD_OUT/release-promote.json" \
     '{owner: $owner, release: $release, outcome: $outcome,
+      rollback_target_findings: $retained,
       smoke: ($result[0].result.smoke // $result[0].smoke // null),
       versions: ($result[0].result.versions // null)}' >"$PUBLIC/release-$owner.json" || true
   summary "Release of **$owner**: **$outcome** (online; kept as running: ${kept[*]:-none})"

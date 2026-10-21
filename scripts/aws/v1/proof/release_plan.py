@@ -226,10 +226,13 @@ class Planner:
             repository = self.repository(output)
             digest = self.digest_of(repository, tags[name])
             try:
+                # Only the baseline may be a rollback target that records fixable findings. The
+                # good and bad sets include every image kept as it runs, and those stay strict.
                 trivy = validate_scan(
                     image.get("trivy_scan"),
                     config_id=image["config_id"],
                     source_sha=image["source_sha"],
+                    retained=role == "baseline",
                 )
             except ValueError as error:
                 raise ProofError(str(error)) from None
@@ -250,8 +253,9 @@ class Planner:
                     **trivy,
                     "ecr_status": "COMPLETE",
                     "blocking_high_critical": blocking,
-                    # The release CLI's validator reads this older name; it means the same.
-                    "fixable_high_critical": blocking,
+                    # The release CLI's validator reads this older name; it means the same, and a
+                    # retained baseline's Trivy findings stay visible through it.
+                    "fixable_high_critical": max(blocking, trivy["fixable_high_critical"]),
                     "accepted_high_critical": accepted,
                     "accept_file_sha256": self.accept_sha,
                     "ecr_report_sha256": report,
@@ -268,7 +272,7 @@ class Planner:
                 },
             )
             try:
-                bundle[kind] = registry_receipt(bundle[kind], response)
+                bundle[kind] = registry_receipt(bundle[kind], response, deployed=role == "baseline")
             except OperationError as error:
                 raise ProofError(str(error)) from None
             if bundle[kind]["manifest_digest"] != digest:

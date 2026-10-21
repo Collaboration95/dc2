@@ -6,6 +6,7 @@ import re
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -491,6 +492,32 @@ def test_emergency_teardown_does_not_depend_on_ci_availability(gate):
     assert done.returncode == 0, done.stdout + done.stderr
 
 
+def install_fake_trivy(binary):
+    """A `trivy` whose report is chosen by $SCAN_FAULT; it records its argv in $SCAN_ARGS."""
+    (binary / "trivy").write_text(
+        "#!/usr/bin/env python3\n"
+        "import json, os, pathlib, sys\n"
+        "fault = os.environ['SCAN_FAULT']\n"
+        "pathlib.Path(os.environ['SCAN_ARGS']).write_text(json.dumps(sys.argv[1:]))\n"
+        "if fault == 'error': sys.exit(2)\n"
+        "if fault == 'no-output': sys.exit(0)\n"
+        "config = sys.argv[-1]\n"
+        "# A registry reference is repo@digest; its report names the image's config ID.\n"
+        "if '@' in config: config = os.environ['SCAN_CONFIG']\n"
+        "if fault == 'wrong-config': config = 'sha256:' + '2' * 64\n"
+        "results = [{'Class': 'os-pkgs', 'Type': 'debian'}, "
+        "{'Class': 'lang-pkgs', 'Type': 'python-pkg'}]\n"
+        "if fault in ['os', 'python']:\n"
+        "    results[fault == 'python']['Vulnerabilities'] = "
+        "[{'Severity': 'HIGH', 'FixedVersion': '2', 'VulnerabilityID': 'CVE-X', "
+        "'PkgName': 'libx'}]\n"
+        "if fault == 'incomplete': results.pop()\n"
+        "pathlib.Path(sys.argv[sys.argv.index('--output') + 1]).write_text("
+        "json.dumps({'Metadata': {'ImageID': config}, 'Results': results}))\n"
+    )
+    (binary / "trivy").chmod(0o755)
+
+
 @pytest.mark.parametrize(
     "fault", ["clean", "os", "python", "incomplete", "wrong-config", "error", "no-output"]
 )
@@ -517,24 +544,7 @@ def test_cd_scans_the_selected_exact_candidate_before_publication(tmp_path, faul
     )
     binary = tmp_path / "bin"
     binary.mkdir()
-    (binary / "trivy").write_text(
-        "#!/usr/bin/env python3\n"
-        "import json, os, pathlib, sys\n"
-        "fault = os.environ['SCAN_FAULT']\n"
-        "pathlib.Path(os.environ['SCAN_ARGS']).write_text(json.dumps(sys.argv[1:]))\n"
-        "if fault == 'error': sys.exit(2)\n"
-        "if fault == 'no-output': sys.exit(0)\n"
-        "config = sys.argv[-1] if fault != 'wrong-config' else 'sha256:' + '2' * 64\n"
-        "results = [{'Class': 'os-pkgs', 'Type': 'debian'}, "
-        "{'Class': 'lang-pkgs', 'Type': 'python-pkg'}]\n"
-        "if fault in ['os', 'python']:\n"
-        "    results[fault == 'python']['Vulnerabilities'] = "
-        "[{'Severity': 'HIGH', 'FixedVersion': '2', 'VulnerabilityID': 'CVE-X'}]\n"
-        "if fault == 'incomplete': results.pop()\n"
-        "pathlib.Path(sys.argv[sys.argv.index('--output') + 1]).write_text("
-        "json.dumps({'Metadata': {'ImageID': config}, 'Results': results}))\n"
-    )
-    (binary / "trivy").chmod(0o755)
+    install_fake_trivy(binary)
     output = tmp_path / "public"
     output.mkdir()
     env = {
@@ -543,8 +553,6 @@ def test_cd_scans_the_selected_exact_candidate_before_publication(tmp_path, faul
         "SCAN_FAULT": fault,
         "SCAN_ARGS": str(tmp_path / "argv.json"),
     }
-    import sys
-
     shell = f"""
 set -euo pipefail
 CD_STATE='{tmp_path}'
@@ -578,3 +586,165 @@ def test_cd_installs_the_existing_scanner_only_for_image_delivery(workflow):
     )
     assert "CD_EXECUTE == 'true'" in setup["if"]
     assert setup["with"]["version"] == "v0.70.0"
+
+
+RELEASED_SHA = "e" * 40  # the retained image's own source, not the checkout being released
+REGISTRY_REF = "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/media@sha256:" + "a" * 64
+
+
+@pytest.mark.parametrize("mode", ["registry", "retained"])
+@pytest.mark.parametrize(
+    "fault", ["clean", "os", "python", "incomplete", "wrong-config", "error", "no-output"]
+)
+def test_only_a_replaced_rollback_target_may_record_fixable_findings_on_rescan(
+    tmp_path, mode, fault
+):
+    # The incident: an advisory published after the running image shipped made its rescan fail,
+    # which blocked the release that fixes it. A replaced rollback target now records the finding;
+    # a kept image is still gated, and a scanner problem or a bad report fails in both modes.
+    if not shutil.which("jq"):
+        pytest.skip("jq is not installed")
+    config_id = "sha256:" + "1" * 64
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "deploy-journal.json").write_text(
+        json.dumps({"deploy": {"images": {"media": {"uri": REGISTRY_REF}}}})
+    )
+    build = tmp_path / "build-baseline.json"
+    build.write_text(
+        json.dumps(
+            {
+                "status": "LOCAL_ARTIFACT_PASS",
+                "images": {
+                    "media": {
+                        "config_id": config_id,
+                        "source_sha": RELEASED_SHA,
+                        "trivy_scan": {"status": "PASS"},
+                    }
+                },
+            }
+        )
+    )
+    binary = tmp_path / "bin"
+    binary.mkdir()
+    install_fake_trivy(binary)
+    for tool, body in (("aws", "echo token"), ("docker", "cat >/dev/null")):
+        (binary / tool).write_text(f"#!/bin/sh\n{body}\n")
+        (binary / tool).chmod(0o755)
+    public = tmp_path / "public"
+    public.mkdir()
+    env = {
+        **os.environ,
+        "PATH": f"{binary}:{os.environ['PATH']}",
+        "SCAN_FAULT": fault,
+        "SCAN_CONFIG": config_id,
+        "SCAN_ARGS": str(tmp_path / "argv.json"),
+    }
+    shell = f"""
+set -euo pipefail
+CD_STATE='{state}'
+PUBLIC='{public}'
+PY='{sys.executable}'
+CD_ACCOUNT=123456789012 CD_REGION=ap-southeast-1 CD_PROFILE=none
+fail() {{ echo "FAIL: $*"; exit 1; }}
+{script_function("journal_value")}
+{script_function("scan_images")}
+scan_images '{build}' {mode} media
+"""
+    done = subprocess.run(["bash", "-c", shell], env=env, cwd=ROOT, capture_output=True, text=True)
+    recorded = mode == "retained" and fault in ("os", "python")
+    assert (done.returncode == 0) is (fault == "clean" or recorded), done.stdout + done.stderr
+    argv = json.loads((tmp_path / "argv.json").read_text())
+    assert argv[argv.index("--image-src") + 1] == "remote" and argv[-1] == REGISTRY_REF
+    scan = json.loads(build.read_text())["images"]["media"]["trivy_scan"]
+    if fault == "clean" or recorded:
+        # Keeps its own source SHA, never the commit being released; the summary is published.
+        assert scan["source_sha"] == RELEASED_SHA and scan["config_id"] == config_id
+        assert (public / f"scan-build-baseline-{mode}.json").is_file()
+    else:
+        assert scan["status"] not in ("PASS", "RETAINED_FIXABLE")
+        assert not list(public.iterdir())
+    if recorded:
+        assert scan["status"] == "RETAINED_FIXABLE" and scan["fixable_high_critical"] == 1
+        assert scan["fixable_ids"] == ["CVE-X libx"]
+    elif fault == "clean":
+        assert scan["status"] == "PASS" and scan["fixable_high_critical"] == 0
+
+
+def baseline_scan_run(tmp_path, rebuilt, names, *, retained, stale=False):
+    """scan_baseline with scan_images stubbed: the calls it makes and what it announces."""
+    public = tmp_path / "public"
+    public.mkdir(exist_ok=True)
+    summary = {
+        "images": [
+            {
+                "owner": names[0],
+                "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+                "verdict": "RETAINED: 1 fixable HIGH/CRITICAL" if retained else "PASS",
+                "fixable_high_critical": ["GHSA-6q48-6c7w-9gw2 certifi"] if retained else [],
+            }
+        ]
+    }
+    if stale:  # another owner's release in this run left it
+        (public / "scan-build-baseline-retained.json").write_text(
+            json.dumps({**summary, "images": [{**summary["images"][0], "verdict": "RETAINED: 1"}]})
+        )
+    shell = f"""
+set -euo pipefail
+PUBLIC='{public}'
+summary() {{ echo "SUMMARY $*"; }}
+scan_images() {{
+  echo "SCAN $2 ${{*:3}}"
+  if [ "$2" = retained ]; then
+    echo '{json.dumps(summary)}' >"$PUBLIC/scan-$(basename "$1" .json)-$2.json"
+  fi
+}}
+{script_function("retained_findings")}
+{script_function("scan_baseline")}
+scan_baseline /state/build-baseline.json '{rebuilt}' {" ".join(names)}
+"""
+    done = subprocess.run(["bash", "-c", shell], capture_output=True, text=True)
+    assert done.returncode == 0, done.stdout + done.stderr
+    return done.stdout.splitlines()
+
+
+@pytest.mark.parametrize(
+    ("rebuilt", "names", "scans"),
+    [
+        ("media", ["media"], ["SCAN retained media"]),
+        ("worker", ["processing", "worker"], ["SCAN registry processing", "SCAN retained worker"]),
+        ("processing worker", ["processing", "worker"], ["SCAN retained processing worker"]),
+    ],
+)
+def test_a_release_gates_what_it_keeps_and_only_records_what_it_replaces(
+    tmp_path, rebuilt, names, scans
+):
+    if not shutil.which("jq"):
+        pytest.skip("jq is not installed")
+    lines = baseline_scan_run(tmp_path, rebuilt, names, retained=True)
+    assert lines[: len(scans)] == scans
+    # Loud: a workflow warning naming the image, its source and the finding, and a run summary.
+    warning = next(line for line in lines if line.startswith("::warning"))
+    assert (
+        "GHSA-6q48-6c7w-9gw2 certifi" in warning and f"{names[0]} (source 629119c5b3bd)" in warning
+    )
+    assert any(line.startswith("SUMMARY **Rollback target not clean**") for line in lines)
+
+
+def test_a_clean_rollback_target_announces_nothing_and_a_stale_summary_is_not_reused(tmp_path):
+    if not shutil.which("jq"):
+        pytest.skip("jq is not installed")
+    assert baseline_scan_run(tmp_path, "media", ["media"], retained=False) == [
+        "SCAN retained media"
+    ]
+    # Nothing replaced here (only a kept image is scanned): the earlier owner's file is ignored.
+    assert baseline_scan_run(tmp_path, "worker", ["processing"], retained=True, stale=True) == [
+        "SCAN registry processing"
+    ]
+
+
+def test_the_candidate_is_gated_before_the_rollback_target_and_the_receipt_records_findings():
+    release = script_function("release_owner")
+    assert release.index('scan_images "$build" local') < release.index("scan_baseline")
+    assert 'scan_baseline "$baseline" "${rebuilt[*]}" "${names[@]}"' in release
+    assert "rollback_target_findings" in release
