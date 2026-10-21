@@ -1,0 +1,36 @@
+classDiagram
+  direction LR
+  class User
+  class Asset
+  class UploadReservation
+  class SourceVersion
+  class ProcessingProjection
+  class Job
+  class Attempt
+  class SubmissionGuard
+  class RetryRequest
+  class AttemptTask
+  class Output
+  class Actor
+  class Envelope
+  class Source
+  class LauncherControl
+  class LaunchReservation
+  class Planner
+  class Journal
+  class CLITransport
+  User "1" --> "0..*" Asset : owner_id
+  Asset "1" --> "0..1" UploadReservation : adopted upload
+  Asset "1" --> "0..1" SourceVersion : derived source pin
+  Asset "1" --> "0..1" ProcessingProjection : owned read model
+  Job "1" --> "1..*" Attempt : current and prior attempts
+  Job "1" --> "1" SubmissionGuard : serialized by asset
+  Job "1" --> "0..*" RetryRequest : request idempotency
+  Attempt "1" --> "0..1" AttemptTask : finite worker binding
+  Job "1" --> "0..*" Output : terminal descriptors
+  Actor ..> Asset : scopes owner API access
+  Envelope --> Source : immutable source reference
+  LauncherControl "1" --> "0..*" LaunchReservation : caps outstanding slots
+  LaunchReservation ..> AttemptTask : resolves finite task identity
+  Planner --> CLITransport : verifies registry and task receipts
+  Planner --> Journal : reads deployed baseline

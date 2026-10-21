@@ -1,0 +1,23 @@
+sequenceDiagram
+  actor Owner
+  participant Client as Web or Publisher
+  participant Media as Media capability
+  participant Processing as Processing capability
+  participant Worker as Encoder
+  participant Playback as Authorized playback
+  Owner->>Client: choose supported video
+  Client->>Media: authenticate, submit and finalize
+  Media-->>Client: accepted Asset / job reference
+  Media->>Processing: request asynchronous work
+  Processing->>Worker: prepare one Attempt
+  Worker-->>Processing: terminal state, MP4 and optional HLS
+  Processing-->>Media: state and output description
+  Owner->>Media: read own status
+  Media-->>Owner: state and authorized output access
+  Owner->>Playback: play MP4 or available HLS
+  alt invalid, expired or unowned request
+    Media-->>Client: refusal, no Asset or work accepted
+  else processing fails
+    Processing-->>Media: visible failed state
+    Media-->>Owner: failed, stored-source retry is available
+  end

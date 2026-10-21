@@ -1,0 +1,19 @@
+sequenceDiagram
+  actor Maya
+  participant Publisher as Publisher CLI
+  participant Media as Media capability
+  participant Processing as Processing capability
+  loop each eligible file (UC-5)
+    Publisher->>Media: submit one owned video
+    alt accepted
+      Media-->>Publisher: job reference
+    else rejected or transport error
+      Publisher->>Publisher: retain this file's failure and continue
+    end
+  end
+  opt a previously accepted job failed (UC-4)
+    Maya->>Media: retry with request key, no file bytes
+    Media->>Processing: retry stored source
+    Processing-->>Media: same attempt on replay, otherwise new attempt
+    Media-->>Maya: retry outcome
+  end

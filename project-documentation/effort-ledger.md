@@ -42,7 +42,12 @@ the other two members' work.
 | 11 | Release freeze and evidence index (#255, #189; not in the proposal) | 0 | | | 1 | 1 |
 | | **Total** | **31** | **11** | **11** | **11** | **33** |
 
-Project 2 to date: 33 pd (264 h), **11 pd (88 h) per member**. The total is 2 pd over the 31 pd
+Project 2 to date: 33 pd (264 h), **11 pd (88 h) per member**.
+
+Forecast at submission (recorded 21 October 2026 for the final report §2.3): work package 10 adds
+1 pd per member for rehearsal, the presentation and the feedback revision of the final report, so
+**36 pd (288 h) in total, 12 pd (96 h) per member**, about 16 % over the 31 pd estimate. The final
+report v1.0 was completed on 21 October (`project-documentation/final-report/`). The total is 2 pd over the 31 pd
 estimate. Work package 7 grew from 4 to 6 pd because the CD workflow (#178) was added on 18–19
 October. The close-out fixes also added time: the CD script bugs, the Aurora pause and the queue
 drain. Processing and boundary security came in 1 pd under their estimates each. The presentation and the final report will add
@@ -51,9 +56,15 @@ effort after 20 October. Update this table when they are done.
 ## Project 1 effort
 
 Team 17 combines members from two Project 1 teams. Prof Boon Kui Heng approved the three-member team
-on 22 September 2026 (Team17-Proposal §1). Project 2 does not continue any member's own Project 1
-work. As the proposal states, it carries over the frozen code of a different Project 1, FlickPond
-(`Flickpond/Media_player`, commit `890c5ec`), and uses it as the baseline (Team17-Proposal §1, §4.4).
+on 22 September 2026 (Team17-Proposal §1). Project 2 carries over the frozen code of the FlickPond
+Project 1 (`Flickpond/Media_player`, commit `890c5ec`; local working baseline `8854537`, D-01) and uses
+it as the baseline (Team17-Proposal §1, §4.4). FlickPond was built by a five-member team that included
+Ibrahim Mammadov (track A). For Guruprasath Gopal and Nguyen Kim Long it is a different team's project.
+Project 2 does not continue any Project 1 feature work for any member: it starts from the frozen code.
+
+Resolved 21 October 2026 for the final report (§1.1, §2.3): the earlier sentence "Project 2 does not
+continue any member's own Project 1 work" conflicted with the track A row above. The wording now states
+both facts.
 
 - **Carried over, not claimed:** FFmpeg processing, HLS output, worker replicas and the basic CI
   workflow are inherited FlickPond capabilities. They are not counted as Project 2 effort, and

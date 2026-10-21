@@ -1,0 +1,20 @@
+classDiagram
+  direction LR
+  class Owner
+  class UploadRequest
+  class OwnedAsset
+  class ProcessingJob
+  class ProcessingAttempt
+  class PlayableOutput
+  class IntegrationBatch
+  class Operator
+  class ProcessingCapacity
+  class ReleaseCandidate
+  Owner "1" --> "0..*" OwnedAsset : owns
+  UploadRequest "1" --> "0..1" OwnedAsset : accepted as
+  OwnedAsset "1" --> "0..1" ProcessingJob : requests
+  ProcessingJob "1" --> "1..*" ProcessingAttempt : tried by
+  ProcessingJob "1" --> "0..*" PlayableOutput : produces
+  IntegrationBatch "1" --> "0..*" UploadRequest : submits
+  Operator --> ProcessingCapacity : changes / observes
+  Operator --> ReleaseCandidate : promotes / restores

@@ -1,0 +1,31 @@
+flowchart TB
+  subgraph clients["Producers and consumers"]
+    direction TB
+    web["Web app"]
+    cli["Publisher CLI"]
+  end
+  subgraph media["Media Management context · media_db"]
+    direction TB
+    asset["Asset aggregate<br/>Asset, UploadReservation,<br/>SourceVersion, RequestKey,<br/>CleanupIntent"]
+    acl["Translation layer<br/>asset → submit command<br/>result → projection"]
+    proj[("ProcessingProjection<br/>owned read model")]
+  end
+  lang[["Published language: contracts/<br/>Envelope v1, Source, Actor<br/>OpenAPI 1.0.0"]]
+  subgraph proc["Processing context · processing_db"]
+    direction TB
+    guard["SubmissionGuard<br/>one per asset"]
+    job["ProcessingJob aggregate<br/>Job, Attempt, RetryRequest,<br/>AttemptTask, CleanupIntent"]
+    enc["Finite encoder<br/>(execution role)"]
+  end
+  web --> asset
+  cli --> asset
+  web -. "job status, retry, cancel" .-> job
+  asset --> acl
+  acl -- "submit / retry / cancel<br/>(processing-commands)" --> guard
+  guard --> job
+  job -- "work (processing-work)" --> enc
+  enc -- "claim, finish (SQL)" --> job
+  job -- "result snapshot (media-results)" --> acl
+  acl --> proj
+  lang -.- acl
+  lang -.- guard
