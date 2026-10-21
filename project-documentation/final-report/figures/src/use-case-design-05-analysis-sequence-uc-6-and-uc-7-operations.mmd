@@ -1,0 +1,17 @@
+sequenceDiagram
+  actor Sam
+  participant Operations as Platform operations
+  participant Media as Media Management
+  participant Processing as Processing
+  Sam->>Operations: observe backlog / choose bounded capacity experiment
+  Operations->>Processing: vary finite worker capacity
+  Note over Media,Processing: Media stays unchanged while Processing capacity varies
+  Sam->>Operations: propose a Processing image release
+  Operations->>Processing: promote candidate and run smoke
+  alt smoke succeeds
+    Operations-->>Sam: exact release and smoke result
+  else candidate smoke fails after promotion
+    Operations->>Processing: restore previous image
+    Operations-->>Sam: restored or recovery still required
+  end
+  Note over Sam,Operations: A failed admission gate stops before promotion, no restore is needed

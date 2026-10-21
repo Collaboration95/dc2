@@ -45,6 +45,8 @@ Status values: **Kept** (as proposed), **Changed** (same intent, different mecha
 | AD-24 | `contracts/` as published language and shared kernel, with an N / N-1 versioning policy | New | Either service can be released first for additive changes |
 | AD-25 | Per-service alarms and one services dashboard | New | Failures are attributable to one service |
 | AD-26 | Retired peer-HTTP and Redis/RQ code quarantined in `legacy/`, kept out of V1 images | New | The submission shows no dead dependency between the services |
+| AD-27 | One persistent always-on environment, updated in place, scaling to zero | New (supersedes AD-19) | Per-run stacks cost a full deploy and teardown per check; the stack already costs about USD 3-5 a month idle |
+| AD-28 | Release admission rescans the replaced rollback image and records, rather than blocks on, fixable findings published after it shipped | New (21 October) | A candidate that remediates a new advisory must be able to replace the vulnerable image it fixes |
 
 ## 2. Decisions carried from the proposal
 
@@ -453,6 +455,37 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   `ProcessingLauncherInvokers`), `processing/launcher_trigger.py`, `scripts/ci/cd.sh`;
   [Local] `tests/aws/v1/test_persistent_environment.py`, `tests/v1/test_launcher_sql.py`.
   [AWS] pending the live verification (#238).
+
+### AD-28 Release admission records fixable findings on a replaced rollback image instead of blocking its release
+
+- **Context.** `scripts/ci/cd.sh:release_owner` scans the new candidate, then rescans the image
+  that is running now (the rollback baseline) from its immutable ECR digest. On 21 October CD run
+  39532075705 (Main `4ae6a0b`) failed with `media: FAIL: Trivy has 1 fixable HIGH/CRITICAL`. The
+  candidate passed. The finding was on the running Media image (`sha256:24bd78a8...`, built from
+  `629119c`): GHSA-6q48-6c7w-9gw2 in `certifi 2026.7.22`, published 2026-10-20T19:35Z after that
+  image shipped and fixed by the candidate (`certifi 2026.10.19`, commit `94f7463`). The gate
+  refused to replace a vulnerable image because it was vulnerable, so the fix could never ship.
+- **Decision.** The candidate must still scan to zero fixable HIGH/CRITICAL first. Baseline images
+  the release **keeps** are rescanned strictly. Baseline images the release **replaces** are
+  rescanned in `--retained` mode: fixable findings become `trivy_scan.status = RETAINED_FIXABLE`
+  with their ids, the run is annotated (`::warning::` and job summary) and the release receipt lists
+  them as `rollback_target_findings`. Only the release plan's `baseline` role accepts that status;
+  promote, the good and bad sets and publication still require `PASS`. Scanner errors and incomplete
+  or wrong-image reports fail in both modes.
+- **Alternatives.** A per-advisory accept-list entry (a hand-edited exemption for every new advisory,
+  and the rule is that a fixable finding is fixed by rebuilding, not accepted); rebuilding the
+  baseline (an immutable digest is never rebuilt, and a rebuild is not what actually runs);
+  dropping the baseline scan (loses the record).
+- **Trade-off.** An emergency restore can put back an image with a recorded fixable finding. That
+  adds no exposure beyond what was already running, and the finding is visible in the receipt. A
+  release that rebuilds only one of an owner's images still blocks on a fixable finding in the image
+  it keeps, by design.
+- **Evidence.** [Code] `scripts/ci/cd.sh` (`scan_baseline`), `scripts/ci/v1_scan.py` (`--retained`),
+  `scripts/aws/artifacts.py`, `scripts/aws/v1/proof/release_plan.py`. [Local]
+  `tests/ci/test_v1_scan.py`, `tests/aws/test_artifacts.py`, `tests/aws/v1/test_release_plan.py`,
+  `tests/dev/test_cd_workflow.py`; the real baseline report from run 39532075705 replayed through the
+  scanner gives `FAIL` strict and `RETAINED_FIXABLE` retained. PR #285 into `dev/closeout`, #286 into
+  `Main`. [AWS] the redelivery is recorded in `docs/release/engineering-handoff.md`.
 
 ## 4. Proposal to as-built deviations
 

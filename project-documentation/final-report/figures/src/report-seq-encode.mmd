@@ -1,0 +1,24 @@
+%%{init: {"sequence": {"wrap": true, "width": 130, "actorMargin": 40, "messageMargin": 28, "noteMargin": 6}}}%%
+sequenceDiagram
+  autonumber
+  participant MR as MediaRepair<br/>(1-min tick)
+  participant Q as SQS
+  participant PC as Processing<br/>Commands
+  participant PDB as processing_db
+  participant L as Processing<br/>Launcher
+  participant E as Fargate encoder
+  participant S as S3 buckets
+  MR->>Q: claim outbox row, send submit (processing-commands)
+  Q->>PC: event source mapping
+  PC->>PDB: inbox, guard, Job + Attempt 1 queued, outbox work + result v1
+  PC->>Q: work (processing-work), result v1 (media-results)
+  PC->>L: wake (async invoke)
+  L->>PDB: reserve launch slot (cap 3)
+  L->>E: RunTask with stable token and deadline
+  E->>Q: receive work
+  E->>PDB: claim: lease on DB clock, bind task, processing, outbox result v2
+  E->>S: GET source at pinned VersionId, verify SHA-256
+  E->>E: ffprobe, MP4, HLS ladder (≤ source height)
+  E->>S: PUT jobs/{job}/attempts/{attempt}/...
+  E->>PDB: finish under live lease: done, outputs, outbox result v3
+  E->>Q: delete work message, exit when idle

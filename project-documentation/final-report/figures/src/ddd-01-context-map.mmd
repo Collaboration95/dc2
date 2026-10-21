@@ -1,0 +1,29 @@
+%% img: ddd-context-map
+flowchart TB
+  subgraph clients["Producers and consumers (public API only)"]
+    web["Web app"]
+    cli["Publisher CLI"]
+  end
+  subgraph media["Media Management context (media_db)"]
+    asset["Asset aggregate<br/>Asset, UploadReservation, SourceVersion,<br/>RequestKey, CleanupIntent"]
+    acl["Translation layer<br/>Asset to submit command,<br/>result to projection"]
+    proj[("ProcessingProjection<br/>owned read model")]
+  end
+  subgraph proc["Processing context (processing_db)"]
+    job["ProcessingJob aggregate<br/>Job, Attempt, RetryRequest,<br/>CleanupIntent, AttemptTask"]
+    guard["SubmissionGuard<br/>one per asset"]
+  end
+  lang[["Published language: contracts/<br/>Envelope v1, Source, Actor; OpenAPI v1.0.0"]]
+  enc["Finite encoder<br/>(execution role)"]
+  web --> media
+  cli --> media
+  web -. "job status, retry, cancel" .-> proc
+  asset --> acl
+  acl -- "submit / retry / cancel<br/>queue processing-commands" --> guard
+  guard --> job
+  job -- "work<br/>queue processing-work" --> enc
+  enc -- "claim, finish (SQL)" --> job
+  job -- "result snapshot<br/>queue media-results" --> acl
+  acl --> proj
+  lang -.- acl
+  lang -.- job

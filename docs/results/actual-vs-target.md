@@ -100,7 +100,7 @@ scenario-by-scenario record, including every historical FAIL and NOT_RUN, is
 
 | ID | Scenario | Environment and source | Workload | Timing boundary | Target | Observed | Verdict | Receipt | Note |
 |---|---|---|---|---|---|---|---|---|---|
-| SE-1 | Negative tests rejected (AWS checks run) | AWS V1 r1017b and r1018b; runs r1017b and r1018b | anonymous, forged identity, direct SQS send, cross-database, CORS | per check | 100% rejected | all checks run rejected | PASS (checks run) | [cloud-proof-r1018b.json](../execution/aws/v1/evidence/cloud-proof-r1018b.json) `#63` | Not run on AWS: two-user ownership (S2), expired/tampered presigned URLs (S5c), 100 MiB limit on real S3 bytes (S6), external port scan (S7). #229 acceptance is outstanding. |
+| SE-1 | Negative tests rejected (AWS checks run) | AWS V1 r1017b and r1018b; runs r1017b and r1018b | anonymous, forged identity, direct SQS send, cross-database, CORS | per check | 100% rejected | all checks run rejected | PASS (checks run) | [cloud-proof-r1018b.json](../execution/aws/v1/evidence/cloud-proof-r1018b.json) `#63` | Not run on AWS: two-user ownership (S2), expired/tampered presigned URLs (S5c), 100 MiB limit on real S3 bytes (S6), external port scan (S7). These four were later run and passed on dc2-live (#229, closed 19 Oct): see LV-6. |
 | SE-2 | Fixable HIGH/CRITICAL image findings at release | CI and AWS r1018b releases; Trivy with ignore-unfixed; ECR scan gate | three images | at release | 0 count | 0 count | PASS | [scan-accepted-unfixed-20261017.json](../execution/aws/v1/scan-accepted-unfixed-20261017.json) | 14 unfixed findings are accepted (one CRITICAL) and still ship; the target counts fixable ones only. |
 
 ### Reuse

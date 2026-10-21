@@ -1,0 +1,58 @@
+sequenceDiagram
+  autonumber
+  actor Owner
+  participant Client as Browser or Publisher
+  participant GW as API Gateway
+  participant Auth as MediaAuthorizer
+  participant Media as MediaApi
+  participant MDB as media_db
+  participant Source as Versioned source S3
+  participant Repair as MediaRepair
+  participant Q as SQS queues
+  participant Command as ProcessingCommands
+  participant PDB as processing_db
+  participant Launcher as V2 backlog launcher
+  participant Worker as Finite Fargate encoder
+  participant Results as MediaResults
+  participant Output as Versioned output S3
+  Owner->>Client: authenticate and submit
+  Client->>GW: reserve / finalize request with cookie
+  GW->>Auth: verify current user and role
+  Auth->>MDB: read user row
+  GW->>Media: invoke with trusted Actor context
+  Media->>MDB: reserve key and request identity
+  Media-->>Client: reservation and scoped upload grant
+  Client->>Source: upload bytes directly
+  Client->>GW: finalize reservation
+  Media->>Source: inspect and hash exact object version (outside row lock)
+  Media->>MDB: transaction: pin + Asset + submit outbox
+  Media-->>Client: 202 Asset/job reference
+  Repair->>MDB: reserve due outbox row, commit claim
+  Repair->>Q: send submit, update row under claim token
+  Q->>Command: deliver command
+  Command->>PDB: transaction: inbox + guard + Job + Attempt + work/result outbox
+  Command->>Q: publish work and queued result through outbox
+  Command-->>Launcher: wake on work send
+  Launcher->>Q: check visible backlog
+  Launcher->>PDB: reserve a worker slot under cap 3
+  Launcher->>Worker: RunTask with stable token and finite deadline
+  Worker->>Q: receive one work message
+  Worker->>PDB: claim current Attempt, bind task and lease
+  Worker->>Source: GET pinned VersionId, verify digest
+  Worker->>Worker: probe and encode MP4, attempt optional HLS
+  Worker->>Output: write job/attempt-scoped output versions
+  Worker->>PDB: finish under live lease, state + result outbox
+  Worker->>Q: delete work only after durable outcome
+  Note over PDB,Q: Repair/event hints publish result outbox, worker cannot send results
+  Q->>Results: deliver result at least once
+  Results->>MDB: inbox + version/attempt-fenced projection commit
+  Owner->>GW: GET own job status
+  GW->>Media: trusted Actor context
+  Media->>MDB: owner-filtered Asset + local projection
+  Media-->>Owner: status and signed MP4 link, optional HLS route
+  Owner->>Output: range-read MP4, HLS segments use signed redirects
+  alt missing or refused upload object
+    Media-->>Client: error, no Asset adoption and no submit outbox
+  else stale / duplicate result
+    Results->>MDB: ignore old version or reject conflicting message
+  end

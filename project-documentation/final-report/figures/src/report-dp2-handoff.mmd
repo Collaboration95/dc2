@@ -1,0 +1,20 @@
+flowchart LR
+  subgraph before["Before: proposal design (AD-03, AD-04, AD-06)"]
+    direction TB
+    p1["Media API"] -- "HTTP SubmitJob<br/>+ service token" --> p2["Processing API"]
+    p2 --> p3[("Redis / RQ")]
+    p3 --> p4["Always-on worker"]
+    p1 -. "GetJob per poll" .-> p2
+  end
+  subgraph after["After: as built (AD-11, AD-21)"]
+    direction TB
+    m1["Media finalize:<br/>one transaction<br/>Asset + outbox row"] --> m2["MediaRepair publisher<br/>SKIP LOCKED, claim token"]
+    m2 --> q1[["SQS processing-commands"]]
+    q1 --> c1["ProcessingCommands:<br/>inbox + Job/Attempt + outbox"]
+    c1 --> q2[["SQS processing-work"]]
+    q2 --> e1["Finite encoder:<br/>lease, encode, finish in SQL"]
+    e1 --> c2["Processing outbox<br/>(repair or event publisher)"]
+    c2 --> q3[["SQS media-results"]]
+    q3 --> r1["MediaResults:<br/>inbox + projection (state_version)"]
+  end
+  before ~~~ after

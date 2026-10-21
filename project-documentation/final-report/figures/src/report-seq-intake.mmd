@@ -1,0 +1,19 @@
+%%{init: {"sequence": {"wrap": true, "width": 130, "actorMargin": 40, "messageMargin": 28, "noteMargin": 6}}}%%
+sequenceDiagram
+  autonumber
+  actor C as Browser or Publisher
+  participant G as Gateway + MediaAuthorizer
+  participant M as MediaApi
+  participant DB as media_db
+  participant S as S3 source bucket
+  C->>G: POST /api/media/uploads/reservations (cookie)
+  G->>DB: authorizer reads current user row
+  G->>M: invoke with trusted actor {owner_id, role}
+  M->>DB: insert UploadReservation (15 min, server-chosen key)
+  M-->>C: reservation_id, asset_id, presigned POST
+  C->>S: POST bytes with presigned fields (no cookie, no API)
+  C->>G: POST .../reservations/{id}/finalize
+  G->>M: invoke with actor
+  M->>S: HEAD, then GET at VersionId: size, SHA-256, signature
+  M->>DB: one transaction: pin VersionId, insert Asset, stage submit in outbox
+  M-->>C: 202 Accepted, job_id = asset_id

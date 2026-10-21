@@ -1,0 +1,43 @@
+sequenceDiagram
+  actor Sam
+  participant Main as Main CI
+  participant CD as CD workflow
+  participant Deploy as Persistent stack deploy
+  participant Release as Per-owner release journal
+  participant Image as Immutable image / registry
+  participant Smoke as Release smoke
+  participant DB as SQL backlog / launch reservations
+  participant Q as SQS work queue
+  participant Launcher as Backlog launcher
+  participant Publisher as Processing work publisher
+  participant ECS as Fargate tasks
+  alt UC-6: capacity follows backlog within fixed cap
+    Publisher->>Launcher: async wake after work send, periodic tick is fallback
+    Launcher->>Q: check visible demand
+    Launcher->>DB: reserve bounded slots under row lock
+    Launcher->>ECS: RunTask with stable client token
+    opt RunTask reply is lost
+      Launcher->>DB: keep reservation until token inventory resolves it
+      Launcher->>ECS: inspect same token, never blindly launch twice
+    end
+    ECS-->>DB: task claims one Attempt under its lease
+    Note over DB,ECS: concurrent wakes share the SQL cap, at most three workers
+  else UC-7: release an owner after CI
+    Main->>CD: green Main CI identity
+    CD->>Deploy: CloudFormation UPDATE, reject unapproved state replacement
+    CD->>Release: lock + durable pending owner intent
+    Release->>Image: verify tested digest and scan evidence
+    Release->>DB: check schema compatibility / migration fence
+    Release->>ECS: update only Processing-owned task definition if needed
+    Release->>Smoke: move owner aliases and run smoke
+    alt smoke and gates pass
+      Smoke-->>Release: pass, record and adopt exact release
+      Release-->>CD: success, peer owner unchanged
+    else smoke fails
+      Smoke-->>Release: failure
+      Release->>Image: restore previous owner image and alias state
+      Release-->>CD: restored or recovery intent retained
+    end
+    Note over Release,DB: image rollback only, schema is not automatically reversed
+    Sam->>CD: session close remains an emergency gate, closed gate defers release
+  end

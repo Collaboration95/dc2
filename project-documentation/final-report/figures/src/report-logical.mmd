@@ -1,0 +1,38 @@
+flowchart TB
+  subgraph CE["Client and edge tiers"]
+    direction LR
+    web["Browser SPA<br/>frontend/"] --> cf["CloudFront"]
+    cli["Publisher CLI<br/>publisher/"] --> gw
+    cf --> gw["API Gateway<br/>/api/media · /api/processing"]
+    gw --> az["Authorizer<br/>(Media-owned)"]
+  end
+  subgraph A["Application tier: two domain services and a shared kernel"]
+    direction LR
+    subgraph M["Media Management"]
+      direction TB
+      m1["API: media/api"] --> m2["Domain: direct_intake,<br/>v1_lifecycle, projections"] --> m3["Persistence: models,<br/>repositories, migrations"]
+    end
+    k["Shared kernel<br/>contracts/ · delivery/<br/>runtime_support/"]
+    subgraph P["Processing"]
+      direction TB
+      p1["API: v1_api"] --> p2["Domain: messaging, lifecycle,<br/>launcher, recovery"] --> p3["Persistence: models,<br/>migrations"]
+      w["Finite encoder:<br/>worker + media_engine"] --> p2
+    end
+  end
+  subgraph D["Data tier"]
+    direction LR
+    q[("SQS: commands, work,<br/>results + DLQs")]
+    db[("Aurora: media_db ·<br/>processing_db")]
+    s3[("S3: source, output,<br/>frontend")]
+  end
+  gw --> m1
+  gw --> p1
+  m2 -.- k
+  p2 -.- k
+  m2 --> q
+  p2 --> q
+  m3 --> db
+  p3 --> db
+  m2 --> s3
+  w --> s3
+  w --> q

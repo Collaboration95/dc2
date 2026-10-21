@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" font-family="Arial, Helvetica, sans-serif">
+<rect width="900" height="420" fill="#ffffff"/>
+<text x="70" y="24" font-size="16" font-weight="bold" fill="#1f1f1f">GitHub issues, cumulative opened and closed per day (UTC), 12–21 October 2026</text>
+<line x1="70" x2="750" y1="360.0" y2="360.0" stroke="#e6e6e3" stroke-width="1"/>
+<text x="60" y="364.0" font-size="12" text-anchor="end" fill="#5c5c58">0</text>
+<line x1="70" x2="750" y1="282.5" y2="282.5" stroke="#e6e6e3" stroke-width="1"/>
+<text x="60" y="286.5" font-size="12" text-anchor="end" fill="#5c5c58">40</text>
+<line x1="70" x2="750" y1="205.0" y2="205.0" stroke="#e6e6e3" stroke-width="1"/>
+<text x="60" y="209.0" font-size="12" text-anchor="end" fill="#5c5c58">80</text>
+<line x1="70" x2="750" y1="127.5" y2="127.5" stroke="#e6e6e3" stroke-width="1"/>
+<text x="60" y="131.5" font-size="12" text-anchor="end" fill="#5c5c58">120</text>
+<line x1="70" x2="750" y1="50.0" y2="50.0" stroke="#e6e6e3" stroke-width="1"/>
+<text x="60" y="54.0" font-size="12" text-anchor="end" fill="#5c5c58">160</text>
+<line x1="70" x2="750" y1="360.0" y2="360.0" stroke="#8a8a85" stroke-width="1"/>
+<text x="70.0" y="380.0" font-size="12" text-anchor="middle" fill="#5c5c58">12 Oct</text>
+<text x="145.6" y="380.0" font-size="12" text-anchor="middle" fill="#5c5c58">13 Oct</text>
+<text x="221.1" y="380.0" font-size="12" text-anchor="middle" fill="#5c5c58">14 Oct</text>
+<text x="296.7" y="380.0" font-size="12" text-anchor="middle" fill="#5c5c58">15 Oct</text>
+<text x="372.2" y="380.0" font-size="12" text-anchor="middle" fill="#5c5c58">16 Oct</text>
+<text x="447.8" y="380.0" font-size="12" text-anchor="middle" fill="#5c5c58">17 Oct</text>
+<text x="523.3" y="380.0" font-size="12" text-anchor="middle" fill="#5c5c58">18 Oct</text>
+<text x="598.9" y="380.0" font-size="12" text-anchor="middle" fill="#5c5c58">19 Oct</text>
+<text x="674.4" y="380.0" font-size="12" text-anchor="middle" fill="#5c5c58">20 Oct</text>
+<text x="750.0" y="380.0" font-size="12" text-anchor="middle" fill="#5c5c58">21 Oct</text>
+<text x="18" y="205.0" font-size="12" fill="#5c5c58" transform="rotate(-90 18 205.0)" text-anchor="middle">Issues (count)</text>
+<polyline points="70.0,313.5 145.6,301.9 221.1,247.6 296.7,216.6 372.2,175.9 447.8,106.2 523.3,61.6 598.9,57.8 674.4,57.8 750.0,57.8" fill="none" stroke="#2a78d6" stroke-width="2.5"/>
+<circle cx="70.0" cy="313.5" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
+<circle cx="145.6" cy="301.9" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
+<circle cx="221.1" cy="247.6" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
+<circle cx="296.7" cy="216.6" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
+<circle cx="372.2" cy="175.9" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
+<circle cx="447.8" cy="106.2" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
+<circle cx="523.3" cy="61.6" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
+<circle cx="598.9" cy="57.8" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
+<circle cx="674.4" cy="57.8" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
+<circle cx="750.0" cy="57.8" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
+<text x="762.0" y="53.8" font-size="13" fill="#1f1f1f">Opened (scope): 156</text>
+<polyline points="70.0,325.1 145.6,307.7 221.1,270.9 296.7,268.9 372.2,203.1 447.8,137.2 523.3,92.6 598.9,79.1 674.4,75.2 750.0,75.2" fill="none" stroke="#eb6834" stroke-width="2.5" stroke-dasharray="6 4"/>
+<circle cx="70.0" cy="325.1" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
+<circle cx="145.6" cy="307.7" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
+<circle cx="221.1" cy="270.9" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
+<circle cx="296.7" cy="268.9" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
+<circle cx="372.2" cy="203.1" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
+<circle cx="447.8" cy="137.2" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
+<circle cx="523.3" cy="92.6" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
+<circle cx="598.9" cy="79.1" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
+<circle cx="674.4" cy="75.2" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
+<circle cx="750.0" cy="75.2" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
+<text x="762.0" y="89.2" font-size="13" fill="#1f1f1f">Closed (done): 147</text>
+<line x1="70" x2="98" y1="400" y2="400" stroke="#2a78d6" stroke-width="2.5"/>
+<text x="106" y="404" font-size="12" fill="#1f1f1f">Opened (scope)</text>
+<line x1="250" x2="278" y1="400" y2="400" stroke="#eb6834" stroke-width="2.5" stroke-dasharray="6 4"/>
+<text x="286" y="404" font-size="12" fill="#1f1f1f">Closed (done)</text>
+</svg>
