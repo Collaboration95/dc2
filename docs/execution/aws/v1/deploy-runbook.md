@@ -919,6 +919,14 @@ gh workflow run cd.yml -f operation=teardown  -f run_id=r1018a -f execute=true
   `evidence release-plan` check digest, scan and bundle, then `session window`, `release promote`,
   `release restore` (or `abandon`) if it fails, `session close --in-vpc-counts`, then the smoke. The
   release commit must differ from the deployed one (the plan refuses an image equal to the baseline).
+- **Database wake.** Aurora auto-pauses, and an update that changes no migration touches no database
+  before the deploy ladder's `public-smoke`. Its login is the first call that needs one, so after an
+  idle period it can meet a cluster that is still resuming: Media gives up after about ten seconds
+  and answers 503 (CD run 39542434067 failed this way, `login:503`). That login, and only that
+  check, is retried after 5, 10 and 15 s when it gets a 502, 503, 504 or a transport failure and the
+  180 s step deadline leaves room. Any other status fails at once, and a 503 that outlasts the pauses
+  still fails the deploy. The attempts are recorded in the journal step (`login_attempts`, one status
+  per try). A release's own smoke (after its migration) is not retried.
 - **Smoke** = `session open`, `evidence gateway --only direct-upload-e2e` (a generated 3 s clip is
   reserved, uploaded straight to S3, finalized, encoded by the finite Fargate encoder the harness
   starts and played back as HLS through CloudFront), `session close --in-vpc-counts`. The window is

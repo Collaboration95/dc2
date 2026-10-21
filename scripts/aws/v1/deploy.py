@@ -53,7 +53,12 @@ from scripts.aws.v1.definitions import SEPARATE, DatabaseOptions
 from scripts.aws.v1.definitions import template as render_template
 from scripts.aws.v1.hooks import refuse_ambient_credentials
 from scripts.aws.v1.migration import migrate
-from scripts.aws.v1.public_smoke import PublicSmoke, urllib_http, validate_base_url
+from scripts.aws.v1.public_smoke import (
+    DATABASE_WAKE_BACKOFF,
+    PublicSmoke,
+    urllib_http,
+    validate_base_url,
+)
 from scripts.aws.v1.transport import REGION, validate_arguments
 from scripts.aws.v1_operator import sanitized_environment
 from scripts.ci import policy
@@ -2435,11 +2440,29 @@ class Pipeline:
             )
             return {"checks": dict.fromkeys(checks, "PLANNED")}
         creds = json.loads(self.credentials_path().read_text())
-        smoke = PublicSmoke(base, creds, http=self.http, clock=self.clock)
-        ok = smoke("media", {}, None, deadline=self.clock() + 120)
+        # An update that changes no migration touches no database before this step, and Aurora
+        # may have auto-paused since the last deploy: the login (the first call that needs the
+        # database) then meets a cluster that is still resuming and answers 503. The login is
+        # retried for that and nothing else (CD run 39542434067 failed on it with `login:503`).
+        smoke = PublicSmoke(
+            base,
+            creds,
+            http=self.http,
+            clock=self.clock,
+            sleep=self.sleep,
+            wake_backoff=DATABASE_WAKE_BACKOFF,
+        )
+        ok = smoke("media", {}, None, deadline=self.clock() + 180)
         if not ok:
-            raise DeployError("PublicSmoke failed: " + ", ".join(smoke.receipt["failures"]))
-        return {"checks": smoke.receipt["checks"]}
+            raise DeployError(
+                "PublicSmoke failed: "
+                + ", ".join(smoke.receipt["failures"])
+                + f" (login attempts: {smoke.receipt['login_attempts']})"
+            )
+        return {
+            "checks": smoke.receipt["checks"],
+            "login_attempts": smoke.receipt["login_attempts"],
+        }
 
     def step_session_close(self):
         result = self.run_session("close")

@@ -63,7 +63,11 @@ class FakeGateway:
         if path == "/api/processing/health":
             return 200, {}, b'{"status":"ok","service":"processing","schema_version":1}'
         if path == "/api/media/auth/login":
-            return self.login, cookie, b'{"id":1}'
+            # A list is a sequence of statuses, the last repeating (a database that wakes up).
+            login = self.login
+            if isinstance(login, list):
+                login = login.pop(0) if len(login) > 1 else login[0]
+            return login, cookie, b'{"id":1}'
         if path == "/api/media/jobs":
             return (200, {}, b"[]") if headers.get("cookie") else (401, {}, b"{}")
         if path.startswith("/api/processing/jobs"):
@@ -132,6 +136,7 @@ class Rig:
         self.sim = deploy_sim.SimulatedAws(self.s)
         self.docker = deploy_sim.SimulatedDocker(self.sim)
         self.gateway = gateway or FakeGateway()
+        self.sleeps = []
         self.session = FakeSession()
         self.journal = DeployJournal(
             self.s.state_dir / "deploy-journal.json", station=self.s.station, environment=self.s.env
@@ -161,7 +166,7 @@ class Rig:
             http=self.gateway,
             session_main=self.session,
             clock=iter_clock(),
-            sleep=lambda _s: None,
+            sleep=self.sleeps.append,  # recorded, never slept
             stderr=io.StringIO(),
             today=lambda: TODAY,
         )
@@ -1417,6 +1422,54 @@ def test_a_failing_smoke_fails_the_run_and_still_closes_the_session_window(tmp_p
     rig.deploy()
     assert rig.session.actions == ["init", "window", "close", "window", "close"]
     assert set(rig.steps().values()) == {"done"}
+
+
+SMOKE_PAUSES = (0.5, 0.25, 0.125)  # distinct from every other sleep the pipeline makes
+
+
+def smoke_pauses(rig):
+    return [s for s in rig.sleeps if s in SMOKE_PAUSES]
+
+
+def test_the_deploy_pauses_five_ten_and_fifteen_seconds_for_a_waking_database():
+    assert deploy.DATABASE_WAKE_BACKOFF == (5, 10, 15)
+
+
+def test_the_smoke_waits_for_an_aurora_cluster_that_auto_paused_since_the_last_deploy(
+    tmp_path, monkeypatch
+):
+    # CD run 39542434067: an update with no migration touched no database before the smoke, the
+    # cluster had paused, and the login (the first call that needs it) answered 503 once.
+    monkeypatch.setattr(deploy, "DATABASE_WAKE_BACKOFF", SMOKE_PAUSES)
+    rig = Rig(tmp_path, gateway=FakeGateway(login=[503, 503, 200]))
+    rig.deploy()
+    detail = rig.journal.view()["steps"]["public-smoke"]["detail"]
+    assert detail["login_attempts"] == [503, 503, 200]
+    assert set(detail["checks"].values()) == {"PASS"}
+    assert smoke_pauses(rig) == [0.5, 0.25]
+    assert set(rig.steps().values()) == {"done"}
+
+
+def test_a_database_that_never_wakes_still_fails_the_smoke_with_every_attempt_named(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(deploy, "DATABASE_WAKE_BACKOFF", SMOKE_PAUSES)
+    rig = Rig(tmp_path, gateway=FakeGateway(login=503))
+    with pytest.raises(
+        DeployError, match=r"PublicSmoke failed: login:503 \(login attempts: \[503, 503, 503, 503\]"
+    ):
+        rig.deploy()
+    assert smoke_pauses(rig) == list(SMOKE_PAUSES)
+    assert rig.steps()["public-smoke"] == "failed"
+    assert rig.session.actions == ["init", "window", "close"]
+
+
+def test_a_rejected_login_is_not_retried(tmp_path, monkeypatch):
+    monkeypatch.setattr(deploy, "DATABASE_WAKE_BACKOFF", SMOKE_PAUSES)
+    rig = Rig(tmp_path, gateway=FakeGateway(login=401))
+    with pytest.raises(DeployError, match=r"login:401 \(login attempts: \[401\]\)"):
+        rig.deploy()
+    assert smoke_pauses(rig) == []
 
 
 def test_the_window_is_used_not_a_full_open_so_no_consumer_or_worker_starts(rig):
