@@ -59,7 +59,7 @@ is in `docs/results/actual-vs-target.md` (with its CSV) and `docs/evidence-index
   (2.347×) passed, and the median queue wait fell at each step.
 - **Queue-wait miss.** The V2-live wait of about 37 s is a deliberate trade-off of scale-to-zero:
   no encoder runs idle, so each burst pays a Fargate start (median 25.6 s) plus image pull. The
-  target was not revised, and AISS-03 records the options.
+  target was not revised, and AISS-02 records the options.
 
 ## Availability
 
@@ -89,10 +89,10 @@ is in `docs/results/actual-vs-target.md` (with its CSV) and `docs/evidence-index
 **Limits, stated plainly.**
 
 - The platform is **not highly available** in the strict sense. One Aurora instance in one region
-  is a shared failure boundary (AISS-01, AISS-02).
+  is a shared failure boundary (AISS-01); zone and region failover are out of scope (section 1.4.2).
 - Backups are kept one day, and no restore drill was run.
 - No uptime SLA is claimed.
-- The lost-queue-entry timing was not measured on AWS (AISS-14).
+- The lost-queue-entry timing was not measured on AWS (AISS-06).
 
 ## Security
 
@@ -109,7 +109,7 @@ is in `docs/results/actual-vs-target.md` (with its CSV) and `docs/evidence-index
 | Network | No inbound security-group rules except the database's internal rule; no NAT; private subnets for Lambdas and Aurora; only ports 80/443 public (80 redirects) |
 | Secrets | SSM SecureStrings scoped per role; RDS-managed master secret; gitleaks secret scanning; receipts sanitized before commit |
 | Supply chain and testing | Ruff security lint (flake8-bandit rules); Trivy on all three exact images in CI and again on the deployed builds in CD (zero *fixable* HIGH/CRITICAL gate); ECR scan on push; authenticated OWASP ZAP DAST; dependency audits (npm audit: 0 findings) |
-| Intrusion detection and prevention | Not deployed. There is no WAF, GuardDuty or IDS/IPS (AISS-06). The compensating controls are the authorizer, the stage throttle (20 rps, burst 50), the budget alarm and the per-service error alarms. |
+| Intrusion detection and prevention | Not deployed. There is no WAF, GuardDuty or IDS/IPS (AISS-03). The compensating controls are the authorizer, the stage throttle (20 rps, burst 50), the budget alarm and the per-service error alarms. |
 
 **Verification.** The proposal's negative tests were run on AWS: on V1 stacks `r1017b`/`r1018b`,
 and in full on the persistent `dc2-live` environment for issue #229 on 19 October **[AWS]**.
@@ -156,7 +156,7 @@ and in full on the persistent `dc2-live` environment for issue #229 on 19 Octobe
   consumer reads the new one. Each consumer owns a fixture of the fields it reads, and the
   producer's tests check its real messages against that fixture. A breaking change takes two
   releases, in either service order.
-- **More capacity.** Raise the encoder cap behind the budget alarm (AISS-05). Media is unaffected.
+- **More capacity.** Raise the encoder cap behind the budget alarm. Media is unaffected.
 
 **What keeps it maintainable.**
 

@@ -70,7 +70,7 @@ GitGuardian check failing.
     the immutable subject of this repository's `aws` environment, and that environment admits only
     `Main` and `dev/closeout`.
 
-The missing protection is recorded as AISS-09. For a multi-account team, the next steps are:
+The missing protection is recorded as AISS-05. For a multi-account team, the next steps are:
 
 - add the members as collaborators;
 - require "Full verification" and one review on `Main` and `dev/closeout` through a ruleset;
@@ -137,7 +137,7 @@ records.
 | AWS V1 per-run stacks (historical) | The proof runs `r1017b`, `r1018b`, `r1019a`, each deleted afterwards | Dispatched deploy and teardown (AD-19) |
 | **AWS `dc2-live` (production demo)** | The one persistent environment, updated in place | First deploy by a human dispatch; then automatically after every green CI run on `Main` (AD-27) |
 
-There is no separate staging environment (AISS-09). Two things stand in for it: the local V1 stack
+There is no separate staging environment (AISS-05). Two things stand in for it: the local V1 stack
 and CI's exact-image verification exercise the same images before promotion, and every release
 smoke-tests production with an automatic restore on failure.
 
@@ -237,5 +237,6 @@ release. The handling shows how the pipeline is meant to be operated.
    remain unexercised: the wake retry did not fire in the live run, and the replaced image's
    rollback was not run. The receipt records both.
 
-This incident motivates the scheduled weekly rescan of retained images (AISS-13).
+A scheduled weekly rescan of retained images would surface such advisories before a release meets
+them.
 
