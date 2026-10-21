@@ -1,0 +1,34 @@
+{
+  "source_snapshot": "8152edee88d6ac1bc8692b9e79dc80c06efb188f",
+  "runtime_evidence_source": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+  "html_pages": 14,
+  "local_references_checked": 1061,
+  "broken_links_or_anchors": [],
+  "chapters": 9,
+  "practice_questions": 49,
+  "glossary_terms": 62,
+  "chapter_diagrams": 24,
+  "browser_checks": {
+    "viewport_widths": [
+      390,
+      1440
+    ],
+    "all_14_pages_no_document_overflow": true,
+    "broken_images": 0,
+    "depth_controls_and_cross_page_persistence": "PASS",
+    "clickable_diagram_details": "PASS",
+    "question_filters_random_selection_answer_reveal": "PASS",
+    "glossary_search": "PASS",
+    "file_url_offline_render_and_depth_links": "PASS"
+  },
+  "limits": [
+    "Documentation checks only; no application, AWS or CI runs were started.",
+    "Course schedule verified against local PDF tables; Canvas was not accessed.",
+    "Source links require this folder to stay inside the repository."
+  ],
+  "independent_content_review": {
+    "outcome": "PASS",
+    "rounds": 3,
+    "scope": "Source accuracy, course guidance, evidence labels and final AWS queue topology. Parent performed browser visual checks."
+  }
+}

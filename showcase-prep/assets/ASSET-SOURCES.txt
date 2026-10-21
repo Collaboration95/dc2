@@ -1,0 +1,6 @@
+Diagram style: the user's exam-prep/explainer and sketch-diagrams assets.
+Font: Shantell Sans, bundled unchanged from those assets.
+Upstream font project: https://github.com/arrowtype/shantell-sans
+Font license: fonts/OFL-Shantell-Sans.txt (SIL Open Font License 1.1).
+Product icons: Simple Icons SVGs reused from exam-prep/explainer/assets/icons.
+The small fp. favicon is text and an SVG shape created for this guide.

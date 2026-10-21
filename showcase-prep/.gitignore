@@ -1,0 +1,3 @@
+# Course PDFs contain meeting access details and are local reference material.
+references/*.pdf
+__pycache__/

@@ -1,0 +1,271 @@
+{
+  "title": "Persistent V2-live: requests, state and video bytes",
+  "description": "CloudFront serves the browser frontend and forwards API requests. API Gateway authorizes through Media and invokes owner Lambda functions in private subnets. Two databases share one Aurora cluster. Finite Fargate encoders use public subnets and Processing SQL. SQS carries control messages; private S3 holds media bytes outside the VPC.",
+  "width": 1000,
+  "height": 850,
+  "regions": [
+    {
+      "x": 20,
+      "y": 280,
+      "w": 700,
+      "h": 410,
+      "label": "VPC · ap-southeast-1 · two availability zones",
+      "fill": "#f8f9fa"
+    },
+    {
+      "x": 40,
+      "y": 320,
+      "w": 420,
+      "h": 350,
+      "label": "Private subnets",
+      "fill": "#eef4ff"
+    },
+    {
+      "x": 480,
+      "y": 320,
+      "w": 220,
+      "h": 350,
+      "label": "Public subnets",
+      "fill": "#fff5e6"
+    }
+  ],
+  "edges": [
+    {
+      "path": "M110 65 L110 25 L850 25 L850 65",
+      "label": "Video bytes: scoped upload / playback access",
+      "x": 510,
+      "y": 21,
+      "kind": "data",
+      "both": true
+    },
+    {
+      "path": "M200 105 C215 103 228 107 245 105",
+      "kind": "control"
+    },
+    {
+      "path": "M425 105 C455 102 490 108 520 105",
+      "label": "static files",
+      "x": 470,
+      "y": 91,
+      "kind": "control"
+    },
+    {
+      "path": "M335 145 C332 155 337 165 335 180",
+      "label": "/api/*",
+      "x": 380,
+      "y": 166,
+      "kind": "control"
+    },
+    {
+      "path": "M335 250 L335 266 L145 266 L145 360",
+      "label": "trusted actor + HTTP request",
+      "x": 195,
+      "y": 262,
+      "kind": "control"
+    },
+    {
+      "path": "M335 266 L345 266 L345 360",
+      "kind": "control"
+    },
+    {
+      "path": "M145 455 L145 512 L245 512 L245 550",
+      "label": "Media DB",
+      "x": 154,
+      "y": 502,
+      "kind": "sql"
+    },
+    {
+      "path": "M235 402 L245 402 L245 310 L460 310",
+      "kind": "control",
+      "both": true,
+      "end": false,
+      "bridge": true
+    },
+    {
+      "path": "M345 455 L345 550",
+      "label": "Processing DB",
+      "x": 364,
+      "y": 526,
+      "kind": "sql"
+    },
+    {
+      "path": "M435 402 L460 402 L460 310 L740 310 L740 344 L760 344",
+      "label": "commands / results",
+      "x": 603,
+      "y": 304,
+      "kind": "control",
+      "both": true
+    },
+    {
+      "path": "M850 389 L850 455 L680 455",
+      "label": "work message",
+      "x": 776,
+      "y": 449,
+      "kind": "control"
+    },
+    {
+      "path": "M590 515 L590 594 L420 594",
+      "label": "Processing SQL + TLS",
+      "x": 540,
+      "y": 623,
+      "kind": "sql"
+    },
+    {
+      "path": "M680 425 L730 425 L730 105 L760 105",
+      "label": "read / write",
+      "x": 795,
+      "y": 193,
+      "kind": "data",
+      "both": true
+    }
+  ],
+  "nodes": [
+    {
+      "x": 20,
+      "y": 65,
+      "w": 180,
+      "h": 80,
+      "label": "Browser / CLI",
+      "sub": "Public HTTPS clients",
+      "fill": "#dbe9ff"
+    },
+    {
+      "x": 245,
+      "y": 65,
+      "w": 180,
+      "h": 80,
+      "label": "CloudFront",
+      "sub": "Frontend + API route",
+      "fill": "#d3f5dc"
+    },
+    {
+      "x": 520,
+      "y": 65,
+      "w": 180,
+      "h": 80,
+      "label": "S3 frontend",
+      "sub": "Private origin / OAC",
+      "fill": "#ecdcff"
+    },
+    {
+      "x": 760,
+      "y": 65,
+      "w": 180,
+      "h": 95,
+      "label": "S3 media",
+      "sub": "Private source + output\nVersioned accepted source",
+      "fill": "#d2f2f4"
+    },
+    {
+      "x": 245,
+      "y": 180,
+      "w": 180,
+      "h": 70,
+      "label": "HTTP API",
+      "sub": "Route + authorizer call",
+      "fill": "#ffe7c7"
+    },
+    {
+      "x": 60,
+      "y": 360,
+      "w": 175,
+      "h": 95,
+      "label": "Media Lambda",
+      "sub": "API + authorizer\nResults + repair",
+      "fill": "#dbe9ff"
+    },
+    {
+      "x": 255,
+      "y": 360,
+      "w": 180,
+      "h": 95,
+      "label": "Processing Lambda",
+      "sub": "API + messages\nLauncher + repair + events",
+      "fill": "#d3f5dc",
+      "fontSize": 16
+    },
+    {
+      "x": 120,
+      "y": 550,
+      "w": 300,
+      "h": 95,
+      "label": "Aurora PostgreSQL",
+      "sub": "media_db  |  processing_db\nOne shared cluster / instance",
+      "fill": "#ecdcff"
+    },
+    {
+      "x": 500,
+      "y": 400,
+      "w": 180,
+      "h": 115,
+      "label": "ECS / Fargate",
+      "sub": "FFmpeg encoder\nFinite tasks, cap 3\nTemporary public IPv4",
+      "fill": "#ffef8a",
+      "accent": true
+    },
+    {
+      "x": 760,
+      "y": 300,
+      "w": 180,
+      "h": 89,
+      "label": "SQS + DLQs",
+      "sub": "Commands · work\nResult snapshots",
+      "fill": "#ffdcec"
+    },
+    {
+      "x": 20,
+      "y": 750,
+      "w": 215,
+      "h": 75,
+      "label": "EventBridge / wakes",
+      "sub": "Triggers + fallback schedule",
+      "fill": "#ffe7c7"
+    },
+    {
+      "x": 260,
+      "y": 750,
+      "w": 215,
+      "h": 75,
+      "label": "ECR + OIDC / IAM",
+      "sub": "Images + scoped AWS identity",
+      "fill": "#dbe9ff"
+    },
+    {
+      "x": 500,
+      "y": 750,
+      "w": 215,
+      "h": 75,
+      "label": "SSM + credentials",
+      "sub": "Config + task secret injection",
+      "fill": "#d2f2f4"
+    },
+    {
+      "x": 740,
+      "y": 750,
+      "w": 240,
+      "h": 75,
+      "label": "CloudWatch / SNS",
+      "sub": "Logs, alarms + budget alerts",
+      "fill": "#d3f5dc"
+    }
+  ],
+  "notes": [
+    {
+      "x": 760,
+      "y": 525,
+      "lines": [
+        "Managed regional services",
+        "sit outside the VPC boxes.",
+        "S3 privacy is access policy;",
+        "it is not subnet placement."
+      ]
+    },
+    {
+      "x": 40,
+      "y": 717,
+      "lines": [
+        "Supporting services below are not drawn as packet-by-packet routes."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,483 @@
+{
+  "id": "aws",
+  "title": "AWS: a small cloud, with clear boundaries",
+  "kicker": "Project showcase · Cloud architecture",
+  "summary": "Follow one upload through the live V2 AWS system. Learn what each service owns, how work moves, and where the current design still has limits.",
+  "opening_answer": "The browser reaches our application through CloudFront and an HTTP API. Separate Media and Processing Lambda applications own their own data and queues. Video bytes go straight to private S3, while finite Fargate workers encode them. A bounded Lambda launcher starts those workers when work is waiting.",
+  "sections": [
+    {
+      "id": "shape",
+      "title": "Start with the shape of the system",
+      "level": 1,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Think of the project as two business services with a shared delivery path. **Media** owns people, assets, upload reservations, source ownership and playback grants. **Processing** owns jobs, attempts, retries, cancellation and worker leases. The services are separate because their data and release boundaries differ, not because every small feature needs its own service."
+        },
+        {
+          "type": "p",
+          "text": "A visitor opens a generated CloudFront HTTPS address. CloudFront serves the existing frontend from a private S3 bucket and forwards `/api/*` to an AWS HTTP API. The API has explicit Media and Processing route groups. A Media-owned Lambda authorizer validates the login cookie and gives the API a trusted actor identity. Each service then checks that identity against its own records."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "layers",
+            "title": "A request crosses three boundaries",
+            "layers": [
+              {
+                "label": "Browser",
+                "sub": "Frontend and user",
+                "detail": "The preserved frontend uses a generated HTTPS hostname. It never receives a database credential."
+              },
+              {
+                "label": "CloudFront",
+                "sub": "Static files and API route",
+                "detail": "Static content comes from private S3 using origin access control. API requests pass through without caching."
+              },
+              {
+                "label": "HTTP API",
+                "sub": "Authorize and route",
+                "detail": "The managed HTTPS API invokes the matching domain Lambda. Login and health have defined public exceptions."
+              },
+              {
+                "label": "Domain Lambda",
+                "sub": "Media or Processing",
+                "detail": "The selected application checks ownership and writes only its own domain's database."
+              }
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "title": "A useful first sentence",
+          "text": "CloudFront is the public front door. The two domain applications own business decisions. Workers do the expensive video work.",
+          "tone": "note"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/execution/aws/architecture-plan.md",
+          "label": "Accepted architecture and service boundaries"
+        },
+        {
+          "path": "deploy/aws/v1/README.md",
+          "label": "HTTP API routes and deployed resource design"
+        }
+      ]
+    },
+    {
+      "id": "bytes",
+      "title": "Follow the bytes separately from the requests",
+      "level": 1,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "A video upload is large, so it does not travel through API Gateway or a Lambda request body. The browser asks Media to reserve an owner-scoped S3 key. Media returns a short-lived S3 presigned POST URL plus scoped form fields and a policy; the browser sends the file directly to a private S3 bucket. It then asks Media to finalize. Media checks the stored object and adopts its version as the owned source."
+        },
+        {
+          "type": "p",
+          "text": "That check matters: a key supplied by a client is not proof that the caller owns the object or that the bytes stayed the same. Media controls reservation and adoption. A worker later receives permission to read the accepted source version and write job outputs. It cannot change or delete the source, read Media's database, or list arbitrary objects. Playback also uses a scoped grant; the output bucket is private."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "The upload path carries bytes directly",
+            "steps": [
+              {
+                "label": "Reserve",
+                "sub": "Media checks owner",
+                "detail": "The API creates an owner-scoped upload reservation and returns a bounded presigned POST URL, fields and policy."
+              },
+              {
+                "label": "Upload",
+                "sub": "Browser → private S3",
+                "detail": "Video bytes go directly from the browser to S3. This avoids API and Lambda payload limits."
+              },
+              {
+                "label": "Finalize",
+                "sub": "Verify and adopt",
+                "detail": "Media checks the stored object and binds an immutable accepted version to the asset."
+              },
+              {
+                "label": "Encode",
+                "sub": "Worker reads source",
+                "detail": "Processing dispatches a job. A worker reads the accepted source and writes outputs to its job prefix."
+              }
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "title": "Private is not the same as network-private",
+          "text": "S3 objects are private because bucket policy and IAM control access. A signed URL still lets an authorized browser reach S3 over its public service endpoint for a limited time. The file is not kept inside the VPC.",
+          "tone": "note"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/execution/aws/architecture-plan.md",
+          "label": "Direct upload and private object rules"
+        },
+        {
+          "path": "deploy/aws/v1/template.json",
+          "label": "Rendered S3, bucket policy, and access resources"
+        },
+        {
+          "path": "media/api",
+          "label": "Media upload and ownership implementation"
+        }
+      ]
+    },
+    {
+      "id": "ownership",
+      "title": "Two databases, one shared Aurora cluster",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Media and Processing each have a separate PostgreSQL database on one Aurora PostgreSQL Serverless v2 cluster. Each has its own runtime and migration credentials, schema history and owner application. Media's role cannot read Processing's database, and Processing does not borrow Media credentials. The services exchange versioned messages and identifiers rather than running cross-domain SQL."
+        },
+        {
+          "type": "p",
+          "text": "The cluster is shared infrastructure, though. It is a common capacity and failure boundary, and activity for either database can keep it awake. An earlier observation held at 0.5 ACU, with Media repair and unretired upload reservations noted only as possible causes. Later, after the #273 backoff change, the accepted release recorded 0.0 ACU at 18:07 UTC on 19 October, about 56 minutes after the last upload. That is a point-in-time pause observation, not proof of monthly cost or sustained idle spend; later scheduled rescans can briefly wake SQL. The V2 experiment for one cluster per domain is implemented locally and has no live cloud evidence. It is not deployed. That pause observation was on `daee44b`, not a fresh idle-capacity measurement of runtime `629119c`."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "hub",
+            "title": "Ownership is separate; the cluster is shared",
+            "center": {
+              "label": "Aurora cluster",
+              "sub": "Shared capacity and pause",
+              "detail": "The current layout has one Serverless v2 cluster. A shared cluster is cheaper and simpler, but a wake-up or capacity issue can affect both domains."
+            },
+            "items": [
+              {
+                "label": "media_db",
+                "sub": "Media-owned records",
+                "detail": "Users, assets, upload reservations, ownership and source adoption. Media runtime and migration identities are distinct."
+              },
+              {
+                "label": "processing_db",
+                "sub": "Processing-owned jobs",
+                "detail": "Jobs, attempts, leases, retries and durable message records. Processing runtime and migration identities are distinct."
+              }
+            ]
+          }
+        },
+        {
+          "type": "p",
+          "text": "The database sits in private subnets across two availability zones. Lambda functions connect to it through narrow security-group rules and TLS. Invocation-scoped database connections are important: a connection left open can stop Aurora from pausing. The subnet placement limits direct inbound reachability; it does not create independent databases or eliminate the shared cluster's failure boundary."
+        }
+      ],
+      "sources": [
+        {
+          "path": "deploy/aws/v1/template.json",
+          "label": "Current shared cluster, database subnet group, and security groups"
+        },
+        {
+          "path": "deploy/aws/v1/README.md",
+          "label": "Database roles and private subnet layout"
+        },
+        {
+          "path": "docs/execution/aws/v2/database-topology.md",
+          "label": "Separate-cluster option is an unmeasured experiment"
+        },
+        {
+          "path": "docs/release/demo-release-manifest.md",
+          "label": "Accepted Aurora pause result and limits"
+        },
+        {
+          "path": "docs/results/actual-vs-target.md",
+          "label": "LV-12 point-in-time pause result and limits"
+        }
+      ]
+    },
+    {
+      "id": "messages",
+      "title": "Messages coordinate work; SQL remains the record",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "The deployed system uses three standard SQS queues: Processing commands, Processing work and Media results. Each has a matching dead-letter queue for messages that exceed their retry policy. Messages carry identifiers and versioned facts, not the video itself, secrets or expiring presigned POST URLs and fields."
+        },
+        {
+          "type": "p",
+          "text": "The important reliability pattern is an outbox. A service commits its business change and the message intent together in its own SQL transaction. A later publisher sends the queued intent. The receiving service records and deduplicates the message with its own state before acknowledging it. If a send or acknowledgement response is lost, retry and duplicate delivery are expected; the durable state and message IDs make recovery possible. SQL and SQS are not one atomic transaction, so repair code and monitoring still matter."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "Control metadata wakes a worker",
+            "steps": [
+              {
+                "label": "Commit",
+                "sub": "Job plus outbox",
+                "detail": "Processing stores the job transition and its durable work intent in one SQL transaction."
+              },
+              {
+                "label": "Publish",
+                "sub": "Message to SQS",
+                "detail": "A publisher sends a small work message. The queue coordinates delivery; it does not store source video."
+              },
+              {
+                "label": "Wake",
+                "sub": "Launcher checks demand",
+                "detail": "An immediate Lambda wake and a scheduled safety tick inspect SQL, queue depth, and ECS task state."
+              },
+              {
+                "label": "RunTask",
+                "sub": "Finite Fargate worker",
+                "detail": "The launcher reserves a slot and asks ECS to start a task with a bounded deadline and unique identity."
+              }
+            ]
+          }
+        },
+        {
+          "type": "p",
+          "text": "This diagram is the control path, not the media-data path. The message tells a worker which accepted job to claim. The worker separately reads source bytes from S3 and writes encoded outputs back to S3. EventBridge is a wake-up and recovery hint, not the owner of job state and not a tunnel for media bytes."
+        }
+      ],
+      "sources": [
+        {
+          "path": "deploy/aws/v1/README.md",
+          "label": "Three queues, DLQs, permissions, and repair schedule"
+        },
+        {
+          "path": "docs/execution/aws/v2/unattended-launch.md",
+          "label": "Current launcher control flow and reservation boundary"
+        },
+        {
+          "path": "processing/launcher.py",
+          "label": "Demand, cap, and launch reservations"
+        },
+        {
+          "path": "docs/execution/aws/architecture-plan.md",
+          "label": "Outbox, inbox, duplicate and recovery contract"
+        }
+      ]
+    },
+    {
+      "id": "compute",
+      "title": "Why Lambda coordinates and Fargate encodes",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Lambda fits short, event-driven work: API requests, message handlers, repair passes and the launcher. AWS starts an invocation when needed, and the function ends when its bounded handler finishes. Fargate fits the existing FFmpeg pipeline: a task can hold more CPU and memory, download source data, encode multiple outputs, upload them, and stop when its one job is done."
+        },
+        {
+          "type": "p",
+          "text": "The live worker task is 2 vCPU and 4 GiB, with one active encode. The launcher counts running, stopping and unresolved launches against a cap of three. It records a reservation before calling ECS; if a response is ambiguous, the next pass checks task identity or replays the same token and payload. This keeps concurrent launch attempts from casually exceeding the cap. Each task gets a finite lifetime and an absolute deadline, so an empty or stuck worker does not become a resident service."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Choice",
+            "Good fit here",
+            "Cost or limit"
+          ],
+          "rows": [
+            [
+              "Lambda",
+              "HTTP APIs, queue handlers, short recovery and launch decisions",
+              "Cold starts and account concurrency can delay bursts; a timeout bounds each invocation."
+            ],
+            [
+              "Fargate task",
+              "Longer FFmpeg work with explicit CPU, memory and process control",
+              "Startup takes time and every running second costs money, even before encoding begins."
+            ],
+            [
+              "Warm workers",
+              "Could reduce the wait before processing starts",
+              "They cost while idle and weaken the scale-to-zero goal; the current system does not keep them warm."
+            ]
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "path": "deploy/aws/v1/README.md",
+          "label": "Worker size, finite batches, and account concurrency constraints"
+        },
+        {
+          "path": "deploy/aws/v1/template.json",
+          "label": "Rendered Lambda, ECS task, and launcher resources"
+        },
+        {
+          "path": "docs/execution/aws/v2/unattended-launch.md",
+          "label": "Launcher cap, finite lifetime, and cost tradeoffs"
+        }
+      ]
+    },
+    {
+      "id": "network",
+      "title": "Subnet choices and the egress tradeoff",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "svg",
+          "title": "The physical architecture, on one map",
+          "path": "assets/aws-topology.svg",
+          "alt": "Persistent V2-live physical topology: browser and Publisher through CloudFront and HTTP API; owner Lambda functions and shared Aurora in private subnets; finite Fargate encoders in public subnets; S3 media and SQS managed services outside the VPC. Direct video traffic is separate from API control traffic.",
+          "caption": "Green lines carry media bytes; purple lines show SQL access; dark lines show requests and messages. Both owners use the command/result queues; their event handlers are grouped for readability. The authorizer call and supporting-service permissions are explained in the text. Scroll sideways on a phone or open the full-size SVG."
+        },
+        {
+          "type": "p",
+          "text": "The current rendered V1 foundation places Lambda and Aurora in private, dual-stack subnets across two availability zones. The design has no NAT Gateway, paid interface endpoints, application EC2 host, load balancer or Redis service. Lambda uses IPv6 egress-only routing for AWS service APIs such as SQS, Systems Manager Parameter Store and ECS, plus an S3 gateway endpoint. The gateway path also permits the required regional container-image layer download path."
+        },
+        {
+          "type": "p",
+          "text": "Fargate workers and migration tasks use public subnets with temporary public IPv4 while they run. Narrow security groups allow their database connection into Aurora; the database itself stays private. Public task placement makes image pulls and secret retrieval possible without a NAT Gateway, but it means those tasks have public egress and a temporary public address. Security groups, IAM and TLS still matter. Do not say every compute component is in a private subnet."
+        },
+        {
+          "type": "p",
+          "text": "The dual-stack route is a cost-conscious choice. The rendered template defines the routes and endpoints; the V2-live deployment and upload-to-playback smoke show the deployed path works for that flow. Those checks do not prove every route, endpoint or failure case. Earlier architecture plans describe candidates and are not implementation receipts. Network privacy, IAM permission and S3 object privacy answer different questions; none substitutes for the others."
+        },
+        {
+          "type": "callout",
+          "title": "Say exactly what is private",
+          "text": "Aurora is in private subnets; selected Lambda functions are attached to private subnets; Fargate tasks temporarily use public IPv4 subnets. S3 buckets are private by access policy, not because their objects sit inside the VPC.",
+          "tone": "note"
+        }
+      ],
+      "sources": [
+        {
+          "path": "deploy/aws/v1/template.json",
+          "label": "Rendered routes, subnet associations, endpoints, and task network configuration"
+        },
+        {
+          "path": "deploy/aws/v1/README.md",
+          "label": "Dual-stack egress and public task placement"
+        },
+        {
+          "path": "docs/execution/aws/v1/evidence/v2live-verify-20261019/README.md",
+          "label": "What the live checks did and did not verify"
+        }
+      ]
+    },
+    {
+      "id": "identity",
+      "title": "Images, credentials and operational visibility",
+      "level": 3,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "ECR holds the versioned container images for the Media API, Processing application and worker. Deployment inputs use immutable image digests so an environment can identify the exact artifact it runs. The API and worker are separate roles. The worker task role can read accepted source objects and write outputs, but has no Media database access. The worker does claim jobs and update Processing SQL directly: ECS injects its Processing database credential through the task execution role, which is separate from the worker's runtime task role."
+        },
+        {
+          "type": "p",
+          "text": "Runtime secrets are stored as exact AWS Systems Manager Parameter Store SecureString references. The function reads only its own allowed parameter, and the database connection uses TLS with the RDS certificate bundle. ECS has separate task and execution roles: the execution role pulls images and injects task secrets, while the application role controls runtime AWS access. GitHub Actions uses GitHub's OpenID Connect identity to obtain short-lived AWS credentials for the deployment workflow; it avoids a long-lived AWS access key in repository secrets. This deployment identity is not the site's user login."
+        },
+        {
+          "type": "p",
+          "text": "CloudWatch collects service logs and metrics. Alarms watch selected failure and backlog signals; EventBridge schedules repair and launcher work. The persistent V2 unattended launcher stays enabled by default. A monthly AWS Budget sends threshold notifications through SNS. A budget is an alert, not a hard spend ceiling. The live receipt recorded 13 of 13 named alarms in OK state at one time; that snapshot does not prove the alarms would catch every failure. The alarm snapshot was at 14:57 UTC on 19 October on an earlier source; it was not re-read for `daee44b` or `629119c`."
+        },
+        {
+          "type": "p",
+          "text": "The live V2 environment is persistent and its unattended launcher is enabled by default; workers still run as finite tasks. This is not the V1 operator workflow that opens and closes each session to enable and disable launch schedules. The V1 template remains the resource baseline, so keep those labels clear when describing deployed V2 behavior."
+        }
+      ],
+      "sources": [
+        {
+          "path": "deploy/aws/v1/template.json",
+          "label": "ECR, role, parameter, alarm, budget, and notification resources"
+        },
+        {
+          "path": "deploy/aws/v1/github-oidc.yaml",
+          "label": "GitHub Actions OIDC trust configuration"
+        },
+        {
+          "path": "deploy/aws/v1/README.md",
+          "label": "Credential scope and session operations"
+        },
+        {
+          "path": "docs/execution/aws/v1/evidence/v2live-verify-20261019/README.md",
+          "label": "Live alarm snapshot and deployment evidence"
+        },
+        {
+          "path": "docs/execution/aws/v2/unattended-launch.md",
+          "label": "Persistent V2 launcher behavior versus V1 sessions"
+        }
+      ]
+    },
+    {
+      "id": "evidence",
+      "title": "What the live measurements teach us",
+      "level": 3,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "On 19 October 2026, a live three-clip run scaled from zero to three Fargate tasks and back to zero. It completed, but took about 37 seconds from queued work to the first job processing. Roughly 25 seconds came from task startup. That misses the 20-second queue-wait target. The launcher itself woke within about one second of a work send, so swapping the one-minute safety schedule for faster scheduling would not remove the main delay. The retained metrics file does not record a source SHA; it observed task definition `dc2-live-worker:1`, before the #272/#273 repairs. This is historical evidence, not a repeated measurement at `629119c`."
+        },
+        {
+          "type": "p",
+          "text": "A separate nine-clip backlog run completed in 239 seconds, at 2.26 jobs per minute, with a peak of three workers. This was one run at a fixed cap; there is no measured cap-1 or cap-2 comparison, so it is not a general capacity guarantee. The run initially left duplicate visible work messages after every job was done; a later recheck on daee44b recorded 9 of 9 jobs done and zero visible or in-flight messages without a purge. Duplicate sends still occurred (18 sends for nine jobs). Its source SHA is likewise not recorded. The later queue repair recheck belongs to `daee44b`: 9/9 jobs completed and the queue was empty. The current delivery did not repeat a 1/2/3-worker benchmark."
+        },
+        {
+          "type": "qa",
+          "q": "Why did processing take about 37 seconds to start?",
+          "a": "The live V2 receipt attributes about 25 seconds to Fargate task startup. The rest includes queueing and launch overhead. A warm pool could reduce this wait, but would add idle task cost; the current design chooses zero idle workers."
+        },
+        {
+          "type": "qa",
+          "q": "Is a separate Aurora cluster per service deployed?",
+          "a": "No. The deployed topology uses one cluster with two owned databases. Separate clusters are an implemented local experiment with cloud evidence marked NOT_RUN."
+        },
+        {
+          "type": "qa",
+          "q": "Does the object stay private if the browser has a signed URL?",
+          "a": "The bucket remains private to ordinary callers. The signed URL is temporary delegated access, allowing that browser to transfer bytes through S3's service endpoint."
+        },
+        {
+          "type": "qa",
+          "q": "Why keep SQL if there is a queue?",
+          "a": "SQL holds authoritative jobs, leases and durable send/receive records. SQS transports messages and can redeliver them; it does not replace transactionally owned application state."
+        },
+        {
+          "type": "qa",
+          "q": "Why not encode in Lambda too?",
+          "a": "The current deployed encoder is a finite Fargate task with the existing FFmpeg engine. A short-encode Lambda lane is an optional V2 experiment, off by default, and its cloud measurements are NOT_RUN."
+        },
+        {
+          "type": "qa",
+          "q": "What does the monthly budget guarantee?",
+          "a": "It sends alerts when configured thresholds are crossed. It does not prevent further spending or cap a running task by itself."
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/results/actual-vs-target.md",
+          "label": "Dated V2-live results, including LV-12 pause observation"
+        },
+        {
+          "path": "docs/release/demo-release-manifest.md",
+          "label": "Accepted release results and qualification"
+        },
+        {
+          "path": "docs/execution/aws/v1/evidence/v2live-verify-20261019/scaling-and-backlog.json",
+          "label": "37-second queue wait and nine-clip backlog measurements"
+        },
+        {
+          "path": "docs/execution/aws/v2/lambda-short-encodes.md",
+          "label": "Short-encode Lambda lane remains unmeasured in AWS"
+        },
+        {
+          "path": "docs/execution/aws/v2/database-topology.md",
+          "label": "Separate-cluster experiment status"
+        }
+      ]
+    }
+  ],
+  "takeaways": [
+    "Media and Processing own separate applications, databases, credentials and releases; they share one Aurora cluster in the deployed baseline.",
+    "The browser uploads media directly to private S3. SQS messages carry work metadata, and SQL remains the durable record.",
+    "Lambda handles APIs and bounded coordination. A launcher starts finite Fargate encoding tasks, capped at three, with no idle worker pool.",
+    "Aurora placement, subnet reachability, IAM permission and private S3 policy are distinct security boundaries.",
+    "Live V2 evidence shows successful 0-to-3-to-0 scaling, a 37-second queue wait, and a point-in-time Aurora reading of 0.0 ACU about 56 minutes after the last upload. It does not establish monthly cost or validate optional Lambda encoding and split-cluster experiments."
+  ]
+}

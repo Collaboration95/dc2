@@ -1,0 +1,281 @@
+{
+  "id": "delivery",
+  "title": "From commit to running release",
+  "kicker": "Delivery, deployment and release",
+  "summary": "Follow one change from path selection through CI, an exact-source artifact, infrastructure deployment and a service release. The key is to ask what each green check proves, and which identity it proves it for.",
+  "opening_answer": "CI decides which evidence a change needs and records the tested source. CD accepts only a qualifying successful Main push, deploys that source with retained image evidence, checks it, and promotes service versions through a separate smoke and rollback path.",
+  "sections": [
+    {
+      "id": "delivery-basics",
+      "title": "First, name the three stages",
+      "level": 1,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "People often say “the pipeline shipped it” as if build, deploy and release were one action. In this project they are separate decisions. **Build** turns checked-in source into an image and records what image was produced. **Deploy** updates the environment infrastructure and configuration. **Release** moves a service alias to a candidate image and checks whether that service works. Keeping the stages distinct helps you locate where a failure happened and what can safely be retried."
+        },
+        {
+          "type": "p",
+          "text": "The automated GitHub Actions CI workflow runs on pull requests, pushes to Main, manual dispatch and a weekly schedule. A path classifier selects checks from changed files: focused owner lanes give quicker feedback, while shared inputs, workflow changes, uncertainty or unclassified paths select Full verification. Full mode is the broad source-bound gate; selected lanes make a narrower claim. This is the core test strategy behind the pipeline, not a blanket statement that every change runs every lane."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "CI: decide and verify",
+            "steps": [
+              {
+                "label": "Changed paths",
+                "sub": "Commit diff",
+                "detail": "A complete diff against the intended base is the input to selection."
+              },
+              {
+                "label": "Select tier",
+                "sub": "Policy rules",
+                "detail": "scripts/ci/policy.py selects the required lanes, or all lanes when selection is uncertain."
+              },
+              {
+                "label": "Run checks",
+                "sub": "Jobs in parallel",
+                "detail": "The selected jobs test behavior, integrations, browsers, coverage and image inputs."
+              },
+              {
+                "label": "Keep receipts",
+                "sub": "Source and results",
+                "detail": "CI retains its selection record and source-bound artifacts for later gates."
+              }
+            ],
+            "caption": "A green aggregate means every check selected for that tier passed. It does not mean every optional check ran."
+          }
+        },
+        {
+          "type": "p",
+          "text": "Explain the pipeline as a sequence of evidence. CI checks source and records a run attempt, tested source SHA, selection and build receipts. CD admits only a successful push-to-Main CI run from this repository and validates that exact run, source and attempt. The local receipt for `514914a` is not the hosted Main receipt: current Main CI is run `39415935595`, attempt 1, on runtime source `629119c`. Keep each source and environment attached to its claim."
+        },
+        {
+          "type": "callout",
+          "title": "Say what passed",
+          "text": "“The Dev gate passed for the selected Media change checks.” is more accurate than “all tests passed” unless the Full verification gate also passed.",
+          "tone": "note"
+        }
+      ],
+      "sources": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "label": "CI triggers, jobs and retained artifacts"
+        },
+        {
+          "path": "scripts/ci/policy.py",
+          "label": "Path classification and conservative fallback"
+        },
+        {
+          "path": "docs/ci/results-20261017.md",
+          "label": "Dated selection and timing examples"
+        }
+      ]
+    },
+    {
+      "id": "artifact-and-identity",
+      "title": "The artifact is useful only with its identity",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "A CI image is not just a tag. Tags can be reused, and a commit label alone does not tell you which image bytes were loaded. The V1 build verifier records image configuration identifiers in a receipt and checks the runtime as the intended image user (and Lambda identity where relevant). Security scan receipts also bind the scan to the exact image configuration and source SHA. Together, these facts let a later job answer: “Is this the image built and scanned for the source CI tested?”"
+        },
+        {
+          "type": "p",
+          "text": "The CI workflow uploads a selection artifact on every run, with run attempt identity. Other jobs retain coverage fragments, service image receipts and candidate scan evidence. Full verification checks the selected jobs and required artifacts; a missing fragment cannot be treated as an empty successful report. Pull request head SHA and tested merge SHA can differ. The selection receipt’s source SHA is the tested code. Do not infer it from a branch name or the PR head. Old runs without a receipt remain unknown."
+        },
+        {
+          "type": "p",
+          "text": "This is why “same commit” needs care. For an automatic release, CD receives a completed CI run. Its gate accepts only a successful run caused by a push to this repository’s Main. It then validates the workflow name, event, head repository, commit SHA and run attempt, and downloads artifacts from that exact run. A PR run, a fork whose branch happens to be Main, or a manual run is not a valid automatic promotion input. A manual exact-candidate full CI run is useful evidence for review, but it does not become the automatic workflow_run event."
+        },
+        {
+          "type": "code",
+          "language": "text",
+          "text": "CI run identity = repository + event + commit SHA + run ID + attempt\nCandidate identity = checked-out source + image config/digest + scan receipt"
+        },
+        {
+          "type": "callout",
+          "title": "Two identity checks",
+          "text": "A matching source SHA proves which code was tested. A matching image configuration or digest proves which built bytes were checked. A reusable tag alone proves neither.",
+          "tone": "tip"
+        }
+      ],
+      "sources": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "label": "Exact source and uploaded evidence"
+        },
+        {
+          "path": ".github/workflows/cd.yml",
+          "label": "CD run identity gate and artifact download"
+        },
+        {
+          "path": "deploy/v1/build_and_verify.py",
+          "label": "Image build receipt and runtime checks"
+        },
+        {
+          "path": "scripts/ci/v1_scan.py",
+          "label": "Exact configuration and SHA scan validation"
+        }
+      ]
+    },
+    {
+      "id": "deployment-release",
+      "title": "Deployment and release have different rollback boundaries",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "CD: deploy and promote",
+            "steps": [
+              {
+                "label": "Accept CI run",
+                "sub": "Main push, green",
+                "detail": "The gate refuses PR, failed, foreign-repository or non-push workflow runs."
+              },
+              {
+                "label": "Deploy stack",
+                "sub": "Exact source",
+                "detail": "Infrastructure and application configuration are reconciled for the accepted source."
+              },
+              {
+                "label": "Release owner",
+                "sub": "Candidate image",
+                "detail": "A service release plan selects changed owner images and verifies migration compatibility."
+              },
+              {
+                "label": "Smoke or restore",
+                "sub": "Alias decision",
+                "detail": "A passing smoke keeps the candidate; a failing smoke restores the previous alias."
+              }
+            ],
+            "caption": "The workflow is serialized because the environment journal and account capacity are shared."
+          }
+        },
+        {
+          "type": "p",
+          "text": "Deployment and release are useful conceptual stages even though this implementation does not always run a separate manual release workflow. In automatic CD, the `Deploy` step includes owner image promotion and stack adoption. After it completes, the workflow runs the upload-to-playback smoke. Manual dispatch exposes read-only preflight, rehearsal and image-verification modes before execution. Call out which mode and step actually ran."
+        },
+        {
+          "type": "p",
+          "text": "The deployment plan compares image inputs by service owner and may retain an unchanged image. Automatic deployment then promotes the selected Media and Processing images and adopts them into the stack. The later smoke checks the public path. A stack update or promotion can succeed while that following smoke fails, so report those outcomes separately. The final delivery receipt binds these actions to Main CI `39415935595` and CD `39416747925`, both attempt 1, with source `629119c5b3bd390ce072df0a43fe926cd7a161c7`."
+        },
+        {
+          "type": "p",
+          "text": "Database compatibility is the constraint that makes image rollback safer than schema rollback. A migration that drops or renames a field can make the previous application image unusable. The release path therefore expects additive migrations and records an explicit operator attestation that both the previous and candidate images work with the checkout’s schema head. A successful image rollback restores service code and aliases; it does not reverse database schema. Design migrations so old and new versions can coexist during deployment, then remove obsolete schema only in a later, separately reviewed change."
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Build: produce and verify an image, then bind its receipt to source and image identity.",
+            "Deploy: reconcile stack resources and configuration for an accepted source.",
+            "Release: move one service alias after compatibility checks; smoke it and restore the prior version if it fails."
+          ]
+        },
+        {
+          "type": "callout",
+          "title": "Rollback is not time travel",
+          "text": "The rollback proof restores image aliases. It does not undo a database migration. Keep schema changes backward compatible across the release window.",
+          "tone": "note"
+        }
+      ],
+      "sources": [
+        {
+          "path": ".github/workflows/cd.yml",
+          "label": "Workflow_run gate, dispatch modes and serialized CD"
+        },
+        {
+          "path": "scripts/ci/cd_gate.py",
+          "label": "Exact CI receipt checks"
+        },
+        {
+          "path": "scripts/ci/cd.sh",
+          "label": "Deploy and service release orchestration"
+        },
+        {
+          "path": "scripts/aws/v1/release.py",
+          "label": "Release plan, compatibility and alias restoration"
+        }
+      ]
+    },
+    {
+      "id": "delivery-evidence",
+      "title": "Use real receipts to explain failure",
+      "level": 3,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "The current Main record is the clearest end-to-end example. Full CI `39415935595` passed on exact source `629119c` (25 jobs succeeded; three intentional skips, including two unconfigured advisory Sonar jobs). CD `39416747925` admitted that exact run and attempt. Its Deploy step, including owner promotion and stack adoption, completed at 12:04:26 UTC. The following upload-to-playback smoke completed at 12:06:34 UTC: upload returned 204, the job reached `done`, the encoder exited 0, and MP4 plus HLS playlist/segment playback passed. Read-only AWS checks then matched all three deployed image manifests, ten Lambda aliases and the ECS worker definition. This is a point-in-time delivery receipt, not team acceptance of a replacement submission freeze."
+        },
+        {
+          "type": "p",
+          "text": "Keep the workflow repairs in the chronology: attempt #281 failed at startup because a runner context was used while configuring a job; the context handling was corrected and actionlint passed across all five workflows. Attempt #282 caught changed bytes in an already released migration; the exact historical bytes were restored and the deployment compatibility guard stayed enabled. The successful full CI and CD above followed those fixes. This teaches why a gate should reject invalid runner context and migration-history mutation before delivery."
+        },
+        {
+          "type": "p",
+          "text": "Deployment success is not the same as every objective passing. The V2-live queue-wait observation remains about 37 seconds against a 20-second target; the earlier V1 cap-2 scaling target was missed, and the 30-clip workload was not run. The documented rollback restored a bad Processing candidate from source `7928b7c`, an older source-bound experiment. It does not prove rollback of `629119c` or reverse a database migration. Keep these older experiments separate from the current delivery."
+        },
+        {
+          "type": "qa",
+          "q": "Why can a successful CI run still be rejected by CD?",
+          "a": "The run may be for a pull request, another repository, or a non-push event. Automatic CD requires successful CI for a push to Main in the same repository and validates the exact run identity."
+        },
+        {
+          "type": "qa",
+          "q": "If release smoke fails, what does rollback restore?",
+          "a": "The previous service image alias. The database schema is not reversed, so migrations must remain compatible with both application versions."
+        },
+        {
+          "type": "qa",
+          "q": "Does a green rollback job mean the candidate worked?",
+          "a": "No. It can mean the candidate failed as expected and the system restored the known-good alias. State the candidate smoke result and the restoration outcome separately."
+        },
+        {
+          "type": "qa",
+          "q": "Why not release by tag alone?",
+          "a": "Tags can be reused. CD checks source and run identity, while image receipts bind the tested source to a particular image configuration or digest."
+        },
+        {
+          "type": "qa",
+          "q": "What is the key explanation when a deploy fails after infrastructure updates?",
+          "a": "Name which stage passed, which later stage failed, the evidence identity, and whether the failure was product behavior, orchestration, or a deliberate gate. The V2-live receipts show these can differ."
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/execution/aws/v1/evidence/v2live-verify-20261019/README.md",
+          "label": "Receipts, findings, outcomes and evidence limits"
+        },
+        {
+          "path": "docs/execution/aws/v1/evidence/v2live-verify-20261019/cd-39271754470-bad-candidate-rollback/release-processing.json",
+          "label": "Candidate smoke and restored alias evidence"
+        },
+        {
+          "path": ".github/workflows/cd.yml",
+          "label": "Release dispatch inputs and operation controls"
+        },
+        {
+          "path": "docs/results/engineering-20261020/delivery-629119c.json",
+          "label": "Exact Main CI/CD admission, deployment, smoke and AWS read-back"
+        },
+        {
+          "path": "docs/release/engineering-handoff.md",
+          "label": "Current engineering handoff and workflow corrections"
+        }
+      ]
+    }
+  ],
+  "takeaways": [
+    "CI selection is based on changed paths; uncertainty selects broader verification.",
+    "A green tier proves its selected checks only. Full verification adds inherited acceptance, combined coverage and exact candidate evidence.",
+    "Tie every receipt to repository, event, source SHA, run attempt and image identity.",
+    "Deployment changes infrastructure; release promotes a service image behind a smoke and restoration boundary.",
+    "Image rollback does not roll back database schema; use additive, compatible migrations."
+  ]
+}
