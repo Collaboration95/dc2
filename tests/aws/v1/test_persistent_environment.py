@@ -153,6 +153,30 @@ def test_a_template_change_reaches_the_stack_as_an_update_of_only_that_resource(
     ]
 
 
+def test_a_rolled_back_update_fails_that_deploy_and_does_not_block_the_next_one(live):
+    # dc2-live, 2026-10-21: Lambda refused a memory size, CloudFormation rolled the update back,
+    # and every later deploy stopped at "UPDATE_ROLLBACK_COMPLETE; resolve before resuming" even
+    # though the stack was the previous, working one and AWS accepts an update on it.
+    live.deploy()
+    env = live.s.env
+    live.s.stage_rate_limit = 30
+    live.sim.fail[("stack-complete", env)] = "Lambda refused the configuration"
+    with pytest.raises(
+        DeployError, match="UPDATE_ROLLBACK_COMPLETE.*Lambda refused the configuration"
+    ):
+        live.deploy()
+    assert live.sim.stacks[env]["status"] == "UPDATE_ROLLBACK_COMPLETE"
+    assert live.journal.view()["steps"]["applications"]["status"] == "failed"
+
+    del live.sim.fail[("stack-complete", env)]
+    live.s.stage_rate_limit = 40  # the fix: bytes that are not the failed change set's
+    first = len(live.sim.calls)
+    live.deploy()
+    assert [c["ChangeSetType"] for c in change_sets(live, first)] == ["UPDATE"]
+    assert live.sim.stacks[env]["status"] == "UPDATE_COMPLETE"
+    assert live.journal.view()["steps"]["applications"]["status"] == "done"
+
+
 def test_the_cost_guard_reports_but_never_blocks_an_update(live):
     live.deploy()
     live.sim.mtd = 500.0  # far above --budget-usd
