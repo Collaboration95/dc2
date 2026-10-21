@@ -3,7 +3,7 @@
 This section describes the solution **as built** at the delivered engineering source. The proposal's
 Figures 2–3 (synchronous `SubmitJob`, Redis/RQ, a service token) are the "before" design. Where the
 build changed a proposal decision, the change and its reason are recorded in the decision register
-(`docs/architecture/decisions.md`) and summarised here. Decision identifiers AD-01 to AD-28 are
+(`docs/architecture/decisions.md`) and summarised here. Decision identifiers AD-01 to AD-29 are
 the register's own. They are kept unchanged across sections 3.1.1, 3.2.1 and 3.3, rather than
 renumbered, so every reference in the repository still resolves.
 
@@ -36,7 +36,7 @@ delivery helpers, which are copied into each image at build time.
 | Operator and delivery tooling (`scripts/aws/v1/`, `scripts/ci/`) | Custom Python CLIs and shell | Team 17 | Template rendering, deploy, session, release and restore, evidence harnesses, CD admission |
 | FFmpeg and ffprobe | COTS open source | FFmpeg project (Debian package) | Probing and transcoding |
 | FastAPI, Pydantic, SQLAlchemy, Alembic, asyncpg, boto3, PyJWT, bcrypt | Open-source libraries | Python community | Web framework, validation, ORM, migrations, PostgreSQL driver, AWS SDK, JWT, password hashing |
-| Relational database (PostgreSQL 16) | Managed service | AWS (Aurora Serverless v2) | `media_db` and `processing_db` |
+| Relational database (PostgreSQL 16) | Managed service | AWS (Aurora Serverless v2) | `media_db` and `processing_db`, one cluster each (AD-29) |
 | Object storage | Managed service | AWS (S3) | Source, output and frontend buckets |
 | Messaging | Managed service | AWS (SQS) | Three queues and three dead-letter queues |
 | Edge, compute and operations | Managed services | AWS (CloudFront, API Gateway, Lambda, ECS Fargate, EventBridge, SSM, Secrets Manager, ECR, CloudWatch, Budgets, IAM) | Section 3.2 |
@@ -70,7 +70,7 @@ record in the register (context, decision, alternatives, trade-off, evidence).
 | Identifier | Decision | Rationale and trade-off | Status |
 |:------|:-----------------------|:-------------------------------------------------------|:---------|
 | AD-01 | Extract **Processing** as the only new business service; Identity and Delivery stay inside Media | Processing has its own rules (claim, lease, attempt), lifecycle and CPU-bound scaling profile. Every playback or retry decision needs owner and asset together, so splitting Identity or Delivery out would turn single-database joins into cross-service calls. Four services were rejected as more contracts and operations than the need justifies. | Kept, confirmed by detailed DDD (F-01) |
-| AD-02 | **Database per service**: `media_db` and `processing_db`, separate migration histories and roles (`*_runtime` DML only, `*_migrator` DDL, `*_owner` no login) | A real ownership boundary at low cost. Trade-off: both databases share one Aurora cluster, so logical ownership is real but failure isolation is not (AISS-01). | Kept (hosting refined by AD-12) |
+| AD-02 | **Database per service**: `media_db` and `processing_db`, separate migration histories and roles (`*_runtime` DML only, `*_migrator` DDL, `*_owner` no login) | A real ownership boundary at low cost. Trade-off: V1 put both databases on one Aurora cluster, so logical ownership was real but failure isolation was not; since 21 October each service has its own cluster (AD-29). | Kept (hosting refined by AD-12 and AD-29) |
 | AD-09 | **API Gateway HTTP API with a Media-owned Lambda authorizer**; the Gateway adapter builds the actor only from the authorizer context | Processing trusts the owner identity without holding Media's JWT secret or user table. Result cache TTL is 0, so a deleted user or changed role takes effect at once. The cost is a database read per request. | New (supersedes AD-06 service token) |
 | AD-11 | **SQS with an SQL outbox and inbox** in both databases, replacing Redis/RQ and synchronous `SubmitJob` | No always-on broker, and failure isolation: Media accepts uploads while Processing is down. The SQL-to-SQS handoff is not atomic, so repair is part of the design. Delivery is at least once, so duplicates are normal and consumers deduplicate. | New (supersedes AD-03; changes AD-04) |
 | AD-14 | **Direct-to-S3 intake**: a presigned, owner-scoped reservation, then a finalize step that verifies size, SHA-256 and file signature at a pinned S3 VersionId | No 100 MiB body passes through Gateway or Lambda, and the bytes that were verified are exactly the bytes encoded. Trade-off: a two-step protocol; the client hashes the file first, and versioned buckets need cleanup. | New (changes AD-05) |
@@ -85,7 +85,7 @@ record in the register (context, decision, alternatives, trade-off, evidence).
 | Client | Browser SPA, Publisher CLI | Presentation only. Both call the same public API. The browser uploads bytes straight to S3 with a presigned POST. |
 | Edge | CloudFront, API Gateway, Media authorizer | TLS termination, routing (`/api/media/*`, `/api/processing/*`), identity, stage throttle |
 | Application | Media Management, Processing | **API layer**: `media/api/*`, `processing/v1_api.py`; transport is FastAPI behind `contracts/gateway.py`. **Domain and service layer**: `media/services/direct_intake.py`, `v1_lifecycle.py`, `media/projections.py`; `processing/messaging.py`, `lifecycle.py`, `launcher.py`. **Messaging layer**: `media/messaging.py`, `processing/messaging.py` over `delivery/`. **Persistence layer**: models, repositories and Alembic migrations per service. **Shared kernel**: `contracts/`, `delivery/`, `runtime_support/`. |
-| Execution | Lambda handlers, Fargate encoder | Queue consumers, one-minute repair ticks, ECS and S3 event handlers, the launcher, and the encoder (`processing/worker/` with `media_engine/`) |
+| Execution | Lambda handlers, Fargate encoder | Queue consumers, one-minute repair ticks, ECS and S3 event handlers, the launcher, the encoder and the short-encode Lambda (`processing/worker/` with `media_engine/`) |
 | Data | Aurora, S3, SQS | `media_db`, `processing_db`; source, output and frontend buckets; commands, work and results queues |
 
 The dependency rules are enforced, not just documented:
@@ -105,7 +105,7 @@ The dependency rules are enforced, not just documented:
 | Media repair | Publish the outbox, expire grants, clean up deleted sources | `MediaRepair` Lambda (one-minute rule) | Media |
 | Job orchestration | Job and attempt lifecycle, retry, cancel, leases, state versions | `ProcessingApi`, `ProcessingCommands` Lambdas | Processing |
 | Recovery | Rebuild lost work, expire leases, react to stopped tasks and late outputs | `ProcessingRepair`, `ProcessingEcsEvents`, `ProcessingS3Events` Lambdas | Processing |
-| Capacity | Start finite encoders from the SQL backlog, at most three | `ProcessingLauncher` Lambda (V2-live) | Processing |
+| Capacity | Start finite encoders from the SQL backlog, at most three; clips of 60 s or less go to the short-encode Lambda instead | `ProcessingLauncher` Lambda (V2-live) | Processing |
 | Encoding | Probe, MP4 or edited output, HLS ladder, upload outputs with SHA-256 | Fargate encoder task (2 vCPU, 4 GiB), 0 to 3 | Processing |
 | Messaging | Envelope validation, outbox, inbox, SQS lanes, DLQ tooling | Library in both images | Shared kernel |
 | Operations | Template, deploy, release and restore, evidence | CD runner or operator station | Platform |

@@ -15,6 +15,7 @@ sequenceDiagram
   PC->>L: wake (async invoke)
   L->>PDB: reserve launch slot (cap 3)
   L->>E: RunTask with stable token and deadline
+  Note over PC,E: Short clips (60 s or less, 64 MiB or less, up to 1080p) use the short queue and<br/>a short-encode Lambda (max 2) for the same claim, encode and finish steps.<br/>No Fargate start. Longer clips continue below.
   E->>Q: receive work
   E->>PDB: claim: lease on DB clock, bind task, processing, outbox result v2
   E->>S: GET source at pinned VersionId, verify SHA-256
