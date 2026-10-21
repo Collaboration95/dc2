@@ -128,6 +128,7 @@ Have these backup evidence items ready for questions:
 - Security: the retained #229 AWS negative checks preceded the final frozen source. The frozen #271 behavior is described below; do not convert an earlier-source test into exact-freeze proof.
 - Restore: CD run `39271754470` restored a bad Processing candidate from `7928b7c`. It does not prove rollback of `daee44b`.
 - Browser, Publisher, local integration, coverage, and DAST: use only receipts that name the exact source, environment, command, and outcome. A test-selection count is not a substitute for the required evidence artifact.
+- Security tab: GitHub code scanning now lists CodeQL, Trivy (fixable HIGH/CRITICAL), ZAP (sanitized, rule-level), Ruff security and gitleaks results; see [what is published and what stays artifact-only](../ci/policy.md#publishing-to-the-security-tab).
 
 ## Honest limits and likely questions
 

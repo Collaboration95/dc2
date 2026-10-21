@@ -28,6 +28,9 @@ jobs:
     name: Authenticated Media and Processing V1 local APIs
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    permissions:
+      contents: read
+      security-events: write # upload-sarif only; findings stay report-only
     env:
       DAST_RUN_ID: dast-${{ github.run_id }}-${{ github.run_attempt }}
       V1_MOTO_PYTHON: ${{ github.workspace }}/.cache/v1-moto/bin/python
@@ -81,3 +84,18 @@ jobs:
           path: ${{ runner.temp }}/v1-dast-reports/*.json
           if-no-files-found: warn
           retention-days: 14
+      # Publication only. The scan step decides the job; ZAP findings remain report-only. Only an
+      # executed scan is converted, so a failed run cannot mark earlier alerts as fixed.
+      - name: Convert the sanitized findings to SARIF
+        if: always()
+        run: python3 -m scripts.ci.sarif zap "$RUNNER_TEMP/v1-dast-reports" "$RUNNER_TEMP/v1-dast-reports/zap.sarif"
+      - name: Summarize DAST findings
+        if: always()
+        run: python3 -m scripts.ci.sarif summary 'OWASP ZAP authenticated DAST (report-only)' "$RUNNER_TEMP/v1-dast-reports/zap.sarif" >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish DAST findings to code scanning
+        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: ${{ runner.temp }}/v1-dast-reports/zap.sarif
+          category: zap-dast

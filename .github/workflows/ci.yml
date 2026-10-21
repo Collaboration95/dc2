@@ -98,7 +98,11 @@ jobs:
     if: needs.classify.outputs.lint_and_unit == 'true'
     name: Lint and Python unit tests
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    # The traced fast suite has a 180 s budget in scripts/dev/checks.py; setup and lint add to it.
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      security-events: write # upload-sarif for the Ruff security findings only
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: ./.github/actions/python-tools
@@ -120,6 +124,21 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
+      # Publication only: `make lint` above stays the gate for these same rules.
+      - name: Export security lint findings as SARIF
+        if: always()
+        continue-on-error: true
+        run: .venv/bin/python -m scripts.dev.checks security-sarif
+      - name: Summarize security lint findings
+        if: always()
+        run: python3 -m scripts.ci.sarif summary 'Ruff security rules (S)' artifacts/ruff-security.sarif >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish security lint findings to code scanning
+        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: artifacts/ruff-security.sarif
+          category: ruff-security
 
   frontend:
     needs: classify
@@ -536,6 +555,9 @@ jobs:
     needs: classify
     if: needs.classify.outputs.v1 == 'true'
     uses: ./.github/workflows/v1.yml
+    permissions:
+      contents: read
+      security-events: write # only the image-scan job in v1.yml asks for it
     with:
       flow: all
       run_offline: ${{ needs.classify.outputs.v1_offline == 'true' }}
@@ -607,6 +629,9 @@ jobs:
     needs: classify
     if: needs.classify.outputs.dast == 'true'
     uses: ./.github/workflows/dast.yml
+    permissions:
+      contents: read
+      security-events: write
     with:
       required_candidate: true
 
@@ -616,6 +641,9 @@ jobs:
     name: Scan container image (${{ matrix.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write # upload-sarif only
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.classify.outputs.security_matrix) }}
@@ -665,6 +693,31 @@ jobs:
             trivy-findings.json
           if-no-files-found: error
           retention-days: 60
+      # Publication only: the scan above is the gate. Same severities and unfixed policy.
+      - name: Export the same findings as SARIF
+        if: always()
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ matrix.tag }}
+          format: sarif
+          output: trivy-findings.sarif
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+      - name: Summarize image findings
+        if: always()
+        env:
+          IMAGE: ${{ matrix.name }}
+        run: python3 -m scripts.ci.sarif summary "Trivy image scan of $IMAGE (fixable HIGH/CRITICAL)" trivy-findings.sarif >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish image findings to code scanning
+        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: trivy-findings.sarif
+          category: trivy-${{ matrix.name }}
 
   # Unconditional on purpose: no lane selection may skip the one check that stops a leaked
   # credential, and both aggregates require it (scripts/ci/policy.py ALWAYS_JOBS). It scans the
@@ -674,6 +727,9 @@ jobs:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      security-events: write # upload-sarif only
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -690,8 +746,19 @@ jobs:
           echo "${GITLEAKS_SHA256}  gitleaks.tgz" | sha256sum -c -
           tar -xzf gitleaks.tgz gitleaks
           rm gitleaks.tgz
-      - name: Scan history (secrets are redacted in the log)
-        run: ./gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --verbose
+      # --redact applies to the log and to the SARIF report, so no secret value is published.
+      - name: Scan history (secrets are redacted in the log and the report)
+        run: ./gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --verbose --report-format sarif --report-path gitleaks.sarif
+      - name: Summarize secret findings
+        if: always()
+        run: python3 -m scripts.ci.sarif summary 'Secret scan (gitleaks)' gitleaks.sarif >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish secret findings to code scanning
+        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: gitleaks.sarif
+          category: gitleaks
 
   sonar-config:
     name: Sonar configuration (analysis is advisory)

@@ -7,6 +7,7 @@ import signal
 import subprocess
 from uuid import uuid4
 
+from scripts.dev.checks import FAST_COVERAGE_TIMEOUT
 from scripts.dev.common import PYTHON, ROOT, local_env, run
 from scripts.dev.runtime import configure
 from scripts.dev.scenario import ServiceGuard, utcnow
@@ -91,7 +92,7 @@ def verify(run_id, *, full=True):
     run(
         [str(PYTHON), "-m", "scripts.dev.checks", "coverage-fast"],
         label="fast-coverage",
-        timeout=150,
+        timeout=FAST_COVERAGE_TIMEOUT + 30,  # the child's own budget plus startup margin
     )
     run(
         [str(PYTHON), "-m", "scripts.dev.checks", "coverage-frontend"],

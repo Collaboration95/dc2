@@ -17,6 +17,10 @@ from scripts.dev.common import (
 )
 
 COVERAGE_DIR = ROOT / "artifacts/coverage"
+# The traced fast suite takes about 95-115 s on a hosted runner; 180 s absorbs a runner stall
+# without turning a hung run into a long one. scripts/dev/verify.py wraps this with a margin.
+FAST_COVERAGE_TIMEOUT = 180
+SECURITY_SARIF = ROOT / "artifacts/ruff-security.sarif"
 
 
 def service_tests(domain: str) -> list[str]:
@@ -105,7 +109,7 @@ def fast(*, coverage: bool = False, domain: str | None = None) -> Path | None:
     ignored = ["--ignore=tests/integration", "--ignore=tests/e2e"]
     command = pytest_args() + paths + ignored + ["-m", selection]
     if coverage:
-        return measure(command, "fast", fast_env(), 120)
+        return measure(command, "fast", fast_env(), FAST_COVERAGE_TIMEOUT)
     # The full untraced suite includes operator rehearsals omitted from coverage-fast.
     run(command, label=f"test-python-{domain or 'fast'}", timeout=180, env=fast_env())
     return None
@@ -198,23 +202,27 @@ def lint_paths() -> list[str]:
     ]
 
 
+def security_lint_args() -> list[str]:
+    """Ruff's Bandit rules over the runtime, Publisher and the deployed bootstrap."""
+    return ["--select", "S", *[name for name in packages() if name != "app"], V1_BOOTSTRAP_FILE]
+
+
 def lint() -> None:
     paths = lint_paths()
     run([str(PYTHON), "-m", "ruff", "check", *paths], label="lint", timeout=60)
     run(
-        [
-            str(PYTHON),
-            "-m",
-            "ruff",
-            "check",
-            "--select",
-            "S",
-            *[name for name in packages() if name != "app"],
-            V1_BOOTSTRAP_FILE,
-        ],
+        [str(PYTHON), "-m", "ruff", "check", *security_lint_args()],
         label="source-security-lint",
         timeout=60,
     )
+
+
+def security_sarif() -> None:
+    """Write the security lint findings as SARIF for code scanning; `lint` stays the gate."""
+    SECURITY_SARIF.parent.mkdir(parents=True, exist_ok=True)
+    command = [str(PYTHON), "-m", "ruff", "check", *security_lint_args()]
+    command += ["--output-format", "sarif", "--output-file", str(SECURITY_SARIF), "--exit-zero"]
+    run(command, label="security-sarif", timeout=60)
 
 
 def format_check() -> None:
@@ -246,6 +254,7 @@ def main() -> None:
             "test-frontend",
             "lint",
             "format-check",
+            "security-sarif",
             "coverage",
             "coverage-fast",
             "coverage-frontend",
@@ -266,6 +275,8 @@ def main() -> None:
         lint()
     if args.action == "format-check":
         format_check()
+    if args.action == "security-sarif":
+        security_sarif()
     if args.action == "coverage-fast":
         fast(coverage=True)
     if args.action == "coverage-frontend":
