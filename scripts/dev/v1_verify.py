@@ -45,26 +45,21 @@ EXISTING_INTEGRATION_SUITES = (
     "tests/v1/test_release_acceptance.py",
     "tests/v1/test_workflow_acceptance.py",
 )
-OPTIONAL_INTEGRATION_DISPOSITIONS = {
-    "tests/v1/test_short_encoder_sql.py": {
-        "cases": 13,
-        "status": "DEFERRED_OPTIONAL_V2",
-        "reason": ("Optional short-encoder lane; its tests do not enable the lane in runtime."),
-    }
-}
+# The Lambda short-encode lane (#93) is live in the persistent environment, so its 13 real
+# PostgreSQL, Moto and FFmpeg cases are part of the required cohort. Each one switches the lane
+# on itself (an autouse fixture), so they need no runtime setting; they run in about 4 s.
+SHORT_ENCODER_INTEGRATION_SUITE = "tests/v1/test_short_encoder_sql.py"
+SHORT_ENCODER_INTEGRATION_CASES = 13
 CREDENTIAL_ROTATION_REGRESSION = (
     "tests/v1/test_credential_rotation.py::"
     "test_a_real_wrong_password_is_recognised_as_a_login_refusal"
 )
 # Use pytest's own collection and markers; new marked V1 cases run by default. These
-# exclusions already run in their owning flows or are explicitly deferred optional code.
+# exclusions already run in their owning flows.
 REQUIRED_INTEGRATION_ARGS = (
     "-m",
     "integration",
-    *[
-        f"--ignore={path}"
-        for path in (*EXISTING_INTEGRATION_SUITES, *OPTIONAL_INTEGRATION_DISPOSITIONS)
-    ],
+    *[f"--ignore={path}" for path in EXISTING_INTEGRATION_SUITES],
 )
 
 
@@ -657,6 +652,7 @@ def summarize_required_nodes(result):
         "core": summarize(CORE_INTEGRATION_SUITES),
         "support": summarize(SUPPORT_INTEGRATION_SELECTORS),
         "real_password": summarize([CREDENTIAL_ROTATION_REGRESSION]),
+        "short_encoder": summarize([SHORT_ENCODER_INTEGRATION_SUITE]),
     }
 
 
@@ -800,10 +796,7 @@ def run_flow(name, data, phase):
             "audit_core_cases": AUDIT_CORE_CASES,
             "additional_recovery_cases": ADDITIONAL_RECOVERY_CASES,
             "real_password_regression": CREDENTIAL_ROTATION_REGRESSION,
-            "optional_cases_deferred": 13,
-            "optional_disposition": OPTIONAL_INTEGRATION_DISPOSITIONS[
-                "tests/v1/test_short_encoder_sql.py"
-            ],
+            "short_encoder_cases": SHORT_ENCODER_INTEGRATION_CASES,
         },
     }
 
@@ -832,7 +825,6 @@ def verify(run_id, flow):
         "integration_selection": {
             "scope": "pytest tests/v1 -m integration",
             "separate_flow_suites": list(EXISTING_INTEGRATION_SUITES),
-            "optional_dispositions": OPTIONAL_INTEGRATION_DISPOSITIONS,
         },
         "flows": {},
     }

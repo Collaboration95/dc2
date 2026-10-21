@@ -694,6 +694,23 @@ def test_unattended_launch_flag_renders_the_stack_parameter(tmp_path):
     assert parsed.unattended_launch is True
 
 
+def test_the_short_encode_lane_is_off_unless_the_deploy_asks_for_it(tmp_path):
+    assert "LambdaShortEncodes" not in applications_parameters(Rig(tmp_path))
+
+
+def test_short_encode_flag_renders_the_stack_parameter(tmp_path):
+    rig = Rig(tmp_path, lambda_short_encodes=True)
+    assert applications_parameters(rig)["LambdaShortEncodes"] == "true"
+    parsed = deploy.build_parser().parse_args(
+        ["deploy", *ARGS, "--run-id", "t1", "--lambda-short-encodes"]
+    )
+    assert parsed.lambda_short_encodes is True
+    assert (
+        deploy.build_parser().parse_args(["deploy", *ARGS, "--run-id", "t1"]).lambda_short_encodes
+        is False
+    )
+
+
 # ---- images ----------------------
 def test_images_are_pushed_once_and_the_stack_receives_digest_pinned_references(rig):
     rig.deploy(stop_after="applications")

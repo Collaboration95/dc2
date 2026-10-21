@@ -98,6 +98,12 @@ PERSISTENT_STEPS = (
 )
 # The launcher's SQL flag needs a session end even always on, where nothing enforces it.
 ALWAYS_ON_OPEN_MINUTES = 60
+# The persistent environment runs the opt-in Lambda short-encode lane (#93, enabled 22 October
+# 2026). This constant is the whole switch, and CD reads it on every deploy: False renders
+# LambdaShortEncodes=false, the next update deletes the short queue, function and mapping, and
+# every dispatcher falls back to the Fargate lane (delivery.sqs.FALLBACK_LANE). Let the short
+# queue drain first (docs/execution/aws/v2/lambda-short-encodes.md, "How to enable").
+PERSISTENT_LAMBDA_SHORT_ENCODES = True
 INVOCATION_HISTORY = 20
 TEARDOWN_STEPS = (
     "td-inventory",
@@ -570,6 +576,10 @@ class Settings:
     database: DatabaseOptions = dataclasses.field(default_factory=DatabaseOptions)
     # The opt-in V2 launcher (#68): renders UnattendedLaunch=true; off keeps the V1 template.
     unattended_launch: bool = False
+    # The opt-in V2 Lambda short-encode lane (#93): renders LambdaShortEncodes=true. A persistent
+    # environment takes PERSISTENT_LAMBDA_SHORT_ENCODES instead; a per-run stack sets it with
+    # --lambda-short-encodes (the measurement's second arm).
+    lambda_short_encodes: bool = False
     # V2-live (#235): `run_id` names a long-lived environment (stack dc2-<name>) that every
     # deploy updates in place, deployed always on (#236) with the launcher (#237).
     persistent: bool = False
@@ -593,6 +603,7 @@ class Settings:
         self.state_dir = Path(self.state_dir)
         if self.persistent:
             self.unattended_launch = True  # encoders start from the queue, never by hand
+            self.lambda_short_encodes = PERSISTENT_LAMBDA_SHORT_ENCODES
 
     @property
     def env(self):
@@ -1407,6 +1418,7 @@ class Pipeline:
                 "parameter_arns": arns,
                 "images": images or {},
                 **({"unattended_launch": True} if self.s.unattended_launch else {}),
+                **({"lambda_short_encodes": True} if self.s.lambda_short_encodes else {}),
                 **(
                     {
                         "always_on": True,
@@ -3528,6 +3540,12 @@ def build_parser():
         help="V2 (#68): deploy the opt-in launcher (UnattendedLaunch=true); it stays "
         "off until `session open --unattended`",
     )
+    p.add_argument(
+        "--lambda-short-encodes",
+        action="store_true",
+        help="V2 (#93): deploy the opt-in Lambda short-encode lane (LambdaShortEncodes=true) in "
+        "a per-run stack. A persistent --environment takes PERSISTENT_LAMBDA_SHORT_ENCODES",
+    )
     p.add_argument("--station", default="dc2-deploy-station")
     p.add_argument("--plan-detail", choices=["mutating", "all"], default="mutating")
     p.add_argument("--json", action="store_true", help="include the full plan in JSON")
@@ -3596,6 +3614,12 @@ def main(
         except ValueError as error:
             raise DeployError(str(error)) from None
         persistent = args.environment is not None
+        if persistent and args.lambda_short_encodes:
+            # One switch per environment: a flag here could silently disagree with the constant.
+            raise DeployError(
+                "--lambda-short-encodes applies to a per-run stack; a persistent environment "
+                "follows PERSISTENT_LAMBDA_SHORT_ENCODES in scripts/aws/v1/deploy.py"
+            )
         settings = Settings(
             profile=args.profile,
             region=args.region,
@@ -3626,6 +3650,7 @@ def main(
             station=args.station,
             database=database,
             unattended_launch=args.unattended_launch,
+            lambda_short_encodes=args.lambda_short_encodes,
         )
         journal = DeployJournal(
             state / "deploy-journal.json", station=settings.station, environment=settings.env
