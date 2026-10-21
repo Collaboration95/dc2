@@ -1,0 +1,471 @@
+{
+  "source_sha": "c7c489c526098c9515e9eb7e24ab9ca846118027",
+  "environment": "dc2-live",
+  "frontend_url": "https://d1e1dpefd6hp9x.cloudfront.net",
+  "api_url": "https://nqxf2hclhi.execute-api.ap-southeast-1.amazonaws.com",
+  "scope": "Recovery of a blocked engineering delivery and a point-in-time read-back. Two CD failures, their causes, the fixes and the successful delivery. Not team acceptance of a new submission freeze.",
+  "prior_receipt": "docs/results/engineering-20261020/delivery-629119c.json",
+  "prior_delivered_source": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+  "prior_team_accepted_source": "daee44b61a6e8eef3f62505df69f8bfd076d68b8",
+  "trigger": {
+    "advisory": "GHSA-6q48-6c7w-9gw2",
+    "title": "certifi bundles emSign root CAs with compromised intermediate CA keys",
+    "package": "certifi",
+    "affected_version": "2026.7.22",
+    "fixed_version": "2026.10.19",
+    "published": "2026-10-20T19:35:05Z",
+    "note": "Trivy lists only the GHSA id for this advisory; no CVE id appears in its data.",
+    "dependency_fix": "94f7463 (uv.lock), on Main through #284 as 4ae6a0b"
+  },
+  "failed_runs": [
+    {
+      "cd_run_id": 39532075705,
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/39532075705",
+      "source_sha": "4ae6a0b71bad730589055dab4746a1e04b1c0f61",
+      "ci_run_id": 39531399249,
+      "step": "Deploy",
+      "error": "media: FAIL: Trivy has 1 fixable HIGH/CRITICAL",
+      "smoke": "skipped",
+      "cause": "release_owner scanned the new media candidate (PASS, zero fixable) and then rescanned the running media image as the rollback baseline, sha256:24bd78a88f79 (config 3f1dd48a14d0, source 629119c). That image carried certifi 2026.7.22, GHSA-6q48-6c7w-9gw2, published after it shipped. The gate refused to replace a vulnerable image because it was vulnerable, so the remediation could not ship.",
+      "baseline_report_sha256": "sha256:f247ec0910b1dde8d31438e948909f580a620da186cf2d189bd6e62d480bb50d",
+      "baseline_digest": "sha256:24bd78a88f790754c2ebb712baa06218527e43674b94af9a87ccf93be1c6987c",
+      "baseline_finding": "GHSA-6q48-6c7w-9gw2 certifi 2026.7.22 -> 2026.10.19 (CRITICAL)",
+      "fix": "#285 into dev/closeout, #286 into Main"
+    },
+    {
+      "cd_run_id": 39542434067,
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/39542434067",
+      "source_sha": "61559513855bfe65b96c14ea4c4bbbe0343505d8",
+      "ci_run_id": 39541900512,
+      "step": "Deploy (deploy ladder public-smoke)",
+      "error": "PublicSmoke failed: login:503",
+      "smoke": "skipped",
+      "scan_stage": "passed; the failure came 3.5 minutes into Deploy, after the stack update",
+      "cause": "The update changed no migration, so nothing used the database before the smoke. Aurora had auto-paused (0 ACU); the login, the first database-backed call, met a resuming cluster. MediaApi logged a 10.7 s request ending in http 503 (application_error); capacity read 1.0 ACU a moment later. The smoke made one attempt per check.",
+      "fix": "#287 into dev/closeout, #288 into Main"
+    }
+  ],
+  "fix_pull_requests": {
+    "285": {
+      "url": "https://github.com/Collaboration95/dc2/pull/285",
+      "into": "dev/closeout",
+      "merge_commit": "ed398cdf443e4c6fe4fb271d3e11bbb392af92ae",
+      "ci_run_id": 39540269532
+    },
+    "286": {
+      "url": "https://github.com/Collaboration95/dc2/pull/286",
+      "into": "Main",
+      "merge_commit": "61559513855bfe65b96c14ea4c4bbbe0343505d8",
+      "ci_run_id": 39540956502,
+      "note": "Attempt 1 failed only on 'coverage-fast exceeded 120s; no retry was attempted' (a runner stall; the same job took 95 s on #285). The failed jobs were rerun unchanged and attempt 2 passed."
+    },
+    "287": {
+      "url": "https://github.com/Collaboration95/dc2/pull/287",
+      "into": "dev/closeout",
+      "merge_commit": "641f7f65dbfdfbbb4b709501cc720dd7c3d22be2",
+      "ci_run_id": 39543688300
+    },
+    "288": {
+      "url": "https://github.com/Collaboration95/dc2/pull/288",
+      "into": "Main",
+      "merge_commit": "c7c489c526098c9515e9eb7e24ab9ca846118027",
+      "ci_run_id": 39544300973
+    }
+  },
+  "ci": {
+    "run_id": 39544952625,
+    "url": "https://github.com/Collaboration95/dc2/actions/runs/39544952625",
+    "attempt": 1,
+    "event": "push",
+    "source_sha": "c7c489c526098c9515e9eb7e24ab9ca846118027",
+    "conclusion": "success",
+    "required_gate": "Full verification"
+  },
+  "cd": {
+    "run_id": 39545554380,
+    "url": "https://github.com/Collaboration95/dc2/actions/runs/39545554380",
+    "attempt": 1,
+    "event": "workflow_run",
+    "source_sha": "c7c489c526098c9515e9eb7e24ab9ca846118027",
+    "conclusion": "success",
+    "admission": {
+      "status": "PASS",
+      "source_sha": "c7c489c526098c9515e9eb7e24ab9ca846118027",
+      "run_id": 39544952625,
+      "run_attempt": 1,
+      "event": "push",
+      "tier": "full",
+      "required_gate": "Full verification",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/39544952625/attempts/1"
+    },
+    "step_durations": {
+      "gate_job": {
+        "start": "2026-10-21T04:43:02Z",
+        "end": "2026-10-21T04:43:09Z",
+        "seconds": 7
+      },
+      "deploy_live_job": {
+        "start": "2026-10-21T04:43:13Z",
+        "end": "2026-10-21T05:09:34Z",
+        "seconds": 1581
+      },
+      "deploy_step": {
+        "start": "2026-10-21T04:44:03Z",
+        "end": "2026-10-21T05:06:59Z",
+        "seconds": 1376,
+        "includes": "image build, scans, stack update, both owner releases and adoption"
+      },
+      "smoke_upload_to_playback_step": {
+        "start": "2026-10-21T05:06:59Z",
+        "end": "2026-10-21T05:09:26Z",
+        "seconds": 147
+      },
+      "manual_release_and_teardown_steps": "skipped (not requested)"
+    },
+    "owner_promotions": {
+      "media": {
+        "owner": "media",
+        "release": "g39545554380x1",
+        "outcome": "promoted",
+        "smoke": {
+          "owner": "media",
+          "versions": {
+            "dc2-live-MediaApi-dIhvUhrRl6vK": "8",
+            "dc2-live-MediaAuthorizer-AFIZjqGLFM7K": "8",
+            "dc2-live-MediaResults-k0tWVFCrG00Z": "8",
+            "dc2-live-MediaRepair-9a7msxztPxVn": "8"
+          },
+          "checks": {
+            "media-health": "PASS",
+            "processing-health": "PASS",
+            "anonymous-denied": "PASS",
+            "login": "PASS",
+            "media-jobs": "PASS",
+            "processing-jobs": "PASS",
+            "upload-reserve": "PASS"
+          },
+          "failures": [],
+          "login_attempts": [
+            200
+          ]
+        },
+        "versions": {
+          "dc2-live-MediaApi-dIhvUhrRl6vK": "8",
+          "dc2-live-MediaAuthorizer-AFIZjqGLFM7K": "8",
+          "dc2-live-MediaResults-k0tWVFCrG00Z": "8",
+          "dc2-live-MediaRepair-9a7msxztPxVn": "8"
+        },
+        "rollback_target_findings": [
+          {
+            "owner": "media",
+            "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+            "findings": [
+              "GHSA-6q48-6c7w-9gw2 certifi"
+            ]
+          }
+        ]
+      },
+      "processing": {
+        "owner": "processing",
+        "release": "g39545554380x1",
+        "outcome": "promoted",
+        "smoke": {
+          "owner": "processing",
+          "versions": {
+            "dc2-live-ProcessingApi-BtWaSh35nXin": "12",
+            "dc2-live-ProcessingCommands-F463dvM5FvHW": "11",
+            "dc2-live-ProcessingRepair-eaHk0u5KAjZj": "11",
+            "dc2-live-ProcessingEcsEvents-Dh8TwTw7ucpe": "11",
+            "dc2-live-ProcessingS3Events-v30PRnnANRdc": "11",
+            "dc2-live-ProcessingLauncher-UDHLVDRz5xuI": "11"
+          },
+          "checks": {
+            "media-health": "PASS",
+            "processing-health": "PASS",
+            "anonymous-denied": "PASS",
+            "login": "PASS",
+            "media-jobs": "PASS",
+            "processing-jobs": "PASS"
+          },
+          "failures": [],
+          "login_attempts": [
+            200
+          ]
+        },
+        "versions": {
+          "dc2-live-ProcessingApi-BtWaSh35nXin": "12",
+          "dc2-live-ProcessingCommands-F463dvM5FvHW": "11",
+          "dc2-live-ProcessingRepair-eaHk0u5KAjZj": "11",
+          "dc2-live-ProcessingEcsEvents-Dh8TwTw7ucpe": "11",
+          "dc2-live-ProcessingS3Events-v30PRnnANRdc": "11",
+          "dc2-live-ProcessingLauncher-UDHLVDRz5xuI": "11"
+        },
+        "rollback_target_findings": [
+          {
+            "owner": "processing",
+            "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+            "findings": [
+              "GHSA-6q48-6c7w-9gw2 certifi"
+            ]
+          },
+          {
+            "owner": "worker",
+            "source_sha": "629119c5b3bd390ce072df0a43fe926cd7a161c7",
+            "findings": [
+              "GHSA-6q48-6c7w-9gw2 certifi"
+            ]
+          }
+        ]
+      }
+    },
+    "direct_upload_e2e": {
+      "public": {
+        "bytes": 43153,
+        "encoder_exit_codes": [
+          0
+        ],
+        "encoders_left_running": 0,
+        "encoders_started": 1,
+        "finalize_ms": 506.2,
+        "hls_url_present": true,
+        "job_status": "done",
+        "master_is_playlist": true,
+        "master_status": 200,
+        "mp4_fetch_bytes": 1024,
+        "mp4_fetch_status": 206,
+        "mp4_ok": true,
+        "output_url_present": true,
+        "playlist_not_cached": true,
+        "reserve_ms": 858.6,
+        "seconds_to_terminal": 101.2,
+        "segment_fetch_bytes": 1024,
+        "segment_fetch_status": 206,
+        "segment_redirects_to_s3": true,
+        "segment_status": 307,
+        "served_by_cloudfront": true,
+        "storage_host_is_s3": true,
+        "transitions": [
+          [
+            0.3,
+            "accepted"
+          ],
+          [
+            70.9,
+            "queued"
+          ],
+          [
+            101.2,
+            "done"
+          ]
+        ],
+        "upload_ms": 1208.8,
+        "upload_status": 204,
+        "variant_status": 200
+      },
+      "seconds": 142.52,
+      "status": "PASS"
+    },
+    "ladder_public_smoke_login": "The ladder step's own attempts are not in the retained journal (its steps are rewritten per run). Aurora read 0 ACU until about 04:46Z and 1.0 ACU at 04:47Z. MediaApi logged no 503 in this window (the failed run logged one at 04:13:31Z) and shows a single database-backed request of about 1.06 s at 04:48:14Z, consistent with one successful login, so the wake retry most likely did not fire and is covered by tests only. The two release smokes record login_attempts [200]."
+  },
+  "image_scans": {
+    "policy": "zero-fixable-high-critical; Debian OS and Python packages (Trivy 0.70.0)",
+    "deployed_candidates_from_this_run": {
+      "media": {
+        "config_id": "sha256:baa16e0f22fdfdc061b76e32c396358e0f9b18afcebb0a8653bd9b551c5d454b",
+        "report_sha256": "sha256:2ee1d3c348845f990917761b768b4fe2e5866c6cb348dd131d1bf3bbbb156799",
+        "fixable_high_critical": [],
+        "unfixed_high_critical_rows": 44
+      },
+      "processing": {
+        "config_id": "sha256:dd59f5eb31490a57e1c995f9ee233f5a9fd16836315cb6c2e68120dbc8e94c33",
+        "report_sha256": "sha256:cec80ac271df5bf636e70d6677a8f3d6298fd8653dbcef3a74dd4609b21ab545",
+        "fixable_high_critical": [],
+        "unfixed_high_critical_rows": 44
+      },
+      "worker": {
+        "config_id": "sha256:c689aaef57dcd42288d1b8eb9ff10dfb03f53d7fb8eeb2f7155d1b7231d20149",
+        "report_sha256": "sha256:db37ecdd3d33ed1c69b498dd8202ec4059e2a4461ba7f06ac8861e8fb2df5b1a",
+        "fixable_high_critical": [],
+        "unfixed_high_critical_rows": 208
+      }
+    },
+    "replaced_rollback_targets_recorded_not_gating": {
+      "media": {
+        "config_id": "sha256:3f1dd48a14d0e0b127014b8190fd1ca01dac94e7c58803d44b835b3b0d2597f3",
+        "report_sha256": "sha256:61ca03bcc7645db6427327553712dacf249a69f0448a664aae9564cd4c1fb76d",
+        "fixable_high_critical": [
+          "GHSA-6q48-6c7w-9gw2 certifi 2026.7.22->2026.10.19"
+        ],
+        "unfixed_high_critical_rows": 44
+      },
+      "processing": {
+        "config_id": "sha256:d93733420a04c6bb685fd0982b0b6c3ad4695547103bb7a38c1aadc2aa37ecd0",
+        "report_sha256": "sha256:682413e12d70e821b0667325bdec6f59fbece41ee21a437f6d7bfb8121fd8e66",
+        "fixable_high_critical": [
+          "GHSA-6q48-6c7w-9gw2 certifi 2026.7.22->2026.10.19"
+        ],
+        "unfixed_high_critical_rows": 44
+      },
+      "worker": {
+        "config_id": "sha256:d7cbf2f5f972ab3c9c32f24c504674d66dfa4e518018a82b7e564b2e2203de1c",
+        "report_sha256": "sha256:09be1ce7452f130bf89e4382e3d3f2dfa95ba02a1de2c2cbbb38fd290cd764e7",
+        "fixable_high_critical": [
+          "GHSA-6q48-6c7w-9gw2 certifi 2026.7.22->2026.10.19"
+        ],
+        "unfixed_high_critical_rows": 208
+      }
+    },
+    "note": "The three deployed images have zero fixable HIGH/CRITICAL findings. The three images they replaced (source 629119c) each carried GHSA-6q48-6c7w-9gw2; the release plan accepted them as RETAINED_FIXABLE baselines only, and the CD run annotated and recorded them. Unfixed finding rows remain."
+  },
+  "aws_readback": {
+    "read_at": "2026-10-21T05:11:32.759246+00:00",
+    "journal_sha256": "d3df0792547adf155f64f6c85cd77ac787929b8ec6cae9751271f1fa1d156320",
+    "images": {
+      "media": {
+        "source_sha": "c7c489c526098c9515e9eb7e24ab9ca846118027",
+        "registry_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-mediarepository-t4jnrurabxho@sha256:dafbb19d3aa624d8c2dcbac710c2f1eed40c52ec436cd311b8a265bf70a9da94",
+        "registry_digest": "sha256:dafbb19d3aa624d8c2dcbac710c2f1eed40c52ec436cd311b8a265bf70a9da94",
+        "config_id": "sha256:baa16e0f22fdfdc061b76e32c396358e0f9b18afcebb0a8653bd9b551c5d454b",
+        "tags": [
+          "g39545554380x1-media"
+        ],
+        "manifest_sha256_matches_digest": true,
+        "manifest_config_binding": "PASS"
+      },
+      "processing": {
+        "source_sha": "c7c489c526098c9515e9eb7e24ab9ca846118027",
+        "registry_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processingrepository-fajxzf2rv6c2@sha256:3c83e4baf7b9a682b8e3c794f957d848a2c5dac31017182f285d1146822d939e",
+        "registry_digest": "sha256:3c83e4baf7b9a682b8e3c794f957d848a2c5dac31017182f285d1146822d939e",
+        "config_id": "sha256:dd59f5eb31490a57e1c995f9ee233f5a9fd16836315cb6c2e68120dbc8e94c33",
+        "tags": [
+          "g39545554380x1-processing"
+        ],
+        "manifest_sha256_matches_digest": true,
+        "manifest_config_binding": "PASS"
+      },
+      "worker": {
+        "source_sha": "c7c489c526098c9515e9eb7e24ab9ca846118027",
+        "registry_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-workerrepository-ghq0nwvxnahk@sha256:eed6fbbbac75b12d77e13ca61e010af4e36932dfb451018ccdc1e0786e2e8ab0",
+        "registry_digest": "sha256:eed6fbbbac75b12d77e13ca61e010af4e36932dfb451018ccdc1e0786e2e8ab0",
+        "config_id": "sha256:c689aaef57dcd42288d1b8eb9ff10dfb03f53d7fb8eeb2f7155d1b7231d20149",
+        "tags": [
+          "g39545554380x1-worker"
+        ],
+        "manifest_sha256_matches_digest": true,
+        "manifest_config_binding": "PASS"
+      }
+    },
+    "functions": {
+      "dc2-live-MediaApi-dIhvUhrRl6vK": {
+        "owner": "media",
+        "alias": "live",
+        "version": "9",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-mediarepository-t4jnrurabxho@sha256:dafbb19d3aa624d8c2dcbac710c2f1eed40c52ec436cd311b8a265bf70a9da94",
+        "status": "PASS"
+      },
+      "dc2-live-MediaAuthorizer-AFIZjqGLFM7K": {
+        "owner": "media",
+        "alias": "live",
+        "version": "9",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-mediarepository-t4jnrurabxho@sha256:dafbb19d3aa624d8c2dcbac710c2f1eed40c52ec436cd311b8a265bf70a9da94",
+        "status": "PASS"
+      },
+      "dc2-live-MediaRepair-9a7msxztPxVn": {
+        "owner": "media",
+        "alias": "live",
+        "version": "9",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-mediarepository-t4jnrurabxho@sha256:dafbb19d3aa624d8c2dcbac710c2f1eed40c52ec436cd311b8a265bf70a9da94",
+        "status": "PASS"
+      },
+      "dc2-live-MediaResults-k0tWVFCrG00Z": {
+        "owner": "media",
+        "alias": "live",
+        "version": "9",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-mediarepository-t4jnrurabxho@sha256:dafbb19d3aa624d8c2dcbac710c2f1eed40c52ec436cd311b8a265bf70a9da94",
+        "status": "PASS"
+      },
+      "dc2-live-ProcessingApi-BtWaSh35nXin": {
+        "owner": "processing",
+        "alias": "live",
+        "version": "13",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processingrepository-fajxzf2rv6c2@sha256:3c83e4baf7b9a682b8e3c794f957d848a2c5dac31017182f285d1146822d939e",
+        "status": "PASS"
+      },
+      "dc2-live-ProcessingCommands-F463dvM5FvHW": {
+        "owner": "processing",
+        "alias": "live",
+        "version": "12",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processingrepository-fajxzf2rv6c2@sha256:3c83e4baf7b9a682b8e3c794f957d848a2c5dac31017182f285d1146822d939e",
+        "status": "PASS"
+      },
+      "dc2-live-ProcessingEcsEvents-Dh8TwTw7ucpe": {
+        "owner": "processing",
+        "alias": "live",
+        "version": "12",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processingrepository-fajxzf2rv6c2@sha256:3c83e4baf7b9a682b8e3c794f957d848a2c5dac31017182f285d1146822d939e",
+        "status": "PASS"
+      },
+      "dc2-live-ProcessingLauncher-UDHLVDRz5xuI": {
+        "owner": "processing",
+        "alias": "live",
+        "version": "12",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processingrepository-fajxzf2rv6c2@sha256:3c83e4baf7b9a682b8e3c794f957d848a2c5dac31017182f285d1146822d939e",
+        "status": "PASS"
+      },
+      "dc2-live-ProcessingRepair-eaHk0u5KAjZj": {
+        "owner": "processing",
+        "alias": "live",
+        "version": "12",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processingrepository-fajxzf2rv6c2@sha256:3c83e4baf7b9a682b8e3c794f957d848a2c5dac31017182f285d1146822d939e",
+        "status": "PASS"
+      },
+      "dc2-live-ProcessingS3Events-v30PRnnANRdc": {
+        "owner": "processing",
+        "alias": "live",
+        "version": "12",
+        "resolved_image_uri": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-processingrepository-fajxzf2rv6c2@sha256:3c83e4baf7b9a682b8e3c794f957d848a2c5dac31017182f285d1146822d939e",
+        "status": "PASS"
+      }
+    },
+    "worker": {
+      "task_definition_arn": "arn:aws:ecs:ap-southeast-1:866865534361:task-definition/dc2-live-worker:12",
+      "status": "ACTIVE",
+      "containers": [
+        {
+          "name": "worker",
+          "image": "866865534361.dkr.ecr.ap-southeast-1.amazonaws.com/dc2-live-workerrepository-ghq0nwvxnahk@sha256:eed6fbbbac75b12d77e13ca61e010af4e36932dfb451018ccdc1e0786e2e8ab0"
+        }
+      ],
+      "image_binding": "PASS"
+    },
+    "migration_definitions": {
+      "media": {
+        "arn": "arn:aws:ecs:ap-southeast-1:866865534361:task-definition/dc2-live-mediamigration:9",
+        "image_binding": "PASS"
+      },
+      "processing": {
+        "arn": "arn:aws:ecs:ap-southeast-1:866865534361:task-definition/dc2-live-processingmigration:12",
+        "image_binding": "PASS"
+      }
+    },
+    "pending_release": false,
+    "outcome": "PASS"
+  },
+  "limits": [
+    "One post-deployment smoke, not a scaling benchmark, queue-latency result, Aurora pause or cost measurement, restore drill or comprehensive security audit.",
+    "The relaxation applies only to Trivy findings on an image the release replaces; the rollback of that image was not exercised in this run (both promotions succeeded). Restoring it would return the previous, certifi 2026.7.22 build.",
+    "The wake retry did not fire in the live run; its behavior is shown by unit and pipeline tests, and by the earlier failure it addresses.",
+    "Unfixed image vulnerability rows remain (44/44/208).",
+    "Post-freeze: the code on Main changed after the team-accepted freeze (daee44b); see the addendum in docs/release/demo-release-manifest.md. Team acceptance of a replacement freeze requires actual team confirmation.",
+    "The ECR scan of a baseline in release-plan is unchanged and was not the cause of either failure."
+  ],
+  "artifact_sha256": {
+    "cd_admission": "e29cda883a0e108495c9a84c6cc6478274543d1126f7791bd54e1c3c9d91c572",
+    "cd_deploy": "cfc428943efe37fd64a2d56bda463e89f701ee909b38911e97e6dd28c1a51e0e",
+    "cd_media_promotion": "3418ffb9df19fc3884b5bda35096f1d375b559a350803e9fb29b1fca93397072",
+    "cd_processing_promotion": "37b38eb1cd8725a141705afe8220b8ff2292fc294e11964d6f899aadbd292182",
+    "cd_playback": "dc6f4d025a674493f7655dd033de8b2590a4c30f6bcb236feb82a1412305ba0d",
+    "cd_candidate_scan_summary": "0ad04406c9e31c79dbd17fe2cdb94a9135924d50ed62ecc718a91e0aed17aa15",
+    "cd_retained_scan_summary": "579b8b8a2f95b615c954000707b93a0be66ea6dc2836419710c36ab68e1208ab"
+  }
+}
