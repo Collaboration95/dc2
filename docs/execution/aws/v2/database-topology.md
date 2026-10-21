@@ -1,10 +1,12 @@
 # V2 experiment: one Aurora cluster per domain, and Aurora's pause behaviour (#94)
 
-Status: **implemented locally, cloud evidence NOT_RUN, merge decision PENDING.** Nothing here has
-touched AWS. The tests prove the template, the pipeline and the harness against fakes and the
-simulation. They do not prove that CloudFormation accepts the separate layout, how fast a
-second cluster resumes, whether load on one domain really leaves the other cluster paused, or
-what any of it costs. Those are what the measurement plan below is for.
+Status: **the separate layout and the in-place split of a live shared stack are implemented and
+were rehearsed on a throwaway environment (AD-29, `docs/results/engineering-20261021/`); the
+live cutover of `dc2-live` is PENDING.** The V1 shared layout stays the default for a per-run
+stack and its template is unchanged. The measurement plan below (does a second cluster resume
+fast enough, does load on one domain leave the other paused) is still NOT_RUN; the split does
+not depend on it, because the decision to give each service its own cluster was taken for
+failure isolation (report limitation AISS-01), not for cost.
 
 V1 is the default and the baseline. A stack deployed without the options below is one Aurora
 cluster holding `media_db` and `processing_db`, pausing after 300 s with a 2 ACU ceiling, and its
@@ -32,16 +34,20 @@ before it pauses, and the ACU ceiling.
    A CloudFormation parameter would add a parameter and conditions to every V1 template, and one
    template cannot swap one resource set for another without a condition on every output, rule
    and reference. Rendering keeps V1's bytes unchanged and makes each layout a plain, lintable
-   document. The cost: the layout of a live stack cannot be flipped (see "Switching").
-2. **`separate` adds a second cluster, instance and security group; nothing else.** Resource names
-   stay V1's for `shared`. For `separate` they are `MediaDatabaseCluster`/`Instance`/
-   `SecurityGroup` and the `Processing` set, with the same encryption, TLS group, deletion
-   protection, backup and `Retain` policies as V1's cluster. The outputs name each domain's
-   endpoint and master credential (`MediaDatabaseEndpoint`, `MediaBootstrapSecretArn`, and the
-   Processing pair) and add `DatabaseTopology: separate`, so nothing can read the wrong cluster
-   through a name that fits both. The **application database model does not change**: each
-   service still reads its own DSN parameter for its own `<domain>_db`; only the host in that
-   DSN differs.
+   document. The cost: the layout of a live stack is not a parameter someone can flip (see
+   "Switching").
+2. **`separate` adds a second cluster, instance and security group; nothing else.** **Media keeps
+   V1's logical ids** (`DatabaseCluster`, `DatabaseInstance`, `DatabaseSecurityGroup`,
+   `DatabaseFromLambda`/`DatabaseFromMigration`), and Processing's set is the `Processing`
+   prefix (`ProcessingDatabaseCluster`, ...), with the same encryption, TLS group, deletion
+   protection, backup and `Retain` policies as V1's cluster. A test proves Media's resources
+   render byte-for-byte as V1's, so a shared stack that is updated to `separate` keeps its
+   cluster, its instance and its data in place and only gains Processing's set. The outputs
+   name each domain's endpoint and master credential (`MediaDatabaseEndpoint`,
+   `MediaBootstrapSecretArn`, and the Processing pair) and add `DatabaseTopology: separate`, so
+   nothing can read the wrong cluster through a name that fits both. The **application database
+   model does not change**: each service still reads its own DSN parameter for its own
+   `<domain>_db`; only the host in that DSN differs.
 3. **The pipeline is keyed per domain.** `deploy --database-topology separate`:
    `db-bootstrap` reads both clusters' master credentials and sends the bootstrap task a
    `databases: {media: {...}, processing: {...}}` input (V1's single-connection input is still
@@ -49,7 +55,9 @@ before it pauses, and the ACU ceiling.
    domain only, so a cluster never learns of the peer's roles. The four DSN parameters each name
    their own domain's cluster, and the owner migration tasks, which only read their own
    parameters, need no change. `td-database` requests every deletion before waiting on any and
-   takes one final snapshot per cluster (`<env>-media-final`, `<env>-processing-final`).
+   takes one final snapshot per cluster (`<env>-media-final`, `<env>-processing-final`; Media's
+   cluster is told from Processing's by the journal's recorded topology, since its logical id is
+   V1's).
 4. **The network follows the layout.** Each cluster has its own security group, and the encoder
    (Fargate worker) network can reach only Processing's cluster. Lambda and the migration task
    are shared by both domains today, so both clusters admit them. This is a real but narrow
@@ -102,11 +110,78 @@ written before the option existed is V1's layout.
 
 ### Switching and reverting
 
-* **There is no in-place switch.** Changing a live stack from `shared` to `separate` would add an
-  empty cluster without moving Processing's data, and the reverse would ask CloudFormation to
-  remove a database. The deploy refuses a mismatched resume. To change layout, deploy a new run
-  id and tear the old one down (the teardown receipt takes a final snapshot per cluster).
-* **Revert** is deploying V1 without the flag under a new run id. Nothing in V1 depends on this.
+* **A layout is not a parameter.** Rendering `separate` over a stack that has `shared` would add
+  an *empty* Processing cluster without moving its data, so the deploy refuses a resume whose
+  `--database-topology` differs from the journal. The one exception is below.
+* **`shared` to `separate` is allowed in place, by `split-database`, for a stack that opts in**
+  with `--database-split-from-shared` (CD sets `CD_DATABASE_SPLIT` for the persistent environment
+  `live` only). It keeps every account, asset and job. See "Splitting a live shared stack".
+* **`separate` to `shared` stays refused.** It would ask CloudFormation to remove a database.
+* **Revert** of a per-run stack is deploying V1 without the flag under a new run id. Reverting a
+  split stack is restoring the manual snapshot `<env>-pre-split-<date>` into a new cluster (it
+  still holds both databases as they were), or the stack's own continuous backup.
+
+## Splitting a live shared stack (AD-29)
+
+`dc2-live` was created before there was a `separate` layout, so it has one cluster that holds
+`media_db` and `processing_db` (report limitation AISS-01). The split gives each service its own
+cluster **without a second copy of the data pipeline, a dump or a restore**: Media keeps the
+existing cluster, and Processing's cluster is an Aurora **copy-on-write clone** of it.
+
+```text
+deploy                       (releases first: the bootstrap that splits ships in the worker image)
+split-database --execute     split-precheck   Processing idle: nothing due in SQL, no queued,
+                                              delayed or in-flight message, no running encoder
+                             split-snapshot   manual snapshot <env>-pre-split-<date>
+                             split-clone      stack update: separate layout, Processing's
+                                              cluster restored from Media's (copy-on-write)
+                             split-login      reconcile processing_* logins on the clone
+                             split-freeze     throw away the processing_* passwords on the old
+                                              cluster (Lambdas that cached the old DSN are
+                                              refused and re-read the parameter)
+                             split-switch     processing DSN parameters -> the clone
+                             split-verify     public smoke (upload to playback) on the new layout
+smoke                        the CD smoke, then:
+finish-database-split        drop processing_db (and its roles) from Media's cluster and
+                             media_db (and its roles) from Processing's, recorded with the
+                             label of the smoke that allowed it
+```
+
+Why the steps are shaped this way:
+
+* **Journaled and resumable.** `database_split.state` moves `started`, `snapshotted`, `cloned`,
+  `clone-reconciled`, `old-frozen`, `switched`, `verified`, `cleaned`; a rerun resumes after the
+  last one. The journal's `database` layout changes to `separate` only after the stack update
+  has succeeded, so `deploy` never renders a layout the stack does not have.
+* **A rolled-back clone update can be retried.** The stack is back as it was
+  (`UPDATE_ROLLBACK_COMPLETE`), which the deploy now treats as updatable, and a failed change
+  set of the same name is deleted and recreated instead of refused; a stack whose *creation*
+  rolled back is still refused. The journal keeps saying `shared` until an update has
+  succeeded, so a rerun resumes at the clone step without a second snapshot.
+* **The clone's properties are write-only and create-only**, so `separate` keeps rendering
+  `SourceDBClusterIdentifier`, `RestoreType` and `UseLatestRestorableTime` for the life of the
+  stack (`clone_processing`, journaled with the layout). Dropping them would replace the cluster,
+  which the change-set review refuses. The same review lets this one update remove
+  `DatabaseFromWorker` (the encoder's access to Media's cluster) and nothing else.
+* **Media's cluster is never replaced or deleted.** It keeps its logical id, its
+  deletion protection and its `Retain` policy, and teardown still takes a final snapshot of each
+  cluster.
+* **The lost-write window is made small and measured.** Processing must be idle before the clone
+  is taken. The clone is a point-in-time copy; the window is from the clone's creation to the
+  DSN switch. Every Processing writer records a touch before it commits, so a marker older than
+  the clone proves nothing was written after it (`writes_after_clone: none`); `possible` or
+  `unknown` is recorded rather than hidden. The old cluster's Processing logins are frozen
+  before the switch, so a late write is refused instead of landing in the old copy.
+* **The drop is a pipeline step.** `finish-database-split` runs in the same bootstrap task as the
+  roles do, with the master credential, after a smoke passed; it refuses to run if a cluster
+  does not hold its own database. Nothing is dropped by hand.
+* **Resource costs.** The second cluster is paused at 0 ACU like the first and costs its managed
+  master credential and storage while idle (`$0.51` a month, see "Cost implications"); the clone
+  starts at the source's storage and diverges as each side writes.
+
+The split writes `database-split-receipt.json` to the state directory (timings, the idle
+evidence, the snapshot name, the smoke); CD publishes it with the smoke result. It carries no
+identifier and no credential.
 
 ## Cost implications
 

@@ -476,7 +476,7 @@ views are explanatory where noted, not historical UML artifacts.
 - **Behavior:** failed preflight or smoke does not count as promotion. A journal/lock and
   `pending_release` intent precede mutation; the previous image is retained for restore. The SQL
   launch reservation plus stable RunTask token holds a slot through a lost reply. Infrastructure is
-  still one shared stack and both logical databases share one Aurora cluster.
+  still one shared stack; each logical database has its own Aurora cluster (AD-29).
 - **Implementation and evidence:** `scripts/aws/v1/deploy.py`, `scripts/aws/v1/release.py`,
   `scripts/aws/v1/session.py`, `processing/launcher_trigger.py`, `scripts/ci/cd.sh`; [persistent
   mode tests](../../tests/aws/v1/test_persistent_environment.py#L145), [launcher cap and replay
@@ -546,7 +546,7 @@ specialism.
 |---|---|---|---|
 | Accounts and auth | Media DB; bcrypt password hash; secure, HttpOnly, SameSite cookie; JWT secret in SSM SecureString; current role read by Media authorizer | No user-account purge/retention schedule is documented. | Do not infer account deletion or key-rotation policy beyond current code. |
 | Uploads and sources | Versioned private S3 source bucket; short-lived presigned POST bound to owner/reservation key, declared type and size; verified size/hash/magic and pinned VersionId | Pending reservations expire after 15 minutes; late writes are rescanned and abandoned reservation rows retire only after a clean scan beyond the one-day horizon. Adopted source is deleted across versions after owner deletion/cancel acknowledgement. | No age-based retention for active accepted media is stated; exact future live object lifecycle configuration is not independently re-read here. |
-| Jobs and attempts | Separate `media_db` and `processing_db`, own migration/runtime roles, TLS; both in one Aurora cluster | Asset/job deletion is tombstoned; cancellation and cleanup remove object versions asynchronously. Tombstone/audit-row hard purge policy is not specified. Aurora is configured with one-day backups; a restore drill is not evidenced. | Separate logical databases/roles do not isolate cluster outage or capacity. |
+| Jobs and attempts | Separate `media_db` and `processing_db`, own migration/runtime roles, TLS; one Aurora cluster each (AD-29) | Asset/job deletion is tombstoned; cancellation and cleanup remove object versions asynchronously. Tombstone/audit-row hard purge policy is not specified. Aurora is configured with one-day backups; a restore drill is not evidenced. | Separate logical databases/roles do not isolate cluster outage or capacity. |
 | Outputs | Versioned private S3 output bucket; worker writes attempt-scoped keys; Media issues expiring signed read capability | Attempt cleanup deletes output versions after retirement; no general expiry for successful outputs is documented. | Signed URL lifetime is bounded (default 900 seconds); it is a capability, not a permanent public link. |
 | Messages and operations | Three Standard SQS queues and DLQs; SQL inbox/outbox; SecureString credentials; scoped IAM; sanitized logs | Queue retention 7 days, DLQ 14 days; outbox retains sent messages for replay. Function/task logs retain 7 days. | Logs/alarm history and one-day backups do not prove restore, alert response or long-term retention compliance. |
 

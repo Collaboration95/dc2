@@ -50,9 +50,14 @@ cost_flags() {
 }
 
 deploy_cli() { # deploy.py with this environment's scope; prints its JSON, returns its exit code
-  local email=()
+  local email=() split=()
   if [ -n "${CD_BUDGET_EMAIL:-}" ]; then email=(--budget-alert-email "$CD_BUDGET_EMAIL"); fi
+  # V2-live runs one Aurora cluster per service (#94, AD-29). An environment that still has V1's
+  # shared cluster is split in place only where CD_DATABASE_SPLIT=true (cd.yml sets it for `live`
+  # and nowhere else); a shared environment without it is refused as a layout mismatch.
+  if [ "${CD_DATABASE_SPLIT:-false}" = true ]; then split=(--database-split-from-shared); fi
   "$PY" -m scripts.aws.v1.deploy "$@" "${SCOPE[@]}" --environment "$CD_ENVIRONMENT" \
+    --database-topology separate ${split[@]+"${split[@]}"} \
     ${email[@]+"${email[@]}"}
 }
 
@@ -278,13 +283,44 @@ cmd_deploy() {
   summary "Stack: $(journal_value '.deploy.steps.applications.detail
     | if .no_changes then "no changes" else "\(.change_kind) with \(.changes | length) change(s)" end'
   ); owners to release: ${owners:-none}"
-  [ -n "$owners" ] || return 0
-  if [ "$(session_state)" != open ]; then
-    echo "::warning::The kill switch is on; the release of $owners waits until it is off"
-    summary "Releases deferred (kill switch on): **$owners**. Turn it off, then dispatch a deploy."
-    return 0
+  if [ -n "$owners" ]; then
+    if [ "$(session_state)" != open ]; then
+      echo "::warning::The kill switch is on; the release of $owners waits until it is off"
+      summary "Releases deferred (kill switch on): **$owners**. Turn it off, then dispatch a deploy."
+      return 0 # and no split: the worker image that carries it was not released
+    fi
+    release_changed_owners "$images" "$owners"
   fi
-  release_changed_owners "$images" "$owners"
+  split_database
+}
+
+# An environment still on V1's shared Aurora cluster is split into one cluster per service, in place,
+# once the releases above are adopted: the bootstrap task that does it is part of the worker image, so
+# the commit's image has to be the one the stack names. A no-op for an environment that was created
+# separate or is already split. It stops at `verified`; the drop of each cluster's copy of its peer's
+# database waits for the upload-to-playback smoke (`finish_database_split`).
+split_database() {
+  [ "${CD_DATABASE_SPLIT:-false}" = true ] || return 0
+  [ "$(journal_value .deploy.established)" = true ] || return 0
+  local code=0
+  deploy_cli split-database --state-dir "$CD_STATE" --execute >"$CD_OUT/split-raw.json" || code=$?
+  jq '{ok, database_split}' "$CD_OUT/split-raw.json" >"$PUBLIC/database-split.json" || true
+  [ "$code" -eq 0 ] || fail "split-database failed: $(jq -r '.error // empty' "$CD_OUT/split-raw.json")"
+  summary "Database layout: $(journal_value '.deploy.database.topology') (split: $(journal_value '.deploy.database_split.state // "not needed"'))"
+}
+
+finish_database_split() { # smoke-label
+  [ "${CD_DATABASE_SPLIT:-false}" = true ] || return 0
+  [ "$(journal_value .deploy.database_split.state)" = verified ] || return 0
+  local code=0
+  deploy_cli finish-database-split --state-dir "$CD_STATE" --verified-by "$1" \
+    >"$CD_OUT/split-cleanup-raw.json" || code=$?
+  jq '{ok, database_split}' "$CD_OUT/split-cleanup-raw.json" >"$PUBLIC/database-split.json" || true
+  [ "$code" -eq 0 ] ||
+    fail "finish-database-split failed: $(jq -r '.error // empty' "$CD_OUT/split-cleanup-raw.json")"
+  # Timings and the idle check only: no identifier, no credential (the repository is public).
+  install -m 600 "$CD_STATE/database-split-receipt.json" "$PUBLIC/database-split-receipt.json"
+  summary "Database split cleaned up: each cluster dropped its peer's database after smoke $1"
 }
 
 # A release whose migrations changed needs a human's word that the previous image works with the
@@ -382,6 +418,7 @@ cmd_smoke() {
     "$PUBLIC/cloud-proof-$label.json" 2>/dev/null || echo MISSING)
   summary "Upload to playback smoke: **$status**"
   [ "$rc" -eq 0 ] && [ "$status" = PASS ] || fail "Upload-to-playback smoke did not pass ($status)"
+  finish_database_split "$label"
 }
 
 # ---------------------------------------------------------------------------------- release

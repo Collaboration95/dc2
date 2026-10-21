@@ -12,7 +12,18 @@ import ssl
 from pathlib import Path
 
 DOMAINS = ("media", "processing")
-CREDENTIAL_ROLES = tuple(f"{d}_{suffix}" for d in DOMAINS for suffix in ("migrator", "runtime"))
+# The only action besides reconciling: a split cluster keeps its own domain's database only.
+DROP_PEERS = "drop-peers"
+
+
+def credential_roles(domains):
+    """The logins of `domains` (each also has an owner, which cannot log in)."""
+    return tuple(
+        f"{d}_{suffix}" for d in DOMAINS if d in domains for suffix in ("migrator", "runtime")
+    )
+
+
+CREDENTIAL_ROLES = credential_roles(DOMAINS)
 # Aurora Serverless v2 at 0 ACU pauses after five idle minutes, and the first connection only
 # starts the resume: it can time out or be refused while the instance warms. The 2026-10-17
 # run lost its bootstrap to exactly that, so connecting retries for longer than a resume takes.
@@ -58,36 +69,45 @@ def targets(data):
 
     The single-cluster input (`host`, `port`, `user`, `password` at the top level) is V1's and
     stays valid. The separate-cluster layout (#94) names each domain's connection under
-    `databases`, so the bootstrap never has to guess which cluster holds which database.
+    `databases`, so the bootstrap never has to guess which cluster holds which database. While
+    a shared stack is being split, one domain's connection is named at a time (the new
+    cluster's, then the old one's), and only that domain's logins are touched.
     """
     if "databases" in data:
-        return {domain: dict(data["databases"][domain]) for domain in DOMAINS}
+        return {d: dict(data["databases"][d]) for d in DOMAINS if d in data["databases"]}
     return {domain: {k: data[k] for k in CONNECTION_FIELDS} for domain in DOMAINS}
 
 
 def validate_input(data):
     """Private bootstrap input is never passed through the nonsecret renderer."""
+    cleanup = isinstance(data, dict) and data.get("action") == DROP_PEERS
     if isinstance(data, dict) and "databases" in data:
-        if data.keys() != {"databases", "role_passwords"}:
+        if data.keys() != ({"databases", "action"} if cleanup else {"databases", "role_passwords"}):
             raise ValueError("Private bootstrap input has unsupported fields")
         databases = data["databases"]
-        if not isinstance(databases, dict) or set(databases) != set(DOMAINS):
+        domains = set(databases) if isinstance(databases, dict) else set()
+        if not domains or not domains <= set(DOMAINS) or (cleanup and domains != set(DOMAINS)):
             raise ValueError("Per-domain bootstrap input names the media and processing DBs")
         for entry in databases.values():
             if not isinstance(entry, dict) or entry.keys() != set(CONNECTION_FIELDS):
                 raise ValueError("Private bootstrap input has unsupported fields")
             _check_connection(entry)
+        if cleanup and databases["media"]["host"] == databases["processing"]["host"]:
+            raise ValueError("Dropping a peer's database needs a cluster per domain")
     else:
         required = {*CONNECTION_FIELDS, "role_passwords"}
         if not isinstance(data, dict) or data.keys() != required:
             raise ValueError("Private bootstrap input has unsupported fields")
         _check_connection(data)
-    passwords = data["role_passwords"]
-    if not isinstance(passwords, dict) or set(passwords) != set(CREDENTIAL_ROLES):
-        raise ValueError("Private bootstrap requires exactly four role credentials")
+        domains = set(DOMAINS)
+    if cleanup:
+        return data
+    passwords, roles = data["role_passwords"], credential_roles(domains)
+    if not isinstance(passwords, dict) or set(passwords) != set(roles):
+        raise ValueError(f"Private bootstrap requires exactly {len(roles)} role credentials")
     if not all(isinstance(v, str) and len(v) >= 24 for v in passwords.values()):
         raise ValueError("Role credentials must contain at least 24 characters")
-    if len(set(passwords.values())) != 4:
+    if len(set(passwords.values())) != len(roles):
         raise ValueError("Each database identity requires a distinct password")
     return data
 
@@ -109,6 +129,8 @@ async def bootstrap(data, ca_file, *, connect=None):
         import asyncpg
 
         connect = asyncpg.connect
+    if data.get("action") == DROP_PEERS:
+        return await drop_peers(connect, tls, targets(data))
     groups = {}
     for domain, fields in targets(data).items():
         groups.setdefault(tuple(fields[k] for k in CONNECTION_FIELDS), []).append(domain)
@@ -116,6 +138,34 @@ async def bootstrap(data, ca_file, *, connect=None):
         options = dict(zip(CONNECTION_FIELDS, key, strict=True))
         options |= {"ssl": tls, "timeout": 15, "command_timeout": 30}
         await reconcile(connect, options, domains, data["role_passwords"])
+
+
+async def drop_peers(connect, tls, databases):
+    """A split cluster keeps its own domain's database and logins, and nothing of its peer's.
+
+    Run after the services use their own clusters and a smoke has passed. It cannot remove the
+    only copy: nothing is dropped unless every cluster holds its own domain's database.
+    """
+    admins = {}
+    try:
+        for domain, fields in databases.items():
+            options = {**fields, "ssl": tls, "timeout": 15, "command_timeout": 30}
+            admins[domain] = await connect_waking(connect, **options, database="postgres")
+        for domain, admin in admins.items():
+            own = await admin.fetchval("SELECT 1 FROM pg_database WHERE datname=$1", f"{domain}_db")
+            if not own:
+                raise ValueError("A cluster lacks its own domain's database; dropping nothing")
+        for domain, admin in admins.items():
+            for peer in (d for d in databases if d != domain):
+                # Reconcile revokes the master's membership of each owner, and only the owner
+                # drops a database. FORCE ends any session still attached to the old copy.
+                await admin.execute(f"GRANT {peer}_owner TO CURRENT_USER")
+                await admin.execute(f"DROP DATABASE IF EXISTS {peer}_db WITH (FORCE)")
+                for role in (f"{peer}_runtime", f"{peer}_migrator", f"{peer}_owner"):
+                    await admin.execute(f"DROP ROLE IF EXISTS {role}")
+    finally:
+        for admin in admins.values():
+            await asyncio.wait_for(admin.close(), timeout=5)
 
 
 async def reconcile(connect, options, domains, role_passwords):
@@ -243,7 +293,10 @@ def main():
             f"DB bootstrap failed ({type(error).__name__}); inspect private operator "
             "diagnostics, not public SQL logs\n",
         )
-    print("Created/reconciled two owned DBs and restricted runtime/migration identities")
+    if data.get("action") == DROP_PEERS:
+        print("Dropped the peer's database and logins from each cluster")
+    else:
+        print("Created/reconciled the owned DBs and restricted runtime/migration identities")
 
 
 if __name__ == "__main__":

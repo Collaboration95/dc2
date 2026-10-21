@@ -12,6 +12,7 @@ FIELDS = {
     "database_topology",
     "database_auto_pause_seconds",
     "database_max_capacity",
+    "database_clone_processing",
     "schema_version",
     "environment_id",
     "account_id",
@@ -69,6 +70,7 @@ def database_options(config):
             config.get("database_topology", defaults.topology),
             config.get("database_auto_pause_seconds", defaults.auto_pause_seconds),
             config.get("database_max_capacity", defaults.max_capacity),
+            config.get("database_clone_processing", defaults.clone_processing),
         )
     except ValueError as error:
         raise ValueError(f"V1 database configuration rejected: {error}") from None

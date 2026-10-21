@@ -1,0 +1,32 @@
+{
+  "receipt": "database-split-rehearsal",
+  "issue": 94,
+  "date": "2026-10-21",
+  "environment": "dc2-splitrh (disposable; created from V1's shared-cluster layout, deleted afterwards)",
+  "region": "ap-southeast-1",
+  "code": "branch worktree-agent-aea891c00b24c2c86 (758a33f, 56408d3, stack-resource listing fix)",
+  "result": "pass",
+  "split": {
+    "state_reached": "cleaned",
+    "snapshot": "dc2-splitrh-pre-split-20261021",
+    "idle_before": {"queued_messages": 0, "quiet": true, "running_tasks": 0},
+    "clone_created_at": "2026-10-21T13:18:34Z",
+    "switched_at": "2026-10-21T15:14:13Z",
+    "verified_at": "2026-10-21T15:14:24Z",
+    "cleaned_at": "2026-10-21T15:15:22Z",
+    "writes_after_clone": "none"
+  },
+  "clusters": {
+    "media": "DatabaseCluster (original, same logical id, not replaced)",
+    "processing": "ProcessingDatabaseCluster (copy-on-write clone of the media cluster)",
+    "min_acu_both": 0
+  },
+  "checks": [
+    "split-database ran precheck, snapshot, clone, login, freeze, switch and verify to state verified (public smoke inside split-verify passed)",
+    "finish-database-split dropped each cluster's copy of the peer's database after that smoke",
+    "after cleanup: login 200; GET /api/media/jobs lists the smoke job with status done and a processing_job_id (Media row joined to Processing state from the other cluster); /api/media/health 200; /api/processing/health 200",
+    "retry after rollback: the first clone update rolled back (UPDATE_ROLLBACK_COMPLETE) and was re-run with the same change set name; the stack reached UPDATE_COMPLETE with no second snapshot",
+    "bug found and fixed: describe-stack-resources returns only 100 of about 200 resources, so the clone cluster was not recorded; the deploy now uses list-stack-resources"
+  ],
+  "teardown": "dc2-splitrh and dc2-splitrh-bootstrap deleted after this receipt"
+}

@@ -32,6 +32,9 @@ from scripts.aws.v1.deploy import DeployError, DeployJournal
 ROOT = Path(__file__).resolve().parents[3]
 pytestmark = pytest.mark.unmeasured
 SEPARATE_OPTIONS = DatabaseOptions(SEPARATE)
+SPLIT_OPTIONS = DatabaseOptions(SEPARATE, clone_processing=True)
+# Media keeps V1's logical ids in the separate layout, so a shared stack can be split in place.
+STEM = {"Media": "Database", "Processing": "ProcessingDatabase"}
 
 
 def rendered(options=None):
@@ -122,30 +125,28 @@ def test_changing_only_pause_and_capacity_changes_only_those_two_values():
 def test_the_separate_layout_has_a_cluster_instance_and_security_group_per_domain():
     built = template(SEPARATE_OPTIONS)
     assert sorted(database_resources(built)) == [
-        "MediaDatabaseCluster",
-        "MediaDatabaseInstance",
+        "DatabaseCluster",
+        "DatabaseInstance",
         "ProcessingDatabaseCluster",
         "ProcessingDatabaseInstance",
     ]
     resources = built["Resources"]
-    assert "DatabaseCluster" not in resources and "DatabaseSecurityGroup" not in resources
-    for domain in ("Media", "Processing"):
-        cluster = resources[f"{domain}DatabaseCluster"]
-        assert cluster["Properties"]["VpcSecurityGroupIds"] == [
-            {"Ref": f"{domain}DatabaseSecurityGroup"}
-        ]
-        assert resources[f"{domain}DatabaseInstance"]["Properties"]["DBClusterIdentifier"] == {
-            "Ref": f"{domain}DatabaseCluster"
+    assert "MediaDatabaseCluster" not in resources
+    for stem in STEM.values():
+        cluster = resources[f"{stem}Cluster"]
+        assert cluster["Properties"]["VpcSecurityGroupIds"] == [{"Ref": f"{stem}SecurityGroup"}]
+        assert resources[f"{stem}Instance"]["Properties"]["DBClusterIdentifier"] == {
+            "Ref": f"{stem}Cluster"
         }
 
 
 def test_both_clusters_keep_every_v1_safeguard_and_the_requested_scaling():
     built = template(DatabaseOptions(SEPARATE, 600, 3))
     shared = template()["Resources"]["DatabaseCluster"]
-    for domain in ("Media", "Processing"):
-        cluster = built["Resources"][f"{domain}DatabaseCluster"]
+    for stem in STEM.values():
+        cluster = built["Resources"][f"{stem}Cluster"]
         expected = copy.deepcopy(shared)
-        expected["Properties"]["VpcSecurityGroupIds"] = [{"Ref": f"{domain}DatabaseSecurityGroup"}]
+        expected["Properties"]["VpcSecurityGroupIds"] = [{"Ref": f"{stem}SecurityGroup"}]
         expected["Properties"]["ServerlessV2ScalingConfiguration"] = {
             "MinCapacity": 0,
             "MaxCapacity": 3,
@@ -156,18 +157,18 @@ def test_both_clusters_keep_every_v1_safeguard_and_the_requested_scaling():
             cluster["DeletionPolicy"] == "Retain"
             and cluster["Properties"]["DeletionProtection"] is True
         )
-        assert built["Resources"][f"{domain}DatabaseInstance"]["DeletionPolicy"] == "Retain"
+        assert built["Resources"][f"{stem}Instance"]["DeletionPolicy"] == "Retain"
 
 
 def test_each_domains_endpoint_and_credential_are_named_apart():
     outputs = template(SEPARATE_OPTIONS)["Outputs"]
     assert {"DatabaseEndpoint", "BootstrapSecretArn"}.isdisjoint(outputs)
-    for domain in ("Media", "Processing"):
+    for domain, stem in STEM.items():
         assert outputs[f"{domain}DatabaseEndpoint"] == {
-            "Value": {"Fn::GetAtt": [f"{domain}DatabaseCluster", "Endpoint.Address"]}
+            "Value": {"Fn::GetAtt": [f"{stem}Cluster", "Endpoint.Address"]}
         }
         assert outputs[f"{domain}BootstrapSecretArn"] == {
-            "Value": {"Fn::GetAtt": [f"{domain}DatabaseCluster", "MasterUserSecret.SecretArn"]}
+            "Value": {"Fn::GetAtt": [f"{stem}Cluster", "MasterUserSecret.SecretArn"]}
         }
     assert outputs["DatabaseTopology"] == {"Value": "separate"}
 
@@ -185,7 +186,7 @@ def test_the_encoder_network_cannot_reach_medias_cluster_but_lambda_and_migratio
             props["SourceSecurityGroupId"]["Ref"]
         )
     assert sources == {
-        "MediaDatabaseSecurityGroup": {"LambdaSecurityGroup", "MigrationSecurityGroup"},
+        "DatabaseSecurityGroup": {"LambdaSecurityGroup", "MigrationSecurityGroup"},
         "ProcessingDatabaseSecurityGroup": {
             "LambdaSecurityGroup",
             "WorkerSecurityGroup",
@@ -201,15 +202,15 @@ def test_the_encoder_network_cannot_reach_medias_cluster_but_lambda_and_migratio
         }
 
     assert database_egress("WorkerSecurityGroup") == {"ProcessingDatabaseSecurityGroup"}
-    both = {"MediaDatabaseSecurityGroup", "ProcessingDatabaseSecurityGroup"}
+    both = {"DatabaseSecurityGroup", "ProcessingDatabaseSecurityGroup"}
     assert database_egress("LambdaSecurityGroup") == both
     assert database_egress("MigrationSecurityGroup") == both
 
 
 def test_the_database_security_groups_open_no_egress_of_their_own():
     resources = template(SEPARATE_OPTIONS)["Resources"]
-    for domain in ("Media", "Processing"):
-        egress = resources[f"{domain}DatabaseSecurityGroup"]["Properties"]["SecurityGroupEgress"]
+    for stem in STEM.values():
+        egress = resources[f"{stem}SecurityGroup"]["Properties"]["SecurityGroupEgress"]
         assert egress == [
             {"IpProtocol": "tcp", "FromPort": 1, "ToPort": 1, "CidrIp": "127.0.0.1/32"}
         ]
@@ -241,7 +242,8 @@ def references(value):
 
 
 @pytest.mark.parametrize(
-    "options", [DatabaseOptions(), SEPARATE_OPTIONS, DatabaseOptions(SEPARATE, 3600, 8)]
+    "options",
+    [DatabaseOptions(), SEPARATE_OPTIONS, SPLIT_OPTIONS, DatabaseOptions(SEPARATE, 3600, 8)],
 )
 def test_no_reference_in_the_template_dangles(options):
     built = template(options)
@@ -260,21 +262,11 @@ def test_the_two_layouts_differ_only_in_the_database_resources_groups_and_output
     shared, separate = template(), template(SEPARATE_OPTIONS)
     changed = set(shared["Resources"]) ^ set(separate["Resources"])
     assert changed == {
-        "DatabaseSecurityGroup",
-        "DatabaseFromLambda",
-        "DatabaseFromWorker",
-        "DatabaseFromMigration",
-        "DatabaseCluster",
-        "DatabaseInstance",
-        "MediaDatabaseSecurityGroup",
+        "DatabaseFromWorker",  # the encoder's network no longer reaches Media's cluster
         "ProcessingDatabaseSecurityGroup",
-        "MediaDatabaseFromLambda",
-        "MediaDatabaseFromMigration",
         "ProcessingDatabaseFromLambda",
         "ProcessingDatabaseFromWorker",
         "ProcessingDatabaseFromMigration",
-        "MediaDatabaseCluster",
-        "MediaDatabaseInstance",
         "ProcessingDatabaseCluster",
         "ProcessingDatabaseInstance",
     }
@@ -283,6 +275,47 @@ def test_the_two_layouts_differ_only_in_the_database_resources_groups_and_output
     assert different == {"LambdaSecurityGroup", "WorkerSecurityGroup", "MigrationSecurityGroup"}
     assert shared["Parameters"] == separate["Parameters"]
     assert shared["Conditions"] == separate["Conditions"]
+
+
+def test_a_shared_stack_keeps_its_cluster_instance_and_group_when_it_is_split():
+    # The in-place split relies on this: Media's resources render exactly as V1 shipped them, so
+    # the change set does not touch the cluster that holds the data.
+    shared, split = template(), template(SPLIT_OPTIONS)
+    for name in (
+        "DatabaseCluster",
+        "DatabaseInstance",
+        "DatabaseSecurityGroup",
+        "DatabaseFromLambda",
+        "DatabaseFromMigration",
+    ):
+        assert split["Resources"][name] == shared["Resources"][name], name
+
+
+def test_processing_gets_a_copy_on_write_clone_of_medias_cluster_only_when_asked():
+    plain = template(SEPARATE_OPTIONS)["Resources"]["ProcessingDatabaseCluster"]["Properties"]
+    clone = template(SPLIT_OPTIONS)["Resources"]["ProcessingDatabaseCluster"]
+    assert not {"SourceDBClusterIdentifier", "RestoreType", "UseLatestRestorableTime"} & set(plain)
+    properties = clone["Properties"]
+    assert properties["SourceDBClusterIdentifier"] == {"Ref": "DatabaseCluster"}
+    assert properties["RestoreType"] == "copy-on-write"
+    assert properties["UseLatestRestorableTime"] is True
+    # What a clone inherits is not repeated (CloudFormation refuses it beside a source).
+    assert not {"MasterUsername", "StorageEncrypted", "EngineVersion"} & set(properties)
+    # Everything else is the plain cluster's: own group, own scaling, managed credential, retain.
+    for key, value in properties.items():
+        if key not in {"SourceDBClusterIdentifier", "RestoreType", "UseLatestRestorableTime"}:
+            assert plain[key] == value, key
+    assert clone["DeletionPolicy"] == "Retain" and properties["DeletionProtection"] is True
+    media = template(SPLIT_OPTIONS)["Resources"]["DatabaseCluster"]["Properties"]
+    assert "SourceDBClusterIdentifier" not in media
+
+
+def test_cloning_needs_the_separate_layout_and_a_real_boolean():
+    with pytest.raises(ValueError, match="separate"):
+        DatabaseOptions(SHARED, clone_processing=True)
+    with pytest.raises(ValueError):
+        DatabaseOptions(SEPARATE, clone_processing="yes")
+    assert DatabaseOptions(**SPLIT_OPTIONS.as_dict()) == SPLIT_OPTIONS
 
 
 def test_the_application_database_model_is_unchanged_each_service_keeps_its_own_database():
@@ -298,13 +331,17 @@ def test_cfn_lint_runs_on_both_layouts(tmp_path):
 
     def runner(command, **kwargs):
         body = json.loads(Path(command[1]).read_text())
-        seen.append(("MediaDatabaseCluster" in body["Resources"], Path(command[1]).name))
+        seen.append(("ProcessingDatabaseCluster" in body["Resources"], Path(command[1]).name))
         return type("Done", (), {"returncode": 0, "stdout": "", "stderr": ""})()
 
     out = io.StringIO()
     assert lint.run(which=lambda name: "/bin/cfn-lint", runner=runner, stdout=out) == 0
-    assert seen == [(False, "template-shared.json"), (True, "template-separate.json")]
-    assert "shared and separate" in out.getvalue()
+    assert seen == [
+        (False, "template-shared.json"),
+        (True, "template-separate.json"),
+        (True, "template-split.json"),
+    ]
+    assert "shared, separate and split" in out.getvalue()
 
 
 def test_a_failure_in_the_separate_layout_is_reported_with_its_name():
@@ -338,6 +375,8 @@ def test_database_choices_are_render_inputs_and_never_cloudformation_parameters(
     }
     assert render_config.parameters(config) == before
     assert render_config.database_options(config) == DatabaseOptions(SEPARATE, 900, 4)
+    config["database_clone_processing"] = True
+    assert render_config.database_options(config) == DatabaseOptions(SEPARATE, 900, 4, True)
 
 
 def test_the_schema_documents_the_database_choices(config):
@@ -346,6 +385,7 @@ def test_the_schema_documents_the_database_choices(config):
         "database_topology": "separate",
         "database_auto_pause_seconds": 900,
         "database_max_capacity": 2.5,
+        "database_clone_processing": True,
     }
     jsonschema.validate(config, schema)
     for key, value in (
@@ -353,6 +393,7 @@ def test_the_schema_documents_the_database_choices(config):
         ("database_auto_pause_seconds", 299),
         ("database_max_capacity", 0.5),
         ("database_max_capacity", 1.25),
+        ("database_clone_processing", "yes"),
     ):
         with pytest.raises(jsonschema.ValidationError):
             jsonschema.validate({**config, key: value}, schema)
@@ -365,6 +406,7 @@ def test_the_schema_documents_the_database_choices(config):
         ("database_auto_pause_seconds", 10),
         ("database_max_capacity", 1000),
         ("database_max_capacity", "2"),
+        ("database_clone_processing", True),  # the shared layout cannot clone
     ],
 )
 def test_the_renderer_rejects_a_bad_database_choice(config, key, value):
@@ -380,6 +422,13 @@ def test_the_renderer_cli_writes_the_requested_layout(config, tmp_path):
         render_config.main()
     body = json.loads((tmp_path / "out" / "template.json").read_text())
     assert "ProcessingDatabaseCluster" in body["Resources"]
+    source.write_text(
+        json.dumps(config | {"database_topology": "separate", "database_clone_processing": True})
+    )
+    with mock.patch.object(sys, "argv", argv):
+        render_config.main()
+    cloned = json.loads((tmp_path / "out" / "template.json").read_text())
+    assert cloned["Resources"]["ProcessingDatabaseCluster"]["Properties"]["RestoreType"]
 
 
 def test_the_template_generator_cli_defaults_to_the_committed_bytes(tmp_path):
@@ -403,10 +452,27 @@ def test_the_template_generator_cli_defaults_to_the_committed_bytes(tmp_path):
         ],
     ):
         definitions.main()
-    scaling = json.loads(out.read_text())["Resources"]["MediaDatabaseCluster"]["Properties"][
+    scaling = json.loads(out.read_text())["Resources"]["DatabaseCluster"]["Properties"][
         "ServerlessV2ScalingConfiguration"
     ]
     assert scaling == {"MinCapacity": 0, "MaxCapacity": 1.5, "SecondsUntilAutoPause": 600}
+    with mock.patch.object(
+        sys,
+        "argv",
+        [
+            "definitions",
+            "--output",
+            str(out),
+            "--database-topology",
+            "separate",
+            "--database-clone-processing",
+        ],
+    ):
+        definitions.main()
+    assert (
+        "RestoreType"
+        in json.loads(out.read_text())["Resources"]["ProcessingDatabaseCluster"]["Properties"]
+    )
     with mock.patch.object(
         sys, "argv", ["definitions", "--output", str(out), "--database-auto-pause-seconds", "5"]
     ):
@@ -588,6 +654,136 @@ def test_a_malformed_per_domain_input_is_refused(change):
         db_bootstrap.validate_input(data)
 
 
+# ---- the bootstrap while a shared stack is split, and its cleanup -----------------------------
+def processing_only_input(host="processing.example.invalid"):
+    full = per_domain_input()
+    return {
+        "databases": {"processing": {**full["databases"]["processing"], "host": host}},
+        "role_passwords": {
+            k: v for k, v in role_passwords().items() if k.startswith("processing_")
+        },
+    }
+
+
+def cleanup_input(media_host="media.example.invalid", processing_host="processing.example.invalid"):
+    full = per_domain_input()
+    full["databases"]["media"]["host"] = media_host
+    full["databases"]["processing"]["host"] = processing_host
+    return {"databases": full["databases"], "action": "drop-peers"}
+
+
+@pytest.mark.asyncio
+async def test_a_split_reconciles_one_domain_on_the_named_cluster_and_nothing_else():
+    recorder = Recorder()
+    await db_bootstrap.bootstrap(
+        processing_only_input(), ssl.get_default_verify_paths().cafile, connect=recorder.connect
+    )
+    assert [c.options["database"] for c in recorder.connections] == ["postgres", "processing_db"]
+    assert {c.options["host"] for c in recorder.connections} == {"processing.example.invalid"}
+    text = "\n".join(sql for c in recorder.connections for sql in c.sql)
+    assert "media" not in text, "a cluster being split must not learn of the other domain"
+    assert "ALTER ROLE processing_runtime LOGIN INHERIT PASSWORD" in text
+    assert "ALTER ROLE processing_migrator LOGIN INHERIT PASSWORD" in text
+
+
+def test_a_partial_input_must_carry_exactly_its_own_domains_logins():
+    assert db_bootstrap.validate_input(processing_only_input())
+    assert db_bootstrap.credential_roles(("processing",)) == (
+        "processing_migrator",
+        "processing_runtime",
+    )
+    wrong = processing_only_input()
+    wrong["role_passwords"] = role_passwords()  # all four beside a Processing-only connection
+    with pytest.raises(ValueError, match="exactly 2"):
+        db_bootstrap.validate_input(wrong)
+    wrong = processing_only_input()
+    wrong["role_passwords"]["media_runtime"] = wrong["role_passwords"].pop("processing_runtime")
+    with pytest.raises(ValueError):
+        db_bootstrap.validate_input(wrong)
+    twin = processing_only_input()
+    twin["role_passwords"]["processing_runtime"] = twin["role_passwords"]["processing_migrator"]
+    with pytest.raises(ValueError, match="distinct"):
+        db_bootstrap.validate_input(twin)
+
+
+class PeerClusters:
+    """Two clusters, each holding both databases, as a freshly cloned pair does."""
+
+    def __init__(self, *, missing=()):
+        self.databases = {
+            host: {"media_db", "processing_db"} - set(gone)
+            for host, gone in (
+                ("media.example.invalid", ()),
+                ("processing.example.invalid", missing),
+            )
+        }
+        self.sql = {host: [] for host in self.databases}
+
+    async def connect(self, **kwargs):
+        cluster = self
+
+        class Connection:
+            async def fetchval(self, statement, value=None):
+                return value in cluster.databases[kwargs["host"]]
+
+            async def execute(self, statement):
+                cluster.sql[kwargs["host"]].append(statement)
+
+            async def close(self):
+                pass
+
+        return Connection()
+
+
+@pytest.mark.asyncio
+async def test_the_cleanup_drops_each_clusters_copy_of_its_peers_database_only():
+    clusters = PeerClusters()
+    await db_bootstrap.bootstrap(
+        cleanup_input(), ssl.get_default_verify_paths().cafile, connect=clusters.connect
+    )
+    media, processing = (
+        clusters.sql["media.example.invalid"],
+        clusters.sql["processing.example.invalid"],
+    )
+    assert media == [
+        "GRANT processing_owner TO CURRENT_USER",
+        "DROP DATABASE IF EXISTS processing_db WITH (FORCE)",
+        "DROP ROLE IF EXISTS processing_runtime",
+        "DROP ROLE IF EXISTS processing_migrator",
+        "DROP ROLE IF EXISTS processing_owner",
+    ]
+    assert processing == [s.replace("processing", "media") for s in media]
+
+
+@pytest.mark.asyncio
+async def test_the_cleanup_drops_nothing_unless_every_cluster_holds_its_own_database():
+    clusters = PeerClusters(missing=("processing_db",))
+    with pytest.raises(ValueError, match="dropping nothing"):
+        await db_bootstrap.bootstrap(
+            cleanup_input(), ssl.get_default_verify_paths().cafile, connect=clusters.connect
+        )
+    assert clusters.sql == {host: [] for host in clusters.sql}
+
+
+@pytest.mark.parametrize(
+    "change", ["one_cluster", "missing_domain", "with_passwords", "other_action", "extra_field"]
+)
+def test_a_malformed_cleanup_is_refused(change):
+    data = cleanup_input()
+    if change == "one_cluster":
+        data = cleanup_input(processing_host="media.example.invalid")  # one cluster holds both
+    elif change == "missing_domain":
+        del data["databases"]["media"]
+    elif change == "with_passwords":
+        data["role_passwords"] = role_passwords()
+    elif change == "other_action":
+        data["action"] = "drop-everything"
+    else:
+        data["databases"]["media"]["extra"] = 1
+    with pytest.raises(ValueError):
+        db_bootstrap.validate_input(data)
+
+
 # ---- the pipeline, rehearsed against the simulation -------------------------------------------
 @pytest.fixture
 def separate_rig(tmp_path):
@@ -609,8 +805,8 @@ def test_the_bootstrap_input_names_a_cluster_and_master_credential_per_domain(se
     sent = separate_rig.sim.bootstrap_input
     assert set(sent) == {"databases", "role_passwords"}
     media, processing = sent["databases"]["media"], sent["databases"]["processing"]
-    assert media["host"] != processing["host"] and media["host"].startswith(
-        separate_rig.s.env + "-media"
+    assert media["host"] != processing["host"] and processing["host"].startswith(
+        separate_rig.s.env + "-processing"
     )
     assert media["password"] != processing["password"]
     # One read per cluster's own master credential (the simulation redacts the id it logs).
@@ -749,10 +945,11 @@ def test_the_journal_records_the_layout_and_each_clusters_domain(separate_rig, t
         "topology": "separate",
         "auto_pause_seconds": 300,
         "max_capacity": 2,
+        "clone_processing": False,
     }
     view = separate_rig.journal.view()
     assert sorted(view["resources"]["db_logical"].values()) == [
-        "MediaDatabaseCluster",
+        "DatabaseCluster",
         "ProcessingDatabaseCluster",
     ]
 
@@ -797,8 +994,8 @@ def test_a_stack_rendered_for_the_other_layout_is_reported_not_guessed(tmp_path)
 def test_the_rendered_deploy_template_follows_the_pipelines_layout(tmp_path):
     shared = Rig(tmp_path / "a").pipeline().render(apps=False)[0]
     separate = Rig(tmp_path / "b", database=SEPARATE_OPTIONS).pipeline().render(apps=False)[0]
-    assert "MediaDatabaseCluster" not in shared and "DatabaseCluster" in shared
-    assert "MediaDatabaseCluster" in separate and "ProcessingDatabaseCluster" in separate
+    assert "ProcessingDatabaseCluster" not in shared and "DatabaseCluster" in shared
+    assert "DatabaseCluster" in separate and "ProcessingDatabaseCluster" in separate
     # the change-set name hashes the body, so V1's resume of an existing stack is unaffected
     assert json.loads(shared) == template()
 

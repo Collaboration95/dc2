@@ -755,3 +755,89 @@ def test_the_candidate_is_gated_before_the_rollback_target_and_the_receipt_recor
     assert release.index('scan_images "$build" local') < release.index("scan_baseline")
     assert 'scan_baseline "$baseline" "${rebuilt[*]}" "${names[@]}"' in release
     assert "rollback_target_findings" in release
+
+
+# ---- one Aurora cluster per service (#94, AD-29) ---------------------------------------------
+def test_every_cd_call_asks_for_one_cluster_per_service():
+    deploy_cli = script_function("deploy_cli")
+    assert "--database-topology separate" in deploy_cli
+    # No other call site builds its own deploy command line, so none can forget the flags.
+    assert CD_SCRIPT.read_text().count("-m scripts.aws.v1.deploy") == 1
+
+
+def test_only_the_live_environment_opts_in_to_splitting_a_shared_cluster(workflow):
+    expression = workflow["env"]["CD_DATABASE_SPLIT"]
+    assert "(inputs.environment || 'live') == 'live'" in expression
+    deploy_cli = script_function("deploy_cli")
+    assert (
+        'if [ "${CD_DATABASE_SPLIT:-false}" = true ]; then split=(--database-split-from-shared)'
+        in (deploy_cli)
+    )
+    # The flag is the only way in: the two split steps are no-ops without it.
+    for name in ("split_database", "finish_database_split"):
+        assert script_function(name).splitlines()[1].strip() == (
+            '[ "${CD_DATABASE_SPLIT:-false}" = true ] || return 0'
+        )
+
+
+def test_the_split_follows_the_releases_and_the_drop_follows_the_smoke():
+    deploy = script_function("cmd_deploy")
+    assert deploy.index('release_changed_owners "$images" "$owners"') < deploy.index(
+        "\n  split_database\n"
+    )
+    # A release held back by the kill switch also holds the split back: the bootstrap task that
+    # splits is part of the worker image that release adopts.
+    assert deploy.index("kill switch is on") < deploy.index("return 0 # and no split")
+    smoke = script_function("cmd_smoke")
+    assert smoke.index("did not pass") < smoke.index('finish_database_split "$label"')
+
+
+def run_split_function(tmp_path, function, state, *arguments, established="true", opted_in="true"):
+    """Run `split_database` or `finish_database_split` with deploy_cli replaced by a recorder."""
+    if not shutil.which("jq"):
+        pytest.skip("jq is not installed")
+    journal = {"deploy": {"established": established == "true"}}
+    if state:
+        journal["deploy"]["database_split"] = {"state": state}
+    (tmp_path / "deploy-journal.json").write_text(json.dumps(journal))
+    (tmp_path / "database-split-receipt.json").write_text("{}")
+    script = f"""
+set -euo pipefail
+CD_DATABASE_SPLIT={opted_in}
+CD_STATE={tmp_path}; CD_OUT={tmp_path}/out; PUBLIC=$CD_OUT/public; mkdir -p "$PUBLIC"
+summary() {{ :; }}
+fail() {{ echo "FAIL: $*"; exit 1; }}
+deploy_cli() {{
+  echo "CLI $*" >>"$CD_STATE/calls.log"
+  echo '{{"ok": true, "database_split": {{}}}}'
+}}
+{script_function("journal_value")}
+{script_function("split_database")}
+{script_function("finish_database_split")}
+{function} {" ".join(arguments)}
+"""
+    (tmp_path / "calls.log").write_text("")
+    done = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+    assert done.returncode == 0, done.stdout + done.stderr
+    return (tmp_path / "calls.log").read_text()
+
+
+def test_the_split_runs_for_an_established_environment_and_never_for_a_new_one(tmp_path):
+    calls = run_split_function(tmp_path, "split_database", None)
+    assert calls == f"CLI split-database --state-dir {tmp_path} --execute\n"
+    assert run_split_function(tmp_path, "split_database", None, established="false") == ""
+    assert run_split_function(tmp_path, "split_database", None, opted_in="false") == ""
+
+
+def test_the_drop_runs_only_for_a_verified_split_and_names_the_smoke(tmp_path):
+    calls = run_split_function(tmp_path, "finish_database_split", "verified", "smoke-9-1")
+    assert calls == f"CLI finish-database-split --state-dir {tmp_path} --verified-by smoke-9-1\n"
+    assert (tmp_path / "out/public/database-split-receipt.json").exists()
+    for state in (None, "switched", "cleaned"):
+        assert run_split_function(tmp_path, "finish_database_split", state, "smoke-9-1") == ""
+    assert (
+        run_split_function(
+            tmp_path, "finish_database_split", "verified", "smoke-9-1", opted_in="false"
+        )
+        == ""
+    )

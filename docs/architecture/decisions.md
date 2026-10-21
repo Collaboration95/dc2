@@ -20,7 +20,7 @@ Status values: **Kept** (as proposed), **Changed** (same intent, different mecha
 | ID | Decision | Status | One-line reason |
 |---|---|---|---|
 | AD-01 | Extract Processing as the only new business service | Kept | Two services survive; Identity and Delivery stay inside Media (see [ddd.md](ddd.md) section 3) |
-| AD-02 | Database per service on one PostgreSQL server | Kept (hosting changed, see AD-12) | One Aurora cluster, two databases, separate roles; cross-database access refused on AWS |
+| AD-02 | Database per service on one PostgreSQL server | Kept (hosting changed, see AD-12; one cluster per service since AD-29) | Two databases, separate roles; cross-database access refused on AWS |
 | AD-03 | Synchronous submit, asynchronous processing on Redis/RQ | Superseded by AD-11 | Submit became an asynchronous command; Redis/RQ left the V1 runtime |
 | AD-04 | Idempotent SubmitJob plus reconciliation, no outbox | Changed (AD-11) | Idempotency and reconciliation kept; a transactional outbox was adopted up front |
 | AD-05 | Presigned URLs for source reads and output delivery | Changed (AD-14, AD-20) | Output and uploads stay presigned; workers read the source with an IAM grant on a pinned version |
@@ -47,6 +47,7 @@ Status values: **Kept** (as proposed), **Changed** (same intent, different mecha
 | AD-26 | Retired peer-HTTP and Redis/RQ code quarantined in `legacy/`, kept out of V1 images | New | The submission shows no dead dependency between the services |
 | AD-27 | One persistent always-on environment, updated in place, scaling to zero | New (supersedes AD-19) | Per-run stacks cost a full deploy and teardown per check; the stack already costs about USD 3-5 a month idle |
 | AD-28 | Release admission rescans the replaced rollback image and records, rather than blocks on, fixable findings published after it shipped | New (21 October) | A candidate that remediates a new advisory must be able to replace the vulnerable image it fixes |
+| AD-29 | Media and Processing each have their own Aurora Serverless v2 cluster, split in place from the shared one | New (21 October) | One cluster was a shared failure and capacity boundary that role separation did not remove (AISS-01) |
 
 ## 2. Decisions carried from the proposal
 
@@ -55,7 +56,7 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
 | ID | Proposal said | As built | Evidence |
 |---|---|---|---|
 | AD-01 Kept | Processing is the only new service; keep the modular monolith otherwise; four services would be too many | Two business services, separate images, roles and release units. The Media authorizer is Media code, not a third service. The microservices audit (#195) found it "mostly real". Hardening since merged: the peer-HTTP and RQ code moved to `legacy/` and `deploy/v1/check_runtime.py` fails an image build if any legacy module is importable (AD-26), per-service CI lanes with CODEOWNERS (#204), a contract versioning policy (AD-24), alarms and a dashboard (AD-25), and a failure-isolation proof harness (#196, see AD-11). | [Code] `definitions.py`, `deploy/v1/check_runtime.py` (the opposite domain package must be absent from each image); [AWS] `cross-database`, `promote-good` with `peer_unchanged` |
-| AD-02 Kept | Separate databases, roles and migration histories on one server | `media_db` and `processing_db` on one Aurora cluster. Roles `*_runtime` (DML only), `*_migrator` (DDL), `*_owner` (no login). Each migration history is separate (`media/migrations`, `processing/migrations`). | [AWS] #63 `cross-database`: other database refused (`InsufficientPrivilegeError`), runtime DDL refused; [Code] `scripts/aws/v1/bootstrap.py` |
+| AD-02 Kept | Separate databases, roles and migration histories on one server | `media_db` and `processing_db`, one Aurora cluster each since AD-29 (V1 shipped both on one). Roles `*_runtime` (DML only), `*_migrator` (DDL), `*_owner` (no login). Each migration history is separate (`media/migrations`, `processing/migrations`). | [AWS] #63 `cross-database`: other database refused (`InsufficientPrivilegeError`), runtime DDL refused; [Code] `scripts/aws/v1/bootstrap.py` |
 | AD-03 Superseded by AD-11 | REST creates the job, RQ drives the work, keep Redis/RQ | No Redis or RQ in the V1 images or template. Submit is a queued command. | [Code] `deploy/v1/*.Dockerfile`, `definitions.py`; [Local] `make verify-v1` |
 | AD-04 Changed | Idempotent on `asset_id`, reconciliation task, outbox only if experiments require it | Idempotency kept (`SubmissionGuard`, unique `asset_id`). Reconciliation kept as `repair_work` and lease expiry. The outbox was adopted from the start because the handoff became SQL plus SQS. | [Local] `tests/v1/test_messaging_sql.py`; [Code] `processing/recovery_v1.py` |
 | AD-05 Changed | Presigned URLs for source reads and outputs so workers hold no Media storage credentials | Upload: presigned POST. Output: presigned GET signed at read time. Source read by the worker: IAM `GetObject` on the source bucket, bound in code to the pinned VersionId and owner. This is broader than a signed URL; the plan says so. | [Code] `media/services/storage.py`, `definitions.py` (`Worker` role); `architecture-plan.md` ("broadens today's signed-only capability") |
@@ -490,6 +491,28 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
   `docs/results/engineering-20261021/delivery-c7c489c.json`. That run also carries the companion
   deploy-smoke fix for a paused database (#287, #288), which the first redelivery attempt
   (39542434067, `login:503`) exposed.
+
+### AD-29 Media and Processing each have their own Aurora cluster, split in place from the shared one
+
+- **Context.** V1 kept `media_db` and `processing_db` on one Aurora Serverless v2 cluster:
+  separate roles and migrations, but one instance, one ACU ceiling and one failure boundary (AISS-01).
+- **Decision.** Media keeps the existing cluster, instance and security group under V1's logical ids,
+  so the live cluster is never replaced. Processing gets `ProcessingDatabaseCluster`, a copy-on-write
+  clone of it. `split-database` checks Processing is idle, takes a manual snapshot, updates the stack,
+  reconciles Processing's logins on the clone, freezes the old copy's Processing logins, points
+  Processing's two DSN parameters at the clone and runs the public smoke. After a passing smoke,
+  `finish-database-split` drops each cluster's copy of the peer's database. Both clusters keep
+  auto-pause (minimum 0 ACU). CD opts an environment in with `CD_DATABASE_SPLIT` (set for `live` only).
+  A stack update that rolled back is retried with the same change set name.
+- **Alternatives.** Dump and restore (a longer idle window and a second copy of the data to verify);
+  recreating the cluster (replaces live data); keeping one cluster and documenting the limit.
+- **Trade-off.** A second cluster's fixed storage and wake cost; a Processing write between clone and
+  switch would be lost, hence the idle precondition. The old copy of the peer's database stays until the
+  smoke passes, which is the way back.
+- **Evidence.** [Code] `scripts/aws/v1/deploy.py`, `definitions.py`, `scripts/ci/cd.sh`;
+  [Local] `tests/aws/v1/test_database_split.py`, `test_database_topology.py`; [AWS] rehearsal receipt
+  `docs/results/engineering-20261021/database-split-rehearsal.json`. Details:
+  `docs/execution/aws/v2/database-topology.md`.
 
 ## 4. Proposal to as-built deviations
 

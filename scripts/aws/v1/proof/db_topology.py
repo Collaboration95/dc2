@@ -102,7 +102,7 @@ def cluster_ids(ctx, *, shared=None, media=None, processing=None):
         return {"cluster": chosen}
     by_name = {name: cid for cid, name in logical.items()}
     chosen = {
-        "media": media or by_name.get("MediaDatabaseCluster"),
+        "media": media or by_name.get("DatabaseCluster"),
         "processing": processing or by_name.get("ProcessingDatabaseCluster"),
     }
     if not all(chosen.values()) or chosen["media"] == chosen["processing"]:

@@ -61,15 +61,26 @@ SEPARATE_DATABASE_SOURCES = {
 
 @dataclasses.dataclass(frozen=True)
 class DatabaseOptions:
-    """How Aurora is laid out and when it pauses. The defaults are V1."""
+    """How Aurora is laid out and when it pauses. The defaults are V1.
+
+    `clone_processing` is set only on a stack that was split from the shared layout in place:
+    Processing's cluster is then a copy-on-write clone of Media's, which already holds the data.
+    CloudFormation treats the clone properties as create-only, so a stack that was created that
+    way must keep rendering them (the journal records the option for good).
+    """
 
     topology: str = SHARED
     auto_pause_seconds: int = DEFAULT_AUTO_PAUSE_SECONDS
     max_capacity: float = DEFAULT_MAX_CAPACITY
+    clone_processing: bool = False
 
     def __post_init__(self):
         if self.topology not in (SHARED, SEPARATE):
             raise ValueError("Database topology is shared or separate")
+        if type(self.clone_processing) is not bool or (
+            self.clone_processing and self.topology != SEPARATE
+        ):
+            raise ValueError("Only a separate layout can clone Processing's cluster")
         low, high = AUTO_PAUSE_SECONDS_RANGE
         if type(self.auto_pause_seconds) is not int or not low <= self.auto_pause_seconds <= high:
             raise ValueError(f"Auto-pause is {low} to {high} seconds")
@@ -197,12 +208,17 @@ def version_description(domain, image, properties, parameters, resources):
 def template(database=None):
     """Closed-by-default two-phase stack; resources retained where data is durable."""
     database = database or DatabaseOptions()
-    # Logical stem of each cluster -> the domains whose database it holds. The shared layout
-    # keeps V1's names so that nothing about it changes.
+    # Logical stem of each cluster -> who may connect to it. The shared layout keeps V1's names
+    # so that nothing about it changes, and so does Media's cluster in the separate layout: a
+    # stack split from shared keeps its existing cluster, instance and security group (and so
+    # its data) in place, and only Processing's set is added.
     if database.topology == SHARED:
         stems = {"Database": SHARED_DATABASE_SOURCES}
     else:
-        stems = {f"{domain}Database": SEPARATE_DATABASE_SOURCES[domain] for domain in DOMAINS}
+        stems = {
+            "Database": SEPARATE_DATABASE_SOURCES["Media"],
+            "ProcessingDatabase": SEPARATE_DATABASE_SOURCES["Processing"],
+        }
     parameters = {
         "EnvironmentId": {"Type": "String", "AllowedPattern": "[a-z][a-z0-9-]{2,23}"},
         "DeployApplications": {
@@ -483,31 +499,39 @@ def template(database=None):
         },
     )
     for stem in stems:
-        add(
-            f"{stem}Cluster",
-            "RDS::DBCluster",
-            {
-                "Engine": "aurora-postgresql",
-                "EngineVersion": ref("AuroraEngineVersion"),
-                "EngineMode": "provisioned",
-                "MasterUsername": "dc2bootstrap",
-                "ManageMasterUserPassword": True,
-                "DBSubnetGroupName": ref("DbSubnets"),
-                "DBClusterParameterGroupName": ref("DbParameters"),
-                "VpcSecurityGroupIds": [ref(f"{stem}SecurityGroup")],
-                "StorageEncrypted": True,
-                "BackupRetentionPeriod": 1,
-                "DeletionProtection": True,
-                "NetworkType": "DUAL",
-                "ServerlessV2ScalingConfiguration": {
-                    "MinCapacity": 0,
-                    "MaxCapacity": database.max_capacity,
-                    "SecondsUntilAutoPause": database.auto_pause_seconds,
-                },
-                "Tags": tags,
+        cluster = {
+            "Engine": "aurora-postgresql",
+            "EngineVersion": ref("AuroraEngineVersion"),
+            "EngineMode": "provisioned",
+            "MasterUsername": "dc2bootstrap",
+            "ManageMasterUserPassword": True,
+            "DBSubnetGroupName": ref("DbSubnets"),
+            "DBClusterParameterGroupName": ref("DbParameters"),
+            "VpcSecurityGroupIds": [ref(f"{stem}SecurityGroup")],
+            "StorageEncrypted": True,
+            "BackupRetentionPeriod": 1,
+            "DeletionProtection": True,
+            "NetworkType": "DUAL",
+            "ServerlessV2ScalingConfiguration": {
+                "MinCapacity": 0,
+                "MaxCapacity": database.max_capacity,
+                "SecondsUntilAutoPause": database.auto_pause_seconds,
             },
-            retain=True,
-        )
+            "Tags": tags,
+        }
+        if database.clone_processing and stem == "ProcessingDatabase":
+            # A copy-on-write clone shares Media's storage pages until either side writes, so it
+            # costs nothing extra to create and carries every database, role and password of
+            # the source at the moment it is taken. It inherits the engine version, the master
+            # user and the encryption, and CloudFormation refuses them beside a source.
+            for inherited in ("EngineVersion", "MasterUsername", "StorageEncrypted"):
+                del cluster[inherited]
+            cluster |= {
+                "SourceDBClusterIdentifier": ref("DatabaseCluster"),
+                "RestoreType": "copy-on-write",
+                "UseLatestRestorableTime": True,
+            }
+        add(f"{stem}Cluster", "RDS::DBCluster", cluster, retain=True)
         add(
             f"{stem}Instance",
             "RDS::DBInstance",
@@ -1987,7 +2011,7 @@ def template(database=None):
     # and master secret, so nothing can read the wrong cluster through a name that fits both.
     database_outputs = {}
     for stem in stems:
-        prefix = "" if database.topology == SHARED else stem.removesuffix("Database")
+        prefix = "" if database.topology == SHARED else stem.removesuffix("Database") or "Media"
         database_outputs[f"{prefix}DatabaseEndpoint"] = attr(f"{stem}Cluster", "Endpoint.Address")
         database_outputs[f"{prefix}BootstrapSecretArn"] = attr(
             f"{stem}Cluster", "MasterUserSecret.SecretArn"
@@ -2131,10 +2155,14 @@ def main():
         "--database-auto-pause-seconds", type=int, default=DEFAULT_AUTO_PAUSE_SECONDS
     )
     parser.add_argument("--database-max-capacity", type=float, default=DEFAULT_MAX_CAPACITY)
+    parser.add_argument("--database-clone-processing", action="store_true")
     args = parser.parse_args()
     try:
         database = DatabaseOptions(
-            args.database_topology, args.database_auto_pause_seconds, args.database_max_capacity
+            args.database_topology,
+            args.database_auto_pause_seconds,
+            args.database_max_capacity,
+            args.database_clone_processing,
         )
     except ValueError as error:
         parser.error(str(error))
