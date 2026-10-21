@@ -70,7 +70,7 @@ presentation and report phase.**
 | Live environment | `dc2-live` up since 18 October; scales to zero; torn down once, after 16 November |
 | Release identity | Team-accepted demo freeze at `daee44b` (20 October). Engineering release `629119c` (20 October). The current verified release is **`c7c489c` (21 October)**: the certifi remediation plus two delivery fixes, delivered by CD 39545554380 with an upload-to-playback smoke and a read-back of all images and aliases. The manifest records it as a post-freeze addendum. |
 | CI | Every `Main` run green. Code release `c7c489c`: CI 39544952625 (Full verification); latest documentation push `1d68eff`: CI 39550093697 |
-| CD | Two runs failed on 21 October, at the scan of the retained rollback image (39532075705) and at a cold-database login in the deploy smoke (39542434067). Both were fixed without weakening a gate (AD-28; PRs #285–#288) and redelivered by run 39545554380 (section 5.3). `Main` and `dev/closeout` are both at `1d68eff`. |
+| CD | Two runs failed on 21 October, at the scan of the retained rollback image (39532075705) and at a cold-database login in the deploy smoke (39542434067). Both were fixed without weakening a gate (AD-28; PRs #285–#288) and redelivered by run 39545554380 (section 5.3). CD run 39644028238 (green) then delivered the Lambda short-encode lane and the per-service database split. `Main` and `dev/closeout` are both at `1d68eff`. |
 | Evidence | Results against every proposal target, including three measured misses (section 4) |
 | Submission | Presentation 26 October 14:35–15:15 SGT; code submission 31 October (internal date); final report 16 November |
 
@@ -78,8 +78,8 @@ presentation and report phase.**
 
 | Item | Disposition |
 |:------------------------------------------|:------------------------------------------------------------|
-| Three measured misses: two-worker scaling 1.449× (target 1.6×); Processing release 10.1–10.3 min (target 10 min); queue wait about 37 s (target 20 s) | Reported against the unchanged targets. Improvement options are in AISS-02 (section 3.4). |
-| Evidence not established on AWS: lost-queue-entry timing, duplicate-output check after a worker kill, a restore drill, actual spend | AISS-06. The final October bill is read before 16 November. |
+| Three measured misses: two-worker scaling 1.449× (target 1.6×); Processing release 10.1–10.3 min (target 10 min); queue wait about 37 s on the standard lane (target 20 s; met on the Lambda short lane at 0.26 s) and end-to-end latency still above 20 s | Reported against the unchanged targets. Improvement options are in AISS-01 (section 3.4). |
+| Evidence not established on AWS: lost-queue-entry timing, duplicate-output check after a worker kill, a restore drill, actual spend | AISS-05. The final October bill is read before 16 November. |
 | Optional V2 experiments #68 and #80 | Closed on 21 October. #68 (unattended launcher) was adopted into V2-live, so it was closed as completed. #80 (the optional V2 migration epic) was closed as not planned, because the experiments live behind template flags (AD-22). |
 | Presentation deck and rehearsal (#192), recordings (#254) | Prepared from this report and the frozen demo release before 26 October |
 | Presentation feedback | Incorporated into the final submission after 26 October, as the briefing requires |

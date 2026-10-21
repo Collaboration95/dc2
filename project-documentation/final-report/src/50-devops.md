@@ -62,7 +62,13 @@ GitGuardian check failing.
 - **Branch protection and rulesets are not configured.** "Dev gate" and "Full verification" are
   stable, enforceable check names, but nothing in the repository settings requires them, and no
   reviewer approval is required. Pull-request discipline was a team practice, not a setting.
-- Secret scanning with push protection is enabled, and gitleaks runs in CI.
+- Secret scanning with push protection is enabled, gitleaks runs in CI, and Dependabot alerts are on.
+- Scanner results reach GitHub code scanning as SARIF, so the Security tab is the single place to
+  triage them: CodeQL default setup (Python, JavaScript/TypeScript, GitHub Actions), Trivy per image,
+  authenticated OWASP ZAP, Ruff security rules (Bandit) and gitleaks. Triage on 22 October dismissed
+  12 High CodeQL alerts with reasons; all were in test, proof or developer-script code, none in
+  deployed code (`docs/ci/policy.md`). CVE-2025-52290 (`ffmpeg`, no Debian 13 fix) is accepted unfixed
+  for a finite worker with no inbound network.
 - Cloud access is separate from repository access:
   - Human operators use IAM users with an MFA session helper (`make aws-mfa-session`).
   - The automation agent uses a dedicated IAM user (`flickpond-agent`, profile `dc2-agent`).
@@ -70,7 +76,7 @@ GitGuardian check failing.
     the immutable subject of this repository's `aws` environment, and that environment admits only
     `Main` and `dev/closeout`.
 
-The missing protection is recorded as AISS-05. For a multi-account team, the next steps are:
+The missing protection is recorded as AISS-04. For a multi-account team, the next steps are:
 
 - add the members as collaborators;
 - require "Full verification" and one review on `Main` and `dev/closeout` through a ruleset;
@@ -110,9 +116,10 @@ check to pass and validates every intentional skip, so a lane cannot silently di
 | Local HTTPS and browser trust | Playwright and Chromium against the local HTTPS stack: browser, public API and Publisher acceptance |
 | V1 local verification (`v1.yml`) | cfn-lint (required); offline control-plane tests (template, IAM, release, launcher); V1 flows on PostgreSQL, Moto and FFmpeg with a browser leg; build of all three images, then **Trivy on the exact images**, failing on any fixable HIGH/CRITICAL |
 | Combined backend package coverage | Merges five coverage tiers; at least 80 % per package |
-| Scan container image (app / media / processing) | Trivy image scan matrix; reports kept 60 days |
-| Secret scan (gitleaks) | Full history with an allow-list |
-| Exact-candidate DAST (`dast.yml`) | Authenticated OWASP ZAP against the local Media and Processing APIs; findings report-only |
+| Scan container image (app / media / processing) | Trivy image scan matrix; reports kept 60 days and published as SARIF |
+| Secret scan (gitleaks) | Full history with an allow-list; SARIF to code scanning |
+| CodeQL (default setup) | Python, JavaScript/TypeScript and GitHub Actions; results in the Security tab |
+| Exact-candidate DAST (`dast.yml`) | Authenticated OWASP ZAP against the local Media and Processing APIs; findings report-only, published as SARIF |
 | SonarCloud SAST (advisory) | Skipped while Sonar is unconfigured |
 | Dev gate / Full verification | Policy gate over the selected checks |
 
@@ -137,7 +144,7 @@ records.
 | AWS V1 per-run stacks (historical) | The proof runs `r1017b`, `r1018b`, `r1019a`, each deleted afterwards | Dispatched deploy and teardown (AD-19) |
 | **AWS `dc2-live` (production demo)** | The one persistent environment, updated in place | First deploy by a human dispatch; then automatically after every green CI run on `Main` (AD-27) |
 
-There is no separate staging environment (AISS-05). Two things stand in for it: the local V1 stack
+There is no separate staging environment (AISS-04). Two things stand in for it: the local V1 stack
 and CI's exact-image verification exercise the same images before promotion, and every release
 smoke-tests production with an automatic restore on failure.
 
@@ -158,7 +165,7 @@ smoke-tests production with an automatic restore on failure.
 
 1. **Preflight** (reads only): account and region, stack state, a change set that must not
    replace Aurora, a bucket or the distribution, and the release journal.
-2. **Stack update**: a CloudFormation `UPDATE` change set from the checked-out template.
+2. **Stack update**: a CloudFormation `UPDATE` change set from the checked-out template. For the `live` environment this step also applies the Lambda short-encode lane and the per-service database split (AD-29: snapshot, clone, smoke, then cleanup); run 39644028238 delivered both.
 3. **Per-owner release**, only for owners whose image build inputs changed:
    - build the image;
    - scan the candidate, and scan the retained rollback image (AD-28);

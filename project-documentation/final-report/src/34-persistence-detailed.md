@@ -1,6 +1,6 @@
 ### Persistence Design
 
-**Relational data.** Each service owns one PostgreSQL 16 database on the shared Aurora cluster, with
+**Relational data.** Each service owns one PostgreSQL 16 database on its own Aurora Serverless v2 cluster (AD-29), with
 its own Alembic migration history (Media `0001_media` … `media_0008`; Processing `processing_0001`
 … `processing_0007`). No table has a foreign key into the other database. Owner and asset
 identifiers cross the boundary only as plain UUIDs inside messages. Figures {@fig:ermedia} and {@fig:erprocessing} are the logical
@@ -60,7 +60,7 @@ lifecycle of this deployment as a whole is set by AD-08 (fresh demonstration dat
 | Outbox and inbox rows | Transaction | Until environment teardown; sent rows are kept for replay; no pruning job |
 | SQS messages | Transaction | 7 days (DLQs 14 days); visibility timeout 420 s; redrive after 5 receives |
 | Lambda and task logs | Request | 7 days |
-| Aurora backups | n/a | 1-day automated backup retention; one final snapshot is kept at teardown |
+| Aurora backups | n/a | 1-day automated backup retention on each cluster; the pre-split snapshot of the original cluster is kept, and one final snapshot is kept at teardown |
 | CI and CD artifacts | Workflow run | 7, 14 or 60 days, depending on the artifact |
 
 **Information architecture: data inventory and classification.** The team uses four
@@ -199,9 +199,9 @@ with before-and-after views.
 | Finalize | `direct_intake.finalize`, `storage.verify_direct_upload`, `media.messaging.enqueue_submit` | Reads size, SHA-256 and signature at an explicit VersionId, outside SQL locks; then, in one transaction, pins the version, creates the `Asset` and stages `submit` | The verified bytes are the bytes encoded; adoption and command are atomic; a missing object → 409, not adopted |
 | Publish | `MediaRepair` → `delivery.sql.publish_due` | Claims due outbox rows (`SKIP LOCKED`), sends to `processing-commands`, acknowledges by claim token | At least once; no committed message is lost |
 | Accept | `processing.handlers.command_handler` → `messaging.handle_command` | Records the inbox row; locks `SubmissionGuard`; creates `Job` and attempt 1 as `queued`; `emit_state` stages `work` and `result` v1 | One job per asset; duplicate submit is a no-op; owner and source must match |
-| Launch | `processing.launcher` (V2-live) | Reserves a slot in SQL and starts a Fargate task with a stable RunTask token; at most 3 | The cap holds under concurrent wakes and lost RunTask replies |
+| Launch | `processing.launcher` (V2-live) | Reserves a slot in SQL and starts a Fargate task with a stable RunTask token; at most 3. A clip of at most 60 s, 64 MiB and 1080p is instead staged on `ProcessingShortWork` and read by the `ProcessingShortEncoder` Lambda (cap 2); an executor probe that finds a longer clip returns the job to the standard lane | The cap holds under concurrent wakes and lost RunTask replies |
 | Claim | `processing.worker.sqs.decode_work` → `messaging.claim` → `lifecycle.claim` | Binds the task to the attempt (`AttemptTask`), takes a lease on the DB clock, sets `processing`, stages `result` v2 | A valid lease is needed; one task, one attempt |
-| Encode | `processing.worker.tasks.pipeline`, `media_engine` | Downloads the source at its pinned VersionId and checks SHA-256; ffprobe; MP4; HLS variants via `variants_for` (never above the source height) | HLS failure keeps the MP4; outputs scoped to `jobs/{job}/attempts/{attempt}/` |
+| Encode | `processing.worker.tasks.pipeline`, `media_engine` (same pipeline in the Fargate task and in the short-encode Lambda) | Downloads the source at its pinned VersionId and checks SHA-256; ffprobe; MP4; HLS variants via `variants_for` (never above the source height) | HLS failure keeps the MP4; outputs scoped to `jobs/{job}/attempts/{attempt}/` |
 | Finish | `lifecycle.finish` | Under the live lease, records exactly one primary output plus optional HLS, sets `done`, stages `result` v3; the worker then deletes its SQS message | Terminal state commits before the work is acknowledged |
 | Project | `media.handlers.result_handler` → `projections.apply_result` | Inbox dedupe; `validate_transition`; upserts the projection | Never moves backwards; checks job, source and attempt namespace |
 | Play | `projections.public_job`, `storage.sign_output`, `media/api/v1_hls.py` | Returns owner-filtered status, a presigned MP4 URL and the HLS playlist; segments redirect (307) to presigned S3 URLs | Owner only; no-store caching; short-lived capability |

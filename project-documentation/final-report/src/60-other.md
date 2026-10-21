@@ -47,7 +47,7 @@ deployed and reused**. The contribution, measured against the inherited baseline
    The smoke now waits for a waking database for one call only, with every attempt recorded,
    instead of being retried wholesale.
 8. **Keep misses visible.** Two-worker scaling (1.449× against 1.6×), Processing release time
-   (10.1–10.3 min against 10 min) and queue wait (37 s against 20 s) are reported as measured. The
+   (10.1–10.3 min against 10 min) and queue wait (37 s against 20 s on the standard lane; 0.26 s on the Lambda short lane, with end-to-end latency still above 20 s) are reported as measured. The
    targets were not changed after the fact.
 
 ## Responsibilities for Use Cases and Design Problems

@@ -14,7 +14,7 @@ Two operating modes used the same template:
 
 Figure {@fig:topology} shows the persistent topology. The network rules and data paths are listed after the component table.
 
-![Figure {#fig:topology}. Persistent V2-live AWS topology (ap-southeast-1): public edge, VPC-attached Lambdas, finite Fargate encoders, Aurora, S3 and SQS.](figures/aws-topology.png){width=15.5cm}
+![Figure {#fig:topology}. Persistent V2-live AWS topology (ap-southeast-1): public edge, VPC-attached Lambdas, finite Fargate encoders, the short-encode Lambda lane, two Aurora clusters, S3 and SQS.](figures/aws-topology.png){width=15.5cm}
 
 
 | Component | Deployed as | Placement and sizing |
@@ -22,9 +22,10 @@ Figure {@fig:topology} shows the persistent topology. The network rules and data
 | Web app | Static files in a private S3 bucket behind CloudFront (origin access control) | Global edge, HTTPS only (HTTP redirects); content-hashed assets |
 | Public API | One API Gateway HTTP API: `/api/media/*`, `/api/processing/*`, one REQUEST authorizer | Regional; V2-live stage throttle 20 requests/s, burst 50 |
 | Media | One container image → 4 Lambda functions (`MediaApi` 2048 MB, `MediaAuthorizer`, `MediaResults`, `MediaRepair`), each with a `live` alias | Private subnets in two AZs, VPC-attached |
-| Processing | One container image → 6 Lambda functions in V2-live (`ProcessingApi`, `ProcessingCommands`, `ProcessingRepair`, `ProcessingEcsEvents`, `ProcessingS3Events`, `ProcessingLauncher`) | Private subnets in two AZs |
+| Processing | One container image → 7 Lambda functions in V2-live (`ProcessingApi`, `ProcessingCommands`, `ProcessingRepair`, `ProcessingEcsEvents`, `ProcessingS3Events`, `ProcessingLauncher`, `ProcessingShortEncoder`) | Private subnets in two AZs |
 | Encoder | Worker container image as an ECS Fargate task definition; no ECS service | 2 vCPU, 4 GiB; 0 when idle, at most 3; public subnet with a temporary public IPv4 while running |
-| Databases | Aurora PostgreSQL 16 Serverless v2: one cluster, one instance, `media_db` and `processing_db` | Private subnets; 0–2 ACU, auto-pause when idle; encrypted; `rds.force_ssl=1` |
+| Short encoder | `ProcessingShortEncoder`: the Processing image as a Lambda container; SQS event source mapping on `ProcessingShortWork` | 3008 MB, 900 s timeout, 2 GB `/tmp`, `MaximumConcurrency` 2; private subnets. Takes clips of at most 60 s, 64 MiB and 1080p; longer clips use the Fargate encoder |
+| Databases | Aurora PostgreSQL 16 Serverless v2: two clusters, one instance each: `media_db` (the original cluster) and `processing_db` (its copy-on-write clone) | Private subnets; 0–2 ACU each, auto-pause at 0 ACU; encrypted; `rds.force_ssl=1` |
 | Object storage | Three S3 buckets: source, output, frontend | Versioned, SSE-S3, public access blocked, TLS-only policies |
 | Messaging | Three Standard SQS queues and three DLQs | SQS-managed encryption, TLS-only, role-scoped resource policies |
 | Scheduling | EventBridge: one-minute Media and Processing repair ticks, ECS task `STOPPED`, S3 `Object Created` | Regional |
@@ -52,11 +53,12 @@ These decisions are reflected in the physical view. Section 3.1.1 holds the logi
 | Identifier | Decision | Rationale and trade-off | Status |
 |:------|:-----------------------|:-------------------------------------------------------|:---------|
 | AD-10 | **Lambda container images, one image per domain**; `ImageConfig.Command` picks the handler; every function has a `live` alias | Scale-to-zero compute with a per-domain release unit; FastAPI code runs unchanged behind an adapter. Trade-offs: cold starts, no pooled connections (per-invocation `NullPool`, so a paused database can stay paused), a 29 s Gateway timeout. | New (changes AD-07) |
-| AD-12 | **Aurora Serverless v2**: one cluster, one instance, two logical databases, separate roles; 0–2 ACU with auto-pause | Near-zero idle cost and real role separation. Trade-off: one shared capacity and failure boundary; no replica failover; a request to either domain resumes the cluster (first read after a pause: 4.7 s **[AWS]**). | New (refines AD-02) |
-| AD-13 | **Finite Fargate encoders**: one task per attempt, a hard cap of 3, zero when idle | FFmpeg needs minutes of CPU, and nothing should run idle. Each task claims at most one attempt and exits after two empty polls. Alternatives rejected: an always-on ECS service with autoscaling (idle cost) and AWS Batch (another dependency). Trade-off: at most three concurrent encodes; Fargate start time adds to queue wait. | New |
-| AD-15 | **CloudFront as the single public entry** for frontend and `/api/*` | Managed HTTPS without buying a domain; one origin for cookies. Trade-off: AWS-generated hostnames; the `execute-api` endpoint is also reachable directly (AISS-03). | New |
+| AD-12 | **Aurora Serverless v2**: one instance per cluster, separate roles; 0–2 ACU with auto-pause | Near-zero idle cost and real role separation. Trade-off: no replica failover; a request to a paused cluster resumes it (first read after a pause: 4.7 s **[AWS]**). V1 ran both databases on one cluster; AD-29 split them. | New (refines AD-02) |
+| AD-29 | **One Aurora cluster per service.** Media keeps the original cluster; Processing gets a copy-on-write clone, and cleanup then drops the peer's database from each. Both keep auto-pause at 0 ACU | Removes the shared capacity and failure boundary that role separation did not. The split was rehearsed on a throwaway stack first (receipt `docs/results/engineering-20261021/database-split-rehearsal.json`), a pre-split snapshot is kept, and CD applied it to the live stack on 21 October. Trade-off: a second cluster's storage and wake cost; Processing must be idle during the split. | New (refines AD-02, AD-12) |
+| AD-13 | **Finite Fargate encoders**: one task per attempt, a hard cap of 3, zero when idle; clips of at most 60 s, 64 MiB and 1080p run on a Lambda instead (#93, AD-22) | FFmpeg needs minutes of CPU, and nothing should run idle. Each task claims at most one attempt and exits after two empty polls. Alternatives rejected: an always-on ECS service with autoscaling (idle cost) and AWS Batch (another dependency). Trade-off: at most three concurrent encodes; Fargate start time adds to queue wait, which the Lambda lane avoids for short clips. | New |
+| AD-15 | **CloudFront as the single public entry** for frontend and `/api/*` | Managed HTTPS without buying a domain; one origin for cookies. Trade-off: AWS-generated hostnames; the `execute-api` endpoint is also reachable directly (AISS-01). | New |
 | AD-16 | **Per-owner release and rollback by image digest and Lambda alias** | Releases Processing without touching Media (UC-7). Each release builds and scans the owner's image, publishes versions, moves `live` aliases, runs a smoke test, and restores the previous versions on failure. Trade-off: rollback is image-only, and schema changes must be additive. | New |
-| AD-17 | **GitHub Actions CD over OIDC**: role `dc2-github-deploy`, assumed only from the `aws` environment, with no stored AWS key | Recorded, repeatable delivery. Trade-off: the role is broad (`AdministratorAccess` with a region lock), protected by the environment's branch policy (AISS-05). | New |
+| AD-17 | **GitHub Actions CD over OIDC**: role `dc2-github-deploy`, assumed only from the `aws` environment, with no stored AWS key | Recorded, repeatable delivery. Trade-off: the role is broad (`AdministratorAccess` with a region lock), protected by the environment's branch policy (AISS-04). | New |
 | AD-18 | **Private Lambda subnets with IPv6 egress only, an S3 gateway endpoint and no NAT** | Avoids NAT and interface-endpoint hourly charges, the largest idle cost in a typical VPC design. Trade-off: every AWS dependency must be reachable over IPv6 or the gateway endpoint; Fargate tasks run in public subnets to pull images. | New |
 | AD-20 | **Least-privilege IAM per handler**, native role credentials, queue resource policies | Producer and consumer authority is enforced by AWS, not by the message schema. `ProcessingApi` has no S3 or SQS access; `MediaApi` has no SQS access; the worker can read sources, write outputs and receive work, nothing else. Trade-off: the worker's source read is bucket-wide, so owner binding is checked in code before any read. | New (supersedes AD-06) |
 | AD-23 | **One CloudFormation stack, applied in two phases** (infrastructure, then applications pinned by digest) | The smallest operational surface for three people. Trade-off: infrastructure for both domains changes together; only code releases are independent. | New |
@@ -71,11 +73,11 @@ These decisions are reflected in the physical view. Section 3.1.1 holds the logi
 | FFmpeg and ffprobe | Probing, MP4 encoding, HLS ladder (360/480/720, capped at the source height) | Industry standard and already proven in Project 1 | CPU-bound; HLS is best effort; a large unfixed-CVE surface in the worker image (section 4.3) |
 | Plain JavaScript SPA, hls.js, Plyr | Web client | No build step; browsers load `app.js` directly; Vitest tests it | No production bundling or minification |
 | Python stdlib plus `httpx` | Publisher CLI | Proves reuse with the smallest dependency set: 491 lines in 6 files | Polling-based status; one cookie jar per process |
-| AWS Lambda (container images) | APIs, consumers, repair, launcher | Pay per request, scale to zero, per-domain image release | Cold starts; account concurrency limit of 10 observed |
+| AWS Lambda (container images) | APIs, consumers, repair, launcher | Pay per request, scale to zero, per-domain image release; also the short-encode lane | Cold starts; account concurrency limit of 10 observed |
 | Amazon API Gateway HTTP API | Routing, authorizer hook, throttle | Cheapest managed HTTP front for Lambda; REQUEST authorizer | No WAF; one stage-level limit |
 | Amazon CloudFront | HTTPS entry, static site, `/api/*` pass-through | Managed TLS, HTTP/2 and HTTP/3, no custom domain needed | Playback bytes come from S3 directly, not through CloudFront |
 | Amazon SQS (Standard) with DLQs | Commands, work and results | Serverless, durable, cheap; redrive policy (5 receives) | Unordered and at least once, hence inbox dedupe and version fences |
-| Amazon Aurora PostgreSQL Serverless v2 | Two owned relational databases | Transactions, constraints and `SKIP LOCKED` for outbox claims; scales to 0 ACU | Single instance; cold resume of several seconds |
+| Amazon Aurora PostgreSQL Serverless v2 | Two owned relational databases, one cluster each | Transactions, constraints and `SKIP LOCKED` for outbox claims; scales to 0 ACU | One instance per cluster; cold resume of several seconds |
 | Amazon S3 (versioned) | Sources, outputs, frontend | Presigned POST/GET keep bytes off the API; versioning makes the pinned source immutable | Cleanup must delete every version |
 | Amazon ECS on Fargate | Finite encoders, migrations, bootstrap task | No hosts to manage; per-task CPU caps make capacity predictable | Task start median 25.6 s **[AWS]**, which dominates queue wait |
 | Amazon EventBridge | Repair ticks, ECS and S3 event hints | Rebuild lost work and react to stopped tasks without polling clients | One-minute granularity |
@@ -89,4 +91,4 @@ These decisions are reflected in the physical view. Section 3.1.1 holds the logi
 - Runtime images contain only the owning service's code and its runtime extras. `deploy/v1/check_runtime.py`
   verifies this.
 - Development tools run only in CI and on developer machines: pytest, Ruff, Vitest, Playwright,
-  Moto, cfn-lint, actionlint, Trivy, gitleaks and ZAP.
+  Moto, cfn-lint, actionlint, CodeQL, Trivy, gitleaks and ZAP.
