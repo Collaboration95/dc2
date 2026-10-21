@@ -32,7 +32,8 @@ TASK_PREFIX = "lambda-"
 #
 # Duration is the binding one: encode time scales with seconds of video, and 60 s of 1080p at
 # veryfast on ~2 vCPU is about 1.5 minutes for the primary plus the HLS ladder (a measured
-# local 24 s fixture is the only datum so far, so the margin below is deliberately wide).
+# local 24 s fixture was the only datum when this was set, so the margin is deliberately wide;
+# the Lambda has about 1.7 vCPU, see MEMORY_MB, which stretches that by about 15 %).
 MAX_DURATION_SECONDS = 60.0
 # Size is a cheap pre-filter, not the constraint: it is the only bound knowable at dispatch.
 # 64 MiB is 8.9 Mbit/s over a full 60 s, which covers an ordinary 1080p phone clip while
@@ -51,9 +52,13 @@ LAMBDA_TIMEOUT_SECONDS = 900  # the service maximum
 # that has to reconnect. A pipeline deadline of 720 s is also ~6x the expected encode time.
 HEADROOM_SECONDS = 180
 PIPELINE_DEADLINE_SECONDS = LAMBDA_TIMEOUT_SECONDS - HEADROOM_SECONDS
-# ~2 vCPU (1769 MB is one vCPU), the same compute the 2 vCPU Fargate task has, so the
-# comparison is per equal CPU rather than per cheapest configuration.
-MEMORY_MB = 3584
+# 3008 MB is the most this account may configure (CloudFormation on dc2-live, 21 October 2026:
+# "'MemorySize' ... must have value less than or equal to 3008"; a higher limit needs a support
+# request). 1769 MB is one vCPU, so this is about 1.7 vCPU against the 2 vCPU Fargate task: the
+# comparison is no longer per equal CPU, and an encode is expected to take about 15 % longer
+# than on 3584 MB (the design's first choice, never deployed). The 720 s pipeline deadline is
+# about 6x the expected encode time, so the admission bounds keep their margin.
+MEMORY_MB = 3008
 EPHEMERAL_STORAGE_MB = 2048
 # SQS refuses a mapping whose queue visibility is below the function timeout. The minimum
 # plus a minute keeps a message from reappearing while its invocation can still be running.
