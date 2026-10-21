@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 from scripts.aws.transport import OperationError, safe_record
-from scripts.ci.v1_scan import findings, validate_report
+from scripts.ci.v1_scan import RETAINED, findings, validate_report
 
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 SOURCE = re.compile(r"[0-9a-f]{40}\Z")
@@ -19,13 +19,13 @@ def digest(value):
     return value
 
 
-def validate(proof, *, owner=None):
+def validate(proof, *, owner=None, deployed=False):
     safe_record(proof)
     if proof.get("owner") not in {"media", "processing"} or owner and proof["owner"] != owner:
         raise OperationError("Wrong artifact owner")
     if proof.get("platform") != "linux/amd64" or not SOURCE.fullmatch(proof.get("source_sha", "")):
         raise OperationError("Frozen source and linux/amd64 artifact required")
-    validate_prepublication(proof, owner=owner)
+    validate_prepublication(proof, owner=owner, deployed=deployed)
     image = digest(proof.get("config_id"))
     manifest = digest(proof.get("manifest_digest"))
     if image == manifest:
@@ -35,22 +35,31 @@ def validate(proof, *, owner=None):
     return proof
 
 
-def validate_prepublication(proof, *, owner=None):
+def validate_prepublication(proof, *, owner=None, deployed=False):
+    """`deployed` is a release plan's baseline, the image that runs now and that a release
+    replaces. It alone may carry a scan that recorded fixable findings (RETAINED_FIXABLE): a
+    rollback target cannot be rebuilt, and nothing that carries one can be promoted."""
     safe_record(proof)
     if proof.get("owner") not in {"media", "processing"} or owner and proof["owner"] != owner:
         raise OperationError("Wrong artifact owner")
     if proof.get("platform") != "linux/amd64" or not SOURCE.fullmatch(proof.get("source_sha", "")):
         raise OperationError("Frozen source and linux/amd64 artifact required")
     image = digest(proof.get("config_id"))
+    retained = deployed and proof.get("scan", {}).get("status") == RETAINED
     for name in ("tests", "artifact_test", "scan"):
         receipt = proof.get(name, {})
         if (
-            receipt.get("status") != "PASS"
+            receipt.get("status") != (RETAINED if retained and name == "scan" else "PASS")
             or receipt.get("config_id") != image
             or receipt.get("source_sha") != proof["source_sha"]
         ):
             raise OperationError("Missing or mismatched exact-artifact gate")
-    if proof["scan"].get("fixable_high_critical") != 0:
+    found = proof["scan"].get("fixable_high_critical")
+    if retained:
+        ids = proof["scan"].get("fixable_ids")
+        if type(found) is not int or not isinstance(ids, list) or not ids or found != len(ids):
+            raise OperationError("A retained scan must list the fixable findings it records")
+    elif found != 0:
         raise OperationError("Fixable HIGH/CRITICAL findings block promotion")
     if not isinstance(proof["tests"].get("passed"), int) or proof["tests"]["passed"] < 1:
         raise OperationError("Executed source tests required")
@@ -183,11 +192,11 @@ def publication_plan(proof, *, repository, account_id, region):
     }
 
 
-def registry_receipt(proof, response):
+def registry_receipt(proof, response, *, deployed=False):
     """Bind raw registry manifest bytes and reported registry digest to tested ID."""
-    validate_prepublication(proof)
+    validate_prepublication(proof, deployed=deployed)
     receipt = manifest_receipt(proof["config_id"], response)
-    return validate({**proof, **receipt})
+    return validate({**proof, **receipt}, deployed=deployed)
 
 
 def manifest_receipt(config_id, response):

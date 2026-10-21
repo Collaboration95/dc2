@@ -12,9 +12,10 @@ def validate_bundle(bundle, *, owner, deployed=False):
 
     After a release that kept one of Processing's images, the API and the worker that run come
     from different commits. That is a valid baseline: each artifact is still checked on its own,
-    and only a candidate must share one frozen source and rebuild something.
+    and only a candidate must share one frozen source and rebuild something. A baseline may also
+    record fixable findings (RETAINED_FIXABLE): it is only a rollback target, and no candidate can.
     """
-    api = validate(bundle["api"], owner=owner)
+    api = validate(bundle["api"], owner=owner, deployed=deployed)
     if api.get("runtime_kind") != "lambda-api":
         raise OperationError("Lambda API artifact required")
     expected = {"api", "worker"} if owner == "processing" else {"api"}
@@ -34,7 +35,7 @@ def validate_bundle(bundle, *, owner, deployed=False):
         raise OperationError("A release needs at least one rebuilt artifact")
     source = next(iter(fresh.values()))["source_sha"] if fresh else None
     for kind, proof in bundle.items():
-        validate(proof, owner=owner)
+        validate(proof, owner=owner, deployed=deployed)
         if kind in fresh and proof["source_sha"] != source:
             raise OperationError("Owner artifacts must share frozen source")
         if proof.get("runtime_kind") != ("lambda-api" if kind == "api" else "finite-worker"):
