@@ -4,8 +4,12 @@
 **Source of the structure:** `project-documentation/original-reference/04 Project Presentation Guidelines & Schedule.pdf` (V2.8).
 **Tracking issue:** #192 (deck, demo script, rehearsal).
 
-The explainer site (https://collaboration95.github.io/dc2/) is internal study material.
-The deck is a separate artifact: slides, little text, diagram-first.
+Two artifacts with the same six-section structure, both in `site/`:
+- **Study guide** (`site/index.html`, `1-overview.html` … `6-demo.html`): what each part does, how and why,
+  with professor questions at the end of each section. Replaces the old explainer site, which moves to `/archive/`.
+- **Slides** (`site/deck.html`): HTML deck, ←/→ to move, little text, diagram-first.
+
+Published at https://collaboration95.github.io/dc2/ once merged to Main.
 
 ## Time budget (from the guideline, X talk + Y Q&A)
 
@@ -35,15 +39,15 @@ top-down (requirements → high-level design → decisions → detail); readable
 - [ ] Announce the freeze to the team: no merges to Main except presentation material and blocking fixes
 
 ### Stage 1 — Explainer site read-through (each member, by 23 Oct)
-- [ ] Each member reads Basics → Architecture → AWS → Delivery → Security → Quality on the site
+- [ ] Each member reads the new study guide, sections 1–6 (about three hours)
 - [ ] Each member reads the report sections they will present (see owners below)
 - [ ] Note anything unclear or wrong as an issue/comment; fix only what is wrong, not style
-- [ ] Each member can answer the Q&A bank for their section without notes (see `research/` once ready)
+- [ ] Each member can answer the professor questions at the end of their section's page
 
 ### Stage 2 — Rough outline (by 23 Oct)
 - [x] Research briefs per section: facts, numbers, existing diagrams, unique points, likely questions (`research/`)
 - [x] Demo plan: what runs live on dc2-live vs recorded fallback, timing, cost, failure plan (`research/`)
-- [x] Style decision: slide format, visual language, diagram treatment, text density (`STYLE.md`)
+- [x] Style decision: visual language, diagram treatment, text density (`STYLE.md`; format changed from Marp to the HTML deck)
 - [x] Slide-by-slide outline with timing and speaker per slide (`OUTLINE.md`); over-long is fine, cut later
 
 ### Stage 3 — Finalize ideas and topics (by 24 Oct)
@@ -54,13 +58,16 @@ top-down (requirements → high-level design → decisions → detail); readable
 - [ ] Freeze the topic list
 
 ### Stage 4 — Build the deck (24–25 Oct)
-- [ ] Slides built in the chosen format from existing diagrams (report figures, `docs/architecture/img/`, site diagrams)
+- [ ] `site/deck.html` built from `OUTLINE.md`; visuals drawn in HTML/SVG
 - [ ] Readability check at presentation size (Zoom screen share)
 - [ ] Backup slides for likely questions (limitations AISS-01..05, cost, security triage, decision records)
 
 ### Stage 5 — Record the demo (24–25 Oct)
 The demo is **pre-recorded** (#254), played during the slot, so timing is controlled.
-- [ ] Shot list: 4–7 clips covering use cases + scalability, performance, maintainability (`research/sections-5-6-demo.md`)
+- [ ] Shot list and steps per clip D1–D6 (`site/6-demo.html`): real system only, nothing mocked
+- [ ] Performance clip: scripted test on dc2-live, rendered to an HTML report from its own output
+- [ ] Maintainability clip: a small visible UI change pushed through CI and CD to production
+- [ ] Scalability clip: burst of jobs, Fargate tasks 0→3→0 and Lambda concurrency in the AWS console
 - [ ] Wake dc2-live (Aurora auto-pause, Lambda cold start) before each recording session; check cost
 - [ ] Record, trim, add captions/callouts; total ≈ 8 minutes
 - [ ] Embed or link clips in the deck; keep a local copy of every clip
@@ -94,3 +101,4 @@ The demo is **pre-recorded** (#254), played during the slot, so timing is contro
 | `research/sections-5-6-demo.md` | DevOps material, demo plan and Q&A for sections 5–6 | done (22 Oct) |
 | `STYLE.md` | Slide style decision (Marp → HTML + PDF, palette, slide types) | draft (22 Oct) |
 | `OUTLINE.md` | Slide-by-slide outline with timing, themes, speaker proposal, visuals to make | draft (22 Oct); cut in Stage 3 |
+| `site/` | Study guide, demo plan and slides (`deck.html`); writing rules in `site/BRIEF.md` | in progress (22 Oct) |
