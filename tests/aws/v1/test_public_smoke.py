@@ -47,6 +47,10 @@ class Gateway:
                 return json_(200 if self.faults.get("open_authorizer") else 401, [])
             return json_(200, [])
         if path.startswith("/api/processing/jobs?asset_ids="):
+            replies = self.faults.get("processing_replies")  # as login_replies
+            status = (replies.pop(0) if len(replies) > 1 else replies[0]) if replies else 200
+            if status != 200:
+                return json_(status, {"error": "unavailable"})
             return json_(200, [{"id": "leak"}] if self.faults.get("leak") else [])
         if path == "/api/media/uploads/reservations":
             data = {
@@ -252,3 +256,20 @@ def test_urllib_transport_refuses_redirects_and_returns_every_cookie():
     headers["Set-Cookie"] = "b=2"
     assert public_smoke._headers(headers)["set-cookie"] == ["a=1", "b=2"]
     assert public_smoke._NoRedirect().redirect_request() is None
+
+
+def test_a_waking_processing_database_is_waited_for_separately_from_media():
+    # Each service has its own cluster (AD-29): Media can be awake while Processing still wakes.
+    sleeps = []
+    check = waking(Gateway(processing_replies=[503, 200]), sleeps)
+    assert run(check) is True
+    assert sleeps == [5]
+    assert check.receipt["login_attempts"] == [200]
+    assert check.receipt["processing_attempts"] == [503, 200]
+
+
+def test_a_release_smoke_does_not_retry_the_processing_batch_unless_asked_to():
+    check = smoke(Gateway(processing_replies=[503, 200]), sleep=lambda _s: pytest.fail("pause"))
+    assert run(check) is False
+    assert check.failures == ["processing-jobs:503"]
+    assert check.receipt["processing_attempts"] == [503]
