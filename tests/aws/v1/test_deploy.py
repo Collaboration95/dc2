@@ -1484,7 +1484,9 @@ def test_a_database_that_never_wakes_still_fails_the_smoke_with_every_attempt_na
 def test_a_rejected_login_is_not_retried(tmp_path, monkeypatch):
     monkeypatch.setattr(deploy, "DATABASE_WAKE_BACKOFF", SMOKE_PAUSES)
     rig = Rig(tmp_path, gateway=FakeGateway(login=401))
-    with pytest.raises(DeployError, match=r"login:401 \(login attempts: \[401\]\)"):
+    with pytest.raises(
+        DeployError, match=r"login:401 \(login attempts: \[401\], processing attempts: \[\]\)"
+    ):
         rig.deploy()
     assert smoke_pauses(rig) == []
 
