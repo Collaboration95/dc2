@@ -1,374 +1,386 @@
 [
   {
     "term": "ACU · Aurora Capacity Unit",
-    "definition": "A unit used to express Aurora Serverless compute capacity; it bundles memory and associated processing/network resources.",
-    "project": "Zero ACU means the recorded database compute paused. It does not mean storage is free or every future request will be instant.",
+    "definition": "Aurora Serverless compute unit.",
+    "project": "0 ACU: compute paused, storage still costs, next request not instant.",
     "page": "aws"
   },
   {
     "term": "Adapter",
-    "definition": "Code that translates one interface into another while keeping most business logic independent of the surrounding system.",
-    "project": "The Gateway adapter translates an AWS HTTP API event into a request the FastAPI application can handle.",
+    "definition": "Code translating one interface into another.",
+    "project": "Gateway adapter turns an API Gateway event into a FastAPI request.",
     "page": "code"
   },
   {
     "term": "Aggregate",
-    "definition": "A group of related domain state whose consistency rules are managed together.",
-    "project": "An owned asset and a processing job are separate centers of consistency, in different services.",
+    "definition": "Related state with shared consistency rules.",
+    "project": "An owned asset and a processing job are separate consistency centers in different services.",
     "page": "architecture"
   },
   {
+    "term": "AISS",
+    "definition": "The report's register of architecture issues, AISS-01..05.",
+    "project": "Performance misses; public API beyond CloudFront and no WAF; image-only rollback; operations hardening; evidence not established.",
+    "page": "quality"
+  },
+  {
     "term": "Alembic / migration",
-    "definition": "A tool and ordered change scripts for evolving relational database structure.",
-    "project": "Each owner has its own migration history. Released migration bytes are preserved; rolling back an image does not undo a migration.",
+    "definition": "A tool and ordered scripts for evolving database structure.",
+    "project": "Each owner has its own history; released bytes are preserved; image rollback does not undo a migration.",
     "page": "delivery"
   },
   {
-    "term": "API · Application Programming Interface",
-    "definition": "A contract through which one program asks another to do something or return data.",
-    "project": "The browser and Publisher use public HTTP endpoints rather than database or queue credentials.",
-    "page": "basics"
-  },
-  {
     "term": "API Gateway",
-    "definition": "The AWS service that receives HTTP requests and invokes the configured application integrations and authorization checks.",
-    "project": "The HTTP API routes /api/media and /api/processing to their respective Lambda handlers.",
+    "definition": "AWS service receiving HTTP requests and invoking integrations.",
+    "project": "Routes /api/media and /api/processing to Lambda handlers.",
     "page": "aws"
   },
   {
+    "term": "API · Application Programming Interface",
+    "definition": "A contract for asking another program for work or data.",
+    "project": "Browser and Publisher use public HTTP, not database or queue credentials.",
+    "page": "basics"
+  },
+  {
     "term": "Artifact",
-    "definition": "A concrete output of a build or verification process, such as an image or test report.",
-    "project": "CD needs source-matched evidence and immutable image identity, not merely a tag saying latest.",
+    "definition": "A build or verification output, such as an image or test report.",
+    "project": "CD needs source-matched evidence and immutable image identity, not a latest tag.",
     "page": "delivery"
   },
   {
     "term": "ASGI",
-    "definition": "The asynchronous Python interface between a web server or adapter and an application.",
-    "project": "FastAPI speaks ASGI; a small adapter connects it to API Gateway payload-v2 events.",
+    "definition": "Async Python interface between web server and application.",
+    "project": "FastAPI speaks ASGI; an adapter connects it to API Gateway events.",
     "page": "code"
   },
   {
     "term": "Asset / job / attempt",
-    "definition": "The owned resource, the work requested for it, and one execution of that work.",
-    "project": "A failed job can be retried from the same source with a new attempt and lease.",
+    "definition": "The owned resource, work requested for it, one execution of that work.",
+    "project": "A failed job retries from the same source with a new attempt and lease.",
     "page": "data"
   },
   {
+    "term": "Aurora auto-pause / resume",
+    "definition": "Idle database compute drops to zero and resumes on demand.",
+    "project": "Each cluster pauses at 0 ACU; one observation reached 0.0 ACU about 56 minutes after the last upload. Not a cost or resume-latency measurement.",
+    "page": "aws"
+  },
+  {
     "term": "Authentication / authorization",
-    "definition": "Authentication identifies the caller. Authorization decides what that caller may do to a particular resource.",
-    "project": "A valid Arun session must still be denied access to Maya’s video.",
+    "definition": "Authentication identifies the caller; authorization decides what they may do.",
+    "project": "A valid Arun session must still be denied Maya's video.",
     "page": "security"
   },
   {
     "term": "Availability Zone",
-    "definition": "An isolated location within an AWS region used to place infrastructure.",
-    "project": "The VPC spans two zones, but the baseline still has one Aurora instance; subnet distribution alone is not a high-availability proof.",
+    "definition": "An isolated location within an AWS region.",
+    "project": "VPC spans two zones, but each Aurora cluster is one instance: subnet spread is not high availability.",
     "page": "aws"
   },
   {
     "term": "bcrypt",
-    "definition": "A password-hashing algorithm designed to make checking password guesses deliberately expensive.",
-    "project": "Media stores password hashes and verifies them; it does not need to recover a user’s original password.",
+    "definition": "A deliberately slow password-hashing algorithm.",
+    "project": "Media stores and verifies hashes; never recovers the password.",
     "page": "security"
   },
   {
     "term": "Bounded context",
-    "definition": "A domain boundary within which terms, rules and data ownership have a consistent meaning.",
-    "project": "Media owns content and user-facing reads; Processing owns attempts and execution.",
+    "definition": "A boundary where terms, rules and data ownership are consistent.",
+    "project": "Media owns content and reads; Processing owns attempts and execution.",
     "page": "architecture"
   },
   {
     "term": "Branch coverage",
-    "definition": "A measure of whether alternative decision outcomes were exercised, such as both true and false paths of a condition.",
-    "project": "Raw branch targets make untested recovery and authorization decisions more visible than a statement-only number.",
+    "definition": "Whether both outcomes of each decision ran.",
+    "project": "Shows untested recovery and authorization decisions better than statement coverage.",
     "page": "quality"
   },
   {
     "term": "CI / CD",
-    "definition": "Continuous integration automates checks when code changes. Continuous delivery/deployment automates preparing or applying a verified release.",
-    "project": "GitHub Actions selects verification lanes, and successful eligible Main CI can trigger delivery to dc2-live.",
+    "definition": "CI automates checks on change; CD automates applying a verified release.",
+    "project": "GitHub Actions picks lanes; eligible green Main CI triggers delivery to dc2-live.",
     "page": "delivery"
   },
   {
     "term": "CloudFormation",
-    "definition": "AWS infrastructure definitions that create or update a related set of resources as a stack.",
-    "project": "Python renders the template used for the platform; the persistent stack is named dc2-live.",
+    "definition": "AWS infrastructure definitions creating resources as a stack.",
+    "project": "Python renders the template; the persistent stack is dc2-live.",
     "page": "aws"
   },
   {
     "term": "CloudFront",
-    "definition": "AWS’s content delivery network, which serves and forwards web requests close to clients.",
-    "project": "It serves the static frontend from private S3 and forwards /api requests to the HTTP API.",
+    "definition": "AWS content delivery network.",
+    "project": "Serves the static frontend from private S3 and forwards /api to the HTTP API.",
     "page": "aws"
   },
   {
     "term": "CloudWatch",
-    "definition": "AWS’s service for logs, metrics, dashboards and alarms.",
-    "project": "Recorded task activity, database capacity and selected alarms help explain operations. A past OK alarm snapshot is not continuous proof.",
+    "definition": "AWS logs, metrics, dashboards, alarms.",
+    "project": "Task activity, database capacity and alarms explain operations; a past OK snapshot is not continuous proof.",
     "page": "aws"
   },
   {
     "term": "Cold start / task startup",
-    "definition": "Initialization delay when a compute process or container starts before it can perform useful work.",
-    "project": "The historical queue-wait measurement includes Fargate task creation-to-start delay. It is not a direct measurement of Python initialization time.",
-    "page": "aws"
-  },
-  {
-    "term": "Aurora auto-pause / resume",
-    "definition": "Reducing idle database compute capacity to zero, then resuming it when demand returns.",
-    "project": "A retained observation on daee44b reached 0.0 ACU about 56 minutes after the last upload. That is one point-in-time pause observation, not a monthly cost or resume-latency measurement.",
+    "definition": "Initialization delay before a process or container can work.",
+    "project": "Fargate queue wait includes task creation-to-start. Lambda submit-to-done: 92.0 s cold vs 45.2 s warm.",
     "page": "aws"
   },
   {
     "term": "Container image / container",
-    "definition": "An image is a packaged filesystem and runtime configuration. A container is an execution of that package.",
-    "project": "Media, Processing and the encoder have three images; both Lambda and Fargate can run image-packaged code.",
+    "definition": "An image is a packaged filesystem and runtime config; a container runs it.",
+    "project": "Three images (Media, Processing, encoder); Lambda and Fargate both run image-packaged code.",
     "page": "basics"
   },
   {
     "term": "Contract",
     "definition": "The agreed shape and meaning of communication between components.",
-    "project": "OpenAPI describes HTTP operations; contracts/v1.py defines trusted actors, source descriptors and message envelopes.",
+    "project": "OpenAPI describes HTTP operations; contracts/v1.py defines actors, source descriptors, message envelopes.",
     "page": "architecture"
   },
   {
     "term": "DAST / SAST",
-    "definition": "Dynamic application security testing sends requests to a running application. Static application security testing analyzes code without executing the target application.",
-    "project": "ZAP provides bounded DAST. Ruff security lint checks source patterns; it is not full data-flow SAST. Sonar is unconfigured.",
+    "definition": "DAST tests a running application; SAST analyzes code without running it.",
+    "project": "ZAP gives bounded authenticated DAST; Ruff security (Bandit rules) checks patterns, not data flow. Sonar is unconfigured.",
     "page": "quality"
   },
   {
     "term": "DDD · Domain-driven design",
-    "definition": "Organizing software around the domain’s language, responsibilities and consistency rules.",
-    "project": "The important decision is who owns assets versus processing attempts, not merely which folder holds a class.",
+    "definition": "Organizing software around domain language, responsibilities and consistency rules.",
+    "project": "The key decision is who owns assets versus attempts, not folder layout.",
     "page": "architecture"
   },
   {
     "term": "Dead-letter queue / DLQ",
-    "definition": "A queue holding messages that repeatedly failed normal consumption so they can be inspected or handled deliberately.",
-    "project": "Each standard work/command/result queue has a corresponding DLQ. A DLQ is not automatic proof that the business operation recovered.",
+    "definition": "A queue for messages that repeatedly failed consumption.",
+    "project": "Every work/command/result queue has one; it does not prove business recovery.",
     "page": "data"
   },
   {
     "term": "Digest / configuration ID",
-    "definition": "A cryptographic identity for particular image bytes or image configuration, rather than a mutable label.",
-    "project": "Registry manifest digests must be bound to the configurations that scans actually checked.",
+    "definition": "A cryptographic identity for image bytes or configuration, not a mutable label.",
+    "project": "Manifest digests must be bound to the configurations the scans checked.",
     "page": "delivery"
   },
   {
     "term": "ECR · Elastic Container Registry",
-    "definition": "AWS’s registry for storing container images.",
-    "project": "It holds the Media, Processing and worker builds used by Lambda and Fargate.",
+    "definition": "AWS container image registry.",
+    "project": "Holds Media, Processing and worker builds for Lambda and Fargate.",
     "page": "aws"
   },
   {
     "term": "ECS / Fargate",
-    "definition": "ECS coordinates container tasks. Fargate provides the managed compute on which those tasks run.",
-    "project": "Finite worker tasks run FFmpeg up to a bounded concurrency cap; there is no permanently running encoder service.",
+    "definition": "ECS coordinates container tasks; Fargate is the managed compute.",
+    "project": "Finite FFmpeg worker tasks, cap 3; no permanent encoder service. Short clips use Lambda.",
     "page": "aws"
   },
   {
     "term": "EventBridge",
-    "definition": "An AWS event-routing and scheduling service.",
-    "project": "Wake events and scheduled fallback/repair work help the launcher and recovery handlers run; SQL still owns the durable job state.",
+    "definition": "AWS event routing and scheduling.",
+    "project": "Wake events and scheduled repair run launcher and recovery handlers; SQL owns job state.",
     "page": "aws"
   },
   {
     "term": "Eventual consistency / projection",
-    "definition": "A derived view can lag the authoritative state until an update arrives. A projection is that derived view.",
-    "project": "Media maintains a local ProcessingProjection from result snapshots instead of reading Processing’s database on each list request.",
+    "definition": "A derived view may lag authoritative state; a projection is that view.",
+    "project": "Media keeps a local ProcessingProjection from result snapshots, not Processing's database.",
     "page": "architecture"
   },
   {
     "term": "FastAPI / Pydantic",
-    "definition": "A Python API framework and a library for validating structured data.",
-    "project": "They define and validate HTTP inputs/outputs; domain transactions and ownership checks still need explicit code.",
+    "definition": "A Python API framework and a validation library.",
+    "project": "They define and validate HTTP inputs/outputs; transactions and ownership still need explicit code.",
     "page": "basics"
   },
   {
     "term": "Fencing",
-    "definition": "Checking an authority token or version so an obsolete actor cannot overwrite current state.",
-    "project": "A late worker must still hold the current attempt’s valid lease before its finish operation can succeed.",
+    "definition": "Checking a token or version so an obsolete actor cannot overwrite state.",
+    "project": "A late worker needs the current attempt's valid lease to finish.",
     "page": "data"
   },
   {
     "term": "FFmpeg / FFprobe",
-    "definition": "Tools for transforming media and inspecting media metadata.",
-    "project": "They provide the actual encoding/probing engine; the Python platform surrounds them with ownership, orchestration and recovery.",
+    "definition": "Tools for transforming and inspecting media.",
+    "project": "The engine; the platform adds ownership, orchestration, recovery.",
     "page": "basics"
   },
   {
     "term": "HLS / MP4",
-    "definition": "HLS streams media using a playlist and segments. MP4 is a media file/container format.",
-    "project": "The project produces playable MP4 and best-effort adaptive HLS; HLS is not guaranteed for every source.",
+    "definition": "HLS streams via playlist and segments; MP4 is a media container.",
+    "project": "MP4 plus best-effort adaptive HLS, not guaranteed for every source.",
     "page": "basics"
   },
   {
     "term": "IAM / least privilege",
-    "definition": "AWS identity and access management; least privilege means giving an identity only the permissions it needs.",
-    "project": "A worker role, a Lambda role and the GitHub deployment role serve different purposes and have different permissions.",
+    "definition": "AWS identity and access management; give each identity only what it needs.",
+    "project": "Worker, Lambda and GitHub deployment roles differ. The CD role is broad (AISS-04).",
     "page": "security"
   },
   {
     "term": "Idempotency",
-    "definition": "Recognizing a repeated operation so repeating one intent does not accidentally create a new logical effect.",
-    "project": "Stable request/message identities protect uncertain retries. A new confirmed publish is a new user intent, even for identical bytes.",
+    "definition": "Recognizing a repeat so one intent creates one effect.",
+    "project": "Stable request/message identities protect retries; a new confirmed publish is a new intent.",
     "page": "data"
   },
   {
     "term": "JWT / session cookie",
-    "definition": "A signed token containing claims, carried here in an HTTP cookie to represent a login session.",
-    "project": "Media verifies the token and current user; Processing receives the trusted actor instead of the signing secret.",
+    "definition": "A signed claims token, carried in an HTTP cookie as a session.",
+    "project": "Media verifies it; Processing gets the trusted actor, not the secret.",
     "page": "security"
   },
   {
-    "term": "Lambda / alias",
-    "definition": "Lambda runs event-driven functions. An alias is a stable name pointing to a published function version.",
-    "project": "The live alias is moved during owner release, with candidate checks and a restore path.",
+    "term": "Lambda / alias / short lane",
+    "definition": "Lambda runs event-driven functions; an alias names a published version.",
+    "project": "Release moves the live alias with checks and a restore path. Short lane: clips ≤60 s, ≤64 MiB, ≤1080p go to a Lambda container encoder.",
     "page": "delivery"
   },
   {
     "term": "Lease / heartbeat",
-    "definition": "A temporary right to perform work, periodically renewed while the worker remains healthy.",
-    "project": "Processing’s database clock, attempt identity and token decide whether a worker may still finish.",
+    "definition": "A temporary right to work, renewed while healthy.",
+    "project": "Database clock, attempt identity and token decide whether a worker may finish.",
     "page": "data"
   },
   {
     "term": "Migration compatibility",
-    "definition": "Whether old and new application versions can safely use the database during a release window.",
-    "project": "The release guard rejected changed historical migration bytes. The fix restored those bytes instead of disabling the guard.",
+    "definition": "Whether old and new app versions can both use the database during a release.",
+    "project": "The guard rejected changed historical migration bytes; the fix restored them, not the guard.",
     "page": "delivery"
   },
   {
     "term": "Moto",
-    "definition": "A testing tool that emulates selected AWS service APIs.",
-    "project": "The local V1 harness uses Moto for S3 and SQS; those tests do not prove real IAM or AWS networking.",
+    "definition": "A tool emulating selected AWS APIs for tests.",
+    "project": "Local V1 tests use it for S3 and SQS; no proof of real IAM or networking.",
     "page": "quality"
   },
   {
     "term": "N+1 query",
-    "definition": "Loading a list with one query, then issuing another query for each item.",
-    "project": "Media’s asset page now joins its own projection in one SELECT; local query-count evidence is not a measured PostgreSQL latency gain.",
+    "definition": "One query for a list, then one more per item.",
+    "project": "Media's asset page joins its projection in one SELECT; query counts are not measured latency.",
     "page": "code"
   },
   {
     "term": "NAT / egress",
-    "definition": "Egress is outbound network traffic. A NAT gateway provides one way for private IPv4 workloads to reach external endpoints.",
-    "project": "The baseline avoids a NAT Gateway, using dual-stack Lambda egress and temporary public IPv4 for running Fargate tasks.",
+    "definition": "Egress is outbound traffic; a NAT gateway lets private IPv4 workloads reach external endpoints.",
+    "project": "No NAT Gateway: dual-stack Lambda egress, temporary public IPv4 on Fargate tasks.",
     "page": "aws"
   },
   {
     "term": "OIDC · OpenID Connect",
-    "definition": "An identity protocol that lets one system trust a signed identity assertion from another.",
-    "project": "GitHub Actions obtains short-lived AWS deployment credentials through OIDC; this is separate from application-user login.",
+    "definition": "A protocol for trusting a signed identity assertion from another system.",
+    "project": "GitHub Actions gets short-lived AWS credentials via OIDC, separate from user login.",
     "page": "security"
   },
   {
     "term": "OpenAPI",
-    "definition": "A machine-readable description of an HTTP API’s operations, inputs, outputs and security requirements.",
-    "project": "Generated Media and Processing documents are the current client contracts; older roadmap examples are historical.",
+    "definition": "A machine-readable description of an HTTP API.",
+    "project": "Generated Media and Processing documents are the client contracts.",
     "page": "architecture"
   },
   {
     "term": "Outbox / inbox",
-    "definition": "An outbox records messages that must be sent. An inbox records messages a consumer has already accepted.",
-    "project": "Each service commits these records with its own state to handle lost responses, retries and duplicate queue delivery.",
+    "definition": "Outbox records messages to send; inbox records messages accepted.",
+    "project": "Committed with each service's state to survive lost responses, retries, duplicates.",
     "page": "data"
   },
   {
     "term": "Presigned POST / signed URL",
-    "definition": "A temporary, signed permission to perform a constrained storage operation.",
-    "project": "Upload uses a POST grant with policy fields. Playback uses temporary output access after an owner check; the bucket remains private.",
+    "definition": "Temporary signed permission for a constrained storage operation.",
+    "project": "Upload uses a POST grant; playback uses temporary access after an owner check. Bucket stays private.",
     "page": "security"
   },
   {
     "term": "Repository pattern",
-    "definition": "A small boundary around persistence operations so callers can express what data they need.",
-    "project": "Owner-local repository/query functions keep ownership filtering near reads. This is different from the Git repository that stores the source.",
+    "definition": "A small boundary around persistence operations.",
+    "project": "Owner-local query functions keep ownership filtering near reads. Not the Git repository.",
     "page": "code"
   },
   {
     "term": "Ruff / pytest / Vitest",
-    "definition": "A Python linter/formatter, a Python test framework, and a JavaScript test framework.",
-    "project": "They handle different checks. A formatting pass is not a behavior test, and coverage still needs meaningful assertions.",
+    "definition": "A Python linter, a Python test framework, a JavaScript test framework.",
+    "project": "Different checks: formatting is not behavior testing.",
     "page": "quality"
   },
   {
     "term": "S3 / PostgreSQL",
-    "definition": "S3 stores objects such as video bytes. PostgreSQL stores relational application state with transactions and constraints.",
-    "project": "The source/output bytes live in S3; ownership, job state, leases and message intentions live in owned SQL databases.",
+    "definition": "S3 stores objects; PostgreSQL stores relational state with transactions.",
+    "project": "Video bytes in S3; ownership, job state, leases, message intents in each service's database.",
     "page": "aws"
+  },
+  {
+    "term": "SARIF / code scanning",
+    "definition": "SARIF is a standard scanner-result format; GitHub code scanning shows uploads in the Security tab.",
+    "project": "CodeQL, Trivy and ZAP upload there. 22 October: 12 High CodeQL alerts in test/dev code dismissed with reasons.",
+    "page": "quality"
   },
   {
     "term": "Smoke test",
     "definition": "A focused check that an important path works after a change.",
-    "project": "Post-deployment direct upload, terminal status and MP4/HLS playback prove that path for one run, not an entire performance benchmark.",
+    "project": "Post-deploy upload, terminal status and MP4/HLS playback prove one path for one run.",
     "page": "delivery"
   },
   {
     "term": "SNS / AWS Budgets",
-    "definition": "SNS distributes notifications; Budgets monitors spending against configured thresholds.",
-    "project": "Budget notifications are alerts, not a hard cap that prevents further charges.",
+    "definition": "SNS sends notifications; Budgets monitors spend against thresholds.",
+    "project": "Budget alerts are not a hard spending cap.",
     "page": "aws"
   },
   {
     "term": "SQLAlchemy / ORM",
-    "definition": "A Python SQL toolkit and object-relational mapper for working with relational databases through Python code.",
-    "project": "Mapped models and explicit transactions express owned state, while SQL constraints and locks protect concurrency invariants.",
+    "definition": "A Python SQL toolkit and object-relational mapper.",
+    "project": "Models and explicit transactions express state; SQL constraints and locks protect concurrency.",
     "page": "code"
   },
   {
     "term": "SQS · Simple Queue Service",
-    "definition": "AWS’s managed message queue service.",
-    "project": "Three standard queues carry commands, work and result snapshots. They can redeliver messages, so consumers must handle duplicates.",
+    "definition": "AWS managed message queue.",
+    "project": "Three standard queues carry commands, work, results; redelivery means consumers handle duplicates. The Lambda short lane consumes via an event source mapping.",
     "page": "data"
   },
   {
     "term": "SSM Parameter Store",
-    "definition": "An AWS store for configuration and protected parameter values.",
-    "project": "Exact parameter references provide runtime configuration and credentials; activity flags help avoid unnecessary idle database work.",
+    "definition": "AWS store for configuration and protected values.",
+    "project": "Parameter references supply runtime config and credentials; activity flags avoid idle database wakes.",
     "page": "aws"
   },
   {
     "term": "State version / tombstone",
-    "definition": "A state version orders updates. A tombstone records deletion without immediately forgetting the resource existed.",
-    "project": "Version checks reject stale results; deletion state prevents a late event from resurrecting an owner-deleted asset.",
+    "definition": "A version orders updates; a tombstone records deletion.",
+    "project": "Stale results are rejected; deletion state stops late events resurrecting an asset.",
     "page": "data"
   },
   {
     "term": "TLS / HTTPS",
-    "definition": "Transport encryption and identity checking; HTTPS is HTTP carried over TLS.",
-    "project": "Public requests and database connections use protected transport. Encryption does not replace checking who owns a resource.",
+    "definition": "Transport encryption and identity checking; HTTPS is HTTP over TLS.",
+    "project": "Requests and database connections are encrypted; ownership checks are still needed.",
     "page": "security"
   },
   {
     "term": "Transaction / invariant",
-    "definition": "A transaction commits related database changes together. An invariant is a rule that must remain true across allowed changes.",
-    "project": "Accepting an asset and staging its processing intent are committed together; an accepted source must have a valid version pin.",
+    "definition": "A transaction commits related changes together; an invariant must always hold.",
+    "project": "Accepting an asset and staging its processing intent commit together; an accepted source has a version pin.",
     "page": "data"
   },
   {
     "term": "Trivy / ZAP",
-    "definition": "Trivy scans software packages/images for known issues. ZAP exercises a running web application for security testing.",
-    "project": "Exact-image vulnerability gates and bounded authenticated DAST provide different kinds of evidence.",
+    "definition": "Trivy scans packages/images for known issues; ZAP tests a running web app.",
+    "project": "Image gates and authenticated DAST are different evidence; both upload as SARIF.",
     "page": "quality"
   },
   {
     "term": "uv / lockfile",
-    "definition": "A Python environment/package tool and a recorded dependency resolution used for repeatable installation.",
-    "project": "Owner-specific dependency exports share the locked resolution while avoiding unused packages in each image.",
+    "definition": "A Python package tool and a recorded dependency resolution.",
+    "project": "Owner exports share one locked resolution without unused packages.",
     "page": "delivery"
   },
   {
     "term": "VersionId",
-    "definition": "An S3 identifier selecting one exact stored version of an object.",
-    "project": "The accepted Source descriptor pins it, so rewriting a key does not silently change the source a worker is authorized to process.",
+    "definition": "An S3 identifier for one exact object version.",
+    "project": "The Source descriptor pins it, so rewriting a key cannot change what a worker processes.",
     "page": "data"
   },
   {
     "term": "VPC / subnet / security group",
-    "definition": "An AWS virtual network, a network subdivision, and a set of permitted network traffic rules.",
-    "project": "Private Aurora subnets, Lambda egress and Fargate placement must be explained separately from S3 object access policy.",
+    "definition": "A virtual network, its subdivision, and traffic rules.",
+    "project": "Private Aurora subnets, Lambda egress and Fargate placement are separate from S3 access policy.",
     "page": "aws"
   }
 ]

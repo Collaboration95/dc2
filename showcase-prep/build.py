@@ -69,8 +69,9 @@ def block(b):
             + "</tr>"
             for row in b["rows"]
         )
+        title = f'<p class="table-title"><strong>{rich(b["title"])}</strong></p>' if b.get("title") else ""
         return (
-            '<div class="table-wrap"><table class="grid"><thead><tr>'
+            title + '<div class="table-wrap"><table class="grid"><thead><tr>'
             f"{head}"
             "</tr></thead><tbody>"
             f"{rows}"
@@ -215,9 +216,9 @@ def nav(active):
         '<p class="nav-label">Keep within reach</p>'
         f"{refs}"
         '</nav></details><p class="sidebar-note">Team 17 · GC2<br>Source '
-        "snapshot · 20 Oct 2026<br><a "
-        'href="sources.html#release-identities">Code 8152ede / runtime '
-        "629119c</a></p></aside>"
+        "snapshot · 22 Oct 2026<br><a "
+        'href="sources.html#release-identities">Code d0d745f / runtime '
+        "c7c489c</a></p></aside>"
     )
 
 
@@ -554,12 +555,13 @@ def source_page(pages):
         'measurements.</p></header>\n<section id="release-identities"><h2>'
         'Three identities to keep separate</h2><table class="grid"><thead>'
         "<tr><th>Identity</th><th>Meaning</th></tr></thead><tbody><tr><td>"
-        "<code>8152ede</code></td><td>The Main documentation/code "
-        "snapshot used to build this guide, 20 October 2026.</td></tr><tr>"
-        "<td><code>629119c</code></td><td>Verified engineering runtime "
-        "image source delivered to dc2-live. CI 39415935595 and CD "
-        "39416747925 passed; post-deployment upload/playback and image "
-        "read-back are recorded.</td></tr><tr><td><code>daee44b</code>"
+        "<code>d0d745f</code></td><td>The Main documentation/code "
+        "snapshot used to build this guide, 22 October 2026.</td></tr><tr>"
+        "<td><code>c7c489c</code></td><td>Verified engineering runtime "
+        "image source delivered to dc2-live on 21 October (CI 39544952625, "
+        "CD 39545554380; earlier <code>629119c</code>). Short lane and "
+        "per-service databases were enabled on dc2-live afterwards "
+        "(CD 39644028238).</td></tr><tr><td><code>daee44b</code>"
         "</td><td>The earlier team-accepted freeze. Its manifest remains "
         "historical; successful later delivery does not imply a new team "
         "acceptance.</td></tr></tbody></table><p>The guide does not "

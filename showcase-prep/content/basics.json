@@ -2,67 +2,464 @@
   "id": "basics",
   "title": "What did we actually build?",
   "kicker": "The project, without the jargon",
-  "summary": "Meet the users, learn the technology stack, and separate inherited capability from the work done in GC2.",
-  "opening_answer": "We built FlickPond into a reusable cloud video-processing platform. An owner uploads a video, conversion happens in the background, and the owner can follow its status and play the result. The browser and Publisher CLI use the same public contract. GC2 focused on separating responsibilities, running the system on AWS, proving reuse, and making delivery and recovery repeatable.",
+  "summary": "The users and stack; inherited capability versus GC2 work.",
+  "opening_answer": "We built FlickPond into a reusable cloud video-processing platform. An owner uploads a video, conversion runs in the background, and the owner follows status and plays the result. Browser and Publisher CLI share one public contract. GC2 separated responsibilities, ran on AWS, proved reuse, and made delivery and recovery repeatable.",
   "sections": [
     {
-      "id": "problem", "title": "Start with a person, not an AWS diagram", "level": 1,
+      "id": "problem",
+      "title": "Start with a person, not an AWS diagram",
+      "level": 1,
       "blocks": [
-        {"type":"p","text":"Imagine Maya has a folder of training clips. She wants usable videos, a clear result for every file, and a way to retry a failed conversion without uploading everything again. She should not have to know how to run FFmpeg, manage queues, or create storage permissions. Arun has the same need for one video through a browser."},
-        {"type":"p","text":"FlickPond separates the quick interaction from the slow work. The application accepts an upload and records a job. A background worker converts it. The client asks for status until the result is ready. Acceptance means the platform has durably accepted the work; it does not mean the encode has finished."},
-        {"type":"visual","spec":{"type":"flow","title":"What the owner experiences","steps":[{"label":"Upload","sub":"Give the platform a video","detail":"The client reserves a destination, uploads bytes to S3 and finalizes. A successful S3 upload alone is not yet an accepted job."},{"label":"Track","sub":"Queued → processing","detail":"The request returns before encoding finishes. The owner can check status while background work continues."},{"label":"Play","sub":"MP4 + best-effort HLS","accent":true,"detail":"The owner obtains fresh, temporary playback access after the output is ready."},{"label":"Recover","sub":"Retry a failed attempt","detail":"A retry reuses the accepted source and creates a new processing attempt. It does not require uploading the original video again."}],"caption":"A user journey, not a claim that every job succeeds or that every source produces HLS."}},
-        {"type":"qa","q":"What problem does FlickPond solve in one sentence?","a":"It lets an application turn an owner’s uploaded video into a trackable, playable result through a reusable API, without building its own storage and encoding workflow."},
-        {"type":"qa","q":"Why does the upload response not wait for conversion?","a":"Encoding takes longer than a normal interactive request. Durable acceptance and background processing let the client return promptly and check progress separately."}
+        {
+          "type": "p",
+          "text": "Maya has a folder of training clips. She wants usable videos, a result per file, and retry of a failed conversion without re-uploading. Arun wants the same for one browser video. Neither should run FFmpeg, queues or storage permissions."
+        },
+        {
+          "type": "p",
+          "text": "The app accepts an upload and records a job, a background worker converts it, and the client asks for status. Acceptance means durably accepted, not encoded."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "What the owner experiences",
+            "steps": [
+              {
+                "label": "Upload",
+                "sub": "Give the platform a video",
+                "detail": "Reserve, upload to S3, finalize. S3 upload alone is not an accepted job."
+              },
+              {
+                "label": "Track",
+                "sub": "Queued → processing",
+                "detail": "Returns before encoding ends; owner polls."
+              },
+              {
+                "label": "Play",
+                "sub": "MP4 + best-effort HLS",
+                "accent": true,
+                "detail": "Fresh temporary playback access."
+              },
+              {
+                "label": "Recover",
+                "sub": "Retry a failed attempt",
+                "detail": "New attempt reuses the accepted source."
+              }
+            ],
+            "caption": "A journey, not a promise every job succeeds or yields HLS."
+          }
+        },
+        {
+          "type": "qa",
+          "q": "What problem does FlickPond solve in one sentence?",
+          "a": "It turns an owner's uploaded video into a trackable, playable result through a reusable API, with no storage or encoding workflow of their own."
+        },
+        {
+          "type": "qa",
+          "q": "Why does the upload response not wait for conversion?",
+          "a": "Encoding outlasts a request; durable acceptance plus background work lets the client check progress separately."
+        }
       ],
-      "sources":[{"path":"project-roadmap/business-scope.json","label":"Original personas and business scope"},{"path":"docs/architecture/use-case-design.md","label":"Current use-case catalogue"}]
+      "sources": [
+        {
+          "path": "project-roadmap/business-scope.json",
+          "label": "Original personas and business scope"
+        },
+        {
+          "path": "docs/architecture/use-case-design.md",
+          "label": "Current use-case catalogue"
+        }
+      ]
     },
     {
-      "id":"stack", "title":"The languages and tools, one job each", "level":1,
-      "blocks":[
-        {"type":"table","headers":["Tool","Plain-English job","Where it appears"],"rows":[["Python 3.12 runtime","The language used for APIs, workers, the CLI and most automation.","media/, processing/, publisher/, scripts/"],["FastAPI + Pydantic","Define HTTP endpoints and validate structured requests and responses.","Media and Processing applications"],["JavaScript, HTML and CSS","The browser interface. The shipped application has no production npm build step.","frontend/"],["SQLAlchemy + PostgreSQL","Map Python operations to relational data and transactions.","Each service owns a database and migrations."],["Alembic","Change database structure in a controlled sequence.","Owner migration directories"],["FFmpeg / FFprobe","Inspect a video and perform the actual conversion.","media_engine/ and the finite worker"],["Docker container images","Package code, libraries and runtime together.","Three images: Media, Processing and worker"],["AWS + CloudFormation","Run the platform and describe its cloud resources reproducibly.","Python renders the CloudFormation template."],["GitHub Actions","Run automated checks and orchestrate delivery.",".github/workflows/"]]},
-        {"type":"p","text":"A language, framework, database and cloud service are different kinds of things. Python expresses our program. FastAPI helps expose that program as an API. PostgreSQL persists its state. Lambda or Fargate runs packaged code on AWS. You do not need to memorize every package version to explain those responsibilities."},
-        {"type":"p","text":"The frontend uses browser JavaScript and vendored playback libraries; Node and Vitest support its tests. The Publisher is a Python command-line program, not a second frontend framework. AWS infrastructure is rendered as CloudFormation from Python; Terraform and Kubernetes are not the deployed architecture."},
-        {"type":"qa","q":"Is the frontend a React or Node server application?","a":"No. It is shipped HTML, CSS and browser JavaScript. Node-based tooling runs frontend tests; it is not a production application server."}
+      "id": "stack",
+      "title": "The languages and tools, one job each",
+      "level": 1,
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Tool",
+            "Plain-English job",
+            "Where it appears"
+          ],
+          "rows": [
+            [
+              "Python 3.12",
+              "APIs, workers, CLI, automation",
+              "media/, processing/, publisher/, scripts/"
+            ],
+            [
+              "FastAPI + Pydantic",
+              "HTTP endpoints; validate requests and responses",
+              "Media and Processing apps"
+            ],
+            [
+              "JavaScript, HTML, CSS",
+              "Browser UI; no production npm build",
+              "frontend/"
+            ],
+            [
+              "SQLAlchemy + PostgreSQL",
+              "Relational data and transactions",
+              "One database per service"
+            ],
+            [
+              "Alembic",
+              "Ordered schema changes",
+              "Owner migration directories"
+            ],
+            [
+              "FFmpeg / FFprobe",
+              "Inspect and convert video",
+              "media_engine/, finite worker"
+            ],
+            [
+              "Docker images",
+              "Package code and runtime",
+              "Media, Processing, worker"
+            ],
+            [
+              "AWS + CloudFormation",
+              "Run the platform; describe resources",
+              "Python renders the template"
+            ],
+            [
+              "GitHub Actions",
+              "Automated checks and delivery",
+              ".github/workflows/"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Language, framework, database and cloud service are different things: Python is the program, FastAPI the API, PostgreSQL the state, Lambda or Fargate the runtime. Versions need no memorizing."
+        },
+        {
+          "type": "p",
+          "text": "Frontend is browser JavaScript with vendored playback libraries; Node and Vitest only run tests. Publisher is a Python CLI. Infrastructure is CloudFormation rendered from Python, not Terraform or Kubernetes."
+        },
+        {
+          "type": "qa",
+          "q": "Is the frontend a React or Node server application?",
+          "a": "No. It ships HTML, CSS and browser JavaScript; Node only runs tests."
+        }
       ],
-      "sources":[{"path":"pyproject.toml","label":"Python runtime and dependency groups"},{"path":"frontend/package.json","label":"Frontend test tools"},{"path":"deploy/v1/media.Dockerfile","label":"Packaged Media runtime"},{"path":"scripts/aws/v1/definitions.py","label":"Infrastructure definitions"}]
+      "sources": [
+        {
+          "path": "pyproject.toml",
+          "label": "Python runtime and dependency groups"
+        },
+        {
+          "path": "frontend/package.json",
+          "label": "Frontend test tools"
+        },
+        {
+          "path": "deploy/v1/media.Dockerfile",
+          "label": "Packaged Media runtime"
+        },
+        {
+          "path": "scripts/aws/v1/definitions.py",
+          "label": "Infrastructure definitions"
+        }
+      ]
     },
     {
-      "id":"people", "title":"Four personas, two product clients", "level":1,
-      "blocks":[
-        {"type":"table","headers":["Persona","Need","What to demonstrate"],"rows":[["Maya · course coordinator","Submit a folder, see every outcome, retry failures.","Publisher batch output, then status and playback."],["Arun · independent trainer","Upload and check one owned video.","Browser upload, status, MP4 playback and owner isolation."],["Jules · application developer","Reuse the platform without importing service internals.","OpenAPI and the Publisher client using public HTTPS APIs."],["Sam · platform operator","Change worker capacity and release safely.","Recorded capacity results, delivery identity and earlier restore evidence."]]},
-        {"type":"p","text":"These are fictional planning personas, not findings from user interviews. Maya’s account owns her uploads; the application does not implement shared team ownership, student access or an LMS. Sam explains operational needs, not a new product administrator dashboard."},
-        {"type":"qa","q":"How many applications demonstrate reuse?","a":"Two product clients: the browser application and Publisher CLI. Jules is the integrator persona; he does not imply that a third application or developer portal exists."}
+      "id": "people",
+      "title": "Four personas, two product clients",
+      "level": 1,
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Persona",
+            "Need",
+            "What to demonstrate"
+          ],
+          "rows": [
+            [
+              "Maya · course coordinator",
+              "Submit a folder, see every outcome, retry failures",
+              "Publisher batch, then status and playback"
+            ],
+            [
+              "Arun · independent trainer",
+              "Upload and check one video",
+              "Browser upload, status, MP4, owner isolation"
+            ],
+            [
+              "Jules · application developer",
+              "Reuse the platform without service internals",
+              "OpenAPI and Publisher over public HTTPS"
+            ],
+            [
+              "Sam · platform operator",
+              "Change worker capacity; release safely",
+              "Capacity results, delivery identity, restore evidence"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Fictional planning personas, not interview findings. Accounts own their uploads; no shared team ownership, student access, LMS or admin dashboard."
+        },
+        {
+          "type": "qa",
+          "q": "How many applications demonstrate reuse?",
+          "a": "Two clients: browser app and Publisher CLI. Jules is an integrator persona, not a third app."
+        }
       ],
-      "sources":[{"path":"project-roadmap/business-scope.json","label":"Persona definitions and explicit boundaries"},{"path":"publisher/README.md","label":"Publisher behavior and contract"}]
+      "sources": [
+        {
+          "path": "project-roadmap/business-scope.json",
+          "label": "Persona definitions and explicit boundaries"
+        },
+        {
+          "path": "publisher/README.md",
+          "label": "Publisher behavior and contract"
+        }
+      ]
     },
     {
-      "id":"platform", "title":"Why call this a platform?", "level":2,
-      "blocks":[
-        {"type":"p","text":"A single website can process videos. A reusable platform also exposes that capability through a stable contract so another application can use it. FlickPond’s core capability is owner-scoped media intake, processing and output access. The browser and Publisher both consume that capability through HTTP. They do not need database passwords, queue credentials or copies of the encoding implementation."},
-        {"type":"p","text":"In platform language, the processing capability is the seed. Content owners produce input videos. Applications consume the APIs and processed results. The useful claim is demonstrated reuse through a second client. It is not a claim that we built a commercial marketplace or proved adoption by external organizations."},
-        {"type":"table","headers":["Use case","Promise","Primary stakeholder"],"rows":[["UC-1","Authenticate and accept a verified upload.","Maya / Arun"],["UC-2","Process accepted work asynchronously.","Maya / Arun"],["UC-3","Read status and obtain owner-authorized playback.","Maya / Arun / Jules"],["UC-4","Retry with the stored source.","Maya / Arun / Jules"],["UC-5","Publish a batch through the independent CLI.","Maya / Jules"],["UC-6","Vary Processing capacity independently.","Sam"],["UC-7","Release Processing and demonstrate restore behavior.","Sam"]]},
-        {"type":"qa","q":"What concrete evidence supports the platform claim?","a":"The browser and independently implemented Publisher use the published API for the same workflow. Publisher boundary tests ensure it does not import application internals or depend on database credentials. That is a bounded reuse demonstration, not evidence of market adoption."}
+      "id": "platform",
+      "title": "Why call this a platform?",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "p",
+          "text": "A platform exposes capability through a stable contract. FlickPond's is owner-scoped intake, processing and output access; browser and Publisher use it over HTTP with no database passwords, queue credentials or encoder copy."
+        },
+        {
+          "type": "p",
+          "text": "The claim is demonstrated reuse by a second client, not a marketplace or external adoption."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Use case",
+            "Promise",
+            "Primary stakeholder"
+          ],
+          "rows": [
+            [
+              "UC-1",
+              "Authenticate; accept verified upload",
+              "Maya / Arun"
+            ],
+            [
+              "UC-2",
+              "Process accepted work asynchronously",
+              "Maya / Arun"
+            ],
+            [
+              "UC-3",
+              "Status and owner-authorized playback",
+              "Maya / Arun / Jules"
+            ],
+            [
+              "UC-4",
+              "Retry from stored source",
+              "Maya / Arun / Jules"
+            ],
+            [
+              "UC-5",
+              "Batch publish via CLI",
+              "Maya / Jules"
+            ],
+            [
+              "UC-6",
+              "Vary Processing capacity independently",
+              "Sam"
+            ],
+            [
+              "UC-7",
+              "Release Processing; show restore",
+              "Sam"
+            ]
+          ]
+        },
+        {
+          "type": "qa",
+          "q": "What concrete evidence supports the platform claim?",
+          "a": "Browser and independently built Publisher run the same workflow on the published API; boundary tests show Publisher imports no internals and holds no database credentials. A bounded reuse demo."
+        }
       ],
-      "sources":[{"path":"docs/architecture/use-case-design.md","label":"UC-1 through UC-7"},{"path":"docs/api/media.openapi.json","label":"Published Media API"},{"path":"tests/publisher/test_publisher.py","label":"Client contract and import-boundary tests"}]
+      "sources": [
+        {
+          "path": "docs/architecture/use-case-design.md",
+          "label": "UC-1 through UC-7"
+        },
+        {
+          "path": "docs/api/media.openapi.json",
+          "label": "Published Media API"
+        },
+        {
+          "path": "tests/publisher/test_publisher.py",
+          "label": "Client contract and import-boundary tests"
+        }
+      ]
     },
     {
-      "id":"evolution", "title":"What came from GC1, and what GC2 changed", "level":2,
-      "blocks":[
-        {"type":"table","headers":["Stage","What it means","What changed next"],"rows":[["Inherited Project 1","FastAPI app, accounts/uploads, job/retry concepts, Redis/RQ, MinIO, nginx, FFmpeg, MP4 and best-effort HLS already existed.","GC2 reshaped these capabilities; video encoding was not invented from zero."],["Submitted GC2 proposal","A planned Media/Processing split with synchronous SubmitJob, Redis/RQ and a service token.","The implemented design moved to SQL outbox/inbox, SQS and a trusted Gateway actor."],["AWS V1","Per-run stacks, separately owned data, three images, finite Fargate tasks and recorded cloud experiments.","The accepted V1 tag remains immutable; experiments retain their own dates and workloads."],["Persistent V2-live","One dc2-live environment updated in place, bounded worker launch, idle pause design and automated delivery.","The final engineering pass tightened quality and release verification while preserving the public workflow."],["20 October engineering release","Shared credential policy, fewer dependencies, better integration discovery and failure tests, safe errors/cache policy, exact-source delivery gates.","Runtime 629119c was delivered; later Main documentation is 8152ede."]]},
-        {"type":"p","text":"The course work is therefore a story of architecture and operational maturity. We separated data ownership, made asynchronous work durable, demonstrated a second client, moved to managed cloud services, and checked failure behavior. The quality pass removed specific duplication and obsolete configuration while adding tests. Repository-wide physical line count increased after formatting and test additions; we should not claim that total LOC fell or every code smell disappeared."},
-        {"type":"callout","title":"Team history is separate from code history","text":"The effort ledger records allocations and suggested specialisms. It does not verify each person’s actual hours or authorship. Confirm personal contributions with the team before using “I built” or assigning credit.","tone":"note"}
+      "id": "evolution",
+      "title": "What came from GC1, and what GC2 changed",
+      "level": 2,
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Stage",
+            "What it means",
+            "What changed next"
+          ],
+          "rows": [
+            [
+              "Inherited Project 1",
+              "FastAPI app, accounts, uploads, jobs/retry, Redis/RQ, MinIO, nginx, FFmpeg, MP4 and best-effort HLS",
+              "Reshaped, not rebuilt from zero"
+            ],
+            [
+              "GC2 proposal",
+              "Media/Processing split, synchronous SubmitJob, Redis/RQ, service token",
+              "Built: SQL outbox/inbox, SQS, trusted Gateway actor"
+            ],
+            [
+              "AWS V1",
+              "Per-run stacks, separate data, three images, finite Fargate tasks, experiments",
+              "Accepted V1 tag stays immutable"
+            ],
+            [
+              "Persistent V2-live",
+              "One dc2-live environment updated in place, bounded launcher, idle pause, automated delivery",
+              "Quality and release checks tightened"
+            ],
+            [
+              "20 October release",
+              "Shared credential policy, fewer dependencies, safe errors/cache, exact-source gates",
+              "Runtime 629119c delivered"
+            ],
+            [
+              "21-22 October close-out",
+              "Lambda short-encode lane (#93), one Aurora cluster per service (#94, AD-29), release scan of candidate and rollback image (AD-28), code-scanning triage",
+              "Current Main; architecture decisions AD-01 to AD-29; limitations AISS-01 to 05"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "The story is architecture and operational maturity: separated data ownership, durable async work, a second client, managed services, tested failures. Tests raised line count; do not claim LOC fell."
+        },
+        {
+          "type": "callout",
+          "title": "Team history is not code history",
+          "text": "The effort ledger records allocations, not verified hours or authorship. Confirm contributions with the team before saying \"I built\".",
+          "tone": "note"
+        }
       ],
-      "sources":[{"path":"docs/release/engineering-handoff.md","label":"GC1-to-GC2 chronology and verified quality work"},{"path":"docs/history/README-project1-and-pre-aws-local-stack.md","label":"Inherited implementation"},{"path":"project-documentation/effort-ledger.md","label":"Effort allocation and provenance limits"}]
+      "sources": [
+        {
+          "path": "docs/release/engineering-handoff.md",
+          "label": "GC1-to-GC2 chronology and verified quality work"
+        },
+        {
+          "path": "docs/history/README-project1-and-pre-aws-local-stack.md",
+          "label": "Inherited implementation"
+        },
+        {
+          "path": "project-documentation/effort-ledger.md",
+          "label": "Effort allocation and provenance limits"
+        }
+      ]
     },
     {
-      "id":"repository", "title":"Find the real implementation without getting lost", "level":3,
-      "blocks":[
-        {"type":"table","headers":["Directory","Read it for","Do not confuse it with"],"rows":[["media/","Accounts, asset ownership, upload validation and public read/playback state.","The FFmpeg worker."],["processing/","Jobs, attempts, leases, messages, recovery and finite worker orchestration.","Media’s user/account database."],["media_engine/","Reusable video probing and conversion mechanics.","HTTP authorization or queue scheduling."],["contracts/","Published message shapes, source/actor identity and Gateway adaptation.","A shared database model."],["delivery/ + runtime_support/","Small shared transport and runtime policies.","A third business service."],["publisher/ + frontend/","Two clients of the public contract.","Privileged operator tools."],["scripts/aws/ + deploy/aws/v1/","Infrastructure and release automation used by the persistent system too.","A folder name proving the runtime is still per-run V1."],["app/ + inherited test stacks","Retained Project 1 behavior and regression coverage.","The current native AWS request path."],["docs/results/ + docs/release/","Measured outcomes, evidence boundaries and delivery records.","A live status dashboard."]]},
-        {"type":"p","text":"When a document and the code seem to disagree, check the document’s date and operating mode. The README contains older status snapshots, and the proposal describes an earlier plan. Use the engineering handoff for the latest retained delivery facts, then follow its code and test references. A local test using Moto emulates AWS APIs; a real AWS receipt is a different kind of evidence."},
-        {"type":"qa","q":"Why are Redis and MinIO dependencies still visible if the live system uses SQS and S3?","a":"Some inherited paths and regression fixtures remain in the monorepo. Their presence does not put Redis or a MinIO service in the deployed AWS topology. Inspect the current image inputs, runtime paths and template to identify what actually runs."}
+      "id": "repository",
+      "title": "Find the real implementation without getting lost",
+      "level": 3,
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Directory",
+            "Read it for",
+            "Do not confuse it with"
+          ],
+          "rows": [
+            [
+              "media/",
+              "Accounts, ownership, upload validation, read/playback",
+              "The FFmpeg worker"
+            ],
+            [
+              "processing/",
+              "Jobs, attempts, leases, messages, recovery, finite worker, short lane",
+              "Media’s user database"
+            ],
+            [
+              "media_engine/",
+              "Probe and conversion mechanics",
+              "HTTP auth or queue scheduling"
+            ],
+            [
+              "contracts/",
+              "Message shapes, actor identity, Gateway adaptation",
+              "A shared database model"
+            ],
+            [
+              "delivery/ + runtime_support/",
+              "Shared transport and runtime policies",
+              "A third business service"
+            ],
+            [
+              "publisher/ + frontend/",
+              "Two clients of the public contract",
+              "Privileged operator tools"
+            ],
+            [
+              "scripts/aws/ + deploy/aws/v1/",
+              "Infrastructure and release automation, live too",
+              "Proof the runtime is per-run V1"
+            ],
+            [
+              "app/ + inherited stacks",
+              "Retained Project 1 behavior, regression tests",
+              "The current AWS request path"
+            ],
+            [
+              "docs/results/ + docs/release/",
+              "Measured outcomes, delivery records",
+              "A live dashboard"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "When documents and code disagree, check date and mode: README holds older snapshots, the proposal an earlier plan. Use the engineering handoff for latest delivery facts. Moto tests emulate AWS; a real AWS receipt is different evidence."
+        },
+        {
+          "type": "qa",
+          "q": "Why are Redis and MinIO dependencies still visible if the live system uses SQS and S3?",
+          "a": "Inherited paths and regression fixtures remain in the monorepo, but neither is in the deployed AWS topology. Check image inputs and the template."
+        }
       ],
-      "sources":[{"path":"README.md","label":"Repository overview and operating modes"},{"path":"deploy/v1/README.md","label":"Current image boundaries"},{"path":"docs/release/engineering-handoff.md","label":"Latest delivery evidence and reading order"}]
+      "sources": [
+        {
+          "path": "README.md",
+          "label": "Repository overview and operating modes"
+        },
+        {
+          "path": "deploy/v1/README.md",
+          "label": "Current image boundaries"
+        },
+        {
+          "path": "docs/release/engineering-handoff.md",
+          "label": "Latest delivery evidence and reading order"
+        }
+      ]
     }
   ],
-  "takeaways":["Explain the upload → background processing → playback story in one sentence.","Name the two product clients and the two business services.","Give each major technology one clear responsibility.","Separate inherited encoding capability, the GC2 architecture changes, and the final quality pass."]
+  "takeaways": [
+    "Tell upload, background processing, playback in one sentence.",
+    "Name two clients and two business services.",
+    "One responsibility per technology.",
+    "Separate inherited encoding, GC2 architecture, and close-out work."
+  ]
 }
