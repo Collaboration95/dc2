@@ -56,7 +56,7 @@ databases was **not** read for this manifest; the migration tasks in the table a
 | Inherited Project 1 | `20260918_03` (not part of V2-live) | `migrations/versions/` |
 
 Contract: `contracts/v1.py` `SCHEMA_VERSION = 1`, `EMIT_VERSION = 1`. Consumers accept N and N-1; the
-policy is in `contracts/README.md`. Both databases are on one Aurora Serverless v2 cluster.
+policy is in `contracts/README.md`. Both databases were on one Aurora Serverless v2 cluster at this identity. Current state: since 21-22 Oct `dc2-live` has one cluster per service (AD-29, #94) and the Lambda short-encode lane is enabled (#93).
 
 ## Worker cap, resources, limits
 
