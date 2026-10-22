@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>1 · Context and problem — FlickPond</title>
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <a class="brand" href="index.html">FlickPond<small>Team 17 · how the system works</small></a>
+  <nav>
+    <a href="index.html"><span>·</span>Start</a>
+    <a href="1-overview.html" aria-current="page"><span>1</span>Context and problem</a>
+    <a href="2-conduct.html"><span>2</span>Project conduct</a>
+    <a href="3-logical.html"><span>3</span>Logical architecture</a>
+    <a href="4-physical.html"><span>4</span>Physical architecture</a>
+    <a href="5-devops.html"><span>5</span>DevOps and lifecycle</a>
+    <a href="6-demo.html"><span>6</span>Demo plan</a>
+    <div class="sep"></div>
+    <a href="references.html"><span>§</span>References</a>
+    <a href="deck.html"><span>▶</span>Slides</a>
+    <a href="archive/index.html"><span>↺</span>Previous guide</a>
+  </nav>
+</aside>
+<main>
+  <p class="eyebrow">Section 1</p>
+  <h1>Context, problem and scope</h1>
+  <p class="lede">FlickPond started as a working video application with everything in one program. Project 2 turned it into a platform: the video workflow is offered through one public API, and the CPU-heavy encoding runs as its own service with its own data.</p>
+  <ul class="toc">
+    <li><a href="#1a">1a Business problem</a></li>
+    <li><a href="#1b">1b Platform thinking</a></li>
+    <li><a href="#1c">1c Scope: inherited and added</a></li>
+    <li><a href="#questions">Questions</a></li>
+  </ul>
+
+  <section class="sub" id="1a">
+    <h2><span class="tag">1a</span>The business problem</h2>
+    <div class="point"><p>Many small content teams need the same four things for video: upload what they own, convert it so it plays on any device, see whether conversion worked, and keep playback private. Each team rebuilds them, and the conversion work competes with everything else the application does.</p></div>
+
+    <p>Training providers, course teams, small studios and community publishers all handle video. Each needs:</p>
+    <ul>
+      <li><strong>secure upload</strong> of videos the uploader owns;</li>
+      <li><strong>conversion</strong> into formats that play on any device: an MP4 file plus HLS, which splits the video into short segments at several resolutions so a player can switch quality as bandwidth changes;</li>
+      <li><strong>visibility</strong> of progress and failures;</li>
+      <li><strong>playback restricted to the owner</strong>.</li>
+    </ul>
+    <p>Today each application rebuilds these or copies another team's code, which duplicates effort and produces inconsistent security. There is also a capacity problem. Transcoding takes minutes of CPU per video and arrives in bursts (a course team uploads a whole folder at once). When it shares a deployment unit with the user-facing API, a backlog of uploads competes with logins and status checks for the same machine.</p>
+
+    <h3>What the business needs from the platform</h3>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Driver</th><th>What it means in practice</th><th>Where the design answers it</th></tr></thead>
+      <tbody>
+        <tr><td>Reuse</td><td>A new application gets authenticated upload, processing, status and owner-only playback by calling one published API. It copies no code and holds no database credentials.</td><td><a href="3-logical.html#producers-consumers">3 · Producers and consumers</a></td></tr>
+        <tr><td>Independent capacity</td><td>Encoding capacity follows the backlog without scaling or redeploying the user-facing API.</td><td><a href="3-logical.html#contexts">3 · Contexts</a>, <a href="4-physical.html#launcher">4 · Launcher</a></td></tr>
+        <tr><td>Repeatable, secure releases</td><td>Every change passes automated tests and security gates; each service is released on its own and checked by an automated upload-to-playback test.</td><td><a href="5-devops.html#cd">5 · Continuous delivery</a></td></tr>
+        <tr><td>Low idle cost</td><td>A small team's platform is idle most of the time, so idle should cost almost nothing. The design target is scale-to-zero, about USD 3–5 a month when idle.</td><td><a href="4-physical.html#cost">4 · Cost model</a></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Who uses it</h3>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Group</th><th>What they need</th><th>Use cases</th></tr></thead>
+      <tbody>
+        <tr><td>Content owners</td><td>Upload one video or a whole folder, see each result, retry failures, play the output. Nobody else can see their videos.</td><td>UC-1 to UC-5</td></tr>
+        <tr><td>Application developers (integrators)</td><td>Build a new client against the published API without the service code or database access.</td><td>UC-1, UC-3 to UC-5</td></tr>
+        <tr><td>Platform operators</td><td>Change encoding capacity and release Processing without touching Media; see failures and recover.</td><td>UC-6, UC-7</td></tr>
+        <tr><td>Course lecturer and assessors</td><td>Approved the team and the proposal; assess the architecture, evidence and delivery.</td><td>All</td></tr>
+      </tbody>
+    </table></div>
+    <p>The project has no external sponsor; the team proposed it. The owner, integrator and operator groups were defined as planning assumptions in week 1, not from interviews with customers.</p>
+  </section>
+
+  <section class="sub" id="1b">
+    <h2><span class="tag">1b</span>Platform thinking</h2>
+    <div class="point"><p>A platform is something other applications build on. FlickPond's reusable unit is an owned video and its processing job; applications reach it only through the public API, and the team proved that with a second, independently written client.</p></div>
+
+    <p>The course frames a platform in terms of a <strong>seed</strong> (the core unit of value that is created and exchanged), the <strong>producers</strong> who create it and the <strong>consumers</strong> who use it. In FlickPond:</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Role</th><th>In FlickPond</th><th>How they interact with the platform</th></tr></thead>
+      <tbody>
+        <tr><td>Seed</td><td>An owned video (an <em>Asset</em>) and its processing <em>Job</em>, linked by one shared identifier</td><td>Created when an upload is verified; the Asset ID is also the public job ID</td></tr>
+        <tr><td>Producers</td><td>Content owners submitting videos through the browser app (one file at a time) or the Publisher CLI (whole folders)</td><td>Reserve an upload slot, send bytes directly to storage, confirm; then poll status, retry, edit or delete</td></tr>
+        <tr><td>Consumers</td><td>The same owners, playing their own processed output</td><td>Ask Media for the job; receive short-lived signed links to the MP4 and HLS streams</td></tr>
+        <tr><td>Integrators</td><td>Developers building a new client</td><td>Two published OpenAPI documents and the message contracts; the Publisher is the worked example</td></tr>
+        <tr><td>Operators</td><td>The team</td><td>Delivery pipeline, release and restore tools, dashboards; encoder capacity is started automatically</td></tr>
+      </tbody>
+    </table></div>
+    <p class="see">How each client calls the API, step by step, is in <a href="3-logical.html#producers-consumers">3c · Producers and consumers</a>.</p>
+
+    <h3>What makes it a platform rather than an application</h3>
+    <p>Three properties, each of which can be checked in the code:</p>
+    <ol>
+      <li><strong>One public contract.</strong> Both clients use the same HTTPS API, documented as two OpenAPI files (one per service, version 1.0.0). Neither client has a private shortcut.</li>
+      <li><strong>An independent second client.</strong> The Publisher CLI is 491 lines of Python in 6 files, uses only the standard library and <code>httpx</code>, imports nothing from the services and holds no database credentials. A test fails the build if that changes. It does bulk upload, which the browser app does not, so it is a different product on the same platform. <a class="ref" href="references.html#r-publisher-independence">publisher</a></li>
+      <li><strong>Capacity that belongs to the platform.</strong> Encoding runs in the Processing service, which scales from zero to a capped number of encoders by itself. A client never provisions or waits for a worker of its own.</li>
+    </ol>
+    <div class="limit"><p>Reuse is demonstrated by two clients the team wrote, not by outside adoption. The only consumer of a video is its owner: the contract reserves a read-only <code>viewer</code> role, but nothing issues it, so there is no sharing with other people.</p></div>
+  </section>
+
+  <section class="sub" id="1c">
+    <h2><span class="tag">1c</span>Project scope: what was inherited, what Project 2 built</h2>
+    <div class="point"><p>Project 2 kept FlickPond's working video engine and changed everything around it: who owns which data, how the parts communicate, where it runs, how it is released, and who can reuse it.</p></div>
+
+    <h3>The starting point</h3>
+    <p>FlickPond was a Project 1 application built by a five-member team. It ran FastAPI, PostgreSQL, Redis with the RQ job queue, MinIO object storage, nginx and a browser frontend on one cloud virtual machine. FFmpeg workers already produced an MP4 and HLS at 360p, 480p and 720p, and owners played the result through an owner-checked link.</p>
+    <p>It worked, but as one application. A single API handled identity, uploads, jobs and playback. The API, the workers and the recovery task shared one job model and one database, and the jobs table had a foreign key to the users table. Another product could not reuse the video workflow without importing FlickPond's code or reading its database.</p>
+    <p>Team 17 has three members from two Project 1 teams. Ibrahim Mammadov was on the FlickPond team (worker, queue and media-type checks); Guruprasath Gopal and Nguyễn Kim Long came from a different team. The team chose FlickPond as its baseline because it already contained a real, CPU-heavy asynchronous workload. The code was frozen at the start and no Project 1 feature work continued. <a class="ref" href="references.html#r-baseline">baseline</a></p>
+
+    <h3>Inherited versus added</h3>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Area</th><th>Inherited from FlickPond (Project 1)</th><th>Added by Team 17 (Project 2)</th></tr></thead>
+      <tbody>
+        <tr><td>Service structure</td><td>One FastAPI application; workers and recovery share its job code</td><td>Two services, Media and Processing, found through domain analysis and connected only by versioned asynchronous messages</td></tr>
+        <tr><td>Data ownership</td><td>One database; jobs reference users</td><td><code>media_db</code> and <code>processing_db</code>, each on its own Aurora cluster, with separate migration histories and least-privilege roles; no keys across databases</td></tr>
+        <tr><td>Reuse</td><td>One browser application</td><td>A second, independent client (Publisher CLI) built against the published API only</td></tr>
+        <tr><td>Runtime</td><td>One VM with nginx, Redis/RQ and MinIO</td><td>Serverless AWS: CloudFront, API Gateway, Lambda, SQS, Aurora Serverless v2, S3, finite Fargate encoders that scale 0 → 3 → 0, and a Lambda lane for short clips</td></tr>
+        <tr><td>Security</td><td>Login, owner checks, TLS, signed output links, CI scans</td><td>A Media-owned gateway authorizer, per-function IAM roles, queue access policies, time-limited direct-to-S3 upload grants, pinned source versions, negative tests run in the cloud</td></tr>
+        <tr><td>Delivery</td><td>Tests and scans in CI; manual deployment</td><td>Per-service CI lanes, image scans and dynamic scanning; automated delivery after every green build, with per-service release, smoke test and automatic restore</td></tr>
+      </tbody>
+    </table></div>
+    <p>FFmpeg encoding, the HLS output, running several worker replicas and the basic CI workflow are inherited. Team 17 reshaped and reused them but does not count them as its own work.</p>
+
+    <h3>Use cases in scope</h3>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>ID</th><th>Use case</th><th>How it is delivered</th></tr></thead>
+      <tbody>
+        <tr><td>UC-1</td><td>Register, log in, upload an owned video (100 MiB maximum)</td><td>Direct upload to S3 under a 15-minute grant; bytes verified and the S3 version pinned before the Asset exists</td></tr>
+        <tr><td>UC-2</td><td>Process into MP4 and HLS (360p/480p/720p, never above the source height)</td><td>Fargate encoders, or the Lambda lane for short clips. HLS is best effort: if it fails, the job still succeeds with the MP4.</td></tr>
+        <tr><td>UC-3</td><td>Track status and play the result</td><td>Owner-only status from Media's local copy of the job; MP4 and HLS through short-lived signed links</td></tr>
+        <tr><td>UC-4</td><td>Retry a failed job from the stored source</td><td>A new Attempt over the same pinned source; no re-upload</td></tr>
+        <tr><td>UC-5</td><td>Bulk-publish a folder and report each result</td><td>Publisher CLI</td></tr>
+        <tr><td>UC-6</td><td>Scale processing without touching Media</td><td>Encoders started automatically from the backlog, 0 → 3 → 0</td></tr>
+        <tr><td>UC-7</td><td>Release a new Processing version on its own, with smoke test and rollback</td><td>Per-service release by image digest, automatic restore if the smoke test fails</td></tr>
+      </tbody>
+    </table></div>
+    <p>Three small capabilities were added beyond the proposal, each reusing the same domain objects: owner <strong>edit</strong> operations (clip, crop, scale, convert) that create a new derived Asset; <strong>delete</strong>, recorded as a tombstone in both services and followed by cleanup of the source; and operator-only <strong>admin</strong> routes.</p>
+
+    <h3>Out of scope</h3>
+    <p>Recorded in the proposal: the rest of the Project 1 feature list (profiles, password reset, titles, tags, sharing modes); any viewer other than the owner (public sharing, student or LMS access, team ownership, tenants, billing); search, moderation and analytics; thumbnails, 4K and resumable uploads over 100 MiB; Kubernetes and general-purpose autoscaling; multi-zone database and multi-region failover; migration of Project 1 data; a third client and a separate staging environment. The proposal also excluded autoscaling, but the delivered platform starts encoders automatically from the backlog with a hard cap of three. That is bounded task launching, not a general autoscaler.</p>
+
+    <h3>Timeline</h3>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Phase</th><th>Dates (2026)</th><th>Delivered</th></tr></thead>
+      <tbody>
+        <tr><td>0 · Baseline and design</td><td>22 Sep – 9 Oct</td><td>Team approval, proposal (4 Oct), lecturer feedback, frozen baseline, use cases, domain model, contracts</td></tr>
+        <tr><td>1 · V1: two services on AWS</td><td>10 – 18 Oct</td><td>Processing extracted (12 Oct), Media and Publisher adapted (13 Oct), AWS template and pipeline (15 Oct), three cloud proof runs, tag <code>project2-v1</code> (18 Oct)</td></tr>
+        <tr><td>2 · V2: one persistent environment</td><td>18 Oct – 16 Nov</td><td><code>dc2-live</code> deployed (18 Oct), automatic delivery, automatic encoder start, security tests, rollback proof, freeze (20 Oct), short-clip Lambda lane and per-service databases (21 Oct), presentation (26 Oct), final report (16 Nov)</td></tr>
+      </tbody>
+    </table></div>
+    <p class="see">Planned versus actual dates and effort per member are in <a href="2-conduct.html#2b">2b</a>.</p>
+  </section>
+
+  <section class="sub" id="questions">
+    <h2>Questions a professor may ask</h2>
+
+    <details class="qa"><summary>What makes this a platform and not just a video website?</summary>
+      <div class="answer"><p>The video workflow is offered as a contract that other applications call, not as screens in one app. Two clients use the same public API: the browser app and the Publisher CLI, which was written against the API documents alone, imports no service code and holds no credentials beyond a login cookie. Capacity is also a platform concern: encoding scales inside Processing, so a client never provisions workers.</p>
+      <p>The limit is that both clients were written by the team. There is no external adoption, no developer portal and no billing, so this is a reusable capability with a demonstrated second consumer, not a marketplace.</p></div></details>
+
+    <details class="qa"><summary>Why choose an inherited Project 1 codebase instead of starting fresh?</summary>
+      <div class="answer"><p>The course is about architecting for scale, and FlickPond already had a real asynchronous, CPU-heavy workload (FFmpeg transcoding) with known pain points: one database shared by API and workers, and encoding competing with interactive requests. That made the architectural change measurable. A fresh project would have spent the same time building features before there was anything to scale.</p>
+      <p>The cost is the need to separate credit carefully. FFmpeg encoding, HLS, worker replicas and the basic CI are inherited and listed as such; the boundaries, contracts, cloud runtime, delivery pipeline and the second client are Project 2 work.</p></div></details>
+
+    <details class="qa"><summary>Why is Processing the part you extracted, and not identity or playback?</summary>
+      <div class="answer"><p>Processing has its own rules (one job per video, numbered attempts, a lease that decides which worker may write a result), its own lifecycle, and a different scaling profile: minutes of CPU per item, in bursts. Identity and playback do not: every playback or retry decision needs the owner and the Asset together, and in one database that is a single query. Splitting them into separate services would turn those joins into calls between services without giving either piece rules or release needs of its own.</p>
+      <p>The alternative considered in the proposal was four services (identity, media, processing, delivery). It was rejected as more contracts and operations than the problem justifies. The detailed reasoning is in <a href="3-logical.html#contexts">3c · Contexts</a>.</p></div></details>
+
+    <details class="qa"><summary>Can a lecturer share a processed video with students?</summary>
+      <div class="answer"><p>No. Ownership belongs to the uploading account, and only the owner can read, retry, edit, delete or play an Asset; anyone else gets a 404, so they cannot even tell it exists. Sharing was excluded in the proposal. The message contract already accepts a <code>viewer</code> role so that a read-only role could be added later without a contract change, but the authorizer never issues it. Adding sharing would need a grant model in Media (who may view which Asset) and a change to the playback route's owner check; Processing would not change.</p></div></details>
+
+    <details class="qa"><summary>Why make low idle cost a business driver?</summary>
+      <div class="answer"><p>A small team's platform is idle most of the day and busy in bursts, so a design that keeps servers, a message broker and a NAT gateway running would spend most of its money on waiting. The target was scale-to-zero: Lambda, paused Aurora, SQS and finite Fargate tasks cost nothing when unused, leaving a fixed estimate of about USD 3–5 a month for alarms, secrets, logs, image storage and data. The price is latency after idle: a paused database takes seconds to resume, and a Fargate encoder takes tens of seconds to start. That trade-off is measured in <a href="4-physical.html#cost">4 · Cost model</a> and <a href="4-physical.html#lanes">4 · Lanes</a>. The USD 3–5 is an estimate; the actual bill has not yet been read.</p></div></details>
+
+    <details class="qa"><summary>You added edit, delete and admin routes. Isn't that feature work outside the brief?</summary>
+      <div class="answer"><p>They are small and each reuses the same domain objects rather than adding new ones. Edit creates a new derived Asset whose source is a pinned copy of the parent's output, then goes through the normal job path. Delete is a tombstone plus a cancel message, which exercised the hardest ordering case (a cancel that arrives before its submit). Admin routes exercise the operator role. The main contribution remains the change in boundaries, contracts, runtime and delivery.</p></div></details>
+  </section>
+
+  <nav class="pager"><a href="index.html">← Start</a><a href="2-conduct.html">2 Project conduct →</a></nav>
+</main>
+</div>
+</body>
+</html>

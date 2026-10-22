@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2 · Project conduct — FlickPond</title>
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <a class="brand" href="index.html">FlickPond<small>Team 17 · how the system works</small></a>
+  <nav>
+    <a href="index.html"><span>·</span>Start</a>
+    <a href="1-overview.html"><span>1</span>Context and problem</a>
+    <a href="2-conduct.html" aria-current="page"><span>2</span>Project conduct</a>
+    <a href="3-logical.html"><span>3</span>Logical architecture</a>
+    <a href="4-physical.html"><span>4</span>Physical architecture</a>
+    <a href="5-devops.html"><span>5</span>DevOps and lifecycle</a>
+    <a href="6-demo.html"><span>6</span>Demo plan</a>
+    <div class="sep"></div>
+    <a href="references.html"><span>§</span>References</a>
+    <a href="deck.html"><span>▶</span>Slides</a>
+    <a href="archive/index.html"><span>↺</span>Previous guide</a>
+  </nav>
+</aside>
+<main>
+  <p class="eyebrow">Section 2</p>
+  <h1>Project conduct</h1>
+  <p class="lede">Where the project stands, what is still open, and how three people delivered it between 22 September and 22 October 2026.</p>
+  <ul class="toc">
+    <li><a href="#2a">2a Status and outstanding issues</a></li>
+    <li><a href="#2b">2b Milestones and effort</a></li>
+    <li><a href="#questions">Questions</a></li>
+  </ul>
+
+  <section class="sub" id="2a">
+    <h2><span class="tag">2a</span>Current status and outstanding issues</h2>
+    <div class="point"><p>All seven use cases are built, tested and running on AWS. What remains open is performance against three targets, hardening of the public edge and of operations, and a few experiments that were never run in the cloud.</p></div>
+
+    <h3>Status on 22 October</h3>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Area</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Use cases</td><td>UC-1 to UC-7 implemented, each with automated tests and a recorded cloud run.</td></tr>
+        <tr><td>Architecture</td><td>Two services, Media and Processing, each with its own database cluster, communicating only through queues.</td></tr>
+        <tr><td>Live environment</td><td><code>dc2-live</code> in ap-southeast-1, running since 18 October. It scales to zero when idle and is updated in place after every green build on <code>Main</code>. It will be torn down once, after 16 November.</td></tr>
+        <tr><td>Latest changes</td><td>On 21 October the short-clip Lambda lane and the split into one Aurora cluster per service were delivered by the pipeline and verified with an upload-to-playback smoke test. <a class="ref" href="references.html#r-cd-lane-split">CD 39644028238</a></td></tr>
+        <tr><td>Build state</td><td>The last delivery run on <code>Main</code> is green, and the integration branch matches <code>Main</code>. <a class="ref" href="references.html#r-cd-freeze">CD 39733859422</a></td></tr>
+        <tr><td>Releases</td><td>The team froze a demo release on 20 October. Later releases fixed blocking issues only, each with its own receipt. <a class="ref" href="references.html#r-releases">releases</a></td></tr>
+        <tr><td>Still to do</td><td>Slides and rehearsal, recorded demo clips, course administration (peer assessment, final upload), presentation on 26 October 14:35–15:15 SGT, final report revision due 16 November.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Outstanding architectural issues</h3>
+    <p>Each issue has an owner from the member whose specialism it falls under. "R1" means the first month if the platform were taken forward after the course.</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Issue</th><th>What is wrong</th><th>Next step</th><th>Owner</th></tr></thead>
+      <tbody>
+        <tr><td>Performance misses</td><td>Three targets were missed: speed-up with two encoders (1.45× against 1.6×), wait in the queue on the standard lane (about 37 s against 20 s; met on the short-clip lane), and release time (just over 10 minutes against 10). Time from submit to done is still about 45 s on the short-clip lane and 88 s on Fargate, and 35–80 s of each job is not yet explained.</td><td>R1: per-stage timestamps to find the unexplained time; rerun the scaling test with 30 clips and three repeats per encoder count.</td><td>Long, Guruprasath</td></tr>
+        <tr><td>Public edge</td><td>The API Gateway address is reachable without going through CloudFront, and there is no web application firewall. Only the authorizer and one rate limit protect it.</td><td>R1: accept only requests carrying a secret header added by CloudFront; add AWS WAF managed rules.</td><td>Guruprasath</td></tr>
+        <tr><td>Rollback restores code only</td><td>A rollback puts back the previous images, never the previous database schema. Old code must therefore work on the new schema, which today is an operator's attestation backed by contract tests.</td><td>R2: enforce expand-then-contract migrations with an automated test that runs the old image on the new schema.</td><td>Ibrahim</td></tr>
+        <tr><td>Operations hardening</td><td>The deploy role has administrator rights (locked to one region). Every green build goes straight to the single environment, with no staging and no reviewer gate. Alarms exist but notify nobody; logs are kept 7 days.</td><td>R1: least-privilege deploy policy, branch rules on <code>Main</code>, an alarm notification target.</td><td>Guruprasath</td></tr>
+        <tr><td>Evidence not yet established</td><td>Not measured on AWS: recovery time after a lost queue message, a check for duplicate outputs after killing a worker, a database restore drill, the Publisher's build effort, the actual bill.</td><td>Before 16 Nov: read the October bill. R1: run the remaining experiments.</td><td>Long, Guruprasath</td></tr>
+      </tbody>
+    </table></div>
+    <p class="see">Each measured result is explained next to the mechanism it measures: queue wait and end-to-end time in <a href="4-physical.html#lanes">4 · Lanes</a>, scaling in <a href="4-physical.html#launcher">4 · Launcher</a>, release time in <a href="5-devops.html#cd">5 · Continuous delivery</a>, all results against targets in <a href="6-demo.html#6b">6b</a>.</p>
+  </section>
+
+  <section class="sub" id="2b">
+    <h2><span class="tag">2b</span>Actual milestones and effort per member</h2>
+    <div class="point"><p>The plan was 31 person-days over ten work packages. The team recorded 33 by 20 October and forecasts 36 at submission, split equally across three members. Design finished two days late; extraction and the AWS work still landed in their planned windows.</p></div>
+
+    <h3>How the team worked</h3>
+    <p>Work was planned as GitHub issues, each with an outcome, acceptance criteria and a way to verify it, on one project board. Instead of fixed-length sprints the team delivered in <strong>waves</strong>: waves 0–4 locally, then the AWS bundles, then close-out. Pull requests went into integration branches, with CI on every change. Decisions were recorded as architecture decision records (AD-01 to AD-29) and project decisions. There were no formal sprint reviews or retrospectives; their role was taken by the 9 October planning review, independent plan reviews, an audit on 18 October, and the 20 October freeze with its acceptance checklist.</p>
+
+    <h3>Milestones: planned against actual</h3>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Planned (proposal)</th><th>Milestone</th><th>Actual</th></tr></thead>
+      <tbody>
+        <tr><td>4 Oct</td><td>Proposal submitted</td><td>4 Oct</td></tr>
+        <tr><td>5–7 Oct</td><td>Baseline frozen; domain model and contracts; lecturer review</td><td>7–9 Oct. The lecturer accepted the proposal and asked for detailed domain analysis to confirm the service split. Two days late because the whole design was finished before any code changed.</td></tr>
+        <tr><td>8–14 Oct</td><td>Processing extracted with its own data; web app end to end; CLI started</td><td>Processing 12 Oct; Media and Publisher 13 Oct</td></tr>
+        <tr><td>15–20 Oct</td><td>Security, AWS deployment and pipeline, experiments</td><td>AWS template 15 Oct; cloud proof runs 17–18 Oct; tag <code>project2-v1</code> and persistent environment 18 Oct; security tests and automatic scaling 19 Oct; freeze 20 Oct</td></tr>
+        <tr><td>21–25 Oct</td><td>Fixes, rehearsal, presentation preparation</td><td>Report v1.0, short-clip lane and database split 21 Oct; rehearsal 22–25 Oct</td></tr>
+        <tr><td>26 Oct</td><td>Presentation</td><td>Scheduled, 14:35–15:15</td></tr>
+        <tr><td>27 Oct – 16 Nov</td><td>Final report with presentation feedback</td><td>Report drafted; feedback revision after 26 Oct</td></tr>
+      </tbody>
+    </table></div>
+    <p>The AWS work grew from one planned deployment to three proof runs plus a persistent environment, and still finished inside 15–20 October. Parallel integration branches let extraction of Processing and adaptation of Media proceed at the same time.</p>
+
+    <h3>Effort per member</h3>
+    <p>The team agreed to split Project 2 effort <strong>equally</strong>. The table maps the proposal's work packages onto that split; it is an agreed allocation, not a timesheet. One person-day (pd) is 8 hours. <a class="ref" href="references.html#r-effort-ledger">effort ledger</a></p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Member</th><th>Specialism and the work they led</th><th>Recorded to 20 Oct</th><th>Forecast at submission</th></tr></thead>
+      <tbody>
+        <tr><td>Guruprasath Gopal</td><td>Cloud and delivery: reproducible baseline, the AWS environment, CI quality gates and image scans, the delivery pipeline (deploy, release, rollback), close-out fixes, the release freeze</td><td>11 pd (88 h)</td><td>12 pd (96 h)</td></tr>
+        <tr><td>Ibrahim Mammadov</td><td>Backend services: extracting Processing (database, migrations, worker, recovery), adapting Media (assets, Processing integration, retry), boundary security</td><td>11 pd (88 h)</td><td>12 pd (96 h)</td></tr>
+        <tr><td>Nguyễn Kim Long</td><td>Domain, contracts and verification: domain analysis, service contracts and OpenAPI, Publisher CLI and contract tests, scaling/recovery/playback experiments, evidence index</td><td>11 pd (88 h)</td><td>12 pd (96 h)</td></tr>
+        <tr><td>Total</td><td>Plan: 31 pd</td><td>33 pd (264 h)</td><td>36 pd (288 h)</td></tr>
+      </tbody>
+    </table></div>
+    <p>Each member led their area and reviewed the other two members' work. By work package, the overrun is in AWS and delivery (planned 4 pd, recorded 6 pd, because the delivery pipeline was added on 18–19 October) and integration fixes (planned 2, recorded 3: pipeline script bugs, the database not pausing, a queue that did not drain). Processing extraction and boundary security each came in 1 pd under. The forecast adds 1 pd per member for rehearsal, the presentation and the report revision, about 16 % over the original estimate.</p>
+
+    <h3>Delivery activity (snapshot, 21 October)</h3>
+    <div class="stats">
+      <div class="stat"><b>123</b><span>pull requests merged in 9 days (12–21 Oct)</span></div>
+      <div class="stat"><b>156</b><span>issues opened; 147 closed</span></div>
+      <div class="stat"><b>246</b><span>CI workflow runs</span></div>
+      <div class="stat"><b>94 %</b><span>test coverage of each service (statements and branches; floor 80 %)</span></div>
+    </div>
+    <p>The repository holds about 10,000 lines of service and client Python plus 1,800 lines of frontend JavaScript, and 54,000 lines of tests (3,982 Python tests and 177 frontend tests). All commits and pull requests were made through one GitHub account that owns the repository, so the git history cannot attribute work to individual members; the effort table above is the record of attribution. <a class="ref" href="references.html#r-delivery-metrics">metrics</a></p>
+  </section>
+
+  <section class="sub" id="questions">
+    <h2>Questions a professor may ask</h2>
+
+    <details class="qa"><summary>Is the project finished?</summary>
+      <div class="answer"><p>The committed scope is: all seven use cases run on the live environment with tests and cloud evidence. What remains is presentation work, the final report revision, and the open issues in 2a. Those are reported against the original targets, which were not changed after the measurements came in. Three targets were missed and are reported as misses.</p></div></details>
+
+    <details class="qa"><summary>Are the person-day figures real timesheets?</summary>
+      <div class="answer"><p>No. The team agreed an equal split and allocated the proposal's work packages to match it. The allocation reflects who led which area, and the overrun is attributed to the packages that grew (the delivery pipeline and close-out fixes). Git history cannot serve as a proxy because every commit went through one shared account. A timesheet would have been more precise; the team judged the agreed allocation sufficient for a three-person module project and recorded its basis openly.</p></div></details>
+
+    <details class="qa"><summary>Why did effort exceed the plan, and why the AWS package in particular?</summary>
+      <div class="answer"><p>The plan had one AWS deployment. In practice every infrastructure check created and deleted a whole stack (a 25-minute deploy and a 25–40 minute teardown, five times), then decided a persistent environment updated in place was cheaper in time, and built a delivery pipeline to update it automatically. That pipeline, and the bugs it exposed (a database that would not pause, a queue that kept stale messages, script errors), account for the extra 3 pd. The rest of the plan held or came in under.</p></div></details>
+
+    <details class="qa"><summary>Why delivery waves instead of sprints?</summary>
+      <div class="answer"><p>The project lasted about four weeks with three people, and the work had hard dependencies: the domain model before extraction, extraction before cloud deployment, deployment before cloud experiments. Waves grouped issues by dependency rather than by calendar. The cost is less regular feedback: reviews were event-driven (a planning review, an audit, a freeze checklist) rather than every two weeks.</p></div></details>
+
+    <details class="qa"><summary>What slipped, and what did you do about it?</summary>
+      <div class="answer"><p>Design finished on 9 October instead of 7 October because the lecturer asked for a detailed domain analysis before the split was confirmed, and the team completed the whole design pack before touching code. Extraction then ran on parallel integration branches and landed on 12–13 October, inside its window. The release-time target slipped too, by a margin: about 10.1–10.3 minutes against 10.</p></div></details>
+
+    <details class="qa"><summary>What is the most significant unresolved issue?</summary>
+      <div class="answer"><p>End-to-end latency. The short-clip Lambda lane cut the wait in the queue from about 33 s to 0.26 s for small clips, but submit-to-done is still 45 s or more, and 35–80 s per job is spent outside both queue wait and encoding. One mechanism that can add up to a minute is the schedule that publishes Media's commands (<a href="3-logical.html#outbox">3c · Outbox</a>), but whether it explains the gap has not been measured. The next step is per-stage timestamps, not more capacity. Details are in <a href="4-physical.html#lanes">4 · Lanes</a>.</p></div></details>
+
+    <details class="qa"><summary>How did three people keep two services consistent without stepping on each other?</summary>
+      <div class="answer"><p>Ownership followed specialism, and the code enforces the boundary: each service has its own CI lane that builds and checks only its images, a build check fails if one service's image can import the other's code, and the shared message contract is pinned by fixture files that any contract change must update in the same pull request. That turned most coordination into a reviewed contract change instead of a meeting.</p></div></details>
+  </section>
+
+  <nav class="pager"><a href="1-overview.html">← 1 Context and problem</a><a href="3-logical.html">3 Logical architecture →</a></nav>
+</main>
+</div>
+</body>
+</html>
