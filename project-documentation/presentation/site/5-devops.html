@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>5 · DevOps and lifecycle — FlickPond</title>
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <a class="brand" href="index.html">FlickPond<small>Team 17 · how the system works</small></a>
+  <nav>
+    <a href="index.html"><span>·</span>Start</a>
+    <a href="1-overview.html"><span>1</span>Context and problem</a>
+    <a href="2-conduct.html"><span>2</span>Project conduct</a>
+    <a href="3-logical.html"><span>3</span>Logical architecture</a>
+    <a href="4-physical.html"><span>4</span>Physical architecture</a>
+    <a href="5-devops.html" aria-current="page"><span>5</span>DevOps and lifecycle</a>
+    <a href="6-demo.html"><span>6</span>Demo plan</a>
+    <div class="sep"></div>
+    <a href="references.html"><span>§</span>References</a>
+    <a href="deck.html"><span>▶</span>Slides</a>
+    <a href="archive/index.html"><span>↺</span>Previous guide</a>
+  </nav>
+</aside>
+<main>
+  <p class="eyebrow">Section 5</p>
+  <h1>DevOps and development lifecycle</h1>
+  <p class="lede">How a change gets from a developer's laptop into the running AWS environment: how the repository and its artifacts are organised, every check a change passes on the way, how a release is promoted and how a bad one is undone, and what the pipeline taught the team when it failed.</p>
+  <ul class="toc">
+    <li><a href="#5a">5a Source and artifacts</a></li>
+    <li><a href="#5b">5b Pipeline and procedures</a></li>
+    <li><a href="#laptop-to-production">Laptop to production</a></li>
+    <li><a href="#ci">CI</a></li>
+    <li><a href="#cd">CD</a></li>
+    <li><a href="#rollback">Rollback</a></li>
+    <li><a href="#scanning">Scanning</a></li>
+    <li><a href="#5c">5c Findings and issues</a></li>
+    <li><a href="#questions">Questions</a></li>
+  </ul>
+
+  <!-- ================================================================ 5a -->
+  <section class="sub" id="5a">
+    <h2><span class="tag">5a</span>Source code and artifact strategy</h2>
+    <div class="point"><p>One repository holds both services, both clients, the infrastructure and the pipeline. Independence between Media and Processing is enforced inside it: separate test lanes, separate images that refuse to contain the other service's code, and separate releases identified by image digest.</p></div>
+
+    <h3>One repository, several release units</h3>
+    <p>Everything lives in the public GitHub repository <code>Collaboration95/dc2</code>, default branch <code>Main</code>. A change to the message contract and both of its consumers fits in one pull request, which the contract policy requires; with separate repositories the same change would need coordinated pull requests and pinned versions across them.</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Path</th><th>Contents</th><th>Ships as</th></tr></thead>
+      <tbody>
+        <tr><td><code>media/</code></td><td>Media service and its migrations</td><td>Media image (4 Lambda functions)</td></tr>
+        <tr><td><code>processing/</code>, <code>media_engine/</code></td><td>Processing service, the finite worker, FFmpeg command builders</td><td>Processing image (6 functions) and worker image (Fargate task and short-lane Lambda)</td></tr>
+        <tr><td><code>contracts/</code>, <code>delivery/</code>, <code>runtime_support/</code></td><td>Shared kernel: message contract, outbox/inbox and SQS adapters, Lambda runtime glue</td><td>Copied into both images, so a change here releases both services</td></tr>
+        <tr><td><code>frontend/</code>, <code>publisher/</code></td><td>Browser app; Publisher CLI</td><td>Files in the frontend S3 bucket; an installable Python package</td></tr>
+        <tr><td><code>deploy/</code>, <code>scripts/aws/</code></td><td>Image recipes, the CloudFormation generator and checked-in template, deploy and release tools</td><td>The stack and the operator tooling</td></tr>
+        <tr><td><code>.github/workflows/</code>, <code>scripts/ci/</code></td><td>CI, CD, DAST and Pages workflows; lane selection and CD scripts</td><td>The pipeline</td></tr>
+        <tr><td><code>tests/</code>, <code>docs/</code></td><td>About 4,000 Python tests and 177 frontend tests; architecture, runbooks, sanitized receipts</td><td>Not deployed</td></tr>
+        <tr><td><code>app/</code>, <code>legacy/</code></td><td>The inherited Project 1 application and retired code paths, still tested</td><td>Not deployed; excluded from images</td></tr>
+      </tbody>
+    </table></div>
+    <p><b>How the boundary is enforced inside one repository.</b></p>
+    <ul>
+      <li><b>Lanes.</b> CI maps changed paths to per-service lanes, so a Processing-only change runs Processing's tests and builds Processing's images (<a href="#ci">CI</a>).</li>
+      <li><b>Image checks.</b> Every image build runs a runtime check inside the image, as the image user and as a Lambda user: the build fails if the other service's package or any legacy module can be imported, or if a handler does not start.</li>
+      <li><b>Release detection.</b> CD releases an owner only if that owner's image build inputs changed since the commit currently running.</li>
+      <li><b>Ownership.</b> <code>CODEOWNERS</code> maps each directory to its service, mirroring the lanes.</li>
+    </ul>
+    <div class="limit"><p>One lockfile and one CloudFormation stack serve both services, so a dependency bump or an infrastructure change touches both. The shared kernel is copied, not versioned as a package.</p></div>
+
+    <h3>Branches and pull requests</h3>
+    <figure class="dia">
+      <div class="flow">
+        <div class="node ghost"><b>Feature branch</b><code>fix/*</code>, <code>v2/*</code>, <code>docs/*</code>, <code>ci/*</code></div>
+        <div class="arr">→<small>PR · Dev gate</small></div>
+        <div class="node infra"><b>dev/closeout</b>integration branch</div>
+        <div class="arr">→<small>release PR · Full verification</small></div>
+        <div class="node infra"><b>Main</b>trunk; merge commits</div>
+        <div class="arr">→<small>green push CI</small></div>
+        <div class="node client"><b>dc2-live</b>deployed automatically</div>
+      </div>
+      <figcaption>Changes collect on an integration branch with fast, selective checks, and reach <code>Main</code> through one release-style pull request that runs everything.</figcaption>
+    </figure>
+    <p><code>Main</code> is the trunk. Short-lived branches merge by pull request into an integration branch (<code>dev/v1</code> for the V1 build on 16–17 October, <code>dev/closeout</code> from 17 October), which merges into <code>Main</code> through one release-style pull request. Merge commits are used throughout, so each pull request stays visible in <code>Main</code>'s history; since 15 October every first-parent commit on <code>Main</code> is a pull-request merge. Each pull-request description records its technical decisions. The only tag is <code>project2-v1</code> (the V1 release, 18 October); later releases are identified by source commit and image digest.</p>
+    <div class="limit"><p>The repository belongs to one personal GitHub account, which is its only collaborator; the team and its AI coding agents all worked through it. Branch protection and rulesets are not configured: "Dev gate" and "Full verification" are stable check names that a ruleset could require, but nothing in the repository settings requires them, and no review approval is required. Pull-request discipline was team practice. Up to PR #284, 26 of the 27 pull requests into <code>Main</code> merged with every check green; the exception merged with the third-party GitGuardian check failing.</p></div>
+
+    <h3>Artifacts and how a release is identified</h3>
+    <p>A release is not identified by a version number but by a chain of immutable identities, each checked against the previous one.</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Identity</th><th>Created by</th><th>What is checked</th></tr></thead>
+      <tbody>
+        <tr><td>Source commit (40-character SHA)</td><td>The merge into <code>Main</code></td><td>CD deploys only the exact commit that a green full CI run tested</td></tr>
+        <tr><td>Local image config ID</td><td>The image build on the CD runner</td><td>Trivy scans this exact image before anything is pushed</td></tr>
+        <tr><td>ECR tag <code>g&lt;run&gt;x&lt;attempt&gt;-&lt;image&gt;</code></td><td>The push to an ECR repository with immutable tags</td><td>A tag can never be repointed to different bytes</td></tr>
+        <tr><td>Registry manifest digest (<code>sha256:…</code>)</td><td>ECR</td><td>The release plan verifies the manifest points at the scanned config, and waits until ECR's own scan is complete</td></tr>
+        <tr><td>Lambda version per function</td><td>The release publishing a version</td><td>The version's description names the image digest; configuration must match the previous version except for code</td></tr>
+        <tr><td><code>live</code> alias, worker task definition revision</td><td>The release moving the alias</td><td>This is what serves traffic; the previous version is kept as the rollback target</td></tr>
+      </tbody>
+    </table></div>
+    <p>After a successful release the stack itself is updated to name the new image digests, so the template keeps describing what runs. There are three image repositories (media, processing, worker); the short-lane Lambda runs the worker image, so it has no repository of its own. The frontend ships as content-hashed files to a private S3 bucket, followed by a CloudFront invalidation. CI and CD artifacts (scan reports, coverage, selection records, sanitized delivery results) are kept 7 to 60 days; sanitized delivery receipts are also committed to the repository.</p>
+  </section>
+
+  <!-- ================================================================ 5b -->
+  <section class="sub" id="5b">
+    <h2><span class="tag">5b</span>Pipeline and procedures</h2>
+    <div class="point"><p>No person deploys. A change reaches production only if a full CI run passed on the exact merged commit; continuous delivery then updates the infrastructure, releases each changed service separately behind its own smoke test with automatic restore, and finishes with an upload-to-playback test through the public API.</p></div>
+
+    <h3 id="laptop-to-production">From laptop to production, every check in order</h3>
+    <figure class="dia">
+      <svg viewBox="0 0 980 480" role="img" aria-label="Pipeline stages and gates from laptop to production" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12">
+        <defs><marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b6673"/></marker></defs>
+        <rect x="10" y="40" width="170" height="150" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+        <text x="21" y="62" font-weight="700">1 · Laptop</text>
+        <g font-size="11" fill="#3d4753">
+        <text x="21" y="83">make lint (incl. security)</text>
+        <text x="21" y="99">make format-check</text>
+        <text x="21" y="115">make test (offline)</text>
+        <text x="21" y="131">frontend tests, npm audit</text>
+        <text x="21" y="147">actionlint (workflows)</text>
+        <text x="21" y="163">optional: local V1 stack</text>
+        </g>
+        <rect x="260" y="40" width="170" height="150" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+        <text x="271" y="62" font-weight="700">2 · PR → dev/closeout</text>
+        <g font-size="11" fill="#3d4753">
+        <text x="271" y="83">CI dev mode: only lanes</text>
+        <text x="271" y="99">whose paths changed</text>
+        <text x="271" y="115">always: gitleaks, policy</text>
+        <text x="271" y="131">CodeQL (GitHub-managed)</text>
+        <text x="271" y="176" font-weight="600">≈ 6–9 min</text>
+        </g>
+        <rect x="510" y="40" width="170" height="150" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+        <text x="521" y="62" font-weight="700">3 · PR → Main</text>
+        <g font-size="11" fill="#3d4753">
+        <text x="521" y="83">CI full mode: every lane</text>
+        <text x="521" y="99">exact images + Trivy</text>
+        <text x="521" y="115">browser, Publisher tests</text>
+        <text x="521" y="131">ZAP DAST, coverage ≥ 80 %</text>
+        <text x="521" y="176" font-weight="600">≈ 7 min</text>
+        </g>
+        <rect x="760" y="40" width="170" height="150" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+        <text x="771" y="62" font-weight="700">4 · Merge into Main</text>
+        <g font-size="11" fill="#3d4753">
+        <text x="771" y="83">full CI again on the</text>
+        <text x="771" y="99">merged commit itself;</text>
+        <text x="771" y="115">its green run is the</text>
+        <text x="771" y="131">ticket to deploy</text>
+        <text x="771" y="176" font-weight="600">≈ 6–9 min</text>
+        </g>
+        <rect x="10" y="270" width="170" height="160" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+        <text x="21" y="292" font-weight="700">5 · CD admission</text>
+        <g font-size="11" fill="#3d4753">
+        <text x="21" y="313">gate job checks CI run</text>
+        <text x="21" y="329">OIDC → AWS role, only</text>
+        <text x="21" y="345">from the aws environment</text>
+        <text x="21" y="361">restore state from S3</text>
+        <text x="21" y="416" font-weight="600">≈ 1 min</text>
+        </g>
+        <rect x="260" y="270" width="170" height="160" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+        <text x="271" y="292" font-weight="700">6 · Infrastructure</text>
+        <g font-size="11" fill="#3d4753">
+        <text x="271" y="313">read-only preflight</text>
+        <text x="271" y="329">change set from template</text>
+        <text x="271" y="345">publish frontend files</text>
+        <text x="271" y="361">stack smoke with</text>
+        <text x="271" y="377">DB-wake retry</text>
+        <text x="271" y="416" font-weight="600">≈ 4 min</text>
+        </g>
+        <rect x="510" y="270" width="170" height="160" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+        <text x="521" y="292" font-weight="700">7 · Release owners</text>
+        <g font-size="11" fill="#3d4753">
+        <text x="521" y="313">build; scan new + running</text>
+        <text x="521" y="329">push; plan checks digest</text>
+        <text x="521" y="345">new versions, move live</text>
+        <text x="521" y="361">owner smoke; fail →</text>
+        <text x="521" y="377">restore; else adopt</text>
+        <text x="521" y="416" font-weight="600">≈ 9 min per owner</text>
+        </g>
+        <rect x="760" y="270" width="170" height="160" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+        <text x="771" y="292" font-weight="700">8 · Upload-to-playback</text>
+        <g font-size="11" fill="#3d4753">
+        <text x="771" y="313">3 s clip, public API</text>
+        <text x="771" y="329">job must reach done;</text>
+        <text x="771" y="345">MP4, HLS playlist and</text>
+        <text x="771" y="361">a segment must play</text>
+        <text x="771" y="416" font-weight="600">≈ 2 min → serving</text>
+        </g>
+        <g stroke="#5b6673" stroke-width="1.6" fill="none">
+        <line x1="180" y1="115" x2="258" y2="115" marker-end="url(#pa)"/>
+        <line x1="430" y1="115" x2="508" y2="115" marker-end="url(#pa)"/>
+        <line x1="680" y1="115" x2="758" y2="115" marker-end="url(#pa)"/>
+        <line x1="180" y1="350" x2="258" y2="350" marker-end="url(#pa)"/>
+        <line x1="430" y1="350" x2="508" y2="350" marker-end="url(#pa)"/>
+        <line x1="680" y1="350" x2="758" y2="350" marker-end="url(#pa)"/>
+        <path d="M845,190 V230 H95 V268" marker-end="url(#pa)"/></g>
+        <g font-size="10" font-weight="700" text-anchor="middle">
+        <text x="220" y="107" fill="#5b6673" font-weight="600" font-size="10.5">push</text>
+        <rect x="440.0" y="105.0" width="60" height="20" rx="10" fill="#fff4ea" stroke="#d55e00"/><text x="470" y="119" fill="#a14700">Dev gate</text>
+        <rect x="683.0" y="98.0" width="74" height="34" rx="10" fill="#fff4ea" stroke="#d55e00"/><text x="720" y="112" fill="#a14700">Full</text><text x="720" y="125" fill="#a14700">verification</text>
+        <rect x="310.0" y="220.0" width="320" height="20" rx="10" fill="#fff4ea" stroke="#d55e00"/><text x="470" y="234" fill="#a14700">admission: same commit, Main push, full tier, all green</text>
+        <rect x="183.0" y="333.0" width="74" height="34" rx="10" fill="#fff4ea" stroke="#d55e00"/><text x="220" y="347" fill="#a14700">no stateful</text><text x="220" y="360" fill="#a14700">replacement</text>
+        <rect x="435.0" y="340.0" width="70" height="20" rx="10" fill="#fff4ea" stroke="#d55e00"/><text x="470" y="354" fill="#a14700">stack smoke</text>
+        <rect x="683.0" y="333.0" width="74" height="34" rx="10" fill="#fff4ea" stroke="#d55e00"/><text x="720" y="347" fill="#a14700">scan, plan,</text><text x="720" y="360" fill="#a14700">owner smoke</text>
+        </g>
+        <text x="10" y="465" font-size="12" fill="#3d4753">Merge to serving: about 15 min when no image changed; about 30–35 min when both services are released.</text>
+        </svg>
+      <div class="legend"><span><i style="border-color:var(--client);background:var(--client-bg)"></i>developer or user view</span><span><i style="border-color:var(--infra);background:var(--infra-bg)"></i>GitHub Actions</span><span><i style="border-color:var(--proc);background:var(--proc-bg)"></i>per-service release</span><span><i style="border-color:var(--miss);background:var(--miss-bg)"></i>gate that stops the change</span></div>
+      <figcaption>Each orange gate is a job or check that fails the run and stops the change from going further. The gate at stage 7 is the only one that also undoes something: a failing release restores the previous versions automatically.</figcaption>
+    </figure>
+
+    <ol>
+      <li><b>Laptop.</b> Before committing Python changes a developer runs <code>make lint</code> (Ruff lint, including its <code>S</code> security rules over the deployed code), <code>make format-check</code> and <code>make test</code> (the offline fast suite: no network, no services). Frontend changes run the Vitest suite with coverage and <code>npm audit --audit-level=high</code>. Workflow edits run <code>actionlint</code>, because an invalid workflow fails before CI can create any job. For wider changes the whole V1 system runs locally on PostgreSQL, Moto (an AWS emulator) and FFmpeg with the same images (<code>make v1-up</code>, <code>make verify-v1</code>), and <code>make lint-cfn</code> lints the template. Nothing enforces these locally; CI repeats them.</li>
+      <li><b>Pull request into <code>dev/closeout</code>.</b> CI runs in dev mode: a policy script compares the pull request against its base and selects only the lanes whose inputs changed. The secret scan and the policy tests always run. The aggregate check <b>Dev gate</b> passes only if every selected job succeeded and every unselected job was skipped for a recorded reason.</li>
+      <li><b>Release pull request from <code>dev/closeout</code> into <code>Main</code>.</b> CI runs every lane on the pull request's merge commit, including image scans, DAST and combined coverage. The aggregate check is <b>Full verification</b>. Merging this pull request is the human approval.</li>
+      <li><b>Merge into <code>Main</code>.</b> The push runs full CI again, on the exact merged commit. This is the run CD trusts: a green pull-request run tested a merge preview, not necessarily the commit that landed.</li>
+      <li><b>CD admission.</b> When that CI run completes, CD starts automatically. Its first job refuses the commit unless it is the same SHA, the run was a push to <code>Main</code> in this repository, the run selected the full tier, and Full verification succeeded. Only then does the second job, bound to the <code>aws</code> environment, get AWS credentials through OIDC.</li>
+      <li><b>Infrastructure update.</b> A CloudFormation change set from the checked-in template, refused if it would replace a stateful resource; frontend files; then a smoke test of the public API.</li>
+      <li><b>Per-owner release.</b> For each service whose image inputs changed: scan, push, verify, publish, move aliases, smoke test, restore on failure, then adopt the new digests into the stack.</li>
+      <li><b>Upload-to-playback test,</b> through the public API, as a user would. When it passes, the release is serving.</li>
+    </ol>
+    <div class="stats">
+      <div class="stat"><b>6.2–8.8 min</b><span>full CI on <code>Main</code>: 13 of the last 15 push runs (one took 11.8 min, one included a re-run)</span></div>
+      <div class="stat"><b>6.4–8.4 min</b><span>CD with no image change (stack update + smoke)</span></div>
+      <div class="stat"><b>22–26 min</b><span>CD releasing changed services</span></div>
+      <div class="stat"><b>≈ 2 s</b><span>from CI completion to CD start</span></div>
+    </div>
+    <p>Durations are read from the GitHub Actions run history <a class="ref" href="references.html#r-pipeline-timings">pipeline-timings</a>. The longest CD run, 34.5 min, delivered the short lane and the database split together <a class="ref" href="references.html#r-cd-lane-split">39644028238</a>.</p>
+
+    <h3 id="ci">Continuous integration: what each job proves</h3>
+    <p>CI is one workflow (<code>ci.yml</code>) triggered by every pull request, every push to <code>Main</code>, a manual dispatch for an exact candidate commit, and a weekly Sunday run that catches new advisories and tool drift. Its first job classifies the event:</p>
+    <ul>
+      <li>a pull request into <code>dev/closeout</code> gets <b>dev mode</b>, with lanes selected from the changed paths;</li>
+      <li>a pull request into <code>Main</code>, a push to <code>Main</code>, a dispatch or the weekly run get <b>full mode</b>, every lane;</li>
+      <li>anything the classifier cannot interpret (a workflow, dependency or policy change, an unknown file type, an unreadable diff) also gets full mode. An error is never read as an empty diff.</li>
+    </ul>
+    <p>The selection is saved as an artifact, because CD later checks it.</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Job</th><th>What a pass proves</th><th>Required by</th><th>Time</th></tr></thead>
+      <tbody>
+        <tr><td>Select verification policy</td><td>The mode and lanes for this exact commit; recorded as an artifact</td><td>Both gates (a classification error fails them)</td><td>6 s</td></tr>
+        <tr><td>CI policy tests, planning validation</td><td>The selection logic itself behaves as specified</td><td>Both</td><td>5 s each</td></tr>
+        <tr><td>Lint and Python unit tests</td><td>Ruff lint and security rules, formatting, the fast test suite with coverage (180 s budget)</td><td>Both, when selected</td><td>135 s</td></tr>
+        <tr><td>Frontend tests</td><td><code>npm audit</code> finds no high or critical issue; Vitest passes with ≥ 90 % coverage</td><td>Both, when selected</td><td>29 s</td></tr>
+        <tr><td>Media owned persistence</td><td>Media's migrations and repository code work on real PostgreSQL; its roles cannot reach the other database</td><td>Both, when selected</td><td>64 s</td></tr>
+        <tr><td>Processing worker, recovery, database ownership</td><td>Leases, retries, worker-kill recovery and cleanup on real PostgreSQL, storage and FFmpeg</td><td>Both, when selected</td><td>155 s</td></tr>
+        <tr><td>Media service / Processing service</td><td>The service's own tests pass, its image builds, and the runtime check inside the image finds no foreign or legacy code</td><td>Both, when selected</td><td>84 s / 159 s</td></tr>
+        <tr><td>Publisher HTTPS</td><td>The Publisher keeps a <code>Secure</code> cookie across runs and rejects an untrusted certificate</td><td>Both, when selected</td><td>29 s</td></tr>
+        <tr><td>Local HTTPS and browser trust</td><td>Full acceptance in a real Firefox: register, upload, play decoded MP4 and HLS frames, owner isolation, retry, Publisher batch</td><td>Both, when selected</td><td>382 s (longest)</td></tr>
+        <tr><td>V1 local verification (<code>v1.yml</code>)</td><td>Offline control-plane tests and <code>cfn-lint</code> on the template; every V1 flow on PostgreSQL, Moto and FFmpeg with a Chromium leg; the three exact images built and scanned by Trivy, failing on any fixable HIGH or CRITICAL finding</td><td>Both, when selected</td><td>378 s / 239 s / 220 s</td></tr>
+        <tr><td>Legacy real integration</td><td>The inherited Project 1 app still works on PostgreSQL, MinIO and FFmpeg</td><td>Both, when selected</td><td>78 s</td></tr>
+        <tr><td>Secret scan (gitleaks)</td><td>No credential anywhere in the history, not just in the diff</td><td>Both, always run</td><td>20 s</td></tr>
+        <tr><td>Combined backend coverage</td><td>Five coverage fragments from the same commit merge to ≥ 80 % per package</td><td>Full verification</td><td>25 s</td></tr>
+        <tr><td>Scan container image (app, media, processing)</td><td>Trivy finds no fixable HIGH or CRITICAL in the inherited-topology images</td><td>Full verification; advisory in dev</td><td>44–98 s</td></tr>
+        <tr><td>Exact-candidate DAST</td><td>Authenticated OWASP ZAP ran against the local Media and Processing APIs and produced a report; findings are report-only</td><td>Full verification (execution); advisory in dev</td><td>188 s</td></tr>
+        <tr><td>SonarCloud SAST</td><td>Nothing yet: it is skipped because no token is configured</td><td>Neither (advisory)</td><td>—</td></tr>
+        <tr><td><b>Dev gate</b> / <b>Full verification</b></td><td>Every selected job succeeded and every skip was intended</td><td>—</td><td>7–8 s</td></tr>
+      </tbody>
+    </table></div>
+    <p>Times are from the full run on <code>Main</code> at <code>f07b5e6</code> on 22 October: 25 jobs passed and 3 were skipped by design (Sonar twice, and the image-path check that full mode overrides) <a class="ref" href="references.html#r-pipeline-timings">pipeline-timings</a>. Jobs run in parallel, so the wall-clock time (about 7 min) is set by the browser and V1 jobs, not by the sum. CodeQL is not in this workflow: GitHub runs it as its own check on pull requests and pushes (<a href="#scanning">scanning</a>).</p>
+    <p><b>Why the gates check skips, not just failures.</b> A GitHub job that is skipped counts as neither failed nor passed. If a lane silently disappeared (a typo in a condition, a renamed output), a naive gate would still go green. The gate jobs compare the actual result of every job with the recorded selection: a selected job must have succeeded, an unselected one must have been skipped, and anything else (cancelled, missing, an unexpected skip) fails.</p>
+    <div class="limit"><p>"Required" here means required by the gate jobs and by CD's admission check. No repository rule stops someone merging a pull request whose gate failed; only CD's refusal to deploy an unverified commit is enforced by the pipeline itself. The local V1 stack and CI use Moto, not AWS, so CI does not prove anything about IAM, networking or AWS quotas; the CD smoke tests are the first checks that run on AWS.</p></div>
+
+    <h3 id="cd">Continuous delivery: from a green commit to a running release</h3>
+    <p>CD is a second workflow (<code>cd.yml</code>, steps in <code>scripts/ci/cd.sh</code>) that starts when CI completes on <code>Main</code>. A concurrency group allows only one delivery at a time; later merges queue behind it.</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Step</th><th>What it does</th><th>Stops the delivery when</th><th>Time</th></tr></thead>
+      <tbody>
+        <tr><td>Gate: refuse a commit without green CI</td><td>Reads the triggering CI run and its selection artifact through the GitHub API; records an admission receipt</td><td>Different SHA; not a push to <code>Main</code>; not this repository; not full tier; Full verification not successful; the CI run was re-run while being checked</td><td>7–9 s</td></tr>
+        <tr><td>Assume the AWS role</td><td>GitHub issues an OIDC token; AWS trusts it only for this repository's <code>aws</code> environment, which only <code>Main</code> and <code>dev/closeout</code> may use. The session lands in a named profile, for one account and one region.</td><td>The token's subject or account does not match</td><td rowspan="2">≈ 40 s with setup</td></tr>
+        <tr><td>Restore run state</td><td>Downloads the environment's journal, stack outputs and smoke-account credentials from a private, versioned S3 bucket (the repository is public, so this cannot be an artifact)</td><td>No journal for the environment</td></tr>
+        <tr><td>Deploy: preflight</td><td>Read-only: account and region, stack status, the release journal, cost report</td><td>The stack is in a failed or in-progress state</td><td rowspan="3">≈ 4 min with no release</td></tr>
+        <tr><td>Deploy: infrastructure</td><td>Creates a CloudFormation change set from the checked-out template and lists every change before executing it. Uploads the frontend and invalidates CloudFront.</td><td>The change set would replace Aurora, a bucket, a queue, an ECR repository, the VPC, a subnet, the ECS cluster or the CloudFront distribution</td></tr>
+        <tr><td>Deploy: stack smoke</td><td>Through the public API: both health routes, an anonymous request denied, login with the smoke account (cookie must be <code>HttpOnly</code>, <code>Secure</code>, <code>SameSite=Strict</code>), Media job list, Processing job batch, an upload reservation</td><td>Any check fails. Only the first call to each database (login; Processing batch) is retried, only on 502/503/504 or a connection failure, after 5, 10 and 15 s, within 180 s</td></tr>
+        <tr><td>Release each changed owner</td><td>Detailed below; Media and Processing are released one after the other, each on its own</td><td>A scan, the release plan, the migration or the owner smoke fails (then restore)</td><td>≈ 9 min per owner</td></tr>
+        <tr><td>Upload-to-playback smoke</td><td>Generates a 3 s clip with FFmpeg and runs the full user flow through the public URLs: reserve, upload to S3, finalize, wait for <code>done</code>, then fetch the MP4, the HLS playlist and a segment</td><td>The job does not reach <code>done</code> or anything fails to play</td><td>1.7–3.4 min</td></tr>
+        <tr><td>Save state, upload results</td><td>Pushes the journal back to S3 (also after a failure, so a re-run resumes); uploads redacted results as an artifact kept 60 days</td><td>—</td><td>seconds</td></tr>
+      </tbody>
+    </table></div>
+    <p><b>Inside one owner's release.</b> This is how Processing can be released without touching Media.</p>
+    <ol>
+      <li><b>Build and scan the candidate.</b> Build the owner's images on the runner. Trivy must find zero fixable HIGH or CRITICAL findings in each before anything is pushed.</li>
+      <li><b>Rescan what runs now.</b> An image the release keeps unchanged is rescanned strictly. An image the release replaces is rescanned in "retained" mode: a newly published fixable finding there is recorded loudly but does not block the release that removes it (<a href="#5c">5c</a>).</li>
+      <li><b>Push and plan.</b> Push the exact scanned config under a fresh immutable tag. The release plan checks that the registry manifest points at the scanned config, that ECR's own scan is complete with no finding outside the accepted list, and that the schema is unchanged or attested additive.</li>
+      <li><b>Write intent first.</b> The release tool takes the journal lock and records a pending release before changing anything, so a crash at any later point can be resumed or restored.</li>
+      <li><b>Migrate and promote.</b> Run the owner's migration task if there is one. Publish a new Lambda version for each of the owner's functions, check that only the code changed, and move each <code>live</code> alias.</li>
+      <li><b>Owner smoke.</b> Run the public smoke test against the new versions, and check that the other service's functions did not change meanwhile.</li>
+      <li><b>Restore or adopt.</b> On any failure, restore (<a href="#rollback">below</a>). On success, write the new digests back into the stack, which also moves the worker task definition and the short-lane Lambda to the new worker image.</li>
+    </ol>
+    <p>An owner whose migrations changed is not released automatically: CD stops and asks for a manual release with an explicit attestation that both the old and the new image work with the new schema.</p>
+    <div class="stats">
+      <div class="stat miss"><b>10.1–10.3 min</b><span>Processing release step in CD, three rounds · target ≤ 10 min</span></div>
+      <div class="stat pass"><b>9 m 39 s</b><span>a later Processing release step · 15 m 38 s including the upload smoke</span></div>
+      <div class="stat pass"><b>101.2 s</b><span>upload-to-playback smoke: accepted to <code>done</code>, both services released</span></div>
+    </div>
+    <p>The release-time target (Processing alone, smoke-tested, in at most 10 minutes) was missed by 0.1–0.3 min in the first CD rounds and met by the release step alone later; with the separate upload smoke counted it is not met <a class="ref" href="references.html#r-release-timing">dp1–dp4</a>. Media was unchanged at every snapshot. The 101.2 s is from the redelivery on 21 October <a class="ref" href="references.html#r-cd-c7c489c">39545554380</a>.</p>
+    <div class="limit"><p>There is no staging environment. The local V1 stack and CI's exact-image checks exercise the same images before promotion, and every release is smoke-tested in production with automatic restore; that is the substitute. The deploy role has <code>AdministratorAccess</code> limited to one region, protected only by the <code>aws</code> environment's branch policy, with no required reviewer. Alarms exist (one per function, one per dead-letter queue) but notify nobody, and logs are kept 7 days.</p></div>
+    <div class="limit tradeoff"><p>Releases are online: the old and new code run side by side for a moment while aliases move. That is safe only because automatic releases never change the schema and manual ones are attested additive. Quiescing the owner first would avoid the overlap, but the platform would then refuse uploads during every release.</p></div>
+
+    <h3 id="rollback">How a bad change is stopped or undone</h3>
+    <p>What happens depends on where the change fails.</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Fails at</th><th>What happens automatically</th><th>State afterwards</th></tr></thead>
+      <tbody>
+        <tr><td>Any CI job on <code>Main</code></td><td>CD's gate refuses the commit</td><td>Production unchanged</td></tr>
+        <tr><td>Change set review</td><td>Deploy refuses to execute a change set that would replace a stateful resource</td><td>Production unchanged</td></tr>
+        <tr><td>CloudFormation update</td><td>CloudFormation rolls the stack back to its previous state; the next deploy starts from there</td><td>Previous infrastructure</td></tr>
+        <tr><td>Stack smoke</td><td>The run fails before any release</td><td>Infrastructure change applied, code unchanged; fix forward</td></tr>
+        <tr><td>Candidate scan or release plan</td><td>Nothing is promoted</td><td>Previous images keep serving</td></tr>
+        <tr><td>Migration, version publish, alias move or owner smoke</td><td><b>Restore:</b> move each <code>live</code> alias back to its previous version and the worker back to its previous task definition, re-run the smoke on the restored versions, check the other service is unchanged, record <code>restored</code></td><td>Previous code serving; the new schema (additive) stays</td></tr>
+        <tr><td>Restore itself</td><td>The pending intent stays in the journal; if nothing had moved it is abandoned, otherwise an operator resumes it</td><td>Needs a person</td></tr>
+        <tr><td>Upload-to-playback smoke, after promotion</td><td>The run fails; the release is not undone automatically</td><td>New code serving; revert the merge on <code>Main</code>, which goes through the whole pipeline again</td></tr>
+      </tbody>
+    </table></div>
+    <p>The automatic restore was tested on <code>dc2-live</code> with a deliberately broken Processing candidate: the runner built it with a database certificate bundle that is not Amazon RDS's, so it migrated cleanly but failed the smoke test with a 503 on the Processing call, and the previous aliases were restored <a class="ref" href="references.html#r-cd-bad-candidate">39271754470</a>. In the earlier operator runs a failing Processing candidate was stopped at its smoke after 205.7 s and restored in 54.8 s; Media's in 189.5 s and 47.0 s.</p>
+    <p><b>The schema is never rolled back.</b> A restore puts back old code against the new schema, so every migration must be additive: new tables and nullable columns, never a rename or drop in the same release. That is why a release with changed migrations needs a human's attestation. <b>The kill switch</b> (<code>session close</code>) is the emergency stop: it closes the API gate, disables the queue consumers, schedules, launcher and short-lane mapping, and deployments respect it by deferring releases.</p>
+    <div class="limit"><p>Rollback restores images and aliases only. Old-image-on-new-schema compatibility is an operator attestation backed by contract tests, not an automated test in CI. The retained rollback image of 21 October carried a known fixable advisory; restoring it was not exercised.</p></div>
+
+    <h3 id="scanning">Security scanning</h3>
+    <p>Each scanner looks at a different thing, and each has its own pass/fail rule. All of them publish their findings in SARIF format to GitHub code scanning, so the repository's Security tab is the one place to triage them; publishing never fails a job.</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Tool</th><th>Looks at</th><th>Runs</th><th>Blocks?</th></tr></thead>
+      <tbody>
+        <tr><td>CodeQL</td><td>Data-flow analysis of Python, JavaScript/TypeScript and the workflow files</td><td>GitHub-managed default setup, on pull requests, pushes and weekly</td><td>No; findings are triaged</td></tr>
+        <tr><td>Ruff <code>S</code> rules (Bandit's checks)</td><td>Known insecure patterns in the deployed Python code, the Publisher and the bootstrap script</td><td>Laptop (<code>make lint</code>) and the lint job</td><td>Yes</td></tr>
+        <tr><td>gitleaks</td><td>Credentials anywhere in the git history (output redacted)</td><td>Every CI run, never deselected</td><td>Yes</td></tr>
+        <tr><td><code>npm audit</code></td><td>Known vulnerabilities in the frontend's locked test dependencies</td><td>Frontend job</td><td>Yes, on high or critical</td></tr>
+        <tr><td>Trivy</td><td>OS and Python packages in the container images</td><td>CI: the three exact V1 images and the inherited images. CD: every candidate before push, and the images running in production before they are replaced</td><td>Yes, on any HIGH or CRITICAL finding that has a fix</td></tr>
+        <tr><td>ECR scan on push</td><td>The image as stored in the registry</td><td>Every push; the release plan waits for it</td><td>Yes, on findings not in the accepted list</td></tr>
+        <tr><td>OWASP ZAP (DAST)</td><td>The running Media and Processing APIs, logged in as two owners</td><td>Full CI against a disposable local stack; weekly</td><td>Must run and report; findings do not block</td></tr>
+        <tr><td>SonarCloud</td><td>Code quality and SAST</td><td>Configured but skipped: no token</td><td>No (advisory)</td></tr>
+        <tr><td>Dependabot alerts, secret-scanning push protection</td><td>Advisories on dependencies; secrets in a push</td><td>GitHub, continuously</td><td>Push protection blocks the push; alerts do not</td></tr>
+      </tbody>
+    </table></div>
+    <p><b>Triage on 21–22 October.</b> Twelve High CodeQL alerts were reviewed. All twelve were in tests, the offline proof harness or developer scripts, none in deployed code; each was dismissed with a recorded reason. The remaining open alerts are ZAP low and informational findings (8 low, 8 informational), mostly missing hardening headers on the local gateway's documentation pages. One CVE is accepted unfixed: CVE-2025-52290 in <code>ffmpeg</code>, which has no fix in Debian 13; the worker is a finite task with no inbound network, and the acceptance is recorded with its reasoning.</p>
+    <div class="limit"><p>"Zero fixable HIGH/CRITICAL" does not mean zero vulnerabilities: the images still carry unfixed findings (44, 44 and 208 rows at the last scan). ZAP scans seven selected routes on a local stack, not the AWS edge. Dependabot raises alerts but does not open update pull requests.</p></div>
+  </section>
+
+  <!-- ================================================================ 5c -->
+  <section class="sub" id="5c">
+    <h2><span class="tag">5c</span>Technical findings and issues</h2>
+    <div class="point"><p>Most of what the team learned came from the pipeline refusing a change. Each finding below was a real failed run, traced to a cause, fixed without weakening the gate, and pinned by a test.</p></div>
+
+    <h3>A security gate that blocked its own fix (21 October)</h3>
+    <p>CD refused to release a Media change with "Trivy has 1 fixable HIGH/CRITICAL" <a class="ref" href="references.html#r-cd-scan-block">39532075705</a>. The live environment kept running the previous release, untouched.</p>
+    <ul>
+      <li><b>Cause.</b> The candidate was clean. The failing scan was the rescan of the image running in production, which carried <code>certifi</code> 2026.7.22. An advisory against that version (GHSA-6q48-6c7w-9gw2) had been published the evening before, after the image shipped, and the candidate's newer <code>certifi</code> fixed it. The gate refused to replace a vulnerable image <em>because</em> it was vulnerable, so the fix could never ship.</li>
+      <li><b>Fix.</b> The candidate must still scan clean, and images the release keeps are still scanned strictly. Only images the release <em>replaces</em> are rescanned in a retained mode, where a fixable finding is recorded in the release receipt, the run summary and a warning annotation instead of blocking. Scanner errors and wrong-image reports still fail in both modes.</li>
+      <li><b>Lesson.</b> A rule that is right for the image being promoted can be wrong for the image being removed.</li>
+    </ul>
+
+    <h3>A paused database failed the smoke test (21–22 October)</h3>
+    <p>With the scan fixed, the next delivery failed with <code>login:503</code> <a class="ref" href="references.html#r-cd-login503">39542434067</a>.</p>
+    <ul>
+      <li><b>Cause.</b> The update changed no migration, so nothing had touched the database before the smoke test. Aurora had paused at 0 ACU; the login, the first database call, met a cluster still resuming. MediaApi gave up after about 10.7 s, and capacity read 1.0 ACU moments later.</li>
+      <li><b>Fix.</b> The deploy smoke now retries only the login, only on 502/503/504 or a connection failure, after 5, 10 and 15 s, within 180 s, and records every attempt. The release smoke, which runs after its migration has woken the database, is not retried. The redelivery passed <a class="ref" href="references.html#r-cd-c7c489c">39545554380</a>.</li>
+      <li><b>The same fault came back.</b> After the database split, three deliveries on 22 October failed with <code>processing-jobs:503</code> <a class="ref" href="references.html#r-cd-proc503">22 Oct</a>. One of them shows login attempts <code>[503, 200]</code>: the retry woke Media's cluster, but Processing's cluster pauses separately and the Processing call was not retried. The retry now covers the first call to each database, and the next delivery passed <a class="ref" href="references.html#r-pipeline-timings">f07b5e6</a>.</li>
+      <li><b>Lesson.</b> A design change (two clusters) changes the operational assumptions of tests written for the old design.</li>
+    </ul>
+
+    <h3>The account's limits are not the documentation's limits (21 October)</h3>
+    <p>Creating the short-lane Lambda rolled the whole stack update back: the design asked for 3584 MB (about 2 vCPU, to match Fargate), and this account refuses more than 3008 MB <a class="ref" href="references.html#r-cd-lambda-memory">39596145564</a>. The next delivery then refused to start, because the deploy tool treated the stack's <code>UPDATE_ROLLBACK_COMPLETE</code> status as broken, although CloudFormation accepts an update from it. The lane now uses 3008 MB, and the deploy tool treats a completed rollback as updatable while still blocking failed and in-progress states.</p>
+
+    <h3>Smaller findings</h3>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>What happened</th><th>Cause</th><th>What changed</th></tr></thead>
+      <tbody>
+        <tr><td>A Media release was held by the migration-compatibility guard (20 October) <a class="ref" href="references.html#r-cd-migration-bytes">39412315002</a></td><td>A repository-wide formatting change had altered the bytes of an already-released migration file</td><td>The original bytes were restored, and released migrations are excluded from formatting; the guard stayed</td></tr>
+        <tr><td>The release plan rejected the worker image (21 October) <a class="ref" href="references.html#r-cd-ecr-cve">39637798081</a></td><td>ECR's scan reported CVE-2025-52290 in FFmpeg, which has no fix and was not in the accepted list</td><td>An accepted-unfixed entry with its reasoning; the finding stays visible</td></tr>
+        <tr><td>The fast test suite timed out once and passed on re-run (21 October)</td><td>Hosted runners normally take 95–115 s against a 120 s budget; a stall crossed it</td><td>Budget raised to 180 s inside a 5-minute job; nothing retries automatically</td></tr>
+        <tr><td>A nine-clip burst sent 18 work messages for 9 jobs (19 October) <a class="ref" href="references.html#r-lv11">lv11</a></td><td>At-least-once delivery and repair re-sends</td><td>Nothing: the inbox and lease fences made the duplicates harmless, and all 9 jobs finished once. Duplicates were tolerated, not eliminated.</td></tr>
+        <tr><td>Per-run stacks cost a 25-minute deploy and a 25–40-minute teardown for every check (to 18 October)</td><td>Each proof run built and deleted a whole environment</td><td>One persistent environment, updated in place by CD (<a href="4-physical.html#4a">4a</a>)</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Open issues</h3>
+    <ul>
+      <li><b>End-to-end latency</b> misses the 20 s aim on both lanes; 35–80 s per job is not yet attributed (<a href="4-physical.html#4d">4d</a>).</li>
+      <li><b>Public edge:</b> the API Gateway URL is reachable without CloudFront, and there is no WAF (<a href="4-physical.html#network">4 · Network</a>).</li>
+      <li><b>Image-only rollback:</b> schema compatibility is attested, not tested automatically.</li>
+      <li><b>Operations hardening:</b> no branch protection, no reviewer on the <code>aws</code> environment, a broad deploy role, no staging, no alarm notifications. The first steps would be a ruleset requiring Full verification and one review on <code>Main</code> and <code>dev/closeout</code>, a least-privilege deploy policy, and an SNS notification target for the alarms.</li>
+      <li><b>Unmeasured evidence:</b> lost-queue-entry recovery time on AWS, the duplicate-output check after a worker kill, a backup restore drill, and the actual monthly bill.</li>
+    </ul>
+    <p class="see">Current status and owners of these issues are in <a href="2-conduct.html#2a">2a</a>.</p>
+  </section>
+
+  <!-- ================================================================ questions -->
+  <section class="sub" id="questions">
+    <h2>Questions a professor may ask</h2>
+    <details class="qa"><summary>You call these independent microservices, yet they live in one repository. Why?</summary>
+      <div class="answer"><p>Independence means each service owns its data, its release and its failure, not that it has its own repository. A monorepo lets a contract change and both consumers land in one reviewed pull request, which the contract policy (consumers accept versions N and N-1) depends on. Independence is enforced by mechanisms that a repository split would not add: per-service CI lanes, images that fail to build if they contain the other service's code, IAM roles per function, and CD releasing only the owner whose image inputs changed. The cost is what the two services still share: one lockfile, one CloudFormation stack and a copied shared kernel. With separate teams, splitting the repositories and publishing <code>contracts/</code> as a versioned package would be the next step.</p></div></details>
+    <details class="qa"><summary>Why run full CI again after the merge, when the pull request already passed?</summary>
+      <div class="answer"><p>A pull-request run tests GitHub's preview merge of the branch into the base at that moment. If <code>Main</code> moves before the merge, or the merge is done differently, the commit that lands is not the commit that was tested. CD therefore admits only a push run on the exact merged SHA, with the full tier selected and Full verification green. It costs about 7 more minutes per merge, plus some runner time. The alternative, a merge queue that tests the exact merge commit before it lands, would avoid the duplicate run but needs branch protection, which this repository does not have.</p></div></details>
+    <details class="qa"><summary>How do you know the image in production is the one that was scanned?</summary>
+      <div class="answer"><p>CD builds the image on the runner and scans that local image's config ID before pushing anything. It then pushes that same config under a new immutable tag, and the release plan reads the registry manifest back and checks that it points at the scanned config, and that ECR's own scan on push has completed. The Lambda version published from it names the digest in its description, and after the release the stack is updated to name the same digest. A post-release read-back confirmed the three image digests, the ten <code>live</code> aliases and the worker task definition matched. The weak point: CI and CD each build the image, so the CI-scanned image and the deployed image are different builds of the same commit; the deployed one is scanned separately in CD.</p></div></details>
+    <details class="qa"><summary>Why would you ever accept a rollback target with a known vulnerability?</summary>
+      <div class="answer"><p>Only in one situation: the image is already running, the release replaces it with a clean candidate, and the advisory was published after it shipped. Blocking that release would keep the vulnerable image in production, which is worse. Restoring it in an emergency adds no exposure beyond what was already running. The rule is narrow: the candidate must still be clean, images the release keeps are still scanned strictly, scanner errors still fail, and the finding is written into the release receipt and the run summary. The alternatives were a hand-edited exemption per advisory, which turns into a habit, or rebuilding the old image, which produces bytes that never ran and so is not a real rollback target. A weekly rescan of retained images would surface such advisories before a release meets them.</p></div></details>
+    <details class="qa"><summary>Your smoke test retries. Does that not hide real failures?</summary>
+      <div class="answer"><p>The retry is limited to one known transient: the first call to each database after Aurora has paused. It applies only to the login and the Processing batch call, only to 502, 503, 504 or a connection failure, at most three more times (after 5, 10 and 15 s) within 180 s, and every attempt's status is kept in the receipt. Any other status fails at once, and a 503 that outlasts the retries still fails. The release smoke, which runs right after its migration has woken the database, is not retried at all, so the automatic-restore path is not softened. The alternative was a warm-up call before the smoke, which hides the same wake without recording it.</p></div></details>
+    <details class="qa"><summary>How would you roll back a schema change?</summary>
+      <div class="answer"><p>The pipeline does not. A restore moves code back; the schema stays at the new version. That is safe only if every migration is additive (add tables and nullable columns; never rename, drop or tighten in the same release), so the old code still works on the new schema. Automatic releases are refused when migrations change; a person must release with an explicit attestation. A destructive change would follow expand and contract: release 1 adds the new structure and writes both, release 2 moves readers, release 3 removes the old structure once no running or rollback image needs it. The missing piece is an automated test that runs the previous image against the new schema in CI; today that compatibility rests on the attestation and on the contract tests.</p></div></details>
+    <details class="qa"><summary>There is no branch protection, no reviewer and no staging. How is that acceptable?</summary>
+      <div class="answer"><p>For a three-person course project working through one account, the team relied on practice (every change to <code>Main</code> through a pull request with green checks) and on what the pipeline does enforce: CD will not deploy a commit without a green full run, the deploy role is reachable only from the <code>aws</code> environment, and every release is smoke-tested in production with automatic restore. The local V1 stack, on the same images, stands in for staging. It is not acceptable for a real team, and the fix is cheap: a ruleset requiring Full verification and one approving review on <code>Main</code> and <code>dev/closeout</code>, a required reviewer on the <code>aws</code> environment, a least-privilege deploy policy instead of <code>AdministratorAccess</code>, and a staging stack from the same template if the budget allows a second environment.</p></div></details>
+    <details class="qa"><summary>Why OIDC rather than access keys stored in GitHub?</summary>
+      <div class="answer"><p>A stored access key is a long-lived credential that anyone with access to the repository's secrets, or a leaked log, can use from anywhere until someone rotates it. With OIDC, each run asks GitHub for a signed token naming the repository and environment; AWS exchanges it for credentials that last at most four hours, and the role's trust policy accepts only this repository's <code>aws</code> environment. There is nothing to rotate or leak. The weakness is the role itself: it has administrator rights in one region, so a malicious change merged to <code>Main</code> could do anything there. A deploy policy listing only the CloudFormation, Lambda, ECR, ECS and S3 actions the pipeline uses would narrow that.</p></div></details>
+  </section>
+
+  <nav class="pager"><a href="4-physical.html">← 4 Physical architecture</a><a href="6-demo.html">6 Demo plan →</a></nav>
+</main>
+</div>
+</body>
+</html>

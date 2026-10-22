@@ -5,9 +5,6 @@
 <section id="r-publisher-independence"><h3>Publisher CLI independence</h3>
 <p>491 lines of Python in 6 files under <code>publisher/</code>; runtime dependency <code>httpx</code> only; 0 imports from service code and 0 database credentials, enforced by a test. Build effort against the 2 person-day target was not measured. Source: final report §4 (Extensibility and Maintainability; Reusability row); <a href="https://github.com/Collaboration95/dc2/blob/Main/publisher/README.md">publisher/README.md</a>.</p></section>
 
-<section id="r-cd-lane-split"><h3>Delivery of the short-encode lane and per-service database split</h3>
-<p>CD run <code>39644028238</code> (21 October 2026, green) delivered the Lambda short-encode lane (#93, <code>LambdaShortEncodes=true</code>) and one Aurora cluster per service (#94, AD-29) to <code>dc2-live</code>. Split rehearsal receipt: <a href="https://github.com/Collaboration95/dc2/blob/Main/docs/results/engineering-20261021/database-split-rehearsal.json">docs/results/engineering-20261021/database-split-rehearsal.json</a>. Short-lane benchmark: <a href="https://github.com/Collaboration95/dc2/blob/Main/docs/results/engineering-20261021/short-lane-sl1021.json">short-lane-sl1021.json</a>. Source: final report §2 Project Status.</p></section>
-
 <section id="r-cd-freeze"><h3>Code freeze, 22 October</h3>
 <p>CD run <code>39733859422</code> green on <code>Main</code>; <code>Main</code> equal to <code>dev/closeout</code>. Source: <a href="https://github.com/Collaboration95/dc2/blob/Main/project-documentation/presentation/ROAD-TO-PRESENTATION.md">project-documentation/presentation/ROAD-TO-PRESENTATION.md</a>, Stage 0.</p></section>
 

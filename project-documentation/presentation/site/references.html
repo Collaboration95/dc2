@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>References — FlickPond</title>
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <a class="brand" href="index.html">FlickPond<small>Team 17 · how the system works</small></a>
+  <nav>
+    <a href="index.html"><span>·</span>Start</a>
+    <a href="1-overview.html"><span>1</span>Context and problem</a>
+    <a href="2-conduct.html"><span>2</span>Project conduct</a>
+    <a href="3-logical.html"><span>3</span>Logical architecture</a>
+    <a href="4-physical.html"><span>4</span>Physical architecture</a>
+    <a href="5-devops.html"><span>5</span>DevOps and lifecycle</a>
+    <a href="6-demo.html"><span>6</span>Demo plan</a>
+    <div class="sep"></div>
+    <a href="references.html" aria-current="page"><span>§</span>References</a>
+    <a href="deck.html"><span>▶</span>Slides</a>
+    <a href="archive/index.html"><span>↺</span>Previous guide</a>
+  </nav>
+</aside>
+<main>
+  <p class="eyebrow">Evidence</p>
+  <h1>References</h1>
+  <p class="lede">Run IDs, commits, receipts and source files behind the numbers in the guide. The pages link here with small chips such as <a class="ref" href="#r-sl1021">sl1021</a>.</p>
+  <section class="sub refs">
+    <h2>Sections 1–3: context, conduct, logical architecture</h2>
+<!-- Reference entries for index, 1-overview, 2-conduct and 3-logical. Stitched into references.html. -->
+<section id="r-baseline"><h3>Project 1 baseline</h3>
+<p>The proposal names repository <code>Flickpond/Media_player</code> at commit <code>890c5ec</code>. The team worked from its local frozen checkout of the same code, commit <code>8854537</code> (project decision D-01, 9 October 2026). Team approval by Prof Boon Kui Heng on 22 September 2026. Source: final report §1 Background; <a href="https://github.com/Collaboration95/dc2/blob/Main/project-documentation/effort-ledger.md">project-documentation/effort-ledger.md</a>, "Project 1 effort".</p></section>
+
+<section id="r-publisher-independence"><h3>Publisher CLI independence</h3>
+<p>491 lines of Python in 6 files under <code>publisher/</code>; runtime dependency <code>httpx</code> only; 0 imports from service code and 0 database credentials, enforced by a test. Build effort against the 2 person-day target was not measured. Source: final report §4 (Extensibility and Maintainability; Reusability row); <a href="https://github.com/Collaboration95/dc2/blob/Main/publisher/README.md">publisher/README.md</a>.</p></section>
+
+<section id="r-cd-freeze"><h3>Code freeze, 22 October</h3>
+<p>CD run <code>39733859422</code> green on <code>Main</code>; <code>Main</code> equal to <code>dev/closeout</code>. Source: <a href="https://github.com/Collaboration95/dc2/blob/Main/project-documentation/presentation/ROAD-TO-PRESENTATION.md">project-documentation/presentation/ROAD-TO-PRESENTATION.md</a>, Stage 0.</p></section>
+
+<section id="r-releases"><h3>Release identities</h3>
+<p>Team-accepted demo freeze <code>daee44b</code> (20 October). Engineering release <code>629119c</code> (20 October). Verified release <code>c7c489c</code> (21 October): certifi remediation plus two delivery fixes, delivered by CD run <code>39545554380</code> with an upload-to-playback smoke; receipt <a href="https://github.com/Collaboration95/dc2/blob/Main/docs/results/engineering-20261021/delivery-c7c489c.json">docs/results/engineering-20261021/delivery-c7c489c.json</a>. Manifest: <a href="https://github.com/Collaboration95/dc2/blob/Main/docs/release/demo-release-manifest.md">docs/release/demo-release-manifest.md</a>.</p></section>
+
+<section id="r-effort-ledger"><h3>Effort ledger</h3>
+<p>Team-agreed equal allocation of the proposal's ten work packages plus the release freeze (issue #191), recorded 20 October 2026; forecast at submission recorded 21 October. 31 pd planned, 33 pd recorded to 20 October, 36 pd forecast. Source: <a href="https://github.com/Collaboration95/dc2/blob/Main/project-documentation/effort-ledger.md">project-documentation/effort-ledger.md</a>; final report §2 Project Metrics.</p></section>
+
+<section id="r-delivery-metrics"><h3>Delivery metrics (snapshot 21 October, before PRs #285–#290)</h3>
+<p>128 pull requests opened and 123 merged over 12–21 October (27 into <code>Main</code>, 42 into <code>dev/closeout</code>, 39 into <code>dev/v1-integration</code>, 4 into <code>dev/v1</code>, 11 into short-lived branches). 156 issues created, 147 closed. 533 commits on <code>Main</code>. 246 CI workflow runs. 3,982 Python tests collected plus 177 frontend tests. Coverage: Media 93.91 %, Processing 93.90 %, frontend 96.24 % of statements. Code: 10,062 lines of service and client Python, 1,822 lines of frontend JavaScript, 54,011 lines of tests. All activity through the single account <code>Collaboration95</code>. Source: final report §2 Project Metrics.</p></section>
+
+<section id="r-decision-register"><h3>Architecture decision register</h3>
+<p>AD-01 to AD-29 with context, decision, alternatives, trade-off and evidence; proposal-to-as-built deviations in §4. Source: <a href="https://github.com/Collaboration95/dc2/blob/Main/docs/architecture/decisions.md">docs/architecture/decisions.md</a>. Domain model: <a href="https://github.com/Collaboration95/dc2/blob/Main/docs/architecture/ddd.md">docs/architecture/ddd.md</a>.</p></section>
+
+<section id="r-check-runtime"><h3>Image boundary check</h3>
+<p><code>deploy/v1/check_runtime.py</code> fails an image build if the opposite domain package, the <code>legacy</code> package or any listed legacy module is importable, or if the executable graph imports one (AD-26). Tests: <code>tests/v1/test_image_recipes.py</code>. <a href="https://github.com/Collaboration95/dc2/blob/Main/deploy/v1/check_runtime.py">check_runtime.py</a>.</p></section>
+
+<section id="r-isolation"><h3>Processing consumer outage (AV-5)</h3>
+<p>AWS run <code>r1018b</code>, step <code>#196 processing-down</code>: the <code>ProcessingCommands</code> consumer was disabled for 48 s; Media answered 202 for an upload and held the command; the job reached <code>done</code> 58.9 s after re-enabling. The first attempt failed on a harness bug (fixed in #218); the rerun passed. The Processing API stayed up, so this covers the command consumer only. Receipt: <a href="https://github.com/Collaboration95/dc2/blob/Main/docs/execution/aws/v1/evidence/cloud-proof-r1018b.json">cloud-proof-r1018b.json</a>; results table <a href="https://github.com/Collaboration95/dc2/blob/Main/docs/results/actual-vs-target.md">docs/results/actual-vs-target.md</a>, AV-5.</p></section>
+
+<section id="r-duplicates"><h3>Duplicate work drains without purge (LV-11)</h3>
+<p><code>dc2-live</code>, source <code>daee44b</code>, CD <code>39286933644</code>: nine copies of a 303,113-byte clip from nine Publisher processes; 9/9 jobs <code>done</code>; 18 work sends for nine jobs; queues at 0 visible and 0 in flight within about 2 minutes, no purge used. One run; SQS counts are approximate. Receipt: <a href="https://github.com/Collaboration95/dc2/blob/Main/docs/execution/aws/v1/evidence/v2live-verify-20261019/burst-270-recheck.json">burst-270-recheck.json</a>; <code>docs/results/actual-vs-target.md</code>, LV-11.</p></section>
+
+<section id="r-recovery"><h3>Worker stopped mid-encode (AV-1)</h3>
+<p>AWS run <code>r1017b</code>, step <code>#64 recovery</code>: one encoder task stopped mid-encode; platform reaction in 5.8 s against a 300 s target. The receipt records reaction time only; stop-to-done and a duplicate-output check were not recorded. Receipt: <a href="https://github.com/Collaboration95/dc2/blob/Main/docs/execution/aws/v1/evidence/cloud-proof-r1017b.json">cloud-proof-r1017b.json</a>; <code>docs/results/actual-vs-target.md</code>, AV-1. Mechanism: <code>processing/lifecycle.py</code> (claim, heartbeat, finish), <code>processing/recovery.py</code> (interrupt, recover_expired).</p></section>
+
+<section id="r-security-negatives"><h3>Security negative tests on AWS</h3>
+<p>Run <code>r1017b</code> (#63): <code>anonymous-denied</code> (401 on all six frontend and gateway job routes), <code>forged-identity</code> (forged identity headers change nothing; non-operator gets 403 on admin), <code>sqs-direct-send</code> (direct <code>SendMessage</code> refused with 403 on all three queues), <code>cross-database</code> (other service's database refused with <code>InsufficientPrivilegeError</code>; runtime DDL refused), <code>session-roundtrip</code> (cookie host-only, HttpOnly, Secure, SameSite=Strict). Receipt: <a href="https://github.com/Collaboration95/dc2/blob/Main/docs/execution/aws/v1/evidence/cloud-proof-r1017b.json">cloud-proof-r1017b.json</a>. Mechanism: <code>media/authorizer.py</code>, <code>contracts/gateway.py</code>, queue policies in <code>scripts/aws/v1/definitions.py</code>.</p></section>
+
+  </section>
+  <section class="sub refs">
+    <h2>Sections 4–5: physical architecture, DevOps</h2>
+<section id="r-sl1021"><h3>sl1021: short lane against Fargate on dc2-live (21 Oct 2026)</h3>
+<p>Receipt <code>docs/results/engineering-20261021/short-lane-sl1021.json</code>; rows LV-S1 to LV-S4 in <code>docs/results/actual-vs-target.md</code>; method and reading in <code>docs/execution/aws/v2/lambda-short-encodes.md</code> ("Results on dc2-live"). Source <code>c7c489c</code>, after CD run 39604910633. Five jobs per arm of one 24 s 640×360 H.264/AAC clip; the Fargate arm used the same streams with a 70 MiB <code>free</code> atom appended (75,923,783 bytes against 2,523,463). Medians: queue wait 0.26 s (max 2.6) against 32.6 s (26.0–33.7); processing 5.3 s against 8.0 s; submit-to-done Lambda cold 92.0 s (n = 1), warm 45.2 s (38.5–88.1, n = 4, nearest-rank p50 as computed by <code>scripts/aws/v1/proof/core.py</code>), Fargate 87.7 s (72.3–113.6); billed compute USD 0.0003 against 0.0021 per success. Keep rule: <code>meets_keep_rule: false</code> (cold median), <code>merge_decision: pending</code>. Lane bounds: <code>processing/short_lane.py</code>; memory, timeout and mapping cap: <code>scripts/aws/v1/definitions.py</code>.</p></section>
+
+<section id="r-r1017b"><h3>r1017b: latency and database wake (AWS V1, 17 Oct 2026)</h3>
+<p><code>docs/execution/aws/v1/evidence/cloud-proof-r1017b.json</code>, rows PF-1, PF-3 and AV-1 in <code>docs/results/actual-vs-target.md</code>. Status p90 58.2 ms (50 users, 180 s, 9,000 requests, 0 errors) and login p90 178 ms (20 concurrent requests), from a Fargate generator in the same region. Cold wake: first read after a pause 4.7 s, later reads 263 ms (AD-12 in <code>docs/architecture/decisions.md</code>). Worker stopped mid-encode: reaction in 5.8 s.</p></section>
+
+<section id="r-r1018b"><h3>r1018b: 1/2/3-worker scaling (AWS V1, 18 Oct 2026)</h3>
+<p><code>docs/execution/aws/v1/evidence/cloud-proof-r1018b.json</code>, <code>#185 backlog-compare</code>; rows SC-AWS-1 to SC-AWS-6 in <code>docs/results/actual-vs-target.md</code>. Six-clip backlog of one 36,035,343-byte fixture, one run per cap, 2 vCPU / 4 GiB tasks started by an operator batch: 0.483 / 0.700 / 1.134 jobs/min, speed-up 1.449× (target 1.6×, FAIL) and 2.347× (target 2.1×, PASS); median queue wait 274.3 / 135.7 / 9.6 s; 0 failed jobs.</p></section>
+
+<section id="r-v2live-scaling"><h3>v2live-0919: automatic scaling on dc2-live (19 Oct 2026)</h3>
+<p><code>docs/execution/aws/v1/evidence/v2live-verify-20261019/scaling-and-backlog.json</code>; rows LV-7, LV-8 and LV-9 in <code>docs/results/actual-vs-target.md</code>. Three concurrent 20 s 640×360 clips: encoder tasks 0 → 3 → 0. Warm-job observed queue wait about 37 s (target 20 s); ECS created-to-started median 25.6 s over 12 tasks. Nine-clip backlog at cap 3: 239 s, 2.26 jobs/min. Exact source commit not recorded in the receipt (before <code>daee44b</code>).</p></section>
+
+<section id="r-lv11"><h3>lv11: duplicate sends drained without purge (19 Oct 2026)</h3>
+<p><code>docs/execution/aws/v1/evidence/v2live-verify-20261019/burst-270-recheck.json</code>; row LV-11. Source <code>daee44b</code>, CD 39286933644. Nine copies of a 303,113-byte clip from nine Publisher processes; 18 work sends for 9 jobs; 9/9 done; both queue counts zero, no purge.</p></section>
+
+<section id="r-lv12"><h3>lv12: Aurora at 0 ACU (19 Oct 2026)</h3>
+<p>Row LV-12 in <code>docs/results/actual-vs-target.md</code>; recorded in <code>docs/release/demo-release-manifest.md</code>. CloudWatch <code>ServerlessDatabaseCapacity</code> one-minute maximum 0.0 ACU at 18:07 UTC, about 56 minutes after the last upload, on <code>daee44b</code>, before the database split. One observation, not a monthly measurement.</p></section>
+
+<section id="r-s229-live"><h3>s229: security negatives on dc2-live (19 Oct 2026)</h3>
+<p><code>docs/execution/aws/v1/evidence/cloud-proof-s229live.json</code> and <code>docs/execution/aws/v1/evidence/s229-live-results.md</code>; row LV-6. External port scan: only 80 and 443 open, 80 redirects; Aurora <code>PubliclyAccessible=false</code>; no <code>0.0.0.0/0</code> ingress. Cross-database login refused (<code>InsufficientPrivilegeError</code>) and runtime DDL denied; direct queue send by an unlisted principal 403; 100 MiB + 1 byte refused by S3. Earlier cross-database and queue negatives: <code>cloud-proof-r1018b.json</code> <code>#63</code>.</p></section>
+
+<section id="r-cost-model"><h3>cost-model: idle and per-use cost inputs</h3>
+<p>Rates: <code>docs/execution/aws/v1/cost-inputs.json</code> (<code>rates_usd</code>: ACU-hour 0.20, Fargate worker hour 0.12824 including IPv4, Lambda GB-second 0.0000166667, HTTP API request 0.00000125, secret month 0.40, Aurora GB-month 0.11). Idle estimate USD 3–5 a month: AD-27 in <code>docs/architecture/decisions.md</code>, written for one cluster. Second cluster USD 0.51 a month retained (secret 0.40 + storage 0.11): <code>docs/execution/aws/v2/database-topology.md</code>, "Cost implications". Budget USD 20 a month, alerts at 50/80/100 %: AD-27. Actual spend not established (Cost Explorer USD 0.00 with credits): AISS-05 in the final report.</p></section>
+
+<section id="r-cd-lane-split"><h3>39644028238: short lane and database split delivered to dc2-live (21 Oct 2026)</h3>
+<p>CD run <a href="https://github.com/Collaboration95/dc2/actions/runs/39644028238">39644028238</a> (manual dispatch, source <code>68a027f</code>), success in 34.5 min (Deploy step 1,785 s, smoke 203 s). Rehearsal on a throwaway stack: <code>docs/results/engineering-20261021/database-split-rehearsal.json</code>. Procedure: <code>split-database</code> and <code>finish-database-split</code> in <code>scripts/aws/v1/deploy.py</code>, called from <code>scripts/ci/cd.sh</code>; AD-29 in <code>docs/architecture/decisions.md</code>. Short-lane benchmark: <code>docs/results/engineering-20261021/short-lane-sl1021.json</code>.</p></section>
+
+<section id="r-cd-c7c489c"><h3>39545554380: redelivery of c7c489c, both services released (21 Oct 2026)</h3>
+<p>CD run <a href="https://github.com/Collaboration95/dc2/actions/runs/39545554380">39545554380</a>, admitted by Main CI 39544952625. Gate 7 s; Deploy step 22 min 56 s (1,376 s) including both owner releases and stack adoption; upload-to-playback smoke 2 min 27 s; job <code>done</code> 101.2 s after acceptance. Read-back: Media <code>sha256:dafbb19d…</code>, Processing <code>sha256:3c83e4ba…</code>, worker <code>sha256:eed6fbbb…</code>, ten <code>live</code> aliases, <code>dc2-live-worker:12</code>. Receipt <code>docs/results/engineering-20261021/delivery-c7c489c.json</code>.</p></section>
+
+<section id="r-cd-scan-block"><h3>39532075705: release blocked by the retained-image scan (21 Oct 2026)</h3>
+<p>CD run <a href="https://github.com/Collaboration95/dc2/actions/runs/39532075705">39532075705</a>, source <code>4ae6a0b</code>: <code>media: FAIL: Trivy has 1 fixable HIGH/CRITICAL</code> on the running image <code>sha256:24bd78a8…</code> (built from <code>629119c</code>), GHSA-6q48-6c7w-9gw2 in <code>certifi 2026.7.22</code>, published 2026-10-20 19:35 UTC; candidate <code>certifi 2026.10.19</code>. Fix: AD-28, PR #285 into <code>dev/closeout</code>, #286 into <code>Main</code>; <code>scan_baseline</code> in <code>scripts/ci/cd.sh</code>, <code>--retained</code> in <code>scripts/ci/v1_scan.py</code>.</p></section>
+
+<section id="r-cd-login503"><h3>39542434067: paused Aurora at the stack smoke (21 Oct 2026)</h3>
+<p>CD run <a href="https://github.com/Collaboration95/dc2/actions/runs/39542434067">39542434067</a>, source <code>6155951</code>: <code>PublicSmoke failed: login:503</code>; MediaApi answered after about 10.7 s; capacity 1.0 ACU moments later. Fix: PRs #287 and #288; <code>DATABASE_WAKE_BACKOFF = (5, 10, 15)</code> and <code>_waking</code> in <code>scripts/aws/v1/public_smoke.py</code>, used by <code>step_public_smoke</code> in <code>scripts/aws/v1/deploy.py</code> with a 180 s deadline.</p></section>
+
+<section id="r-cd-proc503"><h3>22 Oct: Processing database wake after the split</h3>
+<p>CD runs <a href="https://github.com/Collaboration95/dc2/actions/runs/39728501166">39728501166</a>, <a href="https://github.com/Collaboration95/dc2/actions/runs/39729654137">39729654137</a> and <a href="https://github.com/Collaboration95/dc2/actions/runs/39731426830">39731426830</a> failed in Deploy with <code>PublicSmoke failed: processing-jobs:503</code>; login attempts <code>[200]</code>, <code>[503, 200]</code> and <code>[200]</code> (read with <code>gh run view --log-failed</code> on 22 Oct). Current code retries the Processing batch call too (<code>_processing_batch</code> in <code>scripts/aws/v1/public_smoke.py</code>). Next green CD: 39733859422 at <code>f07b5e6</code>.</p></section>
+
+<section id="r-cd-bad-candidate"><h3>39271754470: deliberate bad Processing candidate restored (19 Oct 2026)</h3>
+<p>CD run <a href="https://github.com/Collaboration95/dc2/actions/runs/39271754470">39271754470</a>, <code>bad_candidate=true</code>, source <code>7928b7c</code>: smoke failure <code>processing-jobs:503</code>, outcome <code>restored</code>. Receipt <code>docs/execution/aws/v1/evidence/v2live-verify-20261019/cd-39271754470-bad-candidate-rollback/release-processing.json</code>; row LV-10. Fault injection: <code>inject_bad_candidate</code> in <code>scripts/ci/cd.sh</code>. Operator-run restore timings (Processing 205.7 s to smoke failure, restored in 54.8 s; Media 189.5 s and 47.0 s): AD-16 in <code>docs/architecture/decisions.md</code>.</p></section>
+
+<section id="r-release-timing"><h3>dp1–dp4: Processing release time against the 10-minute target</h3>
+<p>Rows DP-1 to DP-4 in <code>docs/results/actual-vs-target.md</code>. CD Release step 10.3, 10.2 and 10.1 min on <code>r1018b</code> (<code>docs/execution/aws/v1/evidence/r1018b-results.md</code>); operator promote step 322.5 s on <code>r1017b</code>; CD run 39087966647 (<code>r1019a</code>, source <code>358d169</code>) Release step 9 min 39 s, and 15 min 38 s with the upload smoke (smoke step 5 min 59 s).</p></section>
+
+<section id="r-cd-lambda-memory"><h3>39596145564 and 39600906024: Lambda memory ceiling and rollback state (21 Oct 2026)</h3>
+<p>CD run <a href="https://github.com/Collaboration95/dc2/actions/runs/39596145564">39596145564</a>: CloudFormation refused <code>MemorySize</code> above 3008 for the short encoder; the stack ended <code>UPDATE_ROLLBACK_COMPLETE</code>. CD run <a href="https://github.com/Collaboration95/dc2/actions/runs/39600906024">39600906024</a>: the deploy tool refused that state; fixed by <code>UPDATABLE = HEALTHY | {"UPDATE_ROLLBACK_COMPLETE"}</code> in <code>scripts/aws/v1/deploy.py</code>; next success 39604910633. Memory rationale: <code>docs/execution/aws/v2/lambda-short-encodes.md</code>, "Admission rule".</p></section>
+
+<section id="r-cd-migration-bytes"><h3>39412315002: released migration bytes changed by formatting (20 Oct 2026)</h3>
+<p>CD run <a href="https://github.com/Collaboration95/dc2/actions/runs/39412315002">39412315002</a> held the release; redelivered by 39416747925 (source <code>629119c</code>). Receipt <code>docs/results/engineering-20261020/delivery-629119c.json</code>. Rule in <code>CONTRIBUTING.md</code> ("Keep released migration files unchanged").</p></section>
+
+<section id="r-cd-ecr-cve"><h3>39637798081: worker CVE outside the accepted list (21 Oct 2026)</h3>
+<p>CD run <a href="https://github.com/Collaboration95/dc2/actions/runs/39637798081">39637798081</a>: the release plan rejected CVE-2025-52290 (FFmpeg, no Debian 13 fix). Accepted-unfixed list with reasoning: <code>docs/execution/aws/v1/scan-accepted-unfixed-20261017.json</code>. CodeQL triage (12 High dismissed, 0 fixed) and ZAP disposition: <code>docs/ci/policy.md</code>, "Code scanning triage"; ZAP findings <code>docs/results/engineering-20261020/dast-confirmation-findings-514914a.json</code>.</p></section>
+
+<section id="r-pipeline-timings"><h3>pipeline-timings: CI and CD durations (read 22 Oct 2026)</h3>
+<p>Read-only <code>gh run list</code> and <code>gh run view &lt;id&gt; --json jobs</code>; nothing was started. Main push CI, created to updated: 39733112331 (<code>f07b5e6</code>) 7.3 min; 39730671775 7.7; 39729067801 6.2; 39727654381 8.8; 39661190452 6.8; 39640613032 11.8; 39636614356 7.8; 39631018604 7.4; 39603878653 7.2; 39599993229 6.7; 39572348297 189.3 (includes a re-run); 39566662516 6.5; 39553809868 6.4; 39550093697 6.6; 39544952625 6.6. Job times in run 39733112331: classify 6 s, lint and unit 135 s, frontend 29 s, legacy integration 78 s, Processing integration 155 s, Media integration 64 s, Media service 84 s, Processing service 159 s, Publisher 29 s, browser trust 382 s, V1 offline 378 s, V1 local 239 s, V1 images 220 s, image scans 44/87/98 s, gitleaks 20 s, DAST 188 s, coverage 25 s, Dev gate 8 s, Full verification 7 s; 25 succeeded, 3 skipped. CD: 39733859422 (<code>f07b5e6</code>, no release) 8.4 min: gate 8 s, Deploy 253 s, smoke 128 s; 39662185351 7.6; 39567479407 6.4; 39554453687 6.4; 39550709558 8.0; 39604910633 22.2 min (Deploy 1,160 s, smoke 102 s); 39545554380 26.4 min (Deploy 1,376 s, smoke 147 s). Workflows: <code>.github/workflows/ci.yml</code>, <code>cd.yml</code>, <code>v1.yml</code>, <code>dast.yml</code>; steps <code>scripts/ci/cd.sh</code>; admission <code>scripts/ci/cd_gate.py</code>; lane policy <code>scripts/ci/policy.py</code> and <code>docs/ci/policy.md</code>.</p></section>
+
+  </section>
+  <section class="sub refs">
+    <h2>Section 6: demo</h2>
+<section id="r-gh-durations"><h3>gh-durations: CI and CD durations used by D6</h3>
+<p>Read-only <code>gh run list --workflow ci.yml --branch Main</code>, <code>gh run list --workflow ci.yml --event pull_request</code>, <code>gh run list --workflow cd.yml</code> and <code>gh run view &lt;id&gt; --json jobs</code>, read on 22 Oct 2026; nothing was started. Main CI (push), created to updated: 39733112331 at <code>f07b5e6</code> 7m16s; 39730671775 7m43s; 39729067801 6m10s; 39727654381 8m49s; 39661190452 6m45s; 39640613032 11m45s. Pull-request CI: 39732334041 7m27s; 39731409213 8m43s; 39729935035 7m20s; 39729164470 7m42s; 39728414874 6m33s; 39727624704 7m47s. Successful CD: 39733859422 8m25s (Deploy 06:27:33 to 06:31:46, upload-to-playback smoke 06:31:46 to 06:33:54; the log shows <code>[frontend] start</code> 06:31:28 and <code>done</code> 06:31:31); 39662185351 7m38s. Failed CD runs 39728501166, 39729654137 and 39731426830 failed in Deploy on a 503 from <code>processing-jobs</code> while the Processing database woke. CD begins within about 2 s of the CI run it follows (<code>workflow_run</code> trigger). Files: <code>.github/workflows/ci.yml</code>, <code>.github/workflows/cd.yml</code>, <code>scripts/aws/v1/deploy.py</code> (<code>step_frontend</code>).</p></section>
+
+<section id="r-demo-clips"><h3>demo-clips: clip plan source</h3>
+<p>Clip IDs D1 to D6, fixtures, commands, pitfalls and the historical result insets come from <code>project-documentation/presentation/research/sections-5-6-demo.md</code>. Commands were checked against <code>publisher/cli.py</code>, <code>publisher/README.md</code> and <code>scripts/aws/v1/proof/generator.py</code>. Lane bounds (64 MiB, 60 s, 1080 p) are in <code>processing/short_lane.py</code>; the mapping bound <code>MaximumConcurrency: 2</code> is in <code>scripts/aws/v1/definitions.py</code>. The padded fixture follows the 70 MiB <code>free</code> atom of <code>docs/results/engineering-20261021/short-lane-sl1021.json</code>.</p></section>
+
+<section id="r-generator-output"><h3>generator-output: what the load generator writes</h3>
+<p><code>scripts/aws/v1/proof/generator.py</code> prints <code>DC2-SAMPLES &lt;index&gt; &lt;total&gt; &lt;chunk&gt;</code> lines (zlib-compressed, base64-encoded CSV with columns route, phase, user, started_at, ended_at, elapsed_ms, status_code, error) and one <code>DC2-RESULT {json}</code> line (<code>ok</code>, <code>samples_sha256</code>, <code>users</code>, <code>routes</code> with count, errors, p50, p90, p95, p99 and max, <code>windows</code>, <code>python</code>, <code>cpus</code>). Defaults: 50 users, 180 s, 5 s warm-up, 20 s per other route, 20 logins. Decoding and verdict rules: <code>collect_samples</code>, <code>parse_samples</code> and <code>judge</code> in <code>scripts/aws/v1/proof/latency.py</code> (status p90 at most 700 ms, login p90 under 2 s, errors under 1%, Gateway throttle at least 50 requests/s with burst 100). Local-stack alternative: <code>scripts/evidence/performance.py</code> (writes <code>requests.jsonl</code>, <code>queue.jsonl</code>, <code>targets.csv</code>).</p></section>
+
+<section id="r-lane-results"><h3>lane-results: historical lane and speed-up figures cited in the questions</h3>
+<p>Short lane median queue wait 0.26 s against 32.6 s for padded Fargate, five jobs per arm; warm submit-to-done 45.2 s, cold 92.0 s; <code>meets_keep_rule:false</code>: <code>docs/results/engineering-20261021/short-lane-sl1021.json</code>. Status p90 58.2 ms over 9,000 requests with 50 users for 180 s from a Fargate task in the same region; login p90 178 ms over 20 samples; speed-up 1.449x at two workers against 1.6x and 2.347x at three against 2.1x: <code>docs/results/actual-vs-target.md</code> (PF-1, PF-3, LV-7).</p></section>
+
+<section id="r-demo-cost"><h3>demo-cost: cost inputs</h3>
+<p>Singapore rates: Aurora $0.20 per ACU-hour, Fargate worker $0.12824 per task-hour including IPv4, HTTP API $1.25 per million requests, Lambda $0.0000166667 per GB-second: <code>docs/execution/aws/v1/cost-inputs.json</code> and <code>docs/execution/aws/cost-worksheet.json</code>. Short encode about $0.0003 against $0.002137 for a padded Fargate encode (billed compute only). Database time is derived as two clusters x 0.5 to 2 ACU x $0.20; it is an assumption about utilisation, not a measurement or an invoice.</p></section>
+
+<section id="r-ownership-live"><h3>ownership-live: expected denial codes</h3>
+<p>Foreign owner 404 and anonymous 401 as recorded in LV-6 of <code>docs/results/actual-vs-target.md</code> and in <code>docs/execution/aws/v1/evidence/s229-live-results.md</code>. The clip repeats the shown routes only, not the full negative campaign.</p></section>
+
+  </section>
+</main>
+</div>
+</body>
+</html>
