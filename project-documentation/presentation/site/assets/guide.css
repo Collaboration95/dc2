@@ -1,0 +1,131 @@
+/* FlickPond study guide. One stylesheet for every page; the deck has its own. */
+:root{
+  --ink:#1f2630;--muted:#5b6673;--line:#d9dee5;--soft:#f5f7f9;--link:#1d5bb5;
+  --media:#2563eb;--media-bg:#dbeafe;--proc:#d97706;--proc-bg:#fef3c7;
+  --client:#059669;--client-bg:#ecfdf5;--infra:#64748b;--infra-bg:#f1f5f9;
+  --miss:#d55e00;--miss-bg:#fff4ea;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:24px}
+body{margin:0;color:var(--ink);background:#fff;font:17px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+a{color:var(--link);text-underline-offset:3px}
+h1,h2,h3{line-height:1.2;text-wrap:balance;color:#151b23}
+h1{font-size:clamp(2rem,3.2vw,2.9rem);letter-spacing:-.04em;margin:.2em 0 .4em}
+h2{font-size:1.6rem;letter-spacing:-.02em;margin:0 0 .6em}
+h3{font-size:1.12rem;margin:1.8em 0 .4em}
+p{margin:.75em 0}
+code{font:.86em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:#eef1f4;padding:.1em .3em;border-radius:4px;overflow-wrap:anywhere}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:16px;overflow:auto;font-size:.86rem}
+pre code{background:none;padding:0}
+strong{font-weight:680}
+
+/* layout */
+.layout{display:grid;grid-template-columns:232px minmax(0,1fr);max-width:1500px;margin:auto}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;padding:28px 18px;border-right:1px solid var(--line);background:#f7f8fa}
+.brand{display:block;font-weight:760;font-size:1.08rem;color:var(--ink);text-decoration:none;margin:0 8px 26px;line-height:1.3}
+.brand small{display:block;font-weight:500;font-size:.72rem;color:var(--muted)}
+.sidebar nav a{display:flex;gap:10px;padding:7px 9px;margin:2px 0;border-radius:6px;color:#3d4753;text-decoration:none;font-size:.88rem;line-height:1.35}
+.sidebar nav a span{min-width:16px;color:#7a8592;font-variant-numeric:tabular-nums;font-size:.78rem}
+.sidebar nav a:hover{background:#e9edf2}
+.sidebar nav a[aria-current=page]{background:#e3ebf7;color:#163f78;font-weight:680}
+.sidebar .sep{height:1px;background:var(--line);margin:14px 8px}
+main{min-width:0;max-width:1040px;padding:44px 52px 40px}
+
+/* page furniture */
+.eyebrow{font-size:.72rem;font-weight:750;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin:0}
+.lede{font-size:1.16rem;line-height:1.6;color:#46515e;max-width:800px}
+.toc{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.84rem;margin:18px 0 8px;padding:0;list-style:none}
+.toc a{text-decoration:none}
+section.sub{border-top:1px solid var(--line);margin-top:44px;padding-top:30px}
+.tag{display:inline-block;font:700 .8rem/1 ui-monospace,Menlo,monospace;color:#fff;background:#2b3a50;border-radius:5px;padding:5px 7px;margin-right:10px;vertical-align:4px}
+.pager{display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--line);margin-top:56px;padding-top:20px;font-size:.92rem}
+footer{margin-top:40px;color:#7b8390;font-size:.72rem}
+
+/* key point at the top of a subsection: the claim, in one or two sentences */
+.point{border-left:4px solid #2b3a50;background:var(--soft);padding:14px 20px;margin:18px 0;font-size:1.04rem}
+.point p{margin:.2em 0}
+
+/* tables */
+.table-wrap{overflow-x:auto}
+table.grid{border-collapse:collapse;width:100%;font-size:.9rem;margin:16px 0}
+table.grid th{background:#f1f4f7;text-align:left;border-bottom:2px solid #c9d1dc;padding:10px 12px;font-size:.8rem}
+table.grid td{padding:11px 12px;border-bottom:1px solid #e1e5eb;vertical-align:top}
+table.grid td:first-child{font-weight:600}
+/* mechanism table: In | What it does | What changes | Out */
+table.mech th:nth-child(1),table.mech th:nth-child(4){width:20%}
+
+/* limitation kept beside its mechanism */
+.limit{border:1px solid #f0c9a8;background:var(--miss-bg);border-radius:8px;padding:12px 18px;margin:18px 0;font-size:.94rem}
+.limit::before{content:"Limit";display:block;font-size:.7rem;font-weight:780;letter-spacing:.1em;text-transform:uppercase;color:var(--miss);margin-bottom:2px}
+.limit.tradeoff{border-color:#c9d6e8;background:#f3f7fc}
+.limit.tradeoff::before{content:"Trade-off";color:#2d5a9a}
+
+/* "explained once, elsewhere" link */
+.see{font-size:.86rem;color:var(--muted)}
+.see a{font-weight:600}
+/* small evidence chip that links to references.html */
+a.ref{font:600 .72rem/1 ui-monospace,Menlo,monospace;background:#eef1f4;color:#4a5562;border-radius:4px;padding:3px 6px;text-decoration:none;white-space:nowrap;vertical-align:1px}
+a.ref:hover{background:#e1e7ef}
+
+/* big numbers */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:20px 0}
+.stat{border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.stat b{display:block;font-size:2rem;letter-spacing:-.03em;line-height:1.1}
+.stat span{font-size:.84rem;color:var(--muted)}
+.stat.miss b{color:var(--miss)}.stat.pass b{color:var(--client)}
+
+/* diagrams: plain HTML/CSS or inline SVG; no click-to-reveal */
+figure.dia{margin:24px 0;padding:20px;border:1px solid var(--line);border-radius:10px;background:#fcfdfe;overflow-x:auto}
+figure.dia figcaption{font-size:.85rem;color:var(--muted);margin-top:12px}
+figure.dia svg{display:block;max-width:100%;height:auto;margin:auto}
+figure.dia img{display:block;max-width:100%;height:auto;margin:auto}
+/* flow: .node / .arr in a row; add .col for vertical */
+.flow{display:flex;align-items:stretch;gap:8px;flex-wrap:nowrap;min-width:min-content}
+.flow.col{flex-direction:column;align-items:stretch}
+.flow .arr{align-self:center;color:#7a8592;font-size:1.3rem;padding:0 2px;white-space:nowrap}
+.flow .arr small{display:block;font-size:.66rem;text-align:center;line-height:1.2}
+.flow.col .arr{transform:none;text-align:center}
+.node{border:2px solid var(--infra);background:var(--infra-bg);border-radius:9px;padding:10px 12px;font-size:.84rem;line-height:1.4;min-width:120px;flex:1}
+.node b{display:block;font-size:.92rem}
+.node.media{border-color:var(--media);background:var(--media-bg)}
+.node.proc{border-color:var(--proc);background:var(--proc-bg)}
+.node.client{border-color:var(--client);background:var(--client-bg)}
+.node.infra{border-color:var(--infra);background:var(--infra-bg)}
+.node.ghost{border-style:dashed;background:#fff}
+/* boundary box grouping nodes (a bounded context, a VPC, a subnet) */
+.zone{border:2px dashed #9aa6b4;border-radius:12px;padding:12px;position:relative}
+.zone>.zl{font-size:.72rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.zone.media{border-color:var(--media)}.zone.proc{border-color:var(--proc)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.76rem;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:2px solid}
+
+/* professor questions, at the end of each section page only */
+.qa{border:1px solid #d3dae3;border-radius:8px;margin:12px 0}
+.qa summary{padding:13px 16px;cursor:pointer;font-weight:600;line-height:1.5}
+.qa[open] summary{border-bottom:1px solid #d3dae3;background:#f5f7fa;border-radius:8px 8px 0 0}
+.qa .answer{padding:6px 18px 12px;font-size:.95rem}
+
+/* index cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:22px 0}
+.card{display:block;border:1px solid var(--line);border-radius:10px;padding:18px 20px;color:var(--ink);text-decoration:none}
+.card:hover{border-color:#5b83bf;background:#fafcff}
+.card .tag{margin-bottom:8px}
+.card b{display:block;font-size:1.05rem;margin:6px 0 4px}
+.card span{font-size:.88rem;color:var(--muted);line-height:1.55;display:block}
+
+@media(max-width:900px){
+  .layout{display:block}
+  .sidebar{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:16px}
+  .sidebar nav{display:grid;grid-template-columns:1fr 1fr}
+  .sidebar .sep{grid-column:1/-1}
+  main{padding:26px 18px}
+  .flow{flex-direction:column}
+  .flow .arr{transform:rotate(90deg)}
+}
+@media print{
+  .sidebar,.pager,.toc{display:none}
+  .layout{display:block}main{padding:0;max-width:none}
+  .qa .answer{display:block}figure.dia,.qa{break-inside:avoid}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
