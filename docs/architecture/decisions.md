@@ -340,7 +340,7 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
 - **Alternatives.** Separate branches (the original gating, #80).
 - **Trade-off.** V1 images and the migration history carry code and tables only the experiments use
   (`launcher_control`, `launch_reservations`). #68 ran in the cloud in `r1018b` (6 clips: 0.787 jobs/min,
-  0.69x the operator batch); #93 was enabled on `dc2-live` on 21 October and measured there: 5 jobs per arm, median queue wait 0.26 s against 32.6 s, billed compute $0.0003 against $0.0021 per encode, cold-start end-to-end 4 s slower than Fargate on one sample ([Code/AWS] `docs/results/engineering-20261021/short-lane-sl1021.json`); #94 is [NOT_RUN].
+  0.69x the operator batch); #93 was enabled on `dc2-live` on 21 October and measured there: 5 jobs per arm, median queue wait 0.26 s against 32.6 s, billed compute $0.0003 against $0.0021 per encode, cold-start end-to-end 4 s slower than Fargate on one sample ([Code/AWS] `docs/results/engineering-20261021/short-lane-sl1021.json`); #94 (one Aurora cluster per service, AD-29) was then run: see AD-29 and `docs/results/engineering-20261021/database-split-rehearsal.json`.
 - **Evidence.** [Code] `docs/execution/aws/v2/*.md`, `definitions.py`, `tests/aws/v1/test_database_topology.py`.
 
 ### AD-23 One CloudFormation stack, applied in two phases
@@ -495,7 +495,7 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
 ### AD-29 Media and Processing each have their own Aurora cluster, split in place from the shared one
 
 - **Context.** V1 kept `media_db` and `processing_db` on one Aurora Serverless v2 cluster:
-  separate roles and migrations, but one instance, one ACU ceiling and one failure boundary (AISS-01).
+  separate roles and migrations, but one instance, one ACU ceiling and one failure boundary in V1 (AISS-01); since AD-29 each service has its own cluster.
 - **Decision.** Media keeps the existing cluster, instance and security group under V1's logical ids,
   so the live cluster is never replaced. Processing gets `ProcessingDatabaseCluster`, a copy-on-write
   clone of it. `split-database` checks Processing is idle, takes a manual snapshot, updates the stack,
@@ -527,7 +527,7 @@ Each row compares the proposal's text (`Team17-Proposal.docx`, section 2.4) with
 | Upload through Media Management, 100 MiB (section 2.3) | Direct-to-S3 reservation and finalize; limit unchanged | Payload limits and cost of proxying bytes | [AWS] `direct-upload-e2e` |
 | Transactional outbox only if needed (AD-04) | Outbox and inbox in both databases from the start | The new transport is not atomic with SQL | [Local] `test_messaging_sql.py` |
 | Each service deployed on its own (section 2.5) | Code releases are independent per owner (Lambda aliases), with path-filtered per-service CI lanes that build and check only that owner's images (#204, CODEOWNERS). **Infrastructure is one CloudFormation stack** for both. | Effort; recorded as an accepted trade-off in #195 | [AWS] `promote-good` peer unchanged; [Code] AD-23, `.github/workflows/ci.yml`, `.github/CODEOWNERS` |
-| One PostgreSQL server (AD-02) | Kept, which makes the **shared Aurora cluster one failure and capacity boundary** | Cost; separate clusters are a [NOT_RUN] experiment (#94) | [Code]; `docs/execution/aws/v2/database-topology.md` |
+| One PostgreSQL server (AD-02) | Kept in V1, which made the shared Aurora cluster one failure and capacity boundary; **superseded by AD-29**: `dc2-live` runs one cluster per service (Media keeps the original, Processing has its own clone, both auto-pause) | Cost; the split was rehearsed (#94, CD 39644028238, `docs/results/engineering-20261021/database-split-rehearsal.json`) | [Code]; `docs/execution/aws/v2/database-topology.md` |
 | Pipeline deploys then the Publisher CLI runs the smoke test (section 2.5) | CD smoke uses the evidence harness (`evidence gateway --only direct-upload-e2e`), not Publisher | Encoders are operator-started, so a Publisher job would stay queued | `deploy-runbook.md` "CD workflow"; Publisher is exercised by CI (`publisher-https`) [Local] |
 | Automated pipeline builds, tests, scans, deploys | CI (lint, unit, per-service lanes, Trivy, Sonar, secret scan, ZAP workflow) is automatic. **CD ran by manual dispatch for `r1018a`, `r1018b` (post-release smoke and teardown failed) and `r1019a` (deploy, release with smoke and teardown green); since AD-27 it also runs after every green CI on Main.** | Cost guard and operator-gated sessions | [Code] workflows; [AWS] `r1018b` CD runs, see [`docs/evidence-index.md`](../evidence-index.md) |
 | Scalability target: 30 identical 60 s clips, 1, 2, 3 workers, jobs/min ratios (section 3.4) | AWS `r1018b` ran a backlog of **6** clips (36 MB fixture) at cap 1, 2 and 3: 0.483 / 0.700 / 1.134 jobs/min, so 1.449x (**FAIL**, target 1.6x) and 2.347x (PASS, target 2.1x). The proposal's 30-clip backlog ran only locally, on the pre-V1 design, with three rotated repeats (the team's local protocol): 2.03x and 2.89x | Cost and time; the Fargate quota caps the run at 3 encoders | [AWS] `cloud-proof-r1018b.json` `#185`; [Local] `reviews/scaling-validation.md`. Detail and likely cause: [`docs/evidence-index.md`](../evidence-index.md) |
@@ -559,7 +559,7 @@ Status on 18 October: rows 1, 2 and 3 were corrected in the source documents, an
 
 | Limitation | Detail | Evidence or issue |
 |---|---|---|
-| Shared Aurora cluster is a single failure and capacity boundary | One cluster, one instance, 2 ACU ceiling, 1-day backup retention. An outage, a failed resume or a capacity limit affects both domains. Role separation does not isolate failures. Separate clusters were not measured on AWS. | [Code]; #94 [NOT_RUN] |
+| Aurora failure and capacity boundaries (V1 shared cluster resolved by AD-29) | V1 shipped one shared cluster; since AD-29 Media and Processing each have a cluster, so one domain's outage or failed resume no longer takes down the other. Still true: single region, one instance per cluster, 2 ACU ceiling, 1-day backup retention, no restore drill. | [Code/AWS]; #94 rehearsal receipt |
 | Single region | Everything runs in ap-southeast-1. Subnets span two AZs but the database instance does not. No cross-region copy or failover; the proposal excluded multi-zone and multi-region failover. | [Code] |
 | Operator-started encoders | No autoscaling and no unattended starts by default. At most three concurrent encodes (quota and operator cap). Work that arrives after a batch waits for the next one. The opt-in launcher (#68) removes the operator but measured 0.69x the throughput of operator batches on the same 6 clips. | [AWS] `run-1/2/3`; `r1018b` `#68` |
 | Booked sessions only | When closed, the Gateway throttle is 0 and consumers are disabled. A cold start after pause took 4.7 s for the first read. | [AWS] `close-state`, `cold-wake` |
