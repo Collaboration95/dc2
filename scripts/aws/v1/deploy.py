@@ -2533,11 +2533,13 @@ class Pipeline:
             raise DeployError(
                 "PublicSmoke failed: "
                 + ", ".join(smoke.receipt["failures"])
-                + f" (login attempts: {smoke.receipt['login_attempts']})"
+                + f" (login attempts: {smoke.receipt['login_attempts']},"
+                + f" processing attempts: {smoke.receipt['processing_attempts']})"
             )
         return {
             "checks": smoke.receipt["checks"],
             "login_attempts": smoke.receipt["login_attempts"],
+            "processing_attempts": smoke.receipt["processing_attempts"],
         }
 
     def step_session_close(self):
