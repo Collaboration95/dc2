@@ -112,7 +112,7 @@ figure.dia img{display:block;max-width:100%;height:auto;margin:auto}
 .card:hover{border-color:#5b83bf;background:#fafcff}
 .card .tag{margin-bottom:8px}
 .card b{display:block;font-size:1.05rem;margin:6px 0 4px}
-.card span{font-size:.88rem;color:var(--muted);line-height:1.55;display:block}
+.card span:not(.tag){font-size:.88rem;color:var(--muted);line-height:1.55;display:block}
 
 @media(max-width:900px){
   .layout{display:block}

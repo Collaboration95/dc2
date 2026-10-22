@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3 · Logical architecture — FlickPond</title>
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <a class="brand" href="index.html">FlickPond<small>Team 17 · how the system works</small></a>
+  <nav>
+    <a href="index.html"><span>·</span>Start</a>
+    <a href="1-overview.html"><span>1</span>Context and problem</a>
+    <a href="2-conduct.html"><span>2</span>Project conduct</a>
+    <a href="3-logical.html" aria-current="page"><span>3</span>Logical architecture</a>
+    <a href="4-physical.html"><span>4</span>Physical architecture</a>
+    <a href="5-devops.html"><span>5</span>DevOps and lifecycle</a>
+    <a href="6-demo.html"><span>6</span>Demo plan</a>
+    <div class="sep"></div>
+    <a href="references.html"><span>§</span>References</a>
+    <a href="deck.html"><span>▶</span>Slides</a>
+    <a href="archive/index.html"><span>↺</span>Previous guide</a>
+  </nav>
+</aside>
+<main>
+  <p class="eyebrow">Section 3</p>
+  <h1>Logical architecture and design</h1>
+  <p class="lede">FlickPond is two services. Media decides who owns what and who may see it; Processing decides how a video gets encoded. They share no database and never call each other: they exchange messages through queues, and a small set of mechanisms keeps them consistent when messages are late, duplicated or lost.</p>
+  <ul class="toc">
+    <li><a href="#3a">3a Key decisions</a></li>
+    <li><a href="#3b">3b Components</a></li>
+    <li><a href="#3c">3c Domain model</a></li>
+    <li><a href="#contexts">Contexts</a></li>
+    <li><a href="#asset-job-attempt">Asset, Job, Attempt</a></li>
+    <li><a href="#source-pin">Source pin</a></li>
+    <li><a href="#outbox">Outbox and inbox</a></li>
+    <li><a href="#idempotency">Duplicates</a></li>
+    <li><a href="#lease">Lease</a></li>
+    <li><a href="#projection">Projection</a></li>
+    <li><a href="#access">Access</a></li>
+    <li><a href="#producers-consumers">Producers and consumers</a></li>
+    <li><a href="#questions">Questions</a></li>
+  </ul>
+
+  <!-- ============================================================ 3a -->
+  <section class="sub" id="3a">
+    <h2><span class="tag">3a</span>Decisions that shaped the logical design</h2>
+    <div class="point"><p>One decision drives the rest: split the system where the rules change, between owning a video and encoding it, and let the two halves communicate only through messages. Each decision below follows from that, and each has a price.</p></div>
+
+    <p>The requirement from section 1 is a reusable workflow (upload, process, status, playback) whose encoding capacity can grow and shrink without touching the user-facing API. The proposal drew a design for that with a synchronous call from Media to Processing, a Redis job queue and a shared service token. Moving to managed AWS services changed three of those choices, and the lecturer asked the team to confirm the service split with a detailed domain analysis. The decisions as built:</p>
+
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Decision</th><th>What it does</th><th>Why</th><th>What it costs</th></tr></thead>
+      <tbody>
+        <tr><td>Two business services (AD-01)</td><td>Processing is extracted as the only new service. Accounts, ownership, upload intake and playback stay together in Media.</td><td>Processing has its own rules (attempts, leases), lifecycle and CPU-heavy scaling. Every playback or retry decision needs owner and Asset together, so splitting identity or playback out would turn single-database joins into calls between services.</td><td>More integration work than a single application. <a href="#contexts">Contexts</a></td></tr>
+        <tr><td>A database per service (AD-02, AD-29)</td><td><code>media_db</code> and <code>processing_db</code>, separate migration histories, separate login roles; since 21 October each on its own Aurora cluster.</td><td>Ownership is enforced by the database, not by convention: neither service's login can open the other's database.</td><td>No join or transaction across the two; consistency must come from messages. A second cluster to pay for. <a href="4-physical.html#4c">4c</a></td></tr>
+        <tr><td>Queues with an outbox and inbox (AD-11)</td><td>State changes and the messages they cause commit together in SQL; SQS carries them; the receiver records each message before acting on it.</td><td>Media keeps accepting uploads while Processing is down; no always-on broker such as Redis.</td><td>Delivery is at least once, so duplicates are normal and every receiver must tolerate them. Repair is part of the design. <a href="#outbox">Outbox</a></td></tr>
+        <tr><td>Direct-to-S3 upload with a pinned version (AD-14)</td><td>The client uploads straight to storage under a short grant; Media then verifies the bytes and pins that exact S3 object version.</td><td>No 100 MiB body passes through the API, and the bytes that were checked are exactly the bytes that get encoded.</td><td>A two-step protocol; the client must hash the file first. <a href="#source-pin">Source pin</a></td></tr>
+        <tr><td>Media keeps a projection (AD-21)</td><td>Media stores its own copy of each job's state, updated from Processing's result messages.</td><td>Status and playback never wait on Processing.</td><td>The copy can be briefly behind. <a href="#projection">Projection</a></td></tr>
+        <tr><td>Identity checked once, at the gateway (AD-09, AD-20)</td><td>A Media-owned authorizer turns the session cookie into a trusted owner identity for both services; IAM restricts who may send to or read from each queue.</td><td>Processing trusts the owner without holding Media's secret or user table.</td><td>One database read per request; Processing's public routes depend on Media's authorizer. <a href="#access">Access</a></td></tr>
+        <tr><td>A versioned published contract (AD-24)</td><td>One message envelope and two OpenAPI documents; consumers accept the current and previous version and ignore unknown fields.</td><td>Additive changes can ship in either service first.</td><td>The contract code is copied into both images (a shared kernel), so a breaking change takes two releases. <a href="#producers-consumers">Contract</a></td></tr>
+      </tbody>
+    </table></div>
+    <p>Three proposal decisions were replaced: the synchronous <em>SubmitJob</em> call became an asynchronous <code>submit</code> message, because a direct call makes Media's availability depend on Processing's; Redis/RQ became SQS, because Redis needs a server running all the time; and the shared service token became the gateway-trusted identity plus IAM, because serverless functions have no private network for a token to protect. <a class="ref" href="references.html#r-decision-register">AD register</a></p>
+  </section>
+
+  <!-- ============================================================ 3b -->
+  <section class="sub" id="3b">
+    <h2><span class="tag">3b</span>Logical components</h2>
+    <div class="point"><p>Each service is several small functions sharing one codebase, one image and one database. The functions are deployment units, not extra services: a service is something with its own data, rules and release.</p></div>
+
+    <h3 id="logical-deployment">Logical deployment view</h3>
+    <figure class="dia">
+      <svg viewBox="0 0 1000 745" role="img" aria-label="Logical deployment: clients reach CloudFront and API Gateway; Media functions and media_db on the left, Processing functions, encoders and processing_db on the right, two SQS queues between them, S3 below" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+        <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b6673"/></marker></defs>
+        <!-- clients -->
+        <rect x="280" y="10" width="190" height="50" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+        <text x="375" y="31" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2630">Browser app</text>
+        <text x="375" y="49" text-anchor="middle" font-size="11.5" fill="#46515e">one file at a time</text>
+        <rect x="530" y="10" width="190" height="50" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+        <text x="625" y="31" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2630">Publisher CLI</text>
+        <text x="625" y="49" text-anchor="middle" font-size="11.5" fill="#46515e">whole folders</text>
+        <!-- edge -->
+        <rect x="120" y="95" width="210" height="56" rx="8" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+        <text x="225" y="117" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2630">CloudFront</text>
+        <text x="225" y="137" text-anchor="middle" font-size="11.5" fill="#46515e">HTTPS; serves the web app</text>
+        <rect x="380" y="95" width="240" height="56" rx="8" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+        <text x="500" y="117" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2630">API Gateway</text>
+        <text x="500" y="137" text-anchor="middle" font-size="11.5" fill="#46515e">/api/media/*   ·   /api/processing/*</text>
+        <rect x="680" y="95" width="210" height="56" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+        <text x="785" y="117" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2630">Media authorizer</text>
+        <text x="785" y="137" text-anchor="middle" font-size="11.5" fill="#46515e">cookie + current user → owner</text>
+        <line x1="355" y1="60" x2="250" y2="93" stroke="#5b6673" stroke-width="1.8" marker-end="url(#a3)"/>
+        <line x1="580" y1="60" x2="310" y2="93" stroke="#5b6673" stroke-width="1.8" marker-end="url(#a3)"/>
+        <line x1="330" y1="123" x2="378" y2="123" stroke="#5b6673" stroke-width="1.8" marker-end="url(#a3)"/>
+        <line x1="620" y1="123" x2="678" y2="123" stroke="#5b6673" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#a3)"/>
+        <text x="649" y="115" text-anchor="middle" font-size="10.5" fill="#5b6673">first</text>
+        <line x1="440" y1="151" x2="340" y2="223" stroke="#5b6673" stroke-width="1.8" marker-end="url(#a3)"/>
+        <line x1="560" y1="151" x2="670" y2="223" stroke="#5b6673" stroke-width="1.8" marker-end="url(#a3)"/>
+        <!-- media zone -->
+        <rect x="10" y="185" width="410" height="290" rx="12" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="7 5"/>
+        <text x="24" y="206" font-size="11" font-weight="700" letter-spacing="1" fill="#2563eb">MEDIA MANAGEMENT · ONE IMAGE</text>
+        <rect x="25" y="225" width="135" height="230" rx="10" fill="#fff" stroke="#2563eb" stroke-width="2"/>
+        <text x="92" y="248" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2630">media_db</text>
+        <text x="92" y="265" text-anchor="middle" font-size="11" fill="#5b6673">own Aurora cluster</text>
+        <text x="40" y="295" font-size="11.5" fill="#1f2630">users</text>
+        <text x="40" y="315" font-size="11.5" fill="#1f2630">assets</text>
+        <text x="40" y="335" font-size="11.5" fill="#1f2630">upload grants</text>
+        <text x="40" y="355" font-size="11.5" fill="#1f2630">source pins</text>
+        <text x="40" y="375" font-size="11.5" fill="#1f2630">projection</text>
+        <text x="40" y="395" font-size="11.5" fill="#1f2630">outbox · inbox</text>
+        <rect x="180" y="225" width="225" height="80" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+        <text x="194" y="247" font-size="13" font-weight="700" fill="#1f2630">MediaApi</text>
+        <text x="194" y="266" font-size="11.5" fill="#1f2630">register, log in, upload grants,</text>
+        <text x="194" y="283" font-size="11.5" fill="#1f2630">finalize, job view, playback links,</text>
+        <text x="194" y="300" font-size="11.5" fill="#1f2630">retry, edit, delete</text>
+        <rect x="180" y="320" width="225" height="58" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+        <text x="194" y="342" font-size="13" font-weight="700" fill="#1f2630">MediaResults</text>
+        <text x="194" y="362" font-size="11.5" fill="#1f2630">applies results to the projection</text>
+        <rect x="180" y="393" width="225" height="62" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+        <text x="194" y="415" font-size="13" font-weight="700" fill="#1f2630">MediaRepair · every minute</text>
+        <text x="194" y="435" font-size="11.5" fill="#1f2630">sends the outbox, cleans up</text>
+        <text x="194" y="450" font-size="11.5" fill="#1f2630">expired grants and deleted sources</text>
+        <line x1="160" y1="265" x2="180" y2="265" stroke="#2563eb" stroke-width="2"/>
+        <line x1="160" y1="349" x2="180" y2="349" stroke="#2563eb" stroke-width="2"/>
+        <line x1="160" y1="424" x2="180" y2="424" stroke="#2563eb" stroke-width="2"/>
+        <!-- queues -->
+        <text x="502" y="305" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="1" fill="#5b6673">SQS</text>
+        <rect x="432" y="320" width="141" height="58" rx="8" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+        <text x="502" y="342" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2630">media-results</text>
+        <text x="502" y="361" text-anchor="middle" font-size="11" fill="#46515e">result snapshots</text>
+        <rect x="432" y="393" width="141" height="62" rx="8" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+        <text x="502" y="415" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2630">processing-commands</text>
+        <text x="502" y="435" text-anchor="middle" font-size="11" fill="#46515e">submit · retry · cancel</text>
+        <line x1="405" y1="424" x2="430" y2="424" stroke="#5b6673" stroke-width="2" marker-end="url(#a3)"/>
+        <line x1="573" y1="424" x2="598" y2="424" stroke="#5b6673" stroke-width="2" marker-end="url(#a3)"/>
+        <line x1="600" y1="349" x2="575" y2="349" stroke="#5b6673" stroke-width="2" marker-end="url(#a3)"/>
+        <line x1="432" y1="349" x2="407" y2="349" stroke="#5b6673" stroke-width="2" marker-end="url(#a3)"/>
+        <!-- processing zone -->
+        <rect x="582" y="185" width="408" height="455" rx="12" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="7 5"/>
+        <text x="596" y="206" font-size="11" font-weight="700" letter-spacing="1" fill="#b45309">PROCESSING · SERVICE IMAGE + ENCODER IMAGE</text>
+        <rect x="600" y="225" width="215" height="80" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+        <text x="614" y="247" font-size="13" font-weight="700" fill="#1f2630">ProcessingApi</text>
+        <text x="614" y="266" font-size="11.5" fill="#1f2630">the owner's jobs, retry, cancel</text>
+        <text x="614" y="283" font-size="11.5" fill="#1f2630">(optional direct route for</text>
+        <text x="614" y="300" font-size="11.5" fill="#1f2630">clients; same owner filter)</text>
+        <rect x="600" y="320" width="215" height="58" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+        <text x="614" y="342" font-size="13" font-weight="700" fill="#1f2630">Repair + event handlers</text>
+        <text x="614" y="362" font-size="11.5" fill="#1f2630">send outbox, expire leases</text>
+        <rect x="600" y="393" width="215" height="62" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+        <text x="614" y="415" font-size="13" font-weight="700" fill="#1f2630">ProcessingCommands</text>
+        <text x="614" y="435" font-size="11.5" fill="#1f2630">command → Job, Attempt,</text>
+        <text x="614" y="450" font-size="11.5" fill="#1f2630">work message</text>
+        <rect x="835" y="225" width="140" height="230" rx="10" fill="#fff" stroke="#d97706" stroke-width="2"/>
+        <text x="905" y="248" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2630">processing_db</text>
+        <text x="905" y="265" text-anchor="middle" font-size="11" fill="#5b6673">own Aurora cluster</text>
+        <text x="850" y="295" font-size="11.5" fill="#1f2630">jobs</text>
+        <text x="850" y="315" font-size="11.5" fill="#1f2630">attempts + leases</text>
+        <text x="850" y="335" font-size="11.5" fill="#1f2630">submission guards</text>
+        <text x="850" y="355" font-size="11.5" fill="#1f2630">launch reservations</text>
+        <text x="850" y="375" font-size="11.5" fill="#1f2630">outbox · inbox</text>
+        <line x1="815" y1="265" x2="835" y2="265" stroke="#d97706" stroke-width="2"/>
+        <line x1="815" y1="349" x2="835" y2="349" stroke="#d97706" stroke-width="2"/>
+        <line x1="815" y1="424" x2="835" y2="424" stroke="#d97706" stroke-width="2"/>
+        <rect x="600" y="480" width="155" height="70" rx="8" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+        <text x="677" y="500" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2630">work queues</text>
+        <text x="677" y="518" text-anchor="middle" font-size="11" fill="#46515e">processing-work</text>
+        <text x="677" y="535" text-anchor="middle" font-size="11" fill="#46515e">processing-work-short</text>
+        <rect x="600" y="568" width="155" height="58" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+        <text x="614" y="590" font-size="13" font-weight="700" fill="#1f2630">Launcher</text>
+        <text x="614" y="609" font-size="11.5" fill="#1f2630">starts Fargate, max 3</text>
+        <rect x="775" y="480" width="200" height="146" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+        <text x="789" y="502" font-size="13" font-weight="700" fill="#1f2630">Encoders</text>
+        <text x="789" y="522" font-size="11.5" fill="#1f2630">Fargate task, 0 to 3</text>
+        <text x="789" y="539" font-size="11.5" fill="#1f2630">short-encode Lambda, up to 2</text>
+        <text x="789" y="563" font-size="11.5" fill="#1f2630">claim, heartbeat and finish</text>
+        <text x="789" y="580" font-size="11.5" fill="#1f2630">by writing processing_db;</text>
+        <text x="789" y="597" font-size="11.5" fill="#1f2630">cannot send messages</text>
+        <line x1="677" y1="455" x2="677" y2="478" stroke="#5b6673" stroke-width="2" marker-end="url(#a3)"/>
+        <line x1="755" y1="515" x2="773" y2="515" stroke="#5b6673" stroke-width="2" marker-end="url(#a3)"/>
+        <line x1="755" y1="597" x2="773" y2="597" stroke="#5b6673" stroke-width="2" marker-end="url(#a3)"/>
+        <line x1="905" y1="480" x2="905" y2="458" stroke="#d97706" stroke-width="2" marker-end="url(#a3)"/>
+        <!-- shared kernel -->
+        <rect x="10" y="495" width="410" height="85" rx="10" fill="#fff" stroke="#9aa6b4" stroke-width="2" stroke-dasharray="5 4"/>
+        <text x="24" y="518" font-size="12.5" font-weight="700" fill="#1f2630">Shared kernel, copied into both images</text>
+        <text x="24" y="538" font-size="11.5" fill="#1f2630">contracts/: message envelope, owner identity, versions</text>
+        <text x="24" y="556" font-size="11.5" fill="#1f2630">delivery/: outbox, inbox, SQS adapter</text>
+        <text x="24" y="572" font-size="11.5" fill="#1f2630">runtime_support/: database sessions, settings</text>
+        <!-- s3 -->
+        <rect x="300" y="660" width="675" height="72" rx="8" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+        <text x="314" y="682" font-size="13" font-weight="700" fill="#1f2630">S3 · source bucket (versioned) and output bucket</text>
+        <text x="314" y="701" font-size="11.5" fill="#1f2630">Clients upload and play through presigned URLs. Media verifies uploads and signs links.</text>
+        <text x="314" y="719" font-size="11.5" fill="#1f2630">Encoders read the pinned source version and write outputs under their Attempt's prefix.</text>
+        <line x1="875" y1="626" x2="875" y2="658" stroke="#5b6673" stroke-width="2" marker-end="url(#a3)"/>
+      </svg>
+      <div class="legend"><span><i style="border-color:var(--client);background:var(--client-bg)"></i>clients</span><span><i style="border-color:var(--media);background:var(--media-bg)"></i>Media</span><span><i style="border-color:var(--proc);background:var(--proc-bg)"></i>Processing</span><span><i style="border-color:var(--infra);background:var(--infra-bg)"></i>managed service</span></div>
+      <figcaption>Every function connects only to its own service's database; the two queues in the middle are the only path between the services. The one shared dependency is the Media authorizer, which the gateway asks before any protected route of either service.</figcaption>
+    </figure>
+
+    <h3>What each component receives, does and hands on</h3>
+    <div class="table-wrap"><table class="grid mech">
+      <thead><tr><th>Component</th><th>Comes in</th><th>What it does and changes</th><th>Goes out</th></tr></thead>
+      <tbody>
+        <tr><td>Media authorizer</td><td>Every request to a protected route, with its session cookie</td><td>Verifies the signed cookie and reads the <em>current</em> user row (deleted user or changed role takes effect at once). Changes nothing.</td><td>Allow, plus the trusted owner ID and role; or deny (401)</td></tr>
+        <tr><td>MediaApi</td><td>Owner requests: register, log in, reserve upload, finalize, list and read jobs, retry, edit, delete, HLS playlist</td><td>Checks ownership on every Asset; creates upload grants; verifies uploads and creates Assets; stages commands in the outbox; signs playback links</td><td>HTTP responses; <code>submit</code>/<code>retry</code>/<code>cancel</code> rows in Media's outbox (sent later by MediaRepair)</td></tr>
+        <tr><td>MediaResults</td><td>Result messages from <code>media-results</code></td><td>Records the message in Media's inbox and updates the projection in one commit, applying only newer, valid states</td><td>Deletion of the message from the queue, only after the commit</td></tr>
+        <tr><td>MediaRepair</td><td>A tick every minute</td><td>Sends due outbox rows; expires unused upload grants; deletes a deleted Asset's source once Processing has confirmed the cancel</td><td>Commands on <code>processing-commands</code></td></tr>
+        <tr><td>ProcessingCommands</td><td>Commands from <code>processing-commands</code></td><td>In one commit: inbox row, submission guard, Job and Attempt (or a new Attempt for retry, or cancellation), and outgoing result and work rows</td><td>Sends its outbox straight after the commit: a result to Media, a work message to an encoder queue</td></tr>
+        <tr><td>Repair and event handlers</td><td>A tick every minute; ECS "task stopped" and S3 "object created" events as hints</td><td>Sends due outbox rows (this is how encoder results leave); marks Attempts with an expired lease as abandoned; re-sends work lost from a queue; cleans up outputs of dead Attempts</td><td>Results and repeated work messages</td></tr>
+        <tr><td>Launcher</td><td>A wake-up on every work send, plus a one-minute safety tick</td><td>Counts queued Attempts in SQL and reserves launch slots, never more than three running; starts Fargate tasks</td><td>ECS task starts</td></tr>
+        <tr><td>Encoders</td><td>A work message for one Attempt</td><td>Claims the Attempt (gets a lease), downloads and checks the pinned source, runs FFmpeg, uploads outputs, records the finish under a live lease</td><td>Files in S3 and rows in <code>processing_db</code>; never a queue message</td></tr>
+      </tbody>
+    </table></div>
+    <p class="see">Memory sizes, network placement and the two encoder lanes are physical concerns: <a href="4-physical.html#compute">4 · Compute</a>, <a href="4-physical.html#lanes">4 · Lanes</a>, <a href="4-physical.html#launcher">4 · Launcher</a>.</p>
+
+    <h3>Layers inside each service</h3>
+    <p>Both services follow the same layering. The <strong>API layer</strong> (FastAPI routes) receives a request with an already-trusted owner identity, validates the input and calls the domain layer. The <strong>domain layer</strong> holds the rules: for Media, upload intake, lifecycle (retry, edit, delete) and applying results; for Processing, command handling, the Attempt lifecycle and recovery. It decides whether a change is allowed, makes it, and stages any outgoing message in the same transaction. The <strong>persistence layer</strong> (SQLAlchemy models and Alembic migrations, one history per database) stores it. The <strong>shared kernel</strong> supplies the message envelope and the outbox/inbox machinery, identical in both images. The FFmpeg command builder is a separate pure package with no I/O, used only by the encoders.</p>
+
+    <h3>Relationships that deliberately do not exist</h3>
+    <ul>
+      <li>Media never calls Processing, and Processing never calls Media.</li>
+      <li>Neither service can read the other's database. Each function's IAM role can read only its own service's connection string, and the database refuses the other service's login.</li>
+      <li>The encoder cannot send messages. It reports only by writing Processing's database; Processing's outbox publishes the result.</li>
+    </ul>
+    <p>These are checked, not just documented: a build step fails if the other service's package, or any retired code from the old design, can be imported inside an image. <a class="ref" href="references.html#r-check-runtime">check_runtime</a></p>
+    <div class="limit"><p>Infrastructure is shared. Both services are defined in one CloudFormation stack, so network, queue and IAM changes for either service ship together; only code is released per service. The shared kernel is copied into both images, so a breaking contract change needs a release of each.</p></div>
+  </section>
+
+  <!-- ============================================================ 3c -->
+  <section class="sub" id="3c">
+    <h2><span class="tag">3c</span>Domain-driven design, and how producers and consumers interact</h2>
+    <div class="point"><p>Two bounded contexts, each with one aggregate that is its consistency boundary: the Asset in Media and the Job (with its Attempts) in Processing. Everything that crosses between them is a translated message, and a handful of fences make those messages safe to deliver late, twice or out of order.</p></div>
+
+    <h3 id="contexts">Bounded contexts, context map and language</h3>
+    <p>A <strong>bounded context</strong> is the part of the system in which a word has one exact meaning and one model enforces its rules. The proposal drew the boundary from the verbs of the workflow (upload, submit, claim, encode, complete, play). The detailed analysis then checked it against what the code actually has to keep consistent inside one transaction.</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Context</th><th>Owns</th><th>Does not own</th></tr></thead>
+      <tbody>
+        <tr><td>Media Management</td><td>Accounts and login, ownership, upload intake, source versions, playback signing, the public job view, deletion and source cleanup (<code>media_db</code>)</td><td>Job state, attempts, leases, outputs. It holds only a projection.</td></tr>
+        <tr><td>Processing</td><td>Jobs, attempts, leases, retry and cancel, output descriptors, cleanup of late outputs, encoder claims and launch reservations (<code>processing_db</code>)</td><td>Users, Assets, source bytes (it has read-only access), playback links</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>Why the line is there.</strong> In <code>media_db</code>, assets, upload grants and request keys all have a foreign key to <code>users</code>; the authorizer, the upload grant and the playback signer all read those same rows. Owner and Asset belong in one transaction. Processing's rules (one job per video, one current attempt, a lease that decides which worker may finish) need none of that data; they only need to know the owner's ID as a plain value. Processing holds the owner as a UUID, never a foreign key.</p>
+
+    <figure class="dia">
+      <svg viewBox="0 0 900 290" role="img" aria-label="Context map: Media Management and Processing, each with its aggregate and a translation layer, exchanging commands and result snapshots through a published language" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+        <defs><marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b6673"/></marker></defs>
+        <rect x="10" y="8" width="300" height="274" rx="12" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="7 5"/>
+        <text x="24" y="29" font-size="11" font-weight="700" letter-spacing="1" fill="#2563eb">MEDIA MANAGEMENT · CUSTOMER</text>
+        <rect x="590" y="8" width="300" height="274" rx="12" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="7 5"/>
+        <text x="604" y="29" font-size="11" font-weight="700" letter-spacing="1" fill="#b45309">PROCESSING · SUPPLIER</text>
+        <rect x="25" y="42" width="270" height="62" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+        <text x="39" y="64" font-size="13" font-weight="700" fill="#1f2630">Asset aggregate</text>
+        <text x="39" y="83" font-size="11.5" fill="#1f2630">Asset, upload grant, source version,</text>
+        <text x="39" y="99" font-size="11.5" fill="#1f2630">request keys, cleanup intent</text>
+        <rect x="25" y="120" width="270" height="62" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+        <text x="39" y="142" font-size="13" font-weight="700" fill="#1f2630">Translation</text>
+        <text x="39" y="161" font-size="11.5" fill="#1f2630">Asset + pinned source → submit;</text>
+        <text x="39" y="177" font-size="11.5" fill="#1f2630">result → projection, public status</text>
+        <rect x="25" y="198" width="270" height="62" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+        <text x="39" y="220" font-size="13" font-weight="700" fill="#1f2630">Projection</text>
+        <text x="39" y="239" font-size="11.5" fill="#1f2630">Media’s copy of each Job</text>
+        <rect x="605" y="42" width="270" height="62" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+        <text x="619" y="64" font-size="13" font-weight="700" fill="#1f2630">Job aggregate</text>
+        <text x="619" y="83" font-size="11.5" fill="#1f2630">Job, Attempts, retry requests,</text>
+        <text x="619" y="99" font-size="11.5" fill="#1f2630">task binding, submission guard</text>
+        <rect x="605" y="120" width="270" height="62" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+        <text x="619" y="142" font-size="13" font-weight="700" fill="#1f2630">Translation</text>
+        <text x="619" y="161" font-size="11.5" fill="#1f2630">command → Job, Attempt and</text>
+        <text x="619" y="177" font-size="11.5" fill="#1f2630">submission guard rows</text>
+        <rect x="605" y="198" width="270" height="62" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+        <text x="619" y="220" font-size="13" font-weight="700" fill="#1f2630">Encoder</text>
+        <text x="619" y="239" font-size="11.5" fill="#1f2630">an execution role inside Processing,</text>
+        <text x="619" y="255" font-size="11.5" fill="#1f2630">not a separate context</text>
+        <rect x="345" y="205" width="210" height="62" rx="8" fill="#fff" stroke="#9aa6b4" stroke-width="2" stroke-dasharray="5 4"/>
+        <text x="359" y="227" font-size="13" font-weight="700" fill="#1f2630">Published language</text>
+        <text x="359" y="246" font-size="11.5" fill="#1f2630">envelope v1, owner identity,</text>
+        <text x="359" y="262" font-size="11.5" fill="#1f2630">two OpenAPI 1.0.0 documents</text>
+        <line x1="160" y1="104" x2="160" y2="118" stroke="#2563eb" stroke-width="2"/>
+        <line x1="160" y1="182" x2="160" y2="196" stroke="#2563eb" stroke-width="2"/>
+        <line x1="740" y1="104" x2="740" y2="118" stroke="#d97706" stroke-width="2"/>
+        <line x1="740" y1="182" x2="740" y2="196" stroke="#d97706" stroke-width="2"/>
+        <line x1="295" y1="138" x2="603" y2="138" stroke="#5b6673" stroke-width="2.5" marker-end="url(#a5)"/>
+        <text x="450" y="129" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2630">submit · retry · cancel</text>
+        <line x1="605" y1="166" x2="297" y2="166" stroke="#5b6673" stroke-width="2.5" marker-end="url(#a5)"/>
+        <text x="450" y="186" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2630">result snapshot</text>
+        <line x1="450" y1="190" x2="450" y2="203" stroke="#9aa6b4" stroke-width="1.5" stroke-dasharray="3 3"/>
+      </svg>
+      <div class="legend"><span><i style="border-color:var(--media);background:var(--media-bg)"></i>Media</span><span><i style="border-color:var(--proc);background:var(--proc-bg)"></i>Processing</span><span><i style="border-color:#9aa6b4;background:#fff;border-style:dashed"></i>shared contract</span></div>
+      <figcaption>Each side translates at its own edge, so neither model leaks into the other: Media never forwards its Asset rows, and Processing never sees a user.</figcaption>
+    </figure>
+    <p>The relationships on the context map:</p>
+    <ul>
+      <li><strong>Customer and supplier.</strong> Media is the customer: it says what should be processed. Processing is the supplier and owns the answer.</li>
+      <li><strong>Translation on both sides</strong> (an anti-corruption layer). Media builds a <code>submit</code> message from its Asset and pinned source, and turns each result into its own projection and public status. Processing turns each command into its own rows. Neither imports the other's code.</li>
+      <li><strong>Published language and shared kernel.</strong> The message envelope, the owner-identity format and two OpenAPI documents. The code that defines them is copied into both images, which is why it counts as a shared kernel: changing it affects both sides, so it has a versioning policy (see <a href="#producers-consumers">contract</a>).</li>
+    </ul>
+
+    <h4>Ubiquitous language</h4>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Term</th><th>Meaning here</th></tr></thead>
+      <tbody>
+        <tr><td>Owner</td><td>The account that uploaded an Asset; the only one that may read, retry, edit, delete or play it</td></tr>
+        <tr><td>Asset</td><td>An owned video and the edit operations to apply. Its ID is also the public job ID.</td></tr>
+        <tr><td>Upload reservation</td><td>A 15-minute grant, scoped to one owner, to write one object to storage</td></tr>
+        <tr><td>Source pin</td><td>The exact bytes Processing may read: the S3 object version, plus its size and SHA-256</td></tr>
+        <tr><td>Job</td><td>Processing's unit of work for one Asset; exactly one per Asset</td></tr>
+        <tr><td>Attempt</td><td>One numbered try at a Job; never reused</td></tr>
+        <tr><td>Lease</td><td>A worker's time-limited right to finish one Attempt, judged on the database clock</td></tr>
+        <tr><td>Output descriptor</td><td>Kind, key, size and SHA-256 of one output file</td></tr>
+        <tr><td>Command, work, result</td><td>The three message families: Media → Processing, Processing → encoder, Processing → Media</td></tr>
+        <tr><td>Projection</td><td>Media's own copy of a Job's state</td></tr>
+        <tr><td>Tombstone</td><td>Deletion recorded as state (a <code>deleted_at</code> time) rather than removing the row</td></tr>
+      </tbody>
+    </table></div>
+    <p>There are five message kinds, all in one envelope: <code>submit</code>, <code>retry</code> and <code>cancel</code> (Media to Processing), <code>work</code> (Processing to an encoder) and <code>result</code> (Processing to Media). There are no separate domain events such as "JobStarted". Every change to a Job (claim, completion, failure, retry, cancel) produces one <code>result</code> carrying the Job's full state and an increasing <code>state_version</code>. This style is called event-carried state transfer. It is not event sourcing: the SQL rows are the truth, and messages are copies of it.</p>
+
+    <h3 id="asset-job-attempt">Asset, Job and Attempt</h3>
+    <p>An <strong>aggregate</strong> is a cluster of rows that is changed only through its root, inside one transaction, so its rules always hold. FlickPond has two, and no transaction ever spans both.</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Aggregate</th><th>Rules it guarantees</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Asset</strong> (Media)<br><span style="font-weight:400">root Asset, with upload reservation, source version, request keys, cleanup intent</span></td><td>
+          Only the owner can read or change it; anyone else gets 404.<br>
+          A reservation is idempotent per owner and request ID.<br>
+          Stored bytes must match the declared size, SHA-256 and file signature.<br>
+          An adopted source cannot change.<br>
+          Adopting a source and staging its <code>submit</code> happen in one commit.<br>
+          Retry only from <code>failed</code>; edit only from <code>done</code>.<br>
+          Delete is a tombstone plus a <code>cancel</code> in one commit; the source is removed only after Processing confirms.</td></tr>
+        <tr><td><strong>Job</strong> (Processing)<br><span style="font-weight:400">root Job, with Attempts, retry requests, task binding; plus a submission guard per Asset</span></td><td>
+          One Job per Asset; an identical repeated submit does nothing; a different one for the same Asset is refused.<br>
+          Every command must match the stored owner, Asset, Job and source.<br>
+          Each Attempt only moves forward. A Job returns to <code>queued</code> only through a <em>new</em> Attempt.<br>
+          A worker needs a valid lease to start and to finish; one task claims at most one Attempt.<br>
+          A cancel that arrives before its submit is permanent.<br>
+          <code>state_version</code> only increases, and every state change commits with its outgoing messages.</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>Why a Job has Attempts.</strong> A retry must not overwrite the history of the failed try, and a slow worker from the old try must not be able to write a result for the new one. Giving every try its own row, number and output folder (<code>jobs/{job}/attempts/{attempt}/</code>) makes "which try is this result for?" a question the database can answer.</p>
+
+    <figure class="dia">
+      <svg viewBox="0 0 900 240" role="img" aria-label="Attempt states: queued, processing, then succeeded, failed or abandoned; cancelled from queued or processing; retry creates a new attempt" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+        <defs><marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b6673"/></marker></defs>
+        <rect x="20" y="92" width="120" height="44" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/><text x="80" y="119" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2630">queued</text>
+        <rect x="250" y="92" width="130" height="44" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/><text x="315" y="119" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2630">processing</text>
+        <rect x="540" y="12" width="130" height="40" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/><text x="605" y="37" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2630">succeeded</text>
+        <rect x="540" y="94" width="130" height="40" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/><text x="605" y="119" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2630">failed</text>
+        <rect x="540" y="176" width="130" height="40" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/><text x="605" y="201" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2630">abandoned</text>
+        <rect x="140" y="186" width="130" height="40" rx="8" fill="#fff" stroke="#d97706" stroke-width="2"/><text x="205" y="211" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2630">cancelled</text>
+        <rect x="725" y="96" width="165" height="80" rx="8" fill="#fff" stroke="#9aa6b4" stroke-width="2" stroke-dasharray="5 4"/>
+        <text x="807" y="122" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2630">owner retries</text>
+        <text x="807" y="142" text-anchor="middle" font-size="12" fill="#1f2630">new Attempt n+1,</text>
+        <text x="807" y="159" text-anchor="middle" font-size="12" fill="#1f2630">queued, same source</text>
+        <line x1="140" y1="114" x2="248" y2="114" stroke="#5b6673" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="194" y="104" text-anchor="middle" font-size="11.5" fill="#46515e">claim (lease)</text>
+        <line x1="380" y1="104" x2="538" y2="34" stroke="#5b6673" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="462" y="52" text-anchor="end" font-size="11.5" fill="#46515e">finish, lease live</text>
+        <line x1="380" y1="114" x2="538" y2="114" stroke="#5b6673" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="459" y="107" text-anchor="middle" font-size="11.5" fill="#46515e">encode error</text>
+        <line x1="380" y1="126" x2="538" y2="194" stroke="#5b6673" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="440" y="185" text-anchor="middle" font-size="11.5" fill="#46515e">lease or deadline</text>
+        <text x="440" y="200" text-anchor="middle" font-size="11.5" fill="#46515e">expired, task stopped</text>
+        <line x1="80" y1="136" x2="160" y2="184" stroke="#5b6673" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#a4)"/>
+        <line x1="300" y1="136" x2="250" y2="184" stroke="#5b6673" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#a4)"/>
+        <text x="205" y="166" text-anchor="middle" font-size="11.5" fill="#46515e">delete</text>
+        <line x1="670" y1="114" x2="723" y2="128" stroke="#5b6673" stroke-width="2" marker-end="url(#a4)"/>
+        <line x1="670" y1="196" x2="723" y2="156" stroke="#5b6673" stroke-width="2" marker-end="url(#a4)"/>
+      </svg>
+      <figcaption>An Attempt only ever moves to the right. The only way back to <code>queued</code> is a new Attempt, which happens when the owner asks for a retry.</figcaption>
+    </figure>
+    <p>States exist at three levels, and they differ on purpose:</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Level</th><th>States</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Attempt (Processing)</td><td>queued, processing, succeeded, failed, abandoned, cancelled</td><td><code>abandoned</code> means the worker stopped reporting (lease expired) or the task was stopped.</td></tr>
+        <tr><td>Job (Processing)</td><td>queued, processing, done, failed</td><td>Follows its current Attempt. Deletion is a tombstone on the Job, not a status value.</td></tr>
+        <tr><td>Public view (Media)</td><td>accepted, queued, processing, done, failed, cancelled</td><td><code>accepted</code> is shown after a verified upload and before Processing's first result arrives; Processing never emits it. <code>cancelled</code> comes from a deleted Job.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="source-pin">Source pin: the bytes checked are the bytes encoded</h3>
+    <p>An upload grant is valid for 15 minutes. During that time the client could upload a second file to the same key, and S3 would accept it. If Processing simply read "the file at this key", it might encode bytes that were never checked. The <strong>source pin</strong> prevents that: the source bucket keeps every version of an object, and Media records the one version ID it verified. Every later reader asks for that version and nothing else.</p>
+    <div class="table-wrap"><table class="grid mech">
+      <thead><tr><th>Step</th><th>Comes in</th><th>What it does and changes</th><th>Goes out</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Reserve</td><td>Owner's filename, type, size and SHA-256, plus a client request ID</td><td>Checks type and the 100 MiB limit; creates a reservation row with a key chosen by the server (<code>staging/{owner}/{reservation}/source</code>). Repeating the same request ID returns the same reservation; the same ID with a different body is refused (409).</td><td>A presigned S3 POST, valid 15 minutes, whose policy fixes the key, content type and allowed length</td></tr>
+        <tr><td>2 · Upload</td><td>The file bytes, from the client straight to S3</td><td>S3 enforces the POST policy. No cookie, no API in the path.</td><td>A new object version in the source bucket</td></tr>
+        <tr><td>3 · Finalize</td><td>The reservation ID</td><td>Reads the object at an explicit version ID and checks size, SHA-256 and the file's leading bytes (its signature). Then, in one transaction: pins the version on the reservation, creates the Asset, and stages the <code>submit</code> in the outbox. Finalizing again returns the same Asset.</td><td>202 with the job ID (equal to the Asset ID)</td></tr>
+        <tr><td>4 · Every later read</td><td>The source descriptor: bucket, key, version ID, SHA-256, size</td><td>The encoder downloads that version and recomputes the SHA-256 before encoding. The descriptor travels inside every message; it is never a URL.</td><td>Verified bytes for FFmpeg</td></tr>
+      </tbody>
+    </table></div>
+    <p>The database enforces part of this directly: a finalized reservation must carry a real version ID (a check constraint), and an unversioned bucket is refused. Retry and edit reuse the stored pin, which is why a retry never needs a re-upload.</p>
+    <div class="limit tradeoff"><p>The client must hash the whole file before reserving; the browser reads it into memory to do so, which is acceptable at 100 MiB but would not be for multi-gigabyte files. A versioned bucket keeps old versions, so cleanup (expired grants, deleted Assets, late writes after expiry) is a standing background duty of MediaRepair.</p></div>
+    <div class="limit"><p>The encoder's IAM permission to read the source bucket covers the whole bucket, because S3 cannot scope it to one owner. The binding to the owner's prefix and the pinned version is enforced in Processing's code before any read.</p></div>
+    <p class="see">The full upload-to-playback trace through AWS is in <a href="4-physical.html#4d">4d</a>.</p>
+
+    <h3 id="outbox">Outbox and inbox: moving a change from one database to another</h3>
+    <p><strong>The problem.</strong> Finalize must do two things: save the new Asset in <code>media_db</code> and tell Processing about it through SQS. These are two different systems and there is no transaction that covers both. If Media commits and then crashes before sending, the video is never processed. If it sends first and then fails to commit, Processing works on an Asset that does not exist. This is the dual-write problem.</p>
+    <p><strong>The outbox.</strong> Media does not send anything during the request. It writes the message as a row in its own <code>message_outbox</code> table, in the same transaction as the Asset. Either both exist or neither does. A separate step sends outbox rows afterwards.</p>
+    <p><strong>The inbox.</strong> The sender may send a row twice (it cannot always know whether its last send succeeded), and SQS itself may deliver a message more than once. So every receiver first writes the message's ID and a hash of its content into its own <code>message_inbox</code>, in the same transaction as the change the message causes. A second delivery finds the ID already there and does nothing. The receiver tells SQS to delete the message only after that commit.</p>
+
+    <figure class="dia">
+      <div class="flow">
+        <div class="node media"><b>Media transaction</b>Asset + source pin + <code>submit</code> row in outbox: one commit</div>
+        <div class="arr">→<small>after commit</small></div>
+        <div class="node media"><b>MediaRepair</b>claims a due row, sends it, marks it sent</div>
+        <div class="arr">→<small>at least once</small></div>
+        <div class="node infra"><b>SQS queue</b>redelivers until deleted; dead-letter queue after 5 receives</div>
+        <div class="arr">→</div>
+        <div class="node proc"><b>Processing transaction</b>inbox row + Job + Attempt + outgoing result and work: one commit, then delete from the queue</div>
+      </div>
+      <figcaption>Every arrow can fail or repeat; each box is either a single local commit or an action that is safe to repeat, so no failure point loses a message or applies it twice.</figcaption>
+    </figure>
+
+    <div class="table-wrap"><table class="grid mech">
+      <thead><tr><th>Step</th><th>Comes in</th><th>What it does and changes</th><th>Goes out</th></tr></thead>
+      <tbody>
+        <tr><td>Stage</td><td>A domain change that needs a message</td><td>Inserts the message body, its target queue and a content hash into the outbox, inside the domain transaction. Never commits on its own.</td><td>An outbox row due now</td></tr>
+        <tr><td>Publish</td><td>A due outbox row</td><td>Locks the row with <code>SKIP LOCKED</code> (two senders never take the same row), stamps a claim token and commits. Sends to SQS with no database lock held. Then marks it sent, but only if the claim token still matches. On failure it backs off (2, 4, 8 … up to 60 s).</td><td>The message on SQS</td></tr>
+        <tr><td>Accept</td><td>A message from SQS</td><td>Inserts its ID and content hash into the inbox inside the domain transaction. Already present with the same hash: skip. Same ID with different content: reject as a conflict.</td><td>True (apply) or false (duplicate)</td></tr>
+        <tr><td>Acknowledge</td><td>The committed result</td><td>The Lambda reports only failed records; SQS deletes the rest. A failing message returns after the 420 s visibility timeout and moves to a dead-letter queue after 5 receives.</td><td>Deleted message, or a retry</td></tr>
+        <tr><td>Repair</td><td>A one-minute tick</td><td>Sends anything still due; recreates <code>work</code> for queued Attempts whose message has gone missing (SQL is the source of truth, the queue is only transport)</td><td>Re-sent messages</td></tr>
+      </tbody>
+    </table></div>
+    <p>Who sends what: Media's commands are sent only by MediaRepair, on its one-minute tick, because the MediaApi function has no SQS permission. ProcessingCommands sends its own outbox right after its commit. An encoder's result (claim, done, failed) waits in Processing's outbox until the next repair tick, or until an S3 "object created" or ECS "task stopped" event triggers the same repair pass sooner. Each send of a <code>work</code> message also wakes the launcher.</p>
+    <div class="limit"><p>Because only the one-minute tick sends Media's commands, a <code>submit</code> can wait up to about a minute in the outbox before it reaches the queue.</p></div>
+    <div class="limit tradeoff"><p>The outbox gives up immediacy and adds a table, a sender and repair logic to each service. In return a state change cannot be lost between the two databases, and Media keeps accepting uploads while Processing is unavailable. On AWS, with Processing's command consumer switched off for 48 s, Media still accepted an upload (202) and the job reached <code>done</code> 58.9 s after the consumer came back. <a class="ref" href="references.html#r-isolation">r1018b</a></p></div>
+
+    <h3 id="idempotency">What happens when a message arrives twice</h3>
+    <p>Delivery is <strong>at least once</strong>: every message arrives one or more times, possibly late and out of order. Exactly-once delivery is not available across a database and a queue, so each receiver is made <strong>idempotent</strong>: applying the same thing twice has the same effect as applying it once. Several layers each catch a different kind of repeat:</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Repeat</th><th>What stops it having an effect</th></tr></thead>
+      <tbody>
+        <tr><td>The same message delivered again</td><td>Inbox: the message ID is already recorded, so the handler does nothing and the message is deleted.</td></tr>
+        <tr><td>A second <code>submit</code> for the same Asset with a new message ID</td><td>Submission guard: one row per Asset, locked first. An identical request is a no-op; a different one is refused.</td></tr>
+        <tr><td>A <code>cancel</code> that arrives before its <code>submit</code></td><td>The guard records the cancel; a later submit is accepted as a no-op and never creates work.</td></tr>
+        <tr><td>A <code>retry</code> sent twice</td><td>Retry requests are unique per Job and request ID, so the second creates no new Attempt. A retry that overtakes its submit is rolled back, including its inbox row, so a later redelivery can succeed.</td></tr>
+        <tr><td>Two copies of the same <code>work</code></td><td>The work message ID is fixed per Attempt and state version. The first encoder to claim moves the Attempt to <code>processing</code>; the second finds it no longer <code>queued</code> and drops the message.</td></tr>
+        <tr><td>An old or reordered <code>result</code></td><td>The projection ignores anything with a lower <code>state_version</code> or an older Attempt (see <a href="#projection">projection</a>).</td></tr>
+        <tr><td>A client repeating a request after a timeout</td><td>Reserve is idempotent per owner and request ID; retry and edit carry a request key; the Publisher stores an intent key per file and reuses it when it reruns.</td></tr>
+      </tbody>
+    </table></div>
+    <p>Duplicates do occur in practice. In a nine-job burst on the live environment, the work queue received 18 sends for nine jobs; all nine reached <code>done</code> and the queues drained to zero without manual purging. <a class="ref" href="references.html#r-duplicates">LV-11</a></p>
+    <div class="limit"><p>A check that killing a worker mid-encode never leaves duplicate outputs has not been run on AWS. The fences that should guarantee it (lease token, Attempt output prefix, cleanup of dead Attempts) are tested locally on real PostgreSQL.</p></div>
+
+    <h3 id="lease">Lease: which worker may write a result</h3>
+    <p>Several things can try to finish the same Attempt: a duplicate work message, an encoder that was presumed dead but is only slow, or an old encoder still running after the owner retried. The <strong>lease</strong> decides which one is allowed to write.</p>
+    <div class="table-wrap"><table class="grid mech">
+      <thead><tr><th>Action</th><th>Comes in</th><th>What it does and changes</th><th>Goes out</th></tr></thead>
+      <tbody>
+        <tr><td>Claim</td><td>Job and Attempt IDs from a work message</td><td>Locks the Job, then the Attempt. Requires both <code>queued</code>, the Attempt to be the Job's current one, the Asset not deleted, and the Attempt not bound to another task. Sets both to <code>processing</code>, writes a new random lease token, a lease expiry 60 s ahead and a deadline (900 s on Fargate, 720 s on Lambda). Stages a result.</td><td>The lease token to the worker, or nothing (the worker drops the message)</td></tr>
+        <tr><td>Heartbeat</td><td>The token, every 10 s</td><td>If the lease is still live, pushes expiry another 60 s (never past the deadline); a Fargate encoder extends its SQS message's visibility at the same time</td><td>True, or false: the worker stops</td></tr>
+        <tr><td>Finish</td><td>The token and the output descriptors (or an error)</td><td>Checks exactly one primary output, all keys under this Attempt's folder, size and SHA-256 present. Then, under lock, requires the same token and an unexpired lease and deadline. Writes <code>done</code> with outputs, or <code>failed</code>.</td><td>A result in the outbox; the worker deletes its work message</td></tr>
+        <tr><td>Expiry</td><td>A repair tick, or an ECS "task stopped" event</td><td>For a current Attempt whose lease or deadline has passed: Attempt <code>abandoned</code>, Job <code>failed</code> ("retry the stored source"), cleanup of its output folder scheduled</td><td>A <code>failed</code> result to Media</td></tr>
+      </tbody>
+    </table></div>
+    <p>All times are read from the database clock (<code>clock_timestamp()</code>), never from the worker, so a worker with a wrong clock cannot extend its own lease. No database lock is held while FFmpeg runs or files transfer.</p>
+    <p><strong>A worker dies mid-encode.</strong> It stops heartbeating. If ECS reports the task stopped, the event handler fails the Attempt at once; otherwise the lease runs out within 60 s and the next repair tick does it. On AWS, a deliberately stopped encoder was noticed in 5.8 s against a 300 s target. <a class="ref" href="references.html#r-recovery">r1017b</a> The owner then retries: a new Attempt, a new output folder, the same pinned source. If the old worker was only slow and later tries to finish, its token no longer matches the current Attempt and the write is refused; anything it uploaded sits in the old Attempt's folder and is deleted by the cleanup scan, which repeats for a day to catch late writes.</p>
+    <div class="limit tradeoff"><p>There is no automatic requeue after a worker failure: the Job becomes <code>failed</code> and the owner decides whether to retry. A video that crashes the encoder therefore cannot loop forever, but the owner sees a failure that a second try might have fixed. The one automatic successor is the short lane handing a too-long clip to Fargate (<a href="4-physical.html#lanes">4 · Lanes</a>).</p></div>
+
+    <h3 id="projection">Projection: Media's own copy of each job</h3>
+    <p>Media must answer "what is the status of my video?" and sign playback links without calling Processing. It keeps a <strong>projection</strong>: one row per Asset in <code>processing_projections</code>, holding the Job ID, current Attempt and number, <code>state_version</code>, status, outputs and error. Only MediaResults writes it, inside the same transaction as the inbox row.</p>
+    <div class="table-wrap"><table class="grid mech">
+      <thead><tr><th>Comes in</th><th>What it checks</th><th>What changes</th><th>Goes out</th></tr></thead>
+      <tbody><tr>
+        <td>A <code>result</code>: full Job state at a <code>state_version</code></td>
+        <td>The Asset exists for that owner; the Job ID matches; the source equals Media's own pinned source; <code>done</code> has exactly one primary output; every output key is under <code>jobs/{job}/attempts/{attempt}/</code>. Older <code>state_version</code>: ignored. Same version, different content: rejected. Older Attempt: ignored. A finished Attempt cannot change. A deleted Asset ignores everything but the cancel confirmation.</td>
+        <td>The projection row, and the Asset's link to its Job</td>
+        <td>Nothing; the browser reads it on its next poll (every 2 s)</td>
+      </tr></tbody>
+    </table></div>
+    <p>Reads then never leave Media: <code>GET /jobs/{id}</code> loads the Asset (filtered by owner) and its projection, and signs links to the outputs listed there. The output-prefix check means even a malformed result cannot make Media sign an arbitrary object.</p>
+    <div class="limit tradeoff"><p>The projection is eventually consistent: it can lag Processing by the time a result takes to be sent and applied, and a lost result leaves it stale until repair or a newer result. In exchange, status polling, playback and the retry and edit pre-checks never depend on Processing being up, and Processing's database sees no read traffic from users.</p></div>
+
+    <h3 id="access">Who may do what</h3>
+    <p>FlickPond has one kind of user who owns things, the <strong>owner</strong>, and an <strong>operator</strong> role for admin routes. Access is checked at four layers, each by the component that owns the data:</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Layer</th><th>Mechanism</th><th>What it prevents</th></tr></thead>
+      <tbody>
+        <tr><td>Session</td><td>Login sets a signed token in an HttpOnly, Secure, SameSite=Strict cookie; scripts in the page cannot read it.</td><td>Token theft by page scripts; cross-site requests</td></tr>
+        <tr><td>Gateway</td><td>The Media authorizer runs before every protected route of <em>both</em> services. It verifies the cookie, reads the current user row (no caching, so a deleted user is refused at once) and returns the owner ID and role. The adapter in front of the application code drops any client-supplied identity headers and builds the identity only from the authorizer's answer.</td><td>Anonymous calls (401); forged identity headers</td></tr>
+        <tr><td>Application</td><td>Media loads every Asset by ID <em>and</em> owner; Processing filters every Job by owner. A miss is 404, so another owner's video looks like it does not exist. Admin routes require the operator role, read from the current user row.</td><td>Reading or changing another owner's Asset; non-operators on admin routes (403)</td></tr>
+        <tr><td>Infrastructure</td><td>Each function has its own IAM role. Queue policies deny sending to or reading from a queue to every role not listed as its producer or consumer. Database logins are per service, and the runtime login cannot change the schema.</td><td>A compromised function reaching the other service's queue or data</td></tr>
+      </tbody>
+    </table></div>
+    <p>These were tested on AWS: anonymous requests got 401 on all job routes, forged identity headers changed nothing, a direct <code>SendMessage</code> from a non-producer was refused on all three queues, and each service's login was refused by the other's database. <a class="ref" href="references.html#r-security-negatives">security negatives</a></p>
+    <div class="limit"><p>The API Gateway address is reachable without CloudFront, and there is no web application firewall; the authorizer and one stage-wide rate limit are the only protections there. The authorizer costs one database read per request, and because it reads Media's users table, Processing's public routes depend on Media's database being available.</p></div>
+    <p class="see">Network placement, IAM roles in detail and security scanning are in <a href="4-physical.html#network">4 · Network</a> and <a href="5-devops.html#scanning">5 · Scanning</a>.</p>
+
+    <h3 id="producers-consumers">Producers, consumers and the public contract</h3>
+    <p>Producers create Assets; consumers play the output (section <a href="1-overview.html#1b">1b</a> defines the roles). Both reach the platform only through the public HTTPS API under <code>/api/media</code>. Neither has storage credentials, queue access or database access.</p>
+    <h4>Producer contract: getting a video in</h4>
+    <div class="table-wrap"><table class="grid mech">
+      <thead><tr><th>Call</th><th>Client sends</th><th>Platform does</th><th>Client gets</th></tr></thead>
+      <tbody>
+        <tr><td><code>POST /uploads/reservations</code></td><td>Request ID, filename, type, size, SHA-256</td><td>Creates a 15-minute grant (see <a href="#source-pin">source pin</a>)</td><td>Reservation ID, Asset ID, presigned POST fields</td></tr>
+        <tr><td>POST to S3</td><td>The bytes, with the presigned fields, no cookie</td><td>S3 enforces key, type and length</td><td>Success from S3</td></tr>
+        <tr><td><code>POST /uploads/reservations/{id}/finalize</code></td><td>Nothing else</td><td>Verifies and pins; creates the Asset; stages <code>submit</code></td><td>202 with the job ID</td></tr>
+        <tr><td><code>GET /jobs</code>, <code>GET /jobs/{id}</code></td><td>—</td><td>Reads Asset and projection</td><td>Status (accepted → queued → processing → done or failed), and when done, signed links</td></tr>
+        <tr><td><code>POST /jobs/{id}/retry</code></td><td>Request key</td><td>Only from <code>failed</code>: stages <code>retry</code>; a new Attempt over the stored source</td><td>202</td></tr>
+        <tr><td><code>POST /jobs/{id}/edit</code></td><td>Operations (clip, crop, scale, convert), request key</td><td>Only from <code>done</code>: copies the output to a new pinned source and creates a derived Asset</td><td>202 with the new job ID</td></tr>
+        <tr><td><code>DELETE /jobs/{id}</code></td><td>—</td><td>Tombstone and <code>cancel</code> in one commit; source deleted after Processing confirms</td><td>204</td></tr>
+      </tbody>
+    </table></div>
+    <h4>Consumer contract: playing it</h4>
+    <p>When the job is <code>done</code>, the job view carries a presigned URL to the MP4 that expires within 15 minutes; S3 serves it with range requests (206), so the player can seek. For HLS, the player requests the playlist through Media at <code>/jobs/{id}/hls/master.m3u8</code>; Media checks ownership and returns it with caching disabled. Each segment request is answered with a 307 redirect to a fresh presigned S3 URL. Video bytes therefore never pass through the API, and every playback still passes an owner check. Only file names matching a strict pattern are served.</p>
+    <h4>Two clients on the same contract</h4>
+    <p>The <strong>browser app</strong> is plain JavaScript with vendored hls.js and Plyr for playback. It hashes the file with the browser's crypto API, runs reserve → upload → finalize, and polls the job every 2 s. The <strong>Publisher CLI</strong> publishes a whole folder: for each file it reserves, uploads with a separate cookie-free HTTP client, finalizes, and optionally waits. It keeps a private journal of pending intent keys, indexed by file name, size and SHA-256, so a rerun after an uncertain network response reuses the same key and cannot create a duplicate Asset. It reports an outcome per file and exits non-zero if any failed.</p>
+    <h4>Contract versioning</h4>
+    <p>The HTTP contract is published as two OpenAPI documents (Media and Processing, both 1.0.0), generated from the code; a test fails if they drift. The message contract is one envelope with a <code>schema_version</code>. The rule for change: additions only within a version; consumers accept the current and the previous version and ignore fields they do not know; producers keep emitting the old version until every consumer reads the new one. Each consumer keeps a fixture file listing the fields it reads, and the producer's tests check its real messages against it. Additive changes can be released in either service first; a breaking change takes two releases.</p>
+    <div class="limit"><p>Only version 1 has ever existed, so accepting "the previous version" is tested by raising the version number in tests, not by a real second version in production. The compatibility of a released pair of services is still an operator's attestation that those tests support.</p></div>
+    <p class="see">How a release of one service is made and rolled back is in <a href="5-devops.html#cd">5 · Continuous delivery</a> and <a href="5-devops.html#rollback">5 · Rollback</a>.</p>
+  </section>
+
+  <section class="sub" id="questions">
+    <h2>Questions a professor may ask</h2>
+
+    <details class="qa"><summary>Why two services and not four (identity, media, processing, delivery)?</summary>
+      <div class="answer"><p>A service boundary is worth its cost when the two sides have different rules, data and reasons to change. Processing does: attempts, leases, retries, and a CPU-heavy load that scales separately. Identity and delivery do not: every playback or retry decision needs owner and Asset together, which today is one query in one database. As separate services, the authorizer, the upload grant and the playback signer would each need a call or a replicated copy of user data, and a delivery service would need to ask Media for ownership on every segment. That adds latency and failure modes without any independent scaling or release need. The proposal already rejected four services; the detailed domain analysis confirmed it against the actual foreign keys in the code.</p>
+      <p>The cost of staying at two: Media is the larger service and holds several concerns. If sharing or a second identity provider arrived, identity would be the next candidate to split.</p></div></details>
+
+    <details class="qa"><summary>Why not keep one database with two schemas? It would be cheaper.</summary>
+      <div class="answer"><p>Logically FlickPond already had that in V1: two databases on one Aurora cluster, with separate logins. That enforced ownership (neither login can read the other's tables), which is the property DDD needs. What it did not give was failure and capacity isolation: one instance, one capacity ceiling, so a burst of encoder writes or a failed resume affected both. On 21 October Processing was moved to its own cluster, created as a copy-on-write clone of the shared one; once a smoke test passes, each cluster's copy of the other service's database is dropped.</p>
+      <p>The cost is a second cluster's storage and its own resume delay after idle. Both clusters still scale to zero. A shared schema with cross-schema queries would have been cheapest of all, but it would let one service quietly depend on the other's tables, which is exactly what Project 1 suffered from.</p></div></details>
+
+    <details class="qa"><summary>Why asynchronous messages instead of a REST call from Media to Processing?</summary>
+      <div class="answer"><p>With a synchronous call, an upload succeeds only if Processing is up at that moment, so the two services' availability multiplies. With a queue, Media commits the upload and its outgoing message locally and returns; Processing picks it up when it can. This was shown on AWS: with Processing's command consumer off, Media accepted an upload and the job completed after the consumer came back.</p>
+      <p>The price is that delivery is at least once and possibly out of order, so the system needs the inbox, the submission guard, the lease and the projection fences. Status also becomes eventually consistent, which is why Media keeps its own projection. The alternative of keeping Redis/RQ was rejected because it needs a server running all the time, which conflicts with scaling to zero.</p></div></details>
+
+    <details class="qa"><summary>SQS is already durable. Why do you need an outbox?</summary>
+      <div class="answer"><p>SQS durability starts only once SQS has the message. The risk is the moment before: the Asset is committed in PostgreSQL, but the send to SQS has not happened or its reply was lost. There is no transaction spanning PostgreSQL and SQS. The outbox makes the intent to send part of the database commit, so a crash can only delay the message, never lose it. A lost reply just means the row is sent again, and the receiver's inbox absorbs the duplicate.</p>
+      <p>Alternatives: change data capture from the database log (more infrastructure), or a two-phase commit (not supported by SQS). The outbox costs a table and a sender per service.</p></div></details>
+
+    <details class="qa"><summary>Is processing exactly once?</summary>
+      <div class="answer"><p>Delivery is not; the effect is designed to be. Messages can arrive more than once, and work messages do (18 sends for nine jobs in one live burst). What prevents a double effect is layered: the inbox drops repeated message IDs, the submission guard allows one Job per Asset, a claim succeeds only on a <code>queued</code> Attempt, a finish needs the current lease token, and the projection ignores older versions. So the same video may be <em>picked up</em> by two encoders, but only one can claim it, and only the lease holder can record a result.</p>
+      <p>What is not yet proven on AWS is the case of a worker killed mid-encode followed by a retry, checked for duplicate output files. The fences that should prevent it are tested locally.</p></div></details>
+
+    <details class="qa"><summary>What happens if an encoder dies halfway, or an old encoder finishes after a retry?</summary>
+      <div class="answer"><p>The dead encoder stops renewing its 60-second lease. An ECS "task stopped" event, or the next repair tick after expiry, marks the Attempt <code>abandoned</code> and the Job <code>failed</code>; on AWS this was noticed in 5.8 s. The owner retries, which creates Attempt 2 with its own output folder over the same pinned source. If the first encoder was only slow and tries to finish, its lease token belongs to Attempt 1, which is no longer current, so the database refuses the write. Its files sit under Attempt 1's prefix and are removed by the cleanup scan.</p>
+      <p>An automatic requeue was rejected so that an input that crashes the encoder cannot loop. The cost is that a transient failure needs the owner's click.</p></div></details>
+
+    <details class="qa"><summary>Is this event sourcing, or CQRS?</summary>
+      <div class="answer"><p>Not event sourcing: the authoritative state is ordinary SQL rows in each service, and messages are snapshots copied from them; nothing is rebuilt by replaying a log. There is a separation of reads and writes in one place: Media's projection is a read model built from Processing's results and serves all status reads. That is a projection, not a full CQRS architecture: within each service, reads and writes use the same tables. Full Job snapshots were chosen over fine-grained events because they make out-of-order delivery easy to handle: the newest <code>state_version</code> simply wins.</p></div></details>
+
+    <details class="qa"><summary>Are the services really independent? What still couples them?</summary>
+      <div class="answer"><p>Independent: data (separate clusters and logins), code (a build fails if one image can import the other), release (each service is promoted and rolled back on its own, with the other unchanged), and runtime business flow (no synchronous calls). Still coupled: Processing's public routes depend on Media's authorizer and therefore Media's users table; both are defined in one CloudFormation stack, so infrastructure changes ship together; and the contract code is a shared kernel, so a breaking change needs two releases. These were accepted as proportionate for a three-person team; separate stacks per service and an identity provider outside Media would remove them at the cost of more operations.</p></div></details>
+  </section>
+
+  <nav class="pager"><a href="2-conduct.html">← 2 Project conduct</a><a href="4-physical.html">4 Physical architecture →</a></nav>
+</main>
+</div>
+</body>
+</html>
