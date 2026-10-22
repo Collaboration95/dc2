@@ -1,6 +1,6 @@
 {
   "title": "Persistent V2-live: requests, state and video bytes",
-  "description": "CloudFront serves the browser frontend and forwards API requests. API Gateway authorizes through Media and invokes owner Lambda functions in private subnets. Two databases share one Aurora cluster. Finite Fargate encoders use public subnets and Processing SQL. SQS carries control messages; private S3 holds media bytes outside the VPC.",
+  "description": "CloudFront serves the browser frontend and forwards API requests. API Gateway authorizes through Media and invokes owner Lambda functions in private subnets. Each service has its own Aurora cluster. Clips of 60 s or less are encoded by a short-encode Lambda instead of Fargate. Finite Fargate encoders use public subnets and Processing SQL. SQS carries control messages; private S3 holds media bytes outside the VPC.",
   "width": 1000,
   "height": 850,
   "regions": [
@@ -68,10 +68,10 @@
       "kind": "control"
     },
     {
-      "path": "M145 455 L145 512 L245 512 L245 550",
+      "path": "M147 455 L147 590",
       "label": "Media DB",
-      "x": 154,
-      "y": 502,
+      "x": 190,
+      "y": 520,
       "kind": "sql"
     },
     {
@@ -82,11 +82,12 @@
       "bridge": true
     },
     {
-      "path": "M345 455 L345 550",
+      "path": "M285 455 L285 590",
       "label": "Processing DB",
-      "x": 364,
-      "y": 526,
-      "kind": "sql"
+      "x": 270,
+      "y": 575,
+      "kind": "sql",
+      "fontSize": 12
     },
     {
       "path": "M435 402 L460 402 L460 310 L740 310 L740 344 L760 344",
@@ -104,10 +105,10 @@
       "kind": "control"
     },
     {
-      "path": "M590 515 L590 594 L420 594",
+      "path": "M590 515 L590 640 L440 640",
       "label": "Processing SQL + TLS",
-      "x": 540,
-      "y": 623,
+      "x": 515,
+      "y": 632,
       "kind": "sql"
     },
     {
@@ -117,6 +118,13 @@
       "y": 193,
       "kind": "data",
       "both": true
+    },
+    {
+      "path": "M800 389 L800 535 L440 535",
+      "label": "short work",
+      "x": 690,
+      "y": 556,
+      "kind": "control"
     }
   ],
   "nodes": [
@@ -185,21 +193,12 @@
       "fontSize": 16
     },
     {
-      "x": 120,
-      "y": 550,
-      "w": 300,
-      "h": 95,
-      "label": "Aurora PostgreSQL",
-      "sub": "media_db  |  processing_db\nOne shared cluster / instance",
-      "fill": "#ecdcff"
-    },
-    {
       "x": 500,
       "y": 400,
       "w": 180,
       "h": 115,
       "label": "ECS / Fargate",
-      "sub": "FFmpeg encoder\nFinite tasks, cap 3\nTemporary public IPv4",
+      "sub": "FFmpeg encoder\nLonger clips · cap 3\nTemporary public IPv4",
       "fill": "#ffef8a",
       "accent": true
     },
@@ -247,12 +246,42 @@
       "label": "CloudWatch / SNS",
       "sub": "Logs, alarms + budget alerts",
       "fill": "#d3f5dc"
+    },
+    {
+      "x": 60,
+      "y": 590,
+      "w": 175,
+      "h": 72,
+      "label": "Aurora: media_db",
+      "sub": "Own cluster · 0 ACU pause",
+      "fill": "#ecdcff",
+      "fontSize": 14
+    },
+    {
+      "x": 255,
+      "y": 590,
+      "w": 180,
+      "h": 72,
+      "label": "Aurora: processing_db",
+      "sub": "Own cluster · 0 ACU pause",
+      "fill": "#ecdcff",
+      "fontSize": 14
+    },
+    {
+      "x": 315,
+      "y": 468,
+      "w": 122,
+      "h": 82,
+      "label": "Short Lambda",
+      "sub": "≤60 s · ≤64 MiB\n3008 MB · max 2",
+      "fill": "#ffef8a",
+      "fontSize": 15
     }
   ],
   "notes": [
     {
       "x": 760,
-      "y": 525,
+      "y": 585,
       "lines": [
         "Managed regional services",
         "sit outside the VPC boxes.",

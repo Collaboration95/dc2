@@ -2,14 +2,15 @@
   "id": "code",
   "title": "How the code turns design into behavior",
   "kicker": "Implementation depth, from API handlers to worker leases",
-  "summary": "Trace the current implementation by responsibility: thin route adapters, application services, repositories, storage and queue adapters, contracts, durable state, and the finite worker.",
-  "opening_answer": "The routes translate HTTP into application calls. Services coordinate rules and transactions. Repositories own repeated SQL access, storage and queue modules adapt external systems, and Processing’s lifecycle code fences worker authority. The layers exist to keep ownership, retries, and failure behavior visible—not to hide them behind a large framework.",
+  "summary": "Trace the code by responsibility: routes, services, repositories, adapters, contracts, durable state, finite worker.",
+  "opening_answer": "Routes translate HTTP into application calls. Services coordinate rules and transactions; repositories own repeated SQL; storage and queue modules adapt external systems; Processing's lifecycle code fences worker authority. The layers keep ownership, retries and failure behavior visible.",
   "takeaways": [
-    "Start at the route and follow imports into the service, repository, adapter, and transaction boundary.",
-    "A helper is valuable when it centralizes a real rule such as owner filtering, source pinning, or a live lease.",
-    "The direct upload finalize transaction couples Asset adoption with the outbox command; the external byte check happens outside row locks.",
-    "Outbox/inbox, claim tokens, attempt namespaces, and `state_version` address different failure windows.",
-    "The current path is `media/` plus `processing/`; root `app/` is an earlier implementation."
+    "Follow route, service, repository, adapter and transaction boundary.",
+    "A helper earns its place by centralizing a rule: owner filtering, source pinning, a live lease.",
+    "Finalize couples Asset adoption with the outbox command; the byte check runs outside row locks.",
+    "Outbox/inbox, claim tokens, attempt namespaces and `state_version` cover different failure windows.",
+    "Short clips take the Lambda lane; `check_probe` can redirect to Fargate.",
+    "The current path is `media/` plus `processing/`; root `app/` is earlier."
   ],
   "sections": [
     {
@@ -19,15 +20,15 @@
       "blocks": [
         {
           "type": "p",
-          "text": "When opening a codebase, start from a request the user can name. For upload, `media/api/uploads.py` declares the two HTTP endpoints and delegates to `media.services.direct_intake`. For jobs, `media/api/v1_jobs.py` delegates reads, retry, edit, and deletion. The route module owns HTTP details such as path, status code, response model, and dependency injection. It should be easy to scan without containing every database and storage decision."
+          "text": "Start from a nameable request. `media/api/uploads.py` has two endpoints delegating to `media.services.direct_intake`; `media/api/v1_jobs.py` delegates reads, retry, edit, deletion. A route owns only HTTP: path, status, response model, dependencies."
         },
         {
           "type": "p",
-          "text": "The code then moves into an application service. `direct_intake.reserve` validates the media type, fingerprints the request, makes an owner-scoped reservation, and asks the storage adapter for a grant. `direct_intake.finalize` coordinates the reservation, remote verification, Asset creation, and command staging. This is orchestration: it gives the use case an understandable home while calling smaller pieces for persistence and external I/O."
+          "text": "A service orchestrates: `direct_intake.reserve` validates media type, fingerprints the request, makes an owner-scoped reservation, asks storage for a grant; `finalize` coordinates verification, Asset creation and command staging."
         },
         {
           "type": "p",
-          "text": "A repository is a focused persistence helper. `media/repositories/assets.py:get_asset` applies the owner and deletion filters consistently and returns the same not-found result for an unknown or foreign Asset. `list_asset_pages` joins Media’s Asset to its own optional ProcessingProjection for a bounded page read. It does not join Processing’s database. Those helpers reduce repeated query mistakes while leaving transaction ownership with the caller."
+          "text": "A repository is a focused persistence helper. `media/repositories/assets.py:get_asset` applies owner and deletion filters and returns the same not-found for unknown or foreign Assets. `list_asset_pages` joins Media's Asset to its own optional ProcessingProjection, never Processing's database. The caller owns the transaction."
         },
         {
           "type": "visual",
@@ -38,31 +39,31 @@
               {
                 "label": "Route",
                 "sub": "HTTP adapter",
-                "detail": "Read the endpoint path, response status, authentication dependency, and delegated function."
+                "detail": "Path, status, auth dependency, delegated function."
               },
               {
                 "label": "Service",
                 "sub": "use-case flow",
-                "detail": "Follow business checks and orchestration across persistence and external systems."
+                "detail": "Business checks and orchestration."
               },
               {
                 "label": "Repository",
                 "sub": "owned SQL",
-                "detail": "Check owner filters, local joins, locking choices, and returned domain rows."
+                "detail": "Owner filters, local joins, locking."
               },
               {
                 "label": "Adapter",
                 "sub": "outside world",
-                "detail": "Inspect how storage, queues, or HTTP contracts are translated and bounded."
+                "detail": "Translates and bounds storage, queues, HTTP."
               }
             ],
-            "caption": "This is a reading path, not a rule that every request must pass through four files. Follow the actual imports and stop where the behavior is implemented."
+            "caption": "A reading path: follow the actual imports."
           }
         },
         {
           "type": "qa",
           "q": "Why not put all behavior in the FastAPI route?",
-          "a": "Moving workflow decisions into an application service makes them easier to reuse and test, while keeping HTTP concerns local to the route."
+          "a": "A service makes workflow decisions reusable and testable; the route keeps only HTTP concerns."
         }
       ],
       "sources": [
@@ -99,19 +100,19 @@
       "blocks": [
         {
           "type": "p",
-          "text": "The most instructive function is `direct_intake.finalize`. It first looks up the reservation by both reservation ID and owner ID, checks that the request ID matches, and returns the existing Asset on replay. It then leaves the SQL transaction before calling `storage.verify_direct_upload`. The storage call can perform HEAD plus a bounded streaming GET; holding a row lock while waiting on network I/O would lengthen contention and increase the chance that an unrelated request stalls."
+          "text": "`direct_intake.finalize` finds the reservation by ID and owner, checks the request ID and returns the existing Asset on replay. It leaves the SQL transaction before `storage.verify_direct_upload` (HEAD plus bounded streaming GET); a row lock across network I/O invites contention."
         },
         {
           "type": "p",
-          "text": "After verification returns the exact S3 VersionId, finalize opens a new transaction and locks the reservation. It rechecks whether another request finalized it or whether it expired during verification. If still valid, it records the VersionId and creates the Asset. Finally it stages the submit message before the same transaction commits. The important boundary is not “database versus storage” in general; it is: slow remote byte inspection outside the lock, then one short local commit that adopts verified bytes and records the intent to process them."
+          "text": "With the exact VersionId, finalize opens a new transaction, locks the reservation, rechecks concurrent finalize or expiry, records the VersionId, creates the Asset and stages the submit message before commit: one short commit."
         },
         {
           "type": "p",
-          "text": "`media/repositories/assets.py:fingerprint` computes a stable SHA-256 of canonical JSON, and `replay` uses the `(owner, operation, key)` identity to make a repeat safe. If the key exists with a different request hash, it raises a conflict. Idempotency is a persisted rule, not an HTTP retry trick. It lets the browser or Publisher recover from a lost response without accidentally creating a second Asset."
+          "text": "`assets.py:fingerprint` hashes canonical JSON; `replay` uses the `(owner, operation, key)` identity. Same key, different hash: conflict. A lost response never creates a second Asset."
         },
         {
           "type": "p",
-          "text": "SQL join choices should reflect ownership. `list_asset_pages` uses an outer join between `Asset` and `ProcessingProjection`. That join is appropriate because both tables live in Media’s database and the projection may not exist yet. If Media reached into Processing’s database for every status page, it would couple availability, permissions, and query latency across a service boundary. The projection duplicates a small amount of state to keep the public read local."
+          "text": "`list_asset_pages` outer-joins `Asset` to `ProcessingProjection` in Media's database (the projection may not exist yet). Reading Processing's database per page would couple availability, permissions and latency."
         },
         {
           "type": "visual",
@@ -122,26 +123,26 @@
               {
                 "label": "Check",
                 "sub": "owner + request",
-                "detail": "Confirm this caller owns the reservation and that the idempotency key matches."
+                "detail": "Owner holds the reservation; key matches."
               },
               {
                 "label": "Verify",
                 "sub": "outside SQL lock",
-                "detail": "Read stored bytes and obtain the exact object VersionId."
+                "detail": "Read stored bytes; get exact VersionId."
               },
               {
                 "label": "Adopt",
                 "sub": "one local commit",
-                "detail": "Pin the version, create the Asset, and stage submit atomically."
+                "detail": "Pin version, create Asset, stage submit."
               }
             ],
-            "caption": "Three checkpoints show why the network verification sits between short SQL transactions."
+            "caption": "Network verification sits between two short SQL transactions."
           }
         },
         {
           "type": "qa",
           "q": "What happens if the upload changes after verification?",
-          "a": "The Asset points to the VersionId that verification returned. A later object write creates a different version and cannot change the accepted source descriptor."
+          "a": "The Asset points to the verified VersionId. A later write makes a different version and cannot change the accepted source."
         }
       ],
       "sources": [
@@ -170,19 +171,19 @@
       "blocks": [
         {
           "type": "p",
-          "text": "`contracts/` is the published language between Media and Processing. `contracts/v1.py` validates an `Envelope`, its version, actor identity, immutable source descriptor, and allowed message kind. The contract contains values that cross the boundary; it does not import service models or make the databases shared. Version checks give producers and consumers room to roll forward additively."
+          "text": "`contracts/v1.py` is the published language between Media and Processing: it validates an `Envelope` (version, actor identity, immutable source descriptor, message kind). Values only: no service models, no shared database. Version checks allow additive roll-forward."
         },
         {
           "type": "p",
-          "text": "`delivery/sql.py` and `delivery/sqs.py` adapt durable rows and validated envelopes to queue operations. The SQL helper stages an outbox row with the domain update, claims due rows, performs send outside the row lock, and acknowledges with a claim token. The SQS adapter enforces which producer and consumer lanes are allowed in code. Cloud IAM and queue resource policies enforce the same authority outside the process. The adapter is not the source of truth for a Job; the database is."
+          "text": "`delivery/sql.py` stages an outbox row with the domain update, claims due rows, sends outside the row lock, acknowledges with a claim token. `delivery/sqs.py` enforces producer and consumer lanes in code; IAM and queue policies enforce them outside. SQL is the source of truth."
         },
         {
           "type": "p",
-          "text": "Storage follows a similar pattern. `media/services/storage.py` wraps S3-compatible operations used by Media: presigned POST, verification, cleanup, and signed outputs. Processing’s worker storage code handles source downloads and output puts. The two packages can wrap different use cases while sharing a narrow credential policy in `runtime_support/storage_credentials.py`."
+          "text": "`media/services/storage.py` wraps Media's S3 operations (presigned POST, verification, cleanup, signed outputs); Processing's worker does source downloads and output puts. They share only `runtime_support/storage_credentials.py`."
         },
         {
           "type": "p",
-          "text": "That shared credential module provides static, ECS container, and Lambda credential providers. It rejects incomplete static pairs, refuses static overrides in ECS/Lambda mode, validates the container credential endpoint, and reads Lambda temporary credentials from the runtime environment. `media/storage_credentials.py` and `processing/storage_credentials.py` are intentionally thin facades: each reveals its own settings and calls the shared policy. This avoids copying security-sensitive selection logic while keeping each domain’s configuration independent."
+          "text": "It offers static, ECS-container and Lambda providers: rejects incomplete static pairs, refuses static overrides in ECS/Lambda mode, validates the container endpoint, reads Lambda temporary credentials. `media/` and `processing/storage_credentials.py` are thin facades."
         },
         {
           "type": "visual",
@@ -193,26 +194,26 @@
               {
                 "label": "Domain",
                 "sub": "Asset or Job",
-                "detail": "Each owner uses its own model and rules internally."
+                "detail": "Each owner has its own model and rules."
               },
               {
                 "label": "Contract",
                 "sub": "versioned values",
-                "detail": "A small validated message carries identity and immutable source facts."
+                "detail": "Validated identity and immutable source facts."
               },
               {
                 "label": "Adapter",
                 "sub": "transport boundary",
-                "detail": "Queue and storage modules translate external calls while SQL remains authoritative."
+                "detail": "Queue and storage translation; SQL stays authoritative."
               }
             ],
-            "caption": "The abstraction boundary is intentionally narrow: values cross; ORM models and database access do not."
+            "caption": "Values cross the seam; ORM models and database access do not."
           }
         },
         {
           "type": "qa",
           "q": "Why not share the storage client implementation wholesale?",
-          "a": "The common credential selection rule is shared, while Media and Processing keep their own settings and storage operations. Reuse the policy that is truly common; keep domain-specific behavior near its owner."
+          "a": "Share only the common credential rule; settings and storage operations stay with their owners."
         }
       ],
       "sources": [
@@ -253,23 +254,23 @@
       "blocks": [
         {
           "type": "p",
-          "text": "In Processing, `messaging.handle_command` is the command entry point. It validates the envelope and trusted identity, accepts the message into the inbox, then uses a `SubmissionGuard` row to serialize submit, retry, and cancel for one Asset. A unique `Job.asset_id` prevents multiple jobs for one Asset. A repeated identical submit becomes a no-op; changed content under the same identity conflicts. A retry is accepted only from a failed state and creates a new Attempt."
+          "text": "`messaging.handle_command` validates envelope and trusted identity, accepts into the inbox, then a `SubmissionGuard` row serializes submit, retry and cancel per Asset. Unique `Job.asset_id` prevents duplicate jobs. Identical repeat: no-op; changed content under one identity: conflict; retry only from failed, creating a new Attempt."
         },
         {
           "type": "p",
-          "text": "State and notifications travel together. `messaging.emit_state` increments `JobMessaging.state_version` and stages a result snapshot in the same transaction as the state change. When Processing creates work, it stages a work message through the outbox too. A queue consumer commits inbox, domain rows, and any resulting outbox rows before its adapter acknowledges the record. The sequence protects against a process crash after commit but before acknowledgement."
+          "text": "`messaging.emit_state` increments `JobMessaging.state_version` and stages a result snapshot in the state-change transaction; work messages also use the outbox. A consumer commits inbox, domain and outbox rows before acknowledging, covering a crash between the two."
         },
         {
           "type": "p",
-          "text": "The repair pass is not optional housekeeping. The SQL-to-SQS boundary cannot commit atomically across both systems. `processing/recovery_v1.py:repair_work` looks for queued Attempts whose work needs to be reconstructed. Media and Processing repair publishers retry outbox rows. Claims use tokens so a slow or resumed publisher cannot acknowledge work after another publisher has taken over."
+          "text": "SQL and SQS cannot commit atomically, so repair is required: `processing/recovery_v1.py:repair_work` rebuilds work for queued Attempts and both services' publishers retry outbox rows. Claim tokens stop a resumed publisher acknowledging after another took over."
         },
         {
           "type": "p",
-          "text": "Consider a failure: the SQS send succeeds, but the response is lost. The publisher does not know whether the message arrived and may send again. The duplicate gets the same message ID and body, so the consumer inbox makes the second delivery harmless. Another failure: the queue entry is gone but SQL still says queued. Repair creates a usable work message. The recovery story begins from committed SQL state, not from assuming a queue receipt tells the whole truth."
+          "text": "A send that succeeds with a lost response is retried with the same ID and body, so the inbox makes it harmless. A missing queue entry for a queued row is recreated by repair. Recovery starts from committed SQL, not a queue receipt."
         },
         {
           "type": "p",
-          "text": "Result ordering is separate from duplicate detection. The inbox handles repeated message identity. `media/projections.py:validate_transition` handles stale or contradictory domain state: lower versions are ignored, same-version different content conflicts, lower attempts cannot replace a higher attempt, and terminal states cannot silently change. `apply_result` also checks owner, source, job, and output prefix before accepting a snapshot."
+          "text": "`media/projections.py:validate_transition` rejects stale or contradictory state: lower versions ignored, same version with different content conflicts, lower attempts cannot replace higher, terminal states stay. `apply_result` also checks owner, source, job and output prefix."
         },
         {
           "type": "visual",
@@ -280,21 +281,21 @@
               {
                 "label": "Inbox",
                 "sub": "message identity",
-                "detail": "Same message ID and body is a duplicate; different body under that ID conflicts."
+                "detail": "Same ID and body: duplicate. Different body: conflict."
               },
               {
                 "label": "Version",
                 "sub": "domain ordering",
-                "detail": "A result must be current for the job, attempt, and increasing state version."
+                "detail": "Current job and attempt; version increases."
               }
             ],
-            "caption": "Deduplication answers “have I seen this message?” Version fences answer “is this state still allowed?”"
+            "caption": "Inbox: seen this message? Version: still allowed?"
           }
         },
         {
           "type": "qa",
           "q": "Why have both a message ID and a state version?",
-          "a": "The message ID identifies transport delivery for deduplication. State version orders domain snapshots even when different messages arrive out of order."
+          "a": "Message ID deduplicates transport delivery. State version orders domain snapshots when messages arrive out of order."
         }
       ],
       "sources": [
@@ -327,23 +328,84 @@
       "blocks": [
         {
           "type": "p",
-          "text": "`processing/worker/sqs.py:execute_message` decodes a work envelope and asks Processing to claim it before fetching source bytes. The claim checks that the Job and Attempt match, that the source and owner match stored facts, and that the Attempt is current. It binds one finite task name to one Attempt. A malformed identity is not accepted as valid work; a stale message is acknowledged only when durable state proves it is stale."
+          "text": "`processing/worker/sqs.py:execute_message` decodes a work envelope and has Processing claim it before fetching bytes. The claim checks Job, Attempt, source, owner, currency and binds one finite task name to one Attempt. Malformed identities are rejected; a stale message is acknowledged only when durable state proves it stale."
         },
         {
           "type": "p",
-          "text": "`processing/lifecycle.py:claim`, `heartbeat`, and `finish` implement the time-limited lease. The database clock is the authority for lease and deadline comparisons. The worker renews SQL authority and SQS visibility together. `Supervisor` wraps potentially long operations so deadline or lease loss interrupts the pipeline. A worker that wakes after its lease expires cannot write a successful terminal result just because its local FFmpeg process finished."
+          "text": "`processing/lifecycle.py:claim`, `heartbeat`, `finish` implement the lease on the database clock. The worker renews SQL authority and SQS visibility together; `Supervisor` interrupts on deadline or lease loss, so a worker waking after expiry cannot write success."
         },
         {
           "type": "p",
-          "text": "`processing/worker/tasks.py:pipeline` makes the media transformation readable as stages: download the source; probe it; validate clip/crop settings; build the FFmpeg edit command; write the primary output; optionally build an HLS ladder for an unedited source; upload outputs. `media_engine/` holds reusable probe, validation, operation, and HLS command construction. This keeps file-processing mechanics separate from queue polling and database lifecycle rules."
+          "text": "`processing/worker/tasks.py:pipeline` runs the stages below; `media_engine/` holds probe, validation, operation and HLS command construction, apart from polling and lifecycle."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "Encode flow inside pipeline",
+            "steps": [
+              {
+                "label": "Download + probe",
+                "sub": "pinned version",
+                "detail": "Fetch the accepted VersionId; check_probe (admit) can reject on Lambda."
+              },
+              {
+                "label": "Validate edits",
+                "sub": "clip / crop",
+                "detail": "media_engine checks requested operations."
+              },
+              {
+                "label": "FFmpeg primary",
+                "sub": "exactly one output",
+                "detail": "Builds the edit command, writes the MP4."
+              },
+              {
+                "label": "HLS + upload",
+                "sub": "optional",
+                "detail": "HLS ladder only for an unedited source; failure is optional. Upload under the attempt prefix."
+              }
+            ],
+            "caption": "Same pipeline on Fargate and Lambda; host and admission check differ."
+          }
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "Short-lane routing (#93, AD-13, AD-22)",
+            "steps": [
+              {
+                "label": "work_lane",
+                "sub": "size <= 64 MiB?",
+                "detail": "Called by messaging.emit_state and recovery_v1.repair_work; only size known. No short queue URL: FALLBACK_LANE."
+              },
+              {
+                "label": "check_probe",
+                "sub": "<= 60 s, <= 1080p?",
+                "accent": true,
+                "detail": "Executor, after fenced claim and probe. Over a bound raises NotAdmitted."
+              },
+              {
+                "label": "Lambda encode",
+                "sub": "ProcessingShortEncoder",
+                "detail": "short_encoder.invoke reuses execute_message; attempt bound as lambda-<request id>."
+              },
+              {
+                "label": "Fargate",
+                "sub": "redirect_to_long_lane",
+                "detail": "Old attempt abandoned, attempt+1 on the standard queue. A lambda- binding keeps the job on Fargate (no ping-pong)."
+              }
+            ],
+            "caption": "Lambda (3008 MB, 900 s, 2 GB /tmp, MaximumConcurrency 2): queue wait 0.26 s vs 32.6 s, processing 5.3 s vs 8.0 s, $0.0003 vs $0.0021 per encode (sl1021). Per-run stacks keep the flag off."
+          }
         },
         {
           "type": "p",
-          "text": "Output keys include both Job and Attempt IDs. This namespace lets late or abandoned workers leave isolated objects without overwriting the current attempt’s result. `lifecycle.finish` accepts the output descriptors only with the live lease and validates the primary output rule. HLS errors are caught as optional failure; lease loss, deadline, and cancellation still abort rather than being mislabeled as an optional-format issue."
+          "text": "Output keys contain Job and Attempt IDs, so late workers write isolated objects. `lifecycle.finish` accepts outputs only with the live lease and one primary output. HLS errors are optional; lease loss, deadline and cancellation abort."
         },
         {
           "type": "p",
-          "text": "The worker acknowledges work after terminal state and the result outbox row commit. If it fails earlier, redelivery or repair resumes from durable state. The next receipt may be claimable, stale, or sent to the dead-letter queue."
+          "text": "The worker acknowledges after terminal state and the result outbox row commit. Earlier failure means redelivery or repair resumes from durable state: the next receipt is claimable, stale or dead-lettered."
         },
         {
           "type": "visual",
@@ -354,20 +416,20 @@
               {
                 "label": "Queue loop",
                 "sub": "receive + ack",
-                "detail": "The worker adapter polls, decodes, and decides when a receipt can be deleted."
+                "detail": "Poll, decode, decide when to delete."
               },
               {
                 "label": "Lifecycle",
                 "sub": "claim + fence",
-                "detail": "Processing validates the current attempt and grants temporary authority."
+                "detail": "Validate current attempt; grant temporary authority."
               },
               {
                 "label": "Pipeline",
                 "sub": "probe + encode",
-                "detail": "The media pipeline transforms the pinned source and records namespaced outputs."
+                "detail": "Transform pinned source; write namespaced outputs."
               }
             ],
-            "caption": "Three concerns form a useful code tour: transport, durable authority, and media work."
+            "caption": "Transport, durable authority, media work."
           }
         }
       ],
@@ -395,6 +457,22 @@
         {
           "path": "processing/worker/supervisor.py",
           "label": "Long-operation lease/deadline guard"
+        },
+        {
+          "path": "processing/short_lane.py",
+          "label": "Short-lane bounds and routing"
+        },
+        {
+          "path": "processing/short_encoder.py",
+          "label": "Lambda short-encode handler"
+        },
+        {
+          "path": "docs/execution/aws/v2/lambda-short-encodes.md",
+          "label": "Short-lane design and rollout"
+        },
+        {
+          "path": "docs/results/engineering-20261021/short-lane-sl1021.json",
+          "label": "Benchmark sl1021"
         }
       ]
     },
@@ -405,15 +483,15 @@
       "blocks": [
         {
           "type": "p",
-          "text": "Publisher is a separately installable client. `publisher/client.py:PublicClient` uses the public API and imports no service or database models. The CLI hashes each file, reserves an upload, sends bytes with a cookie-free client, then finalizes. Its private intent journal reuses the same idempotency key after an uncertain response, without giving an integrator service credentials."
+          "text": "`publisher/client.py:PublicClient` uses the public API and imports no service or database models. The CLI hashes each file, reserves, uploads with a cookie-free client, finalizes; a private intent journal reuses the idempotency key after an uncertain response."
         },
         {
           "type": "p",
-          "text": "For status, Media reads its own `Asset` and `ProcessingProjection`. `media/repositories/assets.py:list_asset_pages` uses one bounded outer join to return a page and its optional projection. `media/projections.py` converts that row into the public response and checks whether the output is ready. For an HLS request, `media/api/v1_hls.py` rechecks owner access and that the job is done; playlist paths are constrained, the manifest is read privately, and segment paths redirect to signed URLs."
+          "text": "Status comes from Media's `Asset` and `ProcessingProjection`: `list_asset_pages` does one bounded outer join; `media/projections.py` builds the response and checks readiness. `media/api/v1_hls.py` rechecks owner and done status, constrains playlist paths, reads the manifest privately, redirects segments to signed URLs."
         },
         {
           "type": "p",
-          "text": "The older `app/` package is historical, not the current worker path. Current V1 runs through `media/`, `processing/`, and `processing/worker/sqs.py`; its pipeline is in `processing/worker/tasks.py`. `media/api/v1_hls.py` notes that its route behavior came from the older app."
+          "text": "Root `app/` is historical. Current V1 runs through `media/`, `processing/` and `processing/worker/sqs.py` (pipeline in `tasks.py`); `v1_hls.py` notes its route behavior came from `app`."
         }
       ],
       "sources": [

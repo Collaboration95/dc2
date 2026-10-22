@@ -41,7 +41,7 @@ The diagram renderer, style and font come from the user's local
 dependencies are added to the application. This folder is study documentation;
 it does not change or deploy the product.
 
-Source snapshot: Main `8152ede`; verified runtime source `629119c`, 20 October 2026.
+Source snapshot: Main `d0d745f`; verified runtime source `c7c489c`, 22 October 2026.
 Both local presentation guides list Team 17 on 26 October, 14:35–15:15 SGT;
 the user confirmed 26 October on 21 October.
 Check Canvas for later changes and confirm meeting access with the team.
