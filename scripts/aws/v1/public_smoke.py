@@ -108,7 +108,7 @@ class PublicSmoke:
         self.credentials, self.http, self.clock, self.reserve = credentials, http, clock, reserve
         self.sleep, self.wake_backoff = sleep, tuple(wake_backoff)
         self.checks, self.failures, self.receipt = {}, [], {}
-        self.cookie, self.login_attempts = None, []
+        self.cookie, self.login_attempts, self.processing_attempts = None, [], []
 
     # -- plumbing -----------------------------------------------------------------
     def _request(self, method, path, deadline, body=None, cookie=None):
@@ -158,26 +158,25 @@ class PublicSmoke:
         status, _, _ = self._request("GET", "/api/media/jobs", deadline)
         return True if status in {401, 403} else status
 
-    def _login_attempts(self, deadline):
-        """The login POST, repeated while a paused database is waking.
+    def _waking(self, path, deadline, log, method="GET", body=None, cookie=None):
+        """One request, repeated while a paused database is waking.
 
-        Login is the first call that needs the database (health and the anonymous denial do not).
+        Each service has its own Aurora cluster (AD-29) that pauses independently, so the first
+        call needing each database (Media login, Processing's job batch) may meet a waking one.
         Only a 502/503/504 or a transport failure is retried, with the configured pauses and only
         while the deadline leaves room for the pause and another request; any other status ends
         the check at once, and a 503 that outlasts the pauses is still the failure. Every
-        attempt's status is kept for the receipt."""
+        attempt's status is appended to `log` for the receipt."""
         attempts = len(self.wake_backoff) + 1
         for attempt in range(attempts):
             try:
-                reply = self._request(
-                    "POST", "/api/media/auth/login", deadline, body=self.credentials
-                )
+                reply = self._request(method, path, deadline, body=body, cookie=cookie)
             except OperationError:
                 raise
             except Exception:
                 reply = ("error", {}, b"")  # a transport failure; no detail is kept
             status = reply[0]
-            self.login_attempts.append(status)
+            log.append(status)
             if status not in DATABASE_WAKING and status != "error":
                 break
             last = attempt == attempts - 1
@@ -185,6 +184,11 @@ class PublicSmoke:
                 break
             self.sleep(self.wake_backoff[attempt])
         return reply
+
+    def _login_attempts(self, deadline):
+        return self._waking(
+            "/api/media/auth/login", deadline, self.login_attempts, "POST", self.credentials
+        )
 
     def _login(self, deadline):
         status, headers, body = self._login_attempts(deadline)
@@ -209,7 +213,7 @@ class PublicSmoke:
     def _processing_batch(self, deadline):
         # A random asset id this user cannot own: success is an authorized empty result.
         path = f"/api/processing/jobs?asset_ids={uuid.uuid4()}"
-        status, _, body = self._request("GET", path, deadline, cookie=self.cookie)
+        status, _, body = self._waking(path, deadline, self.processing_attempts, cookie=self.cookie)
         if status != 200:
             return status
         return True if self._json(body) == [] else "contract"
@@ -240,7 +244,8 @@ class PublicSmoke:
         return True if ok else "contract"
 
     def __call__(self, owner, versions, worker_definition, *, deadline):
-        self.checks, self.failures, self.cookie, self.login_attempts = {}, [], None, []
+        self.checks, self.failures, self.cookie = {}, [], None
+        self.login_attempts, self.processing_attempts = [], []
         self._check("media-health", lambda: self._health("media", deadline))
         self._check("processing-health", lambda: self._health("processing", deadline))
         self._check("anonymous-denied", lambda: self._anonymous_denied(deadline))
@@ -257,5 +262,6 @@ class PublicSmoke:
             # One status per login try ("error" for a transport failure): [503, 200] shows that
             # the database was still waking on the first try. Statuses only, never a body.
             "login_attempts": list(self.login_attempts),
+            "processing_attempts": list(self.processing_attempts),
         }
         return not self.failures
