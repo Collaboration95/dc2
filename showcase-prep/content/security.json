@@ -1,37 +1,351 @@
 {
-  "id":"security", "title":"Who can do what, and why?", "kicker":"Trust and access boundaries",
-  "summary":"Separate login, ownership, private storage, service identity and security testing. Follow the actual trust path.",
-  "opening_answer":"Media owns account authentication. API Gateway gets a trusted actor from Media’s authorizer, and each service checks that actor against its owned records. Video objects stay private, with narrowly scoped temporary grants for upload and playback. Cloud roles have separate permissions; security tests check specific boundaries rather than proving the entire system secure.",
-  "sections":[
-    {"id":"authentication","title":"Knowing who you are is only the first check","level":1,"blocks":[
-      {"type":"p","text":"Authentication answers “who is making this request?” Authorization answers “may that person do this to this resource?” Arun can be logged in and still have no permission to read Maya’s job. A valid session is not a universal pass to every asset."},
-      {"type":"p","text":"Media hashes account passwords with bcrypt and issues a signed JSON Web Token in an access_token cookie. The cookie is Secure, HttpOnly and SameSite=Strict. In plain terms, it is sent over HTTPS, withheld from ordinary browser JavaScript, and restricted in cross-site contexts. Those controls reduce risks; they do not replace endpoint authorization."},
-      {"type":"p","text":"The Media-owned authorizer verifies the token and reads the current user record. Processing receives the resulting actor identity, not Media’s JWT signing secret or a copy of its users table. It still checks ownership of its own jobs. The design therefore has a real dependency: if Media’s authorizer or account lookup is unavailable, protected Processing requests cannot simply bypass authentication."},
-      {"type":"qa","q":"Is authentication enough to stop one user reading another user’s video?","a":"No. Authentication identifies the caller. Every protected resource operation also needs an ownership check. A logged-in Arun must still be denied access to Maya’s asset or job."}
-    ],"sources":[{"path":"media/services/security.py","label":"Password hashing and token verification"},{"path":"media/authorizer.py","label":"Current-user lookup and trusted actor"},{"path":"contracts/v1.py","label":"Cookie options and Actor contract"},{"path":"processing/auth.py","label":"Processing’s Gateway identity dependency"}]},
-    {"id":"trust-path","title":"The client cannot choose its own identity","level":2,"blocks":[
-      {"type":"visual","spec":{"type":"flow","title":"From a cookie to an owned operation","steps":[{"label":"Browser session","sub":"A signed access cookie","detail":"The client presents a session token. Supplying an x-owner-id header is not a way to choose a different owner."},{"label":"Media authorizer","sub":"Token + current user","accent":true,"detail":"Media verifies the token and current account, then returns a structured Actor in API Gateway authorizer context."},{"label":"Gateway adapter","sub":"Trusted context only","detail":"The adapter takes identity from the authorizer context and strips caller-supplied identity headers. Resource policies must protect direct Lambda invocation too."},{"label":"Owner check","sub":"Service-owned records","detail":"Media or Processing checks the actor against its own resource records before permitting the requested operation."}],"caption":"The integration marker is a schema fence, not a secret. AWS invocation policy is part of the trust boundary."}},
-      {"type":"p","text":"The adapter rejects missing or malformed trusted context and does not accept x-owner-id or x-role as authority. Authorizer caching is configured with zero TTL so the decision is based on the current account lookup rather than a cached role decision. A magic-looking marker in a JSON payload is not authentication by itself; callers must also be prevented from directly invoking a privileged Lambda with forged events."},
-      {"type":"qa","q":"Why not share the JWT secret with Processing?","a":"Media owns account identity and current account state. A trusted Gateway actor lets Processing enforce job ownership without duplicating the user database or holding Media’s signing secret. The tradeoff is its protected API depends on the Media authorizer."},
-      {"type":"qa","q":"What stops someone sending x-owner-id with another user’s ID?","a":"The Gateway adapter strips caller-supplied identity headers and uses the authorizer context instead. Service checks then compare that trusted actor with the resource owner. Cloud invocation policies protect the route into that adapter."}
-    ],"sources":[{"path":"contracts/gateway.py","label":"actor_from_event and invoke_asgi"},{"path":"media/authorizer.py","label":"Authorizer behavior"},{"path":"scripts/aws/v1/definitions.py","label":"Lambda permissions and authorizer configuration"},{"path":"tests/v1/test_lambda_event_shapes.py","label":"Malformed and forged event tests"}]},
-    {"id":"storage","title":"Temporary access is not a public bucket","level":2,"blocks":[
-      {"type":"p","text":"An S3 bucket can reject anonymous access while allowing a narrowly scoped signed operation. Upload uses a presigned POST with a server-chosen key and policy fields. The grant limits what may be written; Media still verifies the object before adopting it. The client’s cookie is for the application and should not be forwarded to the storage host."},
-      {"type":"p","text":"Playback begins with an owner-authorized request to Media. It returns short-lived output access rather than making the bucket public. Such a URL is a temporary capability: anyone who possesses a still-valid signed URL can use the permission it grants. Treat it as sensitive and avoid putting it in logs, screenshots or slides. It is not a permanent identifier or a separate login check at every media byte."},
-      {"type":"p","text":"HLS needs more than a single MP4 object: a playlist names segments. The service validates output namespaces and handles scoped playlist/segment delivery. HLS generation remains best effort; MP4 is the playback fallback. Authenticated responses and responses setting session cookies use Cache-Control: private, no-store, including responses that carry playback access."},
-      {"type":"qa","q":"Does private storage mean a browser never reaches an S3 public endpoint?","a":"No. Bucket privacy is an authorization policy. A signed operation can permit temporary access through S3’s public service endpoint. Private access policy and private network placement are different properties."}
-    ],"sources":[{"path":"media/services/direct_intake.py","label":"Owned reservations and verified adoption"},{"path":"media/services/storage.py","label":"Storage grants and verification"},{"path":"contracts/gateway.py","label":"Private/no-store response policy"},{"path":"publisher/README.md","label":"Separate cookie-free storage client"},{"path":"media/projections.py","label":"Output descriptor validation"}]},
-    {"id":"cloud-identity","title":"A user session and an AWS role solve different problems","level":3,"blocks":[
-      {"type":"table","headers":["Identity","Purpose","Example boundary"],"rows":[["User cookie / Actor","Which owner is asking for an application operation?","Arun cannot read Maya’s job."],["Lambda execution role","Which AWS actions may this handler perform?","Read only required configuration and use authorized queues/objects."],["ECS task role","Which AWS actions may running worker code perform?","Read accepted sources, write outputs and consume permitted work."],["ECS execution role","What may ECS do to start the container?","Pull images, prepare logging and inject permitted task secrets."],["GitHub OIDC deployment role","May this workflow obtain short-lived AWS deployment credentials?","The deployment pipeline does not need a stored long-lived AWS access key."]]},
-      {"type":"p","text":"Database roles are another boundary. Media and Processing have separate databases, logins and migration ownership on the same Aurora cluster. A worker needs Processing’s database connection to claim and finish attempts, but it does not need Media’s account database. Sharing a physical cluster saves infrastructure while retaining logical ownership; it does not isolate failures at the physical level."},
-      {"type":"p","text":"Message schema validation also differs from producer authentication. contracts/v1.py can reject malformed envelopes, secrets and URLs in messages. IAM and queue policies determine who may send and consume them. Correct-looking JSON from an unauthorized sender must not become a trusted command merely because it parses."},
-      {"type":"qa","q":"What is the difference between an ECS task role and execution role?","a":"The execution role lets ECS prepare the task, including image pulls and permitted secret injection. The task role supplies AWS permissions to the application inside the running container. Neither is the same as an end user’s login."}
-    ],"sources":[{"path":"deploy/aws/v1/template.json","label":"Rendered IAM, queue, task and database configuration"},{"path":"deploy/aws/v1/github-oidc.yaml","label":"GitHub deployment identity"},{"path":"contracts/v1.py","label":"Envelope validation and safe payload"},{"path":"delivery/sqs.py","label":"Producer/consumer authority"}]},
-    {"id":"proof","title":"How to discuss security without overclaiming","level":3,"blocks":[
-      {"type":"p","text":"The project has multiple instruments. Owner and malformed-identity tests exercise application decisions. Ruff’s security rules flag static code patterns. Trivy examines packages in exact container images. ZAP runs bounded authenticated dynamic tests against the disposable local API harness. Retained AWS negative checks cover selected real cloud permissions and endpoints at an earlier source. None is interchangeable with the others."},
-      {"type":"p","text":"The current image gate found zero fixable HIGH/CRITICAL findings, while unfixed rows remain. SonarCloud is unconfigured and must be described as NOT_RUN, not passed. DAST covers seven eligible GET routes from a 20-operation inventory and reports findings for review; it does not scan the deployed AWS edge. The latest upload-to-playback smoke also does not establish that every earlier AWS negative check was rerun."},
-      {"type":"callout","title":"A useful answer pattern","text":"Name the threat, the control, the test that exercised it, and the remaining boundary. For example: “A forged owner header must not bypass authorization; the adapter ignores it, negative tests cover it, and real Lambda invocation policy is a separate cloud control.”","tone":"note"},
-      {"type":"qa","q":"Is the system vulnerability-free because CI is green?","a":"No. CI proves the required checks passed for a particular source and scope. Unfixed image findings remain, DAST has explicit exclusions and report-only findings, and SonarCloud is not configured. Green CI is useful evidence, not a universal security guarantee."}
-    ],"sources":[{"path":"docs/release/engineering-handoff.md","label":"Current scan/test results and limits"},{"path":"docs/results/engineering-20261020/delivery-629119c.json","label":"Exact deployed-image scan bindings"},{"path":"docs/results/actual-vs-target.md","label":"Earlier AWS security evidence"},{"path":"scripts/dev/v1_dast.py","label":"Dynamic scan scope and controls"}]}],
-  "takeaways":["Explain authentication and ownership as separate checks.","Trace a trusted actor from Media’s authorizer into a service-owned operation.","Explain why a private bucket can still use temporary signed access.","Distinguish application sessions, AWS task roles, execution roles and deployment identity.","Name what each security instrument proves and what it leaves untested."]
+ "id": "security",
+ "title": "Who can do what, and why?",
+ "kicker": "Trust and access boundaries",
+ "summary": "Login, ownership, private storage, service identity and security testing along the actual trust path.",
+ "opening_answer": "Media owns authentication. API Gateway gets a trusted actor from Media’s authorizer, and each service checks it against its own records. Video objects stay private, with narrow temporary grants. Cloud roles are separate; scanners check specific boundaries and do not prove the system secure.",
+ "sections": [
+  {
+   "id": "authentication",
+   "title": "Knowing who you are is only the first check",
+   "level": 1,
+   "blocks": [
+    {
+     "type": "p",
+     "text": "Authentication asks “who is calling?”; authorization asks “may they do this to this resource?” Arun can be logged in and still have no right to read Maya’s job."
+    },
+    {
+     "type": "p",
+     "text": "Media hashes passwords with bcrypt and issues a signed JSON Web Token in an `access_token` cookie: Secure (HTTPS only), HttpOnly (hidden from page JavaScript), SameSite=Strict. These reduce risk but do not replace authorization."
+    },
+    {
+     "type": "p",
+     "text": "The Media authorizer verifies the token and current user. Processing receives only the actor, not the signing secret or users table, and checks ownership of its own jobs."
+    },
+    {
+     "type": "qa",
+     "q": "Is authentication enough to stop one user reading another’s video?",
+     "a": "No. Every protected operation also needs an ownership check; Arun is still denied Maya’s asset."
+    }
+   ],
+   "sources": [
+    {
+     "path": "media/services/security.py",
+     "label": "Password hashing and token verification"
+    },
+    {
+     "path": "media/authorizer.py",
+     "label": "Current-user lookup and trusted actor"
+    },
+    {
+     "path": "contracts/v1.py",
+     "label": "Cookie options and Actor contract"
+    },
+    {
+     "path": "processing/auth.py",
+     "label": "Processing’s Gateway identity dependency"
+    }
+   ]
+  },
+  {
+   "id": "trust-path",
+   "title": "The client cannot choose its own identity",
+   "level": 2,
+   "blocks": [
+    {
+     "type": "visual",
+     "spec": {
+      "type": "flow",
+      "title": "From a cookie to an owned operation",
+      "steps": [
+       {
+        "label": "Browser session",
+        "sub": "A signed access cookie",
+        "detail": "Supplying an x-owner-id header does not choose an owner."
+       },
+       {
+        "label": "Media authorizer",
+        "sub": "Token + current user",
+        "accent": true,
+        "detail": "Verifies token and current account; returns a structured Actor."
+       },
+       {
+        "label": "Gateway adapter",
+        "sub": "Trusted context only",
+        "detail": "Reads authorizer context only; strips caller-supplied identity headers."
+       },
+       {
+        "label": "Owner check",
+        "sub": "Service-owned records",
+        "detail": "Checks the actor against the service’s own resource records."
+       }
+      ],
+      "caption": "The integration marker is a schema fence, not a secret; AWS invocation policy is part of the boundary."
+     }
+    },
+    {
+     "type": "p",
+     "text": "The adapter rejects missing or malformed context and ignores `x-owner-id` and `x-role`. Authorizer cache TTL is zero, so each decision uses the current account. Direct Lambda invocation with forged events must also be impossible."
+    },
+    {
+     "type": "qa",
+     "q": "Why not share the JWT secret with Processing?",
+     "a": "Media owns identity. A trusted actor lets Processing enforce ownership without copying users or holding the secret. Tradeoff: depends on the Media authorizer."
+    },
+    {
+     "type": "qa",
+     "q": "What stops someone sending x-owner-id with another user’s ID?",
+     "a": "The adapter strips caller-supplied identity headers and uses authorizer context; services compare that actor with the resource owner."
+    }
+   ],
+   "sources": [
+    {
+     "path": "contracts/gateway.py",
+     "label": "actor_from_event and invoke_asgi"
+    },
+    {
+     "path": "media/authorizer.py",
+     "label": "Authorizer behavior"
+    },
+    {
+     "path": "scripts/aws/v1/definitions.py",
+     "label": "Lambda permissions and authorizer configuration"
+    },
+    {
+     "path": "tests/v1/test_lambda_event_shapes.py",
+     "label": "Malformed and forged event tests"
+    }
+   ]
+  },
+  {
+   "id": "storage",
+   "title": "Temporary access is not a public bucket",
+   "level": 2,
+   "blocks": [
+    {
+     "type": "p",
+     "text": "Upload uses a presigned POST with server-chosen key and policy fields on a bucket that rejects anonymous access; Media verifies the object before adopting it. The app cookie never reaches storage."
+    },
+    {
+     "type": "p",
+     "text": "Playback: an owner-authorized request to Media returns short-lived output access. A signed URL is a capability for anyone holding it; keep it out of logs, screenshots and slides."
+    },
+    {
+     "type": "p",
+     "text": "HLS needs a playlist plus segments (output namespaces validated); HLS is best effort, MP4 the fallback. Authenticated responses use `Cache-Control: private, no-store`."
+    },
+    {
+     "type": "qa",
+     "q": "Does private storage mean a browser never reaches an S3 public endpoint?",
+     "a": "No. Privacy is an authorization policy; a signed operation can permit temporary access via S3’s public endpoint. Policy and network placement differ."
+    }
+   ],
+   "sources": [
+    {
+     "path": "media/services/direct_intake.py",
+     "label": "Owned reservations and verified adoption"
+    },
+    {
+     "path": "media/services/storage.py",
+     "label": "Storage grants and verification"
+    },
+    {
+     "path": "contracts/gateway.py",
+     "label": "Private/no-store response policy"
+    },
+    {
+     "path": "publisher/README.md",
+     "label": "Separate cookie-free storage client"
+    },
+    {
+     "path": "media/projections.py",
+     "label": "Output descriptor validation"
+    }
+   ]
+  },
+  {
+   "id": "cloud-identity",
+   "title": "A user session and an AWS role solve different problems",
+   "level": 3,
+   "blocks": [
+    {
+     "type": "table",
+     "headers": [
+      "Identity",
+      "Purpose",
+      "Example boundary"
+     ],
+     "rows": [
+      [
+       "User cookie / Actor",
+       "Which owner is asking?",
+       "Arun cannot read Maya’s job."
+      ],
+      [
+       "Lambda execution role",
+       "Which AWS actions may a handler perform?",
+       "Only required configuration, queues, objects."
+      ],
+      [
+       "ECS task role",
+       "What may running worker code do?",
+       "Read sources, write outputs, consume work."
+      ],
+      [
+       "ECS execution role",
+       "What may ECS do to start the container?",
+       "Pull images, set up logging, inject secrets."
+      ],
+      [
+       "GitHub OIDC deployment role",
+       "May this workflow get short-lived AWS credentials?",
+       "No stored long-lived AWS key."
+      ]
+     ]
+    },
+    {
+     "type": "p",
+     "text": "Media and Processing have separate databases, logins and migrations, and since AD-29 separate Aurora clusters (`media_db` original, `processing_db` clone): physical failure isolation."
+    },
+    {
+     "type": "p",
+     "text": "Schema validation is not producer authentication: `contracts/v1.py` rejects malformed envelopes, secrets and URLs; IAM and queue policies decide who may send."
+    },
+    {
+     "type": "qa",
+     "q": "What is the difference between an ECS task role and execution role?",
+     "a": "The execution role lets ECS start the task (image pulls, secrets); the task role gives running code its AWS permissions. Neither is a user login."
+    }
+   ],
+   "sources": [
+    {
+     "path": "deploy/aws/v1/template.json",
+     "label": "Rendered IAM, queue, task and database configuration"
+    },
+    {
+     "path": "deploy/aws/v1/github-oidc.yaml",
+     "label": "GitHub deployment identity"
+    },
+    {
+     "path": "contracts/v1.py",
+     "label": "Envelope validation and safe payload"
+    },
+    {
+     "path": "delivery/sqs.py",
+     "label": "Producer/consumer authority"
+    }
+   ]
+  },
+  {
+   "id": "proof",
+   "title": "Security scanning feeds one place, and none of it proves safety",
+   "level": 3,
+   "blocks": [
+    {
+     "type": "visual",
+     "spec": {
+      "type": "flow",
+      "title": "Scanners to the Security tab",
+      "steps": [
+       {
+        "label": "Scanners",
+        "sub": "Five instruments",
+        "detail": "CodeQL (Python, JS/TS, Actions), Trivy per image, authenticated OWASP ZAP, Ruff security rules (Bandit), gitleaks."
+       },
+       {
+        "label": "SARIF upload",
+        "sub": "Common report format",
+        "detail": "Each tool publishes to GitHub code scanning. ZAP is report-only."
+       },
+       {
+        "label": "Security tab",
+        "sub": "One triage place",
+        "accent": true,
+        "detail": "All scanners plus Dependabot alerts; secret scanning and push protection on."
+       },
+       {
+        "label": "Triage",
+        "sub": "Fix, dismiss, accept",
+        "detail": "Fix, dismiss with a recorded reason, or accept unfixed with a receipt."
+       }
+      ],
+      "caption": "22 October triage below."
+     }
+    },
+    {
+     "type": "table",
+     "headers": [
+      "22 Oct triage",
+      "Result"
+     ],
+     "rows": [
+      [
+       "12 High CodeQL alerts",
+       "All in test, proof or developer-script code, none deployed; dismissed with reasons"
+      ],
+      [
+       "Open alerts",
+       "ZAP low/info on OpenAPI doc pages only"
+      ],
+      [
+       "CVE-2025-52290 (ffmpeg)",
+       "Accepted unfixed: no Debian 13 fix; finite worker, no inbound network"
+      ]
+     ]
+    },
+    {
+     "type": "p",
+     "text": "Also owner and malformed-identity tests and earlier AWS negative checks; none substitutes for another."
+    },
+    {
+     "type": "p",
+     "text": "Image gate: zero fixable HIGH/CRITICAL; unfixed rows remain. SonarCloud NOT_RUN. DAST: seven GET routes of 20 operations, local harness only."
+    },
+    {
+     "type": "callout",
+     "title": "Answer pattern",
+     "text": "Threat, control, test, remaining boundary: forged owner header; adapter ignores it; negative tests cover it; Lambda invocation policy is separate.",
+     "tone": "note"
+    },
+    {
+     "type": "qa",
+     "q": "Is the system vulnerability-free because CI is green?",
+     "a": "No. Green CI means the required checks passed for one source and scope; unfixed findings, DAST exclusions and unconfigured SonarCloud remain."
+    }
+   ],
+   "sources": [
+    {
+     "path": "docs/release/engineering-handoff.md",
+     "label": "Current scan/test results and limits"
+    },
+    {
+     "path": "docs/results/engineering-20261020/delivery-629119c.json",
+     "label": "Exact deployed-image scan bindings"
+    },
+    {
+     "path": "docs/results/actual-vs-target.md",
+     "label": "Earlier AWS security evidence"
+    },
+    {
+     "path": "scripts/dev/v1_dast.py",
+     "label": "Dynamic scan scope and controls"
+    },
+    {
+     "path": "docs/ci/policy.md",
+     "label": "Scanner set, SARIF upload and triage"
+    },
+    {
+     "path": "docs/execution/aws/v1/scan-accepted-unfixed-20261017.json",
+     "label": "Accepted unfixed CVE-2025-52290"
+    }
+   ]
+  }
+ ],
+ "takeaways": [
+  "Authentication and ownership are separate checks.",
+  "Trace a trusted actor from Media’s authorizer into a service-owned operation.",
+  "Private buckets still use temporary signed access.",
+  "Separate app sessions, task roles, execution roles and deployment identity.",
+  "Scanners feed the Security tab; state what each proves."
+ ]
 }

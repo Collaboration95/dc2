@@ -2,8 +2,8 @@
   "id": "meeting",
   "title": "Prepare the GC2 project presentation",
   "kicker": "From the course brief to a clear, honest demonstration",
-  "summary": "A practical guide to explaining Team 17’s Flickpond platform project: what the course asks for, how the design works, what the evidence actually shows, how to rehearse the demo, and which personal or course facts still need confirmation.",
-  "opening_answer": "We took an inherited video-processing application and separated its media and processing responsibilities behind contracts, then added a Publisher client and an independently operated cloud processing path. The result is a working platform with useful evidence and some honest misses: the small AWS scaling run passed at three workers but missed the two-worker target, and the proposed 30-clip AWS comparison was not run.",
+  "summary": "Presenting Team 17's Flickpond project: course requirements, design, evidence, demo rehearsal, facts to confirm.",
+  "opening_answer": "We separated an inherited video app into Media and Processing behind contracts, with one Aurora cluster per service, a Publisher client, a Lambda short-encode lane and independently operated cloud workers. Honest misses: six-clip scaling passed at three workers and missed at two, end-to-end 20 s is missed, the 30-clip comparison was not run.",
   "sections": [
     {
       "id": "authority",
@@ -12,43 +12,39 @@
       "blocks": [
         {
           "type": "p",
-          "text": "The current assignment is GC2, Architecting Scalable Systems (SWE5001 / SE34FT). Use the current GC2 briefing interpretation, submitted Team 17 proposal, current report template and presentation guidance for requirements. The provided `course_files_export.zip` is inherited SWE5006 / Designing Modern Software Systems material. It is useful as an engineering-completeness checklist—analysis, design, use cases, tests, lifecycle and evidence—but its template, sample proposals, grading weights, dates and demo duration do not replace GC2 instructions. In particular, do not import the older 13+4-minute demo timing."
-        },
-        {
-          "type": "p",
-          "text": "Both the archived repository guide and the revised local PDF place Team 17 on **26 October 2026, 14:35–15:15 Singapore time**. The revised guide contains separate schedule tables for 21, 24 and 26 October: Team 17 appears in the 26 October afternoon table, not the first table. The slot is 40 minutes including questions. The six suggested segments include an 8+2-minute demo, where the extra two minutes are for questions. Check Canvas for any later update and use the team’s confirmed meeting access details."
+          "text": "The assignment is GC2 (SWE5001 / SE34FT); requirements come from the GC2 briefing, proposal, report template and presentation guide. `course_files_export.zip` is inherited SWE5006 material, a checklist only: its weights, dates and 13+4-minute demo do not apply."
         },
         {
           "type": "callout",
           "title": "Team 17 · 26 October · 14:35–15:15 SGT",
-          "text": "The schedule table agrees across both local copies. Prepare the complete six-part story and keep Q&A within the 40-minute slot. The guide supplies approximate suggested allocations, not a minimum talk length.",
+          "text": "Archived guide and revised PDF agree (afternoon table). The 40 minutes include questions; the suggested 8+2 demo includes 2 for questions. Check Canvas for updates and access details.",
           "tone": "note"
         }
       ],
       "sources": [
         {
           "href": "references/presentation-guidelines-revised.pdf",
-          "label": "Revised local guide: Team 17 in the 26 October afternoon table"
+          "label": "Revised guide: Team 17 slot"
         },
         {
           "path": "project-documentation/briefing-requirements.txt",
-          "label": "Current GC2 requirements and boundaries"
+          "label": "GC2 requirements"
         },
         {
           "path": "project-documentation/Team17-Proposal.docx",
-          "label": "Team 17 scope, targets and commitments"
+          "label": "Scope"
         },
         {
           "path": "project-documentation/original-reference/04 Project Presentation Guidelines & Schedule.pdf",
-          "label": "Archived presentation guide: same Team 17 slot"
+          "label": "Official outline"
         },
         {
           "path": "project-documentation/course-evidence-checklist.md",
-          "label": "Separates current GC2 authority from inherited SWE5006 evidence"
+          "label": "GC2"
         },
         {
           "path": "docs/release/engineering-handoff.md",
-          "label": "Engineering handoff and recorded Team 17 schedule"
+          "label": "Handoff"
         }
       ]
     },
@@ -59,33 +55,37 @@
       "blocks": [
         {
           "type": "p",
-          "text": "Use the 30-second version when the chair asks for a quick introduction: **“Small teams need to turn video uploads into playable files without manually managing conversion. We started from an earlier Flickpond application, then built a platform path with separate Media and Processing responsibilities, an API-based Publisher client, and independently controlled cloud workers. We’ll show the user journey, the design, and what our measurements did—and did not—prove.”** This names the problem, the seed, the reuse idea and the evidence boundary."
+          "text": "**30 seconds:** “Small teams need uploads turned into playable video without managing conversion. We built on an earlier Flickpond app: separate Media and Processing responsibilities, an API-based Publisher client and independently controlled cloud workers. We'll show the journey, the design, and what our measurements did and did not prove.”"
         },
         {
           "type": "p",
-          "text": "For a two-minute opening, add that Maya and Arun represent two individual content owners, while Jules represents an integrator and Sam an operator; these are fictional planning personas, not interviewed users. The browser and Publisher CLI are the two clients. The platform accepts an owned upload, processes it asynchronously and returns owner-authorized status and playback. Media owns identity and user-facing asset access; Processing owns attempts and encoding. The Publisher uses published contracts without importing service code or holding database credentials."
+          "text": "**Two minutes:** Maya and Arun are content owners, Jules an integrator, Sam an operator (fictional personas). Media owns identity and asset access; Processing owns attempts and encoding. The Publisher CLI uses published contracts only."
         },
         {
           "type": "p",
-          "text": "Then state the main result with its boundary: the retained AWS V1 six-clip run measured 1.449× at two workers, below the 1.6× target, and 2.347× at three workers, above the 2.1× target. This is not the proposal’s 30-clip experiment. A later V2-live nine-clip run used a fixed cap of three, so it is a separate observation, not a scaling comparison. Naming that early earns trust and sets up a useful design discussion."
+          "text": "**Headline with its boundary:** AWS V1 six-clip run: 1.449× at two workers (target 1.6×, missed), 2.347× at three (2.1×, met); 30-clip run not done. Short lane (`sl1021`): queue wait met, end-to-end 20 s not."
         }
       ],
       "sources": [
         {
           "path": "project-roadmap/business-scope.json",
-          "label": "Persona assumptions, goals and boundaries"
+          "label": "Personas, UC-1..7, boundaries"
         },
         {
           "path": "project-documentation/effort-ledger.md",
-          "label": "Project 1 inheritance and recorded specialisms"
+          "label": "Effort allocation"
         },
         {
           "path": "docs/results/actual-vs-target.md",
-          "label": "Measured results with workloads and verdicts"
+          "label": "Measured results"
         },
         {
           "path": "docs/release/demo-release-manifest.md",
-          "label": "Frozen release identity and recorded acceptance limits"
+          "label": "Frozen release identity"
+        },
+        {
+          "path": "docs/results/engineering-20261021/short-lane-sl1021.json",
+          "label": "Short-lane benchmark"
         }
       ]
     },
@@ -96,57 +96,57 @@
       "blocks": [
         {
           "type": "p",
-          "text": "The current presentation guide suggests six segments. Its notation is content minutes plus question minutes, and the six suggested totals add to the full 40-minute slot. Use the first part of each segment to teach one main idea; keep detailed evidence ready for follow-up questions."
+          "text": "Six segments (content + questions) fill the 40 minutes. One idea each; keep detail for follow-ups."
         },
         {
           "type": "table",
           "headers": [
-            "Official segment",
-            "Suggested allocation",
-            "What the guide asks you to cover"
+            "Segment",
+            "Minutes",
+            "Covers"
           ],
           "rows": [
             [
               "1. Overview",
-              "2 + 1 min",
-              "Business context and problem; platform thinking; project scope."
+              "2 + 1",
+              "Context, problem, scope."
             ],
             [
               "2. Project Conduct",
-              "1.5 + 0.5 min",
-              "Current status and outstanding issues; actual milestones; rough total effort per member."
+              "1.5 + 0.5",
+              "Status, milestones, effort per member."
             ],
             [
-              "3. Logical Architecture & Design",
-              "7 + 2 min",
-              "Decisions shaping the logical design; logical components and supporting views; relevant domain-driven design; producers, consumers and platform interaction."
+              "3. Logical Architecture",
+              "7 + 2",
+              "Decisions, components, DDD, producers/consumers."
             ],
             [
-              "4. Physical Architecture & Design",
-              "7 + 2 min",
-              "Physical design decisions; network, nodes, technologies and cloud services; persistence; a detailed representative use case or story."
+              "4. Physical Architecture",
+              "7 + 2",
+              "Network, nodes, cloud services, persistence, one use case."
             ],
             [
-              "5. DevOps and Development Lifecycle",
-              "6 + 1 min",
-              "Source and artifact management; pipeline and procedures; technical findings and problems."
+              "5. DevOps and Lifecycle",
+              "6 + 1",
+              "Source, artifacts, pipeline, findings."
             ],
             [
               "6. Demo",
-              "8 + 2 min",
-              "Significant use cases and quality attributes, such as scalability, scripted performance testing or pipeline maintainability."
+              "8 + 2",
+              "Use cases and quality attributes."
             ]
           ]
         },
         {
           "type": "p",
-          "text": "Keep the order top-down: problem and scope first, then logical design, then deployed implementation and evidence. The guide says to highlight notable achievements rather than crowding slides with text. The 8+2 demo allocation is official guidance; using the cloud demo path below, exact speaker hand-offs and a particular Q&A arrangement are recommendations."
+          "text": "Top-down: scope, logical design, deployed evidence. The 8+2 demo is official; speaker hand-offs are recommendations."
         }
       ],
       "sources": [
         {
           "path": "project-documentation/original-reference/04 Project Presentation Guidelines & Schedule.pdf",
-          "label": "Official six-part outline and timing in archived repo copy; revised copy keeps the same outline"
+          "label": "Official outline"
         }
       ]
     },
@@ -157,11 +157,11 @@
       "blocks": [
         {
           "type": "p",
-          "text": "Maya prepares course recordings she owns. She authenticates in the Publisher CLI, submits a small prepared folder, and receives one result per file. She then checks a known completed item in the browser and plays its MP4 or, when available, HLS. Do not call this student publishing: the demo has no shared classroom account, LMS integration or student access. Arun offers the simpler browser story: one personal upload, visible progress and owner-only playback."
+          "text": "Maya signs in to the Publisher CLI, submits a prepared folder of her recordings, gets one result per file, then plays a completed item (MP4, or HLS if present). Not student publishing: no shared classroom account or LMS. Arun is the browser story: upload, progress, owner-only playback."
         },
         {
           "type": "p",
-          "text": "Jules explains why the CLI matters. It calls the published API and has no service-code import or database credential. That is concrete reuse through a second client, not a developer portal or a third application. Sam explains the operator view: worker capacity and Processing releases can be changed separately from Media. Support that claim with recorded evidence and version identities; do not imply an autoscaler or an operations dashboard."
+          "text": "Jules: the CLI calls the published API, no service import or database credential. Sam: capacity and Processing releases change separately from Media, shown by recorded evidence and version identities; no autoscaler or dashboard."
         },
         {
           "type": "visual",
@@ -192,19 +192,19 @@
       "sources": [
         {
           "path": "project-roadmap/business-scope.json",
-          "label": "Personas, UC-1 through UC-7 and explicit boundaries"
+          "label": "Personas, UC-1..7, boundaries"
         },
         {
           "path": "docs/architecture/use-case-design.md",
-          "label": "Use-case-to-design traceability and representative flows"
+          "label": "Use-case traceability"
         },
         {
           "path": "publisher/README.md",
-          "label": "Publisher commands and API-only integration"
+          "label": "Publisher CLI"
         },
         {
           "path": "docs/release/engineering-handoff.md",
-          "label": "Suggested story order and safe demo boundaries"
+          "label": "Handoff"
         }
       ]
     },
@@ -215,49 +215,164 @@
       "blocks": [
         {
           "type": "p",
-          "text": "For logical design, explain two business contexts rather than listing boxes. Media owns accounts, assets, upload identity and owner-facing reads. Processing owns jobs, attempts, leases and encoding. Their contracts and data ownership let the worker capacity change independently. The SQL outbox/inbox makes work publication recoverable across a database and queue that cannot share one transaction; duplicate delivery is handled through idempotent processing. Trusted owner identity passes through the gateway so Processing does not accept a caller-forged owner header."
+          "text": "**Logical.** Media owns accounts, assets, upload identity and owner reads; Processing owns jobs, attempts, leases and encoding. SQL outbox/inbox makes publication recoverable with idempotent duplicates. The gateway passes trusted owner identity, so Processing never accepts a forged owner header."
         },
         {
           "type": "p",
-          "text": "For physical design, show the current persistent V2-live arrangement as built: API Gateway and Lambda handle requests; SQS carries asynchronous work; S3 holds media; Aurora PostgreSQL stores service data; CloudFront serves the web app; finite ECS Fargate tasks encode. The two logical databases still share one Aurora cluster and one region, so this is neither physical database isolation nor a high-availability demonstration. Label diagrams that describe the earlier V1 deployment as V1 rather than quietly presenting them as the latest physical state."
+          "text": "**Physical (dc2-live).** API Gateway, Lambda, SQS, S3, CloudFront; short encodes on Lambda, others on finite Fargate. **Each service has its own Aurora cluster** (AD-29): isolated capacity and failure, but one region, not HA."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "compare",
+            "title": "Two encode lanes, two clusters",
+            "columns": [
+              "Topic",
+              "Before",
+              "Now (dc2-live)"
+            ],
+            "rows": [
+              [
+                "Encode",
+                "All on Fargate",
+                "≤60 s, ≤64 MiB, ≤1080p: Lambda (3008 MB, 900 s, concurrency 2). Else Fargate, 0→3→0"
+              ],
+              [
+                "Database",
+                "One cluster, two DBs",
+                "media_db original; processing_db own clone; both pause at 0 ACU"
+              ],
+              [
+                "Per-run stacks",
+                "Defaults",
+                "Flags off (AD-22)"
+              ]
+            ],
+            "caption": "Short lane (#93, AD-13/22); per-service clusters (#94, AD-29)."
+          }
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "compare",
+            "title": "Short lane vs Fargate (sl1021, 5 jobs per arm)",
+            "columns": [
+              "Measure",
+              "Lambda",
+              "Fargate"
+            ],
+            "rows": [
+              [
+                "Queue wait, median",
+                "0.26 s",
+                "32.6 s"
+              ],
+              [
+                "Processing, median",
+                "5.3 s",
+                "8.0 s"
+              ],
+              [
+                "Submit to done",
+                "warm 45.2 s, cold 92.0 s",
+                "87.7 s"
+              ],
+              [
+                "Cost per encode",
+                "$0.0003",
+                "$0.0021"
+              ],
+              [
+                "Failures",
+                "0",
+                "0"
+              ]
+            ],
+            "caption": "Queue wait met; 35–80 s per job unexplained, so 20 s end-to-end missed."
+          }
         },
         {
           "type": "p",
-          "text": "Separate current engineering delivery from older experiment receipts. Runtime `629119c` has a source-bound hosted CI/CD receipt and a post-deployment upload-to-playback smoke. That establishes the specific delivery and one smoke path; it does not refresh all earlier performance, security or recovery measurements. For scaling, keep the AWS V1 six-clip cap-2 miss and cap-3 pass visible. The proposal’s 30-clip AWS run was not done. V2-live’s nine clips at fixed cap three yielded 2.26 jobs/min in one run, while queued-to-processing was about 37 seconds against a 20-second target. Avoid combining local pre-V1 results with shipped AWS results."
+          "text": "**Boundaries.** `629119c` has a hosted CI/CD receipt and upload-to-playback smoke; `c7c489c` (21 October) added the certifi fix. A smoke proves one path only. Keep the six-clip cap-2 miss and cap-3 pass visible; long Fargate clips wait about 37 s against 20 s. The V2-live nine-clip run at fixed cap 3 (2.26 jobs/min) is separate. Never mix local pre-V1 and AWS results; label V1 diagrams V1."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "Security scanning to the Security tab",
+            "steps": [
+              {
+                "label": "Scan",
+                "detail": "CodeQL, Ruff (Bandit rules), gitleaks"
+              },
+              {
+                "label": "Images and app",
+                "detail": "Trivy per image; ZAP DAST"
+              },
+              {
+                "label": "SARIF upload",
+                "detail": "GitHub code scanning"
+              },
+              {
+                "label": "Triage",
+                "detail": "Security tab; Dependabot alerts on"
+              }
+            ]
+          }
         },
         {
           "type": "p",
-          "text": "For lifecycle, point from a change to tests, CI, image checks, admission, promotion and smoke evidence. State that unfixed scan findings remain; the gate is about fixable HIGH/CRITICAL findings, not zero vulnerabilities. The exact-source delivery receipt is in `docs/results/engineering-20261020/delivery-629119c.json`. A result from the earlier `daee44b` freeze keeps its own identity and limits."
+          "text": "**Lifecycle.** Change, tests, CI, image checks, admission, promotion, smoke. The gate stops fixable HIGH/CRITICAL findings only; AD-28 also scans the retained rollback image without bypassing the gate. Accepted unfixed: CVE-2025-52290 (ffmpeg, no Debian 13 fix; no inbound network). 22 October: 12 High CodeQL alerts (test, proof, dev-script code) dismissed; open: ZAP low/info on OpenAPI pages."
         }
       ],
       "sources": [
         {
           "path": "docs/architecture/ddd.md",
-          "label": "Bounded contexts and ownership"
+          "label": "Bounded contexts"
         },
         {
           "path": "docs/architecture/decisions.md",
-          "label": "Architecture choices and trade-offs"
+          "label": "Decisions AD-01..AD-29"
         },
         {
           "path": "docs/architecture/views.md",
-          "label": "Views; note their V1 deployment scope"
+          "label": "Views (V1 scope)"
         },
         {
           "path": "docs/architecture/use-case-design.md",
-          "label": "Implemented flows, models and tests"
+          "label": "Use-case traceability"
         },
         {
           "path": "docs/results/actual-vs-target.md",
-          "label": "Environment-specific measurements, targets and misses"
+          "label": "Measured results"
         },
         {
           "path": "docs/results/engineering-20261020/delivery-629119c.json",
-          "label": "Exact-source CI/CD and deployed smoke receipt"
+          "label": "Delivery receipt"
         },
         {
           "path": "docs/evidence-index.md",
-          "label": "Detailed retained experiment history"
+          "label": "Experiment history"
+        },
+        {
+          "path": "docs/results/engineering-20261021/short-lane-sl1021.json",
+          "label": "Short-lane benchmark"
+        },
+        {
+          "path": "docs/execution/aws/v2/lambda-short-encodes.md",
+          "label": "Lambda short lane"
+        },
+        {
+          "path": "docs/results/engineering-20261021/database-split-rehearsal.json",
+          "label": "Database split rehearsal (AD-29)"
+        },
+        {
+          "path": "docs/ci/policy.md",
+          "label": "Scanning"
+        },
+        {
+          "path": "docs/execution/aws/v1/scan-accepted-unfixed-20261017.json",
+          "label": "Accepted CVE-2025-52290"
         }
       ]
     },
@@ -268,49 +383,49 @@
       "blocks": [
         {
           "type": "p",
-          "text": "Prepare an approved demo owner account, verify its login before the session, and use a small known-good clip below the 100 MiB upload limit. Keep a prepared folder and one job ID. Start the approved demo environment early enough to check the URL and health, and confirm the current live state with the team; a saved manifest is not a live availability check. Never show a password, token or private signed URL on screen."
+          "text": "Prepare an approved owner account (verify login), a small clip under the 100 MiB limit (short-lane clips finish on Lambda), a prepared folder and one job ID. Start the environment early; a manifest is not a live check. Never show a password, token or signed URL."
         },
         {
           "type": "list",
           "ordered": true,
           "items": [
-            "Maya submits the prepared folder with the Publisher CLI; show per-file outcomes and keep one accepted job ID.",
-            "Open the browser as the same owner; show status moving to done and play the MP4. Mention HLS only if this item actually has it.",
-            "Jules points to the public API contract and the CLI boundary; explain that the CLI needs no service import or database login.",
-            "Sam uses a saved, source-labeled capacity or release receipt to explain independent operation. Do not trigger a risky scale or failure experiment during the presentation."
+            "Maya submits the prepared folder with the Publisher CLI; show per-file outcomes, keep one accepted job ID.",
+            "Open the browser as the same owner; status reaches done; play the MP4 (HLS only if present).",
+            "Jules points to the public API contract and CLI boundary.",
+            "Sam uses a saved, source-labelled capacity or release receipt. Never trigger a scale or failure experiment live."
           ]
         },
         {
           "type": "p",
-          "text": "A known failed job may be used only if already prepared and verified: retry should use the stored source, not upload the remembered local file again. Never create a failure live just to make retry look dramatic. If login, upload, processing or playback stalls, say what failed, then switch promptly to a pre-captured screen recording or screenshots from the same stated environment and source. If no verified recording exists, use the retained receipt and a prepared local walkthrough, label it as recorded evidence, and do not present it as a live AWS result. The checklist says no recording identifier is attached, so recording access and the actual fallback files still need a human check."
+          "text": "Use a failed job only if prepared; retry uses the stored source. If anything stalls, say what failed and switch to a pre-captured recording or screenshots of the same environment and source, else the retained receipt, labelled recorded, not live. No recording identifier attached: check access."
         },
         {
           "type": "callout",
           "title": "Keep the fallback honest",
-          "text": "Prepare the account, clip, job ID, receipt, and screenshots or recording before rehearsal. Label each backup with its environment and source revision. A screenshot proves only what it depicts; it does not prove the live system is still available.",
+          "text": "Label each backup with environment and source revision; a screenshot does not prove the live system is available.",
           "tone": "note"
         }
       ],
       "sources": [
         {
           "path": "docs/release/engineering-handoff.md",
-          "label": "Maya-to-Jules-to-Sam sequence, safe demo and evidence caveats"
+          "label": "Handoff"
         },
         {
           "path": "docs/release/demo-release-manifest.md",
-          "label": "Frozen demo release identity and limitations"
+          "label": "Frozen release identity"
         },
         {
           "path": "docs/results/engineering-20261020/delivery-629119c.json",
-          "label": "Current engineering delivery smoke, not a presentation recording"
+          "label": "Delivery receipt"
         },
         {
           "path": "project-documentation/course-evidence-checklist.md",
-          "label": "Recording identifier and access remain unconfirmed"
+          "label": "GC2"
         },
         {
           "path": "publisher/README.md",
-          "label": "Publisher CLI usage"
+          "label": "Publisher CLI"
         }
       ]
     },
@@ -320,60 +435,54 @@
       "level": 2,
       "blocks": [
         {
-          "type": "callout",
-          "title": "Official allocation",
-          "text": "The course guide suggests Overview 2+1, Project Conduct 1.5+0.5, Logical Architecture 7+2, Physical Architecture 7+2, DevOps/Lifecycle 6+1, Demo 8+2 minutes. Each pair is content plus Q&A; together they fill 40 minutes. This is the official suggested structure, not the team’s chosen speaker script.",
-          "tone": "note"
-        },
-        {
           "type": "table",
           "headers": [
-            "Proposed rehearsal clock",
+            "Clock (each incl. Q&A)",
             "Focus",
-            "Why allocate the time"
+            "Aim"
           ],
           "rows": [
             [
               "0:00–3:00",
-              "Overview + questions",
-              "Land problem, platform seed, scope and honest headline result."
+              "Overview",
+              "Problem, scope, honest headline"
             ],
             [
               "3:00–5:00",
-              "Project Conduct + questions",
-              "Give actual milestones and effort basis; name unresolved facts briefly."
+              "Project Conduct",
+              "Milestones, effort basis"
             ],
             [
               "5:00–14:00",
-              "Logical design + questions",
-              "Teach boundaries, contracts, one representative flow and key decisions."
+              "Logical design",
+              "Boundaries, contracts, one flow"
             ],
             [
               "14:00–23:00",
-              "Physical design + questions",
-              "Trace one request through cloud services, data ownership and limits."
+              "Physical design",
+              "One request through cloud, data ownership"
             ],
             [
               "23:00–30:00",
-              "DevOps/lifecycle + questions",
-              "Show source-to-release evidence and one technical lesson."
+              "DevOps/lifecycle",
+              "Release evidence, scanning"
             ],
             [
               "30:00–40:00",
-              "Demo + questions",
-              "Run the prepared story, then switch to labeled backup if needed."
+              "Demo",
+              "Prepared story, labelled backup"
             ]
           ]
         },
         {
           "type": "p",
-          "text": "This clock follows the official six totals and is a recommendation for rehearsal. Make clear hand-offs, keep one person responsible for the timer, and rehearse the fallback. If questions consume more time in an early section, shorten the next explanation while protecting the demo and its questions. Do not call this pacing an official course requirement."
+          "text": "Follows the official totals; a recommendation. One timekeeper; rehearse the fallback; if questions overrun, shorten the next section and protect the demo."
         }
       ],
       "sources": [
         {
           "path": "project-documentation/original-reference/04 Project Presentation Guidelines & Schedule.pdf",
-          "label": "Official suggested section allocations; October 5 revised copy retains them"
+          "label": "Official outline"
         }
       ]
     },
@@ -385,77 +494,100 @@
         {
           "type": "qa",
           "q": "Why split Media and Processing?",
-          "a": "Media owns identity, assets and user-facing access; Processing owns encoding jobs and attempts. Separate ownership and contracts support independent worker capacity and releases. The trade-off is more operational and messaging complexity."
+          "a": "Media owns identity and assets; Processing owns jobs and attempts. Separate contracts allow independent capacity and releases, at the cost of more messaging."
         },
         {
           "type": "qa",
-          "q": "Does the platform prove the proposed scalability target?",
-          "a": "Partly. In the AWS V1 six-clip run, three workers exceeded the 2.1× target at 2.347×, while two workers missed the 1.6× target at 1.449×. The proposal’s 30-clip AWS workload was not run. The separate V2-live run fixed capacity at three, so it is not a comparison."
+          "q": "Does the platform prove the scalability target?",
+          "a": "Partly. AWS V1 six clips: 2.347× at three workers (target 2.1×, met), 1.449× at two (1.6×, missed); no 30-clip run; the fixed-cap-3 V2-live run is no comparison."
         },
         {
           "type": "qa",
           "q": "Is the system highly available?",
-          "a": "The evidence does not prove that. The deployment uses one region and one Aurora cluster/instance shared by both logical databases. Describe the chosen cloud services and recovery evidence without claiming regional or database high availability."
+          "a": "No proof. One region; single-instance Aurora clusters isolate capacity and failure between services but give no replica failover. Claim no regional or database HA."
+        },
+        {
+          "type": "qa",
+          "q": "Why one Aurora cluster per service, and how was it done?",
+          "a": "A shared cluster shared capacity and failure despite separate roles (AD-29). Media kept the original; Processing got a copy-on-write clone; each dropped the other's database; both pause at 0 ACU. Rehearsed on a throwaway stack, snapshot kept, CD run 39644028238. Cost: a second cluster's storage and wake."
+        },
+        {
+          "type": "qa",
+          "q": "What is the Lambda short lane, and what did it fix?",
+          "a": "Clips ≤60 s, ≤64 MiB, ≤1080p go to a Lambda container (3008 MB, 900 s, concurrency 2); others to finite Fargate (cap 3). It removed the queue wait (0.26 s vs 32.6 s; $0.0003 vs $0.0021 per encode; 0 failures, table above) but 35–80 s per job is unexplained, so 20 s is still missed."
+        },
+        {
+          "type": "qa",
+          "q": "How is security checked, and what is left open?",
+          "a": "CodeQL, Trivy per image, ZAP authenticated DAST, Ruff security, gitleaks; SARIF to code scanning, Dependabot on. 22 October: 12 High CodeQL alerts dismissed with reasons. Open: ZAP low/info on OpenAPI pages; accepted CVE-2025-52290 (ffmpeg)."
         },
         {
           "type": "qa",
           "q": "What did Team 17 inherit, and what did it add?",
-          "a": "The baseline carries Flickpond’s earlier FFmpeg processing, HLS output, worker replicas and basic CI. GC2 work includes the Media/Processing split, service contracts and data ownership, Publisher client, AWS platform and delivery pipeline, security boundaries, and measured experiments. Keep inherited code and its original team’s effort separate from Team 17’s contribution."
+          "a": "Inherited: FFmpeg processing, HLS, worker replicas, basic CI. Added: Media/Processing split, contracts, Publisher, AWS platform and pipeline, Lambda short lane, per-service databases, security boundaries, experiments."
         },
         {
           "type": "qa",
           "q": "How much did each person work, and who authored each design?",
-          "a": "The ledger records 33 person-days / 264 hours allocated equally, or 11 person-days / 88 hours each, using eight hours per day. It is an allocation, not individual timesheets. Ask each person to confirm actual hours and contributions; do not infer authorship from commits or agent activity. The ledger’s Project 1 membership statements also contain a provenance tension that needs team clarification."
+          "a": "The ledger allocates 33 person-days / 264 hours equally: 11 days / 88 hours each (8 h/day). Not timesheets; each person confirms; do not infer authorship from commits or agent activity. Project 1 membership statements have a provenance tension."
+        },
+        {
+          "type": "qa",
+          "q": "What are the known limitations?",
+          "a": "AISS-01..05. **01** performance misses (20 s end-to-end on both lanes, about 37 s long-clip queue wait, two-worker 1.449×, no 30-clip run). **02** public `execute-api` URL reachable beyond CloudFront, no WAF. **03** image-only rollback; schema never restored. **04** operations: broad CD role, no staging or reviewer gate, 13 alarms notify nobody, 7-day logs. **05** not established: lost-queue-entry timing, duplicate-output check after worker kill, restore drill, Publisher effort, actual spend."
         },
         {
           "type": "list",
           "ordered": false,
           "items": [
-            "Confirm the 26 October, 14:35–15:15 SGT Team 17 slot has no later Canvas update, and check the meeting access details.",
-            "Confirm individual actual hours and contributions, each person’s own Project 1 hours, and which member will explain each design bundle.",
-            "Resolve the effort ledger’s mismatch about Ibrahim’s Project 1 team versus the statement that GC2 continues no member’s own Project 1; preserve the fact that the inherited Flickpond baseline belongs to a different Project 1 team.",
-            "Check whether the 16 October progress report was submitted and obtain its receipt if required.",
-            "Confirm access to the actual demo account, recording/screenshots and submission channel; the repository has no recording identifier attached.",
-            "Check current Canvas cutoffs, peer-assessment instructions and any AI-use declaration. Do not borrow these from the SWE5006 ZIP.",
-            "Describe remaining limitations accurately: the proposed AWS 30-clip run was not done; queue wait missed its 20-second target; the two-worker speedup missed; unfixed image findings remain; and some recovery/security checks are from earlier sources or were not run."
+            "Confirm no later Canvas change to the slot or access details.",
+            "Confirm individual hours, contributions, Project 1 hours, and who explains each design bundle.",
+            "Resolve the ledger's mismatch on Ibrahim's Project 1 team.",
+            "Check the 16 October progress report receipt.",
+            "Confirm demo account, recording or screenshots, submission channel.",
+            "Check Canvas cutoffs, peer assessment, AI-use declaration."
           ]
         },
         {
           "type": "callout",
           "title": "A fair answer is a precise answer",
-          "text": "Say what the receipt shows, which source and environment it used, and what remains unknown. A planned allocation is not a time log, a persona is not user research, and a successful smoke is not a complete quality-attribute result.",
+          "text": "State what the receipt shows, its source, environment and unknowns. An allocation is not a time log; a smoke is not a full quality result.",
           "tone": "note"
         }
       ],
       "sources": [
         {
           "path": "project-documentation/effort-ledger.md",
-          "label": "Allocation, specialisms and Project 1 provenance tension"
+          "label": "Allocation"
         },
         {
           "path": "project-documentation/course-evidence-checklist.md",
-          "label": "Human-confirmation facts and current-versus-inherited distinction"
+          "label": "Human-confirmation facts"
         },
         {
           "path": "docs/release/engineering-handoff.md",
-          "label": "Expected questions, source identity and limits"
+          "label": "Expected questions"
         },
         {
           "path": "docs/results/actual-vs-target.md",
-          "label": "Measured result boundaries and unresolved misses"
+          "label": "Result boundaries"
         },
         {
           "path": "project-documentation/briefing-requirements.txt",
-          "label": "Current course presentation and effort requirements"
+          "label": "Presentation"
+        },
+        {
+          "path": "project-documentation/final-report/src/36-other-limitations.md",
+          "label": "AISS-01..05"
         }
       ]
     }
   ],
   "takeaways": [
-    "Use the current GC2 guidance; both local schedule tables place Team 17 on 26 October, 14:35–15:15 SGT.",
-    "Teach the project from business problem to logical design to deployed evidence, and follow one Maya-to-Jules-to-Sam story.",
-    "Label inherited Flickpond capability separately from GC2 work and its evidence.",
-    "State the six-clip AWS scaling miss, the unrun 30-clip comparison, and all source/environment limits plainly.",
-    "Prepare the account, small clip, known job, and labeled fallback before rehearsal; confirm personal hours and recording facts with people."
+    "Use GC2 guidance; present 26 October, 14:35–15:15 SGT.",
+    "Teach problem, logical design, deployed evidence via Maya, Jules, Sam.",
+    "Separate inherited Flickpond from GC2 work.",
+    "State plainly: six-clip scaling miss, unrun 30-clip run, 20 s end-to-end missed.",
+    "Prepare account, clip, job and labelled fallback; confirm hours with people."
   ]
 }

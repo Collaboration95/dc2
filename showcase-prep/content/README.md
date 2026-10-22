@@ -22,8 +22,8 @@ Diagrams use the existing sketch-diagrams flow/layers/cards/hub/compare schema,
 with at most four steps per flow. Diagram detail is plain text. Avoid unexplained
 acronyms; teach what, why, how, and the tradeoff. Anchor claims to checked-in source.
 
-Current reading snapshot: Main `8152ede`, verified engineering image source
-`629119c` on 20 October 2026. Historical receipts retain their own identities.
+Current reading snapshot: Main `d0d745f`, verified engineering image source
+`c7c489c` on 22 October 2026. Historical receipts retain their own identities.
 This is a learning guide, not proof of personal authorship or team acceptance.
 
 `glossary.json` is a list of term definitions. `aws-map.json` is a positioned SVG

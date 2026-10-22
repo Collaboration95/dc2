@@ -14,7 +14,7 @@ import build
 
 ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parent
-SOURCE_REVISION = "8152edee88d6ac1bc8692b9e79dc80c06efb188f"
+SOURCE_REVISION = "d0d745faee003f8b40402360370561d95cc3475c"
 SOURCE_URL = f"https://github.com/Collaboration95/dc2/blob/{SOURCE_REVISION}/"
 STATIC_SUFFIXES = {".css", ".js", ".svg", ".woff2", ".txt"}
 PRIVATE_PATTERNS = (r"zoom\.us", r"[?&]pwd=", r"Meeting ID:", r"Passcode:", r"/Users/")
