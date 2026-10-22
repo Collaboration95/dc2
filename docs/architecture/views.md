@@ -6,6 +6,12 @@ from `scripts/aws/v1/definitions.py`, whose output is identical to the checked-i
 `deploy/aws/v1/template.json`. Counts below are computed from that rendered template at the default
 flags (`DeployApplications=true`, `UnattendedLaunch=false`, `LambdaShortEncodes=false`).
 
+> **Current state (22 Oct).** This document describes V1 as built. `dc2-live` now differs in two ways: the
+> Lambda short-encode lane is enabled (`LambdaShortEncodes=true`, #93; a second encoder adapter inside
+> Processing on the same Job/Attempt model, queue wait median 0.26 s against 32.6 s on Fargate,
+> `docs/results/engineering-20261021/short-lane-sl1021.json`), and Media and Processing each have their own
+> Aurora cluster (AD-29, #94). Counts and tables below are the V1 defaults (one cluster, nine Lambdas).
+
 Evidence labels: **[AWS]** recorded in
 [`cloud-proof-r1017b.json`](../execution/aws/v1/evidence/cloud-proof-r1017b.json) (live run
 2026-10-17) and [`cloud-proof-r1018b.json`](../execution/aws/v1/evidence/cloud-proof-r1018b.json) (live run
@@ -99,7 +105,7 @@ the queues; the engine package is pure command construction. The retired peer-HT
 | Lambda, Processing image | 5 functions | `ProcessingApi` (2048 MB), `ProcessingCommands`, `ProcessingRepair`, `ProcessingEcsEvents`, `ProcessingS3Events` | None | As above | Job orchestration, recovery |
 | Fargate encoder task | 0 idle, at most 3 | `processing.v1_worker`: one attempt per task, 2 vCPU, 4 GiB | Scratch disk only | Operator batch | Encoding |
 | Fargate one-off tasks | on demand | Media migration, Processing migration (256 CPU, 512 MB), bootstrap task, evidence load generator | None | Run once | Operations |
-| Aurora PostgreSQL Serverless v2 | 1 cluster, 1 instance | `media_db`, `processing_db` | Durable | 0 to 2 ACU, auto-pause 300 s | Persistence |
+| Aurora PostgreSQL Serverless v2 | 1 cluster, 1 instance (V1; `dc2-live` has 2, one per service, AD-29) | `media_db`, `processing_db` | Durable | 0 to 2 ACU, auto-pause 300 s | Persistence |
 | S3 | 3 buckets | Source, output, frontend (all versioned, SSE-S3, public access blocked) | Durable | Managed | Storage |
 | SQS | 3 queues, 3 DLQs | Commands, work, results | Transient (7 days) | Managed | Messaging |
 | EventBridge | 4 rules | Two one-minute ticks (Media repair, Processing repair), ECS task `STOPPED`, S3 `Object Created` on the output bucket | None | Managed | Recovery |
@@ -134,7 +140,8 @@ flowchart TB
     subgraph priv["Private subnets A and B<br/>IPv6 egress-only, no IPv4 default route"]
       media["Media Lambdas (VPC attached):<br/>Api, Results, Repair"]
       proc["Processing Lambdas (VPC attached):<br/>Api, Commands, Repair, EcsEvents, S3Events"]
-      aurora[("Aurora Serverless v2<br/>media_db, processing_db")]
+      aurora_m[("Aurora Serverless v2<br/>Media cluster: media_db")]
+      aurora_p[("Aurora Serverless v2<br/>Processing cluster: processing_db")]
     end
     subgraph pub["Public subnets A and B<br/>IPv4 default route to IGW"]
       enc["Fargate encoder, max 3<br/>migration and bootstrap tasks"]
@@ -157,9 +164,9 @@ flowchart TB
   gw -->|"/api/processing/*"| proc
   user -. "presigned POST and GET" .-> src
   user -. "presigned GET" .-> out
-  media --> aurora
-  proc --> aurora
-  enc --> aurora
+  media --> aurora_m
+  proc --> aurora_p
+  enc --> aurora_p
   media --> s3gw --> src
   s3gw --> out
   enc --> s3gw
@@ -255,7 +262,7 @@ admin) returned 401 to an anonymous caller.
 
 ## 4. Persistence design
 
-Two databases on one cluster. Each service owns its tables, migrations (Alembic, one history per database)
+Two databases (V1: one cluster; since AD-29 one cluster each). Each service owns its tables, migrations (Alembic, one history per database)
 and roles. No table has a foreign key to the other database, and owner and
 asset ids cross the boundary only as plain UUIDs.
 
