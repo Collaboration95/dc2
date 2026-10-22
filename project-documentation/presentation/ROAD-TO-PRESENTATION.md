@@ -41,10 +41,10 @@ top-down (requirements → high-level design → decisions → detail); readable
 - [ ] Each member can answer the Q&A bank for their section without notes (see `research/` once ready)
 
 ### Stage 2 — Rough outline (by 23 Oct)
-- [ ] Research briefs per section: facts, numbers, existing diagrams, unique points, likely questions (`research/`)
-- [ ] Demo plan: what runs live on dc2-live vs recorded fallback, timing, cost, failure plan (`research/`)
-- [ ] Style decision: slide format, visual language, diagram treatment, text density (`STYLE.md`)
-- [ ] Slide-by-slide outline with timing and speaker per slide (`OUTLINE.md`); over-long is fine, cut later
+- [x] Research briefs per section: facts, numbers, existing diagrams, unique points, likely questions (`research/`)
+- [x] Demo plan: what runs live on dc2-live vs recorded fallback, timing, cost, failure plan (`research/`)
+- [x] Style decision: slide format, visual language, diagram treatment, text density (`STYLE.md`)
+- [x] Slide-by-slide outline with timing and speaker per slide (`OUTLINE.md`); over-long is fine, cut later
 
 ### Stage 3 — Finalize ideas and topics (by 24 Oct)
 - [ ] Pick the 3–5 "remember us for this" points and make every section point back to them
@@ -90,7 +90,7 @@ The demo is **pre-recorded** (#254), played during the slot, so timing is contro
 | File | Purpose | Status |
 |---|---|---|
 | `ROAD-TO-PRESENTATION.md` | This checklist | started |
-| `research/sections-1-4.md` | Facts, visuals, unique points and Q&A for sections 1–4 | in progress |
-| `research/sections-5-6-demo.md` | DevOps material, demo plan and Q&A for sections 5–6 | in progress |
-| `STYLE.md` | Slide style decision | after research |
-| `OUTLINE.md` | Slide-by-slide outline with timing | after research |
+| `research/sections-1-4.md` | Facts, visuals, unique points and Q&A for sections 1–4 | done (22 Oct) |
+| `research/sections-5-6-demo.md` | DevOps material, demo plan and Q&A for sections 5–6 | done (22 Oct) |
+| `STYLE.md` | Slide style decision (Marp → HTML + PDF, palette, slide types) | draft (22 Oct) |
+| `OUTLINE.md` | Slide-by-slide outline with timing, themes, speaker proposal, visuals to make | draft (22 Oct); cut in Stage 3 |
