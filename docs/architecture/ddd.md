@@ -95,6 +95,7 @@ context's database role, image and IAM role (`scripts/aws/v1/definitions.py`, `p
 | Result consumer `MediaResults` | `media/handlers.py:result_handler` | Media |
 | Repair and event handlers `MediaRepair`, `ProcessingRepair`, `ProcessingEcsEvents`, `ProcessingS3Events` | Outbox publish, expiry, cleanup | Media or Processing |
 | Finite Fargate encoder | `processing/worker/sqs.py` using Processing's runtime role | Processing |
+| Lambda short-encode lane (`LambdaShortEncodes=true` on `dc2-live`, #93) | A second encoder adapter inside Processing: same Job/Attempt model, same runtime role, no new bounded context | Processing |
 
 Image evidence supports it: `deploy/v1/check_runtime.py` fails a build if the opposite domain package or any module under `legacy/` is importable. Release evidence supports the grouping too: the release baseline reports 4 Media functions and 5
 Processing functions moving together per owner, with the peer unchanged

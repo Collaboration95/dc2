@@ -64,7 +64,7 @@ Why these are microservices and not one app split into folders (each point has a
 
 - Each has its own container image, its own Lambda functions and IAM roles, and its own CI lane
   (`.github/workflows/ci.yml`, `.github/CODEOWNERS`).
-- Each owns its database and migrations on the shared Aurora cluster. A runtime login for one cannot
+- Each owns its database and migrations on its own Aurora cluster (AD-29; V1 shipped one shared cluster). A runtime login for one cannot
   connect to the other's database (live receipt `cross-database`).
 - They never call each other. They exchange five message kinds over three SQS queues, with an outbox
   and inbox in each database; Media keeps its own read model of Processing's state.
