@@ -58,11 +58,12 @@ top-down (requirements → high-level design → decisions → detail); readable
 - [ ] Readability check at presentation size (Zoom screen share)
 - [ ] Backup slides for likely questions (limitations AISS-01..05, cost, security triage, decision records)
 
-### Stage 5 — Demo preparation (24–25 Oct)
-- [ ] Demo script with exact clicks/commands and expected output
-- [ ] Recorded fallback for every live step (#254)
-- [ ] Pre-warm plan (Aurora auto-pause, Lambda cold start) and cost check
-- [ ] Pipeline demo: which run to show / trigger
+### Stage 5 — Record the demo (24–25 Oct)
+The demo is **pre-recorded** (#254), played during the slot, so timing is controlled.
+- [ ] Shot list: 4–7 clips covering use cases + scalability, performance, maintainability (`research/sections-5-6-demo.md`)
+- [ ] Wake dc2-live (Aurora auto-pause, Lambda cold start) before each recording session; check cost
+- [ ] Record, trim, add captions/callouts; total ≈ 8 minutes
+- [ ] Embed or link clips in the deck; keep a local copy of every clip
 
 ### Stage 6 — Rehearse (25 Oct)
 - [ ] One full timed rehearsal, all speakers, on Zoom with screen share
@@ -71,7 +72,7 @@ top-down (requirements → high-level design → decisions → detail); readable
 
 ### Stage 7 — Present (26 Oct, 2.35 pm)
 - [ ] Join Zoom 15 min early; test screen share and audio
-- [ ] Wake dc2-live (Aurora + Lambda) ~10 min before the demo
+- [ ] Clips play locally (not streamed); screen share with computer audio tested
 - [ ] After: collect feedback for the report's post-26-Oct update (`final-report/README.md`)
 
 ## Section owners (from the report's responsibility split; adjust as agreed)
