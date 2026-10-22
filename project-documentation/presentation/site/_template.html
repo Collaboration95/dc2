@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3 · Logical architecture — FlickPond</title>
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <a class="brand" href="index.html">FlickPond<small>Team 17 · how the system works</small></a>
+  <nav>
+    <a href="index.html"><span>·</span>Start</a>
+    <a href="1-overview.html"><span>1</span>Context and problem</a>
+    <a href="2-conduct.html"><span>2</span>Project conduct</a>
+    <a href="3-logical.html" aria-current="page"><span>3</span>Logical architecture</a>
+    <a href="4-physical.html"><span>4</span>Physical architecture</a>
+    <a href="5-devops.html"><span>5</span>DevOps and lifecycle</a>
+    <a href="6-demo.html"><span>6</span>Demo plan</a>
+    <div class="sep"></div>
+    <a href="references.html"><span>§</span>References</a>
+    <a href="deck.html"><span>▶</span>Slides</a>
+    <a href="archive/index.html"><span>↺</span>Previous guide</a>
+  </nav>
+</aside>
+<main>
+  <p class="eyebrow">Section 3</p>
+  <h1>Logical architecture and design</h1>
+  <p class="lede">One or two sentences: what this section establishes and why it matters to the system.</p>
+  <ul class="toc">
+    <li><a href="#3a">3a Key decisions</a></li>
+    <li><a href="#3b">3b Components</a></li>
+    <li><a href="#3c">3c Domain model</a></li>
+    <li><a href="#3d">3d Producers and consumers</a></li>
+    <li><a href="#questions">Questions</a></li>
+  </ul>
+
+  <section class="sub" id="3a">
+    <h2><span class="tag">3a</span>Decisions that shaped the logical design</h2>
+    <div class="point"><p>The claim of this subsection in one or two plain sentences.</p></div>
+    <p>Prose that explains the mechanism and the reasoning…</p>
+
+    <h3 id="outbox">A concept explained once (anchor it so other pages link here)</h3>
+    <div class="table-wrap"><table class="grid mech">
+      <thead><tr><th>Comes in</th><th>What it does</th><th>What changes</th><th>Goes out</th></tr></thead>
+      <tbody><tr><td>…</td><td>…</td><td>…</td><td>…</td></tr></tbody>
+    </table></div>
+    <div class="limit"><p>The relevant limitation, next to the mechanism it limits.</p></div>
+    <div class="limit tradeoff"><p>What we gave up, and what we got for it.</p></div>
+
+    <figure class="dia">
+      <div class="flow">
+        <div class="node client"><b>Browser / Publisher</b>client</div>
+        <div class="arr">→<small>HTTPS</small></div>
+        <div class="node media"><b>Media</b>owns assets</div>
+        <div class="arr">→<small>queue</small></div>
+        <div class="node proc"><b>Processing</b>owns work</div>
+      </div>
+      <div class="legend"><span><i style="border-color:var(--client);background:var(--client-bg)"></i>clients</span><span><i style="border-color:var(--media);background:var(--media-bg)"></i>Media</span><span><i style="border-color:var(--proc);background:var(--proc-bg)"></i>Processing</span><span><i style="border-color:var(--infra);background:var(--infra-bg)"></i>managed service</span></div>
+      <figcaption>What the reader should notice in the diagram (one sentence).</figcaption>
+    </figure>
+
+    <div class="stats">
+      <div class="stat pass"><b>2.35×</b><span>speed-up at 3 workers · target 2.1×</span></div>
+      <div class="stat miss"><b>1.45×</b><span>speed-up at 2 workers · target 1.6×</span></div>
+    </div>
+    <p>A measured claim with its receipt chip <a class="ref" href="references.html#r-sl1021">sl1021</a>.</p>
+    <p class="see">The lease itself is explained in <a href="3-logical.html#lease">3c · Lease</a>.</p>
+  </section>
+
+  <section class="sub" id="questions">
+    <h2>Questions a professor may ask</h2>
+    <details class="qa"><summary>Why not one database for both services?</summary>
+      <div class="answer"><p>Substantive answer: the reasoning, the alternative, what it would cost.</p></div></details>
+  </section>
+
+  <nav class="pager"><a href="2-conduct.html">← 2 Project conduct</a><a href="4-physical.html">4 Physical architecture →</a></nav>
+</main>
+</div>
+</body>
+</html>

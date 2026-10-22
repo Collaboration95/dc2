@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlickPond — how the system works</title>
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <a class="brand" href="index.html">FlickPond<small>Team 17 · how the system works</small></a>
+  <nav>
+    <a href="index.html" aria-current="page"><span>·</span>Start</a>
+    <a href="1-overview.html"><span>1</span>Context and problem</a>
+    <a href="2-conduct.html"><span>2</span>Project conduct</a>
+    <a href="3-logical.html"><span>3</span>Logical architecture</a>
+    <a href="4-physical.html"><span>4</span>Physical architecture</a>
+    <a href="5-devops.html"><span>5</span>DevOps and lifecycle</a>
+    <a href="6-demo.html"><span>6</span>Demo plan</a>
+    <div class="sep"></div>
+    <a href="references.html"><span>§</span>References</a>
+    <a href="deck.html"><span>▶</span>Slides</a>
+    <a href="archive/index.html"><span>↺</span>Previous guide</a>
+  </nav>
+</aside>
+<main>
+  <p class="eyebrow">Team 17 · NUS Architecting Scalable Systems · Project 2</p>
+  <h1>FlickPond</h1>
+  <p class="lede">FlickPond is a video processing platform. An owner uploads a video, the platform converts it into an MP4 and adaptive HLS streams (360p, 480p, 720p), and only that owner can play the result. Any application can use it through one public API: the team built two, a browser app and a command-line Publisher, and it runs on AWS in ap-southeast-1.</p>
+
+  <figure class="dia">
+    <svg viewBox="0 0 960 300" role="img" aria-label="A video's path: the owner uploads through Media, Media sends a submit message to Processing, Processing encodes and sends a result back, Media lets the owner play it" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b6673"/></marker></defs>
+      <!-- owner -->
+      <rect x="10" y="105" width="140" height="90" rx="9" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+      <text x="80" y="140" text-anchor="middle" font-size="15" font-weight="700" fill="#1f2630">Owner</text>
+      <text x="80" y="160" text-anchor="middle" font-size="12" fill="#46515e">browser app or</text>
+      <text x="80" y="176" text-anchor="middle" font-size="12" fill="#46515e">Publisher CLI</text>
+      <!-- media zone -->
+      <rect x="185" y="12" width="320" height="276" rx="12" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="7 5"/>
+      <text x="200" y="34" font-size="11" font-weight="700" letter-spacing="1" fill="#2563eb">MEDIA · OWN DATABASE</text>
+      <rect x="200" y="46" width="290" height="80" rx="9" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <text x="214" y="70" font-size="14" font-weight="700" fill="#1f2630">1 · Accept the upload</text>
+      <text x="214" y="90" font-size="12" fill="#1f2630">Bytes go straight to S3. Media checks them,</text>
+      <text x="214" y="106" font-size="12" fill="#1f2630">pins that exact version, creates the Asset.</text>
+      <rect x="200" y="194" width="290" height="80" rx="9" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <text x="214" y="218" font-size="14" font-weight="700" fill="#1f2630">4 · Show status, allow playback</text>
+      <text x="214" y="238" font-size="12" fill="#1f2630">Media keeps its own copy of the job state</text>
+      <text x="214" y="254" font-size="12" fill="#1f2630">and signs short-lived links for the owner.</text>
+      <!-- boundary -->
+      <line x1="560" y1="6" x2="560" y2="294" stroke="#9aa6b4" stroke-width="2" stroke-dasharray="3 5"/>
+      <rect x="508" y="136" width="104" height="38" fill="#fcfdfe"/>
+      <text x="560" y="151" text-anchor="middle" font-size="11" fill="#5b6673">no shared database,</text>
+      <text x="560" y="167" text-anchor="middle" font-size="11" fill="#5b6673">no direct calls</text>
+      <!-- processing zone -->
+      <rect x="615" y="12" width="335" height="276" rx="12" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="7 5"/>
+      <text x="630" y="34" font-size="11" font-weight="700" letter-spacing="1" fill="#b45309">PROCESSING · OWN DATABASE</text>
+      <rect x="630" y="46" width="305" height="80" rx="9" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+      <text x="644" y="70" font-size="14" font-weight="700" fill="#1f2630">2 · Create the Job and an Attempt</text>
+      <text x="644" y="90" font-size="12" fill="#1f2630">One Job per Asset. Each try is a numbered</text>
+      <text x="644" y="106" font-size="12" fill="#1f2630">Attempt; a worker needs a lease to finish it.</text>
+      <rect x="630" y="194" width="305" height="80" rx="9" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+      <text x="644" y="218" font-size="14" font-weight="700" fill="#1f2630">3 · Encode</text>
+      <text x="644" y="238" font-size="12" fill="#1f2630">A Lambda for short clips, otherwise a Fargate</text>
+      <text x="644" y="254" font-size="12" fill="#1f2630">task. MP4 and HLS are written to S3.</text>
+      <!-- arrows -->
+      <line x1="150" y1="135" x2="198" y2="96" stroke="#5b6673" stroke-width="2" marker-end="url(#ah)"/>
+      <line x1="198" y1="226" x2="152" y2="170" stroke="#5b6673" stroke-width="2" marker-end="url(#ah)"/>
+      <line x1="490" y1="86" x2="628" y2="86" stroke="#5b6673" stroke-width="2.5" marker-end="url(#ah)"/>
+      <rect x="530" y="64" width="60" height="17" fill="#fcfdfe"/><rect x="530" y="92" width="60" height="16" fill="#fcfdfe"/>
+      <text x="560" y="77" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2630">submit</text>
+      <text x="560" y="104" text-anchor="middle" font-size="11" fill="#5b6673">via queue</text>
+      <line x1="782" y1="126" x2="782" y2="192" stroke="#5b6673" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="790" y="164" font-size="11" fill="#5b6673">work (queue)</text>
+      <line x1="630" y1="234" x2="492" y2="234" stroke="#5b6673" stroke-width="2.5" marker-end="url(#ah)"/>
+      <rect x="530" y="212" width="60" height="17" fill="#fcfdfe"/><rect x="530" y="240" width="60" height="16" fill="#fcfdfe"/>
+      <text x="560" y="225" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2630">result</text>
+      <text x="560" y="252" text-anchor="middle" font-size="11" fill="#5b6673">via queue</text>
+    </svg>
+    <div class="legend"><span><i style="border-color:var(--client);background:var(--client-bg)"></i>client</span><span><i style="border-color:var(--media);background:var(--media-bg)"></i>Media service</span><span><i style="border-color:var(--proc);background:var(--proc-bg)"></i>Processing service</span></div>
+    <figcaption>Only two kinds of message cross the dotted line, a <em>submit</em> going right and a <em>result</em> coming back, both through queues. Neither service reads the other's database or calls it.</figcaption>
+  </figure>
+
+  <div class="cards">
+    <a class="card" href="1-overview.html"><i class="tag">1</i><b>Context and problem</b><span>Who needs a video platform, why it is a platform rather than an app, and what was inherited from Project 1 versus built in Project 2.</span></a>
+    <a class="card" href="2-conduct.html"><i class="tag">2</i><b>Project conduct</b><span>Where the project stands on 22 October, the open issues, the actual milestones and the effort per member.</span></a>
+    <a class="card" href="3-logical.html"><i class="tag">3</i><b>Logical architecture</b><span>The two services and why they are split there; Asset, Job and Attempt; how messages, leases and projections keep them consistent; the public API.</span></a>
+    <a class="card" href="4-physical.html"><i class="tag">4</i><b>Physical architecture</b><span>The AWS deployment: network, Lambda and Fargate, the two encoder lanes, the databases and storage, and one upload traced end to end.</span></a>
+    <a class="card" href="5-devops.html"><i class="tag">5</i><b>DevOps and lifecycle</b><span>Repository and branches, every check from laptop to production, continuous delivery, rollback and security scanning.</span></a>
+    <a class="card" href="6-demo.html"><i class="tag">6</i><b>Demo plan</b><span>The use cases shown live and the scalability, performance and maintainability results.</span></a>
+  </div>
+
+  <p><a href="deck.html">Slides for the 26 October presentation</a> · <a href="references.html">References: run IDs, commits, files and receipts</a></p>
+</main>
+</div>
+</body>
+</html>

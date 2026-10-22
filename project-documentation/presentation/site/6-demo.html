@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>6 · Demo plan — FlickPond</title>
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <a class="brand" href="index.html">FlickPond<small>Team 17 · how the system works</small></a>
+  <nav>
+    <a href="index.html"><span>·</span>Start</a>
+    <a href="1-overview.html"><span>1</span>Context and problem</a>
+    <a href="2-conduct.html"><span>2</span>Project conduct</a>
+    <a href="3-logical.html"><span>3</span>Logical architecture</a>
+    <a href="4-physical.html"><span>4</span>Physical architecture</a>
+    <a href="5-devops.html"><span>5</span>DevOps and lifecycle</a>
+    <a href="6-demo.html" aria-current="page"><span>6</span>Demo plan</a>
+    <div class="sep"></div>
+    <a href="references.html"><span>§</span>References</a>
+    <a href="deck.html"><span>▶</span>Slides</a>
+    <a href="archive/index.html"><span>↺</span>Previous guide</a>
+  </nav>
+</aside>
+<main>
+  <p class="eyebrow">Section 6</p>
+  <h1>Demo plan</h1>
+  <p class="lede">Section 6 gets 8 minutes of recorded footage and 2 minutes of questions. Six clips (D1 to D6) are captured from the running system: the CloudFront site, the Publisher CLI, the AWS console, CloudWatch, the GitHub Actions pages and a benchmark run. Each clip is edited down by removing waiting time, never by replacing what happened.</p>
+  <ul class="toc">
+    <li><a href="#budget">Time budget</a></li>
+    <li><a href="#6a">6a Significant use cases (D1 to D3)</a></li>
+    <li><a href="#6b">6b Quality attributes (D4 to D6)</a></li>
+    <li><a href="#prep">Recording preparation</a></li>
+    <li><a href="#questions">Questions</a></li>
+  </ul>
+
+  <section class="sub" id="budget">
+    <h2>Time budget and clip map</h2>
+    <div class="point"><p>Six clips total 460 s of footage. With 20 s of hand-over between clips the section plays for 480 s, which is the 8-minute allowance. The 2 minutes of questions are separate.</p></div>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Clip</th><th>Claim it proves</th><th>Real system on screen</th><th>Target</th></tr></thead>
+      <tbody>
+        <tr><td>D1</td><td>An owner uploads once and gets playable video back, asynchronously.</td><td>CloudFront site, then the player</td><td>95 s</td></tr>
+        <tr><td>D2</td><td>A second application can publish through the public contract alone.</td><td>Publisher CLI, then the same owner's library in the browser</td><td>65 s</td></tr>
+        <tr><td>D3</td><td>Knowing a video's identifier does not grant access to it.</td><td>Publisher CLI as owner A, owner B, and anonymous <code>curl</code></td><td>40 s</td></tr>
+        <tr><td>D4</td><td>Capacity follows work: finite Fargate encoders rise to the cap and return to zero; short clips use a bounded Lambda lane.</td><td>ECS task list, SQS queue depth, Lambda concurrency in CloudWatch</td><td>110 s</td></tr>
+        <tr><td>D5</td><td>A scripted test against the public API produces latency figures that are compared with the targets.</td><td>Terminal run, then the generated HTML report</td><td>65 s</td></tr>
+        <tr><td>D6</td><td>A small change travels from a branch to production through the pipeline without manual steps.</td><td>GitHub pull request, Actions runs, the production site</td><td>85 s</td></tr>
+        <tr><td colspan="3"><b>Footage</b> (hand-overs add 20 s)</td><td><b>460 s</b></td></tr>
+      </tbody>
+    </table></div>
+    <p>Playback order is D1 to D6. Capture order differs so that the performance run and the scaling runs cannot disturb each other, and is given under <a href="#prep">recording preparation</a>. Every wait that is cut carries an on-screen caption of the form "wait trimmed: actual elapsed 7m16s", taken from the take's own timestamps.</p>
+    <p class="see">Mechanisms behind the clips: the launcher and the lanes in <a href="4-physical.html#launcher">4 · Launcher</a> and <a href="4-physical.html#lanes">4 · Lanes</a>; the checks in <a href="5-devops.html#laptop-to-production">5 · Laptop to production</a>.</p>
+  </section>
+
+  <section class="sub" id="6a">
+    <h2><span class="tag">6a</span>Significant use cases</h2>
+    <div class="point"><p>Three paths cover what the platform exists to do: an owner turns a raw upload into playable video, a separate application does the same through the published contract, and a different owner cannot reach the result.</p></div>
+
+    <h3 id="d1">D1 · Owner uploads in the browser and plays back</h3>
+    <p><b>Claim.</b> One submission stores the source, creates a job, processes it off the request path and returns an owner-authorized player. The end-to-end flow is described in <a href="4-physical.html#4d">4d</a>.</p>
+    <p><b>Prerequisites.</b> Owner A is registered and both databases are awake (see <a href="#warmup">warm-up</a>). The upload file is a short MP4 with audio, under 64 MiB, 60 s and 1080 p, so the job takes the Lambda short lane. The browser is a clean profile on the CloudFront address with developer tools closed.</p>
+    <p><b>Steps.</b></p>
+    <ol>
+      <li>Open the site, sign in as owner A (password typed off-screen or pasted from a password manager; the clip starts after the click).</li>
+      <li>Open <b>Upload</b>, choose the prepared file, submit once.</li>
+      <li>Keep on screen whichever job states the page actually shows (queued, processing). A fast job may skip one; the caption names what was observed.</li>
+      <li>When the badge reads done, play the video: advancing frames and audible sound.</li>
+      <li>Open <b>Your videos</b> and reload the page: the job is still listed, which shows the result is persisted and not page state.</li>
+    </ol>
+    <p><b>On screen.</b> Account label, file name, job badge, a playing frame, and the library list after reload. No presigned query strings: the address bar is cropped out while the player runs.</p>
+    <p><b>Length and cuts.</b> 95 s: submit 10 s, processing 20 s of actual time kept, playback 35 s, reload 15 s, captions 15 s. Cut file-picker navigation and registration typing first; keep the submit click, the processing state and playback.</p>
+    <p><b>Cost.</b> One short encode, about $0.0003, plus roughly $0.013 to $0.053 of Aurora time for a 4-minute raw take.</p>
+    <p><b>If the take fails.</b> A job that ends failed is a real result: stop, note the job identifier, and re-record only after reading the job's error in the library. A 503 on the first call means a database was asleep; wait for the wake and repeat the warm-up, then take again. Record from the start rather than splicing two attempts.</p>
+
+    <h3 id="d2">D2 · Batch publish with the Publisher CLI</h3>
+    <p><b>Claim.</b> The Publisher is a second application that talks to the same public HTTPS contract as the browser. It imports no service code and holds no database credentials. See <a href="3-logical.html#producers-consumers">3 · Producers and consumers</a>.</p>
+    <p><b>Prerequisites.</b> Owner A. A folder with two distinct small MP4 files (no large originals). A private directory outside Git for cookie jars. The CLI lives in the repository's locked Python environment. Every global option goes before the subcommand.</p>
+<pre><code>DEMO_MEDIA="https://$DEMO_SITE/api/media"      # CloudFront address of the live site
+DEMO_PY=.venv/bin/python
+"$DEMO_PY" -m publisher --base-url "$DEMO_MEDIA" --cookie-jar "$DEMO_PRIVATE/a.txt" --json login "$DEMO_EMAIL_A"
+"$DEMO_PY" -m publisher --base-url "$DEMO_MEDIA" --cookie-jar "$DEMO_PRIVATE/a.txt" --json publish "$DEMO_VIDEOS" \
+  | jq '{ok,files:[.files[]|{file,ok,job_id,error}]}'
+# DEMO_ASSET_A is one job_id from the output above
+"$DEMO_PY" -m publisher --base-url "$DEMO_MEDIA" --cookie-jar "$DEMO_PRIVATE/a.txt" --json status "$DEMO_ASSET_A" \
+  --wait --max-polls 180 --interval 2 | jq '{ok,job:{id:.job.id,filename:.job.filename,status:.job.status}}'</code></pre>
+    <p>The password is read from a hidden prompt at <code>login</code>; the cookie jar holds the session and is never shown. <code>DEMO_SITE</code> and the account addresses come from the private recording notes, not from the repository.</p>
+    <p><b>On screen.</b> Left: the terminal with the three commands, filtered through <code>jq</code> to allow-listed fields only (the raw completed-job JSON contains signed URLs). Right, last 15 s: the same owner's library in the browser after a reload, now listing the two published files.</p>
+    <p><b>Length and cuts.</b> 65 s: login 8 s, publish output 15 s, status wait 20 s (trimmed from the real wait with a caption), browser 15 s, captions 7 s. Cut repeated polling output.</p>
+    <p><b>Cost.</b> Two short encodes, about $0.0006, plus roughly $0.017 to $0.067 of Aurora time for a 5-minute raw take.</p>
+    <p><b>If the take fails.</b> If polls run out, continue <code>status</code> on the accepted identifier. Do not publish again, which would create a second job. A file the API rejects shows as <code>ok:false</code> with its error; replace that file in the folder and take again from <code>publish</code>.</p>
+
+    <h3 id="d3">D3 · A second owner is denied</h3>
+    <p><b>Claim.</b> Access depends on who is asking, checked at the API on every request; an identifier alone does nothing. See <a href="3-logical.html#access">3 · Access</a>.</p>
+    <p><b>Prerequisites.</b> The completed job from D2 (owner A). Owner B, registered and with its own cookie jar and no jobs.</p>
+<pre><code>"$DEMO_PY" -m publisher --base-url "$DEMO_MEDIA" --cookie-jar "$DEMO_PRIVATE/a.txt" --json status "$DEMO_ASSET_A" | jq '{ok,status:.job.status}'
+"$DEMO_PY" -m publisher --base-url "$DEMO_MEDIA" --cookie-jar "$DEMO_PRIVATE/b.txt" --json login "$DEMO_EMAIL_B"
+"$DEMO_PY" -m publisher --base-url "$DEMO_MEDIA" --cookie-jar "$DEMO_PRIVATE/b.txt" --json status "$DEMO_ASSET_A" | jq '{ok,error}'
+"$DEMO_PY" -m publisher --base-url "$DEMO_MEDIA" --cookie-jar "$DEMO_PRIVATE/b.txt" --json output "$DEMO_ASSET_A" | jq '{ok,error}'
+curl --silent --output /dev/null --write-out 'anonymous HTTP %{http_code}\n' "$DEMO_MEDIA/jobs/$DEMO_ASSET_A"</code></pre>
+    <p><b>On screen.</b> A's success first, so that the denial means something; then B's two error objects; then the anonymous status code (401 expected; owner B receives a not-found answer so the API does not confirm that the job exists). Last 8 s: owner B's browser library, which lacks A's video. The non-zero exit codes are the expected outcome; do not run this clip under <code>set -e</code>.</p>
+    <p><b>Length and cuts.</b> 40 s. Cut login typing; keep the positive control, both denials and the anonymous code.</p>
+    <p><b>Cost.</b> No encode. Roughly $0.007 to $0.027 of Aurora time for a 2-minute raw take.</p>
+    <p><b>If the take fails.</b> If B can read A's job, stop: that is a defect, not a retake. If B's login fails, B's cookie jar is stale; log in again and repeat from the third command.</p>
+  </section>
+
+  <section class="sub" id="6b">
+    <h2><span class="tag">6b</span>Quality attributes</h2>
+    <div class="point"><p>Scalability is shown by spiking load and watching the AWS console. Performance is shown by a scripted run whose HTML report is built from the run's own output files. Maintainability is shown by pushing a real change through the pipeline into production.</p></div>
+
+    <h3 id="d4">D4 · Scalability: capacity follows work</h3>
+    <p><b>Claim.</b> No encoder runs while there is no work. Standard-lane work starts finite Fargate tasks, up to a cap of 3, and they exit when idle. Short work goes to a separate Lambda lane bounded at 2 concurrent invocations.</p>
+    <div class="limit"><p>This is not ECS service auto-scaling. A launcher starts finite tasks when work is published, with a scheduled safety net; there is no service desired-count to watch. The ECS view therefore shows tasks appearing and finishing, and the cap shows as a plateau at 3 while further jobs wait in the queue. The mechanism is in <a href="4-physical.html#launcher">4 · Launcher</a>.</p></div>
+    <p>Clips of 64 MiB, 60 s and 1080 p or less are admitted to the Lambda lane (<a href="4-physical.html#lanes">4 · Lanes</a>), so a small clip no longer exercises Fargate. The Fargate view therefore needs fixtures above 64 MiB and below the 100 MiB input cap. Two views are recorded: the Fargate burst and the Lambda burst.</p>
+
+    <h4>Prerequisites</h4>
+    <ul>
+      <li>Read-only AWS access for the recorder (a named profile with ECS, SQS, CloudWatch and CloudFormation describe rights) and region <code>ap-southeast-1</code>. No deployment, quota change, manual task start or lane toggle is needed.</li>
+      <li>Baseline: zero running worker tasks and empty queues, checked in the console before the take. No other submissions are in flight.</li>
+      <li>Padded fixture, made off-camera: a 24 s, 640x360 clip with 70 MiB of padding in a <code>free</code> box. The streams are unchanged, so the encode is real; only the file size crosses the lane bound.</li>
+    </ul>
+<pre><code>ffmpeg -y -loglevel error -f lavfi -i 'testsrc2=duration=24:size=640x360:rate=30' \
+  -f lavfi -i 'sine=frequency=440:duration=24' -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "$DEMO_PRIVATE/short24.mp4"
+python3 - "$DEMO_PRIVATE/short24.mp4" "$DEMO_PRIVATE/fargate24.mp4" &lt;&lt;'PY'
+from pathlib import Path
+import struct, sys
+source, target = map(Path, sys.argv[1:])
+payload = 70 * 1024 * 1024
+with target.open('wb') as out:
+    out.write(source.read_bytes())
+    out.write(struct.pack('&gt;I4s', payload + 8, b'free'))
+    out.write(b'\0' * payload)
+assert 64 * 1024**2 &lt; target.stat().st_size &lt; 100 * 1024**2
+PY</code></pre>
+    <p>Five folders <code>standard-1</code> to <code>standard-5</code> each hold the padded file under a distinct name, and five cookie jars <code>scale-1.txt</code> to <code>scale-5.txt</code> belong to owner A. Five jobs against a cap of 3 let the clip show both the plateau and the queue behind it. Four unpadded folders <code>short-1</code> to <code>short-4</code> and jars <code>short-1.txt</code> to <code>short-4.txt</code> serve the Lambda view. Jars are logged in beforehand; two processes never share a jar.</p>
+
+    <h4>View 1 · Fargate burst, zero to three to zero (70 s)</h4>
+    <p><b>Screen layout.</b> Left half: AWS console, ECS cluster, Tasks tab, filter on running, refreshed by the console's auto-refresh. Upper right: SQS console, the Processing standard queue, <i>Messages available</i> and <i>Messages in flight</i>. Lower right: a terminal with the five publish processes.</p>
+<pre><code># one pane per DEMO_N = 1..5, started within a few seconds of each other
+"$DEMO_PY" -m publisher --base-url "$DEMO_MEDIA" --cookie-jar "$DEMO_PRIVATE/scale-$DEMO_N.txt" --json publish "$DEMO_PRIVATE/standard-$DEMO_N" \
+  --wait --max-polls 180 --interval 2 | jq '{ok,files:[.files[]|{file,ok,job_id,status:.job.status}]}'</code></pre>
+    <p>The same facts are readable from a terminal if the console refresh is too slow to film. The cluster, function and mapping identifiers come from the stack outputs:</p>
+<pre><code>aws cloudformation describe-stacks --stack-name dc2-live --query \
+  'Stacks[0].Outputs[?OutputKey==`ClusterArn` || OutputKey==`ProcessingShortEncoderFunctionName` || OutputKey==`ProcessingShortEncoderMappingId`]' --output table
+aws ecs list-tasks --cluster "$DEMO_CLUSTER" --family dc2-live-worker --desired-status RUNNING --query taskArns --output json
+aws ecs describe-tasks --cluster "$DEMO_CLUSTER" --tasks TASK_ARN_1 TASK_ARN_2 TASK_ARN_3 \
+  --query 'tasks[].{status:lastStatus,created:createdAt,started:startedAt,stopped:stoppedAt}' --output table</code></pre>
+    <table class="grid">
+      <thead><tr><th>Moment</th><th>ECS task list</th><th>SQS</th><th>Terminal</th></tr></thead>
+      <tbody>
+        <tr><td>Before submit (5 s)</td><td>No tasks</td><td>0 available</td><td>idle</td></tr>
+        <tr><td>Submit (5 s)</td><td>No tasks yet</td><td>messages available rise</td><td>five <code>publish</code> calls accept jobs</td></tr>
+        <tr><td>Launch (20 s)</td><td>Tasks appear one by one, status PROVISIONING then RUNNING; stops at 3</td><td>in flight 3, available 2</td><td>jobs <code>processing</code></td></tr>
+        <tr><td>Plateau (10 s)</td><td>Three running; never a fourth</td><td>available falls as tasks finish and take the rest</td><td>first jobs <code>done</code></td></tr>
+        <tr><td>Drain (15 s)</td><td>Tasks reach STOPPED; list empties</td><td>0 and 0</td><td>five <code>done</code></td></tr>
+        <tr><td>Zero (15 s, cut from a longer hold)</td><td>Running filter shows no tasks</td><td>0 and 0</td><td>-</td></tr>
+      </tbody>
+    </table>
+    <p><b>Cuts.</b> The real burst lasts several minutes (a task start including image pull, then the encode). Keep the first task appearing, the plateau at 3, the first STOPPED and the empty list; trim the rest with elapsed-time captions. The long hold at zero is the first cut.</p>
+
+    <h4>View 2 · Lambda burst and its bound (40 s)</h4>
+    <p><b>Screen layout.</b> CloudWatch, Metrics, <code>AWS/Lambda</code>, function <code>ProcessingShortEncoder</code>, metric <code>ConcurrentExecutions</code>, statistic Maximum, period 1 minute, over the actual burst interval. Beside it the Lambda console's SQS trigger showing maximum concurrency 2. Terminal: four parallel <code>publish</code> processes.</p>
+<pre><code>for DEMO_N in 1 2 3 4; do
+  ("$DEMO_PY" -m publisher --base-url "$DEMO_MEDIA" --cookie-jar "$DEMO_PRIVATE/short-$DEMO_N.txt" --json publish "$DEMO_PRIVATE/short-$DEMO_N" \
+    --wait --max-polls 180 --interval 2 | jq '{ok,files:[.files[]|{file,ok,job_id,status:.job.status}]}') &
+done
+wait
+aws lambda get-event-source-mapping --uuid "$DEMO_SHORT_MAPPING" --query '{State:State,BatchSize:BatchSize,ScalingConfig:ScalingConfig}' --output json
+aws cloudwatch get-metric-statistics --namespace AWS/Lambda --metric-name ConcurrentExecutions \
+  --dimensions "Name=FunctionName,Value=$DEMO_SHORT_FUNCTION" --start-time "$DEMO_BURST_START" --end-time "$DEMO_BURST_END" \
+  --period 60 --statistics Maximum --query 'sort_by(Datapoints,&amp;Timestamp)[].{time:Timestamp,maximum:Maximum}' --output table</code></pre>
+    <p><b>What the viewer sees.</b> Four jobs accepted, the first two start together, the others wait in the short queue and follow; the metric graph peaks at 2 and no ECS task appears during this view. The mapping's <code>MaximumConcurrency: 2</code> is the bound; the metric is the observation. If the graph peaks at 1, the burst did not overlap, and the clip says so instead of claiming a peak of 2. CloudWatch publishes the metric after a delay, so the graph is read after a short wait, off-camera.</p>
+    <p><b>Cost.</b> Fargate view: five padded encodes at the $0.12824 per task-hour rate with a 60 s minimum, about $0.01 to $0.04. Lambda view: four short encodes, about $0.0012. Shared Aurora time for a 10-minute capture, about $0.033 to $0.133.</p>
+    <p><b>If the take fails.</b> If fewer than 3 tasks ever run at once, the five jobs did not overlap: wait for zero tasks, then restart the five panes closer together, or add two more padded folders. If a task is stuck in PROVISIONING for over 2 minutes, record what the console shows and retake after the cluster is empty. If the Lambda peak is 1, increase the burst to six jobs. Never fill a graph with a historical screenshot.</p>
+    <p class="see">Measured results beside the mechanism: the speed-up and queue-wait figures are in <a href="4-physical.html#launcher">4 · Launcher</a> and <a href="4-physical.html#lanes">4 · Lanes</a>.</p>
+
+    <h3 id="d5">D5 · Performance: a scripted test with an HTML report</h3>
+    <p><b>Claim.</b> A repeatable, scripted workload against the live public API yields latency percentiles, error rate and throughput, and a report generated from the run's own files sets them against the stated targets.</p>
+
+    <h4>Which script</h4>
+    <table class="grid mech">
+      <thead><tr><th>Candidate</th><th>What it drives</th><th>What it writes</th><th>Fit</th></tr></thead>
+      <tbody>
+        <tr><td><code>scripts/aws/v1/proof/generator.py</code></td><td>One disposable account on the public API; virtual users reading the job list once a second, four other read routes, then concurrent logins. Standard library only, so it runs on the recorder's Mac with environment variables.</td><td>Standard output only: one <code>DC2-RESULT</code> JSON line (per route count, errors, p50, p90, p95, p99, max; the timed windows; the sample hash) and <code>DC2-SAMPLES</code> lines holding every request as compressed, base64-encoded CSV rows (route, phase, user, start, end, elapsed ms, status, error).</td><td>Best: real traffic over the real path, and every raw sample is recoverable, so the report can be recomputed rather than copied.</td></tr>
+        <tr><td><code>scripts/aws/v1/proof/latency.py</code> (via <code>scripts.aws.v1.evidence latency</code>)</td><td>The same generator shipped into a Fargate task, with a cold-wake measurement and pass/fail verdicts.</td><td><code>evidence-66-*.json</code> and <code>latency-samples-*.csv</code> in the private evidence directory.</td><td>It needs private operator state and a Gateway throttle of at least 50 requests/s, so it cannot be run for a recording without changing the live stage. Its decoding and verdict rules (<code>collect_samples</code>, <code>parse_samples</code>, <code>judge</code>) are reused by the renderer.</td></tr>
+        <tr><td><code>scripts/aws/v1/proof/short_encode.py</code></td><td>Serial short-encode jobs per lane, measuring submit-to-done and queue wait.</td><td>One accumulating JSON receipt, <code>evidence-93-*.json</code>.</td><td>Supplies queue-wait and cost per lane, but runs one arm per stack state and is serial, so it is a source of the lane figures, not the clip's live run.</td></tr>
+        <tr><td><code>scripts/evidence/performance.py</code></td><td>The local Docker stack (V3 runner), not AWS.</td><td>JSON, JSONL and CSV artifacts (<code>requests.jsonl</code>, <code>queue.jsonl</code>, <code>targets.csv</code>).</td><td>Wrong target: it measures the laptop stack, not the live system.</td></tr>
+      </tbody>
+    </table>
+
+    <h4>The run</h4>
+    <p>The deployed API Gateway stage throttles at 20 requests/s with a burst of 50. A load above that would measure the throttle, so the recording workload is deliberately small: 10 virtual users for 60 s after a 5 s warm-up, five other-route passes of 5 s, and 5 concurrent logins. That is roughly 10 requests/s, under the stage limit. Before the run the stage throttle is read (read-only) and the count of 429 answers is reported separately in the output.</p>
+<pre><code>aws apigatewayv2 get-stage --api-id "$DEMO_API_ID" --stage-name '$default' --query DefaultRouteSettings
+RUN=perf-$(date -u +%Y%m%dT%H%M%SZ); mkdir -p "$DEMO_PRIVATE/$RUN"
+DC2_BASE_URL="$DEMO_API_BASE" DC2_USERS=10 DC2_SECONDS=60 DC2_WARMUP=5 DC2_OTHER_SECONDS=5 DC2_LOGINS=5 \
+  python3 -m scripts.aws.v1.proof.generator | tee "$DEMO_PRIVATE/$RUN/generator.log" | sed -n 's/^DC2-RESULT //p' | jq '{ok,users,routes}'
+python3 -m scripts.demo.perf_report --run-dir "$DEMO_PRIVATE/$RUN" --out "$DEMO_PRIVATE/$RUN/report.html"   # to be written, specified below
+(cd "$DEMO_PRIVATE/$RUN" &amp;&amp; python3 -m http.server 8765 --bind 127.0.0.1)</code></pre>
+    <p><code>DEMO_API_BASE</code> is the API Gateway address from the stack outputs. The generator registers a throwaway account itself, so no owner credential is involved. It is not read-only traffic: it creates one account in the live Media database.</p>
+
+    <h4>Report specification</h4>
+    <p>The renderer, <code>scripts/demo/perf_report.py</code>, does not exist yet. It uses only the standard library and writes one self-contained HTML file with inline CSS and inline SVG, no scripts and no external resources. It reads files in the run directory and nothing else.</p>
+    <table class="grid mech">
+      <thead><tr><th>Input file</th><th>Producer</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td><code>generator.log</code></td><td>Tee of the generator's standard output</td><td>Reassemble the <code>DC2-SAMPLES</code> chunks (as <code>collect_samples</code> does), verify the SHA-256 of the decoded CSV against <code>samples_sha256</code> in the <code>DC2-RESULT</code> line, then recompute every statistic from the rows. A mismatch stops the render.</td></tr>
+        <tr><td><code>jobs.jsonl</code> (optional)</td><td>A small collector run after the load: for each job of the D4 burst, one line with job identifier, lane (by fixture class: padded is standard, unpadded is short), submit time, done time, and queue wait and processing time read from Processing's job document, as <code>short_encode.attempt_stamps</code> does</td><td>Queue wait, end-to-end time and lane split. Absent, the report omits that section and says which file was missing.</td></tr>
+        <tr><td><code>environment.json</code></td><td>Written by the run command</td><td>Start and end UTC, recorder location and network path, stage throttle read before the run, source commit.</td></tr>
+      </tbody>
+    </table>
+    <p>The report shows, top to bottom:</p>
+    <ol>
+      <li><b>Header:</b> run identifier, UTC window, workload (users, seconds, warm-up, logins), path ("recorder to CloudFront/API Gateway over the internet"), and the commit.</li>
+      <li><b>Targets against actuals</b> as a table with a pass or miss mark per row: status route p90 against 700 ms; error rate against 1% (errors divided by count, every failure included, 429 counted); login p90 against 2 s; short-lane median queue wait against 20 s when <code>jobs.jsonl</code> exists.</li>
+      <li><b>Latency per route:</b> count, errors, p50, p90, p95, p99, max in milliseconds, for the status route, the four other routes and login.</li>
+      <li><b>Latency histogram and percentile bars</b> for the status route, as inline SVG.</li>
+      <li><b>Throughput over time:</b> requests per second in 1 s buckets across the timed window, with the stage limit drawn as a line.</li>
+      <li><b>Queue wait and lane split</b> (optional input): short lane against standard lane, median and maximum queue wait, end-to-end time and the number of jobs per lane.</li>
+      <li><b>Provenance:</b> the sample count, the verified hash, and the names of the input files.</li>
+    </ol>
+    <p>The report is a rendering of the run's files. Nothing in it is typed in, so a second run produces different numbers from the same renderer. The historical in-region benchmark (status p90 58.2 ms over 9,000 requests, 50 users for 180 s, from a Fargate task in the same region) appears only as a labelled reference row, because this run uses 10 users over the internet and is not a repeat of it.</p>
+    <p><b>On screen.</b> Terminal while the generator runs (about 100 s of real time, trimmed with a caption to the start and the result), then the browser at <code>http://127.0.0.1:8765/report.html</code> scrolling through sections 2 to 5. The folder is served over HTTP because browser panes block <code>file://</code>.</p>
+    <p><b>Length and cuts.</b> 65 s: command and start 8 s, trimmed run 7 s, result line 8 s, report 42 s. If long, shorten the other-route table, never the header, the targets table or the throughput chart.</p>
+    <p><b>Cost.</b> No Fargate. Roughly 600 status requests plus a few hundred others (API Gateway $1.25 per million, so under $0.01) and about $0.017 to $0.067 of Aurora time for a 5-minute raw take.</p>
+    <p><b>If the take fails.</b> A <code>register</code> or <code>login</code> stage failure in the result line means a database was asleep: repeat the warm-up and rerun. Many 429 answers mean the stage limit was hit; lower <code>DC2_USERS</code> and rerun, and keep the failed log. A missed target is a result and is shown as a miss in the report.</p>
+
+    <h3 id="d6">D6 · Maintainability: a change through the pipeline into production</h3>
+    <p><b>Claim.</b> A change reaches production only through a pull request, a full set of checks and an automatic deployment that ends with an upload-to-playback smoke test, with no manual step in between. The checks are listed in <a href="5-devops.html#laptop-to-production">5 · Laptop to production</a>; the stages in <a href="5-devops.html#ci">CI</a> and <a href="5-devops.html#cd">CD</a>.</p>
+
+    <h4>The change</h4>
+    <p>The file is <code>frontend/index.html</code>, line 265, the subtitle of the signed-in <b>Your videos</b> page. No test asserts on this text.</p>
+<pre><code>-            &lt;p class="muted"&gt;Everything you've uploaded, in one place.&lt;/p&gt;
++            &lt;p class="muted"&gt;Everything you've uploaded, in one place - ready to play.&lt;/p&gt;</code></pre>
+    <p>Production is a single-page application in a private bucket behind CloudFront. The Deploy step builds it, syncs it and invalidates the cache (the last CD log shows <code>[frontend] start</code> to <code>done</code> in 4 s). <code>index.html</code> is served with <code>no-cache</code>, so a reload after the deployment shows the new text.</p>
+
+    <h4>Measured durations</h4>
+    <p>Read with <code>gh run list</code> and <code>gh run view</code> on 22 Oct 2026 (<a class="ref" href="references.html#r-gh-durations">gh-durations</a>).</p>
+    <div class="stats">
+      <div class="stat"><b>6.5 to 8.7 min</b><span>CI on a pull request, six successful runs</span></div>
+      <div class="stat"><b>6.2 to 11.8 min</b><span>CI after merge to Main, median about 7.7 min</span></div>
+      <div class="stat"><b>7.6 to 8.4 min</b><span>CD, two successful runs (Deploy 4m13s, smoke 2m08s in the latest)</span></div>
+    </div>
+    <p>CD starts about 2 s after Main CI finishes. A change therefore needs about 7.5 + 7.5 + 8.5, close to 24 minutes of real time from opening the pull request to a new page in production. The recording captures all of it in one raw take (screen recording running, GitHub and the site in two windows) and cuts it to 85 s.</p>
+
+    <figure class="dia">
+      <div class="flow">
+        <div class="node client"><b>Push + PR</b>12 s kept</div>
+        <div class="arr">→<small>7.5 min real</small></div>
+        <div class="node infra"><b>PR checks</b>15 s kept</div>
+        <div class="arr">→<small>merge</small></div>
+        <div class="node infra"><b>Main CI</b>15 s kept<br>7.7 min real</div>
+        <div class="arr">→<small>+2 s</small></div>
+        <div class="node infra"><b>CD</b>20 s kept<br>8.4 min real</div>
+        <div class="arr">→<small>reload</small></div>
+        <div class="node client"><b>Production</b>15 s kept</div>
+      </div>
+      <figcaption>About 24 minutes of real time becomes about 85 s: waits are replaced by captions with the true elapsed time, and the five points where the system changes state are kept.</figcaption>
+    </figure>
+
+    <h4>Which branch the pull request targets</h4>
+    <p>The team's normal flow is feature branch to <code>dev/closeout</code> to <code>Main</code>. The pull-request CI selects checks for the changed files; a push to <code>Main</code> runs full verification, and only a green CI on <code>Main</code> triggers CD (<a href="5-devops.html#5a">5a</a>).</p>
+    <p><b>Recommendation: open the demo pull request directly against <code>Main</code>.</b> It still passes the pull-request check gate, and it produces the whole chain in one pass: pull-request CI, merge, Main CI, CD. Going through <code>dev/closeout</code> adds a second pull request, a second CI cycle of about 7.5 minutes and a second merge before the first deployment step can start, which doubles the raw wait without showing another mechanism. The cost of the shortcut is that <code>dev/closeout</code> falls one commit behind <code>Main</code>; it is brought level after the recording by merging <code>Main</code> back. This should be agreed with the team before recording, because <code>Main</code> carries the frozen release.</p>
+    <div class="limit"><p>Merging changes production. The deployed text stays changed after the clip unless it is reverted by a second pull request, which repeats the 24-minute chain without recording. The change is small and harmless, so it can also stay; either way the team decides before recording, because the report describes the deployed system.</p></div>
+
+    <h4>Steps</h4>
+    <ol>
+      <li>Off-camera: a clean checkout of <code>Main</code>; the databases warmed (a cold database is the cause of the three 22 Oct CD failures, all 503 on the Processing smoke call).</li>
+      <li>Start the screen recording. In the terminal: create the branch, edit line 265, commit, push.
+<pre><code>git switch -c demo/library-subtitle Main
+$EDITOR frontend/index.html          # line 265
+git commit -am "Add a short suffix to the library subtitle" &amp;&amp; git push -u origin HEAD
+gh pr create --base Main --title "Library subtitle: ready to play" --body "Pipeline demonstration"</code></pre></li>
+      <li>Show the pull request page: the checks list turning from pending to green. Keep the start, one mid-run frame and the all-green frame; cut the rest. Run <code>gh run list --workflow ci.yml --branch demo/library-subtitle</code> for the timestamps.</li>
+      <li>Merge (<code>gh pr merge --merge</code>). Switch to the Actions page: the push CI run on <code>Main</code>, jobs finishing, <code>Full verification</code> green.</li>
+      <li>Open the CD run that started from it: the <code>Refuse a commit without green CI</code> job, then <code>deploy live</code> with Deploy and <i>Smoke test, upload to playback</i> succeeding.</li>
+      <li>In the browser (already signed in, on Your videos): reload and show the new subtitle. Show the page source line if the viewer needs proof of the served file.</li>
+    </ol>
+    <p><b>On screen at the end.</b> The PR with merged state, the CI run with its SHA and green status, the CD run with the same SHA, and the production page with the new text. The same commit identifier is visible in the PR, the CI run and the CD run.</p>
+    <p><b>Cost.</b> One CD run: Aurora awake for about 10 minutes (about $0.033 to $0.133), a smoke encode, and possible migration tasks. GitHub-hosted runners add nothing on the AWS bill.</p>
+    <p><b>If the take fails.</b> A red check is a result: show the failing job, fix the cause on the branch, push, and continue; the recording keeps both runs. A CD failure on a 503 means a database was cold: re-run with <code>gh run rerun --failed</code> after warming, never start CD by hand. If the recording is lost, the fallback is the two runs listed in <a class="ref" href="references.html#r-gh-durations">gh-durations</a> (CI 39733112331 and CD 39733859422), shown through <code>gh run view</code>; those are real runs, but the clip then no longer shows a change appearing in production, and the clip's title names the date of the runs it shows.</p>
+  </section>
+
+  <section class="sub" id="prep">
+    <h2>Recording preparation</h2>
+    <div class="point"><p>Most of the risk in the recording is state: auto-paused databases, unprepared accounts and fixtures, and contamination between measurements. These are all settled before the first take.</p></div>
+
+    <h3 id="warmup">Warm-up of the databases</h3>
+    <p>The Media and Processing Aurora clusters pause independently when idle and resume on first use, so the first database call after a pause can return 503 while the cluster wakes. A health check does not touch the database and is not sufficient. Before each take: sign in as owner A, load the library (Media), and make one Processing call (a Publisher <code>status</code> on a known job reaches it), both returning 200. Then record within about ten minutes; a longer gap risks another pause. A short upload about ten minutes before recording is the simplest warm-up for both. The database resume behaviour is described in <a href="4-physical.html#4c">4c</a>.</p>
+
+    <h3>Accounts, files and tools</h3>
+    <ul>
+      <li>Owner A (browser, Publisher, scaling jars) and owner B (denial). Passwords are entered at hidden prompts or pasted from a password manager; cookie jars sit in a private directory outside Git and are never on screen, nor are presigned URLs.</li>
+      <li>Fixtures: the short upload file for D1, the two-file folder for D2, the padded folder set and unpadded folder set for D4. All are prepared off-camera and listed in the recording notes with their sizes.</li>
+      <li>Tools installed before recording: the locked Python environment with the Publisher, FFmpeg and FFprobe, <code>jq</code>, the AWS CLI with the read-only profile, and an authenticated <code>gh</code>. No installation appears in any clip.</li>
+    </ul>
+
+    <h3>Screen layout</h3>
+    <p>A clean browser profile with notifications off. 1920x1080 at 30 fps, terminal font large enough to read after compression, browser cropped to the page. The AWS console is set to region <code>ap-southeast-1</code> with the ECS, SQS, CloudWatch and Lambda tabs already open and the account identifier cropped from the header. Export H.264 MP4 and check each final clip's length with <code>ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 CLIP.mp4</code>; the six lengths and the hand-overs total 480 s or less.</p>
+
+    <h3>Capture order</h3>
+    <p>Fixtures, accounts and jars; warm both databases; D1; D2; D3; D5 (so no scaling load runs during the benchmark); wait until queues and tasks are zero; D4 Fargate; D4 Lambda; D6 last, because it changes production and can disturb the others for the length of a deployment.</p>
+
+    <h3>Cost</h3>
+    <p>Shared Aurora time dominates. Two clusters awake at 0.5 to 2 ACU each cost $0.20 to $0.80 per hour at $0.20 per ACU-hour, counted once for the whole session rather than per clip. A session of about two hours is therefore $0.40 to $1.60 of database time. Encodes add under $0.06 across all clips; D6 adds one deployment. These are estimates from the Singapore rates in the cost inputs (<a class="ref" href="references.html#r-demo-cost">demo-cost</a>), not an invoice. The mechanism is in <a href="4-physical.html#cost">4 · Cost model</a>.</p>
+  </section>
+
+  <section class="sub" id="questions">
+    <h2>Questions a professor may ask</h2>
+    <details class="qa"><summary>Is the scaling in D4 an ECS auto-scaling policy?</summary>
+      <div class="answer"><p>No. A launcher starts finite Fargate tasks when work is published, guarded by a database-level fence so that it never exceeds the cap of 3, with a scheduled safety net for missed signals. A task takes one job and exits. An ECS service autoscaler would keep a desired count of idle, billable tasks and react to CloudWatch metrics with minutes of lag; finite tasks cost nothing at zero and match the workload of encoding jobs that run for tens of seconds. The price is a task start (image pull included) per job, which is why a short lane exists. See <a href="4-physical.html#launcher">4 · Launcher</a>.</p></div></details>
+    <details class="qa"><summary>The fixture in D4 is padded to 70 MiB. Is that staging the result?</summary>
+      <div class="answer"><p>The padding is an MP4 <code>free</code> box that carries no media; the video and audio streams are those of a 24 s clip and are fully encoded. It exists because the lane decision uses source size (64 MiB), duration (60 s) and height (1080 p), so any small file is taken by Lambda and would not show Fargate. The clip states the fixture and shows the job going to the standard queue. The same padding was used in the earlier benchmark, so the Fargate figures compare like with like.</p></div></details>
+    <details class="qa"><summary>What does the Lambda graph prove, given a configured limit of 2?</summary>
+      <div class="answer"><p>The mapping's maximum concurrency is a bound, not a measurement. The <code>ConcurrentExecutions</code> graph over the burst is the observation, and it shows the actual peak: 2 if the jobs overlapped, 1 if they did not. The earlier short-lane comparison (queue wait 0.26 s against 32.6 s on Fargate, five jobs per arm) ran serially, so it proves lower queue wait and not concurrency. Total latency was not brought under 20 s: warm submit-to-done was 45.2 s and cold 92.0 s, and the keep rule failed on the cold median.</p></div></details>
+    <details class="qa"><summary>Why does the performance run use 10 users when the proposal says 50?</summary>
+      <div class="answer"><p>The deployed stage throttles at 20 requests/s with a burst of 50. Fifty users reading once a second plus logins would hit that limit, and the result would describe the throttle. The original 50-user, 180 s run needed the stage opened to 50 requests/s, which is a stage change the live environment does not get for a recording. The 10-user run shows the same tool and the same report; it is labelled as a smaller workload over the internet, and the 58.2 ms p90 figure from the in-region run is shown beside it as history, not as a repeat.</p></div></details>
+    <details class="qa"><summary>Why a status request as the main latency probe?</summary>
+      <div class="answer"><p>It is the call the browser makes repeatedly while a job is processing, so its latency is what a user feels and what scales with the number of waiting users. It requires authentication, a Media database read and an ownership filter, unlike a health check. A weakness is that the generator's account owns no jobs, so the query returns an empty list; it measures the request path and the index lookup, not a large library.</p></div></details>
+    <details class="qa"><summary>Are the clips live? Is anything simulated?</summary>
+      <div class="answer"><p>The clips are recordings of real actions on the deployed system; nothing is drawn in HTML, mocked or replayed. Waiting time is removed in editing and each cut carries the true elapsed time. The reason for pre-recording is timing control: an encode, a deployment or a database resume would otherwise occupy the audience's minutes. The cost is that the audience cannot choose what is shown; the raw captures and the run directories are retained.</p></div></details>
+    <details class="qa"><summary>Why does the maintainability demo merge straight into Main instead of dev/closeout?</summary>
+      <div class="answer"><p>Both routes pass a pull-request gate, but only a push to <code>Main</code> triggers the full verification and the deployment. Via <code>dev/closeout</code> the viewer would wait for an extra pull-request CI cycle and a second merge without seeing another mechanism. The cost is a temporary divergence between the two branches, closed by merging <code>Main</code> back, and an unreviewed shortcut around the integration branch; the pull request still needs green checks. Branch protection that forces a specific reviewer is not configured; discipline is by team convention (<a href="5-devops.html#5a">5a</a>).</p></div></details>
+    <details class="qa"><summary>Why does owner B get "not found" rather than "forbidden"?</summary>
+      <div class="answer"><p>Answering 403 would confirm that the identifier exists and belongs to someone else. Returning the same answer as for a missing job leaks nothing about other owners' assets. Anonymous requests have no identity to check and receive 401. The check lives at the API boundary, so a guessed or leaked identifier is not enough; the datastores behind it do not enforce ownership by themselves. See <a href="3-logical.html#access">3 · Access</a>.</p></div></details>
+  </section>
+
+  <nav class="pager"><a href="5-devops.html">← 5 DevOps and lifecycle</a><a href="references.html">References →</a></nav>
+</main>
+</div>
+</body>
+</html>
