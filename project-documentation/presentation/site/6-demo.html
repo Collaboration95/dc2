@@ -191,7 +191,7 @@ aws cloudwatch get-metric-statistics --namespace AWS/Lambda --metric-name Concur
     </table>
 
     <h4>The run</h4>
-    <p>The deployed API Gateway stage throttles at 20 requests/s with a burst of 50. A load above that would measure the throttle, so the recording workload is deliberately small: 10 virtual users for 60 s after a 5 s warm-up, five other-route passes of 5 s, and 5 concurrent logins. That is roughly 10 requests/s, under the stage limit. Before the run the stage throttle is read (read-only) and the count of 429 answers is reported separately in the output.</p>
+    <p>The deployed API Gateway stage throttles at 20 requests/s with a burst of 50. A load above that would measure the throttle, so the recording workload is deliberately small: 10 virtual users for 60 s after a 5 s warm-up, the four other routes at 10 users each, and 5 concurrent logins. That is roughly 10 requests/s, under the stage limit. Before the run the stage throttle is read (read-only) and the count of 429 answers is reported separately in the output.</p>
 <pre><code>aws apigatewayv2 get-stage --api-id "$DEMO_API_ID" --stage-name '$default' --query DefaultRouteSettings
 RUN=perf-$(date -u +%Y%m%dT%H%M%SZ); mkdir -p "$DEMO_PRIVATE/$RUN"
 DC2_BASE_URL="$DEMO_API_BASE" DC2_USERS=10 DC2_SECONDS=60 DC2_WARMUP=5 DC2_OTHER_SECONDS=5 DC2_LOGINS=5 \
@@ -206,8 +206,8 @@ python3 -m scripts.demo.perf_report --run-dir "$DEMO_PRIVATE/$RUN" --out "$DEMO_
       <thead><tr><th>Input file</th><th>Producer</th><th>Used for</th></tr></thead>
       <tbody>
         <tr><td><code>generator.log</code></td><td>Tee of the generator's standard output</td><td>Reassemble the <code>DC2-SAMPLES</code> chunks (as <code>collect_samples</code> does), verify the SHA-256 of the decoded CSV against <code>samples_sha256</code> in the <code>DC2-RESULT</code> line, then recompute every statistic from the rows. A mismatch stops the render.</td></tr>
-        <tr><td><code>jobs.jsonl</code> (optional)</td><td>A small collector run after the load: for each job of the D4 burst, one line with job identifier, lane (by fixture class: padded is standard, unpadded is short), submit time, done time, and queue wait and processing time read from Processing's job document, as <code>short_encode.attempt_stamps</code> does</td><td>Queue wait, end-to-end time and lane split. Absent, the report omits that section and says which file was missing.</td></tr>
-        <tr><td><code>environment.json</code></td><td>Written by the run command</td><td>Start and end UTC, recorder location and network path, stage throttle read before the run, source commit.</td></tr>
+        <tr><td>Short-lane receipt (optional)</td><td>An existing <code>short_encode.py</code> receipt passed with <code>--lane-receipt</code>, for example the 21 October one</td><td>Queue wait and end-to-end time on the short lane against Fargate. Absent, the report leaves that section out.</td></tr>
+        <tr><td><code>environment.json</code></td><td>Written with <code>jq</code> after the run (command in <code>scripts/demo/README.md</code>); the generator itself records no wall-clock time</td><td>Start and end UTC, recorder location and network path, stage throttle read before the run, source commit.</td></tr>
       </tbody>
     </table>
     <p>The report shows, top to bottom:</p>
