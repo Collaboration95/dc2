@@ -259,3 +259,26 @@ def test_warmup_credentials_come_from_environment_or_prompt():
     assert warmup.credentials(env) == {"email": "a@example.test", "password": "pw"}
     asked = warmup.credentials({}, ask=lambda _: " b@example.test ", secret=lambda _: "pw2")
     assert asked == {"email": "b@example.test", "password": "pw2"}
+
+
+def test_keep_awake_repeats_until_the_window_closes():
+    from types import SimpleNamespace
+
+    from scripts.demo import warmup
+
+    now = [0.0]
+    calls = []
+    args = SimpleNamespace(keep_awake=5, every=120, attempts=1, base_url="https://x")
+
+    def sleep(seconds):
+        now[0] += seconds
+
+    def once():
+        calls.append(now[0])
+        return True
+
+    assert warmup.keep_awake(args, None, clock=lambda: now[0], sleep=sleep, warm_once=once) == 0
+    assert calls == [0.0, 120.0, 240.0]
+    args.keep_awake = 0
+    fails = warmup.keep_awake(args, None, clock=lambda: 0.0, sleep=sleep, warm_once=lambda: False)
+    assert fails == 1

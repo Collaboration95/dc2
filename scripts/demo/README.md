@@ -39,10 +39,17 @@ This writes `standard-1..5/short24-standard-N.mp4` (about 72.4 MiB each) and
 It cannot check duration or height, so the source must be a clip of 60 s or less at 1080p or
 less (the command above makes one).
 
-## 2. Warm-up (before every take; record within about ten minutes)
+## 2. Warm-up (before every take; the databases pause after 300 s idle)
 
 ```bash
 DEMO_EMAIL="$DEMO_EMAIL_A" python3 -m scripts.demo.warmup --base-url "https://$DEMO_SITE"
+```
+
+To keep both databases awake for a whole session (for example while CI and CD run during the
+D6 take), repeat the warm-up every 2 minutes for up to 45 minutes:
+
+```bash
+DEMO_EMAIL="$DEMO_EMAIL_A" python3 -m scripts.demo.warmup --base-url "https://$DEMO_SITE" --keep-awake 45
 ```
 
 The password is read at a hidden prompt. `DEMO_PASSWORD` also works, but do not type it inline,

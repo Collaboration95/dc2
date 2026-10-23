@@ -67,7 +67,7 @@ def warm(
             flush=True,
         )
         if ok:
-            print("Both databases answered. Record within about ten minutes.", file=out)
+            print("Both databases answered. They pause after 300 s idle.", file=out)
             return True
         if attempt < attempts:
             sleep(ROUND_PAUSE)
@@ -82,15 +82,35 @@ def main(argv=None):
         help="public origin (CloudFront site or API Gateway), no path; or DEMO_BASE_URL",
     )
     parser.add_argument("--attempts", type=int, default=3)
+    parser.add_argument(
+        "--keep-awake",
+        type=float,
+        default=0,
+        metavar="MINUTES",
+        help="repeat the warm-up every --every seconds for this many minutes (0: once)",
+    )
+    parser.add_argument("--every", type=int, default=120, help="seconds between keep-awake rounds")
     args = parser.parse_args(argv)
     if not args.base_url:
         parser.error("--base-url or DEMO_BASE_URL is required")
-    try:
-        ok = warm(args.base_url, credentials(), attempts=max(1, args.attempts))
-    except OperationError as error:
-        print(f"warmup: {error}", file=sys.stderr)
-        return 2
-    return 0 if ok else 1
+    return keep_awake(args, credentials())
+
+
+def keep_awake(args, creds, *, clock=time.monotonic, sleep=time.sleep, warm_once=None):
+    """Warm once, or keep warming every ``args.every`` s until ``args.keep_awake`` minutes pass."""
+    warm_once = warm_once or (lambda: warm(args.base_url, creds, attempts=max(1, args.attempts)))
+    end = clock() + args.keep_awake * 60
+    while True:
+        try:
+            ok = warm_once()
+        except OperationError as error:
+            print(f"warmup: {error}", file=sys.stderr)
+            return 2
+        if args.keep_awake <= 0:
+            return 0 if ok else 1
+        if clock() + args.every > end:
+            return 0
+        sleep(args.every)
 
 
 if __name__ == "__main__":
