@@ -1,6 +1,6 @@
 # Brief: the new FlickPond study guide and slides
 
-This folder replaces the old explainer site (`showcase-prep/`, which becomes `/archive/`).
+This folder replaces the old explainer site (`showcase-prep/`, no longer published).
 It holds two things with the **same structure**: a study guide (pages `index.html`,
 `1-overview.html` … `6-demo.html`, `references.html`) and the presentation slides (`deck.html`).
 This brief is for the people and agents writing them.

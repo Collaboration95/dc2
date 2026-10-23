@@ -6,7 +6,7 @@
 
 Two artifacts with the same six-section structure, both in `site/`:
 - **Study guide** (`site/index.html`, `1-overview.html` … `6-demo.html`): what each part does, how and why,
-  with professor questions at the end of each section. Replaces the old explainer site, which moves to `/archive/`.
+  with professor questions at the end of each section. Replaces the old explainer site, which is no longer published.
 - **Slides** (`site/deck.html`): HTML deck, ←/→ to move, little text, diagram-first.
 
 Published at https://collaboration95.github.io/dc2/ once merged to Main.

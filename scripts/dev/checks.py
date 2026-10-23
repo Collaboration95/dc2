@@ -196,6 +196,7 @@ def lint_paths() -> list[str]:
             "scripts/evidence",
             "scripts/aws",
             "scripts/ci",
+            "scripts/demo",
             "deploy/v1",
         )
         if (ROOT / p).exists()
