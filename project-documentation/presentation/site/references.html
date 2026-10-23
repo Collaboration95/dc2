@@ -148,6 +148,9 @@
 <section id="r-ownership-live"><h3>ownership-live: expected denial codes</h3>
 <p>Foreign owner 404 and anonymous 401 as recorded in LV-6 of <code>docs/results/actual-vs-target.md</code> and in <code>docs/execution/aws/v1/evidence/s229-live-results.md</code>. The clip repeats the shown routes only, not the full negative campaign.</p></section>
 
+<section id="r-auto-pause"><h3>auto-pause: database pause timeout used by the storyboard</h3>
+<p>Both Aurora Serverless v2 clusters pause after 300 s without connections: <code>DEFAULT_AUTO_PAUSE_SECONDS</code> in <code>scripts/aws/v1/definitions.py</code>, the <code>--database-auto-pause-seconds</code> default in <code>docs/execution/aws/v2/database-topology.md</code>, and <code>seconds_until_auto_pause: 300</code> in <code>docs/execution/aws/v1/evidence/cloud-proof-r1018b.json</code>. The three 22 Oct CD failures on a cold Processing database are in <a href="#r-gh-durations">gh-durations</a>.</p></section>
+
   </section>
 </main>
 </div>

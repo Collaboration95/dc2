@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Video storyboard — FlickPond</title>
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <a class="brand" href="index.html">FlickPond<small>Team 17 · how the system works</small></a>
+  <nav>
+    <a href="index.html"><span>·</span>Start</a>
+    <a href="1-overview.html"><span>1</span>Context and problem</a>
+    <a href="2-conduct.html"><span>2</span>Project conduct</a>
+    <a href="3-logical.html"><span>3</span>Logical architecture</a>
+    <a href="4-physical.html"><span>4</span>Physical architecture</a>
+    <a href="5-devops.html"><span>5</span>DevOps and lifecycle</a>
+    <a href="6-demo.html"><span>6</span>Demo plan</a>
+    <div class="sep"></div>
+    <a href="references.html"><span>§</span>References</a>
+    <a href="deck.html"><span>▶</span>Slides</a>
+    <a href="storyboard.html" aria-current="page"><span>●</span>Video storyboard</a>
+  </nav>
+</aside>
+<main>
+  <p class="eyebrow">Section 6 · production</p>
+  <h1>Video storyboard</h1>
+  <p class="lede">Shot-by-shot plan for the six demo clips D1 to D6. Every clip is a screen recording of the live system (dc2-live on AWS, real GitHub Actions runs, a real benchmark run); editing removes waiting time and labels every removal with the real elapsed time. Commands and pass conditions live in the <a href="6-demo.html">demo plan</a>; this page fixes what is filmed, in which order, and how it is cut.</p>
+  <ul class="toc">
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#conventions">Shot conventions</a></li>
+    <li><a href="#sb-d1">D1</a></li>
+    <li><a href="#sb-d2">D2</a></li>
+    <li><a href="#sb-d3">D3</a></li>
+    <li><a href="#sb-d4">D4</a></li>
+    <li><a href="#sb-d5">D5</a></li>
+    <li><a href="#sb-d6">D6</a></li>
+    <li><a href="#sessions">Recording sessions</a></li>
+    <li><a href="#editing">Editing and export</a></li>
+  </ul>
+
+  <section class="sub" id="overview">
+    <h2>Overview</h2>
+    <div class="point"><p>Six clips, 460 s of footage, recorded in two sittings. Playback order is D1 to D6; with 20 s of hand-overs the section runs 480 s, the 8-minute allowance.</p></div>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Clip</th><th>What it proves</th><th>Final length</th><th>Session</th></tr></thead>
+      <tbody>
+        <tr><td>D1</td><td>An owner uploads once in the browser and plays the processed video back.</td><td>1:35 (95 s)</td><td>A</td></tr>
+        <tr><td>D2</td><td>The Publisher CLI publishes through the public API alone.</td><td>1:05 (65 s)</td><td>A</td></tr>
+        <tr><td>D3</td><td>A job identifier gives a second owner or an anonymous caller nothing.</td><td>0:40 (40 s)</td><td>A</td></tr>
+        <tr><td>D4</td><td>Fargate encoders go from 0 to the cap of 3 and back to 0; the Lambda short lane is bounded at 2.</td><td>1:50 (110 s)</td><td>A</td></tr>
+        <tr><td>D5</td><td>A scripted test against the live API yields latency figures, reported against the targets.</td><td>1:05 (65 s)</td><td>A</td></tr>
+        <tr><td>D6</td><td>A one-line change reaches production through pull-request CI, Main CI and CD with no manual deployment step.</td><td>1:25 (85 s)</td><td>B</td></tr>
+        <tr><td colspan="2"><b>Footage</b> (hand-overs add 20 s, total 480 s)</td><td><b>7:40 (460 s)</b></td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p>These are the lengths in the <a href="6-demo.html#budget">demo plan's time budget</a>. Each clip's shot table below adds up to its length exactly.</p>
+  </section>
+
+  <section class="sub" id="conventions">
+    <h2>Shot conventions</h2>
+    <div class="point"><p>Each shot has a time range in the final cut, a screen, an action, a burned-in caption, one voice-over sentence and an edit note. Text added in editing is either a caption or a time label, never a fabricated number.</p></div>
+    <table class="grid mech">
+      <thead><tr><th>Element</th><th>Where</th><th>What it contains</th><th>Rule</th></tr></thead>
+      <tbody>
+        <tr><td>Caption</td><td>Bottom centre, white on a dark bar, at least 36 px tall at 1080 p</td><td>What the shot shows, at most 8 words</td><td>Values that come from the take (an elapsed time, a peak) are filled in from that take. Shown as <code>[m:ss]</code> or <code>[n]</code> below.</td></tr>
+        <tr><td>Time label</td><td>Top right, monospace</td><td><code>×N · real elapsed 4m12s</code> on a sped-up segment; <code>wait trimmed · real elapsed 7m16s</code> on a cut</td><td>On screen for the whole sped-up segment, or 3 s after a cut. The elapsed time is read from the raw take's timecode; for D6 it is cross-checked with the run times from <code>gh run view</code>.</td></tr>
+        <tr><td>Highlight box</td><td>Around one field</td><td>A 4 px outline, no fill</td><td>Marks the value the voice-over refers to; never hides anything.</td></tr>
+        <tr><td>Freeze-frame</td><td>Whole frame</td><td>The last frame of a state change, held</td><td>Used so a state that lasted under a second can be read; held at most 2 s.</td></tr>
+        <tr><td>Voice-over</td><td>Recorded narration track</td><td>One plain sentence per shot, describing what is happening</td><td>Recorded in editing, after the footage is cut, by the clip's narrator. A dash means no narration on that shot.</td></tr>
+      </tbody>
+    </table>
+    <p>Zoom levels refer to the browser's page zoom. The terminal uses one size throughout (see <a href="#screen">screen setup</a>).</p>
+  </section>
+
+  <section class="sub" id="sb-d1">
+    <h2><span class="tag">D1</span>Owner uploads in the browser and plays back · 95 s</h2>
+    <div class="point"><p>One submission becomes a processed, playable video for its owner, and the result survives a page reload. Steps: <a href="6-demo.html#d1">6 · D1</a>.</p></div>
+    <p><b>Before recording starts.</b> The <a href="#sessions">session A</a> warm-up is done and less than 5 minutes old. One browser window, clean profile, on the CloudFront site at 125 % zoom, signed in as owner A on the Upload page; developer tools closed. The upload file (a short MP4 with audio, inside the short-lane limits) sits in a folder the file picker opens to directly. Owner A's library holds no earlier demo jobs, so the new one is easy to find.</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>#</th><th>Time</th><th>On screen</th><th>Action</th><th>Caption</th><th>Voice-over</th><th>Edit note</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>0:00–0:05</td><td>Browser, Upload page, account label visible, 125 %</td><td>Hold</td><td>D1 · Upload once, play back</td><td>Owner A is signed in to the live site.</td><td>Sign-in happened before the take starts.</td></tr>
+        <tr><td>2</td><td>0:05–0:15</td><td>Upload form with the file name</td><td>Choose the file, click submit once</td><td>Short MP4 with audio, submitted once</td><td>The owner picks a short video and submits it once.</td><td>File-picker navigation cut. Highlight box on the file name.</td></tr>
+        <tr><td>3</td><td>0:15–0:35</td><td>Job badge on the page</td><td>Wait; the badge moves through the states the page shows</td><td>Job state as the page reports it</td><td>The source is stored and a job runs in the background, off the request path.</td><td>Up to 20 s of real time kept. If processing ran longer, the rest is sped up with a time label.</td></tr>
+        <tr><td>4</td><td>0:35–0:40</td><td>Badge reads done</td><td>None</td><td>Done · submit to done [m:ss]</td><td>The job has finished.</td><td>Freeze-frame 1 s on the done badge, highlight box.</td></tr>
+        <tr><td>5</td><td>0:40–1:10</td><td>Player, frames advancing; address bar cropped</td><td>Click play, let it run</td><td>Owner-only playback, picture and sound</td><td>The processed video plays for its owner, with picture and sound.</td><td>First 3 s with the video's own sound, then narration over a lowered track. Crop removes any signed URL.</td></tr>
+        <tr><td>6</td><td>1:10–1:25</td><td>Your videos page</td><td>Open Your videos, reload the page</td><td>After reload: still in the library</td><td>After a full reload the job is still listed, so it is stored, not held in the page.</td><td>Keep the reload visibly in shot.</td></tr>
+        <tr><td>7</td><td>1:25–1:35</td><td>Library row of the new job</td><td>Hold</td><td>Stored, processed later, played by its owner</td><td>-</td><td>Highlight box on the row.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="sub" id="sb-d2">
+    <h2><span class="tag">D2</span>Batch publish with the Publisher CLI · 65 s</h2>
+    <div class="point"><p>A second application, using only the public API, publishes two files for the same owner. Commands: <a href="6-demo.html#d2">6 · D2</a>.</p></div>
+    <p><b>Before recording starts.</b> Terminal at full height on the left half, cleared, with the variables from the private recording notes already set (not echoed). A browser window on the right half, signed in as owner A on Your videos, 110 %. The two-file folder exists; owner A's cookie jar for D2 is empty so the login is real.</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>#</th><th>Time</th><th>On screen</th><th>Action</th><th>Caption</th><th>Voice-over</th><th>Edit note</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>0:00–0:04</td><td>Terminal, empty prompt</td><td>Hold</td><td>D2 · Publisher CLI, public API only</td><td>The Publisher is a separate command-line application that talks to the public API.</td><td>-</td></tr>
+        <tr><td>2</td><td>0:04–0:12</td><td>Terminal: <code>login</code> and its JSON result</td><td>Run login; type the password at the hidden prompt</td><td>Login: password at a hidden prompt</td><td>It signs in as owner A.</td><td>Password typing cut. The cookie jar is never opened.</td></tr>
+        <tr><td>3</td><td>0:12–0:27</td><td>Terminal: <code>publish</code> output, two files, each with a job id</td><td>Run publish on the folder</td><td>Two files accepted, two jobs</td><td>Publishing the folder uploads two files and creates one job for each.</td><td>Highlight box on the two job ids.</td></tr>
+        <tr><td>4</td><td>0:27–0:47</td><td>Terminal: <code>status --wait</code> until done</td><td>Run status on one job id</td><td>Polling the job until it finishes</td><td>The CLI polls the job's status until processing is complete.</td><td>Sped up with a time label; repeated poll lines removed.</td></tr>
+        <tr><td>5</td><td>0:47–1:02</td><td>Browser, Your videos after reload, both files listed</td><td>Reload</td><td>Same owner's library in the browser</td><td>The browser shows the two new videos in owner A's library.</td><td>Highlight box on the two rows.</td></tr>
+        <tr><td>6</td><td>1:02–1:05</td><td>Same frame</td><td>None</td><td>No service code, no database credentials</td><td>-</td><td>Freeze-frame.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="sub" id="sb-d3">
+    <h2><span class="tag">D3</span>A second owner is denied · 40 s</h2>
+    <div class="point"><p>The same identifier works for its owner and fails for owner B and for an anonymous caller. Commands: <a href="6-demo.html#d3">6 · D3</a>.</p></div>
+    <p><b>Before recording starts.</b> Recorded straight after D2, reusing D2's completed job. Same terminal, cleared, not under <code>set -e</code>. A second browser window, a separate profile signed in as owner B on Your videos at 110 %, kept behind the terminal. Owner B's cookie jar is empty.</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>#</th><th>Time</th><th>On screen</th><th>Action</th><th>Caption</th><th>Voice-over</th><th>Edit note</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>0:00–0:08</td><td>Terminal: owner A's <code>status</code>, <code>ok: true</code>, done</td><td>Run the first command</td><td>D3 · Owner A reads its own job</td><td>Owner A asks for its own job and gets it.</td><td>Highlight box on <code>ok</code>.</td></tr>
+        <tr><td>2</td><td>0:08–0:12</td><td>Terminal: owner B's <code>login</code> result</td><td>Run login, type password</td><td>Owner B signs in</td><td>A second owner, B, signs in.</td><td>Password typing cut.</td></tr>
+        <tr><td>3</td><td>0:12–0:22</td><td>Terminal: B's <code>status</code> and <code>output</code>, both errors</td><td>Run both commands</td><td>Owner B: not found, twice</td><td>With the same identifier, owner B gets "not found" for both the status and the output.</td><td>Highlight box on each error.</td></tr>
+        <tr><td>4</td><td>0:22–0:32</td><td>Terminal: <code>anonymous HTTP 401</code></td><td>Run the <code>curl</code> line</td><td>No session: HTTP 401</td><td>Without a session the API answers 401.</td><td>Highlight box on the code.</td></tr>
+        <tr><td>5</td><td>0:32–0:40</td><td>Owner B's browser, Your videos</td><td>Bring the window forward, reload</td><td>Owner B's library: A's video absent</td><td>Owner B's library does not list owner A's video.</td><td>Last 2 s frozen.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="sub" id="sb-d4">
+    <h2><span class="tag">D4</span>Scalability: capacity follows work · 110 s</h2>
+    <div class="point"><p>Two views from one capture: a Fargate burst of five padded jobs (70 s) and a Lambda burst of four short jobs (40 s). Layout, fixtures and commands: <a href="6-demo.html#d4">6 · D4</a>.</p></div>
+    <p><b>Before recording starts.</b> D5 is finished and the baseline is confirmed: the ECS Running filter shows no tasks and both Processing queues read 0 available, 0 in flight. AWS console at 110 % in region <code>ap-southeast-1</code>, with the ECS Tasks tab on the left half and the SQS standard queue on the upper right, both on auto-refresh; account name cropped. Lower right: a terminal split into five panes with the publish commands typed but not run. A second set of tabs is ready for view 2: CloudWatch <code>ConcurrentExecutions</code> for the short encoder and the Lambda trigger page showing maximum concurrency 2. All nine cookie jars are logged in. The screen recording starts before the first pane runs and stops after the CloudWatch graph has been read, so both views come from one raw take.</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>#</th><th>Time</th><th>On screen</th><th>Action</th><th>Caption</th><th>Voice-over</th><th>Edit note</th></tr></thead>
+      <tbody>
+        <tr><td colspan="7"><b>View 1 · Fargate burst (0:00–1:10)</b></td></tr>
+        <tr><td>1</td><td>0:00–0:05</td><td>ECS list empty, SQS 0 and 0, panes idle</td><td>Hold</td><td>D4 · No work, no encoders</td><td>With no work queued, no encoder task is running.</td><td>Highlight box on the empty task list.</td></tr>
+        <tr><td>2</td><td>0:05–0:10</td><td>Five panes accept jobs; SQS available rises</td><td>Run the five panes within a few seconds</td><td>Five padded clips, standard lane</td><td>Five 24-second clips, padded above 64 MiB, are published at once.</td><td>-</td></tr>
+        <tr><td>3</td><td>0:10–0:30</td><td>Tasks appear, PROVISIONING then RUNNING, stopping at 3</td><td>Wait</td><td>One task per job, at most 3</td><td>The launcher starts one finite Fargate task per job, up to the cap of three.</td><td>Sped up with a time label. Freeze-frame 1 s on the first RUNNING task.</td></tr>
+        <tr><td>4</td><td>0:30–0:40</td><td>Three running; SQS shows jobs still available</td><td>Wait</td><td>Cap reached: the rest wait queued</td><td>With three running, the remaining jobs wait in the queue.</td><td>Highlight boxes on the task count and on Messages available.</td></tr>
+        <tr><td>5</td><td>0:40–0:55</td><td>Tasks reach STOPPED; panes print done</td><td>Wait</td><td>Jobs finish, tasks stop</td><td>The waiting jobs are taken up, the jobs finish and the tasks stop.</td><td>Sped up with a time label.</td></tr>
+        <tr><td>6</td><td>0:55–1:10</td><td>Running filter empty; SQS 0 and 0; five done</td><td>Hold</td><td>Back to zero · real elapsed [m:ss]</td><td>When the work is done, no encoder task is left running.</td><td>Cut from a longer hold; time label gives submit-to-empty time.</td></tr>
+        <tr><td colspan="7"><b>View 2 · Lambda burst (1:10–1:50)</b></td></tr>
+        <tr><td>7</td><td>1:10–1:15</td><td>Lambda trigger page, maximum concurrency 2</td><td>Hold</td><td>Short lane: Lambda, at most 2</td><td>Short clips go to a Lambda lane limited to two at a time.</td><td>Highlight box on the setting.</td></tr>
+        <tr><td>8</td><td>1:15–1:25</td><td>Terminal, four jobs accepted; ECS list stays empty</td><td>Run the four-job loop</td><td>Four short jobs, no Fargate task</td><td>Four short clips are published together and no Fargate task starts.</td><td>Cut between terminal and ECS list.</td></tr>
+        <tr><td>9</td><td>1:25–1:45</td><td>CloudWatch graph over the burst interval</td><td>Refresh the graph</td><td>Observed peak: [n] concurrent invocations</td><td>The concurrency graph for the burst peaks at the observed value.</td><td>Cut labelled "wait trimmed" for the metric delay. The narration names the number on the graph.</td></tr>
+        <tr><td>10</td><td>1:45–1:50</td><td>Terminal, four done</td><td>None</td><td>Capacity follows work in both lanes</td><td>-</td><td>Freeze-frame.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="sub" id="sb-d5">
+    <h2><span class="tag">D5</span>Performance: a scripted test with an HTML report · 65 s</h2>
+    <div class="point"><p>A 60 s load of 10 virtual users through the public edge, then the report generated from that run's own files. Workload, commands and the report contents: <a href="6-demo.html#d5">6 · D5</a>.</p></div>
+    <p><b>Before recording starts.</b> No other submissions in flight. Terminal cleared with the run variables set; the stage throttle is read on camera as part of shot 1. Browser at 110 % on a blank tab, ready for <code>127.0.0.1:8765/report.html</code>. The report renderer exists and has been tried on an earlier run directory.</p>
+    <div class="limit"><p>The renderer <code>scripts/demo/perf_report.py</code> is specified in the demo plan but not yet written. Shots 4 to 7 depend on it. D5 is recorded before D4, so its report has no D4 job data and omits the optional queue-wait section.</p></div>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>#</th><th>Time</th><th>On screen</th><th>Action</th><th>Caption</th><th>Voice-over</th><th>Edit note</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>0:00–0:08</td><td>Terminal: stage throttle, then the generator command starting</td><td>Run both commands</td><td>D5 · 10 users, 60 s, public API</td><td>A scripted test sends ten virtual users to the live API for sixty seconds.</td><td>Highlight box on the throttle value.</td></tr>
+        <tr><td>2</td><td>0:08–0:15</td><td>Terminal while the run is in progress</td><td>Wait</td><td>Run in progress</td><td>The run takes about a hundred seconds of real time.</td><td>Sped up with a time label.</td></tr>
+        <tr><td>3</td><td>0:15–0:23</td><td>Terminal: the <code>DC2-RESULT</code> summary through <code>jq</code></td><td>None</td><td>Per route: count, errors, percentiles</td><td>The result line gives, per route, request count, errors and percentiles.</td><td>The renderer and server commands after it are cut.</td></tr>
+        <tr><td>4</td><td>0:23–0:35</td><td>Report: header and the targets-against-actuals table</td><td>Scroll</td><td>This run's figures against the targets</td><td>The report, built from this run's files, sets each figure against its target.</td><td>Highlight box on each pass or miss mark.</td></tr>
+        <tr><td>5</td><td>0:35–0:50</td><td>Report: per-route table, status-route histogram</td><td>Scroll</td><td>Status route latency distribution</td><td>The status route, which the browser polls, shows how its latency is spread.</td><td>Per-route table may be shortened; the header and targets table may not.</td></tr>
+        <tr><td>6</td><td>0:50–1:00</td><td>Report: requests per second with the stage limit line</td><td>Scroll</td><td>Throughput against the stage limit</td><td>Requests per second are drawn against the stage's limit of twenty.</td><td>-</td></tr>
+        <tr><td>7</td><td>1:00–1:05</td><td>Report: provenance, sample count and verified hash</td><td>Scroll</td><td>Recomputed from raw samples, hash verified</td><td>Every figure is recomputed from the raw samples, whose hash is checked.</td><td>Freeze-frame on the last second.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="sub" id="sb-d6">
+    <h2><span class="tag">D6</span>Maintainability: a change through the pipeline into production · 85 s</h2>
+    <div class="point"><p>The subtitle of the Your videos page is changed on a branch and followed through pull-request CI, merge, Main CI and CD until the live page shows it. About 24 minutes of real time becomes 85 s. The change, the branch target and the steps: <a href="6-demo.html#d6">6 · D6</a>.</p></div>
+    <p><b>Before recording starts.</b> A clean checkout of <code>Main</code> in the terminal (left half, cleared), <code>gh</code> authenticated. GitHub at 110 % in a browser window on the right, signed in, on the repository's pull-request list. A second browser window, signed in as owner A on the live site's Your videos at 125 %, showing the current subtitle. The team has agreed the branch target and whether the change stays in production (see the <a href="6-demo.html#d6">demo plan</a>). The screen recording runs for the whole chain as one raw take.</p>
+
+    <h3>Where the waits go</h3>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Stage</th><th>Real duration (measured)</th><th>Kept in the cut</th><th>How the wait is removed</th></tr></thead>
+      <tbody>
+        <tr><td>Edit, commit, push, open PR</td><td>about 1 min</td><td>12 s</td><td>Cuts between commands</td></tr>
+        <tr><td>Pull-request CI</td><td>6.5 to 8.7 min</td><td>15 s</td><td>Three frames (pending, mid-run, all green) joined by cuts, one "wait trimmed" label</td></tr>
+        <tr><td>Merge</td><td>seconds</td><td>5 s</td><td>None</td></tr>
+        <tr><td>Main CI</td><td>6.2 to 11.8 min, median about 7.7</td><td>15 s</td><td>Speed-up of the job list with a time label</td></tr>
+        <tr><td>CD (starts about 2 s after Main CI)</td><td>7.6 to 8.4 min (Deploy 4m13s, smoke test 2m08s in the latest run)</td><td>20 s</td><td>Cut to each job's start and green end, one "wait trimmed" label per job</td></tr>
+        <tr><td>Production reload</td><td>seconds</td><td>18 s (with the opening shot)</td><td>None</td></tr>
+      </tbody>
+    </table></div>
+    <p>Durations are from the runs listed in <a class="ref" href="references.html#r-gh-durations">gh-durations</a>; the labels in the clip use the take's own times.</p>
+    <div class="limit"><p>Both databases pause after 300 s without connections <a class="ref" href="references.html#r-auto-pause">auto-pause</a>, and the two CI stages touch no AWS resource for about 15 minutes. CD's deploy step calls the Processing API, and on 22 Oct three CD runs failed there with 503 while the database woke. During Main CI, about 3 minutes before it ends, the warm-up calls are repeated off-camera every 2 minutes until the smoke test finishes. This is an operator action outside the pipeline: the CD workflow does not wake the databases itself.</p></div>
+
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>#</th><th>Time</th><th>On screen</th><th>Action</th><th>Caption</th><th>Voice-over</th><th>Edit note</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>0:00–0:03</td><td>Live site, Your videos, current subtitle, 125 %</td><td>Hold</td><td>D6 · Before: the live subtitle</td><td>The live library page shows the current subtitle.</td><td>Highlight box on the subtitle.</td></tr>
+        <tr><td>2</td><td>0:03–0:15</td><td>Terminal: branch, the one-line diff, commit, push, <code>gh pr create</code></td><td>Step 2 of the plan</td><td>One-line change, pushed, PR opened</td><td>The subtitle is edited, committed and pushed, and a pull request is opened.</td><td>Cuts between commands; the diff stays on screen at least 3 s.</td></tr>
+        <tr><td>3</td><td>0:15–0:30</td><td>GitHub PR page, checks list</td><td>Wait</td><td>Pull-request checks: pending to green</td><td>The pull request's checks run, and all of them pass.</td><td>5 s pending, 4 s mid-run, 6 s all green; "wait trimmed" label with the real elapsed time.</td></tr>
+        <tr><td>4</td><td>0:30–0:35</td><td>PR page, Merged badge</td><td>Merge</td><td>Merged into Main</td><td>With every check green, the pull request is merged.</td><td>-</td></tr>
+        <tr><td>5</td><td>0:35–0:50</td><td>Actions: push CI run on Main, commit SHA visible</td><td>Wait</td><td>Main CI: full verification, same commit</td><td>The push to Main runs full verification on the merged commit.</td><td>Sped up with a time label; highlight box on the SHA.</td></tr>
+        <tr><td>6</td><td>0:50–1:10</td><td>Actions: CD run, admission job, then Deploy and the upload-to-playback smoke test</td><td>Wait</td><td>CD: admit, deploy, smoke test</td><td>Deployment starts by itself, confirms CI passed for this commit, deploys, and runs an upload-to-playback test.</td><td>One "wait trimmed" label per job; highlight box on the same SHA.</td></tr>
+        <tr><td>7</td><td>1:10–1:25</td><td>Live site, Your videos, new subtitle</td><td>Reload</td><td>Live · push to production [m]m</td><td>After a reload the live page shows the new subtitle.</td><td>Highlight box on the subtitle; last 2 s frozen. The caption carries the take's total elapsed time.</td></tr>
+      </tbody>
+    </table></div>
+    <p>If a check goes red or CD fails, the take continues and the recovery is kept in the raw footage (<a href="6-demo.html#d6">6 · D6, if the take fails</a>). The cut then shows the failure and the rerun, and shots 3 to 6 are shortened to stay at 85 s.</p>
+  </section>
+
+  <section class="sub" id="sessions">
+    <h2>Recording sessions</h2>
+    <div class="point"><p>Two sittings. Session A records D1, D2, D3, D5 and D4 under one database warm-up. Session B records D6, which changes production and is mostly waiting for GitHub runners.</p></div>
+    <p>Both Aurora clusters pause after 300 s without connections and need a warm-up before the next database call succeeds (<a href="6-demo.html#warmup">6 · Warm-up</a>). Session A keeps them awake by never leaving more than 5 minutes between takes; every take of D1 to D4 touches both databases. If a gap runs longer, the warm-up is repeated before the next take.</p>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Session</th><th>Order</th><th>Wall-clock time</th><th>Estimated AWS cost</th></tr></thead>
+      <tbody>
+        <tr><td>0 · preparation (no recording)</td><td>Fixtures, accounts, cookie jars, tools; screen setup; a test recording of 10 s to check legibility; team decisions on D6</td><td>about 45 min, the day before</td><td>About $0.05 to $0.20: registrations and a test upload keep the databases awake for 15 to 20 min</td></tr>
+        <tr><td>A · use cases, performance, scale</td><td>Warm-up → D1 → D2 → D3 → D5 → confirm zero tasks and empty queues → D4 view 1 → D4 view 2</td><td>about 75 to 90 min, including one retake per clip</td><td>$0.30 to $1.20 of database time (two clusters, 0.5 to 2 ACU each, for 90 min) plus under $0.05 of encodes and requests</td></tr>
+        <tr><td>B · pipeline</td><td>Clean checkout → start recording → D6 chain (warm-up during Main CI) → production reload</td><td>about 40 min; another 25 min unrecorded if the change is reverted</td><td>About $0.10 to $0.35: databases awake for about 25 min, one smoke encode, the deployment. A revert repeats it.</td></tr>
+      </tbody>
+    </table></div>
+    <p>D5 comes before D4 so no scaling load runs during the latency test. D4 comes after D5 because it needs an empty cluster and empty queues. Session B can start directly after session A; it still needs its own warm-up during Main CI. Cost figures use the rates in <a class="ref" href="references.html#r-demo-cost">demo-cost</a>; they are estimates, not an invoice.</p>
+
+    <h3 id="takes">Take naming</h3>
+    <p>Raw takes are named <code>D&lt;clip&gt;-&lt;session&gt;-T&lt;take&gt;-&lt;yyyymmdd-hhmm&gt;.mov</code>, for example <code>D4-A-T2-20261024-1512.mov</code>. They stay in the private recording folder outside Git, together with a one-line log per take: start time in UTC, job or run identifiers, outcome, and keep or discard. A discarded take is kept until the final clips are checked. Final clips are <code>D1.mp4</code> to <code>D6.mp4</code> in <code>site/clips/</code>.</p>
+
+    <h3 id="screen">Screen setup</h3>
+    <table class="grid mech">
+      <thead><tr><th>Item</th><th>Setting</th></tr></thead>
+      <tbody>
+        <tr><td>Display</td><td>1920×1080 (an external 1080 p monitor, or the built-in display set to a scaled resolution closest to it). Recording at 30 fps.</td></tr>
+        <tr><td>Browser zoom</td><td>Live site 125 %; GitHub, AWS console and the report 110 %. Bookmarks bar, extensions bar and other tabs hidden; one window per purpose; a clean profile per owner.</td></tr>
+        <tr><td>Terminal</td><td>Monospace 20 pt, about 100 columns by 30 rows on half the screen, light background, short prompt without user, host or path; shell autosuggestions off.</td></tr>
+        <tr><td>Hidden</td><td>Notifications (Do Not Disturb on), the Dock (auto-hide), desktop icons, the AWS account name and number, passwords, cookie jars, presigned URLs (address bar cropped during playback), environment values, <code>.env</code> files, the shell history, and any token from <code>gh</code> or the AWS CLI.</td></tr>
+        <tr><td>Audio</td><td>No system sound except D1's playback shot; microphone off during capture (narration is recorded later).</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="sub" id="editing">
+    <h2>Editing and export</h2>
+    <div class="point"><p>Cutting only removes waiting time; every removal is labelled with the real elapsed time, and every state change stays on screen long enough to read.</p></div>
+    <h3>Tools</h3>
+    <p>Any editor that can cut, change speed, freeze a frame and add text will do. On a Mac, screen recording ships with the system: QuickTime Player's <i>New Screen Recording</i> (or Shift-Command-5) records the full screen or a selected area. QuickTime can also trim a take. iMovie, if installed, covers the rest: split, speed change, freeze frame, titles, a voice-over track, and export. FFmpeg, already installed for the demo fixtures, can burn the time labels with its <code>drawtext</code> filter and convert the export if needed.</p>
+    <h3>Order of work per clip</h3>
+    <ol>
+      <li>Pick the take from the log and note the raw timecodes of every state change in the shot table.</li>
+      <li>Cut to the shot table's ranges. Each removed or sped-up span gets its label: <code>wait trimmed · real elapsed 7m16s</code> or <code>×N · real elapsed 4m12s</code>, where N is the real length divided by the kept length, rounded to a whole number.</li>
+      <li>Add the captions and highlight boxes from the table.</li>
+      <li>Record the voice-over lines against the cut, one take per line; lower the D1 playback sound under narration.</li>
+      <li>Export 1920×1080, 30 fps, H.264 video, AAC audio, MP4 container, named <code>D1.mp4</code> to <code>D6.mp4</code>, into <code>site/clips/</code>.</li>
+      <li>Check each length with <code>ffprobe</code> (command in <a href="6-demo.html#prep">6 · Recording preparation</a>): each clip within 1 s of its row in the <a href="#overview">overview</a>, total at most 460 s.</li>
+    </ol>
+    <div class="limit"><p><code>site/clips/</code> has a <code>.gitignore</code> that ignores everything but itself, and the publishing workflow excludes the folder, so the videos are never committed or published. The deck plays them from that folder on the presenting laptop; sharing them with the team needs a separate private copy.</p></div>
+  </section>
+
+  <nav class="pager"><a href="6-demo.html">← 6 Demo plan</a><a href="references.html">References →</a></nav>
+</main>
+</div>
+</body>
+</html>
