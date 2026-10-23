@@ -19,11 +19,14 @@ Open Chrome at <http://127.0.0.1:8766/deck.html>. Press `F` for full screen.
 
 | Key | Does |
 |---|---|
-| → / ← | next / previous slide |
-| `P` or click | play / pause the clip on a demo slide |
+| → or `D` | next slide |
+| ← or `A` | previous slide |
+| `P` or click on the clip | play / pause the clip on a demo slide |
 | `N` | speaker notes (with the source of each number) |
-| `O` | overview of all slides; click one to jump |
+| `O` | overview of all slides (view only) |
 | number + Enter | jump to that slide |
+
+Mouse clicks never change the slide, so clicking a footer link or a clip is safe.
 
 ## 3. Zoom
 
