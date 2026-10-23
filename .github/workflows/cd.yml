@@ -136,7 +136,7 @@ jobs:
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_repository.full_name == github.repository)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: read
@@ -163,7 +163,7 @@ jobs:
   run:
     name: ${{ github.event_name == 'workflow_run' && 'deploy' || inputs.operation || 'preflight' }} ${{ inputs.environment || 'live' }}
     needs: gate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The environment carries the branch policy that decides who can reach the AWS role.
     environment: aws
     timeout-minutes: 360

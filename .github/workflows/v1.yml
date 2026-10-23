@@ -52,7 +52,7 @@ jobs:
   v1-offline:
     name: V1 offline control-plane and operational checks
     if: ${{ inputs.run_offline }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       PYTHONPATH: ${{ github.workspace }}
@@ -86,7 +86,7 @@ jobs:
   v1-local:
     name: V1 local flows, browser leg and coverage
     if: ${{ inputs.run_live }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
       PYTHONPATH: ${{ github.workspace }}
@@ -173,7 +173,7 @@ jobs:
   image-paths:
     name: V1 image-affecting paths changed
     if: ${{ inputs.auto_images && !inputs.images }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     outputs:
       changed: ${{ steps.diff.outputs.changed }}
@@ -194,7 +194,7 @@ jobs:
     name: V1 image build and verification
     needs: image-paths
     if: ${{ !cancelled() && (inputs.images || (inputs.auto_images && (needs.image-paths.result != 'success' || needs.image-paths.outputs.changed == 'true'))) }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -325,7 +325,7 @@ jobs:
     name: V1 requested checks
     if: always()
     needs: [v1-offline, v1-local, image-paths, images]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
