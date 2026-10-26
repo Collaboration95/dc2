@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Script · sections 1 &amp; 2</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css" />
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Script · sections 1 &amp; 2</h1>
+</header>
+<h1 id="script-title-sections-1-and-2-guruprasath">Script: title,
+sections 1 and 2 (Guruprasath)</h1>
+<p>Slides 1–7 of <code>site/deck.html</code> (<a
+href="http://127.0.0.1:8766/deck.html"
+class="uri">http://127.0.0.1:8766/deck.html</a>). Target <strong>≈
+3:05</strong>, then hand over to Ibrahim. Other tabs: <a
+href="script-3-4.html">3 and 4</a> · <a href="script-5-6.html">5 and
+6</a>.</p>
+<p><strong>Keys:</strong> <code>→</code>/<code>D</code> next ·
+<code>←</code>/<code>A</code> back · <code>N</code> notes · number +
+Enter to jump · <code>F</code> full screen.</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Slides</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Title + 1 Overview</td>
+<td>1–5</td>
+<td>1:45</td>
+</tr>
+<tr>
+<td>2 Project conduct</td>
+<td>6–7</td>
+<td>1:20</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Before you start:</strong> open the deck in Chrome, go full
+screen, and share that window in Zoom.</p>
+<hr />
+<h2 id="title-and-1-overview-target-145">Title and 1 · Overview (target
+1:45)</h2>
+<p>Covers <strong>1a</strong> business problem, <strong>1b</strong>
+platform thinking, <strong>1c</strong> scope.</p>
+<h3 id="slide-1-flickpond-a-video-processing-platform-on-aws-20-s">Slide
+1 “FlickPond: a video processing platform on AWS” (≈ 20 s)</h3>
+<p>Point at the three name boxes.</p>
+<blockquote>
+<p>Hi, I’m Guruprasath. We’re Team 17: Ibrahim, Long and me. I led cloud
+and delivery, Ibrahim the backend services, and Long the domain model
+and contracts. I’ll cover the overview, project conduct, the AWS
+deployment, DevOps and the demo; my teammates cover the logical and
+physical architecture.</p>
+</blockquote>
+<h3
+id="slide-2-every-video-app-rebuilds-upload-encoding-playback-30-s">Slide
+2 “Every video app rebuilds upload, encoding, playback” (≈ 30 s)</h3>
+<p>Point at the four people, then the chain, then the orange chip.</p>
+<blockquote>
+<p>The problem. Course teams, trainers and small studios all need the
+same four things for video: upload what they own, convert it so it plays
+on any device, see whether that worked, and keep playback private. Each
+application builds this again. And conversion is heavy: minutes of CPU
+per video, competing with logins on the same machine.</p>
+</blockquote>
+<h3
+id="slide-3-two-clients-use-one-public-api-two-services-sit-behind-it-30-s">Slide
+3 “Two clients use one public API; two services sit behind it” (≈ 30
+s)</h3>
+<p>Point left to right along the arrows, then at the two green
+chips.</p>
+<blockquote>
+<p>Our answer is a platform. The workflow is offered through one public
+API. The unit it manages is an owned video and its processing job.
+Owners upload and the same owners watch. Integrators build new clients
+on the API, and operators manage capacity and releases. A second client,
+the Publisher command-line tool, uses only that API; a test fails the
+build if it imports service code.</p>
+</blockquote>
+<h3
+id="slide-4-inherited-from-project-1-rebuilt-in-project-2-25-s">Slide 4
+“Inherited from Project 1, rebuilt in Project 2” (≈ 25 s)</h3>
+<p>Grey left panel, then the coloured right panel.</p>
+<blockquote>
+<p>Scope. We inherited FlickPond: one application on one machine, with
+FFmpeg encoding. We kept the encoding and credit it to that team. We
+rebuilt the rest: two services with their own data, queues between them,
+and a serverless deployment on AWS. Seven use cases are in scope.
+Sharing with other viewers and multi-region are out.</p>
+</blockquote>
+<h3 id="slide-5-four-design-themes-15-s">Slide 5 “Four design themes” (≈
+15 s)</h3>
+<p>Touch each tile once.</p>
+<blockquote>
+<p>Four themes run through the talk. One public API with two clients.
+Checks at each service boundary. Scale to zero when idle. And every
+number links to a real run, misses included.</p>
+</blockquote>
+<p>→ straight into section 2.</p>
+<hr />
+<h2 id="project-conduct-target-120">2 · Project conduct (target
+1:20)</h2>
+<p>Covers <strong>2a</strong> status, <strong>2b</strong> milestones and
+effort per member.</p>
+<h3
+id="slide-6-status-all-planned-use-cases-delivered-and-running-35-s">Slide
+6 “Status: all planned use cases delivered and running” (≈ 35 s)</h3>
+<p>Point at 7/7, then the two groups of chips.</p>
+<blockquote>
+<p>Status. All seven planned use cases are delivered and running on the
+live AWS environment. It has been up since 18 October and redeploys
+after every green build on Main. We also added a few things beyond the
+plan: edit, delete and admin routes, and a Lambda lane for short clips.
+What remains: end-to-end latency is about 45 seconds against a 20-second
+aim, and the final report revision is due on 16 November.</p>
+</blockquote>
+<h3 id="slide-7-milestones-proposal-4-oct-code-freeze-23-oct-40-s">Slide
+7 “Milestones: proposal 4 Oct, code freeze 23 Oct” (≈ 40 s)</h3>
+<p>Follow the timeline left to right; stop at the orange dot and the
+grey dot; then the effort tiles.</p>
+<blockquote>
+<p>Milestones. Proposal on 4 October. Design finished on the 9th, two
+days late, because we completed the domain analysis before changing
+code. Media and Processing were split into two services on the 12th and
+13th. First deploy to AWS on the 17th, the live environment and CD on
+the 18th and 19th. We had planned to freeze on the 20th. The Lambda lane
+and the database split went live on the 21st, and the code froze on the
+23rd. Effort was split equally: 11 person-days each, 33 against 31
+planned. The extra went into the delivery pipeline.</p>
+<p>Ibrahim, over to you for the logical architecture.</p>
+</blockquote>
+<p><strong>Hand over to Ibrahim</strong> and let him take the clicker
+from slide 8 (or keep pressing → for him).</p>
+<hr />
+<h2 id="if-asked-sections-1-and-2">If asked (sections 1 and 2)</h2>
+<h4 id="section-1">Section 1</h4>
+<ul>
+<li><strong>Why call it a platform?</strong> Two independent clients use
+one public API, and capacity belongs to the platform rather than the
+client. Both clients are ours, so we claim reuse, not adoption.</li>
+<li><strong>Why build on someone else’s Project 1?</strong> It already
+had a real CPU-heavy, asynchronous workload, so the change could be
+measured. The inherited parts are credited by name.</li>
+<li><strong>Why not split identity or playback into services?</strong>
+Playback and retry decisions need the owner and the asset together.
+Splitting them would turn database joins into service calls without
+adding rules of their own.</li>
+<li><strong>Can a lecturer share a video with students?</strong> No,
+sharing is out of scope. The contract reserves a viewer role, but
+nothing issues it. (B02)</li>
+</ul>
+<h4 id="section-2">Section 2</h4>
+<ul>
+<li><strong>Are the person-days timesheets?</strong> No. They are a
+team-agreed equal allocation of the proposal’s work packages. Everything
+was committed through one account, so git history cannot attribute
+work.</li>
+<li><strong>Why did effort overrun?</strong> One planned deployment
+became three proof runs, a persistent environment and a CD pipeline. The
+AWS and delivery package went from 4 to 6 person-days.</li>
+<li><strong>What is the biggest open issue?</strong> End-to-end latency:
+35 to 80 seconds per job are not explained yet. The next step is
+per-stage timestamps. (B01)</li>
+<li><strong>Why waves, not sprints?</strong> It was four weeks with
+three people and hard dependencies, so issues were grouped by
+dependency.</li>
+</ul>
+</body>
+</html>

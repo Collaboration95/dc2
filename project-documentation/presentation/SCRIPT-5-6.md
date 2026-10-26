@@ -1,8 +1,8 @@
 # Script: sections 5 and 6 (Guruprasath)
 
 Slides 30–43 of `site/deck.html`, presented from <http://127.0.0.1:8766/deck.html>. Mon 26 Oct 2026, 14:35.
-These are the words to say. Each slide lists what is on screen, what to do, and what to say. The full
-script for title, 1 and 2 is in `SCRIPT-guruprasath.md`.
+These are the words to say. Each slide lists what is on screen, what to do, and what to say. Other tabs:
+[1 and 2](script-1-2.html) · [3 and 4](script-3-4.html).
 
 **Keys:** `→`/`D` next · `←`/`A` back · `P` play or pause a clip (or click the video) · `N` notes ·
 number + Enter jumps to that slide. Mouse clicks never change slides, so clicking a link or the player is safe.
