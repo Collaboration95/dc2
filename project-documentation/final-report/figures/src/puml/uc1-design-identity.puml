@@ -1,0 +1,47 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-03, W3-06a, W3-06; upload pin / replay corrections from W3-review
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title UC-1 · register / login through real modules
+autonumber
+participant "auth\nmedia.api" as A $MEDIA
+participant "security\nmedia.services" as S $MEDIA
+database "session\nMedia DB" as DB $INFRA
+[-> A : register(...) or login(...)
+alt register
+ A -> S : hash_password(body.password)\n[run_in_threadpool]
+ S --> A : password_hash
+ A -> DB : SQL: insert User; flush; COMMIT
+ break IntegrityError: duplicate email
+  A -->[ : Response(status_code=409)
+ end
+else login
+ A -> DB : SQL: select lower-case email; end read tx
+ A -> S : verify_password(body.password,\nuser.password_hash if user else DUMMY_HASH)\n[run_in_threadpool]
+ S --> A : bool
+ break invalid or absent user
+  A -->[ : MediaError(401)
+ end
+end
+A -> A : set_cookie(response, user, settings)
+A -> S : issue_token(user.id, settings)
+S --> A : token
+A -->[ : User; 201 register / 200 login + secure cookie
+note over A,DB
+Cookie: Secure, HttpOnly, SameSite=strict.
+Protected uploads separately resolve CurrentUser.
+end note
+@enduml

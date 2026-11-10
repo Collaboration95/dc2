@@ -1,0 +1,33 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 18
+skinparam nodesep 30
+skinparam ranksep 36
+title Storage deployment · S3 access in Singapore
+left to right direction
+node "Browser / Publisher" as b <<device>> $CLIENT
+node "CloudFront\nglobal edge" as cf $INFRA
+node "MediaApi\nPrivate A+B" as ma $MEDIA
+node "Processing encoders\nLambda: private A+B\nFargate: public A+B" as p $PROC
+storage "FrontendBucket\nstatic assets" as f $INFRA
+storage "SourceBucket\naccepted VersionId" as s $MEDIA
+storage "OutputBucket\njob/attempt UUID namespace" as o $PROC
+b --> cf : HTTPS
+cf --> f : OAC GET
+b --> s : granted POST
+b --> o : signed GET / Range
+ma --> s : verify / copy / pin
+ma --> o : output / playlist reads
+p --> s : pinned GET
+p --> o : attempt PUT
+ma -[hidden]down- p
+s -[hidden]down- o
+legend bottom
+ Buckets: private, versioned, encrypted, TLS-only; managed outside VPC.
+ Media signs owner-checked playback; output descriptors remain in Processing SQL.
+ Separate media_db / processing_db Aurora nodes are shown in the main deployment view.
+endlegend
+@enduml

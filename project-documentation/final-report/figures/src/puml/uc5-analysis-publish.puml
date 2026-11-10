@@ -1,0 +1,45 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): publisher/cli.py; publisher/client.py; publisher/state.py
+skinparam dpi 180
+skinparam BackgroundColor white
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam ClassAttributeFontSize 16
+skinparam ClassStereotypeFontSize 14
+skinparam NoteFontSize 15
+skinparam classAttributeIconSize 0
+skinparam nodesep 22
+skinparam ranksep 24
+hide footbox
+autonumber
+skinparam maxMessageSize 180
+skinparam sequenceParticipantPadding 8
+title UC-5 · analysis normal flow
+boundary "Publisher\ninterface" as UI
+control "Batch\npublication" as C
+entity "Intent\nrecord" as I
+boundary "Public media\ninterface" as API
+[-> UI : authenticated owner publishes folder
+UI -> C : publish(folder)
+C -> API : resolve current owner
+API --> C : owner identity
+loop each immediate regular file, sorted
+ C -> I : reserve owner/file request key durably
+ C -> API : reserve upload(request key, file digest)
+ API --> C : reservation + storage grant
+ C -> C : send file directly to storage
+ C -> API : finalize(reservation, request key)
+ API --> C : accepted Asset reference
+ C -> I : complete confirmed intent
+ opt wait requested
+  loop bounded until terminal state
+   C -> API : read status(Asset reference)
+   API --> C : current status
+  end
+ end
+ C -> C : append file outcome and accepted reference
+end
+C --> UI : per-file report + aggregate result
+UI -->] : outcomes and exit status
+@enduml

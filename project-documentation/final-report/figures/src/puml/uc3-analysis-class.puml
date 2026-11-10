@@ -1,0 +1,43 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): media/projections.py; media/projection_models.py; media/api/v1_jobs.py; media/api/v1_hls.py
+skinparam dpi 180
+skinparam BackgroundColor white
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam ClassAttributeFontSize 16
+skinparam ClassStereotypeFontSize 14
+skinparam NoteFontSize 15
+skinparam classAttributeIconSize 0
+skinparam nodesep 22
+skinparam ranksep 24
+title UC-3 · analysis responsibilities
+class "Viewing interface" as UI <<boundary>> {
+ + showStatus(assetId)
+ + play(assetId)
+}
+class "Status and playback control" as C <<control>> {
+ + findOwnedVideo(ownerId, assetId)
+ + grantPlayback(video)
+}
+class Owner <<entity>> {
+ + ownerId: Identifier
+}
+class OwnedVideo <<entity>> {
+ + assetId: Identifier
+ + submissionState: State
+}
+class StatusSnapshot <<entity>> {
+ + version: Integer
+ + status: State
+}
+class PlayableOutput <<entity>> {
+ + kind: OutputKind
+ + objectIdentity: Identifier
+}
+UI ..> C : requests
+C ..> OwnedVideo : authorizes / reads
+Owner "1" -- "0..*" OwnedVideo : owns
+OwnedVideo "1" -- "0..1" StatusSnapshot : latest
+StatusSnapshot "1" -- "0..*" PlayableOutput : describes
+@enduml

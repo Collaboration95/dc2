@@ -1,0 +1,52 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-04, W3-07a, W3-09a/b/c, W3-17/23; W1-dispatch/probe-redirect
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title UC-2 · process, redirect or fail visibly
+autonumber
+boundary RequestReceiver as R
+control ProcessingControl as P
+boundary Encoder as E
+boundary ResultReceiver as M
+R -> P : accept processing request
+alt repeated identity / conflicting content
+ P --> R : replay / reject without mutation
+else valid new request
+ P -> P : create job and attempt; retain work intent
+ P --> R : durable acceptance
+ P -> E : deliver attempt
+ E -> P : claim current execution authority
+ alt short executor rejects source admission
+  E -> P : request successor on standard executor
+  P -> P : abandon old attempt; retain successor work
+ else admitted source
+  E -> E : verify source and encode primary output
+  opt optional streaming conversion
+   E -> E : build streaming outputs
+   note over P,E : Ordinary streaming failure\nkeeps primary output
+  end
+  alt valid authority and output
+   E -> P : finish with verified output identity
+   P -> P : commit success and outcome intent
+  else encode failure or expired authority
+   E -> P : report failure, if still authorized
+   P -> P : record failure or recover expired execution
+  end
+ end
+ P -> M : deliver versioned outcome
+ M -> M : apply newer accepted result
+end
+@enduml

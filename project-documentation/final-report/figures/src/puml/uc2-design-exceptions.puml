@@ -1,0 +1,53 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-04, W3-07a, W3-09a/b/c, W3-17/23; W1-dispatch/probe-redirect
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title UC-2 · refusal, redirect and execution failure
+autonumber
+participant "worker.sqs" as W $PROC
+participant "messaging" as M $PROC
+participant "recovery" as R $PROC
+[-> W : execute_message(...)
+alt claim yields no authority
+ W -> M : work_disposition(factory, job_id, attempt_id)
+ M --> W : stale or other durable disposition
+ W -->[ : drain only proved-stale; otherwise retain
+else check_probe raises NotAdmitted
+ W -> M : redirect_to_long_lane(factory, work)
+ M -> M : SQL: current pair + DB-clock live fence
+ alt current live lease
+  M -> M : SQL: abandon old; cleanup; new Attempt;\nemit_state; COMMIT
+  M --> W : True; standard work retained
+ else stale lease
+  M --> W : False; no mutation
+ end
+else ordinary pipeline error, live authority
+ W -> M : finish(factory, work, error=curated_error)
+ M --> W : True after failed state + result intent
+else LeaseLost / AttemptDeadline / cancellation
+ W -->[ : False; no finish; receipt retained
+ ... separate repair invocation ...
+ [-> R : recover_expired(factory, on_change=emit_state)
+ R -> R : SQL: current pair + DB-clock expiry recheck
+ R -> R : interrupt(session, job, attempt, now,\nmessage, on_change)
+ R -->[ : abandoned Attempt; failed Job;\ncleanup + result committed
+end
+note over W,R
+Ordinary optional-HLS error keeps primary output.
+Queued-work repair keeps the same Attempt UUID.
+Expired execution waits for owner retry (UC-4).
+end note
+@enduml

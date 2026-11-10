@@ -1,0 +1,195 @@
+{
+  "fields": [
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeNo",
+      "name": "Title",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeNs",
+      "name": "Assignees",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeNw",
+      "name": "Status",
+      "options": [
+        {
+          "id": "f75ad846",
+          "name": "Todo"
+        },
+        {
+          "id": "47fc9ee4",
+          "name": "In Progress"
+        },
+        {
+          "id": "98236657",
+          "name": "Done"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeN0",
+      "name": "Labels",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeN4",
+      "name": "Linked pull requests",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeN8",
+      "name": "Milestone",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOA",
+      "name": "Repository",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOI",
+      "name": "Reviewers",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOM",
+      "name": "Parent issue",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOQ",
+      "name": "Sub-issues progress",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOU",
+      "name": "Created",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOY",
+      "name": "Updated",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeOc",
+      "name": "Closed",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeSE",
+      "name": "Workflow",
+      "options": [
+        {
+          "id": "c978a6e5",
+          "name": "Backlog"
+        },
+        {
+          "id": "e02f1ad4",
+          "name": "Ready"
+        },
+        {
+          "id": "ba99be3d",
+          "name": "In progress"
+        },
+        {
+          "id": "ea57a0a3",
+          "name": "Review"
+        },
+        {
+          "id": "70f40fab",
+          "name": "Blocked"
+        },
+        {
+          "id": "fa2d3a3f",
+          "name": "Done"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeSc",
+      "name": "Wave",
+      "options": [
+        {
+          "id": "a61eb394",
+          "name": "Wave 0"
+        },
+        {
+          "id": "1e7f233e",
+          "name": "Wave 1"
+        },
+        {
+          "id": "5f0cbf3d",
+          "name": "Wave 2"
+        },
+        {
+          "id": "f761184d",
+          "name": "Wave 3"
+        },
+        {
+          "id": "84255653",
+          "name": "Wave 4"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeSg",
+      "name": "Priority",
+      "options": [
+        {
+          "id": "1c24d7a6",
+          "name": "P0"
+        },
+        {
+          "id": "d0615693",
+          "name": "P1"
+        },
+        {
+          "id": "f8a22557",
+          "name": "P2"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    {
+      "id": "PVTSSF_lAHOBBatWM4BmtkxzhlVeU4",
+      "name": "Risk",
+      "options": [
+        {
+          "id": "dd7206c2",
+          "name": "Low"
+        },
+        {
+          "id": "62885e72",
+          "name": "Medium"
+        },
+        {
+          "id": "89dcbf8b",
+          "name": "High"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeVQ",
+      "name": "Area",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeVY",
+      "name": "Persona",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOBBatWM4BmtkxzhlVeXM",
+      "name": "Sequence",
+      "type": "ProjectV2Field"
+    }
+  ],
+  "totalCount": 20
+}

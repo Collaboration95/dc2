@@ -1,0 +1,40 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): media/authorizer.py; contracts/gateway.py; contracts/v1.py; media/api/deps.py; processing/auth.py; scripts/aws/v1/definitions.py
+skinparam dpi 180
+skinparam BackgroundColor white
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam ClassAttributeFontSize 16
+skinparam ClassStereotypeFontSize 14
+skinparam NoteFontSize 15
+skinparam classAttributeIconSize 0
+skinparam nodesep 22
+skinparam ranksep 24
+title DP-3 · implemented authorization roles
+class "media.authorizer" as A <<module>> $MEDIA {
+ {static} + authorize(event: dict): dict
+ {static} + gateway_role(user: User): str
+}
+class "contracts.v1.Actor" as V <<trusted context>> $INFRA {
+ + owner_id: str
+ + role: str
+ {static} + from_context(context: Any): Actor
+ + to_context(): dict
+}
+class "contracts.gateway\nGatewayAdapter" as G <<adapter>> $INFRA {
+ + invoke(event: dict, *,\n request_id=None): dict
+ + __call__(event: dict,\n context=None): dict
+}
+class "media.api.deps" as M <<module>> $MEDIA {
+ {static} + current_user(request: Request,\n settings: Config): User
+}
+class "processing.auth" as P <<module>> $PROC {
+ {static} + gateway_actor(request: Request)
+}
+A ..down> V : emits
+G ..right> V : validates / injects
+M ..up> V : revalidates
+P ..up> V : requires Actor
+M -[hidden]right-> P
+@enduml

@@ -1,0 +1,47 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): publisher/cli.py; publisher/client.py; publisher/state.py
+skinparam dpi 180
+skinparam BackgroundColor white
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam ClassAttributeFontSize 16
+skinparam ClassStereotypeFontSize 14
+skinparam NoteFontSize 15
+skinparam classAttributeIconSize 0
+skinparam nodesep 22
+skinparam ranksep 24
+hide footbox
+autonumber
+skinparam maxMessageSize 180
+skinparam sequenceParticipantPadding 8
+title UC-5 · direct upload and outcome loop
+participant "cli\n«module»" as C $CLIENT
+participant "intents: Intents" as I $CLIENT
+participant "client: PublicClient" as P $CLIENT
+boundary "Media public API" as A $MEDIA
+C -> P : identity()
+P --> C : current owner UUID
+loop each selected regular file
+ C -> I : reserve(identity, explicit=None)
+ I --> C : durable request key
+ C -> P : upload(path, key) [mutation callback]
+ P -> A : POST uploads/reservations\nrequest_id + file metadata
+ A --> P : reservation_id + optional grant
+ opt upload grant present
+  P -> P : direct.send(storage POST)\nfile bytes; Cookie removed
+ end
+ P -> A : POST .../{id}/finalize\nrequest_id = same key
+ A --> P : 202 {job_id: Asset UUID}
+ P --> C : job_id
+ C -> I : complete(identity)
+ opt finish: waiting requested
+  C -> P : poll(job_id, max_polls, interval)
+  P -> A : bounded GET jobs/{Asset UUID}
+  A --> P : status documents
+  P --> C : terminal / exhausted poll result
+ end
+ C -> C : append {file, ok, job_id, intent_key, ...}
+end
+note over C,A : execute returns all outcomes; main prints report.\nExit 0 requires a nonempty, wholly successful batch.
+@enduml

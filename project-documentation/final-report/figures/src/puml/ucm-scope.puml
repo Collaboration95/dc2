@@ -1,0 +1,56 @@
+@startuml
+!include _style.iuml
+top to bottom direction
+skinparam defaultFontSize 16
+skinparam packageStyle rectangle
+skinparam usecaseBackgroundColor #DBEAFE
+skinparam usecaseBorderColor #2563EB
+skinparam usecaseBackgroundColor<<excluded>> #F1F5F9
+skinparam usecaseBorderColor<<excluded>> #94A3B8
+skinparam usecaseFontColor<<excluded>> #64748B
+hide stereotype
+
+actor "Content owner\n(Maya / Arun)" as owner
+actor "Platform operator\n(Sam)" as operator
+
+rectangle "FlickPond platform\nand supported clients" as system {
+  usecase "UC-1 Register, log in\nand upload owned video" as uc1
+  usecase "UC-2 Process the video\ninto playable outputs" as uc2
+  usecase "UC-3 Track status\nand play the result" as uc3
+  usecase "UC-4 Retry from\nstored source" as uc4
+  usecase "UC-5 Bulk-publish folder\nand report results" as uc5
+  usecase "UC-6 Scale Processing\ncapacity independently" as uc6
+  usecase "UC-7 Release Processing on its\nown and demonstrate rollback" as uc7
+}
+
+package "Out of scope" as excluded #FAFAFA {
+  usecase "Profiles / password reset\nTitles / tags / external videos" as x1 <<excluded>>
+  usecase "Public / student / LMS sharing\nTeam ownership\nTenants / billing" as x2 <<excluded>>
+  usecase "Search / discovery\nModeration / product analytics" as x3 <<excluded>>
+  usecase "Crop / clip editor UI\nThumbnails / 4K\nResumable uploads >100 MiB" as x4 <<excluded>>
+  usecase "Kubernetes / general autoscaling\nMulti-AZ database\nMulti-region failover" as x5 <<excluded>>
+  usecase "Historical migration\nMalware scanning\nFull key rotation" as x6 <<excluded>>
+  usecase "Third client / developer portal\nLive streaming\nStaging environment" as x7 <<excluded>>
+}
+
+owner -left- uc1
+owner -left- uc2 : initiates indirectly
+owner -left- uc3
+owner -left- uc4
+owner -left- uc5
+operator -left- uc6
+operator -left- uc7
+uc1 -[hidden]right-> x1
+uc1 -[hidden]down-> uc2
+uc2 -[hidden]down-> uc3
+uc3 -[hidden]down-> uc4
+uc4 -[hidden]down-> uc5
+uc5 -[hidden]down-> uc6
+uc6 -[hidden]down-> uc7
+x1 -[hidden]down-> x2
+x2 -[hidden]down-> x3
+x3 -[hidden]down-> x4
+x4 -[hidden]down-> x5
+x5 -[hidden]down-> x6
+x6 -[hidden]down-> x7
+@enduml

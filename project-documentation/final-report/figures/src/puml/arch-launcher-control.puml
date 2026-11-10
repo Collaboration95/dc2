@@ -1,0 +1,52 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+skinparam dpi 96
+skinparam defaultFontSize 20
+skinparam classAttributeFontSize 18
+skinparam classStereotypeFontSize 16
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam nodesep 24
+skinparam ranksep 30
+hide circle
+hide empty methods
+
+
+top to bottom direction
+title Technical consistency · Processing launcher control
+class LauncherControl <<technical singleton>> $PROC {
+ id: int
+ enabled: bool
+ enabled_at: datetime | None
+ session_end_at: datetime | None
+ updated_at: datetime
+}
+class LaunchReservation <<technical reservation>> $PROC {
+ token: str
+ started_by: str
+ status: str
+ payload: dict
+ deadline_at: datetime
+ task_arn: str | None
+ claimed: bool | None
+}
+LauncherControl "1" -right- "0..*" LaunchReservation
+note bottom of LauncherControl
+  CHECK ck_launcher_control_singleton: id = 1.
+  _reserve(): control FOR UPDATE, reserve capacity.
+  This lifecycle is independent of Job / Attempt.
+end note
+note bottom of LaunchReservation
+  token PK; UNIQUE started_by.
+  _send(): control FOR SHARE + reservation FOR UPDATE
+  while awaiting RunTask; ambiguous reply keeps slot.
+end note
+legend bottom
+  Technical transaction boundary, not a third business context or a Job child collection.
+  Application association; no FK to LauncherControl or AttemptTask. Selected actual fields.
+endlegend
+@enduml

@@ -1,0 +1,54 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+skinparam nodesep 25
+skinparam ranksep 28
+title Component view · Media owns adoption and public projections\nAs built
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/lambda_handler.py#L1
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/uploads.py#L18
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_jobs.py#L43
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_hls.py#L25
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L105
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L9
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L35
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L23
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/repositories/assets.py#L31
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/authorizer.py#L40
+skinparam defaultFontSize 17
+skinparam LegendFontSize 16
+top to bottom direction
+component "lambda_handler / main\napi.uploads / v1_jobs / v1_hls\nauthorizer / api.deps" as API $MEDIA
+component "services.direct_intake\nservices.v1_lifecycle / intake\nmedia.projections" as App $MEDIA
+component "repositories.assets" as Repo <<Repository>> $MEDIA
+component "models / upload_models\nprojection_models / messaging_models\ndatabase (owned Base)" as SQL $MEDIA
+component "services.storage.Storage\nstorage_credentials" as Store <<Adapter>> $MEDIA
+component "handlers / recovery_v1" as Ev $MEDIA
+component "media.messaging" as Msg <<Transactional Outbox>> $MEDIA
+component "delivery.sql / delivery.sqs.SQS\ncontracts.v1" as D $INFRA
+interface "reserve / finalize\nedit / retry / tombstone\npublic_job / read_job" as IA
+interface "verify_direct_upload\ncopy_output_source / sign_output" as IS
+API ..> IA : requires
+App -- IA
+App ..> Repo : get_asset / replay
+App ..> SQL : direct ORM
+App ..> IS
+Store -- IS
+Repo ..> SQL
+App ..> Msg : enqueue_submit / stage_command
+Ev ..> Msg : publish_commands / consume_result
+Ev ..> App : projection / cleanup
+Msg ..> SQL : inbox / outbox
+Msg ..> D : accept / stage / publish_due
+legend bottom
+Blue = Media; slate = shared library. Circle = provided exports; dashed arrow = dependency.
+Repository = module lookup/replay role; Storage adapts Minio S3. Services also query ORM directly.
+endlegend
+
+@enduml

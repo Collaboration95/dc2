@@ -1,0 +1,66 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W2-delivery-ledgers, W3-07a; separate SQL commit / relay / consumer
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title DP-2 · local delivery ledgers and relay roles
+top to bottom direction
+class "MediaOutbox" as MO <<outbox>> $MEDIA {
+ + message_id: UUID
+ + body_hash: str
+ + body: dict
+ + claim_token: UUID | None
+}
+class "ProcessingInbox" as PI <<idempotent inbox>> $PROC {
+ + message_id: UUID
+ + body_hash: str
+}
+class "ProcessingOutbox" as PO <<outbox>> $PROC {
+ + message_id: UUID
+ + queue: str
+ + body: dict
+}
+class "MediaInbox" as MI <<idempotent inbox>> $MEDIA {
+ + message_id: UUID
+ + body_hash: str
+}
+class "sql\ndelivery" as D <<relay>> $INFRA {
+ {static} + accept(session, model, envelope)
+ {static} + stage(session, model, envelope, queue)
+ {static} + publish_due(factory, model, transport, *,\n limit=100, deadline=None, replay_seconds=518400,\n reservation_seconds=30)
+}
+class "SQS\ndelivery.sqs" as S <<transport adapter>> $INFRA {
+ + send(queue, envelope)
+}
+D -down-> S : network send
+S -[hidden]down- MO
+MO -[hidden]right- PI
+PI -[hidden]down- PO
+PO -[hidden]left- MI
+MO .right.> PI : commands
+PO .left.> MI : results
+D ..> MO : stages / relays
+D ..> PO : stages / relays
+D ..> PI : deduplicates
+D ..> MI : deduplicates
+legend bottom
+No cross-database FK or transaction; dashed links are delivery
+dependencies.
+Media models: media.messaging_models; Processing models:
+processing.messaging_models.
+Each message_id is a local primary key. Business state commits
+with its local ledger.
+endlegend
+@enduml

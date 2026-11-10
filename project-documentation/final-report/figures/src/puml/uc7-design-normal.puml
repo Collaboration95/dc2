@@ -1,0 +1,52 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 20
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 230
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+' W5 release decisions expanded to function interactions; scripts/ci/cd.sh
+title UC-7 design: owner promotion and adoption
+autonumber
+participant "cd.sh / deploy" as cd $INFRA
+participant "release" as rel $INFRA
+participant "Journal" as j $INFRA
+participant "OperatorTransport\n/ release hooks" as aws $INFRA
+cd -> cd : cd_gate.admit(...)
+cd -> cd : Pipeline.\nchanged_owners()
+note over cd,rel
+ Processing-only release; selected images verified.
+ Migration changes need additive attestation.
+end note
+cd -> rel : promote(...)
+rel -> j : check_context(config); locked()
+rel -> aws : quiescent(); validate definitions;\nsnapshot / compatibility hooks
+rel -> j : save(state): pending_release
+note over rel,j : Saved before migration or code mutation.
+rel -> aws : migrate(...): owning additive revision
+loop each Processing function
+ rel -> aws : _version(): update code / publish version
+ rel -> j : save versions / publication marker
+ rel -> aws : _move(): update-alias with RevisionId
+ rel -> j : save moved alias receipt
+end
+rel -> aws : public_smoke(); quiescent(); peer snapshot
+aws --> rel : PASS; Media unchanged
+rel -> j : save promoted receipt; clear intent
+rel --> cd : promoted receipt
+cd -> cd : adopt_release(...)
+cd -> cd : deploy to applications with adopted images
+note over cd,rel
+ Adoption updates launcher worker selection.
+ Messages show selected arguments.
+end note
+@enduml

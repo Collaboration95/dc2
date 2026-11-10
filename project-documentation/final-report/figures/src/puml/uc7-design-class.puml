@@ -1,0 +1,51 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 18
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 230
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+' scripts/ci/cd_gate.py; scripts/aws/v1/{release,deploy,transport}.py; scripts/aws/journal.py
+title UC-7 design: release and durable state
+top to bottom direction
+class "release" as rel <<module>> $INFRA {
+ promote(config, transport, journal, *,\nowner, bundle, image_uri, migration_definition,\ntarget_revision, compatibility, schema_revision,\nquiescent, public_smoke, deadline,\nworker_definition=None, clock=time.monotonic,\nsleep=time.sleep)
+ restore(config, transport, journal, *,\nschema_revision, quiescent, public_smoke, deadline)
+}
+class Journal $INFRA {
+ path: Path
+ station: str
+ environment: str
+ check_context(config)
+ locked()
+ save(state)
+}
+class OperatorTransport $INFRA {
+ call(service, operation, payload, *, deadline)
+}
+class DeployJournal $INFRA {
+ view()
+ mutate(change)
+}
+class "deploy" as deploy <<module>> $INFRA {
+ adopt_release(journal, owner, release_dir, tag)
+}
+rel -right-> Journal : intent
+rel -down-> OperatorTransport : cloud calls
+DeployJournal -up-|> Journal
+deploy -right-> DeployJournal : adoption
+OperatorTransport -[hidden]down- deploy
+legend bottom
+ Actual signatures wrap across lines; implicit self omitted.
+ Admission and Pipeline owner selection are in the sequence.
+endlegend
+@enduml

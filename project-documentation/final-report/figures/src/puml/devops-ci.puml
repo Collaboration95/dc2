@@ -1,0 +1,46 @@
+!include _style.iuml
+@startuml devops-ci
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 14
+skinparam rectangleFontSize 18
+skinparam packageFontSize 18
+skinparam nodesep 18
+skinparam ranksep 22
+skinparam linetype ortho
+
+top to bottom direction
+rectangle "PR / Main push / exact-SHA dispatch / weekly" as events $INFRA
+package "CI · full-policy execution" {
+  rectangle "Select source and lanes\nPolicy / planning checks" as selection $INFRA
+  rectangle "Ruff + S rules · SAST\nUnit + real integration\nnpm audit + UI coverage\nPublisher / browser" as tests $MEDIA
+  rectangle "cfn-lint + V1 offline\nV1 local flows + builds" as v1 $INFRA
+  rectangle "Trivy · V1 images\nZero fixable HIGH/CRITICAL" as trivy #F3E8FF
+  rectangle "gitleaks · secrets\nInherited Trivy image scans\nZAP · local V1 DAST\nExecution + coverage + cleanup\nZAP findings advisory" as security $PROC
+  rectangle "Combine five backend tiers\nAll packages 80% combined\nMedia/Processing 90/85\nRecovery modules 80/75" as coverage $INFRA
+  rectangle "Full verification\nRequire selected successes and valid skips" as gate $INFRA
+  selection --> tests
+  selection --> v1
+  selection --> security
+  v1 --> trivy
+  tests --> coverage
+  v1 --> coverage
+  coverage --> gate
+  trivy --> gate
+  security --> gate
+}
+package "Additional security analysis · outside Full verification dependencies" {
+  rectangle "CodeQL · SAST\nGitHub default setup\nPush / PR / weekly\n\nSonarCloud · advisory\nConditional source / coverage" as source $MEDIA
+  rectangle "security-scans.yml\nPR / Main / dispatch / weekly\npip-audit · Python SCA\nCheckov · CloudFormation\nFindings advisory" as advisory $CLIENT
+  source -[hidden]right-> advisory
+}
+events --> selection
+gate -[hidden]down-> source
+legend bottom
+Boxes group jobs; independent lanes execute in parallel.
+Full policy runs before Main merge and repeats on Main push.
+Dev gate: selected dev checks + secrets; full escalation is possible.
+90/85 and 80/75 = combined / raw branch percentages.
+endlegend
+@enduml

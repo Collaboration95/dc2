@@ -1,0 +1,44 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): media/projections.py; media/projection_models.py; media/api/v1_jobs.py; media/api/v1_hls.py
+skinparam dpi 180
+skinparam BackgroundColor white
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam ClassAttributeFontSize 16
+skinparam ClassStereotypeFontSize 14
+skinparam NoteFontSize 15
+skinparam classAttributeIconSize 0
+skinparam nodesep 22
+skinparam ranksep 24
+title UC-3 · Media read-model design
+class "media.models.Asset" as A $MEDIA {
+ + id: UUID
+ + owner_id: UUID
+ + processing_job_id: UUID | None
+ + submission_state: str
+}
+class "ProcessingProjection" as P $MEDIA {
+ + asset_id: UUID
+ + job_id: UUID
+ + attempt_id: UUID | None
+ + attempt_number: int
+ + state_version: int
+ + status: str
+ + outputs: list
+}
+class "media.projections" as M <<module>> $MEDIA {
+ {static} + apply_result(session, envelope)
+ {static} + validate_transition(current, event)
+ {static} + public_job(session, asset,\n storage, settings)
+}
+class "Storage" as S $MEDIA {
+ + sign_output(key, *, inline=False)
+ + read_playlist(key)
+}
+A "1" -- "0..1" P : asset_id FK
+M ..down> A : owned input
+M ..> P : validates / maps
+M ..down> S : signs done primary
+A -[hidden]right-> S
+@enduml

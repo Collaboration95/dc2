@@ -1,0 +1,74 @@
+{
+  "snapshot_at": "2026-11-10T23:15:26.469769+08:00",
+  "timezone": "Asia/Singapore",
+  "matplotlib": "3.11.2",
+  "input_sha256": "7c5c939f210024d636ea1a79171cb21775b439ea2fba69afb24f27a1d15d16d0",
+  "registered": 156,
+  "closed": 149,
+  "open": 7,
+  "tasks": 137,
+  "epics": 19,
+  "iterations": [
+    {
+      "iteration": "1 \u00b7 Baseline / domain",
+      "start": "2026-10-05",
+      "planned_end": "2026-10-09",
+      "observed_through": "2026-10-09",
+      "opening_open": 0,
+      "new_issues": 0,
+      "closures": 0,
+      "ending_open": 0,
+      "ending_tasks": 0,
+      "ending_epics": 0
+    },
+    {
+      "iteration": "2 \u00b7 Local services",
+      "start": "2026-10-10",
+      "planned_end": "2026-10-14",
+      "observed_through": "2026-10-14",
+      "opening_open": 0,
+      "new_issues": 30,
+      "closures": 30,
+      "ending_open": 0,
+      "ending_tasks": 0,
+      "ending_epics": 0
+    },
+    {
+      "iteration": "3 \u00b7 AWS delivery",
+      "start": "2026-10-15",
+      "planned_end": "2026-10-20",
+      "observed_through": "2026-10-20",
+      "opening_open": 0,
+      "new_issues": 126,
+      "closures": 117,
+      "ending_open": 9,
+      "ending_tasks": 7,
+      "ending_epics": 2
+    },
+    {
+      "iteration": "4 \u00b7 Hardening / presentation",
+      "start": "2026-10-21",
+      "planned_end": "2026-10-26",
+      "observed_through": "2026-10-26",
+      "opening_open": 9,
+      "new_issues": 0,
+      "closures": 2,
+      "ending_open": 7,
+      "ending_tasks": 6,
+      "ending_epics": 1
+    },
+    {
+      "iteration": "5 \u00b7 Feedback / report",
+      "start": "2026-10-27",
+      "planned_end": "2026-11-16",
+      "observed_through": "2026-11-10",
+      "opening_open": 7,
+      "new_issues": 0,
+      "closures": 0,
+      "ending_open": 7,
+      "ending_tasks": 6,
+      "ending_epics": 1
+    }
+  ],
+  "semantics": "Latest createdAt/closedAt; reopening history unavailable; all closure reasons counted as administrative closure."
+}

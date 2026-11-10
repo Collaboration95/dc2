@@ -1,0 +1,29 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 18
+title Dispatch · Processing work_lane()
+start
+:Processing transaction\nmessaging.emit_state() -> short_lane.work_lane();
+if (enabled AND integer size in (0,64 MiB]\nAND no earlier lambda-* binding?) then (yes)
+ :stage processing-work-short;
+else (no)
+ :stage processing-work;
+endif
+:caller commits state + outboxes;
+:Processing relay sends to SQS;
+if (short lane?) then (yes)
+ :Lambda mapping invokes\nProcessingShortEncoder\nbatch 1 / cap 2;
+else (standard)
+ :WakeOnWork.send() invokes\nProcessingLauncher asynchronously;
+ :launcher reserves capacity\nFargate polls standard queue;
+endif
+stop
+legend bottom
+ Duration/height are not dispatch inputs.
+ Probe admission follows claim/download.
+ Standard capacity: cap 3; short mapping: cap 2.
+endlegend
+@enduml
