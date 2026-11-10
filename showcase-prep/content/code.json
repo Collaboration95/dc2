@@ -5,7 +5,7 @@
   "summary": "Trace the current implementation by responsibility: thin route adapters, application services, repositories, storage and queue adapters, contracts, durable state, and the finite worker.",
   "opening_answer": "The routes translate HTTP into application calls. Services coordinate rules and transactions. Repositories own repeated SQL access, storage and queue modules adapt external systems, and Processing’s lifecycle code fences worker authority. The layers exist to keep ownership, retries, and failure behavior visible—not to hide them behind a large framework.",
   "takeaways": [
-    "Start at the route and follow imports into the service, repository, adapter, and transaction boundary.",
+    "Reading starts at the route and follows imports into the service, repository, adapter and transaction boundary.",
     "A helper is valuable when it centralizes a real rule such as owner filtering, source pinning, or a live lease.",
     "The direct upload finalize transaction couples Asset adoption with the outbox command; the external byte check happens outside row locks.",
     "Outbox/inbox, claim tokens, attempt namespaces, and `state_version` address different failure windows.",
@@ -178,35 +178,37 @@
         },
         {
           "type": "p",
-          "text": "Storage follows a similar pattern. `media/services/storage.py` wraps S3-compatible operations used by Media: presigned POST, verification, cleanup, and signed outputs. Processing’s worker storage code handles source downloads and output puts. The two packages can wrap different use cases while sharing a narrow credential policy in `runtime_support/storage_credentials.py`."
-        },
-        {
-          "type": "p",
-          "text": "That shared credential module provides static, ECS container, and Lambda credential providers. It rejects incomplete static pairs, refuses static overrides in ECS/Lambda mode, validates the container credential endpoint, and reads Lambda temporary credentials from the runtime environment. `media/storage_credentials.py` and `processing/storage_credentials.py` are intentionally thin facades: each reveals its own settings and calls the shared policy. This avoids copying security-sensitive selection logic while keeping each domain’s configuration independent."
+          "text": "Storage follows the same pattern. `media/services/storage.py` wraps Media’s presigned POST, verification, cleanup and signed outputs; Processing’s worker storage code downloads sources and puts outputs. Both reach S3 credentials through one shared policy, shown in the diagram’s storage card."
         },
         {
           "type": "visual",
           "spec": {
-            "type": "flow",
+            "type": "cards",
             "title": "Where the seam lives",
-            "steps": [
+            "items": [
               {
                 "label": "Domain",
                 "sub": "Asset or Job",
-                "detail": "Each owner uses its own model and rules internally."
+                "detail": "Each owner uses its own models and rules internally; none of them cross the seam."
               },
               {
                 "label": "Contract",
-                "sub": "versioned values",
-                "detail": "A small validated message carries identity and immutable source facts."
+                "sub": "contracts/v1.py",
+                "detail": "A small validated Envelope carries version, actor identity, immutable source facts and an allowed message kind."
               },
               {
-                "label": "Adapter",
-                "sub": "transport boundary",
-                "detail": "Queue and storage modules translate external calls while SQL remains authoritative."
+                "label": "Queue adapter",
+                "sub": "delivery/sql.py + sqs.py",
+                "detail": "Stages outbox rows with the domain update, sends outside the row lock, acknowledges with a claim token, and enforces which producer and consumer may use each lane. SQL remains authoritative."
+              },
+              {
+                "label": "Storage adapters",
+                "sub": "one shared credential policy",
+                "accent": true,
+                "detail": "media/storage_credentials.py and processing/storage_credentials.py are thin facades over runtime_support/storage_credentials.py, which selects static, ECS-container or Lambda credentials, rejects incomplete static pairs and refuses static overrides in ECS/Lambda mode."
               }
             ],
-            "caption": "The abstraction boundary is intentionally narrow: values cross; ORM models and database access do not."
+            "caption": "Values cross the boundary; ORM models and database access do not. Security-sensitive credential selection is written once and reused by both owners."
           }
         },
         {
@@ -265,30 +267,27 @@
         },
         {
           "type": "p",
-          "text": "Consider a failure: the SQS send succeeds, but the response is lost. The publisher does not know whether the message arrived and may send again. The duplicate gets the same message ID and body, so the consumer inbox makes the second delivery harmless. Another failure: the queue entry is gone but SQL still says queued. Repair creates a usable work message. The recovery story begins from committed SQL state, not from assuming a queue receipt tells the whole truth."
-        },
-        {
-          "type": "p",
-          "text": "Result ordering is separate from duplicate detection. The inbox handles repeated message identity. `media/projections.py:validate_transition` handles stale or contradictory domain state: lower versions are ignored, same-version different content conflicts, lower attempts cannot replace a higher attempt, and terminal states cannot silently change. `apply_result` also checks owner, source, job, and output prefix before accepting a snapshot."
+          "text": "Duplicate detection and result ordering are independent checks, so the diagram shows them side by side rather than as steps."
         },
         {
           "type": "visual",
           "spec": {
-            "type": "flow",
-            "title": "Two different fences",
-            "steps": [
+            "type": "cards",
+            "title": "Two independent fences",
+            "items": [
               {
                 "label": "Inbox",
-                "sub": "message identity",
-                "detail": "Same message ID and body is a duplicate; different body under that ID conflicts."
+                "sub": "Have I seen this message?",
+                "detail": "Message ID + canonical body hash, stored with the domain update. Same ID and body is a no-op; a different body under that ID conflicts. Example: an SQS send succeeds but the response is lost, the publisher sends again, and the inbox makes the second delivery harmless."
               },
               {
                 "label": "Version",
-                "sub": "domain ordering",
-                "detail": "A result must be current for the job, attempt, and increasing state version."
+                "sub": "Is this state still allowed?",
+                "accent": true,
+                "detail": "media/projections.py:validate_transition ignores lower state versions, rejects same-version different content, refuses a lower attempt replacing a higher one and keeps terminal states final. apply_result also checks owner, source, job and output prefix."
               }
             ],
-            "caption": "Deduplication answers “have I seen this message?” Version fences answer “is this state still allowed?”"
+            "caption": "A message can pass one fence and fail the other. Lost queue entries are a third case: repair rebuilds work from committed SQL state."
           }
         },
         {

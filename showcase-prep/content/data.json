@@ -15,43 +15,39 @@
           "text": "An asset is the owner’s video resource. A job is the work requested for that asset. An attempt is one try at executing that job. Keeping those ideas separate is what makes a retry understandable: the source stays the same, but the new attempt has its own identity and execution history."
         },
         {
-          "type": "table",
-          "headers": [
-            "Record",
-            "Owner",
-            "Why keep it?"
-          ],
-          "rows": [
-            [
-              "User, Asset, UploadReservation, SourceVersion",
-              "Media",
-              "Know who owns the resource and which bytes were accepted."
+          "type": "visual",
+          "spec": {
+            "type": "cards",
+            "title": "Who owns each record",
+            "items": [
+              {
+                "label": "Media records",
+                "sub": "User → many Assets",
+                "detail": "User, Asset, UploadReservation and SourceVersion: who owns the resource and which exact bytes were accepted. Each Asset has one pinned source."
+              },
+              {
+                "label": "Media’s local view",
+                "sub": "ProcessingProjection · one per Asset",
+                "detail": "A copy of the latest accepted Processing state, so the owner’s list and status never read Processing’s database. There is no cross-database foreign key or join."
+              },
+              {
+                "label": "Processing records",
+                "sub": "Job (one per Asset) → many Attempts",
+                "accent": true,
+                "detail": "Job tracks the requested work with public states queued, processing, done, failed or cancelled. Each numbered Attempt is one execution: queued, processing, succeeded, failed, abandoned or cancelled. RetryRequest makes a repeated retry click land on the same new Attempt."
+              },
+              {
+                "label": "Coordination rows",
+                "sub": "in each owner’s own database",
+                "detail": "SubmissionGuard serializes conflicting commands; CleanupIntent makes cleanup retryable; inbox and outbox rows remember received messages and durable send intentions. Media and Processing each keep their own."
+              }
             ],
-            [
-              "ProcessingProjection",
-              "Media",
-              "Serve the owner’s list/status without reading Processing’s database."
-            ],
-            [
-              "Job, Attempt, RetryRequest",
-              "Processing",
-              "Track requested work, each execution and repeated retry requests."
-            ],
-            [
-              "SubmissionGuard, CleanupIntent",
-              "Owning service",
-              "Serialize conflicting commands and make cleanup retryable."
-            ],
-            [
-              "Inbox and outbox rows",
-              "Both, in separate databases",
-              "Remember received messages and durable send intentions."
-            ]
-          ]
+            "caption": "One Asset, one Job, many Attempts. Media and Processing records live in separate databases and refer to each other only by contract IDs."
+          }
         },
         {
           "type": "p",
-          "text": "The visible job state is queued, processing, done, failed or cancelled. Attempt records are more detailed: an attempt can also be abandoned, and a successful attempt uses the state succeeded. A job can move from failed back to queued when a legitimate retry creates a new attempt. That is not the same event as the queue redelivering an old message."
+          "text": "A job can move from failed back to queued only when a legitimate retry creates a new attempt. That is a different event from the queue redelivering an old message."
         },
         {
           "type": "qa",
@@ -180,7 +176,7 @@
         },
         {
           "type": "qa",
-          "q": "Can we say exactly-once processing?",
+          "q": "Is processing exactly-once?",
           "a": "No. The transport is at-least-once. Inbox identity checks, idempotent state transitions and worker fences aim to preserve one correct logical result despite duplicates; they do not change the delivery guarantee."
         }
       ],
@@ -209,8 +205,35 @@
           "text": "Starting a container is not permission to finish any job it chooses. A worker claims a current attempt and receives a time-limited lease token. Heartbeats extend its authority while it remains healthy. The database clock, current attempt and token determine whether a finish operation is valid."
         },
         {
-          "type": "p",
-          "text": "Imagine worker A stalls. Recovery marks its attempt no longer live and allows later work. If A eventually wakes and uploads output, it must not replace the result of worker B. A fence checks that A still owns the current attempt and lease before accepting completion. Attempt-specific output paths also stop one attempt from overwriting another’s namespace."
+          "type": "visual",
+          "spec": {
+            "type": "layers",
+            "title": "A late worker meets the fence",
+            "layers": [
+              {
+                "label": "1 · Worker A claims Attempt 1",
+                "sub": "Lease token + expiry set by the database clock",
+                "detail": "Claim records a lease token and expiry using the database’s clock_timestamp(), not the worker’s clock. Heartbeats extend that expiry while A stays healthy."
+              },
+              {
+                "label": "2 · A stalls; Attempt 1 ends",
+                "sub": "Lease or deadline passes, or the task stops",
+                "detail": "Lease expiry and a stopped-task event apply the same fenced transition: Attempt 1 becomes abandoned and the Job fails. There is no automatic requeue, and redelivering the old work message creates no new work."
+              },
+              {
+                "label": "3 · Owner retries → Attempt 2",
+                "sub": "Worker B claims the new current attempt",
+                "accent": true,
+                "detail": "Only a valid retry of a failed Job creates Attempt 2, with its own identity and output path. The Job’s current attempt now points at it."
+              },
+              {
+                "label": "4 · Late A tries to finish",
+                "sub": "Rejected: not current, token or lease invalid",
+                "detail": "finish() checks that the Job and Attempt are both processing, the token matches and the lease and deadline are still in the future. A fails all of these, and its attempt-specific output path cannot overwrite Attempt 2’s files."
+              }
+            ],
+            "caption": "Starting a container is not permission to finish a job. The current attempt, the token and the database clock decide."
+          }
         },
         {
           "type": "table",
@@ -326,7 +349,7 @@
         },
         {
           "type": "p",
-          "text": "Know the remaining limit: configured backups are not a demonstrated restore drill, and the repository does not define a general retention deadline for all active media. Reliable failure handling is a set of explicit invariants and bounded repair paths, not a claim that failure is impossible."
+          "text": "Know the remaining limit: configured backups are not a demonstrated restore drill, and the repository does not define a general retention deadline for all active media. Failure handling rests on explicit invariants and bounded repair paths."
         },
         {
           "type": "qa",
@@ -355,9 +378,9 @@
     }
   ],
   "takeaways": [
-    "Distinguish an asset, job, attempt and lease.",
-    "Explain the save-then-send failure gap and the outbox solution.",
-    "Explain why duplicates are expected and why a stale worker must be fenced.",
-    "Distinguish an uncertain retry of one request from a new user intention."
+    "An asset, a job, an attempt and a lease are different records with different owners.",
+    "The outbox closes the gap between saving state and sending a message.",
+    "Duplicates are expected; a stale worker is fenced by the current attempt, its token and the database clock.",
+    "An uncertain retry of one request is different from a new user intention."
   ]
 }

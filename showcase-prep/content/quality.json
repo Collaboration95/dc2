@@ -2,7 +2,7 @@
   "id": "quality",
   "title": "What the checks really tell you",
   "kicker": "Testing, coverage and security evidence",
-  "summary": "Connect each test layer to the risk it covers, read statement and branch coverage honestly, and describe security scans without claiming more than they did.",
+  "summary": "Connect each test layer to the risk it covers, read statement and branch coverage, and see exactly what each security scan examined.",
   "opening_answer": "The project combines focused unit tests, owned service integrations, browser and command-line acceptance, exact-source coverage, image checks, and bounded dynamic scans. Each layer answers a different question; a passing summary is meaningful only when its scope, source and limits are clear.",
   "sections": [
     {
@@ -12,50 +12,11 @@
       "blocks": [
         {
           "type": "p",
-          "text": "A test is useful when you can finish the sentence: “This check makes me more confident that …” A unit test can show a rule works for chosen inputs. A database integration can show that the rule survives real persistence and transaction behavior. A browser flow can show that users and services fit together over HTTPS. None proves everything around it. Strong test strategy layers evidence so a cheap check catches simple mistakes early and a realistic check exercises boundaries that mocks cannot reproduce."
-        },
-        {
-          "type": "table",
-          "headers": [
-            "Layer",
-            "What it proves",
-            "What it cannot prove alone"
-          ],
-          "rows": [
-            [
-              "Unit and offline",
-              "A focused rule or adapter responds correctly to controlled inputs.",
-              "Real database, storage, browser or cloud behavior."
-            ],
-            [
-              "Owned integration",
-              "The service works with its actual local PostgreSQL, Redis or storage dependencies and owned boundaries.",
-              "AWS-managed networking, IAM or production load."
-            ],
-            [
-              "Browser and HTTPS",
-              "Client trust, cookie persistence, navigation and request composition work in the tested local harness.",
-              "Every browser, device, deployed edge or cloud identity."
-            ],
-            [
-              "Image and runtime checks",
-              "The built image starts and has expected user, files and runtime configuration.",
-              "That the image is free of every vulnerability or correct under production traffic."
-            ],
-            [
-              "Dynamic scan",
-              "A bounded set of requests did not reveal a reported issue within tested routes and rules.",
-              "Unscanned methods, cloud configuration or unknown vulnerabilities."
-            ]
-          ]
+          "text": "Each layer answers a different question, from a single rule to the built image. Cheap checks catch simple mistakes early; realistic ones exercise boundaries that mocks cannot reproduce. The diagram attaches each tool to the layer it serves."
         },
         {
           "type": "p",
-          "text": "The path classifier selects evidence by ownership and risk. The Python fast lane uses Python 3.12, locked `uv` dependencies, Ruff lint/format checks and a coverage-aware pytest subset. Owner integrations bring in real local services where needed. Full mode adds the legacy PostgreSQL/MinIO/FFmpeg regression, Media and Processing integrations, Publisher HTTPS/browser checks, V1 acceptance and image/security evidence. The catalog below names the tools and what each contributes; the exact selected jobs are in the workflow and receipt."
-        },
-        {
-          "type": "p",
-          "text": "Tool map: Python 3.12 and `uv` provide the pinned runtime and locked environments; `pytest`/coverage exercise unit and integration behavior; Ruff checks style and security patterns. Vitest checks frontend behavior and coverage. Docker builds and executes the three Linux amd64 images; PostgreSQL backs real local database tests, Moto emulates AWS S3/SQS locally, and Playwright drives browser flows. Trivy scans exact image configurations for Debian OS and Python packages. ZAP runs bounded local authenticated DAST. `actionlint` validates workflow syntax; `cfn-lint` checks CloudFormation templates offline. Alembic owns schema history and migration compatibility checks; AWS CLI is used by operator scripts and read-only deployment verification. GitHub Actions assumes AWS roles through OIDC, avoiding stored long-lived AWS keys. Each tool has a limited target: local emulation and lint do not prove deployed AWS behavior."
+          "text": "The path classifier selects layers by ownership and risk. The Python fast lane runs the rule layer; owner integrations add real local services; Full mode adds the legacy PostgreSQL/MinIO/FFmpeg regression, Media and Processing integrations, Publisher HTTPS/browser checks, V1 acceptance and image/security evidence. The exact selected jobs are in the workflow and its receipt."
         },
         {
           "type": "p",
@@ -65,37 +26,40 @@
           "type": "visual",
           "spec": {
             "type": "layers",
-            "title": "Evidence builds outward",
+            "title": "Evidence layers and the tools in each",
             "layers": [
               {
                 "label": "Rule",
-                "sub": "Unit behavior",
-                "detail": "Fast feedback for a specific decision or transformation."
+                "icon": "python",
+                "sub": "pytest · Ruff · uv",
+                "detail": "Python 3.12 in locked uv environments. pytest with coverage checks focused rules and adapters on controlled inputs; Ruff checks lint, formatting and security patterns. Cannot show real database, storage, browser or cloud behavior."
               },
               {
                 "label": "Service",
-                "sub": "Real local dependencies",
-                "detail": "Persistence and service-owned boundaries under realistic local adapters."
+                "icon": "postgresql",
+                "sub": "PostgreSQL · Moto · Alembic",
+                "detail": "Owner integrations run against real local PostgreSQL; Moto emulates S3 and SQS; Alembic migration history and compatibility are checked. Full mode adds the inherited Redis/MinIO/FFmpeg stack. Not AWS networking, IAM or production load."
               },
               {
                 "label": "User path",
-                "sub": "Browser and HTTPS",
-                "detail": "Client trust and application composition across the route."
+                "sub": "Vitest · Playwright over HTTPS",
+                "detail": "Vitest with jsdom covers frontend behavior and coverage. Playwright drives browser and Publisher flows over local HTTPS, including cookies, navigation and request composition. Not every browser, device or the deployed edge."
               },
               {
                 "label": "Candidate",
-                "sub": "Image and release",
-                "detail": "The built artifact and promotion path are checked separately."
+                "icon": "docker",
+                "sub": "Docker · Trivy · actionlint · cfn-lint",
+                "accent": true,
+                "detail": "Docker builds and runs the three linux/amd64 images; Trivy scans each exact image configuration for Debian and Python packages; actionlint and cfn-lint check workflow and CloudFormation files offline. Not freedom from every vulnerability or correctness under production traffic."
+              },
+              {
+                "label": "Dynamic scan",
+                "sub": "ZAP on a local harness",
+                "detail": "Bounded authenticated DAST of seven eligible GET routes against a local Gateway harness; findings are reported for review. Not unscanned methods, cloud configuration or the deployed AWS edge. SonarCloud is not configured (NOT_RUN)."
               }
             ],
-            "caption": "Each layer adds a different observation. No layer inherits proof from a neighboring layer automatically."
+            "caption": "Each layer adds a different observation and inherits no proof from its neighbours. All five run locally or in CI with real PostgreSQL and Moto; AWS behaviour comes only from separate live receipts."
           }
-        },
-        {
-          "type": "callout",
-          "title": "Name the boundary",
-          "text": "“The database integration passed against local PostgreSQL” is precise. “The AWS database is proven” is not supported by a local test.",
-          "tone": "note"
         }
       ],
       "sources": [
@@ -132,7 +96,7 @@
         },
         {
           "type": "p",
-          "text": "For current local measured results, use the 20 October clean-source receipt `514914a`. Media is 93.91% combined and 86.68% raw branch; Processing is 93.90% and 89.36%. Media recovery is 89.76% combined / 75.00% raw branch; Processing recovery is 88.34% / 80.00%. These meet their respective 90/85 package and 80/75 recovery floors. The hosted Main receipt later reports the same coverage measurements for source `629119c` in Full CI run `39415935595`; do not silently attribute the local `514914a` evidence to Main. Vitest 4.1.12 changed AST coverage mapping from Vitest 2, so the frontend percentages are a new tooling baseline, not a direct trend comparison. The 177 frontend tests measured 96.24% statement, 90.69% branch, 92.24% function and 99.55% line coverage, clearing four 90% floors. Vitest 4.1.12 changed AST coverage mapping from Vitest 2, so these percentages establish a new frontend tooling baseline rather than a direct trend comparison."
+          "text": "For current local measured results, use the 20 October clean-source receipt `514914a`. Media is 93.91% combined and 86.68% raw branch; Processing is 93.90% and 89.36%. Media recovery is 89.76% combined / 75.00% raw branch; Processing recovery is 88.34% / 80.00%. These meet their respective 90/85 package and 80/75 recovery floors. The hosted Main receipt later reports the same coverage measurements for source `629119c` in Full CI run `39415935595`; the two receipts stay separate. The 177 frontend tests measured 96.24% statement, 90.69% branch, 92.24% function and 99.55% line coverage, clearing four 90% floors. Vitest 4.1.12 changed AST coverage mapping from Vitest 2, so these percentages establish a new frontend tooling baseline rather than a direct trend comparison."
         },
         {
           "type": "code",
@@ -246,7 +210,7 @@
         },
         {
           "type": "p",
-          "text": "The 20 October local validation receipt is tied to clean source `514914a`. The initial unmodified DAST attempt completed Media but stopped before Processing requests; a separate confirmation completed both service scans. The confirmation exercised all seven selected routes successfully, with 317 handler requests and 146 out-of-scope probes blocked; no in-scope auth denial, server error or request-cap hit occurred. Eight low and eight informational entries remain. Do not collapse the failed first attempt and successful confirmation into a single flawless run, or call report-only findings a clean scan."
+          "text": "The 20 October local validation receipt is tied to clean source `514914a`. The initial unmodified DAST attempt completed Media but stopped before Processing requests; a separate confirmation completed both service scans. The confirmation exercised all seven selected routes successfully, with 317 handler requests and 146 out-of-scope probes blocked; no in-scope auth denial, server error or request-cap hit occurred. Eight low and eight informational entries remain. The first attempt and the confirmation are separate runs, and report-only findings remain open."
         },
         {
           "type": "p",
@@ -254,7 +218,7 @@
         },
         {
           "type": "p",
-          "text": "Avoid net lines-of-code claims as a quality score. Better evidence is a smaller or clearer implementation paired with preserved behavior and tests: shared native storage-credential policy fell from 253 to 175 source lines (78 fewer before Ruff formatting); the Media asset page now uses one owner-local outer join instead of an N+1 projection query, with focused SQLite assertions that one SELECT serves several page sizes; and image dependency exports narrowed from 44 packages to 40 Media, 36 Processing and 33 worker packages. These are targeted simplifications and package counts, not a claim that total repository LOC decreased or that SQLite proves PostgreSQL latency."
+          "text": "The simplifications are measured on specific code paired with preserved behavior and tests: shared native storage-credential policy fell from 253 to 175 source lines (78 fewer before Ruff formatting); the Media asset page now uses one owner-local outer join instead of an N+1 projection query, with focused SQLite assertions that one SELECT serves several page sizes; and image dependency exports narrowed from 44 packages to 40 Media, 36 Processing and 33 worker packages. These are targeted changes; repository-wide LOC rose, and the SQLite assertions count queries rather than measure PostgreSQL latency."
         },
         {
           "type": "visual",
@@ -298,8 +262,8 @@
         },
         {
           "type": "qa",
-          "q": "How should I describe SonarCloud when it did not run?",
-          "a": "Say `NOT_RUN`: both advisory Sonar analyses were skipped in Main CI `39415935595` because configuration/credentials were unavailable. No Sonar pass is established."
+          "q": "What is SonarCloud’s status?",
+          "a": "`NOT_RUN`: both advisory Sonar analyses were skipped in Main CI `39415935595` because configuration/credentials were unavailable. No Sonar pass is established."
         },
         {
           "type": "qa",
@@ -309,7 +273,7 @@
         {
           "type": "qa",
           "q": "Why is fewer code not enough to claim better quality?",
-          "a": "A repository-wide LOC total does not show preserved behavior or covered failure paths. Explain a concrete simplification (one SELECT instead of N+1, shared credential code, or narrower dependency exports) alongside the tests and exact source-bound results; do not claim net LOC decreased."
+          "a": "A repository-wide LOC total does not show preserved behavior or covered failure paths. The stronger evidence is a concrete simplification (one SELECT instead of N+1, shared credential code, or narrower dependency exports) with its tests and exact source-bound results. Net repository LOC rose."
         }
       ],
       "sources": [
@@ -337,11 +301,11 @@
     }
   ],
   "takeaways": [
-    "Tests provide layered evidence; explain what each tool proves and which environment it touched.",
-    "The 20 October coverage results meet the explicit Media/Processing and recovery module goals; cite source and scope.",
+    "Tests provide layered evidence; each tool covers one layer and one environment.",
+    "The 20 October coverage results meet the explicit Media/Processing and recovery module goals at their recorded source.",
     "Offline regression, hosted Main CI, deployed-image scans and post-deploy smoke are separate receipts.",
     "Trivy zero-fixable gates coexist with 44/44/208 unfixed finding rows; counts are not distinct CVEs.",
-    "Ruff, Trivy, SonarCloud, ZAP, actionlint and cfn-lint inspect different targets; report NOT_RUN and exclusions honestly.",
+    "Ruff, Trivy, SonarCloud, ZAP, actionlint and cfn-lint inspect different targets; SonarCloud is NOT_RUN and DAST has explicit exclusions.",
     "Meaningful simplifications are supported by specific query, policy and dependency evidence, not a net LOC claim."
   ]
 }

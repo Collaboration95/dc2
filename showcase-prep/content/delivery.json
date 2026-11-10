@@ -12,11 +12,11 @@
       "blocks": [
         {
           "type": "p",
-          "text": "People often say “the pipeline shipped it” as if build, deploy and release were one action. In this project they are separate decisions. **Build** turns checked-in source into an image and records what image was produced. **Deploy** updates the environment infrastructure and configuration. **Release** moves a service alias to a candidate image and checks whether that service works. Keeping the stages distinct helps you locate where a failure happened and what can safely be retried."
+          "text": "Build, deploy and release are separate steps here. **Build** turns checked-in source into an image and records which image was produced. **Deploy** updates the environment’s infrastructure and configuration. **Release** moves a service alias to a candidate image and smoke-tests that service. Keeping them apart shows where a failure happened and what can be retried."
         },
         {
           "type": "p",
-          "text": "The automated GitHub Actions CI workflow runs on pull requests, pushes to Main, manual dispatch and a weekly schedule. A path classifier selects checks from changed files: focused owner lanes give quicker feedback, while shared inputs, workflow changes, uncertainty or unclassified paths select Full verification. Full mode is the broad source-bound gate; selected lanes make a narrower claim. This is the core test strategy behind the pipeline, not a blanket statement that every change runs every lane."
+          "text": "The automated GitHub Actions CI workflow runs on pull requests, pushes to Main, manual dispatch and a weekly schedule. A path classifier selects checks from changed files: focused owner lanes give quicker feedback, while shared inputs, workflow changes, uncertainty or unclassified paths select Full verification. Full mode is the broad source-bound gate; selected lanes make a narrower claim."
         },
         {
           "type": "visual",
@@ -50,12 +50,12 @@
         },
         {
           "type": "p",
-          "text": "Explain the pipeline as a sequence of evidence. CI checks source and records a run attempt, tested source SHA, selection and build receipts. CD admits only a successful push-to-Main CI run from this repository and validates that exact run, source and attempt. The local receipt for `514914a` is not the hosted Main receipt: current Main CI is run `39415935595`, attempt 1, on runtime source `629119c`. Keep each source and environment attached to its claim."
+          "text": "CI records a run attempt, the tested source SHA, the selection and build receipts. CD admits only a successful push-to-Main CI run from this repository and validates that exact run, source and attempt. The local receipt for `514914a` and hosted Main CI run `39415935595` (attempt 1, runtime source `629119c`) are separate results."
         },
         {
           "type": "callout",
-          "title": "Say what passed",
-          "text": "“The Dev gate passed for the selected Media change checks.” is more accurate than “all tests passed” unless the Full verification gate also passed.",
+          "title": "Selected versus Full",
+          "text": "A green Dev gate covers the checks selected for that change; the Full verification gate adds inherited acceptance, combined coverage and exact candidate evidence.",
           "tone": "note"
         }
       ],
@@ -81,20 +81,46 @@
       "blocks": [
         {
           "type": "p",
-          "text": "A CI image is not just a tag. Tags can be reused, and a commit label alone does not tell you which image bytes were loaded. The V1 build verifier records image configuration identifiers in a receipt and checks the runtime as the intended image user (and Lambda identity where relevant). Security scan receipts also bind the scan to the exact image configuration and source SHA. Together, these facts let a later job answer: “Is this the image built and scanned for the source CI tested?”"
+          "text": "A tag can be reused, so it says little about which bytes were built or tested. The delivery path instead chains four separate identities, each checked by a different step."
+        },
+        {
+          "type": "visual",
+          "spec": {
+            "type": "flow",
+            "title": "Four identities, four checks",
+            "steps": [
+              {
+                "label": "Source SHA",
+                "sub": "What CI tested",
+                "detail": "The selection receipt records the tested source SHA. A pull request head SHA and its tested merge SHA can differ; the receipt, not a branch name, says which was tested. Old runs without a receipt stay unknown."
+              },
+              {
+                "label": "CI run + attempt",
+                "sub": "Which execution",
+                "detail": "Repository + event + commit SHA + run ID + attempt. CD accepts only a successful push to this repository’s Main and downloads artifacts from that exact run."
+              },
+              {
+                "label": "Image config / digest",
+                "sub": "Which bytes",
+                "detail": "build_and_verify.py records each image configuration ID and runs it as the intended user (and Lambda identity where relevant). Pushed images are referenced by immutable digest."
+              },
+              {
+                "label": "Scan receipt",
+                "sub": "Checked bytes",
+                "accent": true,
+                "detail": "v1_scan.py binds the Trivy result to the exact image configuration and source SHA. The gate requires zero fixable HIGH/CRITICAL findings; unfixed rows are recorded."
+              }
+            ],
+            "caption": "Each arrow is a recorded association checked by a gate, not trust inferred from a matching tag or name."
+          }
         },
         {
           "type": "p",
-          "text": "The CI workflow uploads a selection artifact on every run, with run attempt identity. Other jobs retain coverage fragments, service image receipts and candidate scan evidence. Full verification checks the selected jobs and required artifacts; a missing fragment cannot be treated as an empty successful report. Pull request head SHA and tested merge SHA can differ. The selection receipt’s source SHA is the tested code. Do not infer it from a branch name or the PR head. Old runs without a receipt remain unknown."
+          "text": "Every CI run uploads a selection artifact with its run attempt. Other jobs retain coverage fragments, service image receipts and candidate scan evidence. Full verification requires the selected jobs and their artifacts; a missing fragment is an error, not an empty success."
         },
         {
           "type": "p",
-          "text": "This is why “same commit” needs care. For an automatic release, CD receives a completed CI run. Its gate accepts only a successful run caused by a push to this repository’s Main. It then validates the workflow name, event, head repository, commit SHA and run attempt, and downloads artifacts from that exact run. A PR run, a fork whose branch happens to be Main, or a manual run is not a valid automatic promotion input. A manual exact-candidate full CI run is useful evidence for review, but it does not become the automatic workflow_run event."
-        },
-        {
-          "type": "code",
-          "language": "text",
-          "text": "CI run identity = repository + event + commit SHA + run ID + attempt\nCandidate identity = checked-out source + image config/digest + scan receipt"
+          "text": "Automatic release starts from a completed CI run. The gate checks workflow name, event, head repository, commit SHA and run attempt. A PR run, a fork whose branch is also called Main, or a manual run is not an automatic promotion input; a manual exact-candidate Full run is review evidence only."
         },
         {
           "type": "callout",
@@ -130,59 +156,46 @@
         {
           "type": "visual",
           "spec": {
-            "type": "flow",
-            "title": "CD: deploy and promote",
-            "steps": [
+            "type": "layers",
+            "title": "What one automatic CD run does",
+            "layers": [
               {
-                "label": "Accept CI run",
-                "sub": "Main push, green",
-                "detail": "The gate refuses PR, failed, foreign-repository or non-push workflow runs."
+                "label": "1 · Admit",
+                "sub": "Exact green Main-push CI run",
+                "detail": "cd_gate.py refuses PR, failed, foreign-repository or non-push runs and pins the source SHA and run attempt."
               },
               {
-                "label": "Deploy stack",
-                "sub": "Exact source",
-                "detail": "Infrastructure and application configuration are reconciled for the accepted source."
+                "label": "2 · Deploy stack",
+                "sub": "Change set from the accepted source",
+                "detail": "The CloudFormation stack is updated in place. Unchanged images are kept; the plan lists which owners’ images changed."
               },
               {
-                "label": "Release owner",
-                "sub": "Candidate image",
-                "detail": "A service release plan selects changed owner images and verifies migration compatibility."
+                "label": "3 · Release changed owners",
+                "sub": "Promote · smoke · restore on failure",
+                "accent": true,
+                "detail": "Each changed owner (Media, or Processing with its worker) is scanned, promoted and adopted into the stack, then smoke-tested. A failed release smoke restores the previous alias. An owner whose migrations changed is deferred to a manual release with attest_additive."
               },
               {
-                "label": "Smoke or restore",
-                "sub": "Alias decision",
-                "detail": "A passing smoke keeps the candidate; a failing smoke restores the previous alias."
+                "label": "4 · Public smoke",
+                "sub": "Upload to playback through CloudFront",
+                "detail": "After Deploy completes, a separate step runs the upload-to-playback smoke. Stack update, promotion and this smoke are reported as separate outcomes."
+              },
+              {
+                "label": "Not rolled back",
+                "sub": "Database schema",
+                "detail": "Restoring an alias restores service code only. Migrations must stay additive so the previous and candidate images both work with the current schema."
               }
             ],
-            "caption": "The workflow is serialized because the environment journal and account capacity are shared."
+            "caption": "Runs are serialized because the environment journal and account capacity are shared. Manual dispatch adds read-only preflight and review-only modes."
           }
         },
         {
           "type": "p",
-          "text": "Deployment and release are useful conceptual stages even though this implementation does not always run a separate manual release workflow. In automatic CD, the `Deploy` step includes owner image promotion and stack adoption. After it completes, the workflow runs the upload-to-playback smoke. Manual dispatch exposes read-only preflight, rehearsal and image-verification modes before execution. Call out which mode and step actually ran."
-        },
-        {
-          "type": "p",
-          "text": "The deployment plan compares image inputs by service owner and may retain an unchanged image. Automatic deployment then promotes the selected Media and Processing images and adopts them into the stack. The later smoke checks the public path. A stack update or promotion can succeed while that following smoke fails, so report those outcomes separately. The final delivery receipt binds these actions to Main CI `39415935595` and CD `39416747925`, both attempt 1, with source `629119c5b3bd390ce072df0a43fe926cd7a161c7`."
+          "text": "The final delivery receipt binds these steps to Main CI `39415935595` and CD `39416747925`, both attempt 1, with source `629119c5b3bd390ce072df0a43fe926cd7a161c7`."
         },
         {
           "type": "p",
           "text": "Database compatibility is the constraint that makes image rollback safer than schema rollback. A migration that drops or renames a field can make the previous application image unusable. The release path therefore expects additive migrations and records an explicit operator attestation that both the previous and candidate images work with the checkout’s schema head. A successful image rollback restores service code and aliases; it does not reverse database schema. Design migrations so old and new versions can coexist during deployment, then remove obsolete schema only in a later, separately reviewed change."
-        },
-        {
-          "type": "list",
-          "ordered": false,
-          "items": [
-            "Build: produce and verify an image, then bind its receipt to source and image identity.",
-            "Deploy: reconcile stack resources and configuration for an accepted source.",
-            "Release: move one service alias after compatibility checks; smoke it and restore the prior version if it fails."
-          ]
-        },
-        {
-          "type": "callout",
-          "title": "Rollback is not time travel",
-          "text": "The rollback proof restores image aliases. It does not undo a database migration. Keep schema changes backward compatible across the release window.",
-          "tone": "note"
         }
       ],
       "sources": [
@@ -234,7 +247,7 @@
         {
           "type": "qa",
           "q": "Does a green rollback job mean the candidate worked?",
-          "a": "No. It can mean the candidate failed as expected and the system restored the known-good alias. State the candidate smoke result and the restoration outcome separately."
+          "a": "No. It can mean the candidate failed as expected and the system restored the known-good alias. The candidate smoke result and the restoration outcome are separate results."
         },
         {
           "type": "qa",
@@ -274,7 +287,7 @@
   "takeaways": [
     "CI selection is based on changed paths; uncertainty selects broader verification.",
     "A green tier proves its selected checks only. Full verification adds inherited acceptance, combined coverage and exact candidate evidence.",
-    "Tie every receipt to repository, event, source SHA, run attempt and image identity.",
+    "Every receipt is tied to repository, event, source SHA, run attempt and image identity.",
     "Deployment changes infrastructure; release promotes a service image behind a smoke and restoration boundary.",
     "Image rollback does not roll back database schema; use additive, compatible migrations."
   ]

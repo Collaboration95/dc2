@@ -34,7 +34,7 @@ SHORT = [
     "Tests & evidence",
     "The showcase",
 ]
-LEVELS = {1: "Understand the basics", 2: "Explain the design", 3: "Defend the details"}
+LEVELS = {1: "Basics", 2: "Design", 3: "Details"}
 
 
 def esc(value):
@@ -198,7 +198,7 @@ def nav(active):
             "</a>"
         )
         for slug, label in [
-            ("questions", "Practise Q&A"),
+            ("questions", "Questions and answers"),
             ("glossary", "Plain-English glossary"),
             ("sources", "Evidence & source map"),
             ("all-in-one", "Everything on one page"),
@@ -252,8 +252,8 @@ def shell(
         f"{nav(active)}"
         '<main id="main">'
         f"{content}"
-        "<footer><span>Learn the system. Explain the choices. Keep the "
-        'evidence honest.</span><a href="index.html">Back to the learning '
+        "<footer><span>FlickPond study guide · Team 17 · GC2</span>"
+        '<a href="index.html">Back to the learning '
         'path ↑</a></footer></main></div><script src="assets/site.js?v='
         f"{versions['site.js']}"
         '"></script></body></html>'
@@ -289,8 +289,7 @@ def chapter(page, index):
         " minutes for the full chapter</p></header>"
     )
     opening = (
-        '<div class="say-it"><span class="eyebrow">Say it in your own '
-        "words</span><p>"
+        '<div class="say-it"><span class="eyebrow">In short</span><p>'
         f"{rich(page['opening_answer'])}"
         "</p></div>"
     )
@@ -306,13 +305,13 @@ def chapter(page, index):
         (
             '<div class="go-deeper"><p>Ready for the next layer?</p><button '
             'type="button" id="next-depth">Show the design</button></div>'
-            '<section class="takeaways"><p class="eyebrow">Before you move '
-            "on</p><h2>Can you explain these without reading?</h2><ul>"
+            '<section class="takeaways"><p class="eyebrow">Chapter '
+            "summary</p><h2>Key points</h2><ul>"
         )
         + "".join(f"<li>{rich(t)}</li>" for t in page["takeaways"])
         + '</ul><a href="questions.html?chapter='
         + page["id"]
-        + '">Practise this chapter’s questions →</a></section>'
+        + '">This chapter’s questions →</a></section>'
     )
     prev = "index" if index == 0 else ORDER[index - 1]
     nxt = "questions" if index == len(ORDER) - 1 else ORDER[index + 1]
@@ -322,7 +321,7 @@ def chapter(page, index):
         '.html">← Previous</a><a class="next" href="'
         f"{nxt}"
         '.html">'
-        f"{('Practise Q&A' if nxt == 'questions' else SHORT[index + 1])}"
+        f"{('Questions and answers' if nxt == 'questions' else SHORT[index + 1])}"
         " →</a></div>"
     )
     return shell(
@@ -335,17 +334,17 @@ def chapter(page, index):
 def home(pages):
     hero = (
         '<header class="page-head"><p class="eyebrow">Team 17 / Project '
-        "showcase preparation</p><h1>Know the project.<br>Tell its "
-        'story.</h1><p class="lede">A guided tour of FlickPond, from '
+        "showcase preparation</p><h1>Know the project,<br>from basics to "
+        'details.</h1><p class="lede">A guided tour of FlickPond, from '
         "“what did we build?” to the code, cloud services and engineering "
-        "choices you can defend in a discussion.</p></header>\n<aside "
+        "choices behind it.</p></header>\n<aside "
         'class="callout"><strong>Team 17 · 26 October · 14:35–15:15 '
         "SGT</strong><p>Both local presentation guides list this "
         "40-minute slot, including questions. The showcase chapter maps "
-        "the six presentation areas to what you can explain and "
-        'demonstrate. <a href="meeting.html#authority">Read the '
+        "the six presentation areas to the design and the demo. "
+        '<a href="meeting.html#authority">Read the '
         'presentation guidance →</a></p></aside>\n<div class="say-it">'
-        '<span class="eyebrow">The project in one breath</span><p>'
+        '<span class="eyebrow">In brief</span><p>'
         "FlickPond is a reusable video-processing platform. A browser app "
         "and a Publisher command-line client use the same public APIs to "
         "upload an owner’s video, track background conversion and play "
@@ -390,9 +389,7 @@ def home(pages):
                 ),
             },
         ],
-        "caption": (
-            "This is the story to remember. The chapters explain the choices underneath it."
-        ),
+        "caption": "One video’s path. The chapters explain the choices underneath it.",
     }
     routes = (
         '<section><p class="eyebrow">Choose your first pass</p><h2>Three '
@@ -404,10 +401,10 @@ def home(pages):
         "why</b><span>Add level 2. Follow ownership, AWS placement, "
         "delivery and failure handling.</span><small>About 50–70 "
         'minutes</small></a><a class="path" href="code.html?depth=3"><b>'
-        "03 · Defend the details</b><span>Open level 3, trace the real "
-        "code, then rehearse questions aloud.</span><small>Go at your own "
+        "03 · Go into the details</b><span>Open level 3 and trace the "
+        "real code and evidence.</span><small>Go at your own "
         'pace</small></a></div><p class="muted small">These are suggested '
-        "study budgets, not measured rehearsal times. Depth controls "
+        "study budgets. Depth controls "
         "reveal each additional layer without losing the basics.</p>"
         "</section>"
     )
@@ -434,13 +431,13 @@ def home(pages):
     )
     ending = (
         '<section><p class="eyebrow">Before the meeting</p><h2>Build '
-        "understanding, then rehearse.</h2><ol><li>Explain the owner → "
-        "Media → Processing → playback journey without acronyms.</li><li>"
+        "understanding first.</h2><ol><li>Follow the owner → Media → "
+        "Processing → playback journey in the basics.</li><li>"
         'Open the <a href="aws.html?depth=3">AWS</a> and <a '
         'href="delivery.html?depth=3">CI/CD</a> chapters. Click each '
-        "diagram box and explain why it exists.</li><li>Use <a "
-        'href="questions.html">Practise Q&A</a> with answers closed. Say '
-        "an answer before revealing it.</li><li>Use the <a "
+        "diagram box for its detail.</li><li>Use <a "
+        'href="questions.html">Questions and answers</a> to check each '
+        "chapter.</li><li>Use the <a "
         'href="meeting.html?depth=3">showcase run-through</a> to connect '
         "Maya, Arun, Jules and Sam to the six presentation areas.</li>"
         "</ol><p>A completed final GC2 report was not found in the "
@@ -468,12 +465,12 @@ def questions(pages):
                     entries.append((p, s, b))
     options = "".join(f'<option value="{p["id"]}">{esc(p["title"])}</option>' for p in pages)
     body = (
-        '<header class="page-head"><p class="eyebrow">Rehearsal / Active '
-        "recall</p><h1>Explain it before you reveal it.</h1><p "
+        '<header class="page-head"><p class="eyebrow">Reference / '
+        "Questions</p><h1>Questions and answers.</h1><p "
         'class="lede">'
         f"{len(entries)}"
-        " questions from the guide. Give the short answer first, explain "
-        "the mechanism, then state the tradeoff or evidence limit.</p>"
+        " questions from the guide. Each links back to the section that "
+        "explains it.</p>"
         '</header><div class="practice-controls"><label>Find a '
         'question<input type="search" id="question-search" '
         'placeholder="Try outbox, rollback or ownership"></label><label>'
@@ -506,7 +503,7 @@ def questions(pages):
         '</div><p id="no-questions" hidden>No matching questions. Try a '
         "shorter term or select all chapters.</p>"
     )
-    return shell("questions", "Practise Q&A", body)
+    return shell("questions", "Questions and answers", body)
 
 
 def glossary():
@@ -546,8 +543,8 @@ def source_page(pages):
                 if "path" in src:
                     paths.setdefault(src["path"], set()).add(p["title"])
     body = (
-        '<header class="page-head"><p class="eyebrow">Reference / Know '
-        "what backs the claim</p><h1>Evidence, sources and "
+        '<header class="page-head"><p class="eyebrow">Reference / '
+        "Evidence</p><h1>Evidence, sources and "
         'boundaries.</h1><p class="lede">The project has several dated '
         "designs and releases. This guide explains the current "
         "implementation while preserving the scope of older "
@@ -575,8 +572,8 @@ def source_page(pages):
         "chapter; check Canvas for any later change. No completed final "
         "GC2 report was found in the inspected repository and local "
         "course folders. The report template is a template, not a "
-        "finished submission.</p></section>\n<section><h2>What a claim can "
-        'safely mean</h2><table class="grid"><thead><tr><th>Evidence</th>'
+        "finished submission.</p></section>\n<section><h2>What each kind of "
+        'evidence supports</h2><table class="grid"><thead><tr><th>Evidence</th>'
         "<th>What it supports</th><th>What remains separate</th></tr>"
         "</thead><tbody><tr><td>Code/configuration</td><td>The "
         "implementation or configured intent.</td><td>Successful "

@@ -211,34 +211,32 @@
           "type": "visual",
           "spec": {
             "type": "flow",
-            "title": "Control metadata wakes a worker",
+            "title": "Metadata wakes a finite worker",
             "steps": [
               {
                 "label": "Commit",
-                "sub": "Job plus outbox",
-                "detail": "Processing stores the job transition and its durable work intent in one SQL transaction."
+                "sub": "SQL: Job + outbox",
+                "detail": "Processing stores the job transition and its durable work intent in one SQL transaction. This row, not the queue, is the record of what work exists."
               },
               {
                 "label": "Publish",
-                "sub": "Message to SQS",
-                "detail": "A publisher sends a small work message. The queue coordinates delivery; it does not store source video."
+                "sub": "SQS: IDs, no video",
+                "detail": "A publisher sends a small work message: identifiers and versioned facts, never video bytes, secrets or presigned upload fields."
               },
               {
                 "label": "Wake",
-                "sub": "Launcher checks demand",
-                "detail": "An immediate Lambda wake and a scheduled safety tick inspect SQL, queue depth, and ECS task state."
+                "sub": "Launcher checks SQL",
+                "detail": "An immediate Lambda wake and a scheduled safety tick compare SQL demand, queue depth and running ECS tasks. EventBridge is only a wake-up hint."
               },
               {
                 "label": "RunTask",
-                "sub": "Finite Fargate worker",
-                "detail": "The launcher reserves a slot and asks ECS to start a task with a bounded deadline and unique identity."
+                "sub": "Fargate, cap 3, deadline",
+                "accent": true,
+                "detail": "The launcher reserves a slot in SQL and starts a task with a bounded deadline and unique identity. The worker then claims the Attempt and moves bytes directly between S3 and its disk."
               }
-            ]
+            ],
+            "caption": "Control path only. Video bytes travel S3 → worker → S3 separately, and the authoritative job state stays in Processing’s SQL."
           }
-        },
-        {
-          "type": "p",
-          "text": "This diagram is the control path, not the media-data path. The message tells a worker which accepted job to claim. The worker separately reads source bytes from S3 and writes encoded outputs back to S3. EventBridge is a wake-up and recovery hint, not the owner of job state and not a tunnel for media bytes."
         }
       ],
       "sources": [
@@ -332,7 +330,7 @@
         },
         {
           "type": "p",
-          "text": "Fargate workers and migration tasks use public subnets with temporary public IPv4 while they run. Narrow security groups allow their database connection into Aurora; the database itself stays private. Public task placement makes image pulls and secret retrieval possible without a NAT Gateway, but it means those tasks have public egress and a temporary public address. Security groups, IAM and TLS still matter. Do not say every compute component is in a private subnet."
+          "text": "Fargate workers and migration tasks use public subnets with temporary public IPv4 while they run. Narrow security groups allow their database connection into Aurora; the database itself stays private. Public task placement makes image pulls and secret retrieval possible without a NAT Gateway, but it means those tasks have public egress and a temporary public address. Security groups, IAM and TLS still apply to them."
         },
         {
           "type": "p",
@@ -340,7 +338,7 @@
         },
         {
           "type": "callout",
-          "title": "Say exactly what is private",
+          "title": "What is private, and how",
           "text": "Aurora is in private subnets; selected Lambda functions are attached to private subnets; Fargate tasks temporarily use public IPv4 subnets. S3 buckets are private by access policy, not because their objects sit inside the VPC.",
           "tone": "note"
         }

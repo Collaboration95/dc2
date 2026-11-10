@@ -28,26 +28,32 @@
         {
           "type": "visual",
           "spec": {
-            "type": "flow",
-            "title": "A simple mental model",
-            "steps": [
+            "type": "layers",
+            "title": "What owns what",
+            "layers": [
               {
-                "label": "Owner",
-                "sub": "account + Asset",
-                "detail": "The account owns the Asset, source pin, public status, and right to play the outputs."
+                "label": "Owner account",
+                "sub": "Media · owns many Assets",
+                "detail": "The account that may upload, read status and play outputs. Every protected read filters by this owner."
+              },
+              {
+                "label": "Asset",
+                "sub": "Media · one video + pinned source",
+                "detail": "The user-facing anchor: source identity and edit operations. Its ID is also the public job ID from upload through playback."
               },
               {
                 "label": "Job",
-                "sub": "one per Asset",
-                "detail": "Processing gives the accepted request a job identity and keeps its lifecycle."
+                "sub": "Processing · exactly one per Asset",
+                "detail": "Processing’s lifecycle for the requested work. A unique asset_id prevents a second Job for the same Asset."
               },
               {
-                "label": "Attempt",
-                "sub": "one try",
-                "detail": "Each run has a unique number and identity; retries create another attempt."
+                "label": "Attempts 1, 2, 3…",
+                "sub": "Processing · many per Job",
+                "accent": true,
+                "detail": "Each try has its own number, identity, lease and output path. A valid retry of a failed Job adds the next Attempt; earlier Attempts keep their history."
               }
             ],
-            "caption": "Click a box to see which context owns that concept. The Asset is the user-facing anchor; Job and Attempt describe the asynchronous work."
+            "caption": "Containment and cardinality, not a request sequence. Media owns the top two rows and Processing the bottom two; IDs cross that line as contract values, not foreign keys."
           }
         },
         {
@@ -82,11 +88,11 @@
       "blocks": [
         {
           "type": "p",
-          "text": "The design has two bounded contexts: Media Management and Processing. Each has its own vocabulary, rules, database role, and code owner. **Media** owns accounts, ownership checks, upload reservations, pinned sources, public job reads, playback signing, deletion, and cleanup. **Processing** owns jobs, attempts, leases, retries, cancellation, output records, and encoder claims."
+          "text": "The design has two bounded contexts, Media Management and Processing. Each has its own vocabulary, rules, database role and code owner; the diagram below lists what each one decides."
         },
         {
           "type": "p",
-          "text": "They use separate PostgreSQL databases and roles (`media_db` and `processing_db`) on one Aurora cluster. Each service can query its own tables and migration history. They do not join across databases or share ORM models. IDs crossing the seam are values in a contract, not foreign keys into the other service. This creates a clear ownership boundary, although the shared cluster remains a common capacity and failure boundary."
+          "text": "They use separate PostgreSQL databases and roles (`media_db` and `processing_db`). Each service queries only its own tables and migration history. IDs crossing the seam are values in a contract, not foreign keys into the other service."
         },
         {
           "type": "p",
@@ -95,26 +101,27 @@
         {
           "type": "visual",
           "spec": {
-            "type": "flow",
-            "title": "Who owns each decision",
-            "steps": [
+            "type": "cards",
+            "title": "Two owners and the seam between them",
+            "items": [
               {
                 "label": "Media",
-                "sub": "identity + files",
-                "detail": "Media decides who owns an Asset, which bytes are accepted, and whether a playback link may be issued."
+                "sub": "media_db · accounts, Assets, playback",
+                "detail": "Owns accounts, ownership checks, upload reservations, pinned sources, public reads, playback signing, deletion and cleanup. Its ProcessingProjection is a local copy of the latest accepted Processing state, so status reads never touch processing_db."
               },
               {
-                "label": "Contracts",
-                "sub": "shared message shape",
-                "detail": "Versioned values describe actors, sources, and envelopes; they do not move database ownership."
+                "label": "The seam",
+                "sub": "contracts/ + SQS · schema, not a service",
+                "accent": true,
+                "detail": "Versioned envelopes describe actors, sources, commands and results. contracts/ is a library both sides import; it runs nothing and owns no data. Messages travel over SQS lanes and land in each owner’s inbox."
               },
               {
                 "label": "Processing",
-                "sub": "jobs + attempts",
-                "detail": "Processing decides which attempt is current and whether a worker may claim or finish it."
+                "sub": "processing_db · Jobs, Attempts, leases",
+                "detail": "Owns jobs, attempts, leases, retries, cancellation, output records and encoder claims. It decides which Attempt is current and whether a worker may claim or finish it."
               }
             ],
-            "caption": "The shared contract is a narrow language at the seam. It does not turn either service into a client of the other’s tables."
+            "caption": "Each owner migrates and queries only its own database; there are no cross-database joins or shared ORM models. Both databases live on one Aurora cluster, which remains a shared capacity and failure boundary."
           }
         },
         {
@@ -229,7 +236,7 @@
       "blocks": [
         {
           "type": "p",
-          "text": "Media and Processing do not call each other synchronously to create a job. Instead, Media’s transaction writes an outbox row beside the Asset change. A repair publisher later sends that row to the `processing-commands` queue. Processing consumes the command, records it in its inbox, creates its Job and Attempt, and stages a work message. A finite worker consumes `processing-work`. When state changes, Processing stages a result snapshot for the `media-results` queue; Media consumes it into the projection."
+          "text": "Media and Processing never call each other synchronously to create a job. Every hand-off is a message: the sender stages it in its own SQL transaction (an outbox row), a publisher sends it to one of three SQS lanes, and the receiver records it in its inbox with the resulting state change."
         },
         {
           "type": "p",
@@ -246,31 +253,32 @@
         {
           "type": "visual",
           "spec": {
-            "type": "flow",
-            "title": "Durable hand-off",
-            "steps": [
+            "type": "layers",
+            "title": "Three queue lanes, each with one producer",
+            "layers": [
               {
-                "label": "Commit",
-                "sub": "state + outbox",
-                "detail": "A state update and its message intent share one SQL transaction."
+                "label": "processing-commands",
+                "sub": "Media → Processing · submit, retry, cancel",
+                "detail": "Media commits the Asset change and an outbox row together; a publisher sends it later. Processing accepts it into its inbox, serializes it per Asset and creates or changes the Job and Attempt."
               },
               {
-                "label": "Publish",
-                "sub": "retry safely",
-                "detail": "A publisher sends outside the SQL lock and acknowledges with a claim token."
+                "label": "processing-work",
+                "sub": "Processing → worker · claim this Attempt",
+                "accent": true,
+                "detail": "Processing stages work through its own outbox. A finite worker claims the Attempt with a lease and records the finish in processing_db. An optional short-encode lane exists as an unmeasured experiment."
               },
               {
-                "label": "Consume",
-                "sub": "inbox + state",
-                "detail": "The consumer deduplicates and commits domain state before queue acknowledgement."
+                "label": "media-results",
+                "sub": "Processing → Media · versioned snapshot",
+                "detail": "Each Processing state change stages a result with an increasing state_version. Media validates it and updates its ProcessingProjection. The worker never writes to Media."
               },
               {
-                "label": "Repair",
-                "sub": "rebuild missing work",
-                "detail": "A repair pass uses SQL as authority when transport delivery is missing or delayed."
+                "label": "SQL in each owner",
+                "sub": "state + outbox/inbox · repair",
+                "detail": "Within one database, state and message intent commit atomically. SQS delivery is at least once; the inbox absorbs duplicates and repair re-sends work that SQL says is still queued."
               }
             ],
-            "caption": "The queue moves notifications and work; SQL records what the system has committed."
+            "caption": "Queues carry notifications and work; each owner’s SQL records what has been committed. Duplicates are expected, so the design aims for safe repetition, not exactly-once delivery."
           }
         },
         {
@@ -393,7 +401,7 @@
         },
         {
           "type": "p",
-          "text": "Keep the historical distinction clear in a presentation. Root-level `app/` and `app/worker/` contain an earlier monolithic runtime and are useful as history, but the current AWS-oriented V1 paths are `media/`, `processing/`, `contracts/`, `delivery/`, and `runtime_support/`. Some current files even say that behavior was extracted from `app`, such as `media/api/v1_hls.py`. Do not describe the old `app` worker or Redis/RQ as the active V1 path. The current design records SQS plus SQL outbox/inbox and finite workers."
+          "text": "Root-level `app/` and `app/worker/` contain an earlier monolithic runtime and are useful as history, but the current AWS-oriented V1 paths are `media/`, `processing/`, `contracts/`, `delivery/`, and `runtime_support/`. Some current files even say that behavior was extracted from `app`, such as `media/api/v1_hls.py`. The old `app` worker and Redis/RQ are not the active path; the current design records SQS plus SQL outbox/inbox and finite workers."
         },
         {
           "type": "p",

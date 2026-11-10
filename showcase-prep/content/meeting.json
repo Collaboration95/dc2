@@ -1,9 +1,9 @@
 {
   "id": "meeting",
   "title": "Prepare the GC2 project presentation",
-  "kicker": "From the course brief to a clear, honest demonstration",
-  "summary": "A practical guide to explaining Team 17’s Flickpond platform project: what the course asks for, how the design works, what the evidence actually shows, how to rehearse the demo, and which personal or course facts still need confirmation.",
-  "opening_answer": "We took an inherited video-processing application and separated its media and processing responsibilities behind contracts, then added a Publisher client and an independently operated cloud processing path. The result is a working platform with useful evidence and some honest misses: the small AWS scaling run passed at three workers but missed the two-worker target, and the proposed 30-clip AWS comparison was not run.",
+  "kicker": "From the course brief to the demonstration",
+  "summary": "A practical guide to presenting Team 17’s Flickpond platform project: what the course asks for, how the design works, what the evidence shows, how the demo runs, and which course facts are still open.",
+  "opening_answer": "We took an inherited video-processing application and separated its media and processing responsibilities behind contracts, then added a Publisher client and an independently operated cloud processing path. The result is a working platform with useful evidence and some misses: the small AWS scaling run passed at three workers but missed the two-worker target, and the proposed 30-clip AWS comparison was not run.",
   "sections": [
     {
       "id": "authority",
@@ -12,7 +12,7 @@
       "blocks": [
         {
           "type": "p",
-          "text": "The current assignment is GC2, Architecting Scalable Systems (SWE5001 / SE34FT). Use the current GC2 briefing interpretation, submitted Team 17 proposal, current report template and presentation guidance for requirements. The provided `course_files_export.zip` is inherited SWE5006 / Designing Modern Software Systems material. It is useful as an engineering-completeness checklist—analysis, design, use cases, tests, lifecycle and evidence—but its template, sample proposals, grading weights, dates and demo duration do not replace GC2 instructions. In particular, do not import the older 13+4-minute demo timing."
+          "text": "The current assignment is GC2, Architecting Scalable Systems (SWE5001 / SE34FT). Use the current GC2 briefing interpretation, submitted Team 17 proposal, current report template and presentation guidance for requirements. The provided `course_files_export.zip` is inherited SWE5006 / Designing Modern Software Systems material. It is useful as an engineering-completeness checklist—analysis, design, use cases, tests, lifecycle and evidence—but its template, sample proposals, grading weights, dates and demo duration do not replace GC2 instructions. The older 13+4-minute demo timing does not apply."
         },
         {
           "type": "p",
@@ -54,7 +54,7 @@
     },
     {
       "id": "opening",
-      "title": "A short opening that tells the truth",
+      "title": "A 30-second and a two-minute opening",
       "level": 1,
       "blocks": [
         {
@@ -63,11 +63,11 @@
         },
         {
           "type": "p",
-          "text": "For a two-minute opening, add that Maya and Arun represent two individual content owners, while Jules represents an integrator and Sam an operator; these are fictional planning personas, not interviewed users. The browser and Publisher CLI are the two clients. The platform accepts an owned upload, processes it asynchronously and returns owner-authorized status and playback. Media owns identity and user-facing asset access; Processing owns attempts and encoding. The Publisher uses published contracts without importing service code or holding database credentials."
+          "text": "For a two-minute opening, add that Maya and Arun represent two individual content owners, while Jules represents an integrator and Sam an operator. The browser and Publisher CLI are the two clients. The platform accepts an owned upload, processes it asynchronously and returns owner-authorized status and playback. Media owns identity and user-facing asset access; Processing owns attempts and encoding. The Publisher uses published contracts without importing service code or holding database credentials."
         },
         {
           "type": "p",
-          "text": "Then state the main result with its boundary: the retained AWS V1 six-clip run measured 1.449× at two workers, below the 1.6× target, and 2.347× at three workers, above the 2.1× target. This is not the proposal’s 30-clip experiment. A later V2-live nine-clip run used a fixed cap of three, so it is a separate observation, not a scaling comparison. Naming that early earns trust and sets up a useful design discussion."
+          "text": "Then state the main result with its boundary: the retained AWS V1 six-clip run measured 1.449× at two workers, below the 1.6× target, and 2.347× at three workers, above the 2.1× target. This is not the proposal’s 30-clip experiment. A later V2-live nine-clip run used a fixed cap of three, so it is a separate observation, not a scaling comparison."
         }
       ],
       "sources": [
@@ -157,11 +157,11 @@
       "blocks": [
         {
           "type": "p",
-          "text": "Maya prepares course recordings she owns. She authenticates in the Publisher CLI, submits a small prepared folder, and receives one result per file. She then checks a known completed item in the browser and plays its MP4 or, when available, HLS. Do not call this student publishing: the demo has no shared classroom account, LMS integration or student access. Arun offers the simpler browser story: one personal upload, visible progress and owner-only playback."
+          "text": "Maya prepares course recordings she owns. She authenticates in the Publisher CLI, submits a small prepared folder, and receives one result per file. She then checks a known completed item in the browser and plays its MP4 or, when available, HLS. Arun offers the simpler browser story: one personal upload, visible progress and owner-only playback."
         },
         {
           "type": "p",
-          "text": "Jules explains why the CLI matters. It calls the published API and has no service-code import or database credential. That is concrete reuse through a second client, not a developer portal or a third application. Sam explains the operator view: worker capacity and Processing releases can be changed separately from Media. Support that claim with recorded evidence and version identities; do not imply an autoscaler or an operations dashboard."
+          "text": "Jules explains why the CLI matters. It calls the published API and has no service-code import or database credential. That is concrete reuse through a second client. Sam explains the operator view: worker capacity and Processing releases can be changed separately from Media. Recorded capacity and release receipts, with their version identities, support that."
         },
         {
           "type": "visual",
@@ -219,15 +219,15 @@
         },
         {
           "type": "p",
-          "text": "For physical design, show the current persistent V2-live arrangement as built: API Gateway and Lambda handle requests; SQS carries asynchronous work; S3 holds media; Aurora PostgreSQL stores service data; CloudFront serves the web app; finite ECS Fargate tasks encode. The two logical databases still share one Aurora cluster and one region, so this is neither physical database isolation nor a high-availability demonstration. Label diagrams that describe the earlier V1 deployment as V1 rather than quietly presenting them as the latest physical state."
+          "text": "For physical design, show the current persistent V2-live arrangement as built: API Gateway and Lambda handle requests; SQS carries asynchronous work; S3 holds media; Aurora PostgreSQL stores service data; CloudFront serves the web app; finite ECS Fargate tasks encode. The two logical databases still share one Aurora cluster and one region, so this is neither physical database isolation nor a high-availability demonstration. Diagrams of the earlier V1 deployment are labelled V1."
         },
         {
           "type": "p",
-          "text": "Separate current engineering delivery from older experiment receipts. Runtime `629119c` has a source-bound hosted CI/CD receipt and a post-deployment upload-to-playback smoke. That establishes the specific delivery and one smoke path; it does not refresh all earlier performance, security or recovery measurements. For scaling, keep the AWS V1 six-clip cap-2 miss and cap-3 pass visible. The proposal’s 30-clip AWS run was not done. V2-live’s nine clips at fixed cap three yielded 2.26 jobs/min in one run, while queued-to-processing was about 37 seconds against a 20-second target. Avoid combining local pre-V1 results with shipped AWS results."
+          "text": "Separate current engineering delivery from older experiment receipts. Runtime `629119c` has a source-bound hosted CI/CD receipt and a post-deployment upload-to-playback smoke. That establishes the specific delivery and one smoke path; it does not refresh all earlier performance, security or recovery measurements. For scaling, keep the AWS V1 six-clip cap-2 miss and cap-3 pass visible. The proposal’s 30-clip AWS run was not done. V2-live’s nine clips at fixed cap three yielded 2.26 jobs/min in one run, while queued-to-processing was about 37 seconds against a 20-second target. Local pre-V1 results are a separate set from the shipped AWS results."
         },
         {
           "type": "p",
-          "text": "For lifecycle, point from a change to tests, CI, image checks, admission, promotion and smoke evidence. State that unfixed scan findings remain; the gate is about fixable HIGH/CRITICAL findings, not zero vulnerabilities. The exact-source delivery receipt is in `docs/results/engineering-20261020/delivery-629119c.json`. A result from the earlier `daee44b` freeze keeps its own identity and limits."
+          "text": "For lifecycle, point from a change to tests, CI, image checks, admission, promotion and smoke evidence. Unfixed scan findings remain; the gate is about fixable HIGH/CRITICAL findings, not zero vulnerabilities. The exact-source delivery receipt is in `docs/results/engineering-20261020/delivery-629119c.json`. A result from the earlier `daee44b` freeze keeps its own identity and limits."
         }
       ],
       "sources": [
@@ -267,8 +267,14 @@
       "level": 2,
       "blocks": [
         {
-          "type": "p",
-          "text": "Prepare an approved demo owner account, verify its login before the session, and use a small known-good clip below the 100 MiB upload limit. Keep a prepared folder and one job ID. Start the approved demo environment early enough to check the URL and health, and confirm the current live state with the team; a saved manifest is not a live availability check. Never show a password, token or private signed URL on screen."
+          "type": "list",
+          "ordered": false,
+          "items": [
+            "Demo owner account, login verified before the session. No password, token or signed URL on screen.",
+            "A small known-good clip under the 100 MiB limit, a prepared folder and one known job ID.",
+            "Demo environment started early with URL and health checked; a saved manifest is not a live check.",
+            "Fallback screenshots or recording, each labelled with environment and source revision, plus the retained delivery receipt."
+          ]
         },
         {
           "type": "list",
@@ -277,18 +283,12 @@
             "Maya submits the prepared folder with the Publisher CLI; show per-file outcomes and keep one accepted job ID.",
             "Open the browser as the same owner; show status moving to done and play the MP4. Mention HLS only if this item actually has it.",
             "Jules points to the public API contract and the CLI boundary; explain that the CLI needs no service import or database login.",
-            "Sam uses a saved, source-labeled capacity or release receipt to explain independent operation. Do not trigger a risky scale or failure experiment during the presentation."
+            "Sam uses a saved, source-labelled capacity or release receipt to explain independent operation; no live scale or failure experiment."
           ]
         },
         {
           "type": "p",
-          "text": "A known failed job may be used only if already prepared and verified: retry should use the stored source, not upload the remembered local file again. Never create a failure live just to make retry look dramatic. If login, upload, processing or playback stalls, say what failed, then switch promptly to a pre-captured screen recording or screenshots from the same stated environment and source. If no verified recording exists, use the retained receipt and a prepared local walkthrough, label it as recorded evidence, and do not present it as a live AWS result. The checklist says no recording identifier is attached, so recording access and the actual fallback files still need a human check."
-        },
-        {
-          "type": "callout",
-          "title": "Keep the fallback honest",
-          "text": "Prepare the account, clip, job ID, receipt, and screenshots or recording before rehearsal. Label each backup with its environment and source revision. A screenshot proves only what it depicts; it does not prove the live system is still available.",
-          "tone": "note"
+          "text": "Retry is shown only on a failed job prepared in advance, and it reuses the stored source rather than uploading again. If login, upload, processing or playback stalls, name the failed step and switch to the labelled screenshots or recording. Without a verified recording, use the retained receipt and a prepared local walkthrough, labelled as recorded evidence. The course checklist has no recording identifier attached, so the fallback files still need to be gathered."
         }
       ],
       "sources": [
@@ -336,7 +336,7 @@
             [
               "0:00–3:00",
               "Overview + questions",
-              "Land problem, platform seed, scope and honest headline result."
+              "Problem, platform seed, scope and headline result."
             ],
             [
               "3:00–5:00",
@@ -367,7 +367,7 @@
         },
         {
           "type": "p",
-          "text": "This clock follows the official six totals and is a recommendation for rehearsal. Make clear hand-offs, keep one person responsible for the timer, and rehearse the fallback. If questions consume more time in an early section, shorten the next explanation while protecting the demo and its questions. Do not call this pacing an official course requirement."
+          "text": "This clock follows the official six totals and is a recommendation for rehearsal. Make clear hand-offs, keep one person responsible for the timer, and rehearse the fallback. If questions consume more time in an early section, shorten the next explanation while protecting the demo and its questions."
         }
       ],
       "sources": [
@@ -395,36 +395,30 @@
         {
           "type": "qa",
           "q": "Is the system highly available?",
-          "a": "The evidence does not prove that. The deployment uses one region and one Aurora cluster/instance shared by both logical databases. Describe the chosen cloud services and recovery evidence without claiming regional or database high availability."
+          "a": "Not demonstrated. The deployment uses one region and one Aurora cluster/instance shared by both logical databases, so neither regional nor database high availability is shown."
         },
         {
           "type": "qa",
           "q": "What did Team 17 inherit, and what did it add?",
-          "a": "The baseline carries Flickpond’s earlier FFmpeg processing, HLS output, worker replicas and basic CI. GC2 work includes the Media/Processing split, service contracts and data ownership, Publisher client, AWS platform and delivery pipeline, security boundaries, and measured experiments. Keep inherited code and its original team’s effort separate from Team 17’s contribution."
+          "a": "The baseline carries Flickpond’s earlier FFmpeg processing, HLS output, worker replicas and basic CI. GC2 work includes the Media/Processing split, service contracts and data ownership, Publisher client, AWS platform and delivery pipeline, security boundaries, and measured experiments."
         },
         {
           "type": "qa",
           "q": "How much did each person work, and who authored each design?",
-          "a": "The ledger records 33 person-days / 264 hours allocated equally, or 11 person-days / 88 hours each, using eight hours per day. It is an allocation, not individual timesheets. Ask each person to confirm actual hours and contributions; do not infer authorship from commits or agent activity. The ledger’s Project 1 membership statements also contain a provenance tension that needs team clarification."
+          "a": "The ledger records 33 person-days / 264 hours allocated equally, or 11 person-days / 88 hours each, using eight hours per day. It is an allocation, not individual timesheets. The ledger’s Project 1 membership statements also contain a provenance tension that needs team clarification."
         },
         {
           "type": "list",
           "ordered": false,
           "items": [
             "Confirm the 26 October, 14:35–15:15 SGT Team 17 slot has no later Canvas update, and check the meeting access details.",
-            "Confirm individual actual hours and contributions, each person’s own Project 1 hours, and which member will explain each design bundle.",
+            "Individual actual hours for the Project Conduct segment (the ledger is an equal allocation), and which member presents each design area.",
             "Resolve the effort ledger’s mismatch about Ibrahim’s Project 1 team versus the statement that GC2 continues no member’s own Project 1; preserve the fact that the inherited Flickpond baseline belongs to a different Project 1 team.",
             "Check whether the 16 October progress report was submitted and obtain its receipt if required.",
             "Confirm access to the actual demo account, recording/screenshots and submission channel; the repository has no recording identifier attached.",
-            "Check current Canvas cutoffs, peer-assessment instructions and any AI-use declaration. Do not borrow these from the SWE5006 ZIP.",
-            "Describe remaining limitations accurately: the proposed AWS 30-clip run was not done; queue wait missed its 20-second target; the two-worker speedup missed; unfixed image findings remain; and some recovery/security checks are from earlier sources or were not run."
+            "Check current Canvas cutoffs, peer-assessment instructions and any AI-use declaration.",
+            "Remaining limitations: the proposed AWS 30-clip run was not done; queue wait missed its 20-second target; the two-worker speedup missed; unfixed image findings remain; and some recovery/security checks are from earlier sources or were not run."
           ]
-        },
-        {
-          "type": "callout",
-          "title": "A fair answer is a precise answer",
-          "text": "Say what the receipt shows, which source and environment it used, and what remains unknown. A planned allocation is not a time log, a persona is not user research, and a successful smoke is not a complete quality-attribute result.",
-          "tone": "note"
         }
       ],
       "sources": [
@@ -452,10 +446,10 @@
     }
   ],
   "takeaways": [
-    "Use the current GC2 guidance; both local schedule tables place Team 17 on 26 October, 14:35–15:15 SGT.",
-    "Teach the project from business problem to logical design to deployed evidence, and follow one Maya-to-Jules-to-Sam story.",
-    "Label inherited Flickpond capability separately from GC2 work and its evidence.",
-    "State the six-clip AWS scaling miss, the unrun 30-clip comparison, and all source/environment limits plainly.",
-    "Prepare the account, small clip, known job, and labeled fallback before rehearsal; confirm personal hours and recording facts with people."
+    "Team 17 presents on 26 October, 14:35–15:15 SGT, in both local schedule tables.",
+    "The talk runs from business problem to logical design to deployed evidence, following one Maya-to-Jules-to-Sam story.",
+    "Inherited Flickpond capability and GC2 work are separate stages with separate evidence.",
+    "Known misses: the six-clip AWS two-worker speedup, the unrun 30-clip comparison and the 37-second queue wait against 20 seconds.",
+    "Account, small clip, known job and labelled fallback are prepared before rehearsal; individual hours and recording access are still open."
   ]
 }
