@@ -1,0 +1,3822 @@
+[
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "1 / 60",
+    "htmlMin": 16,
+    "id": "s1",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 1,
+    "outside": [],
+    "sec": "",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 501.21875,
+      "w": 1180,
+      "x": 50,
+      "y": 142.78125
+    },
+    "clips": [],
+    "footer": "2 / 60",
+    "htmlMin": 16,
+    "id": "s2",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 2,
+    "outside": [],
+    "sec": "1. Overview",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "3 / 60",
+    "htmlMin": 16,
+    "id": "s3",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 3,
+    "outside": [],
+    "sec": "1. Overview",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "4 / 60",
+    "htmlMin": 16,
+    "id": "s4",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 4,
+    "outside": [],
+    "sec": "1. Overview",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "5 / 60",
+    "htmlMin": 16,
+    "id": "s5",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 5,
+    "outside": [],
+    "sec": "1. Overview",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "6 / 60",
+    "htmlMin": 16,
+    "id": "s6",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 6,
+    "outside": [],
+    "sec": "1. Overview",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "CD run 39733859422 ↗\n7 / 60",
+    "htmlMin": 13,
+    "id": "s7",
+    "images": [],
+    "inlineMin": 23.34841628959276,
+    "kind": "main",
+    "n": 7,
+    "outside": [],
+    "sec": "2. Project conduct",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Effort ledger ↗\n8 / 60",
+    "htmlMin": 13,
+    "id": "s8",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 8,
+    "outside": [],
+    "sec": "2. Project conduct",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 501.21875,
+      "w": 1180,
+      "x": 50,
+      "y": 142.78125
+    },
+    "clips": [],
+    "footer": "Known limitations ↗\n9 / 60",
+    "htmlMin": 13,
+    "id": "s9",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 9,
+    "outside": [],
+    "sec": "2. Project conduct",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "10 / 60",
+    "htmlMin": 16,
+    "id": "s10",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 10,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured dc2-live · Main 76282d3 · source only\n11 / 60",
+    "htmlMin": 15,
+    "id": "s10-views",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 11,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured dc2-live · Main 76282d3 · source only\n12 / 60",
+    "htmlMin": 15,
+    "id": "s12",
+    "images": [
+      {
+        "h": 520,
+        "minText": {
+          "size": 15.812502820524925,
+          "text": "Processing components and both work queues are expanded on the next slide."
+        },
+        "ok": true,
+        "src": "assets/uml/W6-logical.svg",
+        "w": 913.546875,
+        "x": 183.21875,
+        "y": 117.1875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 12,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured dc2-live · Main 76282d3 · source only\n13 / 60",
+    "htmlMin": 15,
+    "id": "s12-processing",
+    "images": [
+      {
+        "h": 410,
+        "minText": {
+          "size": 13.36244011976048,
+          "text": "Both encoders GET SourceBucket and PUT OutputBucket. ProcessingApi stages SQL in"
+        },
+        "ok": true,
+        "src": "assets/uml/W6-processing-components.svg",
+        "w": 1093.5625,
+        "x": 93.21875,
+        "y": 114.59375
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 13,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured dc2-live · Main 76282d3 · source only\n14 / 60",
+    "htmlMin": 15,
+    "id": "s13",
+    "images": [
+      {
+        "h": 513.109375,
+        "minText": {
+          "size": 15.293180432622833,
+          "text": "Filled head = call; open head = async delivery; dashed = reply. Send replies omi"
+        },
+        "ok": true,
+        "src": "assets/uml/W6-command-handoff.svg",
+        "w": 1179.96875,
+        "x": 50.015625,
+        "y": 120.640625
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 14,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured dc2-live · Main 76282d3 · source only\n15 / 60",
+    "htmlMin": 15,
+    "id": "s14",
+    "images": [
+      {
+        "h": 525,
+        "minText": {
+          "size": 13.482470651013873,
+          "text": "COMMIT"
+        },
+        "ok": true,
+        "src": "assets/uml/W6-work-results.svg",
+        "w": 1029.453125,
+        "x": 125.265625,
+        "y": 114.6875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 15,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured dc2-live · Main 76282d3 · source only\n16 / 60",
+    "htmlMin": 15,
+    "id": "s15",
+    "images": [
+      {
+        "h": 510,
+        "minText": {
+          "size": 13.09931506849315,
+          "text": "Health and register/login/logout are public exceptions. Operator/readiness invok"
+        },
+        "ok": true,
+        "src": "assets/uml/W6-trust-boundary.svg",
+        "w": 1000.34375,
+        "x": 139.828125,
+        "y": 122.1875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 16,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Boundaries are design interpretations\n17 / 60",
+    "htmlMin": 15,
+    "id": "s11",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 17,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Boundaries are design interpretations\n18 / 60",
+    "htmlMin": 15,
+    "id": "s16",
+    "images": [
+      {
+        "h": 434.203125,
+        "minText": {
+          "size": 13.828125,
+          "text": "Conformist is not asserted: Media keeps its own model. delivery/ is shared techn"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-context-map.svg",
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 18,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Anaemic records; services enforce the interpreted grouping\n19 / 60",
+    "htmlMin": 15,
+    "id": "s17",
+    "images": [
+      {
+        "h": 540,
+        "minText": {
+          "size": 13.775500741839762,
+          "text": "Adoption spans reservation + Asset roots. Anaemic records; rules live in service"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-media-asset.svg",
+        "w": 928.46875,
+        "x": 175.765625,
+        "y": 110.390625
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 19,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Anaemic records; services enforce the interpreted grouping\n20 / 60",
+    "htmlMin": 15,
+    "id": "w2-job",
+    "images": [
+      {
+        "h": 540,
+        "minText": {
+          "size": 14.361493403093721,
+          "text": "Cancellation updates independent Guard + Job together. Anaemic records; rules li"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-processing-job.svg",
+        "w": 1052.21875,
+        "x": 113.890625,
+        "y": 110.390625
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 20,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\n21 / 60",
+    "htmlMin": 15,
+    "id": "w2-messages",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 21,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured dc2-live · Main 76282d3 · source only\n22 / 60",
+    "htmlMin": 15,
+    "id": "s19",
+    "images": [
+      {
+        "h": 525,
+        "minText": {
+          "size": 13.63743702770781,
+          "text": "Blue = Media-owned. Solid = call; dashed = return. Snapshot projection, not even"
+        },
+        "ok": true,
+        "src": "assets/uml/W6-result-replay.svg",
+        "w": 735.59375,
+        "x": 272.203125,
+        "y": 114.6875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 22,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Source configuration · Main 76282d3\n23 / 60",
+    "htmlMin": 15,
+    "id": "s20",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 23,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Application operations behind two Gateway integrations\n24 / 60",
+    "htmlMin": 15,
+    "id": "w1-api-surface",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 24,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Lambda REQUEST authorizer · Cookie identity · TTL 0\n25 / 60",
+    "htmlMin": 15,
+    "id": "w1-authorizer",
+    "images": [
+      {
+        "h": 470,
+        "minText": {
+          "size": 14.95883527625392,
+          "text": "Blue: Media; slate: Gateway / API. Solid call; dashed reply."
+        },
+        "ok": true,
+        "src": "assets/uml/W1-authorizer.svg",
+        "w": 624.671875,
+        "x": 327.65625,
+        "y": 113.1875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 25,
+    "outside": [],
+    "sec": "3. Logical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "26 / 60",
+    "htmlMin": 16,
+    "id": "s21",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 26,
+    "outside": [],
+    "sec": "4. Physical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "dc2-live source configuration · ap-southeast-1 · 76282d3\n27 / 60",
+    "htmlMin": 15,
+    "id": "s22",
+    "images": [
+      {
+        "h": 467.953125,
+        "minText": {
+          "size": 13.453226749067165,
+          "text": "Solid: labelled runtime calls; dashed: launch. A+B are placement choices."
+        },
+        "ok": true,
+        "src": "assets/uml/W1-deployment-main.svg",
+        "w": 1179.953125,
+        "x": 50.015625,
+        "y": 112.46875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 27,
+    "outside": [],
+    "sec": "4. Physical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Subnet placement is a network decision; it does not distribute jobs\n28 / 60",
+    "htmlMin": 15,
+    "id": "s23",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 28,
+    "outside": [],
+    "sec": "4. Physical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "processing/messaging.py → processing/short_lane.py\n29 / 60",
+    "htmlMin": 15,
+    "id": "s24",
+    "images": [
+      {
+        "h": 490,
+        "minText": {
+          "size": 13.398715909090907,
+          "text": "[false]"
+        },
+        "ok": true,
+        "src": "assets/uml/W1-dispatch.svg",
+        "w": 916.1875,
+        "x": 181.90625,
+        "y": 114.0625
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 29,
+    "outside": [],
+    "sec": "4. Physical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Short Lambda: 3008 MB · 2048 MB /tmp · 900 s timeout · ≤720 s pipeline\n30 / 60",
+    "htmlMin": 15,
+    "id": "w1-probe",
+    "images": [
+      {
+        "h": 475,
+        "minText": {
+          "size": 13.431169212690952,
+          "text": "[true]"
+        },
+        "ok": true,
+        "src": "assets/uml/W1-probe-redirect.svg",
+        "w": 893.09375,
+        "x": 193.453125,
+        "y": 110.6875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 30,
+    "outside": [],
+    "sec": "4. Physical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "sl1021 result ↗\n31 / 60",
+    "htmlMin": 13,
+    "id": "s25",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 31,
+    "outside": [],
+    "sec": "4. Physical architecture",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nWhy PostgreSQL? · backup\n32 / 60",
+    "htmlMin": 15,
+    "id": "w4-stores",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 32,
+    "outside": [],
+    "sec": "5. Data design",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n33 / 60",
+    "htmlMin": 15,
+    "id": "w4-media-main",
+    "images": [
+      {
+        "h": 403.78125,
+        "minText": {
+          "size": 13.723429687500001,
+          "text": "Key columns selected; full columns and checks are in backup/report"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-main.svg",
+        "w": 1179.96875,
+        "x": 50.015625,
+        "y": 175.296875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 33,
+    "outside": [],
+    "sec": "5. Data design",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n34 / 60",
+    "htmlMin": 15,
+    "id": "w4-processing-main",
+    "images": [
+      {
+        "h": 520,
+        "minText": {
+          "size": 14.225388208762888,
+          "text": "Key columns selected; full columns and checks are in backup/report"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-processing-main.svg",
+        "w": 1118.203125,
+        "x": 80.890625,
+        "y": 117.1875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 34,
+    "outside": [],
+    "sec": "5. Data design",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n35 / 60",
+    "htmlMin": 15,
+    "id": "w4-keys",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 35,
+    "outside": [],
+    "sec": "5. Data design",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/lambda_handler.py#L1 · media/api/uploads.py#L18\n36 / 60",
+    "htmlMin": 13,
+    "id": "s28",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.739844903988184,
+          "text": "Repository = module lookup/replay role; Storage adapts Minio S3. Services also q"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-01-media-components.svg",
+        "w": 1162.734375,
+        "x": 58.625,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 36,
+    "outside": [],
+    "sec": "6. Detailed design",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/handlers.py#L25 · processing/messaging.py#L232\n37 / 60",
+    "htmlMin": 13,
+    "id": "w3-processing-components",
+    "images": [
+      {
+        "h": 499.921875,
+        "minText": {
+          "size": 13.22093837535014,
+          "text": "handlers wraps SQS with processing.launcher_trigger.WakeOnWork; EcsPort/QueueDep"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-02-processing-components.svg",
+        "w": 1179.96875,
+        "x": 50.015625,
+        "y": 143.03125
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 37,
+    "outside": [],
+    "sec": "6. Detailed design",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/services/direct_intake.py#L99 · media/services/direct_intake.py#L149\n38 / 60",
+    "htmlMin": 13,
+    "id": "w3-a-classes",
+    "images": [
+      {
+        "h": 412.125,
+        "minText": {
+          "size": 13.386826377633712,
+          "text": "Repository participant: media.repositories.assets.fingerprint(value: dict): str "
+        },
+        "ok": true,
+        "src": "assets/uml/W3-03-a-intake-classes.svg",
+        "w": 1179.953125,
+        "x": 50.015625,
+        "y": 186.9375
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 38,
+    "outside": [],
+    "sec": "6. Detailed design",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/uploads.py#L36 · media/services/direct_intake.py#L99\n39 / 60",
+    "htmlMin": 13,
+    "id": "s29",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.761882129277566,
+          "text": "Blue = Media; slate = SQL. Solid filled arrow = awaited call; dashed = reply. SQ"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-06-a1-upload.svg",
+        "w": 904.84375,
+        "x": 187.578125,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 39,
+    "outside": [],
+    "sec": "6. Detailed design",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/v1_jobs.py#L55 · media/services/v1_lifecycle.py#L105\n40 / 60",
+    "htmlMin": 13,
+    "id": "s30",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.191609735269001,
+          "text": "Blue = Media; slate = SQL. Independent relay may precede HTTP 202. Detail: W3-14"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-14-edit.svg",
+        "w": 858.1875,
+        "x": 210.90625,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 40,
+    "outside": [],
+    "sec": "6. Detailed design",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/models.py#L15 · processing/models.py#L77\n41 / 60",
+    "htmlMin": 13,
+    "id": "s31",
+    "images": [
+      {
+        "h": 476,
+        "minText": {
+          "size": 14,
+          "text": "Mapped[T] shown as T. Claim(A1,T1) cannot authorize A2. Mutating functions and t"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-10-b-classes.svg",
+        "w": 1025,
+        "x": 127.5,
+        "y": 155
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 41,
+    "outside": [],
+    "sec": "6. Detailed design",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/messaging.py#L405 · processing/lifecycle.py#L184\n42 / 60",
+    "htmlMin": 13,
+    "id": "w3-stale",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.739829706717124,
+          "text": "Delayed result messages face a separate Media projection fence (W3-13a)."
+        },
+        "ok": true,
+        "src": "assets/uml/W3-13-b3-fence.svg",
+        "w": 907.6875,
+        "x": 186.15625,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 42,
+    "outside": [],
+    "sec": "6. Detailed design",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/models.py#L15 · processing/messaging.py#L60\n43 / 60",
+    "htmlMin": 13,
+    "id": "w3-job-states",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.335598746612467,
+          "text": "redirect_to_long_lane is called by the NotAdmitted hook; retry/claim cannot resu"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-15-job-states.svg",
+        "w": 1157.84375,
+        "x": 61.078125,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 43,
+    "outside": [],
+    "sec": "6. Detailed design",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "44 / 60",
+    "htmlMin": 16,
+    "id": "s32",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 44,
+    "outside": [],
+    "sec": "7. DevSecOps",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "event selection · CI aggregate\n45 / 60",
+    "htmlMin": 14,
+    "id": "s33",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 45,
+    "outside": [],
+    "sec": "7. DevSecOps",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "23 Oct CI passed · 25 Oct CI failed · Main settings checked 26 Oct\n46 / 60",
+    "htmlMin": 14,
+    "id": "s34",
+    "images": [
+      {
+        "h": 439.984375,
+        "minText": {
+          "size": 19.44117563733553,
+          "text": "Requires scans + tests"
+        },
+        "ok": true,
+        "src": "assets/uml/W5-pipeline-main.svg",
+        "w": 1031.578125,
+        "x": 124.21875,
+        "y": 123.875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 46,
+    "outside": [],
+    "sec": "7. DevSecOps",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "CD admission · release scan policy\n47 / 60",
+    "htmlMin": 14,
+    "id": "s35",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 47,
+    "outside": [],
+    "sec": "7. DevSecOps",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "CI aggregate · V1 images · ZAP execution + cleanup\n48 / 60",
+    "htmlMin": 14,
+    "id": "s36",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 48,
+    "outside": [],
+    "sec": "7. DevSecOps",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "25 Oct · CI 40174362164 · scope / exclusions\n49 / 60",
+    "htmlMin": 14,
+    "id": "w5-dast",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 49,
+    "outside": [],
+    "sec": "7. DevSecOps",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "retained baseline policy · image-set validation\n50 / 60",
+    "htmlMin": 14,
+    "id": "s37",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 50,
+    "outside": [],
+    "sec": "7. DevSecOps",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Smoke 503 fail: CD 39729654137 ↗\nGreen: CD 39733859422 ↗\n51 / 60",
+    "htmlMin": 13,
+    "id": "s38",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 51,
+    "outside": [],
+    "sec": "7. DevSecOps",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "52 / 60",
+    "htmlMin": 16,
+    "id": "s39",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 52,
+    "outside": [],
+    "sec": "7. DevSecOps",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 501.21875,
+      "w": 1180,
+      "x": 50,
+      "y": 142.78125
+    },
+    "clips": [],
+    "footer": "53 / 60",
+    "htmlMin": 16,
+    "id": "s40",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 53,
+    "outside": [],
+    "sec": "8. Demo",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "54 / 60",
+    "htmlMin": 16,
+    "id": "s41",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 54,
+    "outside": [],
+    "sec": "8. Demo",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 501.21875,
+      "w": 1180,
+      "x": 50,
+      "y": 142.78125
+    },
+    "clips": [],
+    "footer": "55 / 60",
+    "htmlMin": 16,
+    "id": "s42",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 55,
+    "outside": [],
+    "sec": "8. Demo",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "56 / 60",
+    "htmlMin": 16,
+    "id": "s43",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 56,
+    "outside": [],
+    "sec": "8. Demo",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "57 / 60",
+    "htmlMin": 16,
+    "id": "s44",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 57,
+    "outside": [],
+    "sec": "8. Demo",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "PF-1 result ↗\n58 / 60",
+    "htmlMin": 13,
+    "id": "s45",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 58,
+    "outside": [],
+    "sec": "8. Demo",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "59 / 60",
+    "htmlMin": 16,
+    "id": "s46",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 59,
+    "outside": [],
+    "sec": "8. Demo",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "60 / 60",
+    "htmlMin": 16,
+    "id": "s47",
+    "images": [],
+    "inlineMin": null,
+    "kind": "main",
+    "n": 60,
+    "outside": [],
+    "sec": "",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "61 / 147",
+    "htmlMin": 16,
+    "id": "s48",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 61,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Known limitations ↗\n62 / 147",
+    "htmlMin": 13,
+    "id": "s49",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 62,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Effort ledger ↗\n63 / 147",
+    "htmlMin": 13,
+    "id": "s50",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 63,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "64 / 147",
+    "htmlMin": 16,
+    "id": "s51",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 64,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "65 / 147",
+    "htmlMin": 16,
+    "id": "s52",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 65,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "66 / 147",
+    "htmlMin": 16,
+    "id": "s53",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 66,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "67 / 147",
+    "htmlMin": 16,
+    "id": "s54",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 67,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "68 / 147",
+    "htmlMin": 16,
+    "id": "s55",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 68,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "69 / 147",
+    "htmlMin": 16,
+    "id": "s56",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 69,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Actual vs target ↗\nsl1021 result ↗\n70 / 147",
+    "htmlMin": 13,
+    "id": "s57",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 70,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Release timings DP-1..4 ↗\nCD run 39733859422 ↗\n71 / 147",
+    "htmlMin": 13,
+    "id": "s58",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 71,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "72 / 147",
+    "htmlMin": 16,
+    "id": "s59",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 72,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/services/v1_lifecycle.py#L50 · processing/v1_api.py#L77\n73 / 147",
+    "htmlMin": 13,
+    "id": "w3-retry-surfaces",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 73,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 501.21875,
+      "w": 1180,
+      "x": 50,
+      "y": 142.78125
+    },
+    "clips": [],
+    "footer": "Cost inputs ↗\n74 / 147",
+    "htmlMin": 13,
+    "id": "s62",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 74,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "No inbound Lambda / Worker SG rules · separate outbound egress paths\n75 / 147",
+    "htmlMin": 15,
+    "id": "s63",
+    "images": [
+      {
+        "h": 530,
+        "minText": {
+          "size": 13.514988388200782,
+          "text": "No inbound compute SG rules. Private: no IPv4 default/NAT. Worker: no IPv6 HTTPS"
+        },
+        "ok": true,
+        "src": "assets/uml/W1-network.svg",
+        "w": 1005.1875,
+        "x": 137.40625,
+        "y": 112.1875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 75,
+    "outside": [],
+    "sec": "Backup · Deployment",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "76 / 147",
+    "htmlMin": 16,
+    "id": "s64",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 76,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n77 / 147",
+    "htmlMin": 15,
+    "id": "w4-media-assets",
+    "images": [
+      {
+        "h": 520,
+        "minText": {
+          "size": 14.172299364805522,
+          "text": "All columns of coloured tables are shown; CHECKs, defaults and indexes are in th"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-assets.svg",
+        "w": 704.109375,
+        "x": 287.9375,
+        "y": 117.1875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 77,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "Verified 26 Oct 2026 through authenticated gh · no current alert-count audit\n78 / 147",
+    "htmlMin": 14,
+    "id": "s66",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 78,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/recovery_v1.py#L84 · processing/recovery_v1.py#L252\n79 / 147",
+    "htmlMin": 13,
+    "id": "s67",
+    "images": [
+      {
+        "h": 518,
+        "minText": {
+          "size": 17,
+          "text": "Queued repair restores delivery intent; interruption waits for owner retry. 120s"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-17-recovery-branches.svg",
+        "w": 960,
+        "x": 160,
+        "y": 134
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 79,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "Full verification · aggregate result policy\n80 / 147",
+    "htmlMin": 14,
+    "id": "s68",
+    "images": [
+      {
+        "h": 429.984375,
+        "minText": {
+          "size": 18.19399173744461,
+          "text": "Reject failed / invalid jobs"
+        },
+        "ok": true,
+        "src": "assets/uml/W5-pipeline-full.svg",
+        "w": 997.5,
+        "x": 141.25,
+        "y": 128.875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 80,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "81 / 147",
+    "htmlMin": 16,
+    "id": "appx-1",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 81,
+    "outside": [],
+    "sec": "Appendix",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Processing owns 7 functions; only 6 use ProcessingImageUri\n82 / 147",
+    "htmlMin": 15,
+    "id": "w1-artifacts",
+    "images": [
+      {
+        "h": 495.828125,
+        "minText": {
+          "size": 13.838234205852503,
+          "text": "All Lambdas: x86_64, own Role + Version + live Alias. Operations tasks are one-o"
+        },
+        "ok": true,
+        "src": "assets/uml/W1-artifacts.svg",
+        "w": 1179.984375,
+        "x": 50,
+        "y": 129.28125
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 82,
+    "outside": [],
+    "sec": "Backup · Deployment",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Queue lanes · EventBridge rules and launcher wake are in the next backup\n83 / 147",
+    "htmlMin": 15,
+    "id": "w1-triggers",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 18.077578476650412,
+          "text": "Encoders commit result SQL outbox; relays send. Command/result mappings: window "
+        },
+        "ok": true,
+        "src": "assets/uml/W1-triggers.svg",
+        "w": 1168.359375,
+        "x": 55.8125,
+        "y": 109.703125
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 83,
+    "outside": [],
+    "sec": "Backup · Deployment",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Processing publishers also wake the launcher after standard work send\n84 / 147",
+    "htmlMin": 15,
+    "id": "w1-events",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 16.220087778743864,
+          "text": "Short work never wakes Fargate. Schedules/hints are gated; minute tick is a reco"
+        },
+        "ok": true,
+        "src": "assets/uml/W1-events.svg",
+        "w": 961.015625,
+        "x": 159.484375,
+        "y": 109.703125
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 84,
+    "outside": [],
+    "sec": "Backup · Deployment",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured resources and defaults; deployment, gates and alarm states are unverified\n85 / 147",
+    "htmlMin": 15,
+    "id": "w1-stores",
+    "images": [
+      {
+        "h": 475,
+        "minText": {
+          "size": 14.11877431906615,
+          "text": "Blue Media · amber Processing · slate AWS · green client. Arrows: labelled runti"
+        },
+        "ok": true,
+        "src": "assets/uml/W1-stores.svg",
+        "w": 950,
+        "x": 165,
+        "y": 110.6875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 85,
+    "outside": [],
+    "sec": "Backup · Deployment",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "86 / 147",
+    "htmlMin": 16,
+    "id": "appx-2",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 86,
+    "outside": [],
+    "sec": "Appendix",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\n87 / 147",
+    "htmlMin": 15,
+    "id": "s18",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 87,
+    "outside": [],
+    "sec": "Backup · DDD",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\n88 / 147",
+    "htmlMin": 15,
+    "id": "w2-intake",
+    "images": [
+      {
+        "h": 499,
+        "minText": {
+          "size": 15,
+          "text": "Selected source fields shown; full Source value is on the Asset view."
+        },
+        "ok": true,
+        "src": "assets/uml/W2-media-intake.svg",
+        "w": 818,
+        "x": 231,
+        "y": 110.390625
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 88,
+    "outside": [],
+    "sec": "Backup · DDD",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Boundaries are design interpretations\n89 / 147",
+    "htmlMin": 15,
+    "id": "s60",
+    "images": [
+      {
+        "h": 434.203125,
+        "minText": {
+          "size": 13.828125,
+          "text": "Conformist is not asserted: Media keeps its own model. delivery/ is shared techn"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-context-map.svg",
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 89,
+    "outside": [],
+    "sec": "Backup · DDD",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 513.21875,
+      "w": 1180,
+      "x": 50,
+      "y": 158.78125
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\n90 / 147",
+    "htmlMin": 15,
+    "id": "w2-media-support",
+    "images": [
+      {
+        "h": 480,
+        "minText": {
+          "size": 15,
+          "text": "These records support the business aggregate; none is a member entity just becau"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-media-support.svg",
+        "w": 1036,
+        "x": 122,
+        "y": 158.78125
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 90,
+    "outside": [],
+    "sec": "Backup · DDD",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\n91 / 147",
+    "htmlMin": 15,
+    "id": "w2-processing-support",
+    "images": [
+      {
+        "h": 390,
+        "minText": {
+          "size": 15,
+          "text": "All Media identities are plain UUIDs. Selected fields; supporting records are ou"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-processing-support.svg",
+        "w": 903,
+        "x": 188.5,
+        "y": 110.390625
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 91,
+    "outside": [],
+    "sec": "Backup · DDD",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\n92 / 147",
+    "htmlMin": 15,
+    "id": "w2-authority",
+    "images": [
+      {
+        "h": 400.734375,
+        "minText": {
+          "size": 13.328136765813253,
+          "text": "lock_pair() + live() fence heartbeat / finish; SQL does not enforce the whole st"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-processing-authority.svg",
+        "w": 1179.984375,
+        "x": 50,
+        "y": 110.390625
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 92,
+    "outside": [],
+    "sec": "Backup · DDD",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\n93 / 147",
+    "htmlMin": 15,
+    "id": "w2-technical",
+    "images": [
+      {
+        "h": 391,
+        "minText": {
+          "size": 15,
+          "text": "Technical support, not business aggregate members; message_id PK, no root FK. Se"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-delivery-ledgers.svg",
+        "w": 965,
+        "x": 157.5,
+        "y": 110.390625
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 93,
+    "outside": [],
+    "sec": "Backup · DDD",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\n94 / 147",
+    "htmlMin": 15,
+    "id": "w2-launcher",
+    "images": [
+      {
+        "h": 397,
+        "minText": {
+          "size": 15,
+          "text": "Application association; no FK to LauncherControl or AttemptTask. Selected actua"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-launcher-control.svg",
+        "w": 916,
+        "x": 182,
+        "y": 110.390625
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 94,
+    "outside": [],
+    "sec": "Backup · DDD",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\n95 / 147",
+    "htmlMin": 15,
+    "id": "w2-wire",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 95,
+    "outside": [],
+    "sec": "Backup · DDD",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "96 / 147",
+    "htmlMin": 16,
+    "id": "appx-3",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 96,
+    "outside": [],
+    "sec": "Appendix",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/handlers.py#L70 · processing/handlers.py#L55\n97 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-submit-accept",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.843055310515174,
+          "text": "ACK depends on committed inbox/domain/outbox, independently of best-effort relay"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-07-a2-submit-execute.svg",
+        "w": 1153.859375,
+        "x": 63.0625,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 97,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/recovery_v1.py#L166 · media/messaging.py#L16\n98 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-result-play",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.030031779661018,
+          "text": "Stale state commits inbox; conflict rolls back. W3-13a details guards; W3-08a sh"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-08-a3-result-play.svg",
+        "w": 1130.546875,
+        "x": 74.71875,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 98,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/v1_hls.py#L25 · media/services/storage.py#L191\n99 / 147",
+    "htmlMin": 13,
+    "id": "w3-hls",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.048730755131965,
+          "text": "Both requests repeat owner + ready-output checks. Filled = awaited request; dash"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-22-hls-playback.svg",
+        "w": 1046.96875,
+        "x": 116.515625,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 99,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/recovery_v1.py#L183 · processing/recovery.py#L40\n100 / 147",
+    "htmlMin": 13,
+    "id": "w3-expiry",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.238637520358305,
+          "text": "v1_job_filter = Job.id.in_(select(JobMessaging.job_id)); expiry never requeues A"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-11-b1-expiry.svg",
+        "w": 956.296875,
+        "x": 161.84375,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 100,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/v1_jobs.py#L49 · media/services/v1_lifecycle.py#L50\n101 / 147",
+    "htmlMin": 13,
+    "id": "w3-retry",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.048531668526786,
+          "text": "Caller api.v1_jobs.retry returns HTTP 202; nonfailed projection raises 409. Retr"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-12-b2-retry.svg",
+        "w": 687.734375,
+        "x": 296.125,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 101,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/messaging.py#L232 · processing/messaging.py#L155\n102 / 147",
+    "htmlMin": 13,
+    "id": "w3-retry-accept",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.162066730349345,
+          "text": "New inbox/live guard/owned Job shown. now=db_now(s); reordered/invalid retry rol"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-12a-processing-retry.svg",
+        "w": 709.203125,
+        "x": 285.390625,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 102,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/models.py#L15 · processing/lifecycle.py#L124\n103 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-04-a-execution-classes",
+    "images": [
+      {
+        "h": 441,
+        "minText": {
+          "size": 14,
+          "text": "AttemptTask.task_name is SQL UNIQUE. Functions/adapters: W3-19; retry/lease func"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-04-a-execution-classes.svg",
+        "w": 1025,
+        "x": 127.5,
+        "y": 172.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 103,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/projections.py#L36 · media/projections.py#L69\n104 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-05-a-projection-classes",
+    "images": [
+      {
+        "h": 427,
+        "minText": {
+          "size": 14,
+          "text": "Selected attributes. Media reads its own projection. Envelope/Source are the rea"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-05-a-projection-classes.svg",
+        "w": 844,
+        "x": 218,
+        "y": 179.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 104,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/uploads.py#L18 · media/services/direct_intake.py#L99\n105 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-06a-reserve",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.200214869826436,
+          "text": "POST length range is 1..declared size; finalize enforces exact size/hash. Max 10"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-06a-reserve.svg",
+        "w": 1163.171875,
+        "x": 58.40625,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 105,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/worker/sqs.py#L166 · processing/worker/tasks.py#L16\n106 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-09a-probe",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.45410447761194,
+          "text": "Awaited calls use filled arrows; check_probe is a synchronous callable with the "
+        },
+        "ok": true,
+        "src": "assets/uml/W3-09a-probe.svg",
+        "w": 795.375,
+        "x": 242.3125,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 106,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/worker/sqs.py#L166 · processing/worker/tasks.py#L16\n107 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-09b-encode",
+    "images": [
+      {
+        "h": 526.609375,
+        "minText": {
+          "size": 13.815244059917354,
+          "text": "The next call is messaging.finish; SQL state/result commit authorizes work ACK ("
+        },
+        "ok": true,
+        "src": "assets/uml/W3-09b-encode.svg",
+        "w": 1179.984375,
+        "x": 50,
+        "y": 129.6875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 107,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/messaging.py#L16 · delivery/sql.py#L18\n108 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-13a-projection-fence",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 14.740455163043478,
+          "text": "Its return is True for a new inbox even when apply_result=False; identical inbox"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-13a-projection-fence.svg",
+        "w": 797.71875,
+        "x": 241.140625,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 108,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/models.py#L48 · processing/lifecycle.py#L136\n109 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-16-attempt-states",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.79372771836007,
+          "text": "live is evaluated on lock_pair: current nondeleted Job + processing states + sam"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-16-attempt-states.svg",
+        "w": 1105.46875,
+        "x": 87.265625,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 109,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/short_lane.py#L81 · processing/short_lane.py#L94\n110 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-18-lane-policy",
+    "images": [
+      {
+        "h": 351,
+        "minText": {
+          "size": 14,
+          "text": "No GoF Strategy hierarchy exists. NotAdmitted triggers fenced redirect; ordinary"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-18-lane-policy.svg",
+        "w": 817,
+        "x": 231.5,
+        "y": 217.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 110,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/worker/tasks.py#L16 · processing/worker/supervisor.py#L25\n111 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-19-execution-adapters",
+    "images": [
+      {
+        "h": 459.765625,
+        "minText": {
+          "size": 13.162998007968127,
+          "text": "SourceStore/OutputStore adapt Minio S3. Supervisor.run adapts subprocess calls f"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-19-execution-adapters.svg",
+        "w": 1179.96875,
+        "x": 50.015625,
+        "y": 163.109375
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 111,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "contracts/v1.py#L99 · contracts/v1.py#L157\n112 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-20-contract-classes",
+    "images": [
+      {
+        "h": 407,
+        "minText": {
+          "size": 14,
+          "text": "Media commands use submit/retry/cancel. Processing work is internal; result retu"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-20-contract-classes.svg",
+        "w": 987,
+        "x": 146.5,
+        "y": 189.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 112,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/lifecycle.py#L28 · processing/messaging.py#L155\n113 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-21-lease-functions",
+    "images": [
+      {
+        "h": 449,
+        "minText": {
+          "size": 14,
+          "text": "live requires current/nondeleted Job + processing states + matching token + unex"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-21-lease-functions.svg",
+        "w": 1065,
+        "x": 107.5,
+        "y": 168.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 113,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/worker/sqs.py#L109 · processing/messaging.py#L325\n114 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-23-claim-finish",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.949212712519321,
+          "text": "work=None requires work_disposition: SQL-proved stale is ACKed, unknown/pending "
+        },
+        "ok": true,
+        "src": "assets/uml/W3-23-claim-finish.svg",
+        "w": 1061.78125,
+        "x": 109.109375,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 114,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/services/direct_intake.py#L22 · media/upload_models.py#L64\n115 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-24-intake-types",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 14.508324084350722,
+          "text": "Asset 1 -- 0..1 SourceVersion via asset_id FK. Selected fields reproduce source "
+        },
+        "ok": true,
+        "src": "assets/uml/W3-24-intake-types.svg",
+        "w": 817,
+        "x": 231.5,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 115,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/v1_jobs.py#L55 · media/services/v1_lifecycle.py#L105\n116 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-14a-edit-relay",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.453967642526965,
+          "text": "SQS send is awaited outside SQL locks; token mismatch skips ACK; uncertain sends"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-14a-edit-relay.svg",
+        "w": 1027.25,
+        "x": 126.375,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 116,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/v1_jobs.py#L55 · media/services/v1_lifecycle.py#L105\n117 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-14b-edit-detail",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 15.337249208025344,
+          "text": "Copy errors invoke discard_stage; uncertain cleanup retains durable authority. k"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-14b-edit-detail.svg",
+        "w": 854.375,
+        "x": 212.8125,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 117,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/recovery_v1.py#L166 · media/messaging.py#L16\n118 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-public-read",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 15.5203246124031,
+          "text": "Primary bytes: client GET/Range to S3; not-ready jobs have no URL. HLS: W3-22."
+        },
+        "ok": true,
+        "src": "assets/uml/W3-08a-public-read.svg",
+        "w": 1177.71875,
+        "x": 51.140625,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 118,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/handlers.py#L70 · processing/handlers.py#L55\n119 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-07a-submit-transaction",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 14.01382946210269,
+          "text": "Changed identity/content raises and rolls back. No queue send occurs inside this"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-07a-submit-transaction.svg",
+        "w": 674.3125,
+        "x": 302.84375,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 119,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/worker/sqs.py#L166 · processing/worker/tasks.py#L16\n120 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-09c-hls",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 14.740664103232534,
+          "text": "Ordinary HLS exception retains primary; LeaseLost / AttemptDeadline / CancelledE"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-09c-hls.svg",
+        "w": 831.546875,
+        "x": 224.21875,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 120,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/v1_jobs.py#L55 · media/services/v1_lifecycle.py#L105\n121 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-14c-edit-adoption",
+    "images": [
+      {
+        "h": 481.125,
+        "minText": {
+          "size": 13.86279803040774,
+          "text": "edit returns Asset to v1_jobs.edit for HTTP 202. IntegrityError loser discards i"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-14c-edit-adoption.svg",
+        "w": 1179.96875,
+        "x": 50.015625,
+        "y": 152.4375
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 121,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/worker/sqs.py#L109 · processing/messaging.py#L325\n122 / 147",
+    "htmlMin": 13,
+    "id": "w3-back-23a-finish",
+    "images": [
+      {
+        "h": 535,
+        "minText": {
+          "size": 13.73856736700077,
+          "text": "Work ACK follows finish commit; encoders stage result SQL, and a separate relay "
+        },
+        "ok": true,
+        "src": "assets/uml/W3-23a-finish.svg",
+        "w": 1048.171875,
+        "x": 115.90625,
+        "y": 125.5
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 122,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "123 / 147",
+    "htmlMin": 16,
+    "id": "appx-4",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 123,
+    "outside": [],
+    "sec": "Appendix",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n124 / 147",
+    "htmlMin": 15,
+    "id": "w4-media-upload",
+    "images": [
+      {
+        "h": 520,
+        "minText": {
+          "size": 13.05118537303665,
+          "text": "All columns of coloured tables are shown; CHECKs, defaults and indexes are in th"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-upload.svg",
+        "w": 621.5625,
+        "x": 329.21875,
+        "y": 117.1875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 124,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n125 / 147",
+    "htmlMin": 15,
+    "id": "w4-media-pins",
+    "images": [
+      {
+        "h": 362.078125,
+        "minText": {
+          "size": 16.04546210290055,
+          "text": "All columns of coloured tables are shown; CHECKs, defaults and indexes are in th"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-pins.svg",
+        "w": 764.25,
+        "x": 257.875,
+        "y": 196.15625
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 125,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n126 / 147",
+    "htmlMin": 15,
+    "id": "w4-media-projection",
+    "images": [
+      {
+        "h": 423.953125,
+        "minText": {
+          "size": 16.04724934554974,
+          "text": "All columns of coloured tables are shown; CHECKs, defaults and indexes are in th"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-projection.svg",
+        "w": 764.25,
+        "x": 257.875,
+        "y": 165.21875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 126,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n127 / 147",
+    "htmlMin": 15,
+    "id": "w4-media-intents",
+    "images": [
+      {
+        "h": 396.453125,
+        "minText": {
+          "size": 16.04724934554974,
+          "text": "All columns of coloured tables are shown; CHECKs, defaults and indexes are in th"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-intents.svg",
+        "w": 764.25,
+        "x": 257.875,
+        "y": 178.96875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 127,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n128 / 147",
+    "htmlMin": 15,
+    "id": "w4-media-retry",
+    "images": [
+      {
+        "h": 464.046875,
+        "minText": {
+          "size": 16.043620622306037,
+          "text": "All columns of coloured tables are shown; CHECKs, defaults and indexes are in th"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-retry.svg",
+        "w": 877.671875,
+        "x": 201.15625,
+        "y": 145.171875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 128,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n129 / 147",
+    "htmlMin": 15,
+    "id": "w4-media-cleanup",
+    "images": [
+      {
+        "h": 341.453125,
+        "minText": {
+          "size": 16.059904017857143,
+          "text": "All columns of coloured tables are shown; CHECKs, defaults and indexes are in th"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-cleanup.svg",
+        "w": 784.875,
+        "x": 247.5625,
+        "y": 206.46875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 129,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n130 / 147",
+    "htmlMin": 15,
+    "id": "w4-media-delivery",
+    "images": [
+      {
+        "h": 403.328125,
+        "minText": {
+          "size": 16.055061491935483,
+          "text": "All columns of coloured tables are shown; CHECKs, defaults and indexes are in th"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-delivery.svg",
+        "w": 973.9375,
+        "x": 153.03125,
+        "y": 175.53125
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 130,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n131 / 147",
+    "htmlMin": 15,
+    "id": "w4-processing-attempts",
+    "images": [
+      {
+        "h": 520,
+        "minText": {
+          "size": 14.982286976959747,
+          "text": "All columns of coloured tables are shown; CHECKs, defaults and indexes are in th"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-processing-attempts.svg",
+        "w": 881.640625,
+        "x": 199.171875,
+        "y": 117.1875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 131,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n132 / 147",
+    "htmlMin": 15,
+    "id": "w4-processing-intents",
+    "images": [
+      {
+        "h": 520,
+        "minText": {
+          "size": 13.741666712253831,
+          "text": "All columns of coloured tables are shown; CHECKs, defaults and indexes are in th"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-processing-intents.svg",
+        "w": 782.9375,
+        "x": 248.53125,
+        "y": 117.1875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 132,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n133 / 147",
+    "htmlMin": 15,
+    "id": "w4-processing-cleanup",
+    "images": [
+      {
+        "h": 396.453125,
+        "minText": {
+          "size": 16.04724934554974,
+          "text": "All columns of coloured tables are shown; CHECKs, defaults and indexes are in th"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-processing-cleanup.svg",
+        "w": 764.25,
+        "x": 257.875,
+        "y": 178.96875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 133,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n134 / 147",
+    "htmlMin": 15,
+    "id": "w4-processing-delivery",
+    "images": [
+      {
+        "h": 403.328125,
+        "minText": {
+          "size": 16.04724934554974,
+          "text": "All columns of coloured tables are shown; CHECKs, defaults and indexes are in th"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-processing-delivery.svg",
+        "w": 764.25,
+        "x": 257.875,
+        "y": 175.53125
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 134,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n135 / 147",
+    "htmlMin": 15,
+    "id": "w4-processing-bindings",
+    "images": [
+      {
+        "h": 396.453125,
+        "minText": {
+          "size": 16.04724934554974,
+          "text": "All columns of coloured tables are shown; CHECKs, defaults and indexes are in th"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-processing-bindings.svg",
+        "w": 764.25,
+        "x": 257.875,
+        "y": 178.96875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 135,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n136 / 147",
+    "htmlMin": 15,
+    "id": "w4-processing-launcher",
+    "images": [
+      {
+        "h": 520,
+        "minText": {
+          "size": 15.470832479508198,
+          "text": "All columns of coloured tables are shown; CHECKs, defaults and indexes are in th"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-processing-launcher.svg",
+        "w": 823.59375,
+        "x": 228.203125,
+        "y": 117.1875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 136,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n137 / 147",
+    "htmlMin": 15,
+    "id": "w4-envelope",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 137,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n138 / 147",
+    "htmlMin": 15,
+    "id": "w4-kinds",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 138,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n139 / 147",
+    "htmlMin": 15,
+    "id": "w4-cancel-ack",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 139,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n140 / 147",
+    "htmlMin": 15,
+    "id": "w4-json-descriptors",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 140,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n141 / 147",
+    "htmlMin": 15,
+    "id": "w4-operations",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 141,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n142 / 147",
+    "htmlMin": 15,
+    "id": "w4-support-stores",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 142,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n143 / 147",
+    "htmlMin": 15,
+    "id": "w4-support-ops",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 143,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nReturn to stores\n144 / 147",
+    "htmlMin": 15,
+    "id": "w4-adr",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 144,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "145 / 147",
+    "htmlMin": 16,
+    "id": "appx-5",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 145,
+    "outside": [],
+    "sec": "Appendix",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "manual preparation · CD scans\n146 / 147",
+    "htmlMin": 14,
+    "id": "w5-extra-scans",
+    "images": [],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 146,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  },
+  {
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "source admission · image verification · failure handling\n147 / 147",
+    "htmlMin": 14,
+    "id": "w5-release",
+    "images": [
+      {
+        "h": 459.984375,
+        "minText": {
+          "size": 13.870142886513158,
+          "text": "no"
+        },
+        "ok": true,
+        "src": "assets/uml/W5-pipeline-release.svg",
+        "w": 909.96875,
+        "x": 185.015625,
+        "y": 127.875
+      }
+    ],
+    "inlineMin": null,
+    "kind": "back",
+    "n": 147,
+    "outside": [],
+    "sec": "Backup",
+    "small": []
+  }
+]

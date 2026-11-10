@@ -1,0 +1,40 @@
+@startuml
+!include _style.iuml
+title Process view · Processing work and return projection · 76282d3
+skinparam defaultFontSize 21
+skinparam ArrowFontSize 21
+skinparam NoteFontSize 17
+skinparam titleFontSize 22
+skinparam LegendFontSize 22
+skinparam BackgroundColor #ffffff
+hide footbox
+database "processing_db" as pd $PROC
+participant "Processing\nrelay" as relay $PROC
+queue "ProcessingWorkQueue\nProcessingShortWorkQueue" as work $INFRA
+participant "Encoder" as encoder $PROC
+queue "MediaResults\nQueue" as results $INFRA
+participant "MediaResults" as mr $MEDIA
+database "media_db" as md $MEDIA
+
+relay -> pd : 9  Reserve outbox
+relay -> work : 10  await SendMessage(work)
+alt short lane: ProcessingShortWorkQueue
+  work ->> encoder : 11a  Lambda mapping invokes\nProcessingShortEncoder
+else standard lane: ProcessingWorkQueue
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L309-L316
+  encoder -> work : 11b  ReceiveMessage (long-poll)
+  work --> encoder : 11c  work body
+end
+encoder -> pd : 12  Claim, then finish\n(separate state + result commits)
+== Later Processing relay pass ==
+relay -> pd : 13  Read result outbox
+relay -> results : 14  await SendMessage(result)
+results ->> mr : 15  SQS mapping
+mr -> md : 16  Inbox + projection\nCOMMIT
+legend bottom
+  Relay = ProcessingCommands (post-commit) / ProcessingRepair (EventBridge: rate(1 minute)).
+  Encoder = selected executor. ECS/S3 hint handlers also relay. Send replies omitted.
+  Filled head = call; open head = async delivery; dashed = reply. Results stage in SQL before SQS.
+  Blue = Media; amber = Processing; slate = SQS.
+endlegend
+@enduml

@@ -1,0 +1,37 @@
+@startuml
+!include _style.iuml
+title Information flow · result replay and version fencing · 76282d3
+skinparam defaultFontSize 22
+skinparam ArrowFontSize 21
+skinparam NoteFontSize 19
+skinparam titleFontSize 22
+skinparam LegendFontSize 18
+skinparam BackgroundColor #ffffff
+hide footbox
+participant "MediaResults" as results $MEDIA
+database "MediaInbox\nmedia_db" as inbox $MEDIA
+participant "media.projections\napply_result()" as projection $MEDIA
+results -> inbox : 1  accept(): insert / compare\n(message_id, canonical body hash)
+alt same message_id + same body
+  inbox --> results : 2a  Duplicate: no projection mutation
+else same message_id + different body
+  inbox --> results : 2b  MessageConflict: rollback / batch failure
+else new message_id
+  results -> projection : 2c  apply_result(session, body)
+  note over projection
+    Identity / job / source checks precede version checks.
+    Example: live Asset, valid result, stored state_version = 3:
+    incoming v2: ignore stale state
+    v3, identical semantic content: ignore replay
+    v3, DIFFERENT content: reject conflict
+    v4: apply only if attempt / transition fences pass
+    Semantic content excludes message_id.
+  end note
+end
+note over results,projection
+  Inbox + projection share ONE transaction; conflict rolls back both.
+end note
+legend bottom
+  Blue = Media-owned. Solid = call; dashed = return. Snapshot projection, not event sourcing.
+endlegend
+@enduml

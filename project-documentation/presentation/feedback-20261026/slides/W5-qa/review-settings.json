@@ -1,0 +1,54 @@
+{
+  "checked_at_utc": "2026-10-26T09:08:32.337Z",
+  "repository": "Collaboration95/dc2",
+  "transport": "authenticated gh CLI; read-only",
+  "requests": [
+    {
+      "command": "gh api repos/Collaboration95/dc2/branches/Main --jq '{name,protected,protection_url}'",
+      "exit_code": 0,
+      "response": {
+        "name": "Main",
+        "protected": false,
+        "protection_url": "https://api.github.com/repos/Collaboration95/dc2/branches/Main/protection"
+      },
+      "raw_output": "{\"name\":\"Main\",\"protected\":false,\"protection_url\":\"https://api.github.com/repos/Collaboration95/dc2/branches/Main/protection\"}\n"
+    },
+    {
+      "command": "gh api repos/Collaboration95/dc2/branches/Main/protection",
+      "exit_code": 1,
+      "response": {
+        "message": "Branch not protected",
+        "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-branch-protection",
+        "status": "404"
+      },
+      "raw_output": "{\"message\":\"Branch not protected\",\"documentation_url\":\"https://docs.github.com/rest/branches/branch-protection#get-branch-protection\",\"status\":\"404\"}gh: Branch not protected (HTTP 404)\n"
+    },
+    {
+      "command": "gh api repos/Collaboration95/dc2/rules/branches/Main",
+      "exit_code": 0,
+      "response": [],
+      "raw_output": "[]"
+    },
+    {
+      "command": "gh api repos/Collaboration95/dc2/code-scanning/default-setup",
+      "exit_code": 0,
+      "response": {
+        "state": "configured",
+        "languages": [
+          "actions",
+          "javascript",
+          "javascript-typescript",
+          "python",
+          "typescript"
+        ],
+        "query_suite": "default",
+        "threat_model": "remote",
+        "updated_at": "2026-10-21T08:19:45Z",
+        "schedule": "weekly",
+        "runner_type": "standard",
+        "runner_label": ""
+      },
+      "raw_output": "{\"state\":\"configured\",\"languages\":[\"actions\",\"javascript\",\"javascript-typescript\",\"python\",\"typescript\"],\"query_suite\":\"default\",\"threat_model\":\"remote\",\"updated_at\":\"2026-10-21T08:19:45Z\",\"schedule\":\"weekly\",\"runner_type\":\"standard\",\"runner_label\":\"\"}"
+    }
+  ]
+}

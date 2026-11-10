@@ -1,0 +1,29 @@
+!include _style.iuml
+@startuml W5-pipeline-full
+!include _style.iuml
+skinparam defaultFontSize 25
+skinparam activityFontSize 25
+skinparam ArrowFontSize 18
+skinparam titleFontSize 25
+skinparam ranksep 12
+skinparam nodesep 12
+title Activity view · full CI dependencies · as built at 76282d3
+partition "CI event" {
+  (*) --> "Full CI event\nPR / Main / dispatch / weekly" as event $INFRA
+}
+partition "GitHub Actions · full verification" {
+  event --> ===checks===
+  ===checks=== --> "SAST · Ruff S\nSCA · npm audit\nRequired jobs" as source $INFRA
+  ===checks=== --> "Secrets · gitleaks\nRequired on every CI" as secrets $PROC
+  ===checks=== --> "Images · Trivy\nInherited + V1\nV1 identity + evidence\nBoth: fixable H/C" as images #F3E8FF
+  ===checks=== --> "DAST · local ZAP\nRequire execution,\ncoverage and cleanup\nFindings REPORT-ONLY" as zap #FFE4E6
+  ===checks=== --> "Tests / owner builds\nCombined coverage\nRequired jobs" as tests $INFRA
+  source --> ===results===
+  secrets --> ===results===
+  images --> ===results===
+  zap --> ===results===
+  tests --> ===results===
+  ===results=== --> "Full verification result\nReject failed / invalid jobs" as aggregate $INFRA
+  aggregate --> (*)
+}
+@enduml

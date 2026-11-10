@@ -1,0 +1,114 @@
+[
+  {
+    "slide": "s28",
+    "figure": "W3-03-a-intake-classes",
+    "width": 1212.0,
+    "height": 417.0,
+    "scale": 0.9736,
+    "min_font_px": 13.63
+  },
+  {
+    "slide": "w3-media-components",
+    "figure": "W3-01-media-components",
+    "width": 1331.0,
+    "height": 614.0,
+    "scale": 0.8713,
+    "min_font_px": 12.2
+  },
+  {
+    "slide": "w3-processing-components",
+    "figure": "W3-02-processing-components",
+    "width": 1176.0,
+    "height": 598.0,
+    "scale": 0.8946,
+    "min_font_px": 12.53
+  },
+  {
+    "slide": "s29",
+    "figure": "W3-06-a1-upload",
+    "width": 789.0,
+    "height": 637.0,
+    "scale": 0.8399,
+    "min_font_px": 12.6
+  },
+  {
+    "slide": "s30",
+    "figure": "W3-07-a2-submit-execute",
+    "width": 1145.0,
+    "height": 678.0,
+    "scale": 0.7891,
+    "min_font_px": 11.84
+  },
+  {
+    "slide": "s31",
+    "figure": "W3-08-a3-result-play",
+    "width": 1080.0,
+    "height": 626.0,
+    "scale": 0.8546,
+    "min_font_px": 12.82
+  },
+  {
+    "slide": "w3-hls",
+    "figure": "W3-22-hls-playback",
+    "width": 1173.0,
+    "height": 600.0,
+    "scale": 0.8917,
+    "min_font_px": 13.38
+  },
+  {
+    "slide": "w3-edit",
+    "figure": "W3-14-edit",
+    "width": 906.0,
+    "height": 664.0,
+    "scale": 0.8057,
+    "min_font_px": 12.09
+  },
+  {
+    "slide": "w3-edit",
+    "figure": "W3-14a-edit-relay",
+    "width": 423.0,
+    "height": 560.0,
+    "scale": 0.922,
+    "min_font_px": 14.75
+  },
+  {
+    "slide": "w3-b-classes",
+    "figure": "W3-10-b-classes",
+    "width": 1159.0,
+    "height": 362.0,
+    "scale": 1,
+    "min_font_px": 14.0
+  },
+  {
+    "slide": "w3-expiry",
+    "figure": "W3-11-b1-expiry",
+    "width": 1042.0,
+    "height": 579.0,
+    "scale": 0.924,
+    "min_font_px": 13.86
+  },
+  {
+    "slide": "w3-retry",
+    "figure": "W3-12-b2-retry",
+    "width": 728.0,
+    "height": 607.0,
+    "scale": 0.8814,
+    "min_font_px": 13.22
+  },
+  {
+    "slide": "w3-retry-accept",
+    "figure": "W3-12a-processing-retry",
+    "width": 635.0,
+    "height": 634.0,
+    "scale": 0.8438,
+    "min_font_px": 11.81
+  },
+  {
+    "slide": "w3-stale",
+    "figure": "W3-13-b3-fence",
+    "width": 1184.0,
+    "height": 508.0,
+    "scale": 0.9966,
+    "min_font_px": 14.95
+  }
+]

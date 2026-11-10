@@ -1,0 +1,44 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1198-L1266
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L501-L547
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1500
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher.py#L90-L124
+ title Deployment view · dc2-live · ap-southeast-1 · source configuration 76282d3
+ top to bottom direction
+ skinparam defaultFontSize 24
+ skinparam ArrowFontSize 22
+ skinparam titleFontSize 22
+ skinparam LegendFontSize 20
+ skinparam nodesep 18
+ skinparam ranksep 16
+ node "Browser / CLI" as client <<device>> $CLIENT
+ node "CloudFront (global)" as cf $INFRA
+ node "HTTP API\nREQUEST authorizer + 2 integrations" as api $INFRA
+ client -right-> cf : HTTPS
+ cf -right-> api : /api/*
+ node "Vpc · 2 AZs · 10.62.0.0/16 + IPv6" {
+  node "Private A+B · compute / SQL choices" {
+   node "Media · 4 Lambdas\nMediaApi + MediaAuthorizer\n+ results / repair" as media <<executionEnvironment>> $MEDIA
+   node "Processing · 7 Lambdas\nAPI + control handlers\n+ short encoder + launcher" as proc <<executionEnvironment>> $PROC
+   database "Media Aurora\n1 instance · 0–2 ACU" as mdb $MEDIA
+   database "Processing Aurora\n1 instance · 0–2 ACU" as pdb $PROC
+   media -[hidden]right- proc
+   mdb -[hidden]right- pdb
+  }
+  node "Public A+B · task deployment set" {
+   node "Fargate · 0..3 encoders\n2 vCPU / 4096 MiB" as worker <<executionEnvironment>> $PROC
+  }
+ }
+ api --> media : REQUEST → MediaAuthorizer\nMedia integration → MediaApi
+ api --> proc : ProcessingApi integration\n(protected: after auth)
+ media --> mdb : SQL
+ proc --> pdb : SQL
+ proc -right[dashed]-> worker : ProcessingLauncher\nRunTask
+ worker -[norank]-> pdb : claim / finish
+ legend bottom
+ Blue Media · amber Processing · slate AWS · green client.
+ Solid: labelled runtime calls; dashed: launch. A+B are placement choices.
+ endlegend
+@enduml

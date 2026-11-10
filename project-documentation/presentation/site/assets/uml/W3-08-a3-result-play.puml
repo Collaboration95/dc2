@@ -1,0 +1,59 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Sequence view · UC-3 commits a Media result projection · 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery_v1.py#L166
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L16
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L258
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_jobs.py#L43
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_hls.py#L25
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L191
+skinparam ArrowFontSize 17
+skinparam defaultFontSize 18
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+participant "handlers\n«Media module»" as H $MEDIA
+participant "messaging\n«Media module»" as M $MEDIA
+participant "projections\n«Media module»" as P $MEDIA
+participant "s: AsyncSession" as DB $INFRA
+[->> H : SQS event-source mapping result delivery
+activate H
+ H -> M : consume_result(s,body,apply_result)
+ activate M
+ group Media result transaction
+  M -> DB : SQL: accept inbox UUID/hash
+   M -> P : apply_result(s,body)
+   activate P
+   P -> DB : SQL: lock Asset; read accepted source + projection
+   P -> P : validate_transition(current,event)
+   opt validate_transition returned True
+    P -> DB : SQL: flush projection + Asset
+   end
+   P --> M : bool (False for stale state)
+   deactivate P
+  M -> DB : COMMIT inbox + accepted state
+ end
+ M --> H : True for new inbox
+ deactivate M
+[<-- H : batchItemFailures (exceptions roll back and fail record)
+deactivate H
+legend bottom
+New inbox identity shown; callback is handlers.consume_results.handle. Replay skips apply_result.
+Stale state commits inbox; conflict rolls back. W3-13a details guards; W3-08a shows the later read.
+endlegend
+@enduml

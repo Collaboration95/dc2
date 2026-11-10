@@ -1,0 +1,113 @@
+{
+  "commit": "76282d3b5a141f6548056f2506f9d5aff0742692",
+  "scope": "Source-configured persistent live features; no live AWS calls",
+  "resources": {
+    "AWS::Lambda::Function": 11,
+    "AWS::SQS::Queue": 8,
+    "AWS::CloudWatch::Alarm": 15,
+    "AWS::Events::Rule": 5,
+    "AWS::Lambda::EventSourceMapping": 3,
+    "AWS::RDS::DBCluster": 2,
+    "AWS::RDS::DBInstance": 2
+  },
+  "functions": [
+    "MediaApi",
+    "MediaAuthorizer",
+    "ProcessingApi",
+    "ProcessingCommands",
+    "MediaResults",
+    "MediaRepair",
+    "ProcessingRepair",
+    "ProcessingEcsEvents",
+    "ProcessingS3Events",
+    "ProcessingLauncher",
+    "ProcessingShortEncoder"
+  ],
+  "queues": [
+    "ProcessingCommandsDlq",
+    "ProcessingCommandsQueue",
+    "ProcessingWorkDlq",
+    "ProcessingWorkQueue",
+    "MediaResultsDlq",
+    "MediaResultsQueue",
+    "ProcessingShortWorkDlq",
+    "ProcessingShortWorkQueue"
+  ],
+  "alarms": [
+    "ProcessingCommandsDlqAlarm",
+    "ProcessingWorkDlqAlarm",
+    "MediaResultsDlqAlarm",
+    "ProcessingShortWorkDlqAlarm",
+    "MediaApiErrorsAlarm",
+    "MediaAuthorizerErrorsAlarm",
+    "ProcessingApiErrorsAlarm",
+    "ProcessingCommandsErrorsAlarm",
+    "MediaResultsErrorsAlarm",
+    "MediaRepairErrorsAlarm",
+    "ProcessingRepairErrorsAlarm",
+    "ProcessingEcsEventsErrorsAlarm",
+    "ProcessingS3EventsErrorsAlarm",
+    "ProcessingLauncherErrorsAlarm",
+    "ProcessingShortEncoderErrorsAlarm"
+  ],
+  "table_names": {
+    "media": [
+      "asset_source_versions",
+      "assets",
+      "cleanup_intents",
+      "message_inbox",
+      "message_outbox",
+      "processing_projections",
+      "request_keys",
+      "retry_intents",
+      "staged_objects",
+      "upload_reservations",
+      "users"
+    ],
+    "processing": [
+      "attempt_tasks",
+      "attempts",
+      "cleanup_intents",
+      "job_messaging",
+      "jobs",
+      "launch_reservations",
+      "launcher_control",
+      "message_inbox",
+      "message_outbox",
+      "retry_requests",
+      "submission_guards"
+    ]
+  },
+  "encoder_caps": {
+    "fargate": 3,
+    "short_lambda": 2,
+    "combined": 5
+  },
+  "admission": {
+    "bytes": 67108864,
+    "duration_s": 60.0,
+    "height_px": 1080
+  },
+  "executor": {
+    "memory_mb": 3008,
+    "scratch_mb": 2048,
+    "timeout_s": 900,
+    "pipeline_deadline_s": 720
+  },
+  "message_kinds": [
+    "submit",
+    "retry",
+    "cancel",
+    "work",
+    "result"
+  ],
+  "openapi_documents": [
+    "docs/api/media.openapi.json",
+    "docs/api/processing.openapi.json"
+  ],
+  "publisher": {
+    "python_files": 5,
+    "python_lines_including_comments_and_blanks": 495,
+    "service_imports": 0
+  }
+}

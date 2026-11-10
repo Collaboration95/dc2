@@ -1,0 +1,23 @@
+{
+  "currentNotesHeader": "Slide 147 · w5-releaseW5 · w5-releasePoint at source admission. Automatic CD val",
+  "jumps": [
+    {
+      "actual": "s48",
+      "expected": "s48",
+      "number": 61,
+      "ok": true
+    },
+    {
+      "actual": "s60",
+      "expected": "s60",
+      "number": 89,
+      "ok": true
+    },
+    {
+      "actual": "w5-release",
+      "expected": "w5-release",
+      "number": 147,
+      "ok": true
+    }
+  ]
+}

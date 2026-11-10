@@ -1,0 +1,40 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+skinparam nodesep 25
+skinparam ranksep 28
+title Activity view · Queued delivery repair and interrupted execution · 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery_v1.py#L84
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery_v1.py#L252
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L40
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L24
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L155
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L33
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+skinparam maxMessageSize 380
+start
+if (Current nondeleted queued pair, dispatch due?) then (yes)
+ :repair_work: lock/recheck;\nmissing work row -> stage stable ID;\nsent + no claim token -> rearm;\notherwise publisher retains it;
+ :advance next_dispatch_at; COMMIT;\nrelay; SAME Attempt UUID;
+else (no)
+ if (Execution interruption eligible?) then (yes)
+  :lock_pair + processing-state recheck;\ninterrupt -> abandoned Attempt / failed Job;\ncleanup + result; COMMIT;
+  :relay failed result; Media projects it;\nowner retry -> NEW Attempt UUID;
+ else (no)
+  :No recovery mutation;
+ endif
+endif
+stop
+legend bottom
+Interruption eligible = current nondeleted processing pair AND (expired lease/deadline OR matched STOPPED).
+Queued repair restores delivery intent; interruption waits for owner retry. 120s is a target, not measured latency.
+endlegend
+@enduml

@@ -1,0 +1,66 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam classAttributeIconSize 0
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+skinparam nodesep 25
+skinparam ranksep 28
+title Class view · UC-2 executes under a frozen Claim\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L15
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging_models.py#L42
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L124
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/tasks.py#L16
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/supervisor.py#L25
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/source.py#L12
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/storage.py#L26
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_lane.py#L124
+
+left to right direction
+class "Job (processing.models)" as J <<ORM>> $PROC {
+ + id: UUID
+ + asset_id: UUID
+ + source: dict
+ + operations: list
+ + status: str
+ + current_attempt_id: UUID
+ + outputs: list
+}
+class "Attempt (processing.models)" as A <<ORM>> $PROC {
+ + id: UUID
+ + job_id: UUID
+ + attempt_number: int
+ + state: str
+ + lease_token: UUID | None
+}
+class "Claim (processing.lifecycle)" as C <<frozen dataclass>> $PROC {
+ + job_id: UUID
+ + attempt_id: UUID
+ + lease_token: UUID
+ + owner_id: UUID
+ + source: dict
+ + operations: list
+ + source_url: str
+ + source_url_expires_at: datetime
+ + deadline_at: datetime
+}
+class "AttemptTask (messaging_models)" as B <<ORM>> $PROC {
+ + attempt_id: UUID
+ + task_name: str
+}
+J "1" -- "1..*" A : job_id
+J "0..1" --> "1" A : current_attempt_id
+C ..> J : execution snapshot
+C ..> A : token authority
+A "1" -right- "0..1" B
+legend bottom
++ public; - internal by Python convention; underlined = class/module scope.
+Selected Mapped[T] fields shown as T. Claim's field bindings are frozen; source/operations remain mutable dict/list (source_url has repr=False).
+Claim is returned by processing.lifecycle.claim, not an entity method. Supervisor.work holds this snapshot.
+AttemptTask.task_name is SQL UNIQUE. Functions/adapters: W3-19; retry/lease functions: W3-21.
+endlegend
+
+@enduml

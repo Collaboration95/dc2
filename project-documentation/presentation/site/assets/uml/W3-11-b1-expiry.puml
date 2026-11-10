@@ -1,0 +1,58 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Sequence view · UC-4 expires execution authority · 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery_v1.py#L183
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L40
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L24
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L28
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L102
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+skinparam maxMessageSize 350
+participant "recovery_v1\n«module»" as V $PROC
+participant "recovery\n«module»" as R $PROC
+participant "lifecycle\n«module»" as L $PROC
+participant "messaging\n«module»" as M $PROC
+participant "s: AsyncSession" as DB $INFRA
+V -> R : recover_expired(f,limit=limit,\non_change=emit_state,job_filter=v1_job_filter)
+activate R
+loop selected pair (one transaction each)
+ R -> L : lock_pair(s,jid,aid)
+ activate L
+ L --> R : pair or None
+ deactivate L
+ alt current/nondeleted, both processing, lease/deadline expired at db_now(s)
+  R -> R : interrupt(s,job,attempt,now,message,emit_state)
+  R -> DB : SQL: Job=failed; Attempt=abandoned; cleanup intent
+  R -> M : emit_state(s,job,attempt)
+  M --> R : state_version: int
+ else concurrent finish / replacement / renewal
+  note over R,DB : No mutation; continue.
+ end
+ R -> DB : COMMIT
+end
+R --> V : recovered count
+deactivate R
+legend bottom
+Selection: current expired pairs filtered by JobMessaging; emit_state increments version and stages failed result.
+v1_job_filter = Job.id.in_(select(JobMessaging.job_id)); expiry never requeues A1.
+endlegend
+@enduml

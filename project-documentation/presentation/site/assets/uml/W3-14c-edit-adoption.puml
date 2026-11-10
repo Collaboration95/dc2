@@ -1,0 +1,62 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Sequence view · Edit adopts the pin and submit intent atomically · 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_jobs.py#L55
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L105
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L145
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L75
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L209
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/intake.py#L54
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L70
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L58
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1766
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+skinparam maxMessageSize 380
+participant "v1_lifecycle\n«module»" as E $MEDIA
+participant "direct_intake\n«module»" as D $MEDIA
+participant "storage: Storage" as S $MEDIA
+participant "messaging\n«Media module»" as M $MEDIA
+participant "s: AsyncSession" as DB $INFRA
+activate E
+group Adoption transaction after copy (W3-14b)
+ E -> DB : SQL: lock/check staged row; add/flush derived Asset
+ E -> D : pin_copied_source(s,storage,asset) [via wrapper]
+ activate D
+ D -> S : verify_direct_upload(descriptor,check_content=False)
+ activate S
+ S --> D : VersionId: str
+ deactivate S
+ D --> E : pin: dict (SourceVersion added/flushed)
+ deactivate D
+ E -> DB : SQL: optional RequestKey; flush
+ E -> M : stage_command(s,body) [stage_submit -> command]
+ activate M
+ M -> DB : SQL: stage MediaOutbox submit
+ M --> E : message_id: UUID
+ deactivate M
+ E -> DB : SQL: delete staged ledger; COMMIT
+end
+deactivate E
+legend bottom
+Pin wrapper and stage_submit/command are v1_lifecycle functions. body is the submit Envelope dict.
+edit returns Asset to v1_jobs.edit for HTTP 202. IntegrityError loser discards its copy and replays winner.
+endlegend
+@enduml

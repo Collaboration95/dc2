@@ -1,0 +1,32 @@
+@startuml
+!include _style.iuml
+title Process view · Media acceptance and command handoff · 76282d3
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 20
+skinparam NoteFontSize 18
+skinparam titleFontSize 22
+skinparam LegendFontSize 18
+skinparam BackgroundColor #ffffff
+skinparam sequenceMessageAlign left
+hide footbox
+participant "MediaApi" as api $MEDIA
+database "media_db" as md $MEDIA
+participant "MediaRepair" as repair $MEDIA
+queue "Processing\nCommandsQueue" as queue $INFRA
+participant "Processing\nCommands" as pc $PROC
+database "processing_db" as pd $PROC
+
+api -> md : 1  Domain + outbox\nCOMMIT together
+api -->[ : 2  Accepted
+[->> repair : 3  EventBridge: rate(1 minute)
+repair -> md : 4  publish_commands()\nreserve / COMMIT
+' https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L93-L115
+repair -> queue : 5  await SendMessage\nsubmit / retry / cancel
+queue ->> pc : 6  SQS mapping
+pc -> pd : 7  Dedupe + domain\n+ outbox; COMMIT
+pc -> pc : 8  publish_outbox()\npost-commit; work/result continuation
+legend bottom
+  Blue = Media; amber = Processing; slate = SQS.
+  Filled head = call; open head = async delivery; dashed = reply. Send replies omitted.
+endlegend
+@enduml

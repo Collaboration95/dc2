@@ -1,0 +1,1782 @@
+{
+  "count": 26,
+  "main": 4,
+  "rows": [
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 611.328125,
+            "h": 509,
+            "right": 1230,
+            "w": 1180,
+            "x": 50,
+            "y": 102.328125
+          },
+          "tag": "TABLE"
+        },
+        {
+          "rect": {
+            "bottom": 652.078125,
+            "h": 28.75,
+            "right": 1220,
+            "w": 1160,
+            "x": 60,
+            "y": 623.328125
+          },
+          "tag": "P"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-stores",
+      "images": [],
+      "kind": "main",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 579.078125,
+            "h": 403.78125,
+            "right": 1229.984375,
+            "w": 1179.96875,
+            "x": 50.015625,
+            "y": 175.296875
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-media-main",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            1380,
+            472
+          ],
+          "rect": {
+            "bottom": 579.078125,
+            "h": 403.78125,
+            "right": 1229.984375,
+            "w": 1179.96875,
+            "x": 50.015625,
+            "y": 175.296875
+          },
+          "src": "../../../site/assets/uml/W4-media-main.svg"
+        }
+      ],
+      "kind": "main",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 637.1875,
+            "h": 520,
+            "right": 1199.09375,
+            "w": 1118.203125,
+            "x": 80.890625,
+            "y": 117.1875
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-processing-main",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            1262,
+            587
+          ],
+          "rect": {
+            "bottom": 637.1875,
+            "h": 520,
+            "right": 1199.09375,
+            "w": 1118.203125,
+            "x": 80.890625,
+            "y": 117.1875
+          },
+          "src": "../../../site/assets/uml/W4-processing-main.svg"
+        }
+      ],
+      "kind": "main",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 540.203125,
+            "h": 395.53125,
+            "right": 1230,
+            "w": 1180,
+            "x": 50,
+            "y": 144.671875
+          },
+          "tag": "TABLE"
+        },
+        {
+          "rect": {
+            "bottom": 609.703125,
+            "h": 57.5,
+            "right": 1220,
+            "w": 1160,
+            "x": 60,
+            "y": 552.203125
+          },
+          "tag": "P"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-keys",
+      "images": [],
+      "kind": "main",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 637.1875,
+            "h": 520,
+            "right": 992.046875,
+            "w": 704.109375,
+            "x": 287.9375,
+            "y": 117.1875
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-media-assets",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            798,
+            589
+          ],
+          "rect": {
+            "bottom": 637.1875,
+            "h": 520,
+            "right": 992.046875,
+            "w": 704.109375,
+            "x": 287.9375,
+            "y": 117.1875
+          },
+          "src": "../../../site/assets/uml/W4-media-assets.svg"
+        }
+      ],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 637.1875,
+            "h": 520,
+            "right": 950.78125,
+            "w": 621.5625,
+            "x": 329.21875,
+            "y": 117.1875
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-media-upload",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            764,
+            639
+          ],
+          "rect": {
+            "bottom": 637.1875,
+            "h": 520,
+            "right": 950.78125,
+            "w": 621.5625,
+            "x": 329.21875,
+            "y": 117.1875
+          },
+          "src": "../../../site/assets/uml/W4-media-upload.svg"
+        }
+      ],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 558.234375,
+            "h": 362.078125,
+            "right": 1022.125,
+            "w": 764.25,
+            "x": 257.875,
+            "y": 196.15625
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-media-pins",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            764,
+            362
+          ],
+          "rect": {
+            "bottom": 558.234375,
+            "h": 362.078125,
+            "right": 1022.125,
+            "w": 764.25,
+            "x": 257.875,
+            "y": 196.15625
+          },
+          "src": "../../../site/assets/uml/W4-media-pins.svg"
+        }
+      ],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 589.171875,
+            "h": 423.953125,
+            "right": 1022.125,
+            "w": 764.25,
+            "x": 257.875,
+            "y": 165.21875
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-media-projection",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            764,
+            424
+          ],
+          "rect": {
+            "bottom": 589.171875,
+            "h": 423.953125,
+            "right": 1022.125,
+            "w": 764.25,
+            "x": 257.875,
+            "y": 165.21875
+          },
+          "src": "../../../site/assets/uml/W4-media-projection.svg"
+        }
+      ],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 575.421875,
+            "h": 396.453125,
+            "right": 1022.125,
+            "w": 764.25,
+            "x": 257.875,
+            "y": 178.96875
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-media-intents",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            764,
+            396
+          ],
+          "rect": {
+            "bottom": 575.421875,
+            "h": 396.453125,
+            "right": 1022.125,
+            "w": 764.25,
+            "x": 257.875,
+            "y": 178.96875
+          },
+          "src": "../../../site/assets/uml/W4-media-intents.svg"
+        }
+      ],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 609.21875,
+            "h": 464.046875,
+            "right": 1078.828125,
+            "w": 877.671875,
+            "x": 201.15625,
+            "y": 145.171875
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-media-retry",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            878,
+            464
+          ],
+          "rect": {
+            "bottom": 609.21875,
+            "h": 464.046875,
+            "right": 1078.828125,
+            "w": 877.671875,
+            "x": 201.15625,
+            "y": 145.171875
+          },
+          "src": "../../../site/assets/uml/W4-media-retry.svg"
+        }
+      ],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 547.921875,
+            "h": 341.453125,
+            "right": 1032.4375,
+            "w": 784.875,
+            "x": 247.5625,
+            "y": 206.46875
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-media-cleanup",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            785,
+            341
+          ],
+          "rect": {
+            "bottom": 547.921875,
+            "h": 341.453125,
+            "right": 1032.4375,
+            "w": 784.875,
+            "x": 247.5625,
+            "y": 206.46875
+          },
+          "src": "../../../site/assets/uml/W4-media-cleanup.svg"
+        }
+      ],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 578.859375,
+            "h": 403.328125,
+            "right": 1126.96875,
+            "w": 973.9375,
+            "x": 153.03125,
+            "y": 175.53125
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-media-delivery",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            974,
+            403
+          ],
+          "rect": {
+            "bottom": 578.859375,
+            "h": 403.328125,
+            "right": 1126.96875,
+            "w": 973.9375,
+            "x": 153.03125,
+            "y": 175.53125
+          },
+          "src": "../../../site/assets/uml/W4-media-delivery.svg"
+        }
+      ],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 637.1875,
+            "h": 520,
+            "right": 1080.8125,
+            "w": 881.640625,
+            "x": 199.171875,
+            "y": 117.1875
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-processing-attempts",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            944,
+            557
+          ],
+          "rect": {
+            "bottom": 637.1875,
+            "h": 520,
+            "right": 1080.8125,
+            "w": 881.640625,
+            "x": 199.171875,
+            "y": 117.1875
+          },
+          "src": "../../../site/assets/uml/W4-processing-attempts.svg"
+        }
+      ],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 637.1875,
+            "h": 520,
+            "right": 1031.46875,
+            "w": 782.9375,
+            "x": 248.53125,
+            "y": 117.1875
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-processing-intents",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            914,
+            607
+          ],
+          "rect": {
+            "bottom": 637.1875,
+            "h": 520,
+            "right": 1031.46875,
+            "w": 782.9375,
+            "x": 248.53125,
+            "y": 117.1875
+          },
+          "src": "../../../site/assets/uml/W4-processing-intents.svg"
+        }
+      ],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 575.421875,
+            "h": 396.453125,
+            "right": 1022.125,
+            "w": 764.25,
+            "x": 257.875,
+            "y": 178.96875
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-processing-cleanup",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            764,
+            396
+          ],
+          "rect": {
+            "bottom": 575.421875,
+            "h": 396.453125,
+            "right": 1022.125,
+            "w": 764.25,
+            "x": 257.875,
+            "y": 178.96875
+          },
+          "src": "../../../site/assets/uml/W4-processing-cleanup.svg"
+        }
+      ],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 578.859375,
+            "h": 403.328125,
+            "right": 1022.125,
+            "w": 764.25,
+            "x": 257.875,
+            "y": 175.53125
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-processing-delivery",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            764,
+            403
+          ],
+          "rect": {
+            "bottom": 578.859375,
+            "h": 403.328125,
+            "right": 1022.125,
+            "w": 764.25,
+            "x": 257.875,
+            "y": 175.53125
+          },
+          "src": "../../../site/assets/uml/W4-processing-delivery.svg"
+        }
+      ],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 575.421875,
+            "h": 396.453125,
+            "right": 1022.125,
+            "w": 764.25,
+            "x": 257.875,
+            "y": 178.96875
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-processing-bindings",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            764,
+            396
+          ],
+          "rect": {
+            "bottom": 575.421875,
+            "h": 396.453125,
+            "right": 1022.125,
+            "w": 764.25,
+            "x": 257.875,
+            "y": 178.96875
+          },
+          "src": "../../../site/assets/uml/W4-processing-bindings.svg"
+        }
+      ],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 637.1875,
+            "h": 520,
+            "right": 1051.796875,
+            "w": 823.59375,
+            "x": 228.203125,
+            "y": 117.1875
+          },
+          "tag": "IMG"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-processing-launcher",
+      "images": [
+        {
+          "loaded": true,
+          "native": [
+            855,
+            540
+          ],
+          "rect": {
+            "bottom": 637.1875,
+            "h": 520,
+            "right": 1051.796875,
+            "w": 823.59375,
+            "x": 228.203125,
+            "y": 117.1875
+          },
+          "src": "../../../site/assets/uml/W4-processing-launcher.svg"
+        }
+      ],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 467.609375,
+            "h": 262.34375,
+            "right": 1230,
+            "w": 1180,
+            "x": 50,
+            "y": 205.265625
+          },
+          "tag": "DIV"
+        },
+        {
+          "rect": {
+            "bottom": 508.359375,
+            "h": 28.75,
+            "right": 1220,
+            "w": 1160,
+            "x": 60,
+            "y": 479.609375
+          },
+          "tag": "P"
+        },
+        {
+          "rect": {
+            "bottom": 549.109375,
+            "h": 28.75,
+            "right": 1220,
+            "w": 1160,
+            "x": 60,
+            "y": 520.359375
+          },
+          "tag": "P"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-envelope",
+      "images": [],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 555.78125,
+            "h": 426.6875,
+            "right": 1230,
+            "w": 1180,
+            "x": 50,
+            "y": 129.09375
+          },
+          "tag": "TABLE"
+        },
+        {
+          "rect": {
+            "bottom": 625.28125,
+            "h": 57.5,
+            "right": 1220,
+            "w": 1160,
+            "x": 60,
+            "y": 567.78125
+          },
+          "tag": "P"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-kinds",
+      "images": [],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 486.4375,
+            "h": 288,
+            "right": 1218,
+            "w": 1156,
+            "x": 62,
+            "y": 198.4375
+          },
+          "tag": "PRE"
+        },
+        {
+          "rect": {
+            "bottom": 555.9375,
+            "h": 57.5,
+            "right": 1220,
+            "w": 1160,
+            "x": 60,
+            "y": 498.4375
+          },
+          "tag": "P"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-cancel-ack",
+      "images": [],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 560.15625,
+            "h": 406.6875,
+            "right": 1230,
+            "w": 1180,
+            "x": 50,
+            "y": 153.46875
+          },
+          "tag": "TABLE"
+        },
+        {
+          "rect": {
+            "bottom": 600.90625,
+            "h": 28.75,
+            "right": 1220,
+            "w": 1160,
+            "x": 60,
+            "y": 572.15625
+          },
+          "tag": "P"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-json-descriptors",
+      "images": [],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 428.1875,
+            "h": 241,
+            "right": 1230,
+            "w": 1180,
+            "x": 50,
+            "y": 187.1875
+          },
+          "tag": "TABLE"
+        },
+        {
+          "rect": {
+            "bottom": 497.6875,
+            "h": 57.5,
+            "right": 1220,
+            "w": 1160,
+            "x": 60,
+            "y": 440.1875
+          },
+          "tag": "P"
+        },
+        {
+          "rect": {
+            "bottom": 567.1875,
+            "h": 57.5,
+            "right": 1220,
+            "w": 1160,
+            "x": 60,
+            "y": 509.6875
+          },
+          "tag": "P"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-operations",
+      "images": [],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 539.125,
+            "h": 323.875,
+            "right": 1230,
+            "w": 1180,
+            "x": 50,
+            "y": 215.25
+          },
+          "tag": "TABLE"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-support-stores",
+      "images": [],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 527.375,
+            "h": 300.375,
+            "right": 1230,
+            "w": 1180,
+            "x": 50,
+            "y": 227
+          },
+          "tag": "TABLE"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-support-ops",
+      "images": [],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    },
+    {
+      "body": {
+        "bottom": 644,
+        "h": 533.609375,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      },
+      "content": [
+        {
+          "rect": {
+            "bottom": 541.890625,
+            "h": 439.625,
+            "right": 1230,
+            "w": 1180,
+            "x": 50,
+            "y": 102.265625
+          },
+          "tag": "TABLE"
+        },
+        {
+          "rect": {
+            "bottom": 582.640625,
+            "h": 28.75,
+            "right": 1220,
+            "w": 1160,
+            "x": 60,
+            "y": 553.890625
+          },
+          "tag": "P"
+        },
+        {
+          "rect": {
+            "bottom": 652.140625,
+            "h": 57.5,
+            "right": 1220,
+            "w": 1160,
+            "x": 60,
+            "y": 594.640625
+          },
+          "tag": "P"
+        }
+      ],
+      "foot": {
+        "bottom": 720,
+        "h": 38,
+        "right": 1280,
+        "w": 1280,
+        "x": 0,
+        "y": 682
+      },
+      "head": {
+        "bottom": 78.390625,
+        "h": 48.390625,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 30
+      },
+      "horizontalOverflow": false,
+      "id": "w4-adr",
+      "images": [],
+      "kind": "back",
+      "tag": {
+        "bottom": 102.390625,
+        "h": 18,
+        "right": 1230,
+        "w": 1180,
+        "x": 50,
+        "y": 84.390625
+      },
+      "verticalOverlap": false,
+      "minSampledHtmlText": 16
+    }
+  ],
+  "viewport": [
+    1280,
+    720
+  ],
+  "text_sample_note": "Sampled h1, td, th, p, a, foot and sec elements; course-tag text is 15px. SVG text was measured separately in figure-legibility.json."
+}

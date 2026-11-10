@@ -1,0 +1,264 @@
+<!DOCTYPE html><html><head><base href="../../"><meta charset="utf-8"><title>W2 review</title><style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;color:#0f172a}
+#stage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;background:#fff;overflow:hidden}
+#bar{position:absolute;left:0;top:0;height:6px;width:0;background:#2563EB;z-index:5}
+.slide{position:absolute;inset:0;padding:30px 50px 0;display:flex;flex-direction:column;background:#fff;opacity:0;visibility:hidden}
+.slide.active{opacity:1;visibility:visible}
+h1{font-size:44px;line-height:1.1;margin:0 0 16px;font-weight:800;letter-spacing:-.5px;min-height:48px}
+.body{flex:1;position:relative;min-height:0;margin-bottom:76px;display:flex;flex-direction:column;justify-content:center}
+.foot{position:absolute;left:0;right:0;bottom:0;height:38px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;padding:0 50px;font-size:16px;color:#64748b;background:#fff}
+.fr{display:flex;align-items:center;gap:18px}.pl{font-size:13px;color:#64748b;text-decoration:none}.pl:hover{text-decoration:underline;color:#2563EB}
+.sec{position:absolute;top:12px;right:50px;font-size:18px;font-weight:700;color:#64748b}
+.notes{display:none}
+.row{display:flex;align-items:center;gap:14px}
+.col{display:flex;flex-direction:column;gap:14px}
+.fill{flex:1}
+.wrap{flex-wrap:wrap}
+.cc{justify-content:center;align-items:center}
+.box{border:3px solid;border-radius:12px;padding:10px 18px;font-size:26px;font-weight:700;text-align:center;line-height:1.2}
+.sub{display:block;font-size:24px;font-weight:500;opacity:.9;margin-top:2px}
+.m{border-color:#2563EB;background:#DBEAFE;color:#1e3a8a}
+.p{border-color:#D97706;background:#FEF3C7;color:#78350f}
+.c{border-color:#059669;background:#ECFDF5;color:#064e3b}
+.i{border-color:#64748B;background:#F1F5F9;color:#334155}
+.x{border-color:#D55E00;background:#fff4ec;color:#7c2d00}
+.g{border-color:#94a3b8;border-style:dashed;background:#fff;color:#64748b}
+.k{border-color:#0f172a;background:#0f172a;color:#fff}
+.chip{display:inline-block;border:3px solid;border-radius:999px;padding:6px 18px;font-size:24px;font-weight:700}
+.chip.mono,.mono{font-family:Menlo,monospace;font-weight:600}
+.ar{position:relative;width:46px;height:0;border-top:4px solid #64748b;flex:none;margin:0 6px}
+.ar::after{content:"";position:absolute;right:-3px;top:-11px;border-left:15px solid #64748b;border-top:9px solid transparent;border-bottom:9px solid transparent}
+.ar.d{border-top-style:dashed}
+.ar.o{border-top-color:#D55E00}.ar.o::after{border-left-color:#D55E00}
+.ar.gr{border-top-color:#059669}.ar.gr::after{border-left-color:#059669}
+.ar.l{transform:scaleX(-1)}
+.ar.v{width:0;height:42px;border-top:0;border-left:4px solid #64748b;margin:4px 0;align-self:center}
+.ar.v::after{right:auto;top:auto;left:-11px;bottom:-3px;border-left:9px solid transparent;border-right:9px solid transparent;border-top:15px solid #64748b;border-bottom:0}
+.ar.v.o{border-left-color:#D55E00}.ar.v.o::after{border-top-color:#D55E00}
+.cap{font-size:26px;color:#475569;line-height:1.25}
+.cap.c1{text-align:center}
+.lbl{font-size:24px;font-weight:700;color:#475569}
+.big{font-size:104px;font-weight:800;line-height:1}
+.big.pass{color:#059669}.big.miss{color:#D55E00}
+.pass{color:#059669}.miss{color:#D55E00}
+.tile{border:3px solid;border-radius:16px;padding:20px 24px;flex:1;font-size:30px;font-weight:700;line-height:1.2}
+.num{display:inline-flex;width:48px;height:48px;border-radius:50%;background:#0f172a;color:#fff;font-weight:800;font-size:28px;align-items:center;justify-content:center;margin-bottom:10px}
+.card{display:flex;flex-direction:column;gap:12px}
+.card .ad{font:700 30px Menlo,monospace;color:#475569}
+.band{display:flex;border-radius:12px;overflow:hidden;border:2px solid #cbd5e1}
+.band .kk{width:176px;flex:none;background:#0f172a;color:#fff;font-size:24px;font-weight:700;display:flex;align-items:center;padding:0 16px}
+.band .v{padding:14px 20px;font-size:30px;font-weight:700}
+.tbl{border-collapse:collapse;font-size:24px;width:100%}
+.tbl th{text-align:left;color:#475569;font-size:24px;border-bottom:3px solid #0f172a;padding:6px 12px}
+.tbl td{padding:10px 12px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+.stage-row{display:flex;gap:16px;align-items:flex-start;margin-bottom:12px}
+.stage-row .sl{width:200px;flex:none;font-size:24px;font-weight:800;color:#fff;background:#0f172a;border-radius:10px;padding:8px 12px;text-align:center}
+.stage-row .chips{display:flex;flex-wrap:wrap;gap:8px;flex:1}
+.stage-row .chips .chip{font-size:24px;padding:4px 14px;border-width:2px;border-radius:10px;font-weight:600}
+.dia{width:1180px;display:block}
+.dia text{font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:24px;fill:#0f172a;text-anchor:middle;font-weight:700}
+.dia text.s{font-size:24px;font-weight:500}
+.dia text.l{text-anchor:start}
+.dia text.mo{font-family:Menlo,monospace;font-weight:600}
+.dia .sb{stroke-width:3}
+.dia .sb.m{fill:#DBEAFE;stroke:#2563EB}.dia .sb.p{fill:#FEF3C7;stroke:#D97706}.dia .sb.c{fill:#ECFDF5;stroke:#059669}
+.dia .sb.i{fill:#F1F5F9;stroke:#64748B}.dia .sb.x{fill:#fff4ec;stroke:#D55E00}.dia .sb.g{fill:#fff;stroke:#94a3b8;stroke-dasharray:8 6}
+.dia .sb.zm{fill:#f5f9ff;stroke:#2563EB;stroke-dasharray:none}.dia .sb.zp{fill:#fffaf0;stroke:#D97706}.dia .sb.zi{fill:#f8fafc;stroke:#64748B;stroke-dasharray:10 6}
+.dia .ln{stroke:#64748B;stroke-width:3.5;fill:none}.dia .ln.d{stroke-dasharray:9 7}.dia .ln.o{stroke:#D55E00}.dia .ln.gr{stroke:#059669}.dia .ln.life{stroke:#cbd5e1;stroke-width:3;stroke-dasharray:6 6}
+.clip{position:relative;width:860px;height:484px;background:#0f172a;border-radius:12px;overflow:hidden;cursor:pointer;flex:none}
+.clip video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;display:none}
+.clip.ready video{display:block}
+.clip .ph{position:absolute;inset:14px;border:3px dashed #475569;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#e2e8f0;font-size:30px;font-weight:700;text-align:center;padding:0 40px}
+.clip .ph small{font-size:24px;font-weight:500;color:#94a3b8}
+.clip.ready .ph{display:none}
+.tri{width:0;height:0;border-left:44px solid #e2e8f0;border-top:28px solid transparent;border-bottom:28px solid transparent}
+.clip .pb{position:absolute;left:50%;top:50%;margin:-50px 0 0 -50px;width:100px;height:100px;border-radius:50%;background:rgba(15,23,42,.7);display:none;align-items:center;justify-content:center}
+.clip .pb .tri{border-left:34px solid #fff;border-top:22px solid transparent;border-bottom:22px solid transparent;margin-left:8px}
+.clip.ready:not(.playing) .pb{display:flex}
+.clip .cb{position:absolute;left:0;bottom:0;height:6px;width:0;background:#2563EB}
+.clipid{font:700 28px Menlo,monospace;color:#475569}
+#notes{position:fixed;left:0;right:0;bottom:0;height:230px;overflow:auto;background:#0f172a;color:#e2e8f0;font-size:19px;line-height:1.35;padding:12px 28px;display:none;z-index:20}
+#notes.on{display:block}
+#notes ul{margin:4px 0;padding-left:24px}#notes b{color:#fff}
+#ov{position:fixed;inset:0;background:rgba(15,23,42,.96);overflow:auto;display:none;z-index:30;padding:20px}
+#ov.on{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;align-content:start}
+#ov .th{position:relative;width:100%;aspect-ratio:16/9;background:#fff;overflow:hidden;border-radius:6px;cursor:pointer;border:3px solid transparent}
+#ov .th.cur{border-color:#2563EB}
+#ov .th .in{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;pointer-events:none}
+#ov .th .n{position:absolute;right:6px;bottom:4px;z-index:2;background:#0f172a;color:#fff;font:700 13px Menlo,monospace;padding:2px 6px;border-radius:4px}
+#ov .slide{opacity:1;visibility:visible}
+#black{position:fixed;inset:0;background:#000;display:none;z-index:40}
+#black.on{display:block}
+#hud{position:fixed;right:14px;top:10px;z-index:25;font:700 22px Menlo,monospace;color:#fff;background:rgba(15,23,42,.85);padding:4px 12px;border-radius:6px;display:none}
+.dv{align-items:center;justify-content:center;text-align:center}
+@media print{
+html,body{background:#fff;overflow:visible;height:auto}
+#stage{position:static;transform:none!important;width:1280px;height:auto;overflow:visible}
+.slide{position:relative;visibility:visible!important;opacity:1!important;width:1280px;height:720px;break-after:page;page-break-after:always;overflow:hidden}
+#notes,#ov,#black,#bar,#hud{display:none!important}
+.clip video{display:none!important}.clip .ph{display:flex!important}.clip .pb{display:none!important}
+@page{size:1280px 720px;margin:0}
+}
+</style></head><body><div id="stage"><!-- REPLACES s11 -->
+<section class="slide" id="s11" data-kind="main" data-num="S11">
+<h1>Ownership and execution rules define two contexts</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">PE · Strategic DDD</div>
+<div class="body" style="justify-content:flex-start;margin-bottom:48px">
+<table class="tbl" style="font-size:22px;line-height:1.16"><thead><tr><th style="font-size:21px;width:23%">Capability</th><th style="font-size:21px;width:38%">Rules that stay together</th><th style="font-size:21px">Language / consistency boundary</th></tr></thead><tbody>
+<tr><td><b>Own, upload, edit</b></td><td>Owner access; verify and pin source;<br>adopt Asset + submit intent atomically</td><td style="color:#1e3a8a"><b>Media</b> · User, reservation, Asset, source pin</td></tr>
+<tr><td><b>Publish and play</b></td><td>Validate result into local view;<br>authorize playback; gate source cleanup</td><td style="color:#1e3a8a"><b>Media</b> · public status, projection, playback</td></tr>
+<tr><td><b>Execute and recover</b></td><td>One Job per Asset; current Attempt;<br>lease fencing; validated outputs</td><td style="color:#78350f"><b>Processing</b> · Job, Attempt, claim, deadline</td></tr>
+</tbody></table>
+<div style="font-size:23px;font-weight:700;margin:14px 0 8px">Why we keep the other boundaries inside these contexts</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 28px;font-size:21px;line-height:1.25">
+<div><b>Separate Identity:</b> current User checks and Asset ownership remain in Media.</div>
+<div><b>Separate Delivery:</b> playback uses owned Asset + validated projection.</div>
+<div><b>Separate Upload:</b> adoption must commit the source pin, Asset and submit intent together.</div>
+<div><b>One service:</b> merges ownership rules with Attempt/lease rules and encoding execution.</div></div></div>
+<div class="sec">3. Logical architecture</div>
+<div class="foot"><span>As built · 76282d3 · Boundaries are design interpretations</span><span>S11</span></div>
+<aside class="notes"><p>Point at the last column: the term job means a public Asset view in Media, but an execution Job with Attempts in Processing. Follow the adoption transaction on the first row and the Job/Attempt lock on the third. These are our source-backed design reasons, not proof of historical team deliberation. Identity, upload, and delivery are possible future contexts; this implementation provides no separate model/release boundary for them. A process or database split alone does not prove a bounded context. Modelling basis: <a href="https://martinfowler.com/bliki/BoundedContext.html">Fowler, Bounded Context</a>.</p><p>Code evidence: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/models.py#L36">Media Asset</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L149">adoption transaction</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L145">edit adoption</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L258">playback mapping</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L15">Processing roots</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L28">current-attempt fence</a>.</p></aside>
+</section>
+<!-- REPLACES s16 -->
+<section class="slide" id="s16" data-kind="main" data-num="S16">
+<h1>Commands cross contexts; work stays in Processing</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">PE · Strategic DDD</div>
+<div class="body" style="justify-content:flex-start;margin-bottom:48px"><img src="assets/uml/W2-context-map.svg" alt="Formal two-context map with result-model upstream Processing and downstream Media, published language, a Media ACL and internal work" style="max-width:1180px;max-height:512px;width:auto;height:auto;display:block;margin:0 auto"></div>
+<div class="sec">3. Logical architecture</div>
+<div class="foot"><span>As built · 76282d3 · Boundaries are design interpretations</span><span>S16</span></div>
+<aside class="notes"><p>Trace commands to Processing and result snapshots back to Media. U/D is scoped to the inferred result-model dependency: Media translates Processing state into its own projection and public accepted state. Command direction alone does not establish upstream/downstream. Customer/Supplier requires downstream priorities to enter upstream planning; code does not establish that agreement, so C/S is UNKNOWN and not drawn. Shared Kernel governance is likewise UNKNOWN; shared contract code alone does not establish that pattern. Conformist is not asserted because Media keeps and protects its own model. PL here is the Envelope/Source wire language; Actor is separate API context. Outbound enqueue_submit/command are adapters; incoming apply_result/public_job_schema provide the Media ACL behavior. Processing handle_command translates to its own records. Point to the work arrow entirely within Processing. delivery/ contains technical adapters. No cross-context ORM or FK. Queue shape validation is distinct from sender authority. Notation basis: <a href="https://www.domainlanguage.com/wp-content/uploads/2016/05/DDD_Reference_2015-03.pdf">Evans, DDD Reference</a>.</p><p>Code evidence: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L157">published language</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L9">Media command adapter</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69">Media ACL</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L233">public status translation</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L232">Processing translation</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L102">internal work</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sqs.py#L12">lane authority</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/deploy/v1/media.Dockerfile#L16">shared contract/delivery code in Media image</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/deploy/v1/processing.Dockerfile#L16">shared code in Processing image</a>.</p></aside>
+</section>
+<!-- REPLACES s17 -->
+<section class="slide" id="s17" data-kind="main" data-num="S17">
+<h1>Asset groups ownership with its adopted source value</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">PE · Tactical DDD / as built at 76282d3</div>
+<div class="body" style="justify-content:flex-start;margin-bottom:48px"><img src="assets/uml/W2-media-asset.svg" alt="Media Asset root with a persisted source value record and frozen contract Source" style="max-width:1180px;max-height:540px;width:auto;height:auto;display:block;margin:0 auto"></div>
+<div class="sec">3. Logical architecture</div>
+<div class="foot"><span>As built · 76282d3 · Anaemic records; services enforce the interpreted grouping</span><span>S17</span></div>
+<aside class="notes"><p>Point to the Asset entity root, the 0..1 derived SourceVersion value record and the six-field Source value. SourceVersion is a persistence row keyed only by its owner Asset, with no independent source identity or lifecycle, so we interpret its pin as a value rather than a second domain entity. source_for_asset returns a dict; Envelope.from_dict constructs contracts.v1.Source from that dict. Direct upload pins live on UploadReservation, so absence of SourceVersion does not mean absence of a source pin. Follow source_asset_id to a parent Asset by identity only; source_asset_id is not an FK. owner_id references the independent User through a local FK; processing_job_id is a plain UUID with no cross-context FK. The composition diamond denotes an owned value in our interpretation, not an ORM collection or cascade deletion. Finalize updates independent reservation and Asset records together: this is a deliberate exception to strict one-aggregate-per-transaction design, not proof of a fully enforced aggregate boundary. Source attributes are not made immutable against arbitrary SQL writes by the model. The implementation is anaemic: Asset and SourceVersion are SQLAlchemy records, while direct_intake, v1_lifecycle, repository and projection functions enforce policies with direct sessions. The one-Job-per-Asset constraint belongs to Processing, not Media. Aggregation basis: <a href="https://www.dddcommunity.org/wp-content/uploads/files/pdf_articles/Vernon_2011_2.pdf">Vernon, Effective Aggregate Design II</a>.</p><p>Code evidence: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/models.py#L36">Asset fields/constraints</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/upload_models.py#L64">derived SourceVersion</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L99">Source value</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L43">source resolution</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L145">edit transaction</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/repositories/assets.py#L31">owned reads</a>.</p></aside>
+</section>
+<!-- NEW after s17 -->
+<section class="slide" id="w2-job" data-kind="main" data-num="W2 · Job">
+<h1>Job groups Attempt history with current lease rules</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">PE · Tactical DDD / as built at 76282d3</div>
+<div class="body" style="justify-content:flex-start;margin-bottom:48px"><img src="assets/uml/W2-processing-job.svg" alt="Processing Job and member Attempts with typed lease attributes and JSON Output value DTO" style="max-width:1180px;max-height:540px;width:auto;height:auto;display:block;margin:0 auto"></div>
+<div class="sec">3. Logical architecture</div>
+<div class="foot"><span>As built · 76282d3 · Anaemic records; services enforce the interpreted grouping</span><span>W2 · Job</span></div>
+<aside class="notes"><p>Point at 1..* Attempts and the exactly-one-current reference. Those are accepted V1 business invariants, while SQL provides an Attempt FK and unique job/attempt number; arbitrary SQL is not fenced as a full domain state machine. lock_pair locks Job FOR UPDATE and then reads Attempt with session.get; it does not issue a separate explicit Attempt FOR UPDATE. lock_pair checks the nondeleted Job/current Attempt and their membership; live then checks processing states, matching token, unexpired lease and deadline using database time. live alone does not check current membership. Retry from failed makes a new numbered Attempt; expiration abandons/ fails and does not auto-retry. The Output Pydantic DTO remains mutable, and its field data is serialized into Job.outputs JSON; there is no Output entity table; successful finish requires exactly one primary, distinct kinds, positive size, a present digest and attempt-scoped keys. With the two allowed kinds, accepted V1 state has at most two outputs; this is a service invariant, not a JSONB length constraint. The ORM Job is the root interpretation; ProcessingJob is a response DTO. This is an anaemic model: messaging/lifecycle/recovery functions mutate records directly. Cancellation updates the independent SubmissionGuard and Job in one local transaction; this limits a strict aggregate interpretation. Technical inbox/outbox rows are not extra domain aggregates merely because they share a transaction. Diagram shows selected actual attributes; legacy source_url columns remain but V1 constructs them empty.</p><p>Code evidence: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L15">Job and Attempt fields</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/schemas.py#L90">Output DTO</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L28">current/lease fence</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136">claim</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184">finish outputs</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L155">retry</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L281">V1 source URL empty</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L24">expiry interruption</a>.</p></aside>
+</section>
+<!-- NEW after w2-job -->
+<section class="slide" id="w2-messages" data-kind="main" data-num="W2 · messages">
+<h1>Five message kinds express commands, work and state</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">PE · Tactical DDD / as built at 76282d3</div>
+<div class="body" style="justify-content:flex-start;margin-bottom:48px">
+<table class="tbl" style="font-size:21px;line-height:1.18"><thead><tr><th style="font-size:21px;width:10%">Kind</th><th style="font-size:21px;width:23%">Producer → consumer</th><th style="font-size:21px;width:30%">State change / intent</th><th style="font-size:21px">Payload fields (inside Envelope)</th></tr></thead><tbody>
+<tr><td><code>submit</code></td><td>Media → Processing control</td><td>Adopt new Asset + source pin</td><td><code>operations: list</code></td></tr>
+<tr><td><code>retry</code></td><td>Media → Processing control</td><td>Failed projection permits intent;<br>Processing adds a new Attempt</td><td><code>{}</code><br>identity comes from message_id</td></tr>
+<tr><td><code>cancel</code></td><td>Media → Processing control</td><td>Asset tombstone + cleanup intent</td><td><code>{}</code></td></tr>
+<tr><td><code>work</code></td><td>Processing → own encoder<br><b>internal work</b></td><td>Current nondeleted Job + Attempt<br>are both queued</td><td><code>operations: list</code></td></tr>
+<tr><td><code>result</code></td><td>Processing state → Media ACL</td><td>Submit, claim, finish/fail, retry,<br>cancel, interruption or redirect</td><td><code>status, outputs, error,<br>attempt_number</code></td></tr>
+</tbody></table>
+<div style="font-size:21px;line-height:1.3;margin-top:15px"><b>Every envelope:</b> schema_version, message_id/kind, owner/asset/job/attempt IDs, state_version, source, payload.<br><b>Cancel before submit:</b> result has null job/attempt/source and <code>{status, cancellation_confirmed, command_message_id}</code>.<br><b>Model:</b> commands + full result snapshots; no named <code>JobStarted</code> event stream or event sourcing.</div></div>
+<div class="sec">3. Logical architecture</div>
+<div class="foot"><span>As built · 76282d3 · Selected fields; rules live in service modules</span><span>W2 · messages</span></div>
+<aside class="notes"><p>Point along each row from state change to staged outbox, then consumer. submit is emitted by enqueue_submit on finalize and stage_submit on edit adoption. Media retry does not itself create an Attempt; it validates the failed projection and stages an intent, normally without an immediate business-state update to Asset. cancel accompanies tombstone. Processing emit_state increments the version, stages result and stages work only for queued, nondeleted current work. Heartbeat updates lease times without emitting a result. Repairs can republish an existing work/outbox row without a new aggregate state change. Wire producer identities in contracts.PRODUCERS are media for commands, processing-dispatch for work, processing-completion for result; the last label covers all state snapshots, not just completion. Actual producer payloads come from the service functions: contracts.Envelope declares payload only as dict and does not provide five typed payload classes. Retry consumer additionally accepts optional request_id, but Media currently emits an empty payload and uses message_id. Processing public API retry/cancel are additional direct API paths, not Media queue kinds. Cancel-before-submit is a durable guard acknowledgement, not a fictitious Job event. The full typed envelope/source/output shape is in backup w2-wire.</p><p>Code evidence: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L28">five kinds/producers</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L157">Envelope and cancel exception</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L31">Media submit payload</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L17">retry/cancel builders</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L50">retry/tombstone</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L78">work/result payloads</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L102">emit_state</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L186">no-job cancellation</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L255">retry payload fallback</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L170">heartbeat</a>.</p></aside>
+</section>
+<!-- NEW backup -->
+<section class="slide" id="s18" data-kind="backup" data-num="S18">
+<h1>Precise names separate ownership from execution</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">PE · Tactical DDD / as built at 76282d3</div>
+<div class="body" style="justify-content:flex-start;margin-bottom:48px">
+<table class="tbl" style="font-size:25px;line-height:1.22"><thead><tr><th>Term</th><th>Meaning in this implementation</th></tr></thead><tbody>
+<tr><td style="color:#1e3a8a"><b>Asset</b></td><td>An owner’s uploaded <b>or edit-derived</b> video; Media’s public job ID.</td></tr>
+<tr><td style="color:#78350f"><b>Job</b></td><td>Processing’s execution record; at most one per Asset.</td></tr>
+<tr><td style="color:#78350f"><b>Attempt</b></td><td>A numbered execution try; retry creates a new Attempt.</td></tr>
+<tr><td style="color:#1e3a8a"><b>Source pin</b></td><td><code>bucket + key + version_id<br>sha256 + size_bytes + content_type</code>.<br><code>Asset.source_revision: int</code> is a different field.</td></tr>
+<tr><td style="color:#78350f"><b>Lease</b></td><td>Attempt token + lease expiry + deadline; checked on DB time.</td></tr>
+<tr><td style="color:#1e3a8a"><b>Projection</b></td><td>Media’s validated local copy of Processing result snapshots.</td></tr>
+</tbody></table></div>
+<div class="sec">Backup · DDD</div>
+<div class="foot"><span>As built · 76282d3 · Selected fields; rules live in service modules</span><span>S18</span></div>
+<aside class="notes"><p>Point at Asset first: edits create a new Asset and source_asset_id points to the original parent. Then distinguish public job ID (Asset UUID) from Processing Job UUID. For source, say version_id is S3 identity whereas source_revision is a positive integer. The source descriptor uses exact field names size_bytes and content_type. A Lease is not a class; it is persisted Attempt fields and a local Claim value. Projection is Media-owned state, not a cross-database join. This corrects the previous slide wording that equated source_revision with S3 VersionId.</p><p>Code evidence: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/models.py#L36">Asset fields</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L133">new Asset on edit</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L233">public job ID</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L24">unique Job asset ID</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L99">Source</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L28">lease fence</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/projection_models.py#L12">projection</a>.</p></aside>
+</section>
+<!-- NEW backup -->
+<section class="slide" id="w2-intake" data-kind="backup" data-num="W2 · intake">
+<h1>A reservation exists before there is an Asset</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">PE · Tactical DDD / as built at 76282d3</div>
+<div class="body" style="justify-content:flex-start;margin-bottom:48px"><img src="assets/uml/W2-media-intake.svg" alt="Independent Media identity and upload reservation roots" style="max-width:1180px;max-height:512px;width:auto;height:auto;display:block;margin:0 auto"></div>
+<div class="sec">Backup · DDD</div>
+<div class="foot"><span>As built · 76282d3 · Selected fields; rules live in service modules</span><span>W2 · intake</span></div>
+<aside class="notes"><p>Point at the independent reservation root: reserve allocates an eventual Asset UUID without creating Asset. asset_id is unique but deliberately has no assets FK. A reservation is associated with 0..1 eventual Asset and an Asset with 0..1 reservation; derived edits instead use SourceVersion. Source metadata is represented as primitives on the reservation, not a SourceRevision entity. The reservation and User are candidate aggregate roots; their record classes have no business methods. The finalize commit spans the reservation and new Asset plus outbox, an explicit multi-root transaction rather than a universal one-aggregate-per-transaction claim. User has an independent account lifecycle and is not an Asset child. Actor is frozen API context with string IDs and mapped role, not a persisted User or queue message. These ORM records are anaemic: rules live in register/login/current_user, reserve/finalize and constraints, not entity methods.</p><p>Code evidence: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/models.py#L26">User</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/upload_models.py#L25">reservation and pin CHECK</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L99">reserve</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L149">finalize</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/api/auth.py#L34">auth</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/api/deps.py#L16">current user</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/authorizer.py#L13">Actor mapping</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L69">Actor value</a>.</p></aside>
+</section>
+<!-- NEW backup -->
+<section class="slide" id="s60" data-kind="backup" data-num="B12 · DDD map">
+<h1>Two models meet through a published language</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">PE · Strategic DDD</div>
+<div class="body" style="justify-content:flex-start;margin-bottom:48px"><img src="assets/uml/W2-context-map.svg" alt="Readable formal context map replacing the previous backup message table" style="max-width:1180px;max-height:512px;width:auto;height:auto;display:block;margin:0 auto"></div>
+<div class="sec">Backup · DDD</div>
+<div class="foot"><span>As built · 76282d3 · Boundaries are design interpretations</span><span>B12 · DDD map</span></div>
+<aside class="notes"><p>Trace commands to Processing and result snapshots back to Media. U/D is scoped to the inferred result-model dependency: Media translates Processing state into its own projection and public accepted state. Command direction alone does not establish upstream/downstream. Customer/Supplier requires downstream priorities to enter upstream planning; code does not establish that agreement, so C/S is UNKNOWN and not drawn. Shared Kernel governance is likewise UNKNOWN; shared contract code alone does not establish that pattern. Conformist is not asserted because Media keeps and protects its own model. PL here is the Envelope/Source wire language; Actor is separate API context. Outbound enqueue_submit/command are adapters; incoming apply_result/public_job_schema provide the Media ACL behavior. Processing handle_command translates to its own records. Point to the work arrow entirely within Processing. delivery/ contains technical adapters. No cross-context ORM or FK. Queue shape validation is distinct from sender authority. Notation basis: <a href="https://www.domainlanguage.com/wp-content/uploads/2016/05/DDD_Reference_2015-03.pdf">Evans, DDD Reference</a>. Use this as the formal backup. The main message table is w2-messages; organisational context-map patterns remain unverified.</p><p>Code evidence: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L157">published language</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L9">Media command adapter</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69">Media ACL</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L233">public status translation</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L232">Processing translation</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L102">internal work</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sqs.py#L12">lane authority</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/deploy/v1/media.Dockerfile#L16">shared contract/delivery code in Media image</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/deploy/v1/processing.Dockerfile#L16">shared code in Processing image</a>.</p></aside>
+</section>
+<!-- NEW backup -->
+<section class="slide" id="w2-media-support" data-kind="backup" data-num="W2 · Media support">
+<h1>Media keeps projections and cleanup in supporting ledgers</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">PE · Tactical DDD / as built at 76282d3</div>
+<div class="body" style="justify-content:flex-start;margin-bottom:48px"><img src="assets/uml/W2-media-support.svg" alt="Typed Media read model, request idempotency, cleanup and orphan ledgers with multiplicities" style="max-width:1180px;max-height:512px;width:auto;height:auto;display:block;margin:0 auto"></div>
+<div class="sec">Backup · DDD</div>
+<div class="foot"><span>As built · 76282d3 · Selected fields; rules live in service modules</span><span>W2 · Media support</span></div>
+<aside class="notes"><p>Point to the stereotypes before following any keys: projection is a read model; RequestKey, CleanupIntent and StagedObject are ledgers. Asset-local projection/request/cleanup FKs do not imply composition. RequestKey is owner/operation/request scoped and refers to one Asset; it is not an independent business event. apply_result locks the Asset and mutates the projection within consume_result inbox transaction; all identity, source and attempt fences still apply for newer versions. CleanupIntent is created with Asset tombstone, then a durable result authorizes source scans. StagedObject is independent key-based authority until adoption removes it atomically; it has no Asset FK. RetryIntent remains in schema as legacy bookkeeping and is not written by active V1 retry. These are anaemic records; policies live in projections, v1_lifecycle and recovery_v1.</p><p>Code evidence: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/models.py#L63">records</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/projection_models.py#L12">projection fields</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L36">projection rules</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L139">cancellation authority</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L50">mutation transactions</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/recovery_v1.py#L119">orphan scan</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L16">inbox transaction</a>.</p></aside>
+</section>
+<!-- NEW backup -->
+<section class="slide" id="w2-processing-support" data-kind="backup" data-num="W2 · Processing support">
+<h1>Cancellation guards can exist without a Job</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">PE · Tactical DDD / as built at 76282d3</div>
+<div class="body" style="justify-content:flex-start;margin-bottom:48px"><img src="assets/uml/W2-processing-support.svg" alt="Typed Processing cancellation guard, retry ledger, task binding and state-version records" style="max-width:1180px;max-height:512px;width:auto;height:auto;display:block;margin:0 auto"></div>
+<div class="sec">Backup · DDD</div>
+<div class="foot"><span>As built · 76282d3 · Selected fields; rules live in service modules</span><span>W2 · Processing support</span></div>
+<aside class="notes"><p>Point to nullable guard.job_id. Cancel-before-submit creates a real guard with no Job; subsequent submit does not resurrect it. A guard references 0..1 Job through a local FK, but SQL does not uniquely constrain the inverse guard.job_id. The business mapping is one asset gate for the accepted job; do not invent a one-to-one SQL constraint. Job has many RetryRequests; each retry identifies one Job and one Attempt. AttemptTask is optional until claim and is uniquely bound by both attempt_id PK and task_name unique constraint. JobMessaging is 0..1 structurally and present after accepted V1 creation; state_version increments with publication. The direct Processing retry API locks Job without taking Guard first; avoid claiming every mutation uses Guard→Job. Anaemic records: enforcement is in messaging._guard/_cancel_locked/_retry_locked/claim/emit_state.</p><p>Code evidence: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L101">guard row</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging_models.py#L36">messaging records</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L131">guard and retry enforcement</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L186">cancel before Job</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L308">direct retry</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L325">binding</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L102">state version</a>.</p></aside>
+</section>
+<!-- NEW backup -->
+<section class="slide" id="w2-authority" data-kind="backup" data-num="W2 · execution values">
+<h1>A Claim carries authority; cleanup keeps its own ledger</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">PE · Tactical DDD / as built at 76282d3</div>
+<div class="body" style="justify-content:flex-start;margin-bottom:48px"><img src="assets/uml/W2-processing-authority.svg" alt="Frozen Claim execution value, real lifecycle module functions and independent cleanup ledger" style="max-width:1180px;max-height:512px;width:auto;height:auto;display:block;margin:0 auto"></div>
+<div class="sec">Backup · DDD</div>
+<div class="foot"><span>As built · 76282d3 · Selected fields; rules live in service modules</span><span>W2 · execution values</span></div>
+<aside class="notes"><p>Point at Claim: this real frozen dataclass is a local capability supplied to worker lifecycle operations; it is not Envelope or a transmitted token. messaging.claim validates supplied work against the durable Job and then lifecycle.claim copies source/operations into Claim. Frozen assignment is shallow: the nested dict/list remain mutable. The signatures on the module are parameter summaries of real functions; finish outputs/error are keyword-only (shown by *); default values and optional callbacks are omitted in these parameter summaries. Completion must recheck current Job, Attempt state, exact token, lease expiry and deadline. Cleanup is one record per Attempt with a separate FK to Job; scans outlive state transitions and can retire after the late-write horizon. The state records remain anaemic; lifecycle functions hold the rules. V1 Job.source_url is empty; the legacy fields remain visible on Claim rather than pretending the class lacks them.</p><p>Code evidence: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L123">Claim fields</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136">lifecycle functions</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L86">cleanup ledger</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L51">cleanup insertion</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L281">V1 empty URL</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L24">output cleanup</a>.</p></aside>
+</section>
+<!-- NEW backup -->
+<section class="slide" id="w2-technical" data-kind="backup" data-num="W2 · delivery ledgers">
+<h1>Each context owns its inbox and outbox records</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">PE · Tactical DDD / as built at 76282d3</div>
+<div class="body" style="justify-content:flex-start;margin-bottom:48px"><img src="assets/uml/W2-delivery-ledgers.svg" alt="Separate Media and Processing inbox/outbox classes" style="max-width:1180px;max-height:512px;width:auto;height:auto;display:block;margin:0 auto"></div>
+<div class="sec">Backup · DDD</div>
+<div class="foot"><span>As built · 76282d3 · Selected fields; rules live in service modules</span><span>W2 · delivery ledgers</span></div>
+<aside class="notes"><p>Point at the separate Media and Processing packages: these are four real ORM classes and four local tables, with no shared row or cross-context FK. accept() deduplicates message ID/body inside the caller's state transaction. stage() writes the caller's outbox without an implicit commit. publish_due() commits its row claim before SQS send; transport and SQL are not one distributed transaction. These records are technical support, not child business entities. The schemas are anaemic records and the delivery functions supply behavior.</p><p>Code evidence: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging_models.py#L13">Media ledgers</a>; <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging_models.py#L13">Processing ledgers</a>; <a href="https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L18">accept/stage/publish_due</a>; <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L16">Media result transaction</a>; <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L232">Processing command transaction</a>.</p></aside>
+</section>
+<!-- NEW backup -->
+<section class="slide" id="w2-launcher" data-kind="backup" data-num="W2 · launcher control">
+<h1>Launcher capacity has its own consistency boundary</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">PE · Tactical DDD / as built at 76282d3</div>
+<div class="body" style="justify-content:flex-start;margin-bottom:48px"><img src="assets/uml/W2-launcher-control.svg" alt="Processing LauncherControl and LaunchReservation technical model" style="max-width:1180px;max-height:512px;width:auto;height:auto;display:block;margin:0 auto"></div>
+<div class="sec">Backup · DDD</div>
+<div class="foot"><span>As built · 76282d3 · Selected fields; rules live in service modules</span><span>W2 · launcher control</span></div>
+<aside class="notes"><p>Point at the 1 to 0..* association: this is application control, not an ORM collection or FK. _reserve serializes on singleton LauncherControl and open reservations. _send deliberately holds a shared control lock and reservation FOR UPDATE while RunTask runs, so disabling is fenced. An ambiguous launch reply keeps its slot. There is no FK to AttemptTask; started_by/task_name is a value-based application association. This independent technical state is not another business context or a Job child. Records are anaemic; launcher module functions hold these rules.</p><p>Code evidence: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher_models.py#L18">launcher models and constraints</a>; <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher.py#L238">_reserve</a>; <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher.py#L337">_send</a>.</p></aside>
+</section>
+<!-- NEW backup -->
+<section class="slide" id="w2-wire" data-kind="backup" data-num="W2 · wire types">
+<h1>Envelopes carry values across the model boundary</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">PE · Tactical DDD / as built at 76282d3</div>
+<div class="body" style="justify-content:flex-start;margin-bottom:48px">
+<div style="display:grid;grid-template-columns:1.08fr 1fr;gap:30px;font-size:22px;line-height:1.32">
+<div><div style="font-size:26px;font-weight:800;margin-bottom:10px">Envelope · frozen dataclass</div><code>schema_version: int<br>message_id: str<br>kind: str<br>owner_id: str<br>asset_id: str<br>job_id: str | None<br>attempt_id: str | None<br>state_version: int<br>source: Source | None<br>payload: dict</code><p style="margin:12px 0">UUID identities are serialized as strings.<br>Emits v1; currently accepts <b>only v1</b>.<br>Actor is separate API context.</p></div>
+<div><div style="font-size:26px;font-weight:800;margin-bottom:10px">Source · frozen value</div><code>bucket: str · key: str<br>version_id: str · sha256: str<br>size_bytes: int · content_type: str</code>
+<div style="font-size:26px;font-weight:800;margin:18px 0 10px">Output · local value DTO / JSON</div><code>kind: primary | hls_manifest<br>object_key: str · media_type: str<br>size_bytes: NonnegativeInt | None<br>sha256: Digest | None</code>
+<p style="margin:14px 0"><b>Contracts</b> validate Envelope and Source.<br><b>Service builders</b> define kind-specific payloads; there are no five typed payload classes.<br><b>Authority</b> comes from transport/role controls.</p></div></div></div>
+<div class="sec">Backup · DDD</div>
+<div class="foot"><span>As built · 76282d3 · Selected fields; rules live in service modules</span><span>W2 · wire types</span></div>
+<aside class="notes"><p>Point to the difference between the frozen contract Source and persisted dicts, then Output’s actual Pydantic field types. Job/Attempt IDs are normally mandatory for work/result; the narrowly validated no-job cancellation result is the exception. Submit/work require Source; Media retry carries its accepted source and cancel carries None. Output fields are defined separately in Media and Processing DTOs. Successful finish imposes stronger rules than the optional size/digest fields alone. Envelope contains no Actor. accepted_versions returns {1} at this commit, so do not claim two deployed versions or live N/N-1 compatibility. contracts validation prohibits URLs/secret-like payload names but cannot authenticate senders. This is the complete common shape for the five-kind table on w2-messages.</p><p>Code evidence: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L19">version support</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L69">Actor/Source</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L157">Envelope</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L132">payload safety</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/schemas.py#L90">Processing output DTO</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/schemas/outputs.py#L11">Media output DTO</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sqs.py#L12">transport lanes</a>. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184">finish stronger validation</a>.</p></aside>
+</section>
+
+
+
+</div><script>function show(){let a=[...document.querySelectorAll(".slide")];let n=Number(location.hash.slice(1)||1);a.forEach((s,i)=>s.classList.toggle("active",i===n-1));}addEventListener("hashchange",show);addEventListener("keydown",e=>{let n=Number(location.hash.slice(1)||1);if(["ArrowRight","PageDown"," "].includes(e.key))n++;else if(["ArrowLeft","PageUp"].includes(e.key))n--;else if(e.key==="Home")n=1;else if(e.key==="End")n=14;else return;e.preventDefault();location.hash=String(Math.max(1,Math.min(14,n)));});show();</script></body></html>

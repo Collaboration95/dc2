@@ -1,0 +1,50 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam classAttributeIconSize 0
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+skinparam nodesep 25
+skinparam ranksep 28
+title Class view · UC-3 reads the Media-owned result model\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L36
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L258
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/projection_models.py#L12
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L99
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L157
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L191
+
+left to right direction
+class "projections (media)" as P <<module>> $MEDIA {
+ {static} + apply_result(session, envelope)
+ {static} + validate_transition(current, event)
+ {static} + public_job(session, asset, storage, settings)
+ {static} + public_job_from_projection(asset, current, storage, settings)
+}
+class "ProcessingProjection" as R <<ORM>> $MEDIA {
+ + asset_id: UUID
+ + job_id: UUID
+ + attempt_id: UUID | None
+ + attempt_number: int
+ + state_version: int
+ + status: str
+ + outputs: list
+ + result_hash: str
+}
+class "Storage (media.services.storage)" as S <<Adapter>> $MEDIA {
+ + sign_output(key, *, inline=False)
+ + read_playlist(key)
+}
+P ..> R : validates / upserts
+P ..> S : public capability
+legend bottom
++ public; - internal by Python convention; underlined = class/module scope.
+ProcessingProjection is media.projection_models. Asset 1 -- 0..1 projection via asset_id FK.
+Selected attributes. Media reads its own projection. Envelope/Source are the real frozen contract classes (W3-20).
+endlegend
+
+@enduml

@@ -1,0 +1,1440 @@
+{
+  "baseline": "76282d3b5a141f6548056f2506f9d5aff0742692",
+  "method": "local git object and line/range validation; no GitHub HTTP check",
+  "source_files": 27,
+  "unique_urls": 84,
+  "links": {
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L283": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 283,
+      "end": 283,
+      "target_line": "    handlers = {",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 29
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 46
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 48
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1560": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1560,
+      "end": 1560,
+      "target_line": "    for domain in (\"Media\", \"Processing\"):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 29
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 46
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1529": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1529,
+      "end": 1529,
+      "target_line": "    add(",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 29
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 83
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L70": {
+      "path": "media/handlers.py",
+      "start": 70,
+      "end": 70,
+      "target_line": "            published = await publish_commands(",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 29
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 61
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 20
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L9": {
+      "path": "media/messaging.py",
+      "start": 9,
+      "end": 9,
+      "target_line": "async def stage_command(session, envelope):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 29
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 52
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/handlers.py#L52": {
+      "path": "processing/handlers.py",
+      "start": 52,
+      "end": 52,
+      "target_line": "        if mode == \"command\":",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 29
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 62
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 79
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/deploy.py#L2191": {
+      "path": "scripts/aws/v1/deploy.py",
+      "start": 2191,
+      "end": 2191,
+      "target_line": "        for key, (role, database) in {",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 29
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 20
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L809": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 809,
+      "end": 809,
+      "target_line": "        domain = \"Media\" if name.startswith(\"Media\") else \"Processing\"",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 29
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 50
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L720": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 720,
+      "end": 720,
+      "target_line": "    media_api_storage = [",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 29
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 54
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L800": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 800,
+      "end": 800,
+      "target_line": "        \"Worker\": [source_read, output_write, allow(receive, [queue_arn(\"ProcessingWork\")])],",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 29
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 54
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 79
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/ci/cd.sh#L55": {
+      "path": "scripts/ci/cd.sh",
+      "start": 55,
+      "end": 55,
+      "target_line": "  # V2-live runs one Aurora cluster per service (#94, AD-29). An environment that still has V1's",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 29
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 50
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/deploy.py#L641": {
+      "path": "scripts/aws/v1/deploy.py",
+      "start": 641,
+      "end": 641,
+      "target_line": "        if self.persistent:",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 29
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 50
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L102": {
+      "path": "processing/messaging.py",
+      "start": 102,
+      "end": 102,
+      "target_line": "async def emit_state(session, job, attempt):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 52
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 64
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery_v1.py#L189": {
+      "path": "processing/recovery_v1.py",
+      "start": 189,
+      "end": 189,
+      "target_line": "            result[\"repaired\"] = await repair_work(factory, limit=limit, deadline=deadline)",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 64
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/handlers.py#L64": {
+      "path": "processing/handlers.py",
+      "start": 64,
+      "end": 64,
+      "target_line": "        with _heal():",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 48
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 64
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L596": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 596,
+      "end": 596,
+      "target_line": "    for name in (\"ProcessingCommands\", \"ProcessingWork\", \"MediaResults\"):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 68
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L632": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 632,
+      "end": 632,
+      "target_line": "    # The short lane's own queue and dead-letter queue (V2, #93). Its visibility timeout is",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 68
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1267": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1267,
+      "end": 1267,
+      "target_line": "    for name, queue in (",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 62
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 79
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1286": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1286,
+      "end": 1286,
+      "target_line": "    add(",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 63
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L309": {
+      "path": "processing/worker/sqs.py",
+      "start": 309,
+      "end": 309,
+      "target_line": "        received = await call(",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 63
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L115": {
+      "path": "processing/messaging.py",
+      "start": 115,
+      "end": 115,
+      "target_line": "    if job.deleted_at is None and job.status == \"queued\" and attempt.state == \"queued\":",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 63
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_lane.py#L124": {
+      "path": "processing/short_lane.py",
+      "start": 124,
+      "end": 124,
+      "target_line": "async def work_lane(session, job):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 63
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 11
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher_trigger.py#L39": {
+      "path": "processing/launcher_trigger.py",
+      "start": 39,
+      "end": 39,
+      "target_line": "    async def send(self, queue, envelope):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 63
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1756": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1756,
+      "end": 1756,
+      "target_line": "        if name == LAUNCHER:",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 63
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/v1_worker.py#L1": {
+      "path": "processing/v1_worker.py",
+      "start": 1,
+      "end": 1,
+      "target_line": "\"\"\"V1 container entrypoint, guarded by an absolute process watchdog.",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 48
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1848": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1848,
+      "end": 1848,
+      "target_line": "        if is_worker:",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 48
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L405": {
+      "path": "processing/messaging.py",
+      "start": 405,
+      "end": 405,
+      "target_line": "async def finish(factory, work, *, outputs=None, error=None):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 41
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 54
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 64
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L105": {
+      "path": "media/services/v1_lifecycle.py",
+      "start": 105,
+      "end": 105,
+      "target_line": "async def edit(session, storage, owner_id, parent_id, request, key):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 60
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L145": {
+      "path": "media/services/v1_lifecycle.py",
+      "start": 145,
+      "end": 145,
+      "target_line": "        async with session.begin():",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 60
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L167": {
+      "path": "media/services/direct_intake.py",
+      "start": 167,
+      "end": 167,
+      "target_line": "    # S3 HEAD + bounded streaming GET happen without holding SQL row locks.",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 60
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1739": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1739,
+      "end": 1739,
+      "target_line": "    for name in (",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 61
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1765": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1765,
+      "end": 1765,
+      "target_line": "        if name.endswith(\"Repair\") or name == LAUNCHER:",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 61
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 20
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L27": {
+      "path": "media/messaging.py",
+      "start": 27,
+      "end": 27,
+      "target_line": "async def publish_commands(factory, transport, **kwargs):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 61
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L58": {
+      "path": "delivery/sql.py",
+      "start": 58,
+      "end": 58,
+      "target_line": "async def publish_due(",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 61
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L77": {
+      "path": "delivery/sql.py",
+      "start": 77,
+      "end": 77,
+      "target_line": "        async with factory() as session, session.begin():",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L742": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 742,
+      "end": 742,
+      "target_line": "    privileges = {",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 60
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L232": {
+      "path": "processing/messaging.py",
+      "start": 232,
+      "end": 232,
+      "target_line": "async def handle_command(factory, message):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 62
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L304": {
+      "path": "processing/messaging.py",
+      "start": 304,
+      "end": 304,
+      "target_line": "        await emit_state(session, job, attempt)",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 62
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L38": {
+      "path": "media/handlers.py",
+      "start": 38,
+      "end": 38,
+      "target_line": "    # Always on (AD-27): a scheduled repair with nothing due opens no connection, so Aurora can",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 50
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 61
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sqs.py#L12": {
+      "path": "delivery/sqs.py",
+      "start": 12,
+      "end": 12,
+      "target_line": "LANES = {",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 68
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L28": {
+      "path": "contracts/v1.py",
+      "start": 28,
+      "end": 28,
+      "target_line": "PRODUCERS = {",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 68
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher.py#L337": {
+      "path": "processing/launcher.py",
+      "start": 337,
+      "end": 337,
+      "target_line": "async def _send(factory, ecs, token, config=None):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 63
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136": {
+      "path": "processing/lifecycle.py",
+      "start": 136,
+      "end": 136,
+      "target_line": "async def claim(factory, job_id, attempt_id, settings, *, on_change=None, before_claim=None):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 64
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 17
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L205": {
+      "path": "processing/lifecycle.py",
+      "start": 205,
+      "end": 205,
+      "target_line": "    async with factory() as session, session.begin():",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 64
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 17
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L356": {
+      "path": "processing/messaging.py",
+      "start": 356,
+      "end": 356,
+      "target_line": "    async def changed(session, job, attempt):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 54
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L19": {
+      "path": "media/handlers.py",
+      "start": 19,
+      "end": 19,
+      "target_line": "async def consume_results(event, factory, apply=None):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L16": {
+      "path": "media/messaging.py",
+      "start": 16,
+      "end": 16,
+      "target_line": "async def consume_result(session, envelope, apply):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 59
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 77
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 64
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 89
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/authorizer.py#L23": {
+      "path": "media/authorizer.py",
+      "start": 23,
+      "end": 23,
+      "target_line": "def session_token(event: dict) -> str:",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 83
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/authorizer.py#L40": {
+      "path": "media/authorizer.py",
+      "start": 40,
+      "end": 40,
+      "target_line": "async def authorize(event: dict) -> dict:",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 52
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/security.py#L48": {
+      "path": "media/services/security.py",
+      "start": 48,
+      "end": 48,
+      "target_line": "def read_token(token: str, settings: Settings) -> UUID:",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 83
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L69": {
+      "path": "contracts/v1.py",
+      "start": 69,
+      "end": 69,
+      "target_line": "@dataclass(frozen=True)",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 85
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/gateway.py#L33": {
+      "path": "contracts/gateway.py",
+      "start": 33,
+      "end": 33,
+      "target_line": "def actor_from_event(event: dict) -> Actor:",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 85
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/gateway.py#L58": {
+      "path": "contracts/gateway.py",
+      "start": 58,
+      "end": 58,
+      "target_line": "        actor = None if is_public_route(service, method, path) else actor_from_event(event)",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 85
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/lambda_handler.py#L14": {
+      "path": "media/lambda_handler.py",
+      "start": 14,
+      "end": 14,
+      "target_line": "handler = GatewayAdapter(create_v1_app(), service=\"media\", readiness=readiness)",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 85
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 18
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lambda_handler.py#L13": {
+      "path": "processing/lambda_handler.py",
+      "start": 13,
+      "end": 13,
+      "target_line": "handler = GatewayAdapter(app, service=\"processing\", readiness=readiness)",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 85
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 18
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/gateway.py#L3": {
+      "path": "contracts/gateway.py",
+      "start": 3,
+      "end": 3,
+      "target_line": "Lambda resource policies must restrict invocation to the configured Gateway. The",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 85
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1546": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1546,
+      "end": 1546,
+      "target_line": "    add(",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 85
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1573": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1573,
+      "end": 1573,
+      "target_line": "        add(",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 85
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/gateway.py#L170": {
+      "path": "contracts/gateway.py",
+      "start": 170,
+      "end": 170,
+      "target_line": "def is_readiness_probe(event: dict) -> bool:",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 85
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/api/deps.py#L16": {
+      "path": "media/api/deps.py",
+      "start": 16,
+      "end": 16,
+      "target_line": "async def current_user(request: Request, settings: Config) -> User:",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 85
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/api/deps.py#L45": {
+      "path": "media/api/deps.py",
+      "start": 45,
+      "end": 45,
+      "target_line": "async def operator_user(user: CurrentUser) -> User:",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 85
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/auth.py#L6": {
+      "path": "processing/auth.py",
+      "start": 6,
+      "end": 6,
+      "target_line": "def gateway_actor(request: Request):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 52
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 85
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1602": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1602,
+      "end": 1602,
+      "target_line": "        paths = [",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 68
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 46
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L18": {
+      "path": "delivery/sql.py",
+      "start": 18,
+      "end": 18,
+      "target_line": "async def accept(session, model, envelope):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 77
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 89
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69": {
+      "path": "media/projections.py",
+      "start": 69,
+      "end": 69,
+      "target_line": "async def apply_result(session, envelope):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 77
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 52
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 89
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L36": {
+      "path": "media/projections.py",
+      "start": 36,
+      "end": 36,
+      "target_line": "def validate_transition(current, event):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 77
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 89
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L53": {
+      "path": "media/projections.py",
+      "start": 53,
+      "end": 53,
+      "target_line": "    if number < current.attempt_number:",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 77
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L83": {
+      "path": "media/projections.py",
+      "start": 83,
+      "end": 83,
+      "target_line": "    if asset.deleted_at:",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 77
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sqs.py#L112": {
+      "path": "delivery/sqs.py",
+      "start": 112,
+      "end": 112,
+      "target_line": "async def consume_batch(event, queue, handler):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+          "line": 77
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 89
+        },
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 20
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L1": {
+      "path": "processing/worker/sqs.py",
+      "start": 1,
+      "end": 1,
+      "target_line": "\"\"\"Finite V1 encoder: python -m processing.worker.sqs --deadline EPOCH --name TASK.",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 48
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L863": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 863,
+      "end": 863,
+      "target_line": "    producers = {",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 79
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/authorizer.py#L13": {
+      "path": "media/authorizer.py",
+      "start": 13,
+      "end": 13,
+      "target_line": "def gateway_role(user: User) -> str:",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 83
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1198": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1198,
+      "end": 1198,
+      "target_line": "        image = \"Worker\" if name == SHORT_ENCODER else domain",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/report-notes/W6.md",
+          "line": 115
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1560-L1621": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1560,
+      "end": 1621,
+      "target_line": "    for domain in (\"Media\", \"Processing\"):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 14
+        },
+        {
+          "file": "project-documentation/presentation/site/assets/uml/W6-logical.puml",
+          "line": 24
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L309-L315": {
+      "path": "processing/worker/sqs.py",
+      "start": 309,
+      "end": 315,
+      "target_line": "        received = await call(",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 15
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L93-L115": {
+      "path": "delivery/sql.py",
+      "start": 93,
+      "end": 115,
+      "target_line": "        error = None",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 16
+        },
+        {
+          "file": "project-documentation/presentation/site/assets/uml/W6-command-handoff.puml",
+          "line": 23
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sqs.py#L61-L70": {
+      "path": "delivery/sqs.py",
+      "start": 61,
+      "end": 70,
+      "target_line": "    async def send(self, queue, envelope):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 16
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1286-L1300": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1286,
+      "end": 1300,
+      "target_line": "    add(",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 16
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/gateway.py#L3-L5": {
+      "path": "contracts/gateway.py",
+      "start": 3,
+      "end": 5,
+      "target_line": "Lambda resource policies must restrict invocation to the configured Gateway. The",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 18
+        },
+        {
+          "file": "project-documentation/presentation/site/assets/uml/W6-trust-boundary.puml",
+          "line": 16
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1546-L1621": {
+      "path": "scripts/aws/v1/definitions.py",
+      "start": 1546,
+      "end": 1621,
+      "target_line": "    add(",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 18
+        },
+        {
+          "file": "project-documentation/presentation/site/assets/uml/W6-trust-boundary.puml",
+          "line": 17
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69-L118": {
+      "path": "media/projections.py",
+      "start": 69,
+      "end": 118,
+      "target_line": "async def apply_result(session, envelope):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 19
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L36-L66": {
+      "path": "media/projections.py",
+      "start": 36,
+      "end": 66,
+      "target_line": "def validate_transition(current, event):",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/feedback-20261026/review/W6-review.md",
+          "line": 19
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sqs.py#L12-L26": {
+      "path": "delivery/sqs.py",
+      "start": 12,
+      "end": 26,
+      "target_line": "LANES = {",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/site/assets/uml/W6-logical.puml",
+          "line": 35
+        }
+      ]
+    },
+    "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L309-L316": {
+      "path": "processing/worker/sqs.py",
+      "start": 309,
+      "end": 316,
+      "target_line": "        received = await call(",
+      "appearances": [
+        {
+          "file": "project-documentation/presentation/site/assets/uml/W6-processing-components.puml",
+          "line": 29
+        },
+        {
+          "file": "project-documentation/presentation/site/assets/uml/W6-work-results.puml",
+          "line": 24
+        }
+      ]
+    }
+  }
+}

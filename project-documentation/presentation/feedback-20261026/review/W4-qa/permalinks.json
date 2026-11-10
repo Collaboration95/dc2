@@ -1,0 +1,1604 @@
+{
+  "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L51": {
+    "commit": "76282d3",
+    "path": "scripts/aws/v1/definitions.py",
+    "start": 51,
+    "end": 51,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:7",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:56"
+    ],
+    "resolves": true,
+    "text": "DEFAULT_AUTO_PAUSE_SECONDS, DEFAULT_MAX_CAPACITY = 300, 2",
+    "context": "MAX_CAPACITY_RANGE = (1, 256) | DEFAULT_AUTO_PAUSE_SECONDS, DEFAULT_MAX_CAPACITY = 300, 2 | # Who may open a connection to each cluster. A Fargate encoder belongs to Processing only, so | # in the separate layout Media's cluster does not admit it. Lambda and the migration task are"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L501": {
+    "commit": "76282d3",
+    "path": "scripts/aws/v1/definitions.py",
+    "start": 501,
+    "end": 501,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:7",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:221",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:230",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:168"
+    ],
+    "resolves": true,
+    "text": "    for stem in stems:",
+    "context": "    ) |     for stem in stems: |         cluster = { |             \"Engine\": \"aurora-postgresql\","
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L550": {
+    "commit": "76282d3",
+    "path": "scripts/aws/v1/definitions.py",
+    "start": 550,
+    "end": 550,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:7",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:34",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:221"
+    ],
+    "resolves": true,
+    "text": "            \"BucketEncryption\": {",
+    "context": "        props = { |             \"BucketEncryption\": { |                 \"ServerSideEncryptionConfiguration\": [ |                     {\"ServerSideEncryptionByDefault\": {\"SSEAlgorithm\": \"AES256\"}}"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L596": {
+    "commit": "76282d3",
+    "path": "scripts/aws/v1/definitions.py",
+    "start": 596,
+    "end": 596,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:7",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:178",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:68",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:170"
+    ],
+    "resolves": true,
+    "text": "    for name in (\"ProcessingCommands\", \"ProcessingWork\", \"MediaResults\"):",
+    "context": "        add(f\"{name}Bucket\", \"S3::Bucket\", props, retain=True) |     for name in (\"ProcessingCommands\", \"ProcessingWork\", \"MediaResults\"): |         add( |             f\"{name}Dlq\","
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L632": {
+    "commit": "76282d3",
+    "path": "scripts/aws/v1/definitions.py",
+    "start": 632,
+    "end": 632,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:7",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:178",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:68",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:181"
+    ],
+    "resolves": true,
+    "text": "    # The short lane's own queue and dead-letter queue (V2, #93). Its visibility timeout is",
+    "context": "        ) |     # The short lane's own queue and dead-letter queue (V2, #93). Its visibility timeout is |     # the function timeout plus a minute: SQS refuses a mapping below the timeout, and the |     # message must not reappear while its invocation could still be running."
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L18": {
+    "commit": "76282d3",
+    "path": "delivery/sql.py",
+    "start": 18,
+    "end": 18,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:7",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:203",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:239",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:60",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:164",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:168"
+    ],
+    "resolves": true,
+    "text": "async def accept(session, model, envelope):",
+    "context": " | async def accept(session, model, envelope): |     \"\"\"Call inside the domain mutation transaction; a rollback rolls back dedupe.\"\"\" |     body = document(envelope)"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L36": {
+    "commit": "76282d3",
+    "path": "delivery/sql.py",
+    "start": 36,
+    "end": 36,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:7",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:239"
+    ],
+    "resolves": true,
+    "text": "async def stage(session, model, envelope, queue):",
+    "context": " | async def stage(session, model, envelope, queue): |     \"\"\"No implicit commit: owned state and message must commit together.\"\"\" |     body = document(envelope)"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69": {
+    "commit": "76282d3",
+    "path": "media/projections.py",
+    "start": 69,
+    "end": 69,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:7",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:203",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:103",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:132"
+    ],
+    "resolves": true,
+    "text": "async def apply_result(session, envelope):",
+    "context": " | async def apply_result(session, envelope): |     from contracts.v1 import Envelope, accepts_version | "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L24": {
+    "commit": "76282d3",
+    "path": "processing/lifecycle.py",
+    "start": 24,
+    "end": 24,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:7",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:239",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:62",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:164"
+    ],
+    "resolves": true,
+    "text": "async def db_now(session):",
+    "context": " | async def db_now(session): |     return await session.scalar(select(func.clock_timestamp())) | "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L234": {
+    "commit": "76282d3",
+    "path": "media/services/direct_intake.py",
+    "start": 234,
+    "end": 234,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:7",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:146"
+    ],
+    "resolves": true,
+    "text": "async def cleanup_expired_uploads(",
+    "context": " | async def cleanup_expired_uploads( |     factory, storage, limit=100, *, deadline=None, horizon=CLEANUP_HORIZON | ):"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L123": {
+    "commit": "76282d3",
+    "path": "processing/recovery.py",
+    "start": 123,
+    "end": 123,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:7",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:34",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:133",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:146"
+    ],
+    "resolves": true,
+    "text": "                .limit(limit)",
+    "context": "                .order_by(CleanupIntent.next_try_at, CleanupIntent.attempt_id) |                 .limit(limit) |             ) |         ).all()"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0001_media.py#L16": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0001_media.py",
+    "start": 16,
+    "end": 16,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:16",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:43",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:232",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:33"
+    ],
+    "resolves": true,
+    "text": "    \"\"\"CREATE TABLE users (",
+    "context": ")\"\"\", |     \"\"\"CREATE TABLE users ( | \tid UUID NOT NULL,  | \temail VARCHAR(320) NOT NULL, "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0001_media.py#L26": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0001_media.py",
+    "start": 26,
+    "end": 26,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:16",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:43",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:58",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:256",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:57"
+    ],
+    "resolves": true,
+    "text": "    \"\"\"CREATE TABLE assets (",
+    "context": ")\"\"\", |     \"\"\"CREATE TABLE assets ( | \tid UUID NOT NULL,  | \towner_id UUID NOT NULL, "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0004_direct_uploads.py#L23": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0004_direct_uploads.py",
+    "start": 23,
+    "end": 23,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:16",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:52",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:58",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:396",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:197"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "    ) |     op.create_table( |         \"upload_reservations\", |         sa.Column(\"id\", sa.Uuid(), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0007_finalized_requires_pin.py#L19": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0007_finalized_requires_pin.py",
+    "start": 19,
+    "end": 19,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:16",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:52",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:396",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:197"
+    ],
+    "resolves": true,
+    "text": "    op.create_check_constraint(CONSTRAINT, \"upload_reservations\", sa.text(PREDICATE))",
+    "context": "def upgrade(): |     op.create_check_constraint(CONSTRAINT, \"upload_reservations\", sa.text(PREDICATE)) |  | "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0008_upload_cleanup_schedule.py#L19": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0008_upload_cleanup_schedule.py",
+    "start": 19,
+    "end": 19,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:16",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:52",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:396",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:197"
+    ],
+    "resolves": true,
+    "text": "    op.add_column(",
+    "context": "    # them, and until then they back off like any other row. |     op.add_column( |         \"upload_reservations\", |         sa.Column("
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0008_upload_cleanup_schedule.py#L28": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0008_upload_cleanup_schedule.py",
+    "start": 28,
+    "end": 28,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:16",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:52",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:396",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:197"
+    ],
+    "resolves": true,
+    "text": "    op.add_column(",
+    "context": "    ) |     op.add_column( |         \"upload_reservations\", |         sa.Column(\"cleanup_attempts\", sa.Integer(), nullable=False, server_default=\"0\"),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0008_upload_cleanup_schedule.py#L32": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0008_upload_cleanup_schedule.py",
+    "start": 32,
+    "end": 32,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:16",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:52",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:396",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:197"
+    ],
+    "resolves": true,
+    "text": "    op.add_column(",
+    "context": "    ) |     op.add_column( |         \"upload_reservations\", |         sa.Column(\"cleanup_retired_at\", sa.DateTime(timezone=True)),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0004_direct_uploads.py#L13": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0004_direct_uploads.py",
+    "start": 13,
+    "end": 13,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:16",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:61",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:371",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:172"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "def upgrade(): |     op.create_table( |         \"asset_source_versions\", |         sa.Column(\"asset_id\", sa.Uuid(), sa.ForeignKey(\"assets.id\"), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0005_projection.py#L14": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0005_projection.py",
+    "start": 14,
+    "end": 14,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:16",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:70",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:439",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:240"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "def upgrade(): |     op.create_table( |         \"processing_projections\", |         sa.Column(\"asset_id\", sa.Uuid(), sa.ForeignKey(\"assets.id\"), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L43": {
+    "commit": "76282d3",
+    "path": "media/services/direct_intake.py",
+    "start": 43,
+    "end": 43,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:16",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:34",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:180"
+    ],
+    "resolves": true,
+    "text": "async def source_for_asset(session, asset_or_id):",
+    "context": " | async def source_for_asset(session, asset_or_id): |     \"\"\"The only sanctioned way to name an adopted source: always carries its VersionId. | "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L149": {
+    "commit": "76282d3",
+    "path": "media/services/direct_intake.py",
+    "start": 149,
+    "end": 149,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:16"
+    ],
+    "resolves": true,
+    "text": "async def finalize(session, storage, owner_id, reservation_id, request, *, enqueue=None):",
+    "context": " | async def finalize(session, storage, owner_id, reservation_id, request, *, enqueue=None): |     async with session.begin(): |         row = await session.scalar("
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0001_intake.py#L14": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0001_intake.py",
+    "start": 14,
+    "end": 14,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:25",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:115",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:58",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:520",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:321"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "def upgrade() -> None: |     op.create_table( |         \"jobs\", |         sa.Column(\"id\", sa.Uuid(), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0002_lifecycle.py#L14": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0002_lifecycle.py",
+    "start": 14,
+    "end": 14,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:25",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:115",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:520",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:321"
+    ],
+    "resolves": true,
+    "text": "    op.add_column(",
+    "context": "def upgrade(): |     op.add_column( |         \"jobs\", |         sa.Column("
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0001_intake.py#L35": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0001_intake.py",
+    "start": 35,
+    "end": 35,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:25",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:115",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:555",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:356"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "    op.create_index(\"ix_jobs_owner_id\", \"jobs\", [\"owner_id\"]) |     op.create_table( |         \"attempts\", |         sa.Column(\"id\", sa.Uuid(), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0002_lifecycle.py#L28": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0002_lifecycle.py",
+    "start": 28,
+    "end": 28,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:25",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:115",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:555",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:356"
+    ],
+    "resolves": true,
+    "text": "        op.add_column(\"attempts\", sa.Column(name, kind, nullable=True))",
+    "context": "    ): |         op.add_column(\"attempts\", sa.Column(name, kind, nullable=True)) |     op.add_column( |         \"attempts\", sa.Column(\"dispatch_count\", sa.Integer(), nullable=False, server_default=\"0\")"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0002_lifecycle.py#L29": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0002_lifecycle.py",
+    "start": 29,
+    "end": 29,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:25",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:115",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:555",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:356"
+    ],
+    "resolves": true,
+    "text": "    op.add_column(",
+    "context": "        op.add_column(\"attempts\", sa.Column(name, kind, nullable=True)) |     op.add_column( |         \"attempts\", sa.Column(\"dispatch_count\", sa.Integer(), nullable=False, server_default=\"0\") |     )"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0002_lifecycle.py#L33": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0002_lifecycle.py",
+    "start": 33,
+    "end": 33,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:25",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:124",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:58",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:613",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:414"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "    op.create_index(\"ix_attempts_recovery\", \"attempts\", [\"state\", \"next_dispatch_at\"]) |     op.create_table( |         \"retry_requests\", |         sa.Column(\"id\", sa.Uuid(), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0001_intake.py#L61": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0001_intake.py",
+    "start": 61,
+    "end": 61,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:25",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:124",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:591",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:392"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "    ) |     op.create_table( |         \"submission_guards\", |         sa.Column(\"asset_id\", sa.Uuid(), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L20": {
+    "commit": "76282d3",
+    "path": "processing/lifecycle.py",
+    "start": 20,
+    "end": 20,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:25",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:34",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:146",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:176"
+    ],
+    "resolves": true,
+    "text": "def output_prefix(job_id: UUID, attempt_id: UUID) -> str:",
+    "context": " | def output_prefix(job_id: UUID, attempt_id: UUID) -> str: |     return f\"jobs/{job_id}/attempts/{attempt_id}/\" | "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L38": {
+    "commit": "76282d3",
+    "path": "processing/lifecycle.py",
+    "start": 38,
+    "end": 38,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:25"
+    ],
+    "resolves": true,
+    "text": "def live(pair, token, now):",
+    "context": " | def live(pair, token, now): |     if pair is None: |         return False"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L99": {
+    "commit": "76282d3",
+    "path": "media/services/direct_intake.py",
+    "start": 99,
+    "end": 99,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:34",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:146"
+    ],
+    "resolves": true,
+    "text": "async def reserve(session, storage, owner_id, request):",
+    "context": " | async def reserve(session, storage, owner_id, request): |     if request.content_type not in ALLOWED_CONTENT_TYPES: |         raise MediaError(415, \"unsupported media type\")"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L105": {
+    "commit": "76282d3",
+    "path": "media/services/v1_lifecycle.py",
+    "start": 105,
+    "end": 105,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:34",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:146"
+    ],
+    "resolves": true,
+    "text": "async def edit(session, storage, owner_id, parent_id, request, key):",
+    "context": " | async def edit(session, storage, owner_id, parent_id, request, key): |     operations = request.stored_operations() |     digest = fingerprint({\"parent_id\": str(parent_id), \"operations\": operations})"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/tasks.py#L16": {
+    "commit": "76282d3",
+    "path": "processing/worker/tasks.py",
+    "start": 16,
+    "end": 16,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:34",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:212",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:103",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:146"
+    ],
+    "resolves": true,
+    "text": "async def pipeline(work, settings, supervisor, client, store, directory, *, downloader, admit=None):",
+    "context": " | async def pipeline(work, settings, supervisor, client, store, directory, *, downloader, admit=None): |     source = directory / \"source\" |     await supervisor.guard(downloader(client, work, settings, source))"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/hls.py#L43": {
+    "commit": "76282d3",
+    "path": "media_engine/hls.py",
+    "start": 43,
+    "end": 43,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:34",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:146"
+    ],
+    "resolves": true,
+    "text": "def build_ladder_command(",
+    "context": " | def build_ladder_command( |     source_path: Path, |     output_dir: Path,"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/recovery_v1.py#L39": {
+    "commit": "76282d3",
+    "path": "media/recovery_v1.py",
+    "start": 39,
+    "end": 39,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:34",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:146"
+    ],
+    "resolves": true,
+    "text": "async def cleanup_tombstones(",
+    "context": " | async def cleanup_tombstones( |     factory, storage, *, limit=100, deadline=None, horizon=CLEANUP_HORIZON | ):"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0007_finalized_requires_pin.py#L14": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0007_finalized_requires_pin.py",
+    "start": 14,
+    "end": 14,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:52"
+    ],
+    "resolves": true,
+    "text": "CONSTRAINT = \"ck_upload_reservations_finalized_has_pin\"",
+    "context": "# whose staging key is only addressable unversioned, which a replayed grant can overwrite. | CONSTRAINT = \"ck_upload_reservations_finalized_has_pin\" | PREDICATE = \"finalized_at IS NULL OR (version_id IS NOT NULL AND version_id NOT IN ('', 'null'))\" | "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0001_media.py#L63": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0001_media.py",
+    "start": 63,
+    "end": 63,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:79",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:320",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:121"
+    ],
+    "resolves": true,
+    "text": "    \"\"\"CREATE TABLE request_keys (",
+    "context": ")\"\"\", |     \"\"\"CREATE TABLE request_keys ( | \towner_id UUID NOT NULL,  | \toperation VARCHAR(20) NOT NULL, "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0001_media.py#L74": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0001_media.py",
+    "start": 74,
+    "end": 74,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:88",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:345",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:146"
+    ],
+    "resolves": true,
+    "text": "    \"\"\"CREATE TABLE retry_intents (",
+    "context": ")\"\"\", |     \"\"\"CREATE TABLE retry_intents ( | \tid UUID NOT NULL,  | \tasset_id UUID NOT NULL, "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L50": {
+    "commit": "76282d3",
+    "path": "media/services/v1_lifecycle.py",
+    "start": 50,
+    "end": 50,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:88",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:64"
+    ],
+    "resolves": true,
+    "text": "async def retry(session, owner_id, asset_id, key):",
+    "context": " | async def retry(session, owner_id, asset_id, key): |     async with session.begin(): |         asset = await get_asset(session, asset_id, owner_id, lock=True)"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/legacy/media_peer/lifecycle.py#L156": {
+    "commit": "76282d3",
+    "path": "legacy/media_peer/lifecycle.py",
+    "start": 156,
+    "end": 156,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:88",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:64"
+    ],
+    "resolves": true,
+    "text": "            intent = await session.get(RetryIntent, retry_id)",
+    "context": "            retry_id = uuid5(NAMESPACE_URL, f\"media/retry/{owner_id}/{key}\") |             intent = await session.get(RetryIntent, retry_id) |         else: |             # A bodyless legacy retry following transport loss reuses the unresolved"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0001_media.py#L53": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0001_media.py",
+    "start": 53,
+    "end": 53,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:97",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:296",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:97"
+    ],
+    "resolves": true,
+    "text": "    \"\"\"CREATE TABLE cleanup_intents (",
+    "context": "    \"\"\"CREATE INDEX assets_pending_due ON assets (submission_state, next_submit_at)\"\"\", |     \"\"\"CREATE TABLE cleanup_intents ( | \tasset_id UUID NOT NULL,  | \tprocessing_deleted_at TIMESTAMP WITH TIME ZONE, "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0006_messaging.py#L14": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0006_messaging.py",
+    "start": 14,
+    "end": 14,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:106",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:470",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:271"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "def upgrade(): |     op.create_table( |         \"message_inbox\", |         sa.Column(\"message_id\", sa.Uuid(), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0006_messaging.py#L22": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0006_messaging.py",
+    "start": 22,
+    "end": 22,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:106",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:490",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:291"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "    ) |     op.create_table( |         \"message_outbox\", |         sa.Column(\"message_id\", sa.Uuid(), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0001_media.py#L11": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0001_media.py",
+    "start": 11,
+    "end": 11,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:106",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:212",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:13"
+    ],
+    "resolves": true,
+    "text": "    \"\"\"CREATE TABLE staged_objects (",
+    "context": "STATEMENTS = [ |     \"\"\"CREATE TABLE staged_objects ( | \tkey TEXT NOT NULL,  | \tcreated_at TIMESTAMP WITH TIME ZONE NOT NULL, "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0002_uncertain_writes.py#L14": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0002_uncertain_writes.py",
+    "start": 14,
+    "end": 14,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:106",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:212",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:13"
+    ],
+    "resolves": true,
+    "text": "    op.add_column(",
+    "context": "    # Existing reservations have no durable proof of writer completion. |     op.add_column( |         \"staged_objects\", |         sa.Column(\"write_uncertain\", sa.Boolean(), nullable=False, server_default=sa.true()),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L28": {
+    "commit": "76282d3",
+    "path": "processing/lifecycle.py",
+    "start": 28,
+    "end": 28,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:115",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:58"
+    ],
+    "resolves": true,
+    "text": "async def lock_pair(session, job_id, attempt_id):",
+    "context": " | async def lock_pair(session, job_id, attempt_id): |     job = await session.scalar(select(Job).where(Job.id == job_id).with_for_update()) |     if job is None or job.deleted_at is not None or job.current_attempt_id != attempt_id:"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L281": {
+    "commit": "76282d3",
+    "path": "processing/messaging.py",
+    "start": 281,
+    "end": 281,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:115",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:64",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:93"
+    ],
+    "resolves": true,
+    "text": "        job = Job(",
+    "context": "        job_id, attempt_id = UUID(body[\"job_id\"]) if body.get(\"job_id\") else uuid4(), uuid4() |         job = Job( |             id=job_id, |             asset_id=asset_id,"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0002_lifecycle.py#L32": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0002_lifecycle.py",
+    "start": 32,
+    "end": 32,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:115",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:188"
+    ],
+    "resolves": true,
+    "text": "    op.create_index(\"ix_attempts_recovery\", \"attempts\", [\"state\", \"next_dispatch_at\"])",
+    "context": "    ) |     op.create_index(\"ix_attempts_recovery\", \"attempts\", [\"state\", \"next_dispatch_at\"]) |     op.create_table( |         \"retry_requests\","
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0006_cleanup_retirement.py#L22": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0006_cleanup_retirement.py",
+    "start": 22,
+    "end": 22,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:115",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:133",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:164",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:188",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:637",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:438"
+    ],
+    "resolves": true,
+    "text": "    op.add_column(\"cleanup_intents\", sa.Column(\"retired_at\", sa.DateTime(timezone=True)))",
+    "context": "    ) |     op.add_column(\"cleanup_intents\", sa.Column(\"retired_at\", sa.DateTime(timezone=True))) |     op.create_index( |         \"ix_cleanup_intents_due\","
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0002_lifecycle.py#L48": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0002_lifecycle.py",
+    "start": 48,
+    "end": 48,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:133",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:637",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:438"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "    ) |     op.create_table( |         \"cleanup_intents\", |         sa.Column("
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0006_cleanup_retirement.py#L16": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0006_cleanup_retirement.py",
+    "start": 16,
+    "end": 16,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:133",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:637",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:438"
+    ],
+    "resolves": true,
+    "text": "    op.add_column(",
+    "context": "def upgrade(): |     op.add_column( |         \"cleanup_intents\", |         sa.Column("
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0003_messaging.py#L14": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0003_messaging.py",
+    "start": 14,
+    "end": 14,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:142",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:663",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:464"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "def upgrade(): |     op.create_table( |         \"message_inbox\", |         sa.Column(\"message_id\", sa.Uuid(), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0003_messaging.py#L22": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0003_messaging.py",
+    "start": 22,
+    "end": 22,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:142",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:683",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:484"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "    ) |     op.create_table( |         \"message_outbox\", |         sa.Column(\"message_id\", sa.Uuid(), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0003_messaging.py#L35": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0003_messaging.py",
+    "start": 35,
+    "end": 35,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:151",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:709",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:510"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "    op.create_index(\"ix_message_outbox_due\", \"message_outbox\", [\"next_try_at\"]) |     op.create_table( |         \"job_messaging\", |         sa.Column(\"job_id\", sa.Uuid(), sa.ForeignKey(\"jobs.id\"), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0005_task_binding.py#L13": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0005_task_binding.py",
+    "start": 13,
+    "end": 13,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:151",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:164",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:729",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:530"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "def upgrade(): |     op.create_table( |         \"attempt_tasks\", |         sa.Column(\"attempt_id\", sa.Uuid(), sa.ForeignKey(\"attempts.id\"), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0007_launch_reservations.py#L18": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0007_launch_reservations.py",
+    "start": 18,
+    "end": 18,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:160",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:750",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:551"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "def upgrade(): |     op.create_table( |         \"launcher_control\", |         sa.Column(\"id\", sa.Integer(), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0007_launch_reservations.py#L29": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0007_launch_reservations.py",
+    "start": 29,
+    "end": 29,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:160",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:773",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4-dictionary.md:574"
+    ],
+    "resolves": true,
+    "text": "    op.create_table(",
+    "context": "    ) |     op.create_table( |         \"launch_reservations\", |         sa.Column(\"token\", sa.String(64), primary_key=True),"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher.py#L238": {
+    "commit": "76282d3",
+    "path": "processing/launcher.py",
+    "start": 238,
+    "end": 238,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:160",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:239",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:164"
+    ],
+    "resolves": true,
+    "text": "async def _reserve(factory, config, obs, visible, *, launching):",
+    "context": " | async def _reserve(factory, config, obs, visible, *, launching): |     \"\"\"One serialized pass: reconcile, decide, and commit new reservations.\"\"\" |     async with factory() as session, session.begin():"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L18": {
+    "commit": "76282d3",
+    "path": "contracts/v1.py",
+    "start": 18,
+    "end": 18,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:169",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:107"
+    ],
+    "resolves": true,
+    "text": "",
+    "context": "from uuid import UUID |  | # N: the newest version this copy of the contract can read. Consumers accept N and N-1. | SCHEMA_VERSION = 1"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L151": {
+    "commit": "76282d3",
+    "path": "contracts/v1.py",
+    "start": 151,
+    "end": 151,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:169",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:107"
+    ],
+    "resolves": true,
+    "text": "        for child in value:",
+    "context": "    elif isinstance(value, list): |         for child in value: |             _safe_payload(child) |     elif isinstance(value, str) and (\"https://\" in value.lower() or \"http://\" in value.lower()):"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L118": {
+    "commit": "76282d3",
+    "path": "contracts/v1.py",
+    "start": 118,
+    "end": 118,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:169",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:134"
+    ],
+    "resolves": true,
+    "text": "            ):",
+    "context": "                or any(ord(c) < 32 for c in value[key]) |             ): |                 raise ContractError(\"Invalid immutable source\") |         if ("
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sqs.py#L1": {
+    "commit": "76282d3",
+    "path": "delivery/sqs.py",
+    "start": 1,
+    "end": 1,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:169",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:107"
+    ],
+    "resolves": true,
+    "text": "\"\"\"Native credential SQS adapter with explicit producer and consumer lanes.\"\"\"",
+    "context": "\"\"\"Native credential SQS adapter with explicit producer and consumer lanes.\"\"\" |  | import asyncio"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L31": {
+    "commit": "76282d3",
+    "path": "media/messaging.py",
+    "start": 31,
+    "end": 31,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:178",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:132"
+    ],
+    "resolves": true,
+    "text": "async def enqueue_submit(session, asset, source):",
+    "context": " | async def enqueue_submit(session, asset, source): |     \"\"\"Finalize helper: caller owns adoption transaction and immutable descriptor.\"\"\" |     from uuid import uuid4"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L17": {
+    "commit": "76282d3",
+    "path": "media/services/v1_lifecycle.py",
+    "start": 17,
+    "end": 17,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:178",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:132"
+    ],
+    "resolves": true,
+    "text": "async def command(session, asset, kind, *, message_id=None, source=None):",
+    "context": " | async def command(session, asset, kind, *, message_id=None, source=None): |     from contracts.v1 import EMIT_VERSION, Envelope |     from media.messaging import stage_command"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L232": {
+    "commit": "76282d3",
+    "path": "processing/messaging.py",
+    "start": 232,
+    "end": 232,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:178",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:60",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:132"
+    ],
+    "resolves": true,
+    "text": "async def handle_command(factory, message):",
+    "context": " | async def handle_command(factory, message): |     body = document(message) |     if body[\"kind\"] not in {\"submit\", \"retry\", \"cancel\"}:"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L78": {
+    "commit": "76282d3",
+    "path": "processing/messaging.py",
+    "start": 78,
+    "end": 78,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:178",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:132",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:170",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:183"
+    ],
+    "resolves": true,
+    "text": "def envelope(job, attempt, version, kind):",
+    "context": " | def envelope(job, attempt, version, kind): |     return { |         \"schema_version\": EMIT_VERSION,"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L325": {
+    "commit": "76282d3",
+    "path": "processing/messaging.py",
+    "start": 325,
+    "end": 325,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:178",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:239",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:132",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:164"
+    ],
+    "resolves": true,
+    "text": "async def claim(factory, job_id, attempt_id, settings, *, envelope=None, task_name):",
+    "context": " | async def claim(factory, job_id, attempt_id, settings, *, envelope=None, task_name): |     if ( |         not isinstance(task_name, str)"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L190": {
+    "commit": "76282d3",
+    "path": "contracts/v1.py",
+    "start": 190,
+    "end": 190,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:194",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:134"
+    ],
+    "resolves": true,
+    "text": "        if data[\"kind\"] in (\"submit\", \"work\") and data[\"source\"] is None:",
+    "context": "        data[\"source\"] = Source.from_dict(data[\"source\"]) if data[\"source\"] is not None else None |         if data[\"kind\"] in (\"submit\", \"work\") and data[\"source\"] is None: |             raise ContractError(\"Source required\") |         if data[\"kind\"] in (\"work\", \"result\") and ("
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L186": {
+    "commit": "76282d3",
+    "path": "processing/messaging.py",
+    "start": 186,
+    "end": 186,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:194",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:134"
+    ],
+    "resolves": true,
+    "text": "async def _cancel_locked(session, guard, *, command_message_id=None):",
+    "context": " | async def _cancel_locked(session, guard, *, command_message_id=None): |     now = await lifecycle.db_now(session) |     was_deleted = guard.deleted_at is not None"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L139": {
+    "commit": "76282d3",
+    "path": "media/projections.py",
+    "start": 139,
+    "end": 139,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:194",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:134"
+    ],
+    "resolves": true,
+    "text": "async def confirm_cancellation(session, asset, event, *, no_job):",
+    "context": " | async def confirm_cancellation(session, asset, event, *, no_job): |     \"\"\"Only a consumed durable result authorizes later source cleanup.\"\"\" |     from media.messaging_models import MediaOutbox"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L98": {
+    "commit": "76282d3",
+    "path": "contracts/v1.py",
+    "start": 98,
+    "end": 98,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:203",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:93"
+    ],
+    "resolves": true,
+    "text": "",
+    "context": " |  | @dataclass(frozen=True) | class Source:"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/schemas.py#L111": {
+    "commit": "76282d3",
+    "path": "processing/schemas.py",
+    "start": 111,
+    "end": 111,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:203",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:103"
+    ],
+    "resolves": true,
+    "text": "class RetryJob(StrictObject):",
+    "context": " | class RetryJob(StrictObject): |     retry_request_id: UUID"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184": {
+    "commit": "76282d3",
+    "path": "processing/lifecycle.py",
+    "start": 184,
+    "end": 184,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:203",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:103"
+    ],
+    "resolves": true,
+    "text": "async def finish(factory, work, *, outputs=None, error=None, on_change=None):",
+    "context": " | async def finish(factory, work, *, outputs=None, error=None, on_change=None): |     # Validate the acknowledged primary and attempt namespace before any DB write. |     checked = []"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/source.py#L31": {
+    "commit": "76282d3",
+    "path": "processing/worker/source.py",
+    "start": 31,
+    "end": 31,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:203",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:103"
+    ],
+    "resolves": true,
+    "text": "    def _download(self, source, path):",
+    "context": " |     def _download(self, source, path): |         required = {\"bucket\", \"key\", \"version_id\", \"sha256\", \"size_bytes\", \"content_type\"} |         if ("
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher.py#L90": {
+    "commit": "76282d3",
+    "path": "processing/launcher.py",
+    "start": 90,
+    "end": 90,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:203",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:103"
+    ],
+    "resolves": true,
+    "text": "def run_payload(config, token, deadline_epoch):",
+    "context": " | def run_payload(config, token, deadline_epoch): |     name = started_by_for(token) |     return {"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/envelope.py#L1": {
+    "commit": "76282d3",
+    "path": "delivery/envelope.py",
+    "start": 1,
+    "end": 1,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:203",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:103"
+    ],
+    "resolves": true,
+    "text": "\"\"\"Shared canonical message validation and deterministic SQL dedupe hashes.\"\"\"",
+    "context": "\"\"\"Shared canonical message validation and deterministic SQL dedupe hashes.\"\"\" |  | import hashlib"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/schemas.py#L18": {
+    "commit": "76282d3",
+    "path": "processing/schemas.py",
+    "start": 18,
+    "end": 18,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:212",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:93"
+    ],
+    "resolves": true,
+    "text": "    sha256: Digest",
+    "context": "    revision: PositiveInt |     sha256: Digest |     size_bytes: PositiveInt |     media_type: str"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/schemas/edit.py#L1": {
+    "commit": "76282d3",
+    "path": "media/schemas/edit.py",
+    "start": 1,
+    "end": 1,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:212",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:103"
+    ],
+    "resolves": true,
+    "text": "# Edit validation extracted from app/schemas/edit.py; no legacy domain imports.",
+    "context": "# Edit validation extracted from app/schemas/edit.py; no legacy domain imports. | from typing import Annotated, Literal | "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L35": {
+    "commit": "76282d3",
+    "path": "processing/messaging.py",
+    "start": 35,
+    "end": 35,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:212",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:103"
+    ],
+    "resolves": true,
+    "text": "REPAIR_SCHEDULING_SLACK_SECONDS = 15  # EventBridge delivery plus Lambda start-up",
+    "context": "REPAIR_TICK_SECONDS = 60  # the repair rule's `rate(1 minute)`; a test ties the two together | REPAIR_SCHEDULING_SLACK_SECONDS = 15  # EventBridge delivery plus Lambda start-up | REPAIR_INTERVAL_SECONDS = ( |     LOST_WORK_GATE_SECONDS - REPAIR_TICK_SECONDS - REPAIR_SCHEDULING_SLACK_SECONDS"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/validation.py#L1": {
+    "commit": "76282d3",
+    "path": "media_engine/validation.py",
+    "start": 1,
+    "end": 1,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:212"
+    ],
+    "resolves": true,
+    "text": "\"\"\"Track C's source-aware checks, called by B before constructing FFmpeg args.",
+    "context": "\"\"\"Track C's source-aware checks, called by B before constructing FFmpeg args. |  | These functions do no I/O and never change the supplied parameters. The probe"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/frontend.py#L30": {
+    "commit": "76282d3",
+    "path": "scripts/aws/v1/frontend.py",
+    "start": 30,
+    "end": 30,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:221"
+    ],
+    "resolves": true,
+    "text": "    \".svg\": \"image/svg+xml\",",
+    "context": "    \".css\": \"text/css; charset=utf-8\", |     \".svg\": \"image/svg+xml\", |     \".mp4\": \"video/mp4\", |     \".LICENSE\": \"text/plain; charset=utf-8\","
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/frontend.py#L63": {
+    "commit": "76282d3",
+    "path": "scripts/aws/v1/frontend.py",
+    "start": 63,
+    "end": 63,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:221",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:146"
+    ],
+    "resolves": true,
+    "text": "def build(source=SOURCE, out=None):",
+    "context": " | def build(source=SOURCE, out=None): |     \"\"\"Write the deployable tree to `out` and return its manifest (sorted, deterministic).\"\"\" |     source, out = Path(source), Path(out)"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L899": {
+    "commit": "76282d3",
+    "path": "scripts/aws/v1/definitions.py",
+    "start": 899,
+    "end": 899,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:221",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87"
+    ],
+    "resolves": true,
+    "text": "        def marker(kind, domain=domain):",
+    "context": " |         def marker(kind, domain=domain): |             return sub( |                 \"arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter\""
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/runtime_support/activity.py#L1": {
+    "commit": "76282d3",
+    "path": "runtime_support/activity.py",
+    "start": 1,
+    "end": 1,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:221",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87"
+    ],
+    "resolves": true,
+    "text": "\"\"\"Let an idle domain's minute ticks skip SQL, so Aurora can pause (V2-live, AD-27).",
+    "context": "\"\"\"Let an idle domain's minute ticks skip SQL, so Aurora can pause (V2-live, AD-27). |  | The repair schedules and the launcher tick every minute, and a tick that opens a database"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L823": {
+    "commit": "76282d3",
+    "path": "scripts/aws/v1/definitions.py",
+    "start": 823,
+    "end": 823,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:221",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:230",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87"
+    ],
+    "resolves": true,
+    "text": "                {\"LogGroupName\": sub(f\"/dc2/${{EnvironmentId}}/{name}\"), \"RetentionInDays\": 7},",
+    "context": "                \"Logs::LogGroup\", |                 {\"LogGroupName\": sub(f\"/dc2/${{EnvironmentId}}/{name}\"), \"RetentionInDays\": 7}, |                 app=True, |             )"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1795": {
+    "commit": "76282d3",
+    "path": "scripts/aws/v1/definitions.py",
+    "start": 1795,
+    "end": 1795,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:221",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:230",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87"
+    ],
+    "resolves": true,
+    "text": "        {\"LogGroupName\": sub(\"/dc2/${EnvironmentId}/tasks\"), \"RetentionInDays\": 7},",
+    "context": "        \"Logs::LogGroup\", |         {\"LogGroupName\": sub(\"/dc2/${EnvironmentId}/tasks\"), \"RetentionInDays\": 7}, |     ) |     for name in (\"Worker\", \"MediaMigration\", \"ProcessingMigration\"):"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/deploy.py#L506": {
+    "commit": "76282d3",
+    "path": "scripts/aws/v1/deploy.py",
+    "start": 506,
+    "end": 506,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:221",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:230",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87"
+    ],
+    "resolves": true,
+    "text": "class DeployJournal(Journal):",
+    "context": "# ------------------------------------------------------------------------------ journal | class DeployJournal(Journal): |     \"\"\"The shared private atomic journal, carrying this pipeline's state under `deploy`. | "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/journal.py#L14": {
+    "commit": "76282d3",
+    "path": "scripts/aws/journal.py",
+    "start": 14,
+    "end": 14,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:221",
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:230",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87"
+    ],
+    "resolves": true,
+    "text": "class Journal:",
+    "context": " | class Journal: |     def __init__(self, path, *, station, environment): |         self.path = Path(path)"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/repositories/assets.py#L31": {
+    "commit": "76282d3",
+    "path": "media/repositories/assets.py",
+    "start": 31,
+    "end": 31,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:239"
+    ],
+    "resolves": true,
+    "text": "async def get_asset(",
+    "context": " | async def get_asset( |     session: AsyncSession, |     asset_id: UUID,"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L36": {
+    "commit": "76282d3",
+    "path": "media/projections.py",
+    "start": 36,
+    "end": 36,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/slides/W4.html:239",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:62",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:164"
+    ],
+    "resolves": true,
+    "text": "def validate_transition(current, event):",
+    "context": " | def validate_transition(current, event): |     \"\"\"Return False for stale/replayed state; reject equivocation and bad fences.\"\"\" |     payload = event[\"payload\"]"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0008_upload_cleanup_schedule.py#L12": {
+    "commit": "76282d3",
+    "path": "media/migrations/versions/0008_upload_cleanup_schedule.py",
+    "start": 12,
+    "end": 12,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:56"
+    ],
+    "resolves": true,
+    "text": "branch_labels = None",
+    "context": "down_revision = \"media_0007\" | branch_labels = None | depends_on = None | "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0007_launch_reservations.py#L11": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0007_launch_reservations.py",
+    "start": 11,
+    "end": 11,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:56"
+    ],
+    "resolves": true,
+    "text": "revision = \"processing_0007\"",
+    "context": " | revision = \"processing_0007\" | down_revision = \"processing_0006\" | branch_labels = None"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/bootstrap.py#L180": {
+    "commit": "76282d3",
+    "path": "scripts/aws/v1/bootstrap.py",
+    "start": 180,
+    "end": 180,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:56"
+    ],
+    "resolves": true,
+    "text": "            if current is not None and current != f\"{domain}_owner\":",
+    "context": "            ) |             if current is not None and current != f\"{domain}_owner\": |                 raise ValueError(\"Existing project DB has an unexpected owner; refusing adoption\") |         for domain in domains:"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L16": {
+    "commit": "76282d3",
+    "path": "media/messaging.py",
+    "start": 16,
+    "end": 16,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:60"
+    ],
+    "resolves": true,
+    "text": "async def consume_result(session, envelope, apply):",
+    "context": " | async def consume_result(session, envelope, apply): |     body = document(envelope) |     if body[\"kind\"] != \"result\":"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L58": {
+    "commit": "76282d3",
+    "path": "delivery/sql.py",
+    "start": 58,
+    "end": 58,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:60",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:182"
+    ],
+    "resolves": true,
+    "text": "async def publish_due(",
+    "context": " | async def publish_due( |     factory, |     model,"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136": {
+    "commit": "76282d3",
+    "path": "processing/lifecycle.py",
+    "start": 136,
+    "end": 136,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:62",
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:168"
+    ],
+    "resolves": true,
+    "text": "async def claim(factory, job_id, attempt_id, settings, *, on_change=None, before_claim=None):",
+    "context": " | async def claim(factory, job_id, attempt_id, settings, *, on_change=None, before_claim=None): |     async with factory() as session, session.begin(): |         if before_claim is not None and not await before_claim(session):"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L102": {
+    "commit": "76282d3",
+    "path": "processing/messaging.py",
+    "start": 102,
+    "end": 102,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:62"
+    ],
+    "resolves": true,
+    "text": "async def emit_state(session, job, attempt):",
+    "context": " | async def emit_state(session, job, attempt): |     # All callers already hold the owning Job lock (or just inserted that Job). |     saved = await session.get(JobMessaging, job.id)"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0007_launch_reservations.py#L1": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0007_launch_reservations.py",
+    "start": 1,
+    "end": 1,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:64"
+    ],
+    "resolves": true,
+    "text": "\"\"\"Add the opt-in launcher's control row and launch reservations (additive only).",
+    "context": "\"\"\"Add the opt-in launcher's control row and launch reservations (additive only). |  | Nothing reads these tables unless the stack was deployed with UnattendedLaunch=true, so"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L546": {
+    "commit": "76282d3",
+    "path": "scripts/aws/v1/definitions.py",
+    "start": 546,
+    "end": 546,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:87"
+    ],
+    "resolves": true,
+    "text": "            retain=True,",
+    "context": "            }, |             retain=True, |         ) |     for name in (\"Source\", \"Output\", \"Frontend\"):"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/deploy/v1/media.Dockerfile#L16": {
+    "commit": "76282d3",
+    "path": "deploy/v1/media.Dockerfile",
+    "start": 16,
+    "end": 16,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:89"
+    ],
+    "resolves": true,
+    "text": "COPY contracts ./contracts",
+    "context": "COPY deploy/v1/global-bundle.pem /opt/rds/global-bundle.pem | COPY contracts ./contracts | COPY delivery ./delivery | COPY runtime_support ./runtime_support"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/deploy/v1/processing.Dockerfile#L16": {
+    "commit": "76282d3",
+    "path": "deploy/v1/processing.Dockerfile",
+    "start": 16,
+    "end": 16,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:89"
+    ],
+    "resolves": true,
+    "text": "COPY contracts ./contracts",
+    "context": "COPY deploy/v1/global-bundle.pem /opt/rds/global-bundle.pem | COPY contracts ./contracts | COPY delivery ./delivery | COPY runtime_support ./runtime_support"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/deploy/v1/worker.Dockerfile#L16": {
+    "commit": "76282d3",
+    "path": "deploy/v1/worker.Dockerfile",
+    "start": 16,
+    "end": 16,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:89"
+    ],
+    "resolves": true,
+    "text": "COPY contracts ./contracts",
+    "context": "COPY deploy/v1/global-bundle.pem /opt/rds/global-bundle.pem | COPY contracts ./contracts | COPY delivery ./delivery | COPY runtime_support ./runtime_support"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L108": {
+    "commit": "76282d3",
+    "path": "contracts/v1.py",
+    "start": 108,
+    "end": 108,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:103"
+    ],
+    "resolves": true,
+    "text": "    @classmethod",
+    "context": " |     @classmethod |     def from_dict(cls, value: Any) -> \"Source\": |         if not isinstance(value, dict) or not set(cls.__dataclass_fields__) <= set(value):"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L47": {
+    "commit": "76282d3",
+    "path": "processing/messaging.py",
+    "start": 47,
+    "end": 47,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:103"
+    ],
+    "resolves": true,
+    "text": "def assert_owned_source(body):",
+    "context": " | def assert_owned_source(body): |     source = body.get(\"source\") |     if source is None:"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/schemas.py#L25": {
+    "commit": "76282d3",
+    "path": "processing/schemas.py",
+    "start": 25,
+    "end": 25,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:103"
+    ],
+    "resolves": true,
+    "text": "    end: Annotated[float, Field(strict=True, gt=0, allow_inf_nan=False)]",
+    "context": "    start: Annotated[float, Field(strict=True, ge=0, allow_inf_nan=False)] |     end: Annotated[float, Field(strict=True, gt=0, allow_inf_nan=False)] |  |     @model_validator(mode=\"after\")"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/models.py#L35": {
+    "commit": "76282d3",
+    "path": "media/models.py",
+    "start": 35,
+    "end": 35,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:152"
+    ],
+    "resolves": true,
+    "text": "",
+    "context": " |  | class Asset(Base): |     __tablename__ = \"assets\""
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L15": {
+    "commit": "76282d3",
+    "path": "processing/models.py",
+    "start": 15,
+    "end": 15,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:152"
+    ],
+    "resolves": true,
+    "text": "class Job(Base):",
+    "context": " | class Job(Base): |     __tablename__ = \"jobs\" |     __table_args__ = ("
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/projection_models.py#L12": {
+    "commit": "76282d3",
+    "path": "media/projection_models.py",
+    "start": 12,
+    "end": 12,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:152"
+    ],
+    "resolves": true,
+    "text": "class ProcessingProjection(Base):",
+    "context": " | class ProcessingProjection(Base): |     __tablename__ = \"processing_projections\" | "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/media/repositories/assets.py#L81": {
+    "commit": "76282d3",
+    "path": "media/repositories/assets.py",
+    "start": 81,
+    "end": 81,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:164"
+    ],
+    "resolves": true,
+    "text": "async def list_asset_pages(session, owner_id, limit, offset):",
+    "context": " | async def list_asset_pages(session, owner_id, limit, offset): |     \"\"\"Return visible assets and their optional local result in one bounded read.\"\"\" |     query = ("
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher.py#L337": {
+    "commit": "76282d3",
+    "path": "processing/launcher.py",
+    "start": 337,
+    "end": 337,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:164"
+    ],
+    "resolves": true,
+    "text": "async def _send(factory, ecs, token, config=None):",
+    "context": " | async def _send(factory, ecs, token, config=None): |     \"\"\"Send one reservation while holding the control row FOR SHARE. | "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/runtime_support/lambda_db.py#L1": {
+    "commit": "76282d3",
+    "path": "runtime_support/lambda_db.py",
+    "start": 1,
+    "end": 1,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:168"
+    ],
+    "resolves": true,
+    "text": "\"\"\"One SQL engine and one event loop per warm Lambda execution environment.",
+    "context": "\"\"\"One SQL engine and one event loop per warm Lambda execution environment. |  | A fresh engine per invocation made every request pay a TLS + SCRAM handshake and a"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/project-documentation/presentation/site/deck.html#L257": {
+    "commit": "76282d3",
+    "path": "project-documentation/presentation/site/deck.html",
+    "start": 257,
+    "end": 257,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:177"
+    ],
+    "resolves": true,
+    "text": "<section class=\"slide\" id=\"s65\" data-kind=\"back\" data-num=\"B17\"><h1>Show the tables</h1><div class=\"body\"><div class=\"cap\" style=\"font-size:28px;font-weight:600;color:#0f172a;margin-bottom:14px\">Media tables first; the next click shows Processing.</div><div style=\"position:relative;height:440px\"><div style=\"position:absolute;left:0;top:0;width:1180px;height:440px;background:#fff\"><img src=\"assets/img/views-er-media.svg\" style=\"width:1000px\" alt=\"\"></div><div style=\"position:absolute;left:0;top:0;width:1180px;height:440px;background:#fff\"><img src=\"assets/img/views-er-processing.svg\" style=\"width:1000px\" alt=\"\"></div></div></div><div class=\"sec\">Backup</div><div class=\"foot\"><span></span><span>B17</span></div><aside class=\"notes\"><b>B17 \u00b7 Q&A backup</b><ul><li>Source: views.md section 4. Mermaid text is small by design; backup only</li></ul></aside></section>",
+    "context": "<section class=\"slide\" id=\"s64\" data-kind=\"back\" data-num=\"B16\"><h1>Is the database highly available? Schema rollback?</h1><div class=\"body\"><div class=\"cap\" style=\"font-size:28px;font-weight:600;color:#0f172a;margin-bottom:14px\">Single instance per cluster; migrations stay additive.</div><div class=\"row\" style=\"gap:16px\"><div class=\"box x\">1 instance per cluster</div><div class=\"box i\">additive migrations only</div></div><div class=\"cap\" style=\"margin-top:20px\">Release restores images and aliases, never schema.</div></div><div class=\"sec\">Backup</div><div class=\"foot\"><span></span><span>B16</span></div><aside class=\"notes\"><b>B16 \u00b7 Q&A backup</b><ul><li>Source: AD-29; deploy-runbook.md; AISS-03</li></ul></aside></section> | <section class=\"slide\" id=\"s65\" data-kind=\"back\" data-num=\"B17\"><h1>Show the tables</h1><div class=\"body\"><div class=\"cap\" style=\"font-size:28px;font-weight:600;color:#0f172a;margin-bottom:14px\">Media tables first; the next click shows Processing.</div><div style=\"position:relative;height:440px\"><div style=\"position:absolute;left:0;top:0;width:1180px;height:440px;background:#fff\"><img src=\"assets/img/views-er-media.svg\" style=\"width:1000px\" alt=\"\"></div><div style=\"position:absolute;left:0;top:0;width:1180px;height:440px;background:#fff\"><img src=\"assets/img/views-er-processing.svg\" style=\"width:1000px\" alt=\"\"></div></div></div><div class=\"sec\">Backup</div><div class=\"foot\"><span></span><span>B17</span></div><aside class=\"notes\"><b>B17 \u00b7 Q&A backup</b><ul><li>Source: views.md section 4. Mermaid text is small by design; backup only</li></ul></aside></section> | <section class=\"slide\" id=\"s66\" data-kind=\"back\" data-num=\"B18\"><h1>Are security alerts resolved?</h1><div class=\"body\"><div class=\"cap\" style=\"font-size:28px;font-weight:600;color:#0f172a;margin-bottom:14px\">Fixable ones block; accepted ones stay visible.</div><table class=\"tbl\"><tr><th>Gate</th><th>Disposition</th></tr><tr><td>CodeQL</td><td>12 High dismissed with reasons, 0 fixed</td></tr><tr><td>ZAP (local)</td><td>8 Low + 8 informational</td></tr><tr><td>FFmpeg CVE-2025-52290</td><td>accepted, unfixed, rationale kept</td></tr><tr><td>Trivy / ECR</td><td>zero fixable HIGH/CRITICAL on candidates</td></tr></table></div><div class=\"sec\">Backup</div><div class=\"foot\"><span></span><span class=\"fr\"><a class=\"pl\" href=\"https://github.com/Collaboration95/dc2/security/code-scanning\" target=\"_blank\" rel=\"noopener\">Code scanning alerts &#8599;</a><a class=\"pl\" href=\"https://github.com/Collaboration95/dc2/blob/Main/docs/execution/aws/v1/scan-accepted-unfixed-20261017.json\" target=\"_blank\" rel=\"noopener\">FFmpeg CVE accept-list &#8599;</a>B18</span></div><aside class=\"notes\"><b>B18 \u00b7 Q&A backup</b><ul><li>Source: docs/ci/policy.md; scan-accepted-unfixed-20261017.json</li></ul></aside></section> | <section class=\"slide\" id=\"s67\" data-kind=\"back\" data-num=\"B19\"><h1>What if a worker dies or SQS loses a message?</h1><div class=\"body\"><div class=\"cap\" style=\"font-size:28px;font-weight:600;color:#0f172a;margin-bottom:14px\">The lease expires, the job fails, the owner retries.</div><div class=\"row\" style=\"gap:6px\"><div class=\"box x\">Lease expires</div><span class=\"ar\"></span><div class=\"box x\">Attempt abandoned</div><span class=\"ar\"></span><div class=\"box x\">Job failed</div><span class=\"ar\"></span><div class=\"box m\">Owner retries</div></div><div class=\"cap\" style=\"margin-top:24px\">A lost queue message is rebuilt by SQL repair; its time bound is unmeasured.</div></div><div class=\"sec\">Backup</div><div class=\"foot\"><span></span><span>B19</span></div><aside class=\"notes\"><b>B19 \u00b7 Q&A backup</b><ul><li>Source: processing/recovery.py; AD-27</li></ul></aside></section>"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/project-documentation/presentation/site/deck.html#L284": {
+    "commit": "76282d3",
+    "path": "project-documentation/presentation/site/deck.html",
+    "start": 284,
+    "end": 284,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:177"
+    ],
+    "resolves": true,
+    "text": "function go(i,noHash){if(i<0||i>=N)return;",
+    "context": "function toggleClip(){var c=cur>=0&&clipOf(cur);if(!c||!c.classList.contains('ready'))return;var v=c.querySelector('video');if(v.paused)v.play();else v.pause()} | function go(i,noHash){if(i<0||i>=N)return; | if(cur>=0&&cur!==i){slides[cur].classList.remove('active');var oc=clipOf(cur);if(oc&&oc._init)oc.querySelector('video').pause()} | cur=i;"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/project-documentation/final-report/src/34-persistence-detailed.md#L3": {
+    "commit": "76282d3",
+    "path": "project-documentation/final-report/src/34-persistence-detailed.md",
+    "start": 3,
+    "end": 3,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:178"
+    ],
+    "resolves": true,
+    "text": "**Relational data.** Each service owns one PostgreSQL 16 database on its own Aurora Serverless v2 cluster (AD-29), with",
+    "context": " | **Relational data.** Each service owns one PostgreSQL 16 database on its own Aurora Serverless v2 cluster (AD-29), with | its own Alembic migration history (Media `0001_media` \u2026 `media_0008`; Processing `processing_0001` | \u2026 `processing_0007`). No table has a foreign key into the other database. Owner and asset"
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery_v1.py#L84": {
+    "commit": "76282d3",
+    "path": "processing/recovery_v1.py",
+    "start": 84,
+    "end": 84,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:182"
+    ],
+    "resolves": true,
+    "text": "async def repair_work(factory, *, limit=50, deadline=None):",
+    "context": " | async def repair_work(factory, *, limit=50, deadline=None): |     \"\"\"Recreate work even after an acknowledged send, retention gap or lost delete. | "
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0001_intake.py#L29": {
+    "commit": "76282d3",
+    "path": "processing/migrations/versions/0001_intake.py",
+    "start": 29,
+    "end": 29,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:183"
+    ],
+    "resolves": true,
+    "text": "        sa.Column(\"deleted_at\", sa.DateTime(timezone=True), nullable=True),",
+    "context": "        sa.Column(\"updated_at\", sa.DateTime(timezone=True), nullable=False), |         sa.Column(\"deleted_at\", sa.DateTime(timezone=True), nullable=True), |         sa.CheckConstraint( |             \"status IN ('queued', 'processing', 'done', 'failed')\", name=\"ck_jobs_status\""
+  },
+  "https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L47": {
+    "commit": "76282d3",
+    "path": "processing/models.py",
+    "start": 47,
+    "end": 47,
+    "locations": [
+      "project-documentation/presentation/feedback-20261026/report-notes/W4.md:188"
+    ],
+    "resolves": true,
+    "text": "",
+    "context": " |  | class Attempt(Base): |     __tablename__ = \"attempts\""
+  }
+}

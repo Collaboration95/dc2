@@ -1,0 +1,51 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam NoteFontSize 14
+skinparam maxMessageSize 400
+hide footbox
+autonumber
+title Sequence view · UC-2 successfully claims the current queued pair · 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L109
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L325
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L343
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+skinparam maxMessageSize 350
+participant "worker.sqs\n«module»" as W $PROC
+participant "messaging\n«module»" as M $PROC
+participant "lifecycle\n«module»" as L $PROC
+participant "s: AsyncSession" as DB $INFRA
+W -> M : claim(f,jid,aid,cfg,envelope=e,task_name=name)
+activate M
+M -> L : claim(f,jid,aid,cfg,\non_change=changed,before_claim=authorize)
+activate L
+group Processing claim transaction
+ L -> M : authorize(s) [before_claim callback]
+ activate M
+ M -> DB : SQL: read identity; lock SubmissionGuard
+ M --> L : True [authorized]
+ deactivate M
+ L -> DB : SQL: lock current queued Job/Attempt;\nprocessing state + token + lease/deadline
+ L -> M : changed(s,job,attempt) [on_change callback]
+ activate M
+ M -> DB : SQL: insert AttemptTask; stage result
+ M --> L : None
+ deactivate M
+ L -> DB : COMMIT
+end
+L --> M : work: Claim
+deactivate L
+M --> W : work: Claim
+deactivate M
+legend bottom
+authorize/changed belong to messaging.claim. Failed preconditions return None before mutation or raise/roll back.
+work=None requires work_disposition: SQL-proved stale is ACKed, unknown/pending retained. Finish: W3-23a.
+endlegend
+@enduml

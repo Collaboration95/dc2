@@ -1,0 +1,29 @@
+{
+  "head": "76282d3b5a141f6548056f2506f9d5aff0742692",
+  "class_members_checked": 134,
+  "permalinks_checked": 115,
+  "source_files_checked": 42,
+  "protected_files_checked": 131,
+  "protected_changes": [
+    "project-documentation/presentation/site/deck.html"
+  ],
+  "protected_code_changes": [],
+  "shared_deck_changed_outside_review_writes": true,
+  "sources": 35,
+  "svgs": 35,
+  "main_sections": 8,
+  "backup_sections": 29,
+  "main_minimum_font_px": 13.19,
+  "all_figures_minimum_font_px": 13.03,
+  "errors": [],
+  "main_pages": [
+    "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/review/W3-qa/main-01.html",
+    "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/review/W3-qa/main-02.html",
+    "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/review/W3-qa/main-03.html",
+    "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/review/W3-qa/main-04.html",
+    "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/review/W3-qa/main-05.html",
+    "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/review/W3-qa/main-06.html",
+    "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/review/W3-qa/main-07.html",
+    "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/review/W3-qa/main-08.html"
+  ]
+}

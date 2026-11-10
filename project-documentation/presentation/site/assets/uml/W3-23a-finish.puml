@@ -1,0 +1,50 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam NoteFontSize 14
+skinparam maxMessageSize 400
+hide footbox
+autonumber
+title Sequence view · UC-2 commits a live finish and its result outbox\n76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L109
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L325
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L343
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+skinparam maxMessageSize 350
+participant "worker.sqs\n«module»" as W $PROC
+participant "messaging\n«module»" as M $PROC
+participant "lifecycle\n«module»" as L $PROC
+participant "s: AsyncSession" as DB $INFRA
+W -> M : finish(f,work,outputs=outputs)
+activate M
+M -> L : finish(f,work,outputs=outputs,error=None,on_change=emit_state)
+activate L
+note over L,DB : Validate exactly one primary + namespace + size/hash before SQL.
+group Processing finish transaction
+ L -> DB : SQL: lock_pair; DB clock; live fence
+ opt live authority
+  L -> DB : SQL: Job=done; Attempt=succeeded
+  L -> M : emit_state(s,job,attempt)
+  activate M
+  M -> DB : SQL: increment version; stage result outbox
+  M --> L : state_version: int
+  deactivate M
+ end
+ L -> DB : COMMIT
+end
+L --> M : True if live; False if stale
+deactivate L
+M --> W : bool
+deactivate M
+legend bottom
+Shown success request (error=None). Error finish instead records failed state and cleanup intent.
+Work ACK follows finish commit; encoders stage result SQL, and a separate relay sends SQS.
+endlegend
+@enduml

@@ -1,0 +1,60 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 20
+skinparam classAttributeFontSize 18
+skinparam classStereotypeFontSize 16
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam nodesep 24
+skinparam ranksep 30
+hide circle
+hide empty methods
+
+top to bottom direction
+title Supporting boundaries · Processing control / idempotency · 76282d3
+class SubmissionGuard <<independent cancellation gate>> $PROC {
+ asset_id: UUID
+ owner_id: UUID
+ job_id: UUID | None
+ deleted_at: datetime | None
+}
+class RetryRequest <<idempotency ledger>> $INFRA {
+ id: UUID
+ job_id: UUID
+ request_id: UUID
+ attempt_id: UUID
+}
+class AttemptTask <<execution binding ledger>> $INFRA {
+ attempt_id: UUID
+ task_name: str
+}
+class JobMessaging <<state-version ledger>> $INFRA {
+ job_id: UUID
+ state_version: int
+}
+SubmissionGuard -[hidden]right- RetryRequest
+RetryRequest -[hidden]right- AttemptTask
+AttemptTask -[hidden]right- JobMessaging
+note bottom of SubmissionGuard
+  _guard(): create + lock; check owner.
+  _cancel_locked(): no-Job tombstone persists.
+  Later submit is a no-op, not resurrection.
+  Gate is NOT a Job child.
+end note
+note bottom of AttemptTask
+  messaging.claim(): atomic task binding.
+  PK attempt_id; UNIQUE task_name.
+  emit_state(): increment JobMessaging;
+  commit state + result (+ queued work).
+end note
+legend bottom
+  Per guard: 0..1 Job (nullable local FK); inverse is not UNIQUE in SQL.
+  Per Job: 0..* RetryRequest (UNIQUE job_id, request_id); per retry: 1 Job + 1 Attempt (FKs).
+  Per Attempt: 0..1 AttemptTask; per Job: 0..1 JobMessaging (1 after V1 acceptance); both local FKs.
+  All Media identities are plain UUIDs. Selected fields; supporting records are outside Job membership.
+endlegend
+
+@enduml

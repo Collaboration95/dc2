@@ -1,0 +1,59 @@
+{
+  "commit": "76282d3",
+  "application_tables": 22,
+  "columns": 172,
+  "migration_heads": [
+    "media_0008",
+    "processing_0007"
+  ],
+  "slides": 26,
+  "main_sections": 4,
+  "figures": 16,
+  "slide_pngs": 26,
+  "figure_pngs": 16,
+  "viewport": [
+    1280,
+    720
+  ],
+  "layout_overlaps": 0,
+  "live_database_checked": false,
+  "deployed_state_checked": false,
+  "index_metadata_differences": [
+    "processing.attempts: ix_attempts_recovery present in migration, absent in ORM",
+    "processing.cleanup_intents: ix_cleanup_intents_due present in migration, absent in ORM"
+  ],
+  "sha256": {
+    "site/assets/uml/W4-media-assets.puml": "f4d35c478664c82c8d962cbefcb4b33737af2f2e203f0a790fc483afae26459d",
+    "site/assets/uml/W4-media-assets.svg": "a73ea8cfb6183890411dd08926c32a118852f5cca5f754a2a7aac142c8077d3e",
+    "site/assets/uml/W4-media-cleanup.puml": "d6e603d4c6f1fdb388c6cf488396f0b4460b5bdc08f2d15d67027f4e84693847",
+    "site/assets/uml/W4-media-cleanup.svg": "decf9303a6d7f6d088f35b9a9bee0f38f8191b55af2e93c07f61c2cdfb9c8a49",
+    "site/assets/uml/W4-media-delivery.puml": "fae8eef8a2d81a28790cb00c25b0bff66f311ea7ab89fa77662198fa60973e73",
+    "site/assets/uml/W4-media-delivery.svg": "dd8fb16771c5c793dc9d48d58fffe28c1f2d2411b371b15a4ec1017f2c49094e",
+    "site/assets/uml/W4-media-intents.puml": "82378e4b7cddaeb13c2114402579443c9798510e865421a8131b222ecf83e92b",
+    "site/assets/uml/W4-media-intents.svg": "8dde07407cfcba2895b8146b9d88d31ee0e3c19934767124cec0bc5697d6abf4",
+    "site/assets/uml/W4-media-main.puml": "178e0ef365e0c0ec57e4a4e6818a8eefba4bd9fee2539e340e13b4cd2101cee8",
+    "site/assets/uml/W4-media-main.svg": "8a0324274ce03b8cde9fbf17275f1e315257ce20e1f2a5b8ee098a928fb23e05",
+    "site/assets/uml/W4-media-pins.puml": "10184365cb1527f87969318b57cc2b9cab684468d6b356b729d4b605d0bf4e5e",
+    "site/assets/uml/W4-media-pins.svg": "f5b39aa626e497730d518283468bf6e5f2566fa1625f2df56d886708f1248e9d",
+    "site/assets/uml/W4-media-projection.puml": "947f5a91b26788c3c7fba0edd2ee73b15f4d1e5899703b60d6f97aa9d0c5e188",
+    "site/assets/uml/W4-media-projection.svg": "435c702c91bcef1dfe5bf25a6f6afc54e15cad34006619a07113babda835fb9b",
+    "site/assets/uml/W4-media-retry.puml": "200d8f0936b01f5872c2a8d94cdc616d1cc9a6fd7f4d34e542bc79a85beb645d",
+    "site/assets/uml/W4-media-retry.svg": "8824bbea57d71f5c889f096fed5a76c09fad866471dd361efd044858a07e0734",
+    "site/assets/uml/W4-media-upload.puml": "8180429de86829669b6f2620a3c519e219cbf450bb905a8cb51ba2b47eba4f61",
+    "site/assets/uml/W4-media-upload.svg": "b45ef3f9af44ec8f5303efd9d66c91da92bae604f448fa04b4ed681e0c7578f4",
+    "site/assets/uml/W4-processing-attempts.puml": "7c386beccecb06d332c71f8eadf8ace5bb581f46fae62b63a4f6fd3b06947b3c",
+    "site/assets/uml/W4-processing-attempts.svg": "45c004f8872e59169bd78aa0863d63b46b692c083a33b4e6357f71404848d83a",
+    "site/assets/uml/W4-processing-bindings.puml": "30d8e783c31b5dae393fa91e335a9ee197691dd0c29f24fb8f691f2c78be104b",
+    "site/assets/uml/W4-processing-bindings.svg": "50e9c9e64a6506fe1b46adaba53c44ce367be2bf58046753719908b39bc54272",
+    "site/assets/uml/W4-processing-cleanup.puml": "87805180355a9a16ff0a0bc9c8357cf5dec0b001c04ccd7f7d4061037d2858fe",
+    "site/assets/uml/W4-processing-cleanup.svg": "0e89862a74b76545800ef6a79a60f098c44ab0043223901f828226c925840668",
+    "site/assets/uml/W4-processing-delivery.puml": "f384ef8801e2bee9e3894171c8f63c9ec9fef650b4dab4006c66203f02c58662",
+    "site/assets/uml/W4-processing-delivery.svg": "398b3ae99beec3f8ee646d050001e40f87ca3689411d2a5a7389c92832aa4b64",
+    "site/assets/uml/W4-processing-intents.puml": "075b205a7b220d7ca973de19ffa5007ad0a792d59365994d15122a58fef67461",
+    "site/assets/uml/W4-processing-intents.svg": "24318a37ffc395a2b3735d290933c09594e8cdb858d90bfbde1b656916d5b593",
+    "site/assets/uml/W4-processing-launcher.puml": "a525f201325f0523b36ac573fad26644a63fd5548b9cd062f8f65b521259e753",
+    "site/assets/uml/W4-processing-launcher.svg": "e8a6d593cfe31463dfb03f40ba6d501eab3d33bd4ff3b785d4e31f6297be33ac",
+    "site/assets/uml/W4-processing-main.puml": "858c85fed5fdf265267151597144e598c9ae758b568fc5ae820016ffe30544bf",
+    "site/assets/uml/W4-processing-main.svg": "c505da503195fb4a31a0c7772b591c092e1d8f5621c47ab7ecd1b8f2474e46d3"
+  }
+}

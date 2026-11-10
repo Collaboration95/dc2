@@ -1,0 +1,35 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1739-L1791
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher_trigger.py#L39-L51
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher.py#L238-L334
+ title Deployment view · five EventBridge rules and standard-work wake · dc2-live at 76282d3
+ left to right direction
+ skinparam defaultFontSize 21
+ skinparam ArrowFontSize 18
+ skinparam titleFontSize 21
+ skinparam LegendFontSize 18
+ skinparam nodesep 18
+ skinparam ranksep 22
+ node "MediaRepairRule\nrate(1 minute)" as r1 $INFRA
+ node "ProcessingRepairRule\nrate(1 minute)" as r2 $INFRA
+ node "ProcessingLauncherRule\nrate(1 minute)" as r3 $INFRA
+ node "ProcessingEcsEventsRule\nECS task STOPPED (Cluster)" as r4 $INFRA
+ node "ProcessingS3EventsRule\nOutputBucket Object Created" as r5 $INFRA
+ node "MediaRepair\npublish commands / cleanup" as mr $MEDIA
+ node "ProcessingRepair\nrepair / publish / cleanup" as pr $PROC
+ node "ProcessingLauncher\nSQL reservation → RunTask" as la $PROC
+ node "ProcessingEcsEvents\ninterrupt / repair / publish" as pe $PROC
+ node "ProcessingS3Events\nrepair / publish / cleanup" as ps $PROC
+ r1 ..> mr : invoke live alias
+ r2 ..> pr : invoke live alias
+ r3 ..> la : invoke live alias
+ r4 ..> pe : invoke live alias
+ r5 ..> ps : invoke live alias
+ legend bottom
+ Blue = Media; amber = Processing; slate = EventBridge managed rules outside VPC. Dashed = invocation.
+ ProcessingCommands/Repair/EcsEvents/S3Events also wake ProcessingLauncher asynchronously AFTER standard work send.
+ Short work never wakes Fargate. Schedules/hints are gated; minute tick is a recovery net, not a latency SLA.
+ endlegend
+@enduml

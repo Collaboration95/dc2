@@ -1,0 +1,48 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+title Physical data view · Processing retry and cancellation · 76282d3
+hide circle
+skinparam linetype polyline
+left to right direction
+skinparam defaultFontSize 19
+skinparam ClassAttributeFontSize 18
+skinparam ClassFontSize 20
+skinparam ArrowFontSize 16
+skinparam LegendFontSize 14
+skinparam nodesep 42
+skinparam ranksep 70
+entity "retry_requests" as retry_requests $PROC {
+  {field} * id : uuid <<PK>>
+  {field} * job_id : uuid <<FK,UK1>>
+  {field} * request_id : uuid <<UK1>>
+  {field} * attempt_id : uuid <<FK>>
+  --
+  UK1 = (job_id, request_id)
+}
+entity "submission_guards" as submission_guards $PROC {
+  {field} * asset_id : uuid <<PK>>
+  {field} * owner_id : uuid
+  {field}   job_id ? : uuid <<FK>>
+  {field}   deleted_at ? : timestamptz
+}
+entity "jobs\n<<reference: key only>>" as jobs $INFRA {
+  {field} * id : uuid <<PK>>
+}
+entity "attempts\n<<reference: key only>>" as attempts $INFRA {
+  {field} * id : uuid <<PK>>
+}
+jobs |o--o{ submission_guards : "job_id"
+attempts ||--o{ retry_requests : "attempt_id"
+jobs ||--o{ retry_requests : "job_id"
+note bottom of submission_guards
+job_id is nullable and NOT unique.
+retry_requests FKs use ON DELETE CASCADE.
+end note
+legend bottom left
+  * = NOT NULL    ? = nullable    PK = primary key    FK = declared local foreign key
+  UK = unique column    UKn = one composite unique group    timestamptz = timestamp with time zone
+  Blue = Media; amber = Processing; grey = reference key on another sheet
+  All columns of coloured tables are shown; CHECKs, defaults and indexes are in the report dictionary.
+endlegend
+@enduml

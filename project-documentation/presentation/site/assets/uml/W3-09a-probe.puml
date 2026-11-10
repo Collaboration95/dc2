@@ -1,0 +1,68 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Sequence view · UC-2 downloads and probes before source admission\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L166
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/tasks.py#L16
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/source.py#L12
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/storage.py#L26
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/supervisor.py#L51
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/probe.py#L10
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/operations.py#L10
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+
+participant "tasks\n«module»" as T $PROC
+participant "source: SourceStore" as I $PROC
+participant "sup: Supervisor" as S $PROC
+participant "media_engine.probe\n«module»" as E $PROC
+participant "short_lane\n«module»" as L $PROC
+activate T
+group supervisor.guard(downloader(...))
+ T -> I : download(None,work,cfg,path)
+ activate I
+ I --> T : None (pinned GET; version/size/hash checked)
+ deactivate I
+end
+T -> E : probe_command(path,cfg.ffprobe_binary)
+activate E
+E --> T : command: list[str]
+deactivate E
+T -> S : run(command)
+activate S
+S --> T : stdout: str
+deactivate S
+T -> E : parse_probe(stdout)
+activate E
+E --> T : probe: SourceProbe
+deactivate E
+opt admit is not None (short encoder injects short_lane.check_probe)
+ T -> L : check_probe(probe)
+ activate L
+ L --> T : None; or raise NotAdmitted
+ deactivate L
+end
+ref over T,L : Accepted probe continues in W3-09b; NotAdmitted returns to worker.sqs for fenced redirect.
+deactivate T
+legend bottom
+Inside tasks.pipeline after worker.sqs has claimed. Probe: finite duration in (0,60s], height <=1080.
+Awaited calls use filled arrows; check_probe is a synchronous callable with the same filled call arrow.
+endlegend
+
+@enduml

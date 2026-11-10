@@ -1,0 +1,60 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Sequence view · Processing handler publishes after command acceptance · 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L70
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/handlers.py#L55
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L232
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L102
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L325
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L343
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher_aws.py#L81
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+skinparam maxMessageSize 380
+participant "handlers\n«Processing module»" as H $PROC
+participant "messaging\n«Processing module»" as M $PROC
+participant "t: WakeOnWork / SQS" as T $INFRA
+[->> H : SQS mapping delivery
+activate H
+H -> M : consume_commands(event,f,guard=_heal)
+activate M
+ref over H,M : consume_batch invokes handle(body) -> handle_command(f,body) for each record (W3-07a)
+M --> H : batchItemFailures (after SQL commits)
+deactivate M
+group Post-commit relay (always attempted; failure tolerated)
+ H -> M : publish_outbox(f,t,deadline=deadline,limit=25)
+ activate M
+ ref over M,T : publish_due: reserve/commit -> send -> token-fenced ACK (W3-14a)
+ alt publication succeeds
+  M --> H : published count
+ else publisher raises
+  M --> H : exception (caught by handlers.invoke)
+ end
+ deactivate M
+end
+[<-- H : partial-batch response; mapping deletes successful records
+deactivate H
+legend bottom
+handle_command returns bool and never publishes or returns a Lambda response.
+ACK depends on committed inbox/domain/outbox, independently of best-effort relay success.
+endlegend
+@enduml

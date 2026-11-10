@@ -1,0 +1,369 @@
+[
+  {
+    "slug": "media-main",
+    "title": "Physical data view \u00b7 media_db \u00b7 media_0008",
+    "tables": [
+      "users",
+      "assets",
+      "upload_reservations",
+      "asset_source_versions",
+      "processing_projections"
+    ],
+    "sources": [
+      [
+        "media/migrations/versions/0001_media.py",
+        16
+      ],
+      [
+        "media/migrations/versions/0001_media.py",
+        26
+      ],
+      [
+        "media/migrations/versions/0004_direct_uploads.py",
+        23
+      ],
+      [
+        "media/migrations/versions/0007_finalized_requires_pin.py",
+        19
+      ],
+      [
+        "media/migrations/versions/0008_upload_cleanup_schedule.py",
+        19
+      ],
+      [
+        "media/migrations/versions/0008_upload_cleanup_schedule.py",
+        28
+      ],
+      [
+        "media/migrations/versions/0008_upload_cleanup_schedule.py",
+        32
+      ],
+      [
+        "media/migrations/versions/0004_direct_uploads.py",
+        13
+      ],
+      [
+        "media/migrations/versions/0005_projection.py",
+        14
+      ]
+    ],
+    "main": true
+  },
+  {
+    "slug": "processing-main",
+    "title": "Physical data view \u00b7 processing_db \u00b7 processing_0007",
+    "tables": [
+      "jobs",
+      "attempts",
+      "retry_requests",
+      "submission_guards"
+    ],
+    "sources": [
+      [
+        "processing/migrations/versions/0001_intake.py",
+        14
+      ],
+      [
+        "processing/migrations/versions/0002_lifecycle.py",
+        14
+      ],
+      [
+        "processing/migrations/versions/0001_intake.py",
+        35
+      ],
+      [
+        "processing/migrations/versions/0002_lifecycle.py",
+        28
+      ],
+      [
+        "processing/migrations/versions/0002_lifecycle.py",
+        29
+      ],
+      [
+        "processing/migrations/versions/0002_lifecycle.py",
+        33
+      ],
+      [
+        "processing/migrations/versions/0001_intake.py",
+        61
+      ]
+    ],
+    "main": true
+  },
+  {
+    "slug": "media-assets",
+    "title": "Physical data view \u00b7 Media identity and assets",
+    "tables": [
+      "users",
+      "assets"
+    ],
+    "sources": [
+      [
+        "media/migrations/versions/0001_media.py",
+        16
+      ],
+      [
+        "media/migrations/versions/0001_media.py",
+        26
+      ]
+    ],
+    "main": false
+  },
+  {
+    "slug": "media-upload",
+    "title": "Physical data view \u00b7 Media upload pins",
+    "tables": [
+      "upload_reservations"
+    ],
+    "sources": [
+      [
+        "media/migrations/versions/0004_direct_uploads.py",
+        23
+      ],
+      [
+        "media/migrations/versions/0007_finalized_requires_pin.py",
+        19
+      ],
+      [
+        "media/migrations/versions/0008_upload_cleanup_schedule.py",
+        19
+      ],
+      [
+        "media/migrations/versions/0008_upload_cleanup_schedule.py",
+        28
+      ],
+      [
+        "media/migrations/versions/0008_upload_cleanup_schedule.py",
+        32
+      ]
+    ],
+    "main": false
+  },
+  {
+    "slug": "media-pins",
+    "title": "Physical data view \u00b7 Media derived source pins",
+    "tables": [
+      "asset_source_versions"
+    ],
+    "sources": [
+      [
+        "media/migrations/versions/0004_direct_uploads.py",
+        13
+      ]
+    ],
+    "main": false
+  },
+  {
+    "slug": "media-projection",
+    "title": "Physical data view \u00b7 Media result projection",
+    "tables": [
+      "processing_projections"
+    ],
+    "sources": [
+      [
+        "media/migrations/versions/0005_projection.py",
+        14
+      ]
+    ],
+    "main": false
+  },
+  {
+    "slug": "media-intents",
+    "title": "Physical data view \u00b7 Media request identity",
+    "tables": [
+      "request_keys"
+    ],
+    "sources": [
+      [
+        "media/migrations/versions/0001_media.py",
+        63
+      ]
+    ],
+    "main": false
+  },
+  {
+    "slug": "media-retry",
+    "title": "Physical data view \u00b7 Media retained legacy retry ledger",
+    "tables": [
+      "retry_intents"
+    ],
+    "sources": [
+      [
+        "media/migrations/versions/0001_media.py",
+        74
+      ]
+    ],
+    "main": false
+  },
+  {
+    "slug": "media-cleanup",
+    "title": "Physical data view \u00b7 Media deletion progress",
+    "tables": [
+      "cleanup_intents"
+    ],
+    "sources": [
+      [
+        "media/migrations/versions/0001_media.py",
+        53
+      ]
+    ],
+    "main": false
+  },
+  {
+    "slug": "media-delivery",
+    "title": "Physical data view \u00b7 Media durable delivery and orphan ledger",
+    "tables": [
+      "message_inbox",
+      "message_outbox",
+      "staged_objects"
+    ],
+    "sources": [
+      [
+        "media/migrations/versions/0006_messaging.py",
+        14
+      ],
+      [
+        "media/migrations/versions/0006_messaging.py",
+        22
+      ],
+      [
+        "media/migrations/versions/0001_media.py",
+        11
+      ],
+      [
+        "media/migrations/versions/0002_uncertain_writes.py",
+        14
+      ]
+    ],
+    "main": false
+  },
+  {
+    "slug": "processing-attempts",
+    "title": "Physical data view \u00b7 Processing jobs and fenced attempts",
+    "tables": [
+      "jobs",
+      "attempts"
+    ],
+    "sources": [
+      [
+        "processing/migrations/versions/0001_intake.py",
+        14
+      ],
+      [
+        "processing/migrations/versions/0002_lifecycle.py",
+        14
+      ],
+      [
+        "processing/migrations/versions/0001_intake.py",
+        35
+      ],
+      [
+        "processing/migrations/versions/0002_lifecycle.py",
+        28
+      ],
+      [
+        "processing/migrations/versions/0002_lifecycle.py",
+        29
+      ]
+    ],
+    "main": false
+  },
+  {
+    "slug": "processing-intents",
+    "title": "Physical data view \u00b7 Processing retry and cancellation",
+    "tables": [
+      "retry_requests",
+      "submission_guards"
+    ],
+    "sources": [
+      [
+        "processing/migrations/versions/0002_lifecycle.py",
+        33
+      ],
+      [
+        "processing/migrations/versions/0001_intake.py",
+        61
+      ]
+    ],
+    "main": false
+  },
+  {
+    "slug": "processing-cleanup",
+    "title": "Physical data view \u00b7 Processing retained output cleanup",
+    "tables": [
+      "cleanup_intents"
+    ],
+    "sources": [
+      [
+        "processing/migrations/versions/0002_lifecycle.py",
+        48
+      ],
+      [
+        "processing/migrations/versions/0006_cleanup_retirement.py",
+        16
+      ],
+      [
+        "processing/migrations/versions/0006_cleanup_retirement.py",
+        22
+      ]
+    ],
+    "main": false
+  },
+  {
+    "slug": "processing-delivery",
+    "title": "Physical data view \u00b7 Processing durable delivery",
+    "tables": [
+      "message_inbox",
+      "message_outbox"
+    ],
+    "sources": [
+      [
+        "processing/migrations/versions/0003_messaging.py",
+        14
+      ],
+      [
+        "processing/migrations/versions/0003_messaging.py",
+        22
+      ]
+    ],
+    "main": false
+  },
+  {
+    "slug": "processing-bindings",
+    "title": "Physical data view \u00b7 Processing versions and task binding",
+    "tables": [
+      "job_messaging",
+      "attempt_tasks"
+    ],
+    "sources": [
+      [
+        "processing/migrations/versions/0003_messaging.py",
+        35
+      ],
+      [
+        "processing/migrations/versions/0005_task_binding.py",
+        13
+      ]
+    ],
+    "main": false
+  },
+  {
+    "slug": "processing-launcher",
+    "title": "Physical data view \u00b7 Optional unattended launcher",
+    "tables": [
+      "launcher_control",
+      "launch_reservations"
+    ],
+    "sources": [
+      [
+        "processing/migrations/versions/0007_launch_reservations.py",
+        18
+      ],
+      [
+        "processing/migrations/versions/0007_launch_reservations.py",
+        29
+      ]
+    ],
+    "main": false
+  }
+]

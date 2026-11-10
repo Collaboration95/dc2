@@ -1,0 +1,50 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+title Physical data view · Media identity and assets · 76282d3
+hide circle
+skinparam linetype polyline
+left to right direction
+skinparam defaultFontSize 19
+skinparam ClassAttributeFontSize 18
+skinparam ClassFontSize 20
+skinparam ArrowFontSize 16
+skinparam LegendFontSize 14
+skinparam nodesep 42
+skinparam ranksep 70
+entity "users" as users $MEDIA {
+  {field} * id : uuid <<PK>>
+  {field} * email : varchar(320) <<UK>>
+  {field} * password_hash : text
+  {field} * role : varchar(20)
+  {field} * created_at : timestamptz
+}
+entity "assets" as assets $MEDIA {
+  {field} * id : uuid <<PK>>
+  {field} * owner_id : uuid <<FK>>
+  {field} * filename : varchar(100)
+  {field} * source_key : text <<UK>>
+  {field} * source_revision : integer
+  {field} * source_sha256 : varchar(64)
+  {field} * source_size_bytes : integer
+  {field} * source_media_type : varchar(100)
+  {field}   source_asset_id ? : uuid
+  {field} * operations : jsonb
+  {field} * submission_state : varchar(20)
+  {field}   processing_job_id ? : uuid
+  {field}   submitted_at ? : timestamptz
+  {field}   last_submit_error ? : text
+  {field} * submit_attempts : integer
+  {field} * next_submit_at : timestamptz
+  {field} * created_at : timestamptz
+  {field}   deleted_at ? : timestamptz
+}
+users ||--o{ assets : "owner_id"
+
+legend bottom left
+  * = NOT NULL    ? = nullable    PK = primary key    FK = declared local foreign key
+  UK = unique column    UKn = one composite unique group    timestamptz = timestamp with time zone
+  Blue = Media; amber = Processing. Only declared SQL foreign keys are connected.
+  All columns of coloured tables are shown; CHECKs, defaults and indexes are in the report dictionary.
+endlegend
+@enduml

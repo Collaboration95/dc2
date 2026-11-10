@@ -1,0 +1,29 @@
+!include _style.iuml
+@startuml W5-pipeline-main
+!include _style.iuml
+skinparam defaultFontSize 25
+skinparam activityFontSize 25
+skinparam ArrowFontSize 18
+skinparam titleFontSize 25
+skinparam ranksep 12
+skinparam nodesep 12
+title Activity view · full CI security controls · as built at 76282d3
+partition "CI event" {
+  (*) --> "Full CI event\nPR / Main / dispatch / weekly" as event $INFRA
+}
+partition "GitHub Actions · full verification" {
+  event --> ===checks===
+  ===checks=== --> "SAST · Ruff S\nBLOCKS lint findings" as ruff $MEDIA
+  ===checks=== --> "SCA · npm audit\nBLOCKS HIGH+" as npm $CLIENT
+  ===checks=== --> "Secrets · gitleaks\nBLOCKS findings" as secrets $PROC
+  ===checks=== --> "Images · Trivy\nInherited + V1\nBLOCKS fixable H/C" as images #F3E8FF
+  ===checks=== --> "DAST · local ZAP\nExecution BLOCKS\nFindings REPORT-ONLY" as zap #FFE4E6
+  ruff --> ===results===
+  npm --> ===results===
+  secrets --> ===results===
+  images --> ===results===
+  zap --> ===results===
+  ===results=== --> "Full verification result\nRequires scans + tests" as aggregate $INFRA
+  aggregate --> (*)
+}
+@enduml
