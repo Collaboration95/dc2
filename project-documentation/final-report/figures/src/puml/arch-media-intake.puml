@@ -1,0 +1,59 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+skinparam dpi 96
+skinparam defaultFontSize 20
+skinparam classAttributeFontSize 18
+skinparam classStereotypeFontSize 16
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam nodesep 24
+skinparam ranksep 30
+hide circle
+hide empty methods
+
+top to bottom direction
+title Tactical DDD · Media identity / pre-adoption intake
+class User <<supporting root>> $MEDIA {
+ id: UUID
+ email: str
+ password_hash: str
+ role: str
+ created_at: datetime
+}
+class UploadReservation <<independent intake root>> $MEDIA {
+ id: UUID
+ owner_id: UUID
+ request_id: UUID
+ request_hash: str
+ asset_id: UUID
+ key: str
+ size_bytes: int
+ version_id: str | None
+ expires_at: datetime
+ finalized_at: datetime | None
+}
+User "1" -right- "0..*" UploadReservation : owner_id only\n(local FK)
+note bottom of User
+  UNIQUE email; CHECK role in user/operator.
+  auth.register()/login() + current_user():
+  persisted identity / credential checks.
+  Actor role is publisher; not User.role.
+end note
+note bottom of UploadReservation
+  reserve(): UNIQUE(owner_id, request_id);
+  finalize(): rechecks expiry under row lock;
+  pin + new Asset + submit in one commit.
+  CHECK ck_upload_reservations_finalized_has_pin.
+end note
+legend bottom
+  Selected typed fields; policy is enforced by service functions.
+  Reservation exists before Asset: asset_id is unique but has NO Asset FK.
+  By asset_id: reservation -> 0..1 eventual Asset; Asset -> 0..1 reservation.
+  Selected source fields shown; full Source value is on the Asset view.
+endlegend
+
+@enduml

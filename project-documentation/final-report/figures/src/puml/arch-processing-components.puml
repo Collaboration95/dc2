@@ -1,0 +1,59 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+skinparam nodesep 25
+skinparam ranksep 28
+title Component view · Processing separates control from execution\nAs built
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/handlers.py#L25
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L232
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L109
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/tasks.py#L16
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/supervisor.py#L111
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher_aws.py#L54
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher_aws.py#L96
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher_trigger.py#L32
+skinparam defaultFontSize 17
+skinparam LegendFontSize 16
+top to bottom direction
+component "lambda_handler / v1_api / auth\nprocessing.handlers" as Entry $PROC
+component "messaging / short_lane" as Msg <<Transactional Outbox>> $PROC
+component "lifecycle\nrecovery / recovery_v1" as Life $PROC
+component "models / messaging_models\nlauncher_models / database" as SQL $PROC
+component "short_encoder / worker.sqs\nworker.tasks" as W $PROC
+component "worker.supervisor.Supervisor" as Sup <<Adapter>> $PROC
+component "media_engine.probe / operations\nhls / validation" as Engine $PROC
+component "worker.source.SourceStore\nworker.storage.OutputStore" as Store <<Adapter>> $PROC
+component "launcher / launcher_aws\nEcsPort / QueueDepth" as Launch <<Adapter>> $PROC
+component "delivery.sql / delivery.sqs.SQS\ncontracts.v1" as D $INFRA
+interface "handle_command / retry_job\nclaim / finish" as IM
+interface "download / put" as IS
+Msg -- IM
+Entry ..> IM
+W ..> IM
+Msg ..> Life : claim / live
+Life ..> SQL
+Msg ..> SQL
+Entry ..> Life : run_once
+Entry ..> Launch : run -> tick
+Launch ..> SQL : reservations
+Msg ..> D : accept / stage / publish_due
+W ..> Engine : build commands / parse
+W ..> Sup : guard / run
+Sup ..> Life : heartbeat
+W ..> IS
+Store -- IS
+legend bottom
+Amber = Processing (including media_engine); slate = shared library. Circle = provided exports; dashed = dependency.
+Direct ORM persists state. Stores adapt Minio; Supervisor adapts subprocess; engine functions are pure builders.
+handlers wraps SQS with processing.launcher_trigger.WakeOnWork; EcsPort/QueueDepth adapt boto3 ECS/SQS.
+endlegend
+
+@enduml

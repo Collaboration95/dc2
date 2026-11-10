@@ -24,6 +24,8 @@ Repo: `/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-report`, branch
 | Ibrahim Mammadov | Backend services: Processing and Media | UC-1, UC-2, UC-4 | DP-2 Durable asynchronous Processing handoff |
 | Nguyễn Kim Long | Domain, contracts and verification | UC-3, UC-5 | DP-3 Trusted owner identity and reusable public contract |
 
+Use-case titles: when sources disagree, use the titles in `src/70-appendices.md` (e.g. UC-3 "Track status and play the result").
+
 State this as the responsibility for analysis and design. Don't add caveats about who typed what or about shared GitHub accounts.
 
 ## Section layout for v1.1 (files are concatenated in filename order)

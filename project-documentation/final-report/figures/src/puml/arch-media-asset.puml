@@ -1,0 +1,73 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+skinparam dpi 96
+skinparam defaultFontSize 20
+skinparam classAttributeFontSize 18
+skinparam classStereotypeFontSize 16
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam nodesep 80
+skinparam ranksep 60
+hide circle
+hide empty methods
+
+top to bottom direction
+title Tactical DDD · Media Asset / source identity
+package "Asset consistency grouping (interpretation)" $MEDIA {
+ class Asset <<principal root>> {
+  id: UUID
+  owner_id: UUID
+  source_key: str
+  source_revision: int
+  source_sha256: str
+  source_size_bytes: int
+  source_media_type: str
+  source_asset_id: UUID | None
+  operations: list
+  processing_job_id: UUID | None
+  deleted_at: datetime | None
+ }
+ class SourceVersion <<persisted value record>> {
+  asset_id: UUID
+  bucket: str
+  key: str
+  version_id: str
+  sha256: str
+  size_bytes: int
+  content_type: str
+ }
+ Asset "1" *-right- "0..1" SourceVersion
+}
+class "contracts.v1.Source" as Source <<frozen value object>> $INFRA {
+ bucket: str
+ key: str
+ version_id: str
+ sha256: str
+ size_bytes: int
+ content_type: str
+}
+SourceVersion ..right> Source : field mapping\n(via dict)
+note bottom of Asset
+  get_asset(): owner/deleted filters by options.
+  CHECK: source_revision >= 1, size > 0.
+  edit(): new Asset; parent is source_asset_id
+  (UUID only; no FK or object reference).
+end note
+note bottom of SourceVersion
+  pin_copied_source() + stage_submit():
+  new Asset, SourceVersion, optional RequestKey
+  and submit outbox commit together.
+  Direct uploads keep pin on UploadReservation.
+end note
+legend bottom
+  Diamond = owned value interpretation; SourceVersion has no independent domain identity.
+  owner_id: User identity + local FK; processing_job_id: UUID only, no Processing FK.
+  source_for_asset() returns a dict; Envelope.from_dict() constructs the frozen Source.
+  Adoption spans reservation + Asset roots; service functions enforce the rules.
+endlegend
+
+@enduml

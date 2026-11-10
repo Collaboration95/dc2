@@ -1,0 +1,62 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+skinparam dpi 96
+skinparam defaultFontSize 20
+skinparam classAttributeFontSize 18
+skinparam classStereotypeFontSize 16
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam nodesep 24
+skinparam ranksep 30
+hide circle
+hide empty methods
+
+
+top to bottom direction
+title Technical consistency · owned delivery ledgers
+package "Media (own database)" $MEDIA {
+ class MediaInbox <<delivery ledger>> {
+  message_id: UUID
+  body_hash: str
+  received_at: datetime
+ }
+ class MediaOutbox <<delivery ledger>> {
+  message_id: UUID
+  body_hash: str
+  queue: str
+  body: dict
+  next_try_at: datetime
+  claim_token: UUID | None
+  sent_at: datetime | None
+ }
+ MediaInbox -[hidden]right- MediaOutbox
+}
+package "Processing (own database)" $PROC {
+ class ProcessingInbox <<delivery ledger>> {
+  message_id: UUID
+  body_hash: str
+  received_at: datetime
+ }
+ class ProcessingOutbox <<delivery ledger>> {
+  message_id: UUID
+  body_hash: str
+  queue: str
+  body: dict
+  next_try_at: datetime
+  claim_token: UUID | None
+  sent_at: datetime | None
+ }
+ ProcessingInbox -[hidden]right- ProcessingOutbox
+}
+MediaOutbox -[hidden]right- ProcessingInbox
+legend bottom
+  delivery.sql.accept(): same message ID + body is a no-op; changed body raises MessageConflict.
+  stage(): caller commits owned state + outbox. consume_result / handle_command commit inbox + state.
+  publish_due(): commit row claim before SQS send; retry later. Shared code, separate local rows.
+  Technical support, not business aggregate members; message_id PK, no root FK. Selected fields.
+endlegend
+@enduml
