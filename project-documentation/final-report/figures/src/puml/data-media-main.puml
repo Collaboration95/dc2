@@ -1,0 +1,92 @@
+!include _style.iuml
+@startuml
+skinparam BackgroundColor white
+!include _style.iuml
+' Adapted from reviewed W4 models; verified against current migration-head metadata.
+title Media database: intake, pins and local projection
+hide circle
+skinparam linetype polyline
+skinparam nodesep 30
+skinparam ranksep 45
+skinparam defaultFontSize 18
+skinparam ClassAttributeFontSize 17
+skinparam ClassFontSize 19
+skinparam ArrowFontSize 15
+skinparam LegendFontSize 14
+entity "users" as users $MEDIA {
+  {field} * id : uuid <<PK>>
+  {field} * email : varchar(320) <<UK>>
+  {field} * role : varchar(20)
+  --
+  {field} CHECK role IN ('user', 'operator')
+}
+entity "assets" as assets $MEDIA {
+  {field} * id : uuid <<PK>>
+  {field} * owner_id : uuid <<FK>>
+  {field} * source_key : text <<UK>>
+  {field} * source_revision : integer
+  {field} * source_size_bytes : integer
+  {field} * operations : jsonb
+  {field} * submission_state : varchar(20)
+  --
+  {field} CHECK submission_state IN
+  {field} ('pending', 'submitted', 'error')
+  {field} CHECK source_revision >= 1 AND
+  {field} source_size_bytes > 0
+  {field} IX (submission_state,
+  {field} next_submit_at)
+  {field} IX (owner_id)
+}
+entity "upload_reservations" as upload_reservations $MEDIA {
+  {field} * id : uuid <<PK>>
+  {field} * owner_id : uuid <<FK,UK3>>
+  {field} * request_id : uuid <<UK3>>
+  {field} * asset_id : uuid <<UK>>
+  {field} * key : text <<UK>>
+  {field}   version_id ? : text
+  {field}   finalized_at ? : timestamptz
+  --
+  UK3 = (owner_id, request_id)
+  --
+  {field} CHECK finalized_at IS NULL OR
+  {field} (version_id IS NOT NULL AND
+  {field} version_id NOT IN ('', 'null'))
+  {field} IX (cleanup_next_at)
+  {field} WHERE cleanup_retired_at IS NULL
+  {field} IX (expires_at)
+  {field} IX (owner_id)
+}
+entity "asset_source_versions" as asset_source_versions $MEDIA {
+  {field} * asset_id : uuid <<PK,FK>>
+  {field} * bucket : text
+  {field} * key : text
+  {field} * version_id : text
+}
+entity "processing_projections" as processing_projections $MEDIA {
+  {field} * asset_id : uuid <<PK,FK>>
+  {field} * job_id : uuid <<UK>>
+  {field}   attempt_id ? : uuid
+  {field} * attempt_number : integer
+  {field} * state_version : integer
+  {field} * status : varchar(20)
+  {field} * source : jsonb
+  {field} * outputs : jsonb
+  --
+  {field} CHECK status IN ('queued',
+  {field} 'processing', 'done', 'failed',
+  {field} 'cancelled')
+  {field} CHECK state_version >= 0 AND
+  {field} attempt_number >= 0
+}
+assets ||--o| asset_source_versions : "asset_id"
+users ||--o{ assets : "owner_id"
+assets ||--o| processing_projections : "asset_id"
+users ||--o{ upload_reservations : "owner_id"
+asset_source_versions -[hidden]right- processing_projections
+legend bottom left
+  * = NOT NULL; ? = nullable; PK = primary; FK = declared local foreign key
+  UK = unique; UKn = one composite group; IX = explicit index
+  Selected columns; dictionaries give all fields, defaults, predicates and index names.
+endlegend
+skinparam BackgroundColor white
+@enduml

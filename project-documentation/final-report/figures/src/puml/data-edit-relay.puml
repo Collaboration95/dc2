@@ -1,0 +1,42 @@
+!include _style.iuml
+@startuml
+skinparam BackgroundColor white
+!include _style.iuml
+skinparam BackgroundColor white
+hide footbox
+autonumber
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 16
+skinparam maxMessageSize 175
+title Edit: committed intent reaches the Processing inbox
+participant "delivery.sql\n<<module>>" as R $INFRA
+queue "SQS\nprocessing-commands" as Q $INFRA
+participant "processing.messaging\n<<module>>" as P $PROC
+activate R
+note over R : MediaRepair calls\nmessaging.publish_commands\n-> publish_due(...)
+ group Media SQL claim
+ R -> R : due row FOR UPDATE SKIP LOCKED;\nclaim_token + next_try_at; COMMIT
+ end
+R -> Q : transport.send(\nqueue,body)
+Q --> R : response or exception
+ group Media SQL ACK
+ R -> R : lock row; matching token only;\nsent_at/backoff; COMMIT
+ end
+deactivate R
+... Independent queue delivery ...
+Q -> P : handle_command(factory,body)\nvia mapping / handlers / consume_batch
+ group Processing transaction
+ P -> P : accept(session,\nProcessingInbox,body)
+ alt New ID / valid submit
+  P -> P : lock SubmissionGuard; create Job + Attempt;\nemit_state: stage result + work; COMMIT
+ else Same ID / same body
+  P -> P : COMMIT inbox no-op
+ else Same ID / changed body
+  P -> P : MessageConflict; ROLLBACK
+ end
+ end
+P --> Q : batch outcome after best-effort\npublication; mapping ACKs\ncommitted acceptance only
+note over R,P : Each database commits locally.\nSQS sends may repeat the same identity.
+skinparam BackgroundColor white
+@enduml
