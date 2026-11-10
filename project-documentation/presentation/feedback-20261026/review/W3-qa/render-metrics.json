@@ -1,0 +1,282 @@
+[
+  {
+    "figure": "W3-01-media-components",
+    "width": 1354.0,
+    "height": 623.0,
+    "scale": 0.8587479935794543,
+    "minimum_font_px": 13.74,
+    "main": true
+  },
+  {
+    "figure": "W3-02-processing-components",
+    "width": 1428.0,
+    "height": 605.0,
+    "scale": 0.8263305322128851,
+    "minimum_font_px": 13.22,
+    "main": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "width": 1234.0,
+    "height": 431.0,
+    "scale": 0.9562398703403565,
+    "minimum_font_px": 13.39,
+    "main": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "width": 1025.0,
+    "height": 441.0,
+    "scale": 1,
+    "minimum_font_px": 14.0,
+    "main": false
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "width": 844.0,
+    "height": 427.0,
+    "scale": 1,
+    "minimum_font_px": 14.0,
+    "main": false
+  },
+  {
+    "figure": "W3-06-a1-upload",
+    "width": 1052.0,
+    "height": 622.0,
+    "scale": 0.860128617363344,
+    "minimum_font_px": 13.76,
+    "main": true
+  },
+  {
+    "figure": "W3-06a-reserve",
+    "width": 1498.0,
+    "height": 689.0,
+    "scale": 0.7764876632801161,
+    "minimum_font_px": 13.2,
+    "main": false
+  },
+  {
+    "figure": "W3-07-a2-submit-execute",
+    "width": 1417.0,
+    "height": 657.0,
+    "scale": 0.8143074581430746,
+    "minimum_font_px": 13.84,
+    "main": false
+  },
+  {
+    "figure": "W3-07a-submit-transaction",
+    "width": 818.0,
+    "height": 649.0,
+    "scale": 0.8243451463790447,
+    "minimum_font_px": 14.01,
+    "main": false
+  },
+  {
+    "figure": "W3-08-a3-result-play",
+    "width": 1475.0,
+    "height": 698.0,
+    "scale": 0.7664756446991404,
+    "minimum_font_px": 13.03,
+    "main": false
+  },
+  {
+    "figure": "W3-08a-public-read",
+    "width": 1288.0,
+    "height": 586.0,
+    "scale": 0.9129692832764505,
+    "minimum_font_px": 15.52,
+    "main": false
+  },
+  {
+    "figure": "W3-09a-probe",
+    "width": 1005.0,
+    "height": 676.0,
+    "scale": 0.7914201183431953,
+    "minimum_font_px": 13.45,
+    "main": false
+  },
+  {
+    "figure": "W3-09b-encode",
+    "width": 1452.0,
+    "height": 648.0,
+    "scale": 0.8126721763085399,
+    "minimum_font_px": 13.82,
+    "main": false
+  },
+  {
+    "figure": "W3-09c-hls",
+    "width": 959.0,
+    "height": 617.0,
+    "scale": 0.86709886547812,
+    "minimum_font_px": 14.74,
+    "main": false
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "width": 1025.0,
+    "height": 476.0,
+    "scale": 1,
+    "minimum_font_px": 14.0,
+    "main": true
+  },
+  {
+    "figure": "W3-11-b1-expiry",
+    "width": 1228.0,
+    "height": 687.0,
+    "scale": 0.7787481804949054,
+    "minimum_font_px": 13.24,
+    "main": false
+  },
+  {
+    "figure": "W3-12-b2-retry",
+    "width": 896.0,
+    "height": 697.0,
+    "scale": 0.7675753228120517,
+    "minimum_font_px": 13.05,
+    "main": false
+  },
+  {
+    "figure": "W3-12a-processing-retry",
+    "width": 916.0,
+    "height": 691.0,
+    "scale": 0.7742402315484804,
+    "minimum_font_px": 13.16,
+    "main": false
+  },
+  {
+    "figure": "W3-13-b3-fence",
+    "width": 1057.0,
+    "height": 623.0,
+    "scale": 0.8587479935794543,
+    "minimum_font_px": 13.74,
+    "main": true
+  },
+  {
+    "figure": "W3-13a-projection-fence",
+    "width": 920.0,
+    "height": 617.0,
+    "scale": 0.86709886547812,
+    "minimum_font_px": 14.74,
+    "main": false
+  },
+  {
+    "figure": "W3-14-edit",
+    "width": 1171.0,
+    "height": 730.0,
+    "scale": 0.7328767123287672,
+    "minimum_font_px": 13.19,
+    "main": true
+  },
+  {
+    "figure": "W3-14a-edit-relay",
+    "width": 1298.0,
+    "height": 676.0,
+    "scale": 0.7914201183431953,
+    "minimum_font_px": 13.45,
+    "main": false
+  },
+  {
+    "figure": "W3-14b-edit-detail",
+    "width": 947.0,
+    "height": 593.0,
+    "scale": 0.9021922428330523,
+    "minimum_font_px": 15.34,
+    "main": false
+  },
+  {
+    "figure": "W3-14c-edit-adoption",
+    "width": 1447.0,
+    "height": 590.0,
+    "scale": 0.8154803040774016,
+    "minimum_font_px": 13.86,
+    "main": false
+  },
+  {
+    "figure": "W3-15-job-states",
+    "width": 1476.0,
+    "height": 682.0,
+    "scale": 0.7844574780058651,
+    "minimum_font_px": 13.34,
+    "main": true
+  },
+  {
+    "figure": "W3-16-attempt-states",
+    "width": 1122.0,
+    "height": 543.0,
+    "scale": 0.9852670349907919,
+    "minimum_font_px": 13.79,
+    "main": false
+  },
+  {
+    "figure": "W3-17-recovery-branches",
+    "width": 960.0,
+    "height": 518.0,
+    "scale": 1,
+    "minimum_font_px": 17.0,
+    "main": false
+  },
+  {
+    "figure": "W3-18-lane-policy",
+    "width": 817.0,
+    "height": 351.0,
+    "scale": 1,
+    "minimum_font_px": 14.0,
+    "main": false
+  },
+  {
+    "figure": "W3-19-execution-adapters",
+    "width": 1255.0,
+    "height": 489.0,
+    "scale": 0.9402390438247012,
+    "minimum_font_px": 13.16,
+    "main": false
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "width": 987.0,
+    "height": 407.0,
+    "scale": 1,
+    "minimum_font_px": 14.0,
+    "main": false
+  },
+  {
+    "figure": "W3-21-lease-functions",
+    "width": 1065.0,
+    "height": 449.0,
+    "scale": 1,
+    "minimum_font_px": 14.0,
+    "main": false
+  },
+  {
+    "figure": "W3-22-hls-playback",
+    "width": 1364.0,
+    "height": 697.0,
+    "scale": 0.7675753228120517,
+    "minimum_font_px": 13.05,
+    "main": false
+  },
+  {
+    "figure": "W3-23-claim-finish",
+    "width": 1294.0,
+    "height": 652.0,
+    "scale": 0.8205521472392638,
+    "minimum_font_px": 13.95,
+    "main": false
+  },
+  {
+    "figure": "W3-23a-finish",
+    "width": 1297.0,
+    "height": 662.0,
+    "scale": 0.8081570996978852,
+    "minimum_font_px": 13.74,
+    "main": false
+  },
+  {
+    "figure": "W3-24-intake-types",
+    "width": 901.0,
+    "height": 590.0,
+    "scale": 0.9067796610169492,
+    "minimum_font_px": 14.51,
+    "main": false
+  }
+]

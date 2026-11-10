@@ -1,0 +1,35 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+title Physical data view · Media derived source pins · 76282d3
+hide circle
+skinparam linetype polyline
+left to right direction
+skinparam defaultFontSize 19
+skinparam ClassAttributeFontSize 18
+skinparam ClassFontSize 20
+skinparam ArrowFontSize 16
+skinparam LegendFontSize 14
+skinparam nodesep 42
+skinparam ranksep 70
+entity "asset_source_versions" as asset_source_versions $MEDIA {
+  {field} * asset_id : uuid <<PK,FK>>
+  {field} * bucket : text
+  {field} * key : text
+  {field} * version_id : text
+  {field} * sha256 : varchar(64)
+  {field} * size_bytes : integer
+  {field} * content_type : varchar(100)
+}
+entity "assets\n<<reference: key only>>" as assets $INFRA {
+  {field} * id : uuid <<PK>>
+}
+assets ||--o| asset_source_versions : "asset_id"
+
+legend bottom left
+  * = NOT NULL    ? = nullable    PK = primary key    FK = declared local foreign key
+  UK = unique column    UKn = one composite unique group    timestamptz = timestamp with time zone
+  Blue = Media; amber = Processing; grey = reference key on another sheet
+  All columns of coloured tables are shown; CHECKs, defaults and indexes are in the report dictionary.
+endlegend
+@enduml

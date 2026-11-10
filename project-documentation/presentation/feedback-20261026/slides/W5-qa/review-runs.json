@@ -1,0 +1,3091 @@
+{
+  "checked_at_utc": "2026-10-26T09:09:19.420Z",
+  "runs": [
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-23T09:19:53Z",
+      "databaseId": 39931072197,
+      "event": "push",
+      "headBranch": "Main",
+      "headSha": "76282d3b5a141f6548056f2506f9d5aff0742692",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "name": "Secret scan (gitleaks)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install pinned gitleaks"
+            },
+            {
+              "conclusion": "success",
+              "name": "Scan history (secrets are redacted in the log and the report)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Summarize secret findings"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish secret findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish secret findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Select verification policy",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Classify intended base and exact tested candidate"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Sonar configuration (analysis is advisory)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Report configuration without exposing secrets"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Planning packet validation",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run python3 scripts/planning/validate_v1_plan.py"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Processing worker, recovery and database ownership",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev --extra browser"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Configure isolated image tags and pinned storage source"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Build actual Processing API and worker image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Load cached pinned storage image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install real media fixture encoder"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run real owned PostgreSQL Redis and storage acceptance"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "Run make logs RUN_ID=ci-processing"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make down RUN_ID=ci-processing"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Load cached pinned storage image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Build actual Processing API and worker image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Legacy real integration",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Initialize containers"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev --extra browser"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Fetch pinned MinIO through authenticated gh (runtime lane helper)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Start isolated MinIO and await readiness"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install fixture encoder and migrate isolated legacy database"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make integration-coverage"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "Capture service failure"
+            },
+            {
+              "conclusion": "success",
+              "name": "Stop only runner-owned MinIO"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Stop containers"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Media owned persistence and boundary contracts",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev --extra browser"
+            },
+            {
+              "conclusion": "success",
+              "name": "Start isolated databases and apply only Media migrations"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make integration-coverage"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "Capture owned service logs"
+            },
+            {
+              "conclusion": "success",
+              "name": "Remove only runner-owned test data"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Lint and Python unit tests",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev --extra browser"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make lint"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make format-check"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run .venv/bin/python -m scripts.dev.checks coverage-fast"
+            },
+            {
+              "conclusion": "success",
+              "name": "Legacy-only offline operator contracts (network guarded)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "success",
+              "name": "Export security lint findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Summarize security lint findings"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish security lint findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish security lint findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "CI policy offline tests",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run python3 -m unittest discover -s tests/ci -v"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Scan container image (app)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require scan selection for new live images"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Record the exact loaded candidate image and source"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain exact candidate scan findings and identity"
+            },
+            {
+              "conclusion": "success",
+              "name": "Export the same findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Summarize image findings"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Export the same findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Scan container image (media)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require scan selection for new live images"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Record the exact loaded candidate image and source"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain exact candidate scan findings and identity"
+            },
+            {
+              "conclusion": "success",
+              "name": "Export the same findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Summarize image findings"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Export the same findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Frontend tests",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make setup"
+            },
+            {
+              "conclusion": "success",
+              "name": "Audit locked frontend test dependencies"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run .venv/bin/python -m scripts.dev.checks coverage-frontend"
+            },
+            {
+              "conclusion": "success",
+              "name": "Normalize frontend coverage paths"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Processing service (tests, images, runtime check)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make test-processing test-media-engine"
+            },
+            {
+              "conclusion": "success",
+              "name": "Build and verify only Processing's V1 images"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain the image receipt (config IDs, checks; no secrets)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Local HTTPS and browser trust",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev --extra browser"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install browser, NSS and media prerequisites only on the disposable runner"
+            },
+            {
+              "conclusion": "success",
+              "name": "Record runner capacity without requiring the local scaling VM"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make browser-install RUN_ID=ci-trust"
+            },
+            {
+              "conclusion": "success",
+              "name": "Prepare pinned storage build"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Restore or build pinned storage image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make up RUN_ID=ci-trust"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make smoke-infra RUN_ID=ci-trust"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make browser-trust-smoke RUN_ID=ci-trust"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete public API, Publisher CLI and browser acceptance"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain browser trust and full acceptance evidence"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "Run make logs RUN_ID=ci-trust"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make down RUN_ID=ci-trust"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Restore or build pinned storage image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Media service (tests, image, runtime check)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make test-media"
+            },
+            {
+              "conclusion": "success",
+              "name": "Build and verify only Media's V1 image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain the image receipt (config ID, checks; no secrets)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Scan container image (processing)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require scan selection for new live images"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Record the exact loaded candidate image and source"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain exact candidate scan findings and identity"
+            },
+            {
+              "conclusion": "success",
+              "name": "Export the same findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Summarize image findings"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Export the same findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "V1 local verification / V1 local flows, browser leg and coverage",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install V1 and Media emulator checks without the legacy extra"
+            },
+            {
+              "conclusion": "success",
+              "name": "Start unique PostgreSQL and loopback Moto"
+            },
+            {
+              "conclusion": "success",
+              "name": "Execute the selected flows against the real PostgreSQL and FFmpeg stack"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require complete local acceptance when every flow was requested"
+            },
+            {
+              "conclusion": "success",
+              "name": "Stop only this namespace; retain diagnostic SQL volume"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain source, image and boundary evidence (no private logs or config)"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "Retain redacted failure detail (junit, screenshot, page state)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain the coverage fragment for the combined gate"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "V1 local verification / V1 offline control-plane and operational checks",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install locked V1 and Media checks without the legacy extra"
+            },
+            {
+              "conclusion": "success",
+              "name": "Lint the V1 template (render, snapshot freshness, cfn-lint required)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Lint the V1 control scripts and tests"
+            },
+            {
+              "conclusion": "success",
+              "name": "Offline AWS control-plane suite for the no-legacy environment (network guarded)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Request shapes against the installed AWS CLI's offline skeletons"
+            },
+            {
+              "conclusion": "success",
+              "name": "Offline V1 operational contracts (network guarded)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Independent Publisher HTTPS and cookie persistence",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev --extra browser"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require real trusted/untrusted HTTPS and persisted Secure cookie"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Exact-candidate DAST execution (findings report-only) / Authenticated Media and Processing V1 local APIs",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Identify exact source and unique local namespace"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install ffmpeg for the seeded MP4 fixtures"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install locked V1 harness and offline test dependencies"
+            },
+            {
+              "conclusion": "success",
+              "name": "Verify DAST policy and offline private contracts (not DAST)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Start unique local PostgreSQL and Moto namespace"
+            },
+            {
+              "conclusion": "success",
+              "name": "Seed two owners and run bounded authenticated current-V1 ZAP scans"
+            },
+            {
+              "conclusion": "success",
+              "name": "Always tear down this run and remove its local data"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "success",
+              "name": "Convert the sanitized findings to SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Summarize DAST findings"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish DAST findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish DAST findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "V1 local verification / V1 image build and verification",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make v1-images"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run echo \"sha12=${GITHUB_SHA::12}\" >> \"$GITHUB_OUTPUT\""
+            },
+            {
+              "conclusion": "success",
+              "name": "Scan the built media image (report only; the gate step decides)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Scan the built processing image (report only; the gate step decides)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Scan the built worker image (report only; the gate step decides)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Gate fixable HIGH/CRITICAL findings per image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain scan reports and identity (also on failure)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain the image receipt (config IDs, checks; no secrets)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Export the media image findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Export the processing image findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Export the worker image findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Summarize image findings"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish the media image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish the processing image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish the worker image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish the worker image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish the processing image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish the media image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Export the worker image findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Export the processing image findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Export the media image findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Scan the built worker image (report only; the gate step decides)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Scan the built processing image (report only; the gate step decides)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Scan the built media image (report only; the gate step decides)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "skipped",
+          "name": "V1 local verification / V1 image-affecting paths changed",
+          "steps": []
+        },
+        {
+          "conclusion": "skipped",
+          "name": "SonarCloud SAST (advisory)",
+          "steps": []
+        },
+        {
+          "conclusion": "success",
+          "name": "V1 local verification / V1 requested checks",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Reject failures and unexpected skips in requested V1 jobs"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Combined backend package coverage",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev --extra browser"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make coverage-report COVERAGE_INPUTS='artifacts/coverage/.coverage.fast artifacts/coverage/.coverage.legacy-integration artifacts/coverage/.coverage.processing-integration artifacts/coverage/.coverage.media-integration artifacts/coverage/.coverage.v1-integration'"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Dev gate",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require every selected dev check; validate intentional skips"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Full verification",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require successful real integration, trust and package gates"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require every requested full check, including images and scan execution"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "skipped",
+          "name": "SonarCloud full coverage analysis (advisory)",
+          "steps": []
+        }
+      ],
+      "name": "CI",
+      "status": "completed",
+      "updatedAt": "2026-10-23T09:43:39Z",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/39931072197",
+      "targeted_log_evidence": [
+        "Exact-candidate DAST execution (findings report-only) / Authenticated Media and Processing V1 local APIs\tUNKNOWN STEP\t2026-10-23T09:23:02.7814025Z DAST disposition=executed routes=7 findings=16 blocked_out_of_scope=146",
+        "Exact-candidate DAST execution (findings report-only) / Authenticated Media and Processing V1 local APIs\tUNKNOWN STEP\t2026-10-23T09:23:03.5257656Z DAST local runtime cleanup=PASS private files=PASS"
+      ]
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-10-25T07:51:27Z",
+      "databaseId": 40174362164,
+      "event": "schedule",
+      "headBranch": "Main",
+      "headSha": "76282d3b5a141f6548056f2506f9d5aff0742692",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "name": "Secret scan (gitleaks)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install pinned gitleaks"
+            },
+            {
+              "conclusion": "success",
+              "name": "Scan history (secrets are redacted in the log and the report)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Summarize secret findings"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish secret findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish secret findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Sonar configuration (analysis is advisory)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Report configuration without exposing secrets"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Select verification policy",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Classify intended base and exact tested candidate"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Planning packet validation",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run python3 scripts/planning/validate_v1_plan.py"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Processing worker, recovery and database ownership",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev --extra browser"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Configure isolated image tags and pinned storage source"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Build actual Processing API and worker image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Load cached pinned storage image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install real media fixture encoder"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run real owned PostgreSQL Redis and storage acceptance"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "Run make logs RUN_ID=ci-processing"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make down RUN_ID=ci-processing"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Load cached pinned storage image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Build actual Processing API and worker image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Frontend tests",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make setup"
+            },
+            {
+              "conclusion": "success",
+              "name": "Audit locked frontend test dependencies"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run .venv/bin/python -m scripts.dev.checks coverage-frontend"
+            },
+            {
+              "conclusion": "success",
+              "name": "Normalize frontend coverage paths"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Legacy real integration",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Initialize containers"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev --extra browser"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Fetch pinned MinIO through authenticated gh (runtime lane helper)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Start isolated MinIO and await readiness"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install fixture encoder and migrate isolated legacy database"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make integration-coverage"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "Capture service failure"
+            },
+            {
+              "conclusion": "success",
+              "name": "Stop only runner-owned MinIO"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Stop containers"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Scan container image (media)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require scan selection for new live images"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Record the exact loaded candidate image and source"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain exact candidate scan findings and identity"
+            },
+            {
+              "conclusion": "success",
+              "name": "Export the same findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Summarize image findings"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Export the same findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "CI policy offline tests",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run python3 -m unittest discover -s tests/ci -v"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Independent Publisher HTTPS and cookie persistence",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev --extra browser"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require real trusted/untrusted HTTPS and persisted Secure cookie"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Processing service (tests, images, runtime check)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make test-processing test-media-engine"
+            },
+            {
+              "conclusion": "success",
+              "name": "Build and verify only Processing's V1 images"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain the image receipt (config IDs, checks; no secrets)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "failure",
+          "name": "Scan container image (app)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require scan selection for new live images"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Record the exact loaded candidate image and source"
+            },
+            {
+              "conclusion": "failure",
+              "name": "Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain exact candidate scan findings and identity"
+            },
+            {
+              "conclusion": "success",
+              "name": "Export the same findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Summarize image findings"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Export the same findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Lint and Python unit tests",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev --extra browser"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make lint"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make format-check"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run .venv/bin/python -m scripts.dev.checks coverage-fast"
+            },
+            {
+              "conclusion": "success",
+              "name": "Legacy-only offline operator contracts (network guarded)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "success",
+              "name": "Export security lint findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Summarize security lint findings"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish security lint findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish security lint findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Media service (tests, image, runtime check)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make test-media"
+            },
+            {
+              "conclusion": "success",
+              "name": "Build and verify only Media's V1 image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain the image receipt (config ID, checks; no secrets)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "failure",
+          "name": "Scan container image (processing)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require scan selection for new live images"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Record the exact loaded candidate image and source"
+            },
+            {
+              "conclusion": "failure",
+              "name": "Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain exact candidate scan findings and identity"
+            },
+            {
+              "conclusion": "success",
+              "name": "Export the same findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Summarize image findings"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Export the same findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Local HTTPS and browser trust",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev --extra browser"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install browser, NSS and media prerequisites only on the disposable runner"
+            },
+            {
+              "conclusion": "success",
+              "name": "Record runner capacity without requiring the local scaling VM"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make browser-install RUN_ID=ci-trust"
+            },
+            {
+              "conclusion": "success",
+              "name": "Prepare pinned storage build"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Restore or build pinned storage image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make up RUN_ID=ci-trust"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make smoke-infra RUN_ID=ci-trust"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make browser-trust-smoke RUN_ID=ci-trust"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete public API, Publisher CLI and browser acceptance"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain browser trust and full acceptance evidence"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "Run make logs RUN_ID=ci-trust"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make down RUN_ID=ci-trust"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Restore or build pinned storage image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "V1 local verification / V1 offline control-plane and operational checks",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install locked V1 and Media checks without the legacy extra"
+            },
+            {
+              "conclusion": "success",
+              "name": "Lint the V1 template (render, snapshot freshness, cfn-lint required)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Lint the V1 control scripts and tests"
+            },
+            {
+              "conclusion": "success",
+              "name": "Offline AWS control-plane suite for the no-legacy environment (network guarded)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Request shapes against the installed AWS CLI's offline skeletons"
+            },
+            {
+              "conclusion": "success",
+              "name": "Offline V1 operational contracts (network guarded)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Media owned persistence and boundary contracts",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev --extra browser"
+            },
+            {
+              "conclusion": "success",
+              "name": "Start isolated databases and apply only Media migrations"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make integration-coverage"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "Capture owned service logs"
+            },
+            {
+              "conclusion": "success",
+              "name": "Remove only runner-owned test data"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "V1 local verification / V1 local flows, browser leg and coverage",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install V1 and Media emulator checks without the legacy extra"
+            },
+            {
+              "conclusion": "success",
+              "name": "Start unique PostgreSQL and loopback Moto"
+            },
+            {
+              "conclusion": "success",
+              "name": "Execute the selected flows against the real PostgreSQL and FFmpeg stack"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require complete local acceptance when every flow was requested"
+            },
+            {
+              "conclusion": "success",
+              "name": "Stop only this namespace; retain diagnostic SQL volume"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain source, image and boundary evidence (no private logs or config)"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "Retain redacted failure detail (junit, screenshot, page state)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain the coverage fragment for the combined gate"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Exact-candidate DAST execution (findings report-only) / Authenticated Media and Processing V1 local APIs",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Identify exact source and unique local namespace"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install ffmpeg for the seeded MP4 fixtures"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install locked V1 harness and offline test dependencies"
+            },
+            {
+              "conclusion": "success",
+              "name": "Verify DAST policy and offline private contracts (not DAST)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Start unique local PostgreSQL and Moto namespace"
+            },
+            {
+              "conclusion": "success",
+              "name": "Seed two owners and run bounded authenticated current-V1 ZAP scans"
+            },
+            {
+              "conclusion": "success",
+              "name": "Always tear down this run and remove its local data"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "success",
+              "name": "Convert the sanitized findings to SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Summarize DAST findings"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish DAST findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish DAST findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "V1 local verification / V1 image build and verification",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make v1-images"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run echo \"sha12=${GITHUB_SHA::12}\" >> \"$GITHUB_OUTPUT\""
+            },
+            {
+              "conclusion": "success",
+              "name": "Scan the built media image (report only; the gate step decides)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Scan the built processing image (report only; the gate step decides)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Scan the built worker image (report only; the gate step decides)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Gate fixable HIGH/CRITICAL findings per image"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain scan reports and identity (also on failure)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Retain the image receipt (config IDs, checks; no secrets)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Export the media image findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Export the processing image findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Export the worker image findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Summarize image findings"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish the media image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish the processing image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Publish the worker image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish the worker image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish the processing image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Publish the media image findings to code scanning"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Export the worker image findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Export the processing image findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Export the media image findings as SARIF"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Scan the built worker image (report only; the gate step decides)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Scan the built processing image (report only; the gate step decides)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Scan the built media image (report only; the gate step decides)"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "skipped",
+          "name": "SonarCloud SAST (advisory)",
+          "steps": []
+        },
+        {
+          "conclusion": "skipped",
+          "name": "V1 local verification / V1 image-affecting paths changed",
+          "steps": []
+        },
+        {
+          "conclusion": "success",
+          "name": "V1 local verification / V1 requested checks",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Reject failures and unexpected skips in requested V1 jobs"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Dev gate",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require every selected dev check; validate intentional skips"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Combined backend package coverage",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run uv sync --locked --extra legacy --extra dev --extra browser"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run make coverage-report COVERAGE_INPUTS='artifacts/coverage/.coverage.fast artifacts/coverage/.coverage.legacy-integration artifacts/coverage/.coverage.processing-integration artifacts/coverage/.coverage.media-integration artifacts/coverage/.coverage.v1-integration'"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run ./.github/actions/python-tools"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "failure",
+          "name": "Full verification",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require successful real integration, trust and package gates"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "failure",
+              "name": "Require every requested full check, including images and scan execution"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "skipped",
+          "name": "SonarCloud full coverage analysis (advisory)",
+          "steps": []
+        }
+      ],
+      "name": "CI",
+      "status": "completed",
+      "updatedAt": "2026-10-25T07:59:02Z",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/40174362164",
+      "targeted_log_evidence": [
+        "Exact-candidate DAST execution (findings report-only) / Authenticated Media and Processing V1 local APIs\tUNKNOWN STEP\t2026-10-25T07:54:42.9026207Z DAST disposition=executed routes=7 findings=16 blocked_out_of_scope=146",
+        "Exact-candidate DAST execution (findings report-only) / Authenticated Media and Processing V1 local APIs\tUNKNOWN STEP\t2026-10-25T07:54:43.6362745Z DAST local runtime cleanup=PASS private files=PASS"
+      ]
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-25T11:34:06Z",
+      "databaseId": 40189407647,
+      "event": "dynamic",
+      "headBranch": "Main",
+      "headSha": "76282d3b5a141f6548056f2506f9d5aff0742692",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "name": "Analyze (javascript-typescript)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Checkout repository"
+            },
+            {
+              "conclusion": "success",
+              "name": "Setup proxy for registries"
+            },
+            {
+              "conclusion": "success",
+              "name": "Initialize CodeQL"
+            },
+            {
+              "conclusion": "success",
+              "name": "Perform CodeQL Analysis"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Perform CodeQL Analysis"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Initialize CodeQL"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Setup proxy for registries"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Checkout repository"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Analyze (actions)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Checkout repository"
+            },
+            {
+              "conclusion": "success",
+              "name": "Setup proxy for registries"
+            },
+            {
+              "conclusion": "success",
+              "name": "Initialize CodeQL"
+            },
+            {
+              "conclusion": "success",
+              "name": "Perform CodeQL Analysis"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Perform CodeQL Analysis"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Initialize CodeQL"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Setup proxy for registries"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Checkout repository"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "name": "Analyze (python)",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job"
+            },
+            {
+              "conclusion": "success",
+              "name": "Checkout repository"
+            },
+            {
+              "conclusion": "success",
+              "name": "Setup proxy for registries"
+            },
+            {
+              "conclusion": "success",
+              "name": "Initialize CodeQL"
+            },
+            {
+              "conclusion": "success",
+              "name": "Perform CodeQL Analysis"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Perform CodeQL Analysis"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Initialize CodeQL"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Setup proxy for registries"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Checkout repository"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job"
+            }
+          ]
+        }
+      ],
+      "name": "Scheduled",
+      "status": "completed",
+      "updatedAt": "2026-10-25T11:35:36Z",
+      "url": "https://github.com/Collaboration95/dc2/actions/runs/40189407647"
+    }
+  ]
+}

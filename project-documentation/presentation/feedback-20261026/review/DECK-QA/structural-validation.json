@@ -1,0 +1,11 @@
+{
+  "deck_sha256": "60dc3436bb992becc65c8dae0cc2ad9b9ef0321574bd311136aab62885aa9073",
+  "slide_count": 147,
+  "main_count": 60,
+  "backup_appendix_count": 87,
+  "unique_ids": 147,
+  "footers_and_note_headers": "PASS",
+  "numeric_note_references": "current headers only; all cross-references use stable ids",
+  "deterministic_regeneration": "PASS",
+  "pinned_citations": 415
+}

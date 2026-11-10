@@ -1,0 +1,57 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam classAttributeIconSize 0
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+skinparam nodesep 25
+skinparam ranksep 28
+title Class view · UC-4 replaces an Attempt and fences old authority\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L15
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L77
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L124
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L28
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L155
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L24
+
+left to right direction
+class "Job" as J <<ORM>> $PROC {
+ + id: UUID
+ + status: str
+ + current_attempt_id: UUID
+ + deleted_at: datetime | None
+}
+class "Attempt" as A <<ORM>> $PROC {
+ + id: UUID
+ + job_id: UUID
+ + attempt_number: int
+ + state: str
+ + lease_token: UUID | None
+ + lease_expires_at: datetime | None
+ + deadline_at: datetime | None
+}
+class "RetryRequest" as R <<ORM>> $PROC {
+ + job_id: UUID
+ + request_id: UUID
+ + attempt_id: UUID
+}
+class "Claim (lifecycle)" as C <<frozen dataclass>> $PROC {
+ + job_id: UUID
+ + attempt_id: UUID
+ + lease_token: UUID
+}
+J "1" -- "1..*" A : job_id
+J "0..1" --> "1" A : current_attempt_id
+J "1" -- "0..*" R : unique(job_id,request_id)
+R "0..1" --> "1" A : successor
+C ..> A : frozen authority snapshot
+legend bottom
++ public; - internal by Python convention; underlined = class/module scope.
+Job/Attempt/RetryRequest are processing.models. Claim is processing.lifecycle; selected fields only.
+Mapped[T] shown as T. Claim(A1,T1) cannot authorize A2. Mutating functions and task binding: W3-21/23.
+endlegend
+
+@enduml

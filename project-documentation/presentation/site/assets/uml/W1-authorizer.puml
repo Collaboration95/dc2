@@ -1,0 +1,36 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1529-L1543
+' https://github.com/Collaboration95/dc2/blob/76282d3/media/authorizer.py#L13-L60
+' https://github.com/Collaboration95/dc2/blob/76282d3/media/services/security.py#L48-L58
+' https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L66-L98
+title Sequence view · protected request authorization · 76282d3
+hide footbox
+autonumber
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 20
+skinparam titleFontSize 21
+skinparam LegendFontSize 20
+skinparam maxMessageSize 450
+skinparam sequenceParticipantPadding 16
+boundary "HTTP API" as g $INFRA
+control "MediaAuthorizer\nlive alias" as a $MEDIA
+database "Media DB\nusers" as db $MEDIA
+participant "Selected API\nlive alias" as api $INFRA
+g -> a : REQUEST v2 + Cookie
+a -> a : one parsed entry; HS256\nsub UUID; exp; iat
+opt cookie / JWT valid
+ a -> db : get User(subject UUID)
+ db --> a : current User / no row
+end
+alt valid JWT AND current role user / operator
+ a --> g : true + Actor(owner_id, publisher)
+ g -> api : Cookie + authorizer.lambda Actor
+else invalid / missing User / lookup error
+ a --> g : isAuthorized=false
+end
+legend bottom
+ Blue: Media; slate: Gateway / API. Solid call; dashed reply.
+endlegend
+@enduml

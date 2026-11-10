@@ -1,0 +1,47 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam classAttributeIconSize 0
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+skinparam nodesep 25
+skinparam ranksep 28
+title Class view · Dispatch policy and execution admission use different facts\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_lane.py#L81
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_lane.py#L94
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_lane.py#L103
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_lane.py#L124
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_encoder.py#L54
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L412
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/probe.py#L10
+
+left to right direction
+class "short_lane (processing)" as L <<module, routing policy>> $PROC {
+ {static} + MAX_SOURCE_BYTES = 64 * 1024 * 1024
+ {static} + MAX_DURATION_SECONDS = 60.0
+ {static} + MAX_HEIGHT = 1080
+ {static} + work_lane(session, job)
+ {static} + check_probe(probe)
+ {static} + previously_ran_on_lambda(session, job_id)
+}
+class "SourceProbe (media_engine.probe)" as P <<frozen dataclass>> $PROC {
+ + width: int
+ + height: int
+ + duration_seconds: float
+}
+class "NotAdmitted (processing.short_lane)" as N <<exception>> $PROC {
+ + __init__(reason)
+}
+L ..> P : probe input (executor only)
+L ..> N : raises
+legend bottom
++ public; - internal by Python convention; underlined = class/module scope.
+emit_state calls work_lane: enabled + integer size in (0,64 MiB] + no previous lambda- task binding.
+short_encoder injects check_probe as pipeline's admit callable: finite 0<duration<=60s, source height<=1080.
+No GoF Strategy hierarchy exists. NotAdmitted triggers fenced redirect; ordinary failure waits for owner retry.
+endlegend
+
+@enduml

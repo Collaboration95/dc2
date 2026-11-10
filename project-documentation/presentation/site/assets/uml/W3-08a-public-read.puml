@@ -1,0 +1,56 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Sequence view · UC-3 reads the Media projection before signing output\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery_v1.py#L166
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L16
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L258
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_jobs.py#L43
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_hls.py#L25
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L191
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+actor "owner" as C $CLIENT
+participant "api.v1_jobs\n«Media module»" as A $MEDIA
+participant "projections\n«Media module»" as P $MEDIA
+participant "s: AsyncSession" as DB $INFRA
+participant "storage: Storage" as S $MEDIA
+C -> A : GET /jobs/{job_id} [Media Asset ID]
+activate A
+A -> DB : SQL: get_asset(s,job_id,user.id) owner filter
+A -> P : public_job(s,asset,storage,cfg)
+activate P
+P -> DB : SQL: read_job -> get(ProcessingProjection,asset.id)
+P -> P : public_job_from_projection(asset,job,storage,cfg)
+opt job and job.status == "done"
+ P -> S : sign_output(primary.object_key)
+ activate S
+ S --> P : URL: str
+ deactivate S
+end
+P --> A : result: PublicJob
+deactivate P
+A --> C : HTTP 200 PublicJob
+deactivate A
+legend bottom
+read_job wraps the owned projection as ProjectedJob; no Processing SQL/HTTP read occurs.
+Primary bytes: client GET/Range to S3; not-ready jobs have no URL. HLS: W3-22.
+endlegend
+@enduml

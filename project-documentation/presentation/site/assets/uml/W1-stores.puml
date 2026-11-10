@@ -1,0 +1,38 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L501-L547
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L548-L595
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1642
+' https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L42-L89
+ title Deployment view · databases, S3 buckets and byte paths · dc2-live at 76282d3
+ left to right direction
+ skinparam defaultFontSize 20
+ skinparam ArrowFontSize 20
+ skinparam titleFontSize 21
+ skinparam LegendFontSize 20
+ skinparam nodesep 20
+ skinparam ranksep 24
+ node "Browser / Publisher" as b <<device>> $CLIENT
+ node "CloudFront\nglobal edge" as cf $INFRA
+ package "ap-southeast-1 · managed storage" {
+  storage "FrontendBucket\nstatic default origin" as f $INFRA
+  storage "SourceBucket\naccepted VersionId" as s $MEDIA
+  storage "OutputBucket\njobs/{job_uuid}/\nattempts/{attempt_uuid}/…" as o $PROC
+ }
+ node "Vpc · subnet choices shown on each runtime set" {
+  node "MediaApi\nPrivate A+B" as ma <<executionEnvironment>> $MEDIA
+  node "Processing runtimes\nLambda: Private A+B\nFargate: Public A+B" as p <<executionEnvironment>> $PROC
+  database "DatabaseCluster\nDatabaseInstance\nmedia_db · 1 instance" as md $MEDIA
+  database "ProcessingDatabaseCluster\nProcessingDatabaseInstance\nprocessing_db · 1 instance" as pd $PROC
+ }
+ b --> cf : HTTPS frontend
+ cf --> f : SigV4 OAC GetObject
+ b --> s : grant → direct POST
+ b --> o : signed GET / Range
+ ma --> md : owned SQL
+ p --> pd : owned SQL
+ legend bottom
+ Blue Media · amber Processing · slate AWS · green client. Arrows: labelled runtime access.
+ endlegend
+@enduml

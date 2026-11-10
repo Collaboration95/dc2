@@ -1,0 +1,39 @@
+{
+  "deck_sha256": "60dc3436bb992becc65c8dae0cc2ad9b9ef0321574bd311136aab62885aa9073",
+  "pdf_sha256": "987c116bbd0bbb831f830390f9198c30ee16d4588cd4acb597638a161843b5bc",
+  "missing_videos": [
+    {
+      "id": "s41",
+      "path": "project-documentation/presentation/site/clips/D1.mp4"
+    },
+    {
+      "id": "s42",
+      "path": "project-documentation/presentation/site/clips/D2.mp4"
+    },
+    {
+      "id": "s43",
+      "path": "project-documentation/presentation/site/clips/D3.mp4"
+    },
+    {
+      "id": "s44",
+      "path": "project-documentation/presentation/site/clips/D4.mp4"
+    },
+    {
+      "id": "s45",
+      "path": "project-documentation/presentation/site/clips/D5.mp4"
+    },
+    {
+      "id": "s46",
+      "path": "project-documentation/presentation/site/clips/D6.mp4"
+    }
+  ],
+  "png_dimensions": [
+    1280,
+    720
+  ],
+  "png_count": 147,
+  "visual_pages_reviewed": 147,
+  "figure_instances_loaded": 79,
+  "internal_links_passed": 25,
+  "source_commit": "76282d3b5a141f6548056f2506f9d5aff0742692"
+}

@@ -1,0 +1,1098 @@
+{
+  "media.staged_objects": {
+    "columns": {
+      "key": {
+        "type": "TEXT",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "write_uncertain": {
+        "type": "BOOLEAN",
+        "null": "NN",
+        "default": "true"
+      }
+    },
+    "constraints": [
+      "PK (key)"
+    ],
+    "indexes": []
+  },
+  "media.users": {
+    "columns": {
+      "id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "email": {
+        "type": "VARCHAR(320)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "password_hash": {
+        "type": "TEXT",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "role": {
+        "type": "VARCHAR(20)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (id)",
+      "CHECK role IN ('user', 'operator')",
+      "UK (email)"
+    ],
+    "indexes": []
+  },
+  "media.assets": {
+    "columns": {
+      "id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "owner_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "filename": {
+        "type": "VARCHAR(100)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "source_key": {
+        "type": "TEXT",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "source_revision": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "source_sha256": {
+        "type": "VARCHAR(64)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "source_size_bytes": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "source_media_type": {
+        "type": "VARCHAR(100)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "source_asset_id": {
+        "type": "UUID",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "operations": {
+        "type": "JSONB",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "submission_state": {
+        "type": "VARCHAR(20)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "processing_job_id": {
+        "type": "UUID",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "submitted_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "last_submit_error": {
+        "type": "TEXT",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "submit_attempts": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "next_submit_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "deleted_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (id)",
+      "CHECK source_revision >= 1 AND source_size_bytes > 0",
+      "CHECK submission_state IN ('pending', 'submitted', 'error')",
+      "FK (owner_id) \u2192 users.id; ON DELETE NO ACTION; ON UPDATE NO ACTION",
+      "UK (source_key)"
+    ],
+    "indexes": [
+      "ix_assets_owner_id (owner_id)",
+      "assets_pending_due (submission_state, next_submit_at)"
+    ]
+  },
+  "media.cleanup_intents": {
+    "columns": {
+      "asset_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "processing_deleted_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "source_deleted_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "next_try_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "attempts": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "last_error": {
+        "type": "TEXT",
+        "null": "?",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (asset_id)",
+      "FK (asset_id) \u2192 assets.id; ON DELETE NO ACTION; ON UPDATE NO ACTION"
+    ],
+    "indexes": []
+  },
+  "media.request_keys": {
+    "columns": {
+      "owner_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "operation": {
+        "type": "VARCHAR(20)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "request_key": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "request_hash": {
+        "type": "VARCHAR(64)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "asset_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (owner_id, operation, request_key)",
+      "FK (owner_id) \u2192 users.id; ON DELETE NO ACTION; ON UPDATE NO ACTION",
+      "FK (asset_id) \u2192 assets.id; ON DELETE NO ACTION; ON UPDATE NO ACTION"
+    ],
+    "indexes": []
+  },
+  "media.retry_intents": {
+    "columns": {
+      "id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "asset_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "confirmed_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "rejected_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "next_try_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "attempts": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "last_error": {
+        "type": "TEXT",
+        "null": "?",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (id)",
+      "FK (asset_id) \u2192 assets.id; ON DELETE NO ACTION; ON UPDATE NO ACTION"
+    ],
+    "indexes": [
+      "ix_retry_intents_asset_id (asset_id)"
+    ]
+  },
+  "media.asset_source_versions": {
+    "columns": {
+      "asset_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "bucket": {
+        "type": "TEXT",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "key": {
+        "type": "TEXT",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "version_id": {
+        "type": "TEXT",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "sha256": {
+        "type": "VARCHAR(64)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "size_bytes": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "content_type": {
+        "type": "VARCHAR(100)",
+        "null": "NN",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (asset_id)",
+      "FK (asset_id) \u2192 assets.id; ON DELETE NO ACTION; ON UPDATE NO ACTION"
+    ],
+    "indexes": []
+  },
+  "media.upload_reservations": {
+    "columns": {
+      "id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "owner_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "request_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "request_hash": {
+        "type": "VARCHAR(64)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "asset_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "filename": {
+        "type": "VARCHAR(100)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "bucket": {
+        "type": "TEXT",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "key": {
+        "type": "TEXT",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "content_type": {
+        "type": "VARCHAR(100)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "size_bytes": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "sha256": {
+        "type": "VARCHAR(64)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "version_id": {
+        "type": "TEXT",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "expires_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "finalized_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "cleanup_checked_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "cleanup_next_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "now()"
+      },
+      "cleanup_attempts": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "'0'"
+      },
+      "cleanup_retired_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (id)",
+      "UK (owner_id, request_id)",
+      "FK (owner_id) \u2192 users.id; ON DELETE NO ACTION; ON UPDATE NO ACTION",
+      "UK (asset_id)",
+      "UK (key)",
+      "CHECK finalized_at IS NULL OR (version_id IS NOT NULL AND version_id NOT IN ('', 'null')) [ck_upload_reservations_finalized_has_pin]"
+    ],
+    "indexes": [
+      "ix_upload_reservations_owner_id (owner_id)",
+      "ix_upload_reservations_expires_at (expires_at)",
+      "ix_upload_reservations_cleanup_due (cleanup_next_at) WHERE cleanup_retired_at IS NULL"
+    ]
+  },
+  "media.processing_projections": {
+    "columns": {
+      "asset_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "job_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "attempt_id": {
+        "type": "UUID",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "attempt_number": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "state_version": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "status": {
+        "type": "VARCHAR(20)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "source": {
+        "type": "JSONB",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "outputs": {
+        "type": "JSONB",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "error": {
+        "type": "TEXT",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "result_hash": {
+        "type": "VARCHAR(64)",
+        "null": "NN",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (asset_id)",
+      "CHECK state_version >= 0 AND attempt_number >= 0",
+      "CHECK status IN ('queued', 'processing', 'done', 'failed', 'cancelled')",
+      "FK (asset_id) \u2192 assets.id; ON DELETE NO ACTION; ON UPDATE NO ACTION",
+      "UK (job_id)"
+    ],
+    "indexes": []
+  },
+  "media.message_inbox": {
+    "columns": {
+      "message_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "body_hash": {
+        "type": "VARCHAR(64)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "received_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "now()"
+      }
+    },
+    "constraints": [
+      "PK (message_id)"
+    ],
+    "indexes": []
+  },
+  "media.message_outbox": {
+    "columns": {
+      "message_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "body_hash": {
+        "type": "VARCHAR(64)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "queue": {
+        "type": "VARCHAR(40)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "body": {
+        "type": "JSONB",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "next_try_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "tries": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "'0'"
+      },
+      "claim_token": {
+        "type": "UUID",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "sent_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "last_error": {
+        "type": "VARCHAR",
+        "null": "?",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (message_id)"
+    ],
+    "indexes": [
+      "ix_message_outbox_due (next_try_at)"
+    ]
+  },
+  "processing.jobs": {
+    "columns": {
+      "id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "asset_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "owner_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "source": {
+        "type": "JSONB",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "operations": {
+        "type": "JSONB",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "request_hash": {
+        "type": "VARCHAR(64)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "source_url": {
+        "type": "VARCHAR",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "source_url_expires_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "status": {
+        "type": "VARCHAR(16)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "current_attempt_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "error": {
+        "type": "VARCHAR",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "deleted_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "outputs": {
+        "type": "JSONB",
+        "null": "NN",
+        "default": "'[]'::jsonb"
+      }
+    },
+    "constraints": [
+      "PK (id)",
+      "CHECK status IN ('queued', 'processing', 'done', 'failed') [ck_jobs_status]",
+      "UK (asset_id)",
+      "FK (current_attempt_id) \u2192 attempts.id; ON DELETE NO ACTION; ON UPDATE NO ACTION; DEFERRABLE INITIALLY DEFERRED [fk_jobs_current_attempt]"
+    ],
+    "indexes": [
+      "ix_jobs_owner_id (owner_id)"
+    ]
+  },
+  "processing.attempts": {
+    "columns": {
+      "id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "job_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "attempt_number": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "state": {
+        "type": "VARCHAR(16)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "queued_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "started_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "finished_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "error": {
+        "type": "VARCHAR",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "lease_token": {
+        "type": "UUID",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "heartbeat_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "lease_expires_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "deadline_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "next_dispatch_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "dispatch_error": {
+        "type": "VARCHAR",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "dispatch_count": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "'0'"
+      }
+    },
+    "constraints": [
+      "PK (id)",
+      "UK (job_id, attempt_number) [uq_attempts_job_number]",
+      "CHECK attempt_number >= 1 [ck_attempts_number]",
+      "CHECK state IN ('queued', 'processing', 'succeeded', 'failed', 'abandoned', 'cancelled') [ck_attempts_state]",
+      "FK (job_id) \u2192 jobs.id; ON DELETE NO ACTION; ON UPDATE NO ACTION"
+    ],
+    "indexes": [
+      "ix_attempts_recovery (state, next_dispatch_at)"
+    ]
+  },
+  "processing.submission_guards": {
+    "columns": {
+      "asset_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "owner_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "job_id": {
+        "type": "UUID",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "deleted_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (asset_id)",
+      "FK (job_id) \u2192 jobs.id; ON DELETE NO ACTION; ON UPDATE NO ACTION"
+    ],
+    "indexes": []
+  },
+  "processing.retry_requests": {
+    "columns": {
+      "id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "job_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "request_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "attempt_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (id)",
+      "UK (job_id, request_id)",
+      "FK (job_id) \u2192 jobs.id; ON DELETE CASCADE; ON UPDATE NO ACTION",
+      "FK (attempt_id) \u2192 attempts.id; ON DELETE CASCADE; ON UPDATE NO ACTION"
+    ],
+    "indexes": []
+  },
+  "processing.cleanup_intents": {
+    "columns": {
+      "attempt_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "job_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "next_try_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "tries": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "'0'"
+      },
+      "last_error": {
+        "type": "VARCHAR",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "now()"
+      },
+      "retired_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (attempt_id)",
+      "FK (attempt_id) \u2192 attempts.id; ON DELETE CASCADE; ON UPDATE NO ACTION",
+      "FK (job_id) \u2192 jobs.id; ON DELETE CASCADE; ON UPDATE NO ACTION"
+    ],
+    "indexes": [
+      "ix_cleanup_intents_due (next_try_at, attempt_id) WHERE retired_at IS NULL"
+    ]
+  },
+  "processing.message_inbox": {
+    "columns": {
+      "message_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "body_hash": {
+        "type": "VARCHAR(64)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "received_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "now()"
+      }
+    },
+    "constraints": [
+      "PK (message_id)"
+    ],
+    "indexes": []
+  },
+  "processing.message_outbox": {
+    "columns": {
+      "message_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "body_hash": {
+        "type": "VARCHAR(64)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "queue": {
+        "type": "VARCHAR(40)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "body": {
+        "type": "JSONB",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "next_try_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "tries": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "'0'"
+      },
+      "claim_token": {
+        "type": "UUID",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "sent_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "last_error": {
+        "type": "VARCHAR",
+        "null": "?",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (message_id)"
+    ],
+    "indexes": [
+      "ix_message_outbox_due (next_try_at)"
+    ]
+  },
+  "processing.job_messaging": {
+    "columns": {
+      "job_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "state_version": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "'0'"
+      }
+    },
+    "constraints": [
+      "PK (job_id)",
+      "FK (job_id) \u2192 jobs.id; ON DELETE NO ACTION; ON UPDATE NO ACTION"
+    ],
+    "indexes": []
+  },
+  "processing.attempt_tasks": {
+    "columns": {
+      "attempt_id": {
+        "type": "UUID",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "task_name": {
+        "type": "VARCHAR(256)",
+        "null": "NN",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (attempt_id)",
+      "FK (attempt_id) \u2192 attempts.id; ON DELETE NO ACTION; ON UPDATE NO ACTION",
+      "UK (task_name)"
+    ],
+    "indexes": []
+  },
+  "processing.launcher_control": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "null": "NN",
+        "default": "nextval('launcher_control_id_seq'::regclass)"
+      },
+      "enabled": {
+        "type": "BOOLEAN",
+        "null": "NN",
+        "default": "false"
+      },
+      "enabled_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "session_end_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "now()"
+      }
+    },
+    "constraints": [
+      "PK (id)",
+      "CHECK id = 1 [ck_launcher_control_singleton]"
+    ],
+    "indexes": []
+  },
+  "processing.launch_reservations": {
+    "columns": {
+      "token": {
+        "type": "VARCHAR(64)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "started_by": {
+        "type": "VARCHAR(36)",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "status": {
+        "type": "VARCHAR(16)",
+        "null": "NN",
+        "default": "'reserved'"
+      },
+      "payload": {
+        "type": "JSONB",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "deadline_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "\u2014"
+      },
+      "reserved_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "NN",
+        "default": "now()"
+      },
+      "sent_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "launched_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "settled_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "task_arn": {
+        "type": "VARCHAR(512)",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "claimed": {
+        "type": "BOOLEAN",
+        "null": "?",
+        "default": "\u2014"
+      },
+      "last_error": {
+        "type": "VARCHAR(120)",
+        "null": "?",
+        "default": "\u2014"
+      }
+    },
+    "constraints": [
+      "PK (token)",
+      "CHECK status IN ('reserved', 'launched', 'stopped', 'released') [ck_launch_reservations_status]",
+      "UK (started_by)"
+    ],
+    "indexes": [
+      "ix_launch_reservations_open (reserved_at) WHERE status IN ('reserved', 'launched')"
+    ]
+  }
+}

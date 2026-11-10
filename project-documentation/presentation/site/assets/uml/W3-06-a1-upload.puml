@@ -1,0 +1,56 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Sequence view · UC-1 verifies bytes before adopting the source\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/uploads.py#L36
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L99
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L149
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L62
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L31
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam LegendFontSize 16
+skinparam maxMessageSize 320
+participant "direct_intake\n«module»" as I $MEDIA
+participant "storage: Storage" as S $MEDIA
+participant "messaging\n«module»" as M $MEDIA
+participant "s: AsyncSession" as DB $INFRA
+[-> I : finalize(s,storage,owner,rid,request)
+activate I
+I -> DB : SQL: read owned, pending reservation\n(read transaction ends)
+I -> S : verify_direct_upload(row)
+activate S
+S --> I : version_id: str
+ deactivate S
+group Media adoption transaction
+ I -> DB : SQL: lock + recheck reservation;\npin version; add/flush Asset
+ I -> M : enqueue_submit(s,asset,source(row))
+ activate M
+ M -> DB : SQL: stage MediaOutbox submit
+ M --> I : message_id: UUID
+ deactivate M
+ I -> DB : COMMIT reservation + Asset + outbox
+end
+[<-- I : asset: Asset
+ deactivate I
+legend bottom
+Caller: api.uploads.finalize_upload; it maps Asset to Accepted and HTTP 202.
+Successful pending path shown. Replay returns the prior Asset; expiry/error prevents adoption.
+Blue = Media; slate = SQL. Solid filled arrow = awaited call; dashed = reply. SQL labels summarize effects.
+endlegend
+
+@enduml

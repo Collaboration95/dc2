@@ -1,0 +1,62 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Sequence view · Edit adopts a derived Asset · 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_jobs.py#L55
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L105
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L145
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L75
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L209
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/intake.py#L54
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L70
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L58
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1766
+skinparam ArrowFontSize 18
+skinparam LegendFontSize 18
+skinparam NoteFontSize 18
+skinparam defaultFontSize 18
+skinparam NoteFontSize 16
+skinparam LegendFontSize 18
+skinparam maxMessageSize 380
+
+participant "v1_lifecycle\n«module»" as E $MEDIA
+participant "storage: Storage" as S $MEDIA
+participant "s: AsyncSession" as DB $INFRA
+[-> E : edit(s,storage,owner,parent_id,request,key)
+activate E
+ref over E,DB : Preflight checks; then intake.stage(s,k) commits the ledger
+ group Copy transaction: parent + staged locks
+ E -> S : copy_output_source(output,k)
+ activate S
+ S --> E : size,sha256
+ deactivate S
+ E -> DB : SQL: write_uncertain=False; COMMIT
+end
+group Adoption transaction: staged lock
+ E -> DB : SQL: check staged row; add/flush derived Asset
+ E -> E : pin_copied_source(s,storage,asset)
+ E -> E : stage_submit(s,asset,pin)
+ E -> DB : COMMIT Asset + pin + optional RequestKey +\nsubmit outbox; remove staged ledger
+end
+[<-- E : asset: Asset -> HTTP 202 at API caller
+ deactivate E
+ref over E,DB : Independent repair after adoption commit: publish_commands -> publish_due -> SQS.send (W3-14a)
+legend bottom
+Blue = Media; slate = SQL. Independent relay may precede HTTP 202. Detail: W3-14a/b.
+endlegend
+
+@enduml

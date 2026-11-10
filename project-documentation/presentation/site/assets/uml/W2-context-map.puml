@@ -1,0 +1,36 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 20
+skinparam classAttributeFontSize 18
+skinparam classStereotypeFontSize 16
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam nodesep 24
+skinparam ranksep 30
+hide circle
+hide empty methods
+
+
+top to bottom direction
+title Strategic context map · as built at 76282d3
+package "Media Management" $MEDIA {
+ component "Asset / ownership / public view\nCommand adapters: enqueue_submit(), command()\n[ACL] apply_result(), public_job_schema()" as M
+}
+package "Processing" $PROC {
+ component "Job / Attempt / cancellation gate\nTranslation: handle_command()\nState publication: emit_state()" as P
+ component "Finite encoder roles\nworker.sqs / short_encoder" as E
+ P -down-> E : work (internal)\nprocessing-work / processing-work-short
+}
+M -right-> P : submit / retry / cancel\nprocessing-commands [PL]
+P -left-> M : result [PL] / media-results\nmodel dependency: Processing [U], Media [D]
+legend bottom
+  U/D = inferred result-model dependency; arrows = message flow. Media translates the upstream snapshot.
+  [PL] Published Language = Envelope + Source in contracts/v1.py. Actor is separate API context.
+  [ACL] = Media validation + mapping into its own projection/public states. Commands use adapters.
+  Customer/Supplier and Shared Kernel governance: UNKNOWN; neither pattern is asserted.
+  Conformist is not asserted: Media keeps its own model. delivery/ is shared technical code.
+endlegend
+@enduml

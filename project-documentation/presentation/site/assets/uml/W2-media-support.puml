@@ -1,0 +1,69 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 20
+skinparam classAttributeFontSize 18
+skinparam classStereotypeFontSize 16
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam nodesep 24
+skinparam ranksep 30
+hide circle
+hide empty methods
+
+top to bottom direction
+title Supporting records · Media projection and ledgers · 76282d3
+class ProcessingProjection <<read model>> $MEDIA {
+ asset_id: UUID
+ job_id: UUID
+ attempt_id: UUID | None
+ attempt_number: int
+ state_version: int
+ status: str
+ source: dict
+ outputs: list
+ result_hash: str
+}
+class RequestKey <<idempotency ledger>> $INFRA {
+ owner_id: UUID
+ operation: str
+ request_key: UUID
+ request_hash: str
+ asset_id: UUID
+}
+class "media.models.CleanupIntent" as Cleanup <<cleanup ledger>> $INFRA {
+ asset_id: UUID
+ processing_deleted_at: datetime | None
+ source_deleted_at: datetime | None
+ next_try_at: datetime
+ attempts: int
+}
+class StagedObject <<orphan ledger>> $INFRA {
+ key: str
+ created_at: datetime
+ write_uncertain: bool
+}
+ProcessingProjection -[hidden]right- RequestKey
+RequestKey -[hidden]right- Cleanup
+Cleanup -[hidden]right- StagedObject
+note bottom of ProcessingProjection
+  apply_result() + validate_transition():
+  source/owner/attempt checks;
+  stale state ignored, equivocation rejected.
+  Inbox + projection commit together.
+end note
+note bottom of Cleanup
+  tombstone(): Asset + intent + cancel.
+  confirm_cancellation() gates cleanup.
+  cleanup_tombstones(): repeated scans.
+end note
+legend bottom
+  Each Asset has 0..1 Projection, 0..* RequestKey, 0..1 CleanupIntent (local Asset FKs).
+  RequestKey PK = (owner_id, operation, request_key); Job ID in projection has no Processing FK.
+  StagedObject has NO Asset FK; key-based application association, independent orphan lifecycle.
+  These records support the business aggregate; none is a member entity just because it shares a transaction.
+endlegend
+
+@enduml

@@ -1,0 +1,112 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}
+html,body{margin:0;background:#000;overflow:hidden;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;color:#0f172a}
+#stage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;background:#fff;overflow:hidden}
+#bar{position:absolute;left:0;top:0;height:6px;width:0;background:#2563EB;z-index:5}
+.slide{position:absolute;inset:0;padding:30px 50px 0;display:flex;flex-direction:column;background:#fff;opacity:0;visibility:hidden}
+.slide.active{opacity:1;visibility:visible}
+h1{font-size:44px;line-height:1.1;margin:0 0 16px;font-weight:800;letter-spacing:-.5px;min-height:48px}
+.body{flex:1;position:relative;min-height:0;margin-bottom:76px;display:flex;flex-direction:column;justify-content:center}
+.foot{position:absolute;left:0;right:0;bottom:0;height:38px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;padding:0 50px;font-size:16px;color:#64748b;background:#fff}
+.fr{display:flex;align-items:center;gap:18px}.pl{font-size:13px;color:#64748b;text-decoration:none}.pl:hover{text-decoration:underline;color:#2563EB}
+.sec{position:absolute;top:12px;right:50px;font-size:18px;font-weight:700;color:#64748b}
+.notes{display:none}
+.row{display:flex;align-items:center;gap:14px}
+.col{display:flex;flex-direction:column;gap:14px}
+.fill{flex:1}
+.wrap{flex-wrap:wrap}
+.cc{justify-content:center;align-items:center}
+.box{border:3px solid;border-radius:12px;padding:10px 18px;font-size:26px;font-weight:700;text-align:center;line-height:1.2}
+.sub{display:block;font-size:24px;font-weight:500;opacity:.9;margin-top:2px}
+.m{border-color:#2563EB;background:#DBEAFE;color:#1e3a8a}
+.p{border-color:#D97706;background:#FEF3C7;color:#78350f}
+.c{border-color:#059669;background:#ECFDF5;color:#064e3b}
+.i{border-color:#64748B;background:#F1F5F9;color:#334155}
+.x{border-color:#D55E00;background:#fff4ec;color:#7c2d00}
+.g{border-color:#94a3b8;border-style:dashed;background:#fff;color:#64748b}
+.k{border-color:#0f172a;background:#0f172a;color:#fff}
+.chip{display:inline-block;border:3px solid;border-radius:999px;padding:6px 18px;font-size:24px;font-weight:700}
+.chip.mono,.mono{font-family:Menlo,monospace;font-weight:600}
+.ar{position:relative;width:46px;height:0;border-top:4px solid #64748b;flex:none;margin:0 6px}
+.ar::after{content:"";position:absolute;right:-3px;top:-11px;border-left:15px solid #64748b;border-top:9px solid transparent;border-bottom:9px solid transparent}
+.ar.d{border-top-style:dashed}
+.ar.o{border-top-color:#D55E00}.ar.o::after{border-left-color:#D55E00}
+.ar.gr{border-top-color:#059669}.ar.gr::after{border-left-color:#059669}
+.ar.l{transform:scaleX(-1)}
+.ar.v{width:0;height:42px;border-top:0;border-left:4px solid #64748b;margin:4px 0;align-self:center}
+.ar.v::after{right:auto;top:auto;left:-11px;bottom:-3px;border-left:9px solid transparent;border-right:9px solid transparent;border-top:15px solid #64748b;border-bottom:0}
+.ar.v.o{border-left-color:#D55E00}.ar.v.o::after{border-top-color:#D55E00}
+.cap{font-size:26px;color:#475569;line-height:1.25}
+.cap.c1{text-align:center}
+.lbl{font-size:24px;font-weight:700;color:#475569}
+.big{font-size:104px;font-weight:800;line-height:1}
+.big.pass{color:#059669}.big.miss{color:#D55E00}
+.pass{color:#059669}.miss{color:#D55E00}
+.tile{border:3px solid;border-radius:16px;padding:20px 24px;flex:1;font-size:30px;font-weight:700;line-height:1.2}
+.num{display:inline-flex;width:48px;height:48px;border-radius:50%;background:#0f172a;color:#fff;font-weight:800;font-size:28px;align-items:center;justify-content:center;margin-bottom:10px}
+.card{display:flex;flex-direction:column;gap:12px}
+.card .ad{font:700 30px Menlo,monospace;color:#475569}
+.band{display:flex;border-radius:12px;overflow:hidden;border:2px solid #cbd5e1}
+.band .kk{width:176px;flex:none;background:#0f172a;color:#fff;font-size:24px;font-weight:700;display:flex;align-items:center;padding:0 16px}
+.band .v{padding:14px 20px;font-size:30px;font-weight:700}
+.tbl{border-collapse:collapse;font-size:24px;width:100%}
+.tbl th{text-align:left;color:#475569;font-size:24px;border-bottom:3px solid #0f172a;padding:6px 12px}
+.tbl td{padding:10px 12px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+.stage-row{display:flex;gap:16px;align-items:flex-start;margin-bottom:12px}
+.stage-row .sl{width:200px;flex:none;font-size:24px;font-weight:800;color:#fff;background:#0f172a;border-radius:10px;padding:8px 12px;text-align:center}
+.stage-row .chips{display:flex;flex-wrap:wrap;gap:8px;flex:1}
+.stage-row .chips .chip{font-size:24px;padding:4px 14px;border-width:2px;border-radius:10px;font-weight:600}
+.dia{width:1180px;display:block}
+.dia text{font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:24px;fill:#0f172a;text-anchor:middle;font-weight:700}
+.dia text.s{font-size:24px;font-weight:500}
+.dia text.l{text-anchor:start}
+.dia text.mo{font-family:Menlo,monospace;font-weight:600}
+.dia .sb{stroke-width:3}
+.dia .sb.m{fill:#DBEAFE;stroke:#2563EB}.dia .sb.p{fill:#FEF3C7;stroke:#D97706}.dia .sb.c{fill:#ECFDF5;stroke:#059669}
+.dia .sb.i{fill:#F1F5F9;stroke:#64748B}.dia .sb.x{fill:#fff4ec;stroke:#D55E00}.dia .sb.g{fill:#fff;stroke:#94a3b8;stroke-dasharray:8 6}
+.dia .sb.zm{fill:#f5f9ff;stroke:#2563EB;stroke-dasharray:none}.dia .sb.zp{fill:#fffaf0;stroke:#D97706}.dia .sb.zi{fill:#f8fafc;stroke:#64748B;stroke-dasharray:10 6}
+.dia .ln{stroke:#64748B;stroke-width:3.5;fill:none}.dia .ln.d{stroke-dasharray:9 7}.dia .ln.o{stroke:#D55E00}.dia .ln.gr{stroke:#059669}.dia .ln.life{stroke:#cbd5e1;stroke-width:3;stroke-dasharray:6 6}
+.clip{position:relative;width:860px;height:484px;background:#0f172a;border-radius:12px;overflow:hidden;cursor:pointer;flex:none}
+.clip video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;display:none}
+.clip.ready video{display:block}
+.clip .ph{position:absolute;inset:14px;border:3px dashed #475569;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#e2e8f0;font-size:30px;font-weight:700;text-align:center;padding:0 40px}
+.clip .ph small{font-size:24px;font-weight:500;color:#94a3b8}
+.clip.ready .ph{display:none}
+.tri{width:0;height:0;border-left:44px solid #e2e8f0;border-top:28px solid transparent;border-bottom:28px solid transparent}
+.clip .pb{position:absolute;left:50%;top:50%;margin:-50px 0 0 -50px;width:100px;height:100px;border-radius:50%;background:rgba(15,23,42,.7);display:none;align-items:center;justify-content:center}
+.clip .pb .tri{border-left:34px solid #fff;border-top:22px solid transparent;border-bottom:22px solid transparent;margin-left:8px}
+.clip.ready:not(.playing) .pb{display:flex}
+.clip .cb{position:absolute;left:0;bottom:0;height:6px;width:0;background:#2563EB}
+.clipid{font:700 28px Menlo,monospace;color:#475569}
+#notes{position:fixed;left:0;right:0;bottom:0;height:230px;overflow:auto;background:#0f172a;color:#e2e8f0;font-size:19px;line-height:1.35;padding:12px 28px;display:none;z-index:20}
+#notes.on{display:block}
+#notes ul{margin:4px 0;padding-left:24px}#notes b{color:#fff}
+#ov{position:fixed;inset:0;background:rgba(15,23,42,.96);overflow:auto;display:none;z-index:30;padding:20px}
+#ov.on{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;align-content:start}
+#ov .th{position:relative;width:100%;aspect-ratio:16/9;background:#fff;overflow:hidden;border-radius:6px;cursor:pointer;border:3px solid transparent}
+#ov .th.cur{border-color:#2563EB}
+#ov .th .in{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;pointer-events:none}
+#ov .th .n{position:absolute;right:6px;bottom:4px;z-index:2;background:#0f172a;color:#fff;font:700 13px Menlo,monospace;padding:2px 6px;border-radius:4px}
+#ov .slide{opacity:1;visibility:visible}
+#black{position:fixed;inset:0;background:#000;display:none;z-index:40}
+#black.on{display:block}
+#hud{position:fixed;right:14px;top:10px;z-index:25;font:700 22px Menlo,monospace;color:#fff;background:rgba(15,23,42,.85);padding:4px 12px;border-radius:6px;display:none}
+.dv{align-items:center;justify-content:center;text-align:center}
+@media print{
+html,body{background:#fff;overflow:visible;height:auto}
+#stage{position:static;transform:none!important;width:1280px;height:auto;overflow:visible}
+.slide{position:relative;visibility:visible!important;opacity:1!important;width:1280px;height:720px;break-after:page;page-break-after:always;overflow:hidden}
+#notes,#ov,#black,#bar,#hud{display:none!important}
+.clip video{display:none!important}.clip .ph{display:flex!important}.clip .pb{display:none!important}
+@page{size:1280px 720px;margin:0}
+}
+html,body{height:auto;overflow:visible;background:white}#stage{position:relative;width:1280px;height:720px}</style></head><body><div id="stage"><section class="slide active" id="s29" data-kind="main" data-num="W3-04">
+<h1 style="font-size:40px">Finalize adopts the bytes it verified</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">SAD · SDP · UC-1–UC-3 / phase A1</div>
+<div class="body" style="margin-bottom:44px"><img src="/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/site/assets/uml/W3-06-a1-upload.svg" alt="Finalize adopts the bytes it verified" style="max-width:1180px;max-height:535px;display:block;margin:0 auto" data-minfont="16.0"></div>
+<div class="sec">4. Detailed design</div>
+<div class="foot"><span><a class="pl" href="https://github.com/Collaboration95/dc2/blob/76282d3/media/api/uploads.py#L36" target="_blank" rel="noopener">media/api/uploads.py#L36</a> · <a class="pl" href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L99" target="_blank" rel="noopener">media/services/direct_intake.py#L99</a></span><span>W3-04 · 76282d3</span></div>
+<aside class="notes"><b>s29 · REPLACES s29</b><p>Point first to the completed read transaction, then storage verification outside row locks. The adoption transaction locks/rechecks the reservation, pins the exact version, creates Asset and stages MediaOutbox through enqueue_submit. The function returns Asset to api.uploads.finalize_upload, which returns Accepted with HTTP 202. Replay returns the prior Asset without a second submit; expiry or verification failure prevents adoption.</p><p>Sequence aliases: s=session, f=factory, cfg=settings, t=transport, e=envelope, jid/aid=Job/Attempt UUID, rid=reservation UUID, k=new source key, dir=temporary directory, work=Claim. These denote values passed to real signatures. SQL-prefixed labels summarize persistence effects; they are not invented AsyncSession methods. Filled arrows show synchronous/awaited calls, open arrows show asynchronous delivery, dashed arrows show replies; module lifelines denote the named real module, not an OO service.</p><p>Verified source: <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/api/uploads.py#L36">media/api/uploads.py#L36</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L99">media/services/direct_intake.py#L99</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L149">media/services/direct_intake.py#L149</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L62">media/services/storage.py#L62</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L31">media/messaging.py#L31</a></p></aside>
+</section>
+
+</div><script>window.addEventListener("load",()=>{const i=document.querySelector("img");const b=i.getBoundingClientRect(),body=document.querySelector(".body").getBoundingClientRect();console.log(JSON.stringify({id:document.querySelector("section").id,image:[b.x,b.y,b.width,b.height],minFont:Math.min(b.width/i.naturalWidth,b.height/i.naturalHeight)*Number(i.dataset.minfont),inBody:b.top>=body.top-1&&b.bottom<=body.bottom+1,inStage:b.left>=0&&b.right<=1280&&b.bottom<=682}));});</script></body></html>

@@ -1,0 +1,40 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ClassAttributeFontSize 15
+skinparam classAttributeIconSize 0
+skinparam ArrowFontSize 15
+skinparam LegendFontSize 14
+
+title Class view · UC-4 mutating operations live in modules\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L28
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L155
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L24
+top to bottom direction
+class "messaging (processing)" as M <<module>> $PROC {
+ {static} - _retry_locked(session, job, request_id)
+ {static} + emit_state(session, job, attempt)
+ {static} + finish(factory, work, *, outputs=None, error=None)
+}
+class "lifecycle (processing)" as L <<module>> $PROC {
+ {static} + lock_pair(session, job_id, attempt_id)
+ {static} + db_now(session)
+ {static} + live(pair, token, now)
+ {static} + heartbeat(factory, work, settings)
+ {static} + finish(factory, work, *, outputs=None, error=None, on_change=None)
+}
+class "recovery (processing)" as R <<module>> $PROC {
+ {static} + recover_expired(factory, *, limit=100, on_change=None, job_filter=None)
+ {static} + interrupt(session, job, attempt, now, message, on_change=None)
+}
+M -[hidden]right- R
+M ..> L : lock_pair / live
+R ..> L : lock_pair / db_now
+R ..> M : on_change=emit_state
+legend bottom
++ public; - internal by Python convention; underlined = class/module scope.
+Real untyped Python signatures. These are not Job methods. All mutations serialize on the Job root lock.
+live requires current/nondeleted Job + processing states + matching token + unexpired DB-clock lease/deadline.
+endlegend
+@enduml

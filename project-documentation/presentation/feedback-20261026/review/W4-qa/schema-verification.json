@@ -1,0 +1,577 @@
+{
+  "head": "76282d3b5a141f6548056f2506f9d5aff0742692",
+  "chains": {
+    "media": [
+      "0001_media",
+      "0002_uncertain_writes",
+      "media_0004",
+      "media_0005",
+      "media_0006",
+      "media_0007",
+      "media_0008"
+    ],
+    "processing": [
+      "processing_0001",
+      "processing_0002",
+      "processing_0003",
+      "processing_0005",
+      "processing_0006",
+      "processing_0007"
+    ]
+  },
+  "tables": 22,
+  "columns": 172,
+  "constraints": 61,
+  "explicit_indexes": 12,
+  "dictionary_tables": [
+    "media.staged_objects",
+    "media.users",
+    "media.assets",
+    "media.cleanup_intents",
+    "media.request_keys",
+    "media.retry_intents",
+    "media.asset_source_versions",
+    "media.upload_reservations",
+    "media.processing_projections",
+    "media.message_inbox",
+    "media.message_outbox",
+    "processing.jobs",
+    "processing.attempts",
+    "processing.submission_guards",
+    "processing.retry_requests",
+    "processing.cleanup_intents",
+    "processing.message_inbox",
+    "processing.message_outbox",
+    "processing.job_messaging",
+    "processing.attempt_tasks",
+    "processing.launcher_control",
+    "processing.launch_reservations"
+  ],
+  "figure_tables": [
+    {
+      "figure": "W4-media-assets.puml",
+      "table": "media.users",
+      "columns": 5,
+      "full": true
+    },
+    {
+      "figure": "W4-media-assets.puml",
+      "table": "media.assets",
+      "columns": 18,
+      "full": true
+    },
+    {
+      "figure": "W4-media-cleanup.puml",
+      "table": "media.cleanup_intents",
+      "columns": 6,
+      "full": true
+    },
+    {
+      "figure": "W4-media-cleanup.puml",
+      "table": "media.assets",
+      "columns": 1,
+      "full": false
+    },
+    {
+      "figure": "W4-media-delivery.puml",
+      "table": "media.message_inbox",
+      "columns": 3,
+      "full": true
+    },
+    {
+      "figure": "W4-media-delivery.puml",
+      "table": "media.message_outbox",
+      "columns": 9,
+      "full": true
+    },
+    {
+      "figure": "W4-media-delivery.puml",
+      "table": "media.staged_objects",
+      "columns": 3,
+      "full": true
+    },
+    {
+      "figure": "W4-media-intents.puml",
+      "table": "media.request_keys",
+      "columns": 6,
+      "full": true
+    },
+    {
+      "figure": "W4-media-intents.puml",
+      "table": "media.users",
+      "columns": 1,
+      "full": false
+    },
+    {
+      "figure": "W4-media-intents.puml",
+      "table": "media.assets",
+      "columns": 1,
+      "full": false
+    },
+    {
+      "figure": "W4-media-main.puml",
+      "table": "media.users",
+      "columns": 2,
+      "full": false
+    },
+    {
+      "figure": "W4-media-main.puml",
+      "table": "media.assets",
+      "columns": 4,
+      "full": false
+    },
+    {
+      "figure": "W4-media-main.puml",
+      "table": "media.upload_reservations",
+      "columns": 6,
+      "full": false
+    },
+    {
+      "figure": "W4-media-main.puml",
+      "table": "media.asset_source_versions",
+      "columns": 3,
+      "full": false
+    },
+    {
+      "figure": "W4-media-main.puml",
+      "table": "media.processing_projections",
+      "columns": 5,
+      "full": false
+    },
+    {
+      "figure": "W4-media-pins.puml",
+      "table": "media.asset_source_versions",
+      "columns": 7,
+      "full": true
+    },
+    {
+      "figure": "W4-media-pins.puml",
+      "table": "media.assets",
+      "columns": 1,
+      "full": false
+    },
+    {
+      "figure": "W4-media-projection.puml",
+      "table": "media.processing_projections",
+      "columns": 10,
+      "full": true
+    },
+    {
+      "figure": "W4-media-projection.puml",
+      "table": "media.assets",
+      "columns": 1,
+      "full": false
+    },
+    {
+      "figure": "W4-media-retry.puml",
+      "table": "media.retry_intents",
+      "columns": 8,
+      "full": true
+    },
+    {
+      "figure": "W4-media-retry.puml",
+      "table": "media.assets",
+      "columns": 1,
+      "full": false
+    },
+    {
+      "figure": "W4-media-upload.puml",
+      "table": "media.upload_reservations",
+      "columns": 19,
+      "full": true
+    },
+    {
+      "figure": "W4-media-upload.puml",
+      "table": "media.users",
+      "columns": 1,
+      "full": false
+    },
+    {
+      "figure": "W4-processing-attempts.puml",
+      "table": "processing.jobs",
+      "columns": 15,
+      "full": true
+    },
+    {
+      "figure": "W4-processing-attempts.puml",
+      "table": "processing.attempts",
+      "columns": 15,
+      "full": true
+    },
+    {
+      "figure": "W4-processing-bindings.puml",
+      "table": "processing.job_messaging",
+      "columns": 2,
+      "full": true
+    },
+    {
+      "figure": "W4-processing-bindings.puml",
+      "table": "processing.attempt_tasks",
+      "columns": 2,
+      "full": true
+    },
+    {
+      "figure": "W4-processing-bindings.puml",
+      "table": "processing.jobs",
+      "columns": 1,
+      "full": false
+    },
+    {
+      "figure": "W4-processing-bindings.puml",
+      "table": "processing.attempts",
+      "columns": 1,
+      "full": false
+    },
+    {
+      "figure": "W4-processing-cleanup.puml",
+      "table": "processing.cleanup_intents",
+      "columns": 7,
+      "full": true
+    },
+    {
+      "figure": "W4-processing-cleanup.puml",
+      "table": "processing.jobs",
+      "columns": 1,
+      "full": false
+    },
+    {
+      "figure": "W4-processing-cleanup.puml",
+      "table": "processing.attempts",
+      "columns": 1,
+      "full": false
+    },
+    {
+      "figure": "W4-processing-delivery.puml",
+      "table": "processing.message_inbox",
+      "columns": 3,
+      "full": true
+    },
+    {
+      "figure": "W4-processing-delivery.puml",
+      "table": "processing.message_outbox",
+      "columns": 9,
+      "full": true
+    },
+    {
+      "figure": "W4-processing-intents.puml",
+      "table": "processing.retry_requests",
+      "columns": 4,
+      "full": true
+    },
+    {
+      "figure": "W4-processing-intents.puml",
+      "table": "processing.submission_guards",
+      "columns": 4,
+      "full": true
+    },
+    {
+      "figure": "W4-processing-intents.puml",
+      "table": "processing.jobs",
+      "columns": 1,
+      "full": false
+    },
+    {
+      "figure": "W4-processing-intents.puml",
+      "table": "processing.attempts",
+      "columns": 1,
+      "full": false
+    },
+    {
+      "figure": "W4-processing-launcher.puml",
+      "table": "processing.launcher_control",
+      "columns": 5,
+      "full": true
+    },
+    {
+      "figure": "W4-processing-launcher.puml",
+      "table": "processing.launch_reservations",
+      "columns": 12,
+      "full": true
+    },
+    {
+      "figure": "W4-processing-main.puml",
+      "table": "processing.jobs",
+      "columns": 5,
+      "full": false
+    },
+    {
+      "figure": "W4-processing-main.puml",
+      "table": "processing.attempts",
+      "columns": 6,
+      "full": false
+    },
+    {
+      "figure": "W4-processing-main.puml",
+      "table": "processing.retry_requests",
+      "columns": 4,
+      "full": false
+    },
+    {
+      "figure": "W4-processing-main.puml",
+      "table": "processing.submission_guards",
+      "columns": 4,
+      "full": false
+    }
+  ],
+  "edges": [
+    {
+      "figure": "W4-media-assets.puml",
+      "parent": "users",
+      "relationship": "||--o{",
+      "child": "assets",
+      "label": "owner_id"
+    },
+    {
+      "figure": "W4-media-cleanup.puml",
+      "parent": "assets",
+      "relationship": "||--o|",
+      "child": "cleanup_intents",
+      "label": "asset_id"
+    },
+    {
+      "figure": "W4-media-intents.puml",
+      "parent": "assets",
+      "relationship": "||--o{",
+      "child": "request_keys",
+      "label": "asset_id"
+    },
+    {
+      "figure": "W4-media-intents.puml",
+      "parent": "users",
+      "relationship": "||--o{",
+      "child": "request_keys",
+      "label": "owner_id"
+    },
+    {
+      "figure": "W4-media-main.puml",
+      "parent": "assets",
+      "relationship": "||--o|",
+      "child": "processing_projections",
+      "label": "asset_id"
+    },
+    {
+      "figure": "W4-media-main.puml",
+      "parent": "assets",
+      "relationship": "||--o|",
+      "child": "asset_source_versions",
+      "label": "asset_id"
+    },
+    {
+      "figure": "W4-media-main.puml",
+      "parent": "users",
+      "relationship": "||--o{",
+      "child": "upload_reservations",
+      "label": "owner_id"
+    },
+    {
+      "figure": "W4-media-main.puml",
+      "parent": "users",
+      "relationship": "||--o{",
+      "child": "assets",
+      "label": "owner_id"
+    },
+    {
+      "figure": "W4-media-pins.puml",
+      "parent": "assets",
+      "relationship": "||--o|",
+      "child": "asset_source_versions",
+      "label": "asset_id"
+    },
+    {
+      "figure": "W4-media-projection.puml",
+      "parent": "assets",
+      "relationship": "||--o|",
+      "child": "processing_projections",
+      "label": "asset_id"
+    },
+    {
+      "figure": "W4-media-retry.puml",
+      "parent": "assets",
+      "relationship": "||--o{",
+      "child": "retry_intents",
+      "label": "asset_id"
+    },
+    {
+      "figure": "W4-media-upload.puml",
+      "parent": "users",
+      "relationship": "||--o{",
+      "child": "upload_reservations",
+      "label": "owner_id"
+    },
+    {
+      "figure": "W4-processing-attempts.puml",
+      "parent": "attempts",
+      "relationship": "||--o{",
+      "child": "jobs",
+      "label": "current (deferred)"
+    },
+    {
+      "figure": "W4-processing-attempts.puml",
+      "parent": "jobs",
+      "relationship": "||--o{",
+      "child": "attempts",
+      "label": "job_id"
+    },
+    {
+      "figure": "W4-processing-bindings.puml",
+      "parent": "jobs",
+      "relationship": "||--o|",
+      "child": "job_messaging",
+      "label": "job_id"
+    },
+    {
+      "figure": "W4-processing-bindings.puml",
+      "parent": "attempts",
+      "relationship": "||--o|",
+      "child": "attempt_tasks",
+      "label": "attempt_id"
+    },
+    {
+      "figure": "W4-processing-cleanup.puml",
+      "parent": "attempts",
+      "relationship": "||--o|",
+      "child": "cleanup_intents",
+      "label": "attempt_id"
+    },
+    {
+      "figure": "W4-processing-cleanup.puml",
+      "parent": "jobs",
+      "relationship": "||--o{",
+      "child": "cleanup_intents",
+      "label": "job_id"
+    },
+    {
+      "figure": "W4-processing-intents.puml",
+      "parent": "jobs",
+      "relationship": "|o--o{",
+      "child": "submission_guards",
+      "label": "job_id"
+    },
+    {
+      "figure": "W4-processing-intents.puml",
+      "parent": "attempts",
+      "relationship": "||--o{",
+      "child": "retry_requests",
+      "label": "attempt_id"
+    },
+    {
+      "figure": "W4-processing-intents.puml",
+      "parent": "jobs",
+      "relationship": "||--o{",
+      "child": "retry_requests",
+      "label": "job_id"
+    },
+    {
+      "figure": "W4-processing-main.puml",
+      "parent": "attempts",
+      "relationship": "||--o{",
+      "child": "retry_requests",
+      "label": "attempt_id"
+    },
+    {
+      "figure": "W4-processing-main.puml",
+      "parent": "jobs",
+      "relationship": "||--o{",
+      "child": "retry_requests",
+      "label": "job_id"
+    },
+    {
+      "figure": "W4-processing-main.puml",
+      "parent": "attempts",
+      "relationship": "||--o{",
+      "child": "jobs",
+      "label": "current (deferred)"
+    },
+    {
+      "figure": "W4-processing-main.puml",
+      "parent": "jobs",
+      "relationship": "|o--o{",
+      "child": "submission_guards",
+      "label": "job_id"
+    },
+    {
+      "figure": "W4-processing-main.puml",
+      "parent": "jobs",
+      "relationship": "||--o{",
+      "child": "attempts",
+      "label": "job_id"
+    }
+  ],
+  "errors": [],
+  "orm_differences": [
+    {
+      "table": "processing.attempts",
+      "aspect": "indexes",
+      "migration": [
+        "ix_attempts_recovery (state, next_dispatch_at)"
+      ],
+      "orm": []
+    },
+    {
+      "table": "processing.cleanup_intents",
+      "aspect": "indexes",
+      "migration": [
+        "ix_cleanup_intents_due (next_try_at, attempt_id) WHERE retired_at IS NULL"
+      ],
+      "orm": []
+    },
+    {
+      "table": "processing.launcher_control",
+      "aspect": "columns",
+      "migration": {
+        "id": {
+          "type": "INTEGER",
+          "null": "NN",
+          "default": "nextval('launcher_control_id_seq'::regclass)"
+        },
+        "enabled": {
+          "type": "BOOLEAN",
+          "null": "NN",
+          "default": "false"
+        },
+        "enabled_at": {
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "null": "?",
+          "default": "\u2014"
+        },
+        "session_end_at": {
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "null": "?",
+          "default": "\u2014"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "null": "NN",
+          "default": "now()"
+        }
+      },
+      "orm": {
+        "id": {
+          "type": "INTEGER",
+          "null": "NN",
+          "default": "\u2014"
+        },
+        "enabled": {
+          "type": "BOOLEAN",
+          "null": "NN",
+          "default": "false"
+        },
+        "enabled_at": {
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "null": "?",
+          "default": "\u2014"
+        },
+        "session_end_at": {
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "null": "?",
+          "default": "\u2014"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "null": "NN",
+          "default": "now()"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_encoder.py#L53-L101
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/tasks.py#L16-L28
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L187-L230
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L412-L449
+title Activity view · source admission and fenced redirect · 76282d3
+skinparam defaultFontSize 22
+skinparam ArrowFontSize 21
+skinparam activityFontSize 22
+skinparam titleFontSize 22
+skinparam LegendFontSize 22
+skinparam swimlaneWidth 300
+skinparam activityPadding 4
+|$PROC|ProcessingShortEncoder|
+start
+:claim + lambda-* binding + COMMIT\ndownload → FFprobe → check_probe;
+if (finite 0 < duration ≤60 s\nAND source height ≤1080 px?) then ([true])
+ :encode → fenced finish\n+ result outbox;
+ stop
+else ([NotAdmitted])
+ :redirect_to_long_lane\nlock Job / Attempt;
+ if (current live lease?) then ([false])
+  :return False; no mutation;
+  stop
+ else ([true])
+  :abandon old Attempt + cleanup\nNEW queued Attempt\nstandard work + result outbox; COMMIT;
+  |$PROC|Processing publisher|
+  :publish_outbox → standard SQS\nasync wake ProcessingLauncher;
+  stop
+ endif
+endif
+legend bottom
+ Both lanes are Processing. The redirect transaction runs inside the short Lambda.
+ Publication is a later invocation; launcher reserves capacity; Fargate claims the successor.
+endlegend
+@enduml

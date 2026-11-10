@@ -1,0 +1,148 @@
+number,id,kind,title,visual_review,geometry,media,render
+1,s1,main,FlickPond: from video app to reusable media platform,PASS,PASS,PASS,final-001.png
+2,s2,main,Teams keep rebuilding upload-to-playback; we made it reusable,PASS,PASS,PASS,final-002.png
+3,s3,main,Two clients reuse the APIs of two owned services,PASS,PASS,PASS,final-003.png
+4,s4,main,We kept the engine; we changed ownership and runtime,PASS,PASS,PASS,final-004.png
+5,s5,main,Clients reuse the contract; encoders run within caps,PASS,PASS,PASS,final-005.png
+6,s6,main,Seven use cases in scope; sharing and tenants out,PASS,PASS,PASS,final-006.png
+7,s7,main,Proposal to live platform in seventeen days,PASS,PASS,PASS,final-007.png
+8,s8,main,Three specialist leads share an agreed effort allocation,PASS,PASS,PASS,final-008.png
+9,s9,main,Seven use cases are implemented; five issue classes remain,PASS,PASS,PASS,final-009.png
+10,s10,main,Three drivers shaped every logical decision,PASS,PASS,PASS,final-010.png
+11,s10-views,main,Each view answers a different design question,PASS,PASS,PASS,final-011.png
+12,s12,main,Two services expose APIs and own their data,PASS,PASS,PASS,final-012.png
+13,s12-processing,main,Processing separates commands from encoding,PASS,PASS,PASS,final-013.png
+14,s13,main,Media commits intent; the scheduled repair sends it,PASS,PASS,PASS,final-014.png
+15,s14,main,Three message flows use four physical queues,PASS,PASS,PASS,final-015.png
+16,s15,main,Media rechecks the cookie; Processing trusts the Actor,PASS,PASS,PASS,final-016.png
+17,s11,main,Ownership and execution rules define two contexts,PASS,PASS,PASS,final-017.png
+18,s16,main,Commands cross contexts; work stays in Processing,PASS,PASS,PASS,final-018.png
+19,s17,main,Asset groups ownership with its adopted source value,PASS,PASS,PASS,final-019.png
+20,w2-job,main,Job groups Attempt history with current lease rules,PASS,PASS,PASS,final-020.png
+21,w2-messages,main,"Five message kinds express commands, work and state",PASS,PASS,PASS,final-021.png
+22,s19,main,An identical replay is ignored; conflicting v3 is rejected,PASS,PASS,PASS,final-022.png
+23,s20,main,The API accepts intent; S3 carries the video bytes,PASS,PASS,PASS,final-023.png
+24,w1-api-surface,main,Two route owners expose distinct job identities,PASS,PASS,PASS,final-024.png
+25,w1-authorizer,main,Gateway attaches MediaAuthorizer to protected routes,PASS,PASS,PASS,final-025.png
+26,s21,main,Runtime capacity can idle; the current bill is unknown,PASS,PASS,PASS,final-026.png
+27,s22,main,Public Gateway invokes private Lambda functions,PASS,PASS,PASS,final-027.png
+28,s23,main,Invocations and queue consumers distribute the load,PASS,PASS,PASS,final-028.png
+29,s24,main,Processing selects a lane before the launcher runs,PASS,PASS,PASS,final-029.png
+30,w1-probe,main,Short Lambda redirects only under a live lease,PASS,PASS,PASS,final-030.png
+31,s25,main,Short-lane queue wait fell; end-to-end latency missed,PASS,PASS,PASS,final-031.png
+32,w4-stores,main,Each service owns its durable state,PASS,PASS,PASS,final-032.png
+33,w4-media-main,main,"Media owns assets, pins and read projections",PASS,PASS,PASS,final-033.png
+34,w4-processing-main,main,Processing owns each job and its fenced attempts,PASS,PASS,PASS,final-034.png
+35,w4-keys,main,Attempt UUIDs isolate each output namespace,PASS,PASS,PASS,final-035.png
+36,s28,main,Media separates acceptance from publication,PASS,PASS,PASS,final-036.png
+37,w3-processing-components,main,Processing owns routing and execution authority,PASS,PASS,PASS,final-037.png
+38,w3-a-classes,main,One source adoption commits its command,PASS,PASS,PASS,final-038.png
+39,s29,main,Finalize adopts the bytes it verified,PASS,PASS,PASS,final-039.png
+40,s30,main,Editing commits a new Asset before SQS,PASS,PASS,PASS,final-040.png
+41,s31,main,Retry preserves the Job and replaces the Attempt,PASS,PASS,PASS,final-041.png
+42,w3-stale,main,The old Claim cannot finish the new Attempt,PASS,PASS,PASS,final-042.png
+43,w3-job-states,main,Cancellation overlays the persisted Job status,PASS,PASS,PASS,final-043.png
+44,s32,main,"One repository, three images, independent releases",PASS,PASS,PASS,final-044.png
+45,s33,main,The PR base selects the verification policy,PASS,PASS,PASS,final-045.png
+46,s34,main,Full CI runs SAST and DAST. Main is unprotected,PASS,PASS,PASS,final-046.png
+47,s35,main,CD admits the same SHA and verifies promoted images,PASS,PASS,PASS,final-047.png
+48,s36,main,Security testing in the pipeline has distinct failure policies,PASS,PASS,PASS,final-048.png
+49,w5-dast,main,ZAP scans seven local routes; cloud DAST is NOT_RUN,PASS,PASS,PASS,final-049.png
+50,s37,main,The replaced baseline can retain findings for restore,PASS,PASS,PASS,final-050.png
+51,s38,main,Splitting the database also split the wake-up,PASS,PASS,PASS,final-051.png
+52,s39,main,Cloud surprises became regression tests,PASS,PASS,PASS,final-052.png
+53,s40,main,Six planned demos cover three journeys and three qualities,PASS,PASS,PASS,final-053.png
+54,s41,main,D1 — An owner uploads once and plays it back,PASS,PASS,VIDEO MISSING,final-054.png
+55,s42,main,D2 — A second application publishes through the contract,PASS,PASS,VIDEO MISSING,final-055.png
+56,s43,main,D3 — Knowing an ID is not enough,PASS,PASS,VIDEO MISSING,final-056.png
+57,s44,main,D4 — Capacity follows work: 0 → 3 → 0,PASS,PASS,VIDEO MISSING,final-057.png
+58,s45,main,D5 — A repeatable scripted load test,PASS,PASS,VIDEO MISSING,final-058.png
+59,s46,main,D6 — A UI change follows CI admission into CD,PASS,PASS,VIDEO MISSING,final-059.png
+60,s47,main,"Reusable clients, fenced state and bounded encoders",PASS,PASS,PASS,final-060.png
+61,s48,back,Backup,PASS,PASS,PASS,final-061.png
+62,s49,back,Five issue classes retain an owner and a next step,PASS,PASS,PASS,final-062.png
+63,s50,back,Recorded effort is an agreed allocation,PASS,PASS,PASS,final-063.png
+64,s51,back,Five evidence items remain unestablished,PASS,PASS,PASS,final-064.png
+65,s52,back,A second client reuses the contract without internals,PASS,PASS,PASS,final-065.png
+66,s53,back,Seven use cases span two services and two clients,PASS,PASS,PASS,final-066.png
+67,s54,back,"Media keeps User, Asset and playback checks local",PASS,PASS,PASS,final-067.png
+68,s55,back,Eleven functions execute roles inside two services,PASS,PASS,PASS,final-068.png
+69,s56,back,Inbox and fences handle at-least-once delivery,PASS,PASS,PASS,final-069.png
+70,s57,back,Scaling results were mixed; end-to-end latency missed,PASS,PASS,PASS,final-070.png
+71,s58,back,Release and smoke measure different timing boundaries,PASS,PASS,PASS,final-071.png
+72,s59,back,Separate databases retain identity and release coupling,PASS,PASS,PASS,final-072.png
+73,w3-retry-surfaces,back,The two retry APIs enter different transactions,PASS,PASS,PASS,final-073.png
+74,s62,back,Current spend is unknown; the old model predates the split,PASS,PASS,PASS,final-074.png
+75,s63,back,AWS API egress uses worker IPv4 and Lambda IPv6,PASS,PASS,PASS,final-075.png
+76,s64,back,Each cluster has one instance; rollback restores images,PASS,PASS,PASS,final-076.png
+77,w4-media-assets,back,Media enforces account and source uniqueness,PASS,PASS,PASS,final-077.png
+78,s66,back,Dated security evidence has mixed outcomes,PASS,PASS,PASS,final-078.png
+79,s67,back,Queued delivery repair differs from encoder recovery,PASS,PASS,PASS,final-079.png
+80,s68,back,"Full verification requires scans, tests and coverage",PASS,PASS,PASS,final-080.png
+81,appx-1,back,Appendix A · Deployment and runtime,PASS,PASS,PASS,final-081.png
+82,w1-artifacts,back,Three image artifacts deploy eleven Lambda functions,PASS,PASS,PASS,final-082.png
+83,w1-triggers,back,Four queues feed three mappings and finite workers,PASS,PASS,PASS,final-083.png
+84,w1-events,back,Five event rules trigger repair and task launch,PASS,PASS,PASS,final-084.png
+85,w1-stores,back,Two SQL clusters and three buckets retain different state,PASS,PASS,PASS,final-085.png
+86,appx-2,back,Appendix B · Domain models (DDD),PASS,PASS,PASS,final-086.png
+87,s18,back,Precise names separate ownership from execution,PASS,PASS,PASS,final-087.png
+88,w2-intake,back,A reservation exists before there is an Asset,PASS,PASS,PASS,final-088.png
+89,s60,back,Two models meet through a published language,PASS,PASS,PASS,final-089.png
+90,w2-media-support,back,Media keeps projections and cleanup in supporting ledgers,PASS,PASS,PASS,final-090.png
+91,w2-processing-support,back,Cancellation guards can exist without a Job,PASS,PASS,PASS,final-091.png
+92,w2-authority,back,A Claim carries authority; cleanup keeps its own ledger,PASS,PASS,PASS,final-092.png
+93,w2-technical,back,Each context owns its inbox and outbox records,PASS,PASS,PASS,final-093.png
+94,w2-launcher,back,Launcher capacity has its own consistency boundary,PASS,PASS,PASS,final-094.png
+95,w2-wire,back,Envelopes carry values across the model boundary,PASS,PASS,PASS,final-095.png
+96,appx-3,back,Appendix C · Detailed design,PASS,PASS,PASS,final-096.png
+97,w3-back-submit-accept,back,Command acceptance commits before work is sent,PASS,PASS,PASS,final-097.png
+98,w3-back-result-play,back,Media commits accepted result snapshots,PASS,PASS,PASS,final-098.png
+99,w3-hls,back,Media returns the HLS segment redirect,PASS,PASS,PASS,final-099.png
+100,w3-expiry,back,Expired authority produces a failed Job,PASS,PASS,PASS,final-100.png
+101,w3-retry,back,Owner retry stages intent over the stored source,PASS,PASS,PASS,final-101.png
+102,w3-retry-accept,back,Processing commits one successor per retry identity,PASS,PASS,PASS,final-102.png
+103,w3-back-04-a-execution-classes,back,A Claim carries captured execution authority,PASS,PASS,PASS,final-103.png
+104,w3-back-05-a-projection-classes,back,Media owns the public result model,PASS,PASS,PASS,final-104.png
+105,w3-back-06a-reserve,back,The upload grant fixes the writable key,PASS,PASS,PASS,final-105.png
+106,w3-back-09a-probe,back,Claim precedes download and source admission,PASS,PASS,PASS,final-106.png
+107,w3-back-09b-encode,back,The primary descriptor precedes optional HLS,PASS,PASS,PASS,final-107.png
+108,w3-back-13a-projection-fence,back,Media separately fences delayed result snapshots,PASS,PASS,PASS,final-108.png
+109,w3-back-16-attempt-states,back,A terminal Attempt never returns to queued,PASS,PASS,PASS,final-109.png
+110,w3-back-18-lane-policy,back,Dispatch and admission use different facts,PASS,PASS,PASS,final-110.png
+111,w3-back-19-execution-adapters,back,The pipeline injects storage and supervision,PASS,PASS,PASS,final-111.png
+112,w3-back-20-contract-classes,back,Messages carry source identity and state versions,PASS,PASS,PASS,final-112.png
+113,w3-back-21-lease-functions,back,Lease policy lives in functions over owned records,PASS,PASS,PASS,final-113.png
+114,w3-back-23-claim-finish,back,Claim binds one current queued Attempt,PASS,PASS,PASS,final-114.png
+115,w3-back-24-intake-types,back,Uploads and edits retain different source pins,PASS,PASS,PASS,final-115.png
+116,w3-back-14a-edit-relay,back,MediaRepair publishes committed edit intent,PASS,PASS,PASS,final-116.png
+117,w3-back-14b-edit-detail,back,Edit stages and copies before adoption,PASS,PASS,PASS,final-117.png
+118,w3-back-public-read,back,Media signs playback from its local projection,PASS,PASS,PASS,final-118.png
+119,w3-back-07a-submit-transaction,back,Submit commits state and delivery intent together,PASS,PASS,PASS,final-119.png
+120,w3-back-09c-hls,back,The optional HLS ladder publishes its master last,PASS,PASS,PASS,final-120.png
+121,w3-back-14c-edit-adoption,back,Edit adoption commits pin and submit intent together,PASS,PASS,PASS,final-121.png
+122,w3-back-23a-finish,back,A live finish commits terminal state and result intent,PASS,PASS,PASS,final-122.png
+123,appx-4,back,Appendix D · Data schemas,PASS,PASS,PASS,final-123.png
+124,w4-media-upload,back,Finalized uploads require a source version pin,PASS,PASS,PASS,final-124.png
+125,w4-media-pins,back,Derived assets retain an immutable source pin,PASS,PASS,PASS,final-125.png
+126,w4-media-projection,back,Media versions its local result projection,PASS,PASS,PASS,final-126.png
+127,w4-media-intents,back,A composite request key makes creation replayable,PASS,PASS,PASS,final-127.png
+128,w4-media-retry,back,The legacy retry ledger remains in the schema,PASS,PASS,PASS,final-128.png
+129,w4-media-cleanup,back,Media retains deletion progress across retries,PASS,PASS,PASS,final-129.png
+130,w4-media-delivery,back,Media persists message identity and relay progress,PASS,PASS,PASS,final-130.png
+131,w4-processing-attempts,back,Job and Attempt preserve the current execution fence,PASS,PASS,PASS,final-131.png
+132,w4-processing-intents,back,Cancellation can precede a Job,PASS,PASS,PASS,final-132.png
+133,w4-processing-cleanup,back,Processing retains cleanup authority per attempt,PASS,PASS,PASS,final-133.png
+134,w4-processing-delivery,back,Processing stages work and result envelopes durably,PASS,PASS,PASS,final-134.png
+135,w4-processing-bindings,back,SQL records state versions and unique task names,PASS,PASS,PASS,final-135.png
+136,w4-processing-launcher,back,The launcher retains its gate and replay request,PASS,PASS,PASS,final-136.png
+137,w4-envelope,back,All queue lanes use the same ten-field envelope,PASS,PASS,PASS,final-137.png
+138,w4-kinds,back,Five message kinds cross four physical lanes,PASS,PASS,PASS,final-138.png
+139,w4-cancel-ack,back,A cancellation result can acknowledge only a guard,PASS,PASS,PASS,final-139.png
+140,w4-json-descriptors,back,JSONB embeds source and output descriptors,PASS,PASS,PASS,final-140.png
+141,w4-operations,back,Operations have types and source-aware checks,PASS,PASS,PASS,final-141.png
+142,w4-support-stores,back,Operational stores have limited responsibilities,PASS,PASS,PASS,final-142.png
+143,w4-support-ops,back,Diagnostics and journals do not own domain state,PASS,PASS,PASS,final-143.png
+144,w4-adr,back,PostgreSQL preserves the implemented write guarantees,PASS,PASS,PASS,final-144.png
+145,appx-5,back,Appendix E · DevSecOps,PASS,PASS,PASS,final-145.png
+146,w5-extra-scans,back,Preparation and release scans retain different evidence,PASS,PASS,PASS,final-146.png
+147,w5-release,back,CD verifies images and records failed promotions,PASS,PASS,PASS,final-147.png

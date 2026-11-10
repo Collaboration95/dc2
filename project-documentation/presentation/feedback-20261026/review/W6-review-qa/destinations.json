@@ -1,0 +1,128 @@
+{
+  "owner_hashes": {
+    "project-documentation/presentation/site/deck-presented-20261026.html": "8c64d449b684d410b6fb10b1d9b9e5b2c0988d82e17c213225c52e2752042535",
+    "project-documentation/presentation/feedback-20261026/slides/W1.html": "9ccd4425cdece2b2081dcf35e476c656771759b9a985da5ef20cccb628039bab",
+    "project-documentation/presentation/feedback-20261026/slides/W2.html": "6e1ab1111dfee136b61e7c1eb4dbd3986e5ed6d79e8a917a5f6b5d9baf050364",
+    "project-documentation/presentation/feedback-20261026/slides/W3.html": "83957ddfb73724b15ce761a34592ff00b9501cb8cae943b80ab4830a97648924",
+    "project-documentation/presentation/feedback-20261026/slides/W4.html": "683efe3acb27ddd4fd673b01fb70c77bb534ff0e4a90844e94470a83dc54fdae",
+    "project-documentation/presentation/feedback-20261026/slides/W5.html": "63f2265c822bae9ea875eb4b72fe45f202e13e6fcd89d1544fce6ea7fc98f541",
+    "project-documentation/presentation/feedback-20261026/slides/W6.html": "32ed7ed453be426fa2d857dcb99b3643900356aab8a4f2e65c87eda914197ff8"
+  },
+  "destinations": {
+    "#s6": {
+      "file": "project-documentation/presentation/site/deck-presented-20261026.html",
+      "sha256": "8c64d449b684d410b6fb10b1d9b9e5b2c0988d82e17c213225c52e2752042535",
+      "title": "Seven use cases in scope; sharing and tenants out"
+    },
+    "#s20": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W1.html",
+      "sha256": "9ccd4425cdece2b2081dcf35e476c656771759b9a985da5ef20cccb628039bab",
+      "title": "The API accepts intent; S3 carries the video bytes"
+    },
+    "#s12": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+      "sha256": "32ed7ed453be426fa2d857dcb99b3643900356aab8a4f2e65c87eda914197ff8",
+      "title": "Two services expose APIs and own their data"
+    },
+    "#s12-processing": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+      "sha256": "32ed7ed453be426fa2d857dcb99b3643900356aab8a4f2e65c87eda914197ff8",
+      "title": "Processing separates commands from encoding"
+    },
+    "#s13": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+      "sha256": "32ed7ed453be426fa2d857dcb99b3643900356aab8a4f2e65c87eda914197ff8",
+      "title": "Media commits intent; the scheduled repair sends it"
+    },
+    "#s14": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+      "sha256": "32ed7ed453be426fa2d857dcb99b3643900356aab8a4f2e65c87eda914197ff8",
+      "title": "Three message flows use four physical queues"
+    },
+    "#s22": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W1.html",
+      "sha256": "9ccd4425cdece2b2081dcf35e476c656771759b9a985da5ef20cccb628039bab",
+      "title": "Public Gateway invokes private Lambda functions"
+    },
+    "#w1-triggers": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W1.html",
+      "sha256": "9ccd4425cdece2b2081dcf35e476c656771759b9a985da5ef20cccb628039bab",
+      "title": "Four queues feed three mappings and finite workers"
+    },
+    "#s11": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W2.html",
+      "sha256": "6e1ab1111dfee136b61e7c1eb4dbd3986e5ed6d79e8a917a5f6b5d9baf050364",
+      "title": "Ownership and execution rules define two contexts"
+    },
+    "#s16": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W2.html",
+      "sha256": "6e1ab1111dfee136b61e7c1eb4dbd3986e5ed6d79e8a917a5f6b5d9baf050364",
+      "title": "Commands cross contexts; work stays in Processing"
+    },
+    "#s17": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W2.html",
+      "sha256": "6e1ab1111dfee136b61e7c1eb4dbd3986e5ed6d79e8a917a5f6b5d9baf050364",
+      "title": "Asset groups ownership with its adopted source value"
+    },
+    "#w2-job": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W2.html",
+      "sha256": "6e1ab1111dfee136b61e7c1eb4dbd3986e5ed6d79e8a917a5f6b5d9baf050364",
+      "title": "Job groups Attempt history with current lease rules"
+    },
+    "#w4-media-main": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W4.html",
+      "sha256": "683efe3acb27ddd4fd673b01fb70c77bb534ff0e4a90844e94470a83dc54fdae",
+      "title": "Media owns assets, pins and read projections"
+    },
+    "#w4-processing-main": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W4.html",
+      "sha256": "683efe3acb27ddd4fd673b01fb70c77bb534ff0e4a90844e94470a83dc54fdae",
+      "title": "Processing owns each job and its fenced attempts"
+    },
+    "#s19": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+      "sha256": "32ed7ed453be426fa2d857dcb99b3643900356aab8a4f2e65c87eda914197ff8",
+      "title": "An identical replay is ignored; conflicting v3 is rejected"
+    },
+    "#w3-a-classes": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W3.html",
+      "sha256": "83957ddfb73724b15ce761a34592ff00b9501cb8cae943b80ab4830a97648924",
+      "title": "One source adoption commits its command"
+    },
+    "#s30": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W3.html",
+      "sha256": "83957ddfb73724b15ce761a34592ff00b9501cb8cae943b80ab4830a97648924",
+      "title": "Editing commits a new Asset before SQS"
+    },
+    "#s31": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W3.html",
+      "sha256": "83957ddfb73724b15ce761a34592ff00b9501cb8cae943b80ab4830a97648924",
+      "title": "Retry preserves the Job and replaces the Attempt"
+    },
+    "#s28": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W3.html",
+      "sha256": "83957ddfb73724b15ce761a34592ff00b9501cb8cae943b80ab4830a97648924",
+      "title": "Media separates acceptance from publication"
+    },
+    "#w3-processing-components": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W3.html",
+      "sha256": "83957ddfb73724b15ce761a34592ff00b9501cb8cae943b80ab4830a97648924",
+      "title": "Processing owns routing and execution authority"
+    },
+    "#s34": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W5.html",
+      "sha256": "63f2265c822bae9ea875eb4b72fe45f202e13e6fcd89d1544fce6ea7fc98f541",
+      "title": "Full CI runs SAST and DAST. Main is unprotected"
+    },
+    "#s68": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W5.html",
+      "sha256": "63f2265c822bae9ea875eb4b72fe45f202e13e6fcd89d1544fce6ea7fc98f541",
+      "title": "Full verification requires scans, tests and coverage"
+    },
+    "#s15": {
+      "file": "project-documentation/presentation/feedback-20261026/slides/W6.html",
+      "sha256": "32ed7ed453be426fa2d857dcb99b3643900356aab8a4f2e65c87eda914197ff8",
+      "title": "Media rechecks the cookie; Processing trusts the Actor"
+    }
+  }
+}

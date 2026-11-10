@@ -1,0 +1,59 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Sequence view · Edit durably stages and copies a derived source · 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_jobs.py#L55
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L105
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L145
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L75
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L209
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/intake.py#L54
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L70
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L58
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1766
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+skinparam maxMessageSize 380
+participant "v1_lifecycle\n«module»" as E $MEDIA
+participant "intake\n«module»" as I $MEDIA
+participant "storage: Storage" as S $MEDIA
+participant "s: AsyncSession" as DB $INFRA
+[-> E : edit(s,storage,owner,parent_id,request,key)
+activate E
+E -> DB : SQL: replay + parent/projection lookups; read tx ends
+E -> I : stage(s,k)
+activate I
+I -> DB : SQL: add StagedObject; COMMIT
+I --> E : None
+deactivate I
+group Copy transaction (parent + staged row locks)
+ E -> DB : SQL: lock parent + staged row
+ E -> S : copy_output_source(output,k)
+ activate S
+ S --> E : size,sha256 [GET/hash/tempfile/PUT]
+ deactivate S
+ E -> DB : SQL: write_uncertain=False; COMMIT
+end
+ref over E,DB : edit continues in its adoption transaction (W3-14c)
+deactivate E
+legend bottom
+New-edit success path; request replay returns prior Asset instead. Each preflight/ledger/copy transaction is separate.
+Copy errors invoke discard_stage; uncertain cleanup retains durable authority. k=sources/{owner}/{new_asset}/source.
+endlegend
+@enduml

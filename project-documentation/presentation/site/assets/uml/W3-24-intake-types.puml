@@ -1,0 +1,38 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 18
+skinparam ClassAttributeFontSize 16
+skinparam classAttributeIconSize 0
+left to right direction
+title Class view · Intake DTOs and the edit-specific pin\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L22
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/upload_models.py#L64
+class "ReserveRequest (direct_intake)" as R <<Pydantic DTO>> $MEDIA {
+ + request_id: UUID
+ + filename: str
+ + content_type: str
+ + size_bytes: int
+ + sha256: str
+}
+class "FinalizeRequest (direct_intake)" as F <<Pydantic DTO>> $MEDIA {
+ + request_id: UUID
+}
+class "SourceVersion (media.upload_models)" as S <<ORM>> $MEDIA {
+ + asset_id: UUID
+ + bucket: str
+ + key: str
+ + version_id: str
+ + sha256: str
+ + size_bytes: int
+ + content_type: str
+}
+R -[hidden]right- F
+F -[hidden]right- S
+skinparam LegendFontSize 16
+legend bottom
++ public; - internal by Python convention; underlined = class/module scope.
+Reserve/finalize accept these DTOs. Upload pins stay on UploadReservation; only derived edits create SourceVersion.
+Asset 1 -- 0..1 SourceVersion via asset_id FK. Selected fields reproduce source annotations, with Mapped[T] shown as T.
+endlegend
+@enduml

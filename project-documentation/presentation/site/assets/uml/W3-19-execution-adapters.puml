@@ -1,0 +1,41 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ClassAttributeFontSize 15
+skinparam classAttributeIconSize 0
+skinparam ArrowFontSize 15
+skinparam LegendFontSize 14
+
+title Class view · UC-2 injects storage and supervises FFmpeg\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/tasks.py#L16
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/supervisor.py#L25
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/source.py#L12
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/storage.py#L26
+left to right direction
+class "tasks (processing.worker)" as T <<module>> $PROC {
+ {static} + pipeline(work, settings, supervisor, client, store, directory, *, downloader, admit=None)
+}
+class "Supervisor" as S <<Adapter>> $PROC {
+ + __init__(factory, work, settings, *, renew=None, deadline=None)
+ + renew_authority()
+ + guard(awaitable)
+ + run(command)
+ + check()
+}
+class "SourceStore" as I <<Adapter>> $PROC {
+ + download(_client, work, _settings, path)
+}
+class "OutputStore" as O <<Adapter>> $PROC {
+ + put(key, path, media_type, kind)
+}
+T ..> S : supervisor
+T ..> I : injected downloader
+T ..> O : store
+legend bottom
++ public; - internal by Python convention; underlined = class/module scope.
+Actual classes in processing.worker.supervisor / source / storage. Real untyped function signatures.
+Supervisor.work holds Claim; the class defines no annotated instance attributes to invent here.
+SourceStore/OutputStore adapt Minio S3. Supervisor.run adapts subprocess calls for FFprobe and FFmpeg.
+endlegend
+@enduml

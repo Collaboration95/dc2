@@ -1,0 +1,266 @@
+{
+  "source_sha": "76282d3b5a141f6548056f2506f9d5aff0742692",
+  "checked_date": "2026-10-26",
+  "reviewer": "Independent W5 review",
+  "renderer": "T3 html_preview; 1280x720 fixed slide canvas and PNG capture; browser viewport 1280x800",
+  "slides": [
+    {
+      "id": "s33",
+      "screenshot": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/slides/W5-qa/W5-s33.png",
+      "width": 1280,
+      "height": 720,
+      "stage": [
+        1280,
+        720
+      ],
+      "rendererViewport": [
+        1280,
+        800
+      ],
+      "overflow": [],
+      "images": [],
+      "visually_inspected": true
+    },
+    {
+      "id": "s34",
+      "screenshot": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/slides/W5-qa/W5-s34.png",
+      "width": 1280,
+      "height": 720,
+      "stage": [
+        1280,
+        720
+      ],
+      "rendererViewport": [
+        1280,
+        800
+      ],
+      "overflow": [],
+      "images": [
+        {
+          "loaded": true,
+          "w": 1032,
+          "h": 440
+        }
+      ],
+      "visually_inspected": true
+    },
+    {
+      "id": "s35",
+      "screenshot": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/slides/W5-qa/W5-s35.png",
+      "width": 1280,
+      "height": 720,
+      "stage": [
+        1280,
+        720
+      ],
+      "rendererViewport": [
+        1280,
+        800
+      ],
+      "overflow": [],
+      "images": [],
+      "visually_inspected": true
+    },
+    {
+      "id": "s36",
+      "screenshot": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/slides/W5-qa/W5-s36.png",
+      "width": 1280,
+      "height": 720,
+      "stage": [
+        1280,
+        720
+      ],
+      "rendererViewport": [
+        1280,
+        800
+      ],
+      "overflow": [],
+      "images": [],
+      "visually_inspected": true
+    },
+    {
+      "id": "w5-dast",
+      "screenshot": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/slides/W5-qa/W5-w5-dast.png",
+      "width": 1280,
+      "height": 720,
+      "stage": [
+        1280,
+        720
+      ],
+      "rendererViewport": [
+        1280,
+        800
+      ],
+      "overflow": [],
+      "images": [],
+      "visually_inspected": true
+    },
+    {
+      "id": "s37",
+      "screenshot": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/slides/W5-qa/W5-s37.png",
+      "width": 1280,
+      "height": 720,
+      "stage": [
+        1280,
+        720
+      ],
+      "rendererViewport": [
+        1280,
+        800
+      ],
+      "overflow": [],
+      "images": [],
+      "visually_inspected": true
+    },
+    {
+      "id": "s66",
+      "screenshot": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/slides/W5-qa/W5-s66.png",
+      "width": 1280,
+      "height": 720,
+      "stage": [
+        1280,
+        720
+      ],
+      "rendererViewport": [
+        1280,
+        800
+      ],
+      "overflow": [],
+      "images": [],
+      "visually_inspected": true
+    },
+    {
+      "id": "w5-extra-scans",
+      "screenshot": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/slides/W5-qa/W5-w5-extra-scans.png",
+      "width": 1280,
+      "height": 720,
+      "stage": [
+        1280,
+        720
+      ],
+      "rendererViewport": [
+        1280,
+        800
+      ],
+      "overflow": [],
+      "images": [],
+      "visually_inspected": true
+    },
+    {
+      "id": "s68",
+      "screenshot": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/slides/W5-qa/W5-s68.png",
+      "width": 1280,
+      "height": 720,
+      "stage": [
+        1280,
+        720
+      ],
+      "rendererViewport": [
+        1280,
+        800
+      ],
+      "overflow": [],
+      "images": [
+        {
+          "loaded": true,
+          "w": 998,
+          "h": 430
+        }
+      ],
+      "visually_inspected": true
+    },
+    {
+      "id": "w5-release",
+      "screenshot": "/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/feedback-20261026/slides/W5-qa/W5-w5-release.png",
+      "width": 1280,
+      "height": 720,
+      "stage": [
+        1280,
+        720
+      ],
+      "rendererViewport": [
+        1280,
+        800
+      ],
+      "overflow": [],
+      "images": [
+        {
+          "loaded": true,
+          "w": 910,
+          "h": 460
+        }
+      ],
+      "visually_inspected": true
+    }
+  ],
+  "figures": [
+    "W5-pipeline-main.svg",
+    "W5-pipeline-full.svg",
+    "W5-pipeline-release.svg"
+  ],
+  "hosted_runs": {
+    "39931072197": "Main push success; ZAP 7 routes/16 findings; cleanup and SARIF publication passed",
+    "40174362164": "Scheduled CI failed in inherited app/processing Trivy and Full verification; V1 images and local ZAP passed",
+    "40189407647": "CodeQL Python, JS/TS and Actions analysis succeeded"
+  },
+  "settings_receipt": "review-settings.json",
+  "runs_receipt": "review-runs.json",
+  "limitations": [
+    "No live AWS or new CD/preparation run inspection",
+    "No deployed cloud-edge DAST; remains NOT_RUN",
+    "No current alert-count audit; 22 Oct triage remains historical",
+    "Main/default-CodeQL settings are dated observations",
+    "No application, infrastructure, workflow or repository-settings changes"
+  ],
+  "structural_validation": {
+    "complete_sections": 10,
+    "valid_svg_figures": 3,
+    "generated_DAST_routes_match_exactly": 7,
+    "pinned_source_links_and_line_numbers": "PASS (147 links)",
+    "report_reference_links": "PASS",
+    "source_and_deck_hashes_unchanged": {
+      ".github/workflows/v1.yml": true,
+      ".github/workflows/dast.yml": true,
+      ".github/workflows/cd.yml": true,
+      ".github/workflows/aws-prep.yml": true,
+      ".github/workflows/showcase-pages.yml": true,
+      ".github/workflows/ci.yml": true,
+      "scripts/ci/policy.py": true,
+      "scripts/dev/checks.py": true,
+      "scripts/dev/v1_dast.py": true,
+      "project-documentation/presentation/site/deck.html": true
+    },
+    "source_sha_unchanged": "PASS",
+    "DAST_scan_cleanup_and_SARIF_publish_steps": "success in both CI receipts",
+    "schema_operation_counts": {
+      "media": 15,
+      "processing": 5
+    },
+    "review_note_source_links": "PASS (17 links)"
+  },
+  "artifact_sha256": {
+    "feedback-20261026/slides/W5.html": "63f2265c822bae9ea875eb4b72fe45f202e13e6fcd89d1544fce6ea7fc98f541",
+    "feedback-20261026/report-notes/W5.md": "54ce749f160577040066a71d786c60fba7e3c869f480cc2a9798571edb5bfbc8",
+    "site/assets/uml/W5-pipeline-main.puml": "84acb5b8873914783cdd5c8671d99a7ea4f8cc1981f1902df7e6bb693f098bab",
+    "site/assets/uml/W5-pipeline-release.puml": "1c1d991402f3c458029b365924828d549121a2a83a8aa59de1b0d17b251089a6",
+    "site/assets/uml/W5-pipeline-full.puml": "dc5f439e8d0f38fa185ede99161a551f9baa6727fc9cc28e77cf8fb9bc6a0080",
+    "site/assets/uml/W5-pipeline-full.svg": "f6d15da2c64902abd337b19567c0e6354af517468cbc8aacd427359103a37e8e",
+    "site/assets/uml/W5-pipeline-release.svg": "5ae446cfbf1d3bdcefd850a7a47732e770caae6292ce2fc3d713e7c4acf43efb",
+    "site/assets/uml/W5-pipeline-main.svg": "b07419f245f12b17a0c786ac603b7dca518851d532b3de0c1da90a017411ae3f",
+    "feedback-20261026/slides/W5-qa/W5-pipeline-release.png": "abe730d1b2400ffeb438f71cd6db130f86b67b842e549cc2fd4a7e0121afd2a7",
+    "feedback-20261026/slides/W5-qa/W5-s37.png": "2bf83f871affe59da5bb7f67770a5dc939b399dfcedc9714c3127fb8a8120605",
+    "feedback-20261026/slides/W5-qa/W5-s36.png": "12986d150e6e076c26ea6ab7216af01591f581db0bd4f52d111efc3c4d54fe95",
+    "feedback-20261026/slides/W5-qa/W5-s34.png": "093b08bd0eb4d56b98dcca525562db57e8b981d6aff05df3de495ec1dee04bf6",
+    "feedback-20261026/slides/W5-qa/W5-s35.png": "8c97b3a510acdeac5e432c0786beaee1917e28ab0ecec19e966866ff35081d18",
+    "feedback-20261026/slides/W5-qa/W5-s33.png": "4a6067b5162e6c2e3913abda2b0878dfb16aaef7780af01a261257472b610e15",
+    "feedback-20261026/slides/W5-qa/W5-s68.png": "1614737e1f81ebb006ee0449a88ad37d87725d2486faaa471ea62cefca8dc751",
+    "feedback-20261026/slides/W5-qa/W5-pipeline-full.png": "7296097fcb711a119fc20fb92574e8eede50804761f01ce8547c93f2ac385fc3",
+    "feedback-20261026/slides/W5-qa/W5-w5-dast.png": "9262cdfb69c85f18bf5c3c2670f635d270d1d8d871a2d39a9428fae0be14db53",
+    "feedback-20261026/slides/W5-qa/W5-w5-release.png": "3411257ea25bdea952ba01e9cec494991cbd75448e4451f5ee2a4d918f71de69",
+    "feedback-20261026/slides/W5-qa/W5-pipeline-main.png": "44446279abd50d5894692181c69a8b861676ae4f38b241f35b2dc3a6f980c9c3",
+    "feedback-20261026/slides/W5-qa/W5-w5-extra-scans.png": "4a6b2d723250b7b63043c83fb0001eb7cfb02113c59d2300de5cdab0ec47c94a",
+    "feedback-20261026/slides/W5-qa/W5-s66.png": "d2ece499c91cb38d9db9b0cccaee6a3ed31a1466018fc682f7edfbefc8410cb1",
+    "feedback-20261026/review/W5-review.md": "95d41a2a2655d4376132fb9f5bae1b2f6089642a264fcafc4b522e430ce07f91"
+  },
+  "review_note": "../../review/W5-review.md"
+}

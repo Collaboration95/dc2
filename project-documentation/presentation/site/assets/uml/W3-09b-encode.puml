@@ -1,0 +1,58 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Sequence view · UC-2 builds and uploads a verified primary\n76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L166
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/tasks.py#L16
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/source.py#L12
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/storage.py#L26
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/supervisor.py#L51
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/probe.py#L10
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/operations.py#L10
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+skinparam maxMessageSize 350
+participant "worker.sqs\n«module»" as W $PROC
+participant "tasks\n«module»" as T $PROC
+participant "media_engine.operations\n«module»" as E $PROC
+participant "sup: Supervisor" as S $PROC
+participant "store: OutputStore" as O $PROC
+ref over W,T : Continued pipeline after source probe and validation (W3-09a)
+activate T
+T -> E : build_edit_command(operations,ffmpeg_binary=cfg.ffmpeg_binary,\nsource_path=source,output_path=primary,\npreset=cfg.ffmpeg_preset,crf=cfg.ffmpeg_crf)
+E --> T : command: list[str]
+T -> S : run(command)
+activate S
+S --> T : stdout: str (unused)
+deactivate S
+group supervisor.guard(store.put(...))
+ T -> O : put(prefix+primary.name,primary,media_type,"primary")
+ activate O
+ O --> T : verified primary descriptor: dict
+ deactivate O
+end
+ref over T,O : if not operations: optional HLS continuation (W3-09c)
+T --> W : outputs: list[dict]
+deactivate T
+W -> S : renew_authority(); check()
+legend bottom
+prefix = lifecycle.output_prefix(work.job_id,work.attempt_id). Clip/crop validation precedes command build.
+The next call is messaging.finish; SQL state/result commit authorizes work ACK (W3-23a).
+endlegend
+@enduml

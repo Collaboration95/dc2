@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>FlickPond · feedback rescue tracker</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#f8fafc;--fg:#0f172a;--mut:#64748b;--line:#e2e8f0;--card:#fff;--m:#2563EB;--p:#D97706;--ok:#059669;--bad:#D55E00}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 -apple-system,"Helvetica Neue",Arial,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:28px 20px 80px}
+h1{font-size:26px;margin:0 0 4px}h2{font-size:19px;margin:34px 0 10px}
+.sub{color:var(--mut);margin:0 0 18px}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:110px}
+.stat b{display:block;font-size:24px}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:6px 0 18px}
+.bar i{display:block;height:100%;background:var(--ok)}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.filters select,.filters input{font:inherit;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff}
+.item{background:var(--card);border:1px solid var(--line);border-left:5px solid #94a3b8;border-radius:10px;margin:8px 0}
+.item.P0{border-left-color:var(--bad)}.item.P1{border-left-color:var(--p)}.item.P2{border-left-color:#94a3b8}
+.item summary{display:flex;gap:10px;align-items:center;padding:10px 14px;cursor:pointer;list-style:none}
+.item summary::-webkit-details-marker{display:none}
+.id{font:700 13px Menlo,monospace;color:var(--mut);width:34px;flex:none}
+.t{flex:1;font-weight:650}
+.tag{font:600 11px Menlo,monospace;padding:2px 7px;border-radius:999px;border:1px solid #cbd5e1;color:#334155;white-space:nowrap}
+.tag.P0{background:#fff4ec;border-color:var(--bad);color:#7c2d00}
+.tag.code{background:#f1f5f9}
+select.st{font:600 12px -apple-system,Arial;padding:3px 6px;border-radius:6px;border:1px solid #cbd5e1}
+select.st.done{background:#ECFDF5;border-color:var(--ok)}select.st.doing{background:#DBEAFE;border-color:var(--m)}
+select.st.review{background:#FEF3C7;border-color:var(--p)}select.st.tracked{background:#f1f5f9}
+.det{padding:0 16px 14px 58px}
+.det q{display:block;font-style:italic;color:#334155;border-left:3px solid #cbd5e1;padding-left:10px;margin:2px 0 10px}
+.det dl{display:grid;grid-template-columns:110px 1fr;gap:6px 12px;margin:0}
+.det dt{color:var(--mut);font-weight:600}.det dd{margin:0}
+.det ul{margin:0;padding-left:18px}
+.det a{color:var(--m);text-decoration:none}.det a:hover{text-decoration:underline}
+.refpub{color:var(--mut);font-size:13px}
+table{border-collapse:collapse;width:100%;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;font-size:14px}
+th{background:#f1f5f9;font-size:13px;color:#334155}
+td a{color:var(--m);text-decoration:none;font-size:13px}
+.done-row{opacity:.5;text-decoration:line-through}
+.note{font-size:13px;color:var(--mut)}
+</style></head><body><main>
+<h1>FlickPond: feedback rescue tracker</h1>
+<p class="sub">Presentation feedback from 26 Oct 2026 → deck fixes now, report notes for v1.1 (due 16 Nov). No code changes; code items are tracked only. Evidence is pinned to Main <code>76282d3</code>. Status: <b>review</b> = new slides in the deck and independently verified, report change still to apply (see REPORT-CHANGES.md). Status changes you make here are saved in this browser (localStorage).</p>
+<div class="stats" id="stats"></div><div class="bar"><i id="prog"></i></div>
+
+<h2>Feedback items</h2>
+<div class="filters">
+ <select id="fPri"><option value="">All priorities</option><option>P0</option><option>P1</option><option>P2</option></select>
+ <select id="fKind"><option value="">All types</option><option value="deck">Needs deck</option><option value="report">Needs report</option><option value="code">Code (tracked)</option></select>
+ <select id="fWs"><option value="">All workstreams</option></select>
+ <select id="fSt"><option value="">All statuses</option><option>todo</option><option>doing</option><option>review</option><option>done</option><option>tracked</option></select>
+ <input id="fQ" placeholder="Search…" size="18">
+ <button id="exp">Expand all</button>
+</div>
+<div id="items"></div>
+
+<h2>Slide corrections found in code review (R2)</h2>
+<p class="note">Each is a factual error or omission on the 26 Oct deck, checked against code. Ticked = the replacement slide is in the integrated deck and passed independent review (review/W*-review.md).</p>
+<table id="corr"><thead><tr><th style="width:30px"></th><th>Slide and issue</th><th style="width:60px">Owner</th><th style="width:220px">Code truth</th></tr></thead><tbody></tbody></table>
+
+<h2>Code backlog (not being done)</h2>
+<table id="code"><thead><tr><th>Item</th><th style="width:70px">From</th><th style="width:60px">Effort</th></tr></thead><tbody></tbody></table>
+
+<h2>Workstreams and files</h2>
+<table id="ws"><thead><tr><th style="width:50px">ID</th><th>Scope</th><th style="width:300px">Outputs</th></tr></thead><tbody></tbody></table>
+<p class="note">Research: <a href="research/R1-old-deck-lessons.md">R1 old-deck lessons</a> · <a href="research/R2-runtime-deployment-truth.md">R2 runtime truth</a> · <a href="research/R3-ddd-design-data.md">R3 DDD/design/data</a> · <a href="research/R4-feedback-audit.md">R4 feedback audit</a> · <a href="research/R5-external-references.md">R5 external references</a> · <a href="REPORT-CHANGES.md">REPORT-CHANGES.md (report v1.1 plan)</a> · <a href="review/">independent reviews</a> · <a href="FEEDBACK.md">FEEDBACK.md</a> · <a href="WORKPLAN.md">WORKPLAN.md</a></p>
+</main>
+<script>
+const D=/*DATA*/null;
+const KEY='flickpond-rescue-v2';
+let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+const cdone=k=>(('c'+k) in saved)?saved['c'+k]:!!D.corrections[k].done;
+const st=id=>saved[id]||(D.items.find(i=>i.id===id)||{}).status||'todo';
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(saved))}catch(e){}};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const STATUSES=['todo','doing','review','done','tracked'];
+const wsSel=document.getElementById('fWs');
+Object.keys(D.ws).forEach(w=>wsSel.insertAdjacentHTML('beforeend',`<option>${w}</option>`));
+
+function stats(){
+  const n=D.items.length,c={};STATUSES.forEach(s=>c[s]=0);
+  D.items.forEach(i=>c[st(i.id)]++);
+  const corrDone=D.corrections.filter((_,k)=>cdone(k)).length;
+  document.getElementById('stats').innerHTML=
+   `<div class="stat"><b>${n}</b>feedback items</div>`+
+   STATUSES.map(s=>`<div class="stat"><b>${c[s]}</b>${s}</div>`).join('')+
+   `<div class="stat"><b>${corrDone}/${D.corrections.length}</b>slide corrections</div>`;
+  document.getElementById('prog').style.width=(100*(c.done+c.tracked)/n)+'%';
+}
+
+function render(){
+  const pri=fPri.value,kind=fKind.value,ws=fWs.value,s=fSt.value,q=fQ.value.toLowerCase();
+  const order={P0:0,P1:1,P2:2};
+  const list=D.items.filter(i=>(!pri||i.pri===pri)&&(!kind||i.kind.includes(kind))&&(!ws||i.ws===ws)&&(!s||st(i.id)===s)&&(!q||JSON.stringify(i).toLowerCase().includes(q)))
+   .sort((a,b)=>order[a.pri]-order[b.pri]);
+  items.innerHTML=list.map(i=>{
+    const s=st(i.id);
+    const ev=i.ev.map(([l,u])=>`<li><a href="${esc(u)}" target="_blank">${esc(l)}</a></li>`).join('')||'<li>—</li>';
+    const refs=i.refs.map(r=>`<li><a href="${esc(r.url)}" target="_blank">${esc(r.rid)} · ${esc(r.title)}</a> <span class="refpub">— ${esc(r.pub)}</span><br><span class="refpub">${esc(r.note)}</span></li>`).join('')||'<li>—</li>';
+    return `<details class="item ${i.pri}"><summary><span class="id">${i.id}</span><span class="t">${esc(i.title)}</span>
+     <span class="tag ${i.pri}">${i.pri}</span><span class="tag ${i.kind==='code'?'code':''}">${esc(i.kind)}</span><span class="tag">${esc(i.ws)}</span><span class="tag">${esc(i.verdict)}</span>
+     <select class="st ${s}" data-id="${i.id}" onclick="event.stopPropagation()">${STATUSES.map(x=>`<option ${x===s?'selected':''}>${x}</option>`).join('')}</select></summary>
+     <div class="det"><q>${esc(i.quote)}</q><dl>
+      <dt>Now</dt><dd>${esc(i.now)}</dd>
+      <dt>Deck fix</dt><dd>${esc(i.deck)}</dd>
+      <dt>Report fix</dt><dd>${esc(i.report)}</dd>
+      ${i.code?`<dt>Code</dt><dd>${esc(i.code)}</dd>`:''}
+      <dt>Deck slides</dt><dd>${i.slides.length?i.slides.map(([n,t])=>`<a href="../site/deck.html#${n}" target="_blank">${n} · ${esc(t)}</a>`).join('<br>'):'—'}</dd>
+      <dt>Report changes</dt><dd>${i.rc.length?i.rc.map(r=>esc(r)).join('<br>'):'—'} <a href="REPORT-CHANGES.md" target="_blank">(plan)</a></dd>
+      <dt>Code evidence</dt><dd><ul>${ev}</ul></dd>
+      <dt>References</dt><dd><ul>${refs}</ul></dd></dl></div></details>`}).join('');
+  items.querySelectorAll('select.st').forEach(e=>e.onchange=()=>{saved[e.dataset.id]=e.value;save();e.className='st '+e.value;stats()});
+  stats();
+}
+[fPri,fKind,fWs,fSt].forEach(e=>e.onchange=render);fQ.oninput=render;
+exp.onclick=()=>{const open=exp.textContent==='Expand all';items.querySelectorAll('details').forEach(d=>d.open=open);exp.textContent=open?'Collapse all':'Expand all'};
+
+document.querySelector('#corr tbody').innerHTML=D.corrections.map((c,k)=>`<tr class="${cdone(k)?'done-row':''}"><td><input type="checkbox" data-k="${k}" ${cdone(k)?'checked':''}></td>
+ <td><b>${esc(c.head)}</b><br>${esc(c.body)}</td><td>${c.ws}</td><td>${c.links.map(([l,u])=>`<a href="${esc(u)}" target="_blank">${esc(l)}</a>`).join('<br>')}</td></tr>`).join('');
+document.querySelectorAll('#corr input').forEach(e=>e.onchange=()=>{saved['c'+e.dataset.k]=e.checked;save();e.closest('tr').className=e.checked?'done-row':'';stats()});
+document.querySelector('#code tbody').innerHTML=D.backlog.map(([t,f,e])=>`<tr><td>${esc(t)}</td><td>${f}</td><td>${e}</td></tr>`).join('');
+document.querySelector('#ws tbody').innerHTML=Object.entries(D.ws).map(([w,s])=>`<tr><td><b>${w}</b></td><td>${esc(s)}</td><td>${w==='WR'?'final-report/src (after deck)':`<a href="slides/${w}.html">slides/${w}.html</a> · <a href="report-notes/${w}.md">report-notes/${w}.md</a>`}</td></tr>`).join('');
+render();
+</script></body></html>

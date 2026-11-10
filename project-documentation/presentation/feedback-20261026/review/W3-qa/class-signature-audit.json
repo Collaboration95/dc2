@@ -1,0 +1,1074 @@
+[
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "reserve",
+    "source": "media/services/direct_intake.py",
+    "line": 99,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "finalize",
+    "source": "media/services/direct_intake.py",
+    "line": 149,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "Storage.direct_upload_grant",
+    "source": "media/services/storage.py",
+    "line": 42,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "Storage.verify_direct_upload",
+    "source": "media/services/storage.py",
+    "line": 62,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "UploadReservation.id",
+    "source": "media/upload_models.py",
+    "line": 27,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "UploadReservation.asset_id",
+    "source": "media/upload_models.py",
+    "line": 31,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "UploadReservation.request_hash",
+    "source": "media/upload_models.py",
+    "line": 30,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "UploadReservation.version_id",
+    "source": "media/upload_models.py",
+    "line": 38,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "UploadReservation.finalized_at",
+    "source": "media/upload_models.py",
+    "line": 40,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "UploadReservation.expires_at",
+    "source": "media/upload_models.py",
+    "line": 39,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "Asset.id",
+    "source": "media/models.py",
+    "line": 38,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "Asset.owner_id",
+    "source": "media/models.py",
+    "line": 39,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "Asset.source_key",
+    "source": "media/models.py",
+    "line": 41,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "Asset.source_sha256",
+    "source": "media/models.py",
+    "line": 43,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "Asset.source_size_bytes",
+    "source": "media/models.py",
+    "line": 44,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "Asset.operations",
+    "source": "media/models.py",
+    "line": 47,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "MediaOutbox.message_id",
+    "source": "media/messaging_models.py",
+    "line": 25,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "MediaOutbox.queue",
+    "source": "media/messaging_models.py",
+    "line": 27,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-03-a-intake-classes",
+    "member": "MediaOutbox.body",
+    "source": "media/messaging_models.py",
+    "line": 28,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Job.id",
+    "source": "processing/models.py",
+    "line": 23,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Job.asset_id",
+    "source": "processing/models.py",
+    "line": 24,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Job.source",
+    "source": "processing/models.py",
+    "line": 26,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Job.operations",
+    "source": "processing/models.py",
+    "line": 27,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Job.status",
+    "source": "processing/models.py",
+    "line": 31,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Job.current_attempt_id",
+    "source": "processing/models.py",
+    "line": 32,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Job.outputs",
+    "source": "processing/models.py",
+    "line": 41,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Attempt.id",
+    "source": "processing/models.py",
+    "line": 59,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Attempt.job_id",
+    "source": "processing/models.py",
+    "line": 60,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Attempt.attempt_number",
+    "source": "processing/models.py",
+    "line": 61,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Attempt.state",
+    "source": "processing/models.py",
+    "line": 62,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Attempt.lease_token",
+    "source": "processing/models.py",
+    "line": 68,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Claim.job_id",
+    "source": "processing/lifecycle.py",
+    "line": 125,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Claim.attempt_id",
+    "source": "processing/lifecycle.py",
+    "line": 126,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Claim.lease_token",
+    "source": "processing/lifecycle.py",
+    "line": 127,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Claim.owner_id",
+    "source": "processing/lifecycle.py",
+    "line": 128,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Claim.source",
+    "source": "processing/lifecycle.py",
+    "line": 129,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Claim.operations",
+    "source": "processing/lifecycle.py",
+    "line": 130,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Claim.source_url",
+    "source": "processing/lifecycle.py",
+    "line": 131,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Claim.source_url_expires_at",
+    "source": "processing/lifecycle.py",
+    "line": 132,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "Claim.deadline_at",
+    "source": "processing/lifecycle.py",
+    "line": 133,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "AttemptTask.attempt_id",
+    "source": "processing/messaging_models.py",
+    "line": 46,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-04-a-execution-classes",
+    "member": "AttemptTask.task_name",
+    "source": "processing/messaging_models.py",
+    "line": 47,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "member": "apply_result",
+    "source": "media/projections.py",
+    "line": 69,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "member": "validate_transition",
+    "source": "media/projections.py",
+    "line": 36,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "member": "public_job",
+    "source": "media/projections.py",
+    "line": 227,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "member": "public_job_from_projection",
+    "source": "media/projections.py",
+    "line": 258,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "member": "ProcessingProjection.asset_id",
+    "source": "media/projection_models.py",
+    "line": 15,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "member": "ProcessingProjection.job_id",
+    "source": "media/projection_models.py",
+    "line": 16,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "member": "ProcessingProjection.attempt_id",
+    "source": "media/projection_models.py",
+    "line": 17,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "member": "ProcessingProjection.attempt_number",
+    "source": "media/projection_models.py",
+    "line": 18,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "member": "ProcessingProjection.state_version",
+    "source": "media/projection_models.py",
+    "line": 19,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "member": "ProcessingProjection.status",
+    "source": "media/projection_models.py",
+    "line": 20,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "member": "ProcessingProjection.outputs",
+    "source": "media/projection_models.py",
+    "line": 22,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "member": "ProcessingProjection.result_hash",
+    "source": "media/projection_models.py",
+    "line": 24,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "member": "Storage.sign_output",
+    "source": "media/services/storage.py",
+    "line": 191,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-05-a-projection-classes",
+    "member": "Storage.read_playlist",
+    "source": "media/services/storage.py",
+    "line": 195,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "Job.id",
+    "source": "processing/models.py",
+    "line": 23,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "Job.status",
+    "source": "processing/models.py",
+    "line": 31,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "Job.current_attempt_id",
+    "source": "processing/models.py",
+    "line": 32,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "Job.deleted_at",
+    "source": "processing/models.py",
+    "line": 45,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "Attempt.id",
+    "source": "processing/models.py",
+    "line": 59,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "Attempt.job_id",
+    "source": "processing/models.py",
+    "line": 60,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "Attempt.attempt_number",
+    "source": "processing/models.py",
+    "line": 61,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "Attempt.state",
+    "source": "processing/models.py",
+    "line": 62,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "Attempt.lease_token",
+    "source": "processing/models.py",
+    "line": 68,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "Attempt.lease_expires_at",
+    "source": "processing/models.py",
+    "line": 70,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "Attempt.deadline_at",
+    "source": "processing/models.py",
+    "line": 71,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "RetryRequest.job_id",
+    "source": "processing/models.py",
+    "line": 81,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "RetryRequest.request_id",
+    "source": "processing/models.py",
+    "line": 82,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "RetryRequest.attempt_id",
+    "source": "processing/models.py",
+    "line": 83,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "Claim.job_id",
+    "source": "processing/lifecycle.py",
+    "line": 125,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "Claim.attempt_id",
+    "source": "processing/lifecycle.py",
+    "line": 126,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-10-b-classes",
+    "member": "Claim.lease_token",
+    "source": "processing/lifecycle.py",
+    "line": 127,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-18-lane-policy",
+    "member": "MAX_SOURCE_BYTES",
+    "source": "processing/short_lane.py",
+    "line": 42,
+    "kind": "constant",
+    "matches": true
+  },
+  {
+    "figure": "W3-18-lane-policy",
+    "member": "MAX_DURATION_SECONDS",
+    "source": "processing/short_lane.py",
+    "line": 37,
+    "kind": "constant",
+    "matches": true
+  },
+  {
+    "figure": "W3-18-lane-policy",
+    "member": "MAX_HEIGHT",
+    "source": "processing/short_lane.py",
+    "line": 45,
+    "kind": "constant",
+    "matches": true
+  },
+  {
+    "figure": "W3-18-lane-policy",
+    "member": "work_lane",
+    "source": "processing/short_lane.py",
+    "line": 124,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-18-lane-policy",
+    "member": "check_probe",
+    "source": "processing/short_lane.py",
+    "line": 94,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-18-lane-policy",
+    "member": "previously_ran_on_lambda",
+    "source": "processing/short_lane.py",
+    "line": 103,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-18-lane-policy",
+    "member": "SourceProbe.width",
+    "source": "media_engine/probe.py",
+    "line": 11,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-18-lane-policy",
+    "member": "SourceProbe.height",
+    "source": "media_engine/probe.py",
+    "line": 12,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-18-lane-policy",
+    "member": "SourceProbe.duration_seconds",
+    "source": "media_engine/probe.py",
+    "line": 13,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-18-lane-policy",
+    "member": "NotAdmitted.__init__",
+    "source": "processing/short_lane.py",
+    "line": 76,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-19-execution-adapters",
+    "member": "pipeline",
+    "source": "processing/worker/tasks.py",
+    "line": 16,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-19-execution-adapters",
+    "member": "Supervisor.__init__",
+    "source": "processing/worker/supervisor.py",
+    "line": 25,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-19-execution-adapters",
+    "member": "Supervisor.renew_authority",
+    "source": "processing/worker/supervisor.py",
+    "line": 51,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-19-execution-adapters",
+    "member": "Supervisor.guard",
+    "source": "processing/worker/supervisor.py",
+    "line": 91,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-19-execution-adapters",
+    "member": "Supervisor.run",
+    "source": "processing/worker/supervisor.py",
+    "line": 111,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-19-execution-adapters",
+    "member": "Supervisor.check",
+    "source": "processing/worker/supervisor.py",
+    "line": 45,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-19-execution-adapters",
+    "member": "SourceStore.download",
+    "source": "processing/worker/source.py",
+    "line": 27,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-19-execution-adapters",
+    "member": "OutputStore.put",
+    "source": "processing/worker/storage.py",
+    "line": 42,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Envelope.schema_version",
+    "source": "contracts/v1.py",
+    "line": 159,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Envelope.message_id",
+    "source": "contracts/v1.py",
+    "line": 160,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Envelope.kind",
+    "source": "contracts/v1.py",
+    "line": 161,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Envelope.owner_id",
+    "source": "contracts/v1.py",
+    "line": 162,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Envelope.asset_id",
+    "source": "contracts/v1.py",
+    "line": 163,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Envelope.job_id",
+    "source": "contracts/v1.py",
+    "line": 164,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Envelope.attempt_id",
+    "source": "contracts/v1.py",
+    "line": 165,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Envelope.state_version",
+    "source": "contracts/v1.py",
+    "line": 166,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Envelope.source",
+    "source": "contracts/v1.py",
+    "line": 167,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Envelope.payload",
+    "source": "contracts/v1.py",
+    "line": 168,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Envelope.from_dict",
+    "source": "contracts/v1.py",
+    "line": 171,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Envelope.to_dict",
+    "source": "contracts/v1.py",
+    "line": 220,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Envelope.fingerprint",
+    "source": "contracts/v1.py",
+    "line": 223,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Source.bucket",
+    "source": "contracts/v1.py",
+    "line": 101,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Source.key",
+    "source": "contracts/v1.py",
+    "line": 102,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Source.version_id",
+    "source": "contracts/v1.py",
+    "line": 103,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Source.sha256",
+    "source": "contracts/v1.py",
+    "line": 104,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Source.size_bytes",
+    "source": "contracts/v1.py",
+    "line": 105,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Source.content_type",
+    "source": "contracts/v1.py",
+    "line": 106,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-20-contract-classes",
+    "member": "Source.from_dict",
+    "source": "contracts/v1.py",
+    "line": 109,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-21-lease-functions",
+    "member": "_retry_locked",
+    "source": "processing/messaging.py",
+    "line": 155,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-21-lease-functions",
+    "member": "emit_state",
+    "source": "processing/messaging.py",
+    "line": 102,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-21-lease-functions",
+    "member": "finish",
+    "source": "processing/messaging.py",
+    "line": 405,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-21-lease-functions",
+    "member": "lock_pair",
+    "source": "processing/lifecycle.py",
+    "line": 28,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-21-lease-functions",
+    "member": "db_now",
+    "source": "processing/lifecycle.py",
+    "line": 24,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-21-lease-functions",
+    "member": "live",
+    "source": "processing/lifecycle.py",
+    "line": 38,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-21-lease-functions",
+    "member": "heartbeat",
+    "source": "processing/lifecycle.py",
+    "line": 170,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-21-lease-functions",
+    "member": "finish",
+    "source": "processing/lifecycle.py",
+    "line": 184,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-21-lease-functions",
+    "member": "recover_expired",
+    "source": "processing/recovery.py",
+    "line": 40,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-21-lease-functions",
+    "member": "interrupt",
+    "source": "processing/recovery.py",
+    "line": 24,
+    "kind": "operation",
+    "matches": true
+  },
+  {
+    "figure": "W3-24-intake-types",
+    "member": "ReserveRequest.request_id",
+    "source": "media/services/direct_intake.py",
+    "line": 24,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-24-intake-types",
+    "member": "ReserveRequest.filename",
+    "source": "media/services/direct_intake.py",
+    "line": 25,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-24-intake-types",
+    "member": "ReserveRequest.content_type",
+    "source": "media/services/direct_intake.py",
+    "line": 26,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-24-intake-types",
+    "member": "ReserveRequest.size_bytes",
+    "source": "media/services/direct_intake.py",
+    "line": 27,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-24-intake-types",
+    "member": "ReserveRequest.sha256",
+    "source": "media/services/direct_intake.py",
+    "line": 28,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-24-intake-types",
+    "member": "FinalizeRequest.request_id",
+    "source": "media/services/direct_intake.py",
+    "line": 33,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-24-intake-types",
+    "member": "SourceVersion.asset_id",
+    "source": "media/upload_models.py",
+    "line": 68,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-24-intake-types",
+    "member": "SourceVersion.bucket",
+    "source": "media/upload_models.py",
+    "line": 69,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-24-intake-types",
+    "member": "SourceVersion.key",
+    "source": "media/upload_models.py",
+    "line": 70,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-24-intake-types",
+    "member": "SourceVersion.version_id",
+    "source": "media/upload_models.py",
+    "line": 71,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-24-intake-types",
+    "member": "SourceVersion.sha256",
+    "source": "media/upload_models.py",
+    "line": 72,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-24-intake-types",
+    "member": "SourceVersion.size_bytes",
+    "source": "media/upload_models.py",
+    "line": 73,
+    "kind": "attribute",
+    "matches": true
+  },
+  {
+    "figure": "W3-24-intake-types",
+    "member": "SourceVersion.content_type",
+    "source": "media/upload_models.py",
+    "line": 74,
+    "kind": "attribute",
+    "matches": true
+  }
+]

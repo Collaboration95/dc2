@@ -1,0 +1,55 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Sequence view · Submit commits inbox, Job, Attempt and outbox intents · 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L70
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/handlers.py#L55
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L232
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L102
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L325
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L343
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher_aws.py#L81
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+skinparam maxMessageSize 380
+participant "messaging\n«Processing module»" as M $PROC
+participant "s: AsyncSession" as DB $INFRA
+[-> M : handle_command(f,body) [submit]
+activate M
+group Processing acceptance transaction
+ M -> DB : SQL: accept inbox UUID/hash
+ alt duplicate UUID + identical hash
+  note over M,DB : Return False; no domain mutation
+ else new submit, live guard, no prior Job
+  M -> M : _guard(s,owner,asset_id)
+  M -> DB : SQL: add/flush Job + Attempt; bind guard
+  M -> M : emit_state(s,job,attempt)
+  M -> DB : SQL: increment version; stage result + routed work
+ end
+ M -> DB : COMMIT
+end
+[<-- M : bool
+deactivate M
+legend bottom
+Selected submit/replay paths; cancelled guard is accepted no-op, matching existing Job is replayed.
+Changed identity/content raises and rolls back. No queue send occurs inside this function.
+endlegend
+@enduml

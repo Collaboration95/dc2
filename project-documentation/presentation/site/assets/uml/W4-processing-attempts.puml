@@ -1,0 +1,60 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+title Physical data view · Processing jobs and fenced attempts · 76282d3
+hide circle
+skinparam linetype polyline
+left to right direction
+skinparam defaultFontSize 19
+skinparam ClassAttributeFontSize 18
+skinparam ClassFontSize 20
+skinparam ArrowFontSize 16
+skinparam LegendFontSize 14
+skinparam nodesep 42
+skinparam ranksep 70
+entity "jobs" as jobs $PROC {
+  {field} * id : uuid <<PK>>
+  {field} * asset_id : uuid <<UK>>
+  {field} * owner_id : uuid
+  {field} * source : jsonb
+  {field} * operations : jsonb
+  {field} * request_hash : varchar(64)
+  {field} * source_url : varchar
+  {field} * source_url_expires_at : timestamptz
+  {field} * status : varchar(16)
+  {field} * current_attempt_id : uuid <<FK>>
+  {field}   error ? : varchar
+  {field} * created_at : timestamptz
+  {field} * updated_at : timestamptz
+  {field}   deleted_at ? : timestamptz
+  {field} * outputs : jsonb
+}
+entity "attempts" as attempts $PROC {
+  {field} * id : uuid <<PK>>
+  {field} * job_id : uuid <<FK,UK1>>
+  {field} * attempt_number : integer <<UK1>>
+  {field} * state : varchar(16)
+  {field} * queued_at : timestamptz
+  {field}   started_at ? : timestamptz
+  {field}   finished_at ? : timestamptz
+  {field}   error ? : varchar
+  {field}   lease_token ? : uuid
+  {field}   heartbeat_at ? : timestamptz
+  {field}   lease_expires_at ? : timestamptz
+  {field}   deadline_at ? : timestamptz
+  {field}   next_dispatch_at ? : timestamptz
+  {field}   dispatch_error ? : varchar
+  {field} * dispatch_count : integer
+  --
+  UK1 = (job_id, attempt_number)
+}
+attempts ||--o{ jobs : "current (deferred)"
+jobs ||--o{ attempts : "job_id"
+
+legend bottom left
+  * = NOT NULL    ? = nullable    PK = primary key    FK = declared local foreign key
+  UK = unique column    UKn = one composite unique group    timestamptz = timestamp with time zone
+  Blue = Media; amber = Processing. Only declared SQL foreign keys are connected.
+  All columns of coloured tables are shown; CHECKs, defaults and indexes are in the report dictionary.
+endlegend
+@enduml

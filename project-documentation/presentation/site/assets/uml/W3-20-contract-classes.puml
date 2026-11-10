@@ -1,0 +1,44 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ClassAttributeFontSize 15
+skinparam classAttributeIconSize 0
+skinparam ArrowFontSize 15
+skinparam LegendFontSize 14
+
+title Class view · Source and Envelope carry versioned immutable identity\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L99
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L157
+left to right direction
+class "Envelope (contracts.v1)" as E <<frozen dataclass>> $INFRA {
+ + schema_version: int
+ + message_id: str
+ + kind: str
+ + owner_id: str
+ + asset_id: str
+ + job_id: str | None
+ + attempt_id: str | None
+ + state_version: int
+ + source: Source | None
+ + payload: dict
+ {static} + from_dict(value: Any): Envelope
+ + to_dict(): dict
+ + fingerprint(): str
+}
+class "Source (contracts.v1)" as S <<frozen dataclass>> $INFRA {
+ + bucket: str
+ + key: str
+ + version_id: str
+ + sha256: str
+ + size_bytes: int
+ + content_type: str
+ {static} + from_dict(value: Any): Source
+}
+E --> "0..1" S
+legend bottom
++ public; - internal by Python convention; underlined = class/module scope.
+from_dict is @classmethod; cls is implicit. These are real frozen dataclasses, not ORM entities. Source/Envelope validation constrains bytes and identity.
+Media commands use submit/retry/cancel. Processing work is internal; result returns a versioned snapshot to Media.
+endlegend
+@enduml

@@ -1,0 +1,296 @@
+[
+  {
+    "id": "s28",
+    "kind": "main",
+    "placement": "REPLACES s28",
+    "figures": [
+      "W3-01-media-components.svg"
+    ]
+  },
+  {
+    "id": "w3-processing-components",
+    "kind": "main",
+    "placement": "NEW after s28",
+    "figures": [
+      "W3-02-processing-components.svg"
+    ]
+  },
+  {
+    "id": "w3-a-classes",
+    "kind": "main",
+    "placement": "NEW after w3-processing-components",
+    "figures": [
+      "W3-03-a-intake-classes.svg"
+    ]
+  },
+  {
+    "id": "s29",
+    "kind": "main",
+    "placement": "REPLACES s29",
+    "figures": [
+      "W3-06-a1-upload.svg"
+    ]
+  },
+  {
+    "id": "s30",
+    "kind": "main",
+    "placement": "REPLACES s30",
+    "figures": [
+      "W3-14-edit.svg"
+    ]
+  },
+  {
+    "id": "s31",
+    "kind": "main",
+    "placement": "REPLACES s31",
+    "figures": [
+      "W3-10-b-classes.svg"
+    ]
+  },
+  {
+    "id": "w3-stale",
+    "kind": "main",
+    "placement": "NEW after s31",
+    "figures": [
+      "W3-13-b3-fence.svg"
+    ]
+  },
+  {
+    "id": "w3-job-states",
+    "kind": "main",
+    "placement": "NEW after w3-stale",
+    "figures": [
+      "W3-15-job-states.svg"
+    ]
+  },
+  {
+    "id": "w3-back-submit-accept",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-07-a2-submit-execute.svg"
+    ]
+  },
+  {
+    "id": "w3-back-result-play",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-08-a3-result-play.svg"
+    ]
+  },
+  {
+    "id": "w3-hls",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-22-hls-playback.svg"
+    ]
+  },
+  {
+    "id": "w3-expiry",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-11-b1-expiry.svg"
+    ]
+  },
+  {
+    "id": "w3-retry",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-12-b2-retry.svg"
+    ]
+  },
+  {
+    "id": "w3-retry-accept",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-12a-processing-retry.svg"
+    ]
+  },
+  {
+    "id": "s61",
+    "kind": "back",
+    "placement": "REPLACES s61",
+    "figures": [
+      "W3-15-job-states.svg"
+    ]
+  },
+  {
+    "id": "w3-retry-surfaces",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": []
+  },
+  {
+    "id": "s67",
+    "kind": "back",
+    "placement": "REPLACES s67",
+    "figures": [
+      "W3-17-recovery-branches.svg"
+    ]
+  },
+  {
+    "id": "w3-back-04-a-execution-classes",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-04-a-execution-classes.svg"
+    ]
+  },
+  {
+    "id": "w3-back-05-a-projection-classes",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-05-a-projection-classes.svg"
+    ]
+  },
+  {
+    "id": "w3-back-06a-reserve",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-06a-reserve.svg"
+    ]
+  },
+  {
+    "id": "w3-back-09a-probe",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-09a-probe.svg"
+    ]
+  },
+  {
+    "id": "w3-back-09b-encode",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-09b-encode.svg"
+    ]
+  },
+  {
+    "id": "w3-back-13a-projection-fence",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-13a-projection-fence.svg"
+    ]
+  },
+  {
+    "id": "w3-back-16-attempt-states",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-16-attempt-states.svg"
+    ]
+  },
+  {
+    "id": "w3-back-18-lane-policy",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-18-lane-policy.svg"
+    ]
+  },
+  {
+    "id": "w3-back-19-execution-adapters",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-19-execution-adapters.svg"
+    ]
+  },
+  {
+    "id": "w3-back-20-contract-classes",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-20-contract-classes.svg"
+    ]
+  },
+  {
+    "id": "w3-back-21-lease-functions",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-21-lease-functions.svg"
+    ]
+  },
+  {
+    "id": "w3-back-23-claim-finish",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-23-claim-finish.svg"
+    ]
+  },
+  {
+    "id": "w3-back-24-intake-types",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-24-intake-types.svg"
+    ]
+  },
+  {
+    "id": "w3-back-14a-edit-relay",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-14a-edit-relay.svg"
+    ]
+  },
+  {
+    "id": "w3-back-14b-edit-detail",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-14b-edit-detail.svg"
+    ]
+  },
+  {
+    "id": "w3-back-public-read",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-08a-public-read.svg"
+    ]
+  },
+  {
+    "id": "w3-back-07a-submit-transaction",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-07a-submit-transaction.svg"
+    ]
+  },
+  {
+    "id": "w3-back-09c-hls",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-09c-hls.svg"
+    ]
+  },
+  {
+    "id": "w3-back-14c-edit-adoption",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-14c-edit-adoption.svg"
+    ]
+  },
+  {
+    "id": "w3-back-23a-finish",
+    "kind": "back",
+    "placement": "NEW backup",
+    "figures": [
+      "W3-23a-finish.svg"
+    ]
+  }
+]

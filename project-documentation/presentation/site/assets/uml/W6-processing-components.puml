@@ -1,0 +1,40 @@
+@startuml
+!include _style.iuml
+title Logical view · Processing component expansion · 76282d3
+left to right direction
+skinparam defaultFontSize 23
+skinparam ArrowFontSize 20
+skinparam LegendFontSize 19
+skinparam titleFontSize 23
+skinparam BackgroundColor #ffffff
+skinparam componentStyle uml2
+skinparam nodesep 20
+skinparam ranksep 25
+skinparam packageStyle rectangle
+package "Processing · processing/" as processing $PROC {
+ component "ProcessingApi" as api
+ component "ProcessingCommands" as commands
+ component "ProcessingRepair" as repair
+ component "ProcessingLauncher" as launcher
+ queue "Processing\nShortWorkQueue" as sq $INFRA
+ queue "ProcessingWorkQueue" as wq $INFRA
+ component "Processing\nShortEncoder" as short
+ component "processing.worker.sqs\nvia processing.v1_worker" as worker <<Fargate worker>>
+ database "processing_db" as db
+ commands -[hidden]down-> repair
+ api -[hidden]down-> db
+ commands ..> wq : work
+ repair ..> sq : work
+ short .left.> sq : consume via\nLambda mapping
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L309-L316
+ worker .left.> wq : ReceiveMessage\n(long-poll)
+ launcher ..> worker : RunTask
+ repair ..> launcher : wake after\nstandard send
+}
+legend bottom
+ Amber = Processing; slate = SQS. Dashed = selected dependency; consumers point to queues.
+ ProcessingCommands AND ProcessingRepair relay ProcessingOutbox to BOTH work queues and MediaResultsQueue.
+ All components use processing_db; encoders commit result outbox rows there.
+ Both encoders GET SourceBucket and PUT OutputBucket. ProcessingApi stages SQL intent.
+endlegend
+@enduml

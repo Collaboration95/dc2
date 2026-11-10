@@ -1,0 +1,130 @@
+[
+  {
+    "figure": "W4-media-assets",
+    "svg_width": 797.0,
+    "svg_height": 588.0,
+    "render_width": 705,
+    "render_height": 520.1254705144291,
+    "smallest_text_px": 14.190225846925973
+  },
+  {
+    "figure": "W4-media-cleanup",
+    "svg_width": 784.0,
+    "svg_height": 341.0,
+    "render_width": 784,
+    "render_height": 341.0,
+    "smallest_text_px": 16.042
+  },
+  {
+    "figure": "W4-media-delivery",
+    "svg_width": 973.0,
+    "svg_height": 403.0,
+    "render_width": 973,
+    "render_height": 403.0,
+    "smallest_text_px": 16.042
+  },
+  {
+    "figure": "W4-media-intents",
+    "svg_width": 764.0,
+    "svg_height": 396.0,
+    "render_width": 764,
+    "render_height": 396.0,
+    "smallest_text_px": 16.042
+  },
+  {
+    "figure": "W4-media-main",
+    "svg_width": 1379.0,
+    "svg_height": 472.0,
+    "render_width": 1180,
+    "render_height": 403.886874546773,
+    "smallest_text_px": 13.727019579405367
+  },
+  {
+    "figure": "W4-media-pins",
+    "svg_width": 764.0,
+    "svg_height": 362.0,
+    "render_width": 764,
+    "render_height": 362.0,
+    "smallest_text_px": 16.042
+  },
+  {
+    "figure": "W4-media-projection",
+    "svg_width": 764.0,
+    "svg_height": 423.0,
+    "render_width": 764,
+    "render_height": 423.0,
+    "smallest_text_px": 16.042
+  },
+  {
+    "figure": "W4-media-retry",
+    "svg_width": 877.0,
+    "svg_height": 464.0,
+    "render_width": 877,
+    "render_height": 464.0,
+    "smallest_text_px": 16.042
+  },
+  {
+    "figure": "W4-media-upload",
+    "svg_width": 764.0,
+    "svg_height": 639.0,
+    "render_width": 622,
+    "render_height": 520.2329842931937,
+    "smallest_text_px": 13.060371727748693
+  },
+  {
+    "figure": "W4-processing-attempts",
+    "svg_width": 944.0,
+    "svg_height": 556.0,
+    "render_width": 883,
+    "render_height": 520.0720338983051,
+    "smallest_text_px": 15.005387711864408
+  },
+  {
+    "figure": "W4-processing-bindings",
+    "svg_width": 764.0,
+    "svg_height": 396.0,
+    "render_width": 764,
+    "render_height": 396.0,
+    "smallest_text_px": 16.042
+  },
+  {
+    "figure": "W4-processing-cleanup",
+    "svg_width": 764.0,
+    "svg_height": 396.0,
+    "render_width": 764,
+    "render_height": 396.0,
+    "smallest_text_px": 16.042
+  },
+  {
+    "figure": "W4-processing-delivery",
+    "svg_width": 764.0,
+    "svg_height": 403.0,
+    "render_width": 764,
+    "render_height": 403.0,
+    "smallest_text_px": 16.042
+  },
+  {
+    "figure": "W4-processing-intents",
+    "svg_width": 914.0,
+    "svg_height": 607.0,
+    "render_width": 783,
+    "render_height": 520.0010940919037,
+    "smallest_text_px": 13.742763676148797
+  },
+  {
+    "figure": "W4-processing-launcher",
+    "svg_width": 854.0,
+    "svg_height": 539.0,
+    "render_width": 824,
+    "render_height": 520.0655737704918,
+    "smallest_text_px": 15.478463700234194
+  },
+  {
+    "figure": "W4-processing-main",
+    "svg_width": 1261.0,
+    "svg_height": 586.0,
+    "render_width": 1119,
+    "render_height": 520.0111022997621,
+    "smallest_text_px": 14.235525773195878
+  }
+]

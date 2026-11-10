@@ -1,0 +1,205 @@
+[
+  {
+    "file": "W3-01-media-components.svg",
+    "width": 1331.0,
+    "height": 614.0,
+    "fit_scale": 0.887,
+    "body_px": 13.3
+  },
+  {
+    "file": "W3-02-processing-components.svg",
+    "width": 1176.0,
+    "height": 598.0,
+    "fit_scale": 0.92,
+    "body_px": 13.8
+  },
+  {
+    "file": "W3-03-a-intake-classes.svg",
+    "width": 1212.0,
+    "height": 417.0,
+    "fit_scale": 0.974,
+    "body_px": 14.6
+  },
+  {
+    "file": "W3-04-a-execution-classes.svg",
+    "width": 979.0,
+    "height": 422.0,
+    "fit_scale": 1,
+    "body_px": 15
+  },
+  {
+    "file": "W3-05-a-projection-classes.svg",
+    "width": 835.0,
+    "height": 413.0,
+    "fit_scale": 1,
+    "body_px": 15
+  },
+  {
+    "file": "W3-06-a1-upload.svg",
+    "width": 789.0,
+    "height": 637.0,
+    "fit_scale": 0.863,
+    "body_px": 13.0
+  },
+  {
+    "file": "W3-06a-reserve.svg",
+    "width": 1471.0,
+    "height": 532.0,
+    "fit_scale": 0.802,
+    "body_px": 12.0
+  },
+  {
+    "file": "W3-07-a2-submit-execute.svg",
+    "width": 1145.0,
+    "height": 678.0,
+    "fit_scale": 0.811,
+    "body_px": 12.2
+  },
+  {
+    "file": "W3-08-a3-result-play.svg",
+    "width": 1080.0,
+    "height": 626.0,
+    "fit_scale": 0.879,
+    "body_px": 13.2
+  },
+  {
+    "file": "W3-09a-probe.svg",
+    "width": 1344.0,
+    "height": 516.0,
+    "fit_scale": 0.878,
+    "body_px": 13.2
+  },
+  {
+    "file": "W3-09b-encode.svg",
+    "width": 839.0,
+    "height": 575.0,
+    "fit_scale": 0.957,
+    "body_px": 14.3
+  },
+  {
+    "file": "W3-10-b-classes.svg",
+    "width": 1159.0,
+    "height": 362.0,
+    "fit_scale": 1,
+    "body_px": 15
+  },
+  {
+    "file": "W3-11-b1-expiry.svg",
+    "width": 1042.0,
+    "height": 579.0,
+    "fit_scale": 0.95,
+    "body_px": 14.2
+  },
+  {
+    "file": "W3-12-b2-retry.svg",
+    "width": 728.0,
+    "height": 607.0,
+    "fit_scale": 0.906,
+    "body_px": 13.6
+  },
+  {
+    "file": "W3-12a-processing-retry.svg",
+    "width": 635.0,
+    "height": 634.0,
+    "fit_scale": 0.868,
+    "body_px": 13.0
+  },
+  {
+    "file": "W3-13-b3-fence.svg",
+    "width": 1184.0,
+    "height": 508.0,
+    "fit_scale": 0.997,
+    "body_px": 14.9
+  },
+  {
+    "file": "W3-13a-projection-fence.svg",
+    "width": 746.0,
+    "height": 511.0,
+    "fit_scale": 1,
+    "body_px": 15
+  },
+  {
+    "file": "W3-14-edit.svg",
+    "width": 906.0,
+    "height": 664.0,
+    "fit_scale": 0.828,
+    "body_px": 12.4
+  },
+  {
+    "file": "W3-14a-edit-relay.svg",
+    "width": 423.0,
+    "height": 560.0,
+    "fit_scale": 0.982,
+    "body_px": 14.7
+  },
+  {
+    "file": "W3-15-job-states.svg",
+    "width": 1455.0,
+    "height": 683.0,
+    "fit_scale": 0.805,
+    "body_px": 12.1
+  },
+  {
+    "file": "W3-16-attempt-states.svg",
+    "width": 1457.0,
+    "height": 537.0,
+    "fit_scale": 0.81,
+    "body_px": 12.1
+  },
+  {
+    "file": "W3-17-recovery-branches.svg",
+    "width": 1553.0,
+    "height": 664.0,
+    "fit_scale": 0.76,
+    "body_px": 11.4
+  },
+  {
+    "file": "W3-18-lane-policy.svg",
+    "width": 808.0,
+    "height": 337.0,
+    "fit_scale": 1,
+    "body_px": 15
+  },
+  {
+    "file": "W3-19-execution-adapters.svg",
+    "width": 1237.0,
+    "height": 475.0,
+    "fit_scale": 0.954,
+    "body_px": 14.3
+  },
+  {
+    "file": "W3-20-contract-classes.svg",
+    "width": 761.0,
+    "height": 393.0,
+    "fit_scale": 1,
+    "body_px": 15
+  },
+  {
+    "file": "W3-21-lease-functions.svg",
+    "width": 1047.0,
+    "height": 435.0,
+    "fit_scale": 1,
+    "body_px": 15
+  },
+  {
+    "file": "W3-22-hls-playback.svg",
+    "width": 1173.0,
+    "height": 600.0,
+    "fit_scale": 0.917,
+    "body_px": 13.8
+  },
+  {
+    "file": "W3-23-claim-finish.svg",
+    "width": 1323.0,
+    "height": 622.0,
+    "fit_scale": 0.884,
+    "body_px": 13.3
+  },
+  {
+    "file": "W3-24-intake-types.svg",
+    "width": 740.0,
+    "height": 568.0,
+    "fit_scale": 0.968,
+    "body_px": 14.5
+  }
+]

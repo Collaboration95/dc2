@@ -1,0 +1,58 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+title Physical data view · processing_db · processing_0007 · 76282d3
+hide circle
+skinparam linetype polyline
+left to right direction
+skinparam defaultFontSize 19
+skinparam ClassAttributeFontSize 18
+skinparam ClassFontSize 20
+skinparam ArrowFontSize 16
+skinparam LegendFontSize 14
+skinparam nodesep 20
+skinparam ranksep 45
+entity "jobs" as jobs $PROC {
+  {field} * id : uuid <<PK>>
+  {field} * asset_id : uuid <<UK>>
+  {field} * status : varchar(16)
+  {field} * current_attempt_id : uuid <<FK>>
+  {field} * outputs : jsonb
+}
+entity "attempts" as attempts $PROC {
+  {field} * id : uuid <<PK>>
+  {field} * job_id : uuid <<FK,UK1>>
+  {field} * attempt_number : integer <<UK1>>
+  {field} * state : varchar(16)
+  {field}   lease_token ? : uuid
+  {field}   lease_expires_at ? : timestamptz
+  --
+  UK1 = (job_id, attempt_number)
+}
+entity "retry_requests" as retry_requests $PROC {
+  {field} * id : uuid <<PK>>
+  {field} * job_id : uuid <<FK,UK1>>
+  {field} * request_id : uuid <<UK1>>
+  {field} * attempt_id : uuid <<FK>>
+  --
+  UK1 = (job_id, request_id)
+}
+entity "submission_guards" as submission_guards $PROC {
+  {field} * asset_id : uuid <<PK>>
+  {field} * owner_id : uuid
+  {field}   job_id ? : uuid <<FK>>
+  {field}   deleted_at ? : timestamptz
+}
+attempts ||--o{ retry_requests : "attempt_id"
+jobs ||--o{ retry_requests : "job_id"
+attempts ||--o{ jobs : "current (deferred)"
+jobs |o--o{ submission_guards : "job_id"
+jobs ||--o{ attempts : "job_id"
+
+legend bottom left
+  * = NOT NULL    ? = nullable    PK = primary key    FK = declared local foreign key
+  UK = unique column    UKn = one composite unique group    timestamptz = timestamp with time zone
+  Blue = Media; amber = Processing. Only declared SQL foreign keys are connected.
+  Key columns selected; full columns and checks are in backup/report
+endlegend
+@enduml
