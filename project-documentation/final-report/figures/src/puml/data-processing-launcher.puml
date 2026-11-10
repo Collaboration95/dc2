@@ -1,0 +1,35 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+title Processing database: optional launcher authority
+hide circle
+skinparam ClassAttributeFontSize 17
+skinparam ClassFontSize 19
+skinparam LegendFontSize 14
+entity "launcher_control" as launcher_control $PROC {
+  {field} * id : integer <<PK>>
+  {field} * enabled : boolean
+  {field}   session_end_at ? : timestamptz
+  --
+  {field} CHECK id = 1
+}
+entity "launch_reservations" as launch_reservations $PROC {
+  {field} * token : varchar(64) <<PK>>
+  {field} * started_by : varchar(36) <<UK>>
+  {field} * status : varchar(16)
+  {field} * payload : jsonb
+  {field} * deadline_at : timestamptz
+  --
+  {field} CHECK status IN ('reserved',
+  {field} 'launched', 'stopped', 'released')
+  {field} IX (reserved_at)
+  {field} WHERE status IN ('reserved',
+  {field} 'launched')
+}
+launcher_control -[hidden]down- launch_reservations
+legend bottom left
+  * = NOT NULL; ? = nullable; PK = primary; UK = unique; IX = explicit index
+  Tables have no declared FK between them. Full dictionary remains authoritative.
+endlegend
+skinparam BackgroundColor white
+@enduml

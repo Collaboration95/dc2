@@ -1,0 +1,78 @@
+!include _style.iuml
+@startuml
+skinparam BackgroundColor white
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+skinparam BackgroundColor white
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Edit: copy, pin and atomic adoption
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_jobs.py#L55
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L105
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L145
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L75
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L209
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/intake.py#L54
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L70
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L58
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1766
+skinparam ArrowFontSize 18
+skinparam LegendFontSize 18
+skinparam NoteFontSize 18
+skinparam defaultFontSize 18
+skinparam NoteFontSize 16
+skinparam LegendFontSize 18
+skinparam maxMessageSize 245
+
+participant "v1_lifecycle\n«module»" as E $MEDIA
+participant "storage: Storage" as S $MEDIA
+participant "s: AsyncSession" as DB $INFRA
+[-> E : edit(...)
+activate E
+ref over E,DB : Replay / owned parent checks;\nintake.stage(s,k) commits StagedObject
+alt Copy and adoption succeed
+ group Copy transaction: parent + staged locks
+ E -> DB : SQL: lock parent + staged row
+ E -> S : copy_output_source(\noutput,k)
+ activate S
+ S --> E : size,sha256
+ deactivate S
+ E -> DB : SQL: write_uncertain=False; COMMIT
+end
+group Adoption transaction: staged lock
+ E -> DB : SQL: check staged row; add/flush derived Asset
+ E -> E : pin_copied_source(\ns,storage,asset)
+ E -> S : verify_direct_upload(descriptor,\ncheck_content=False)
+ S --> E : VersionId
+ E -> DB : add/flush SourceVersion
+ E -> E : stage_submit(s,asset,pin)
+ E -> DB : SQL: stage MediaOutbox via messaging.stage_command
+ E -> DB : COMMIT Asset + pin + optional RequestKey +\nsubmit outbox; remove staged ledger
+end
+[<-- E : Asset -> HTTP 202
+else Copy/adoption failure
+ E -> E : discard_stage(s,storage,k)
+ note over E,DB : IntegrityError replays the keyed winner if present;\notherwise the caller receives an error.
+ [<-- E : winner Asset or error
+end
+ deactivate E
+ref over E,DB : Independent relay after commit: see data-edit-relay
+legend bottom
+Blue = Media; slate = SQL. Relay may precede HTTP 202.
+The next figure expands delivery to the Processing inbox.
+endlegend
+
+skinparam BackgroundColor white
+@enduml
