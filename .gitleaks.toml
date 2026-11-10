@@ -63,3 +63,12 @@ targetRules = ["generic-api-key"]
 condition = "AND"
 paths = ['''^project-documentation/presentation/feedback-20261026/tracker(_template)?\.html$''']
 regexes = ['''flickpond-rescue-v2''']
+
+# The report's backlog snapshot copies GitHub issue bodies, which carry hidden
+# "issue-key=<backlog id>" markers (e.g. aws2-delivery, dc2-E1). Identifiers, not credentials.
+[[allowlists]]
+description = "Backlog issue-key markers in the report's GitHub snapshot data"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^project-documentation/final-report/data/conduct-[a-z-]+\.json$''']
+regexes = ['''(aws[23]|dc2)-[A-Za-z0-9]+(-[A-Za-z0-9]+)*''']
