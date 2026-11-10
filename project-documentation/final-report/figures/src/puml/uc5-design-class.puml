@@ -1,0 +1,50 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): publisher/cli.py; publisher/client.py; publisher/state.py
+skinparam dpi 180
+skinparam BackgroundColor white
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam ClassAttributeFontSize 16
+skinparam ClassStereotypeFontSize 14
+skinparam NoteFontSize 15
+skinparam classAttributeIconSize 0
+skinparam nodesep 22
+skinparam ranksep 24
+title UC-5 · Publisher implementation
+class "publisher.cli" as C <<module>> $CLIENT {
+ {static} + execute(client, args)
+ {static} + mutation(client, intents, identity,\n call, explicit=None)
+ {static} + finish(client, args, outcome)
+ {static} + main(argv=None)
+}
+class "PublicClient" as P $CLIENT {
+ + cookie_file: Path
+ + jar: MozillaCookieJar
+ + http: httpx.Client
+ + direct: httpx.Client
+ + request(method, path, **kwargs)
+ + identity()
+ + upload(path, key)
+ + poll(job_id, max_polls, interval,\n *, sleep=time.sleep)
+}
+class "Intents" as I $CLIENT {
+ + path: Path
+ + scope: list
+ + data: dict
+ + identity(operation, value)
+ + reserve(identity, explicit=None)
+ + complete(identity)
+ + change(identity, key)
+ + save()
+}
+class "publisher.state" as S <<module>> $CLIENT {
+ {static} + file_identity(path)
+}
+C ..down> P : API calls
+C ..down> I : pending keys
+C ..> S : file hash
+P -[hidden]right-> I
+I -[hidden]down-> S
+' Instance field types describe assigned values; unannotated operations retain source signatures.
+@enduml

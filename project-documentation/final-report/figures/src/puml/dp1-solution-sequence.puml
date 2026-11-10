@@ -1,0 +1,47 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 20
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 350
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+title DP-1 solution: serialize, reserve, reconcile
+autonumber
+participant "launcher\n(wake A)" as a $PROC
+participant "launcher\n(wake B)" as b $PROC
+database "Processing SQL" as sql $PROC
+participant "EcsPort" as ecs $INFRA
+a -> sql : _reserve(): control FOR UPDATE
+b -> sql : _reserve(): wait for control row
+a -> sql : reserve three slots with tokens; COMMIT
+sql --> b : acquire lock; read three occupied slots
+b -> sql : no free slot; COMMIT
+loop each reserved token
+ a -> sql : _send(): shared control + reservation lock
+ a -> ecs : run_task(stored payload)
+ alt acknowledged
+  ecs --> a : task ARN
+  a -> sql : mark launched; COMMIT
+ else reply uncertain
+  ecs --> a : timeout
+  a -> sql : retain slot; COMMIT; stop this tick
+  end
+end
+b -> ecs : later tick: observe known launch identities
+alt task visible by startedBy
+ ecs --> b : existing task ARN
+ b -> sql : _reconcile(): bind same reservation
+else replay threshold passed with demand
+ b -> ecs : _send(): same clientToken and payload
+ ecs --> b : existing or newly created task for token
+end
+@enduml

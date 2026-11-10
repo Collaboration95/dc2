@@ -1,0 +1,49 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L283-L295
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1198-L1266
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1797-L1913
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1976-L2009
+title Deployment view · images and runtime configuration
+top to bottom direction
+skinparam defaultFontSize 21
+skinparam ArrowFontSize 19
+skinparam titleFontSize 22
+skinparam LegendFontSize 18
+skinparam nodesep 16
+skinparam ranksep 20
+node "GitHub Actions" as ci $INFRA
+node "IAM deploy role\naws environment" as role $INFRA
+ci --> role : OIDC
+artifact "MediaImageUri\nECR media@digest" as mi $MEDIA
+artifact "ProcessingImageUri\nECR processing@digest" as pi $PROC
+artifact "WorkerImageUri\nECR worker@digest" as wi $PROC
+node "Private A+B\n4 Media Lambdas\nMediaApi\nMediaAuthorizer\nMediaResults\nMediaRepair" as ml <<executionEnvironment>> $MEDIA
+node "Private A+B\n6 Processing Lambdas\nProcessingApi\nProcessingCommands\nProcessingRepair\nProcessingEcsEvents\nProcessingS3Events\nProcessingLauncher" as pl <<executionEnvironment>> $PROC
+node "Private A+B · short Lambda\nProcessingShortEncoder\n3008 MB / 900 s; /tmp 2048 MB\nLambda runtime client\npython -m awslambdaric" as sl <<executionEnvironment>> $PROC
+mi ..> ml : <<deploy>>
+pi ..> pl : <<deploy>>
+wi ..> sl : <<deploy>>
+role --> mi : push / pin
+role --> pi : push / pin
+role --> wi : push / pin
+
+node "Public A+B · migration task\nMedia migration\nAlembic · 256 / 512 MiB" as mt <<executionEnvironment>> $MEDIA
+node "Public A+B · migration task\nProcessing migration\nAlembic · 256 / 512 MiB" as pt <<executionEnvironment>> $PROC
+node "Public A+B · finite tasks\nWorkerTaskDefinition\n2 vCPU / 4096 MiB\nBootstrap task\n256 / 512 MiB" as wt <<executionEnvironment>> $PROC
+ml -[hidden]down- mt
+pl -[hidden]down- pt
+sl -[hidden]down- wt
+mi ..> mt : <<deploy>>
+pi ..> pt : <<deploy>>
+wi ..> wt : <<deploy>>
+legend bottom
+ Blue = Media; amber = Processing.
+ Dashed «deploy»: image → runtime set.
+ Node labels give function settings / task-definition configuration.
+ Lambdas: x86_64, own role/version/live alias.
+ Operations tasks are one-off.
+endlegend
+@enduml

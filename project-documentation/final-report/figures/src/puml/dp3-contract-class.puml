@@ -1,0 +1,48 @@
+@startuml
+!include _style.iuml
+' Contract consumers: publisher/client.py; frontend/app.js; docs/api/media.openapi.json
+' Evidence (07c7c14): media/authorizer.py; contracts/gateway.py; contracts/v1.py; media/api/deps.py; processing/auth.py; scripts/aws/v1/definitions.py
+skinparam dpi 180
+skinparam BackgroundColor white
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam ClassAttributeFontSize 16
+skinparam NoteFontSize 15
+skinparam classAttributeIconSize 0
+skinparam nodesep 24
+skinparam ranksep 28
+title DP-3 · shared wire types and public clients
+class "Envelope" as E <<published language>> $INFRA {
+ + schema_version: int
+ + owner_id: str
+ + source: Source | None
+ + payload: dict
+ {static} + from_dict(value: Any): Envelope
+}
+class "Source" as S <<published language>> $INFRA {
+ + bucket: str
+ + key: str
+ + version_id: str
+ + sha256: str
+}
+class "PublicJob" as J <<HTTP response>> $MEDIA {
+ + id: UUID
+ + output_url: str | None
+ + hls_url: str | None
+}
+class "PublicClient" as P <<HTTP consumer>> $CLIENT {
+ + upload(path, key)
+ + status(job_id)
+ + retry(job_id, key)
+}
+class "frontend/app.js" as F <<module>> $CLIENT {
+ {static} + handleFile(file)
+ {static} + followJob(scope, jobId,\n handlers)
+ {static} + playbackSource(job)
+}
+E "0..*" --> "0..1" S : source
+P ..up> J : HTTP schema
+F ..up> J : HTTP schema
+P -[hidden]right-> F
+E -[hidden]down-> J
+@enduml

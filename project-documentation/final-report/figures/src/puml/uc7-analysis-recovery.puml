@@ -1,0 +1,46 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 20
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 230
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+title UC-7 analysis: failed candidate recovery
+autonumber
+boundary "Delivery\nchannel" as cd
+control "Release\ncoordinator" as ctl
+entity "Recovery\nrecords" as records
+boundary "Owner and\npeer runtimes" as runtime
+runtime --> ctl : candidate smoke failed
+ctl -> records : retain intent; recovery required
+ctl --> cd : promotion incomplete
+cd -> ctl : restore prior owner
+ctl -> records : read prior versions and pending actions
+ctl -> runtime : verify owner state before repair
+alt safe to restore
+ ctl -> runtime : restore prior code selection
+ ctl -> runtime : smoke restored owner; verify peer
+ alt smoke and peer checks pass
+  runtime --> ctl : prior runtime certified
+  ctl -> records : record restored; clear intent
+ else verification fails
+  runtime --> ctl : cannot certify restoration
+  ctl -> records : retain recovery intent
+ end
+else concurrent change or migration unresolved
+ ctl --> cd : stop; retain intent for reconciliation
+end
+opt later recovery attempt
+ cd -> ctl : resume from durable intent
+end
+note over ctl,runtime : No automatic schema downgrade.
+@enduml

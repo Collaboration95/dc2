@@ -1,0 +1,52 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-03, W3-06a, W3-06; upload pin / replay corrections from W3-review
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title UC-1 · conceptual intake responsibilities
+top to bottom direction
+class AccountAccess <<boundary>> {
+ + registerOrLogin()
+}
+class UploadForm <<boundary>> {
+ + declareVideo()
+}
+class IdentityControl <<control>> {
+ + authenticate()
+}
+class IntakeControl <<control>> {
+ + reserve()
+ + adoptVerifiedSource()
+}
+class Owner <<entity>> {
+ + identity: Identifier
+}
+class UploadRequest <<entity>> {
+ + requestIdentity: Identifier
+ + expiresAt: Time
+}
+class OwnedAsset <<entity>> {
+ + identity: Identifier
+ + acceptedSource: SourceIdentity
+}
+AccountAccess --> IdentityControl
+IdentityControl --> Owner
+UploadForm --> IntakeControl
+Owner "1" -down- "0..*" UploadRequest
+Owner "1" -- "0..*" OwnedAsset
+IntakeControl ..> UploadRequest : validates
+IntakeControl ..> OwnedAsset : adopts
+UploadRequest "1" -down- "0..1" OwnedAsset
+@enduml

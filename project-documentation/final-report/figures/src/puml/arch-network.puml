@@ -1,0 +1,48 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L316
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L435-L481
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher.py#L90-L124
+title Deployment view · subnet placement and egress · dc2-live
+top to bottom direction
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 18
+skinparam titleFontSize 21
+skinparam LegendFontSize 18
+skinparam nodesep 20
+skinparam ranksep 30
+package "ap-southeast-1" {
+ node "Vpc · 10.62.0.0/16 + IPv6" {
+  node "Private · all 11 Lambdas" as lp $PROC {
+   node "AZ[0]: PrivateASubnet\n10.62.0.0/24 + IPv6 /64" as pa $INFRA
+   node "AZ[1]: PrivateBSubnet\n10.62.1.0/24 + IPv6 /64" as pb $INFRA
+   pa -[hidden]down- pb
+  }
+  node "Public · Fargate" as wp $PROC {
+   node "AZ[0]: PublicASubnet\n10.62.2.0/24 + IPv6 /64" as ua $INFRA
+   node "AZ[1]: PublicBSubnet\n10.62.3.0/24 + IPv6 /64" as ub $INFRA
+   ua -[hidden]down- ub
+  }
+  node "EgressOnlyGateway" as eg $INFRA
+  node "InternetGateway" as ig $INFRA
+  node "S3Gateway\nall 4 route tables" as sg $INFRA
+ }
+ node "AWS API endpoints\ne.g. SQS / SSM / ECS / Lambda" as aws $INFRA
+ storage "S3 source + output\nECR starport layers (GET)" as s3 $INFRA
+}
+lp --> eg : IPv6 TCP 443\nprivate ::/0
+eg --> aws : dual-stack APIs
+wp --> ig : IPv4 HTTPS\n0.0.0.0/0 via public IP
+ig --> aws : HTTPS
+lp --> sg : S3 IPv4
+wp --> sg : S3 IPv4
+sg --> s3 : endpoint policy + IAM
+legend bottom
+ Amber compute placement · slate AWS network. Arrows = allowed egress.
+ AZ[0/1] = Fn::GetAZs indices; DB AZ placement is separate.
+ No inbound compute rules.
+ Private: no IPv4 default/NAT. Worker: no IPv6 HTTPS.
+endlegend
+@enduml

@@ -1,0 +1,40 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W2-delivery-ledgers, W3-07a; separate SQL commit / relay / consumer
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title DP-2 · candidate with an unprotected dual write
+class "Media acceptance" as A <<candidate control>> {
+ + adoptSource()
+ + publishAfterCommit()
+}
+class "AcceptedAsset" as B <<candidate entity>> {
+ + identity: Identifier
+}
+class "Broker" as Q <<candidate boundary>> {
+ + publishCommand()
+}
+class "Processing consumer" as C <<candidate control>> {
+ + createJob()
+}
+A --> B : first write: SQL commit
+A --> Q : second write: network send
+Q --> C
+note bottom of C
+No durable record connects the two writes.
+Candidate roles are explanatory,
+not implemented classes.
+end note
+@enduml

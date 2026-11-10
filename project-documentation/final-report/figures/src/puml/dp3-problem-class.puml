@@ -1,0 +1,36 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): media/authorizer.py; contracts/gateway.py; contracts/v1.py; media/api/deps.py; processing/auth.py; scripts/aws/v1/definitions.py
+skinparam dpi 180
+skinparam BackgroundColor white
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam ClassAttributeFontSize 16
+skinparam ClassStereotypeFontSize 14
+skinparam NoteFontSize 15
+skinparam classAttributeIconSize 0
+skinparam nodesep 22
+skinparam ranksep 24
+title DP-3 · rejected forwarded-header candidate
+class "External client" as C <<untrusted>> {
+ + claimedOwner: Identifier
+}
+class "Forwarding endpoint" as F <<candidate>> {
+ + serviceSecret: Secret
+ + forward(ownerHeader, request)
+}
+class "Peer endpoint" as P <<candidate>> {
+ + serviceSecret: Secret
+ + checkServiceSecret(value)
+ + loadClaimedOwnerJob(ownerHeader, jobId)
+}
+class "Job record" as J <<entity>> {
+ + jobId: Identifier
+ + ownerId: Identifier
+}
+C ..> F : caller-provided identity
+F ..> P : shared secret + copied header
+P ..> J : filter by unverified owner claim
+note bottom of P : A service credential proves the forwarder,\nnot the source of its owner claim.
+note bottom of F : Rejected candidate only.\nThese are not current implementation classes.
+@enduml

@@ -1,0 +1,44 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): media/authorizer.py; contracts/gateway.py; contracts/v1.py; media/api/deps.py; processing/auth.py; scripts/aws/v1/definitions.py
+skinparam dpi 180
+skinparam BackgroundColor white
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam ClassAttributeFontSize 16
+skinparam ClassStereotypeFontSize 14
+skinparam NoteFontSize 15
+skinparam classAttributeIconSize 0
+skinparam nodesep 22
+skinparam ranksep 24
+hide footbox
+autonumber
+skinparam maxMessageSize 200
+skinparam sequenceParticipantPadding 8
+title DP-3 · Gateway attachment and revalidation
+participant "API Gateway\nHTTP API" as G $INFRA
+participant "Media authorizer\n«module»" as A $MEDIA
+participant "Selected API\nGatewayAdapter" as API $INFRA
+G -> A : REQUEST v2 event + cookies\n[MediaAuthorizerAlias; TTL 0]
+A -> A : authorize(event): read_token(...);\nlookup current User; gateway_role(user)
+alt invalid JWT / absent User / lookup failure
+ A --> G : isAuthorized = false
+ G -->] : deny protected integration
+else current authenticated owner
+ A --> G : true + Actor.to_context()
+ G -> API : separate AWS_PROXY invocation\ncookies + authorizer.lambda context
+ API -> API : invoke_asgi: strip public identity headers;\nActor.from_context; inject request.state
+ alt Media API selected
+  API -> API : current_user(request, settings):\nrecheck cookie / User; compare Actor
+  alt current identity agrees
+   API -> API : get_asset(session, job_id, user.id)
+  else identity changed / missing
+   API -> API : reject request (401)
+  end
+ else Processing API selected
+  API -> API : gateway_actor(request);\nowned_pair(session, UUID(actor.owner_id), job_id)
+ end
+ API --> G : 200 owned / 404 absent or foreign / 401 denied
+end
+note over G,API : MediaAuthorizer and MediaApi have Media JWT access.\nProcessingApi resolves identity from Actor.\nRestricted Lambda invocation is required; marker is not a secret.
+@enduml

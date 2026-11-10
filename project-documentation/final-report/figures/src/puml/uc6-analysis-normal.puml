@@ -1,0 +1,43 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 20
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 200
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+title UC-6 analysis: demand to finite execution
+autonumber
+boundary "Work / timer" as wake
+control "Capacity\ncontroller" as ctl
+entity "Demand and\ncapacity records" as records
+boundary "Executor\nprovider" as provider
+wake -> ctl : request capacity review
+ctl -> provider : observe existing executors
+provider --> ctl : executor identities and states
+ctl -> records : read queued / visible demand
+records --> ctl : demand and held slots
+alt enabled; demand; free slots
+ ctl -> records : reserve slots within global cap
+ records --> ctl : committed launch identities
+ loop each new reservation
+  ctl -> provider : start finite executor with identity
+  provider --> ctl : executor acknowledgement
+  ctl -> records : record observed executor
+ end
+ note over provider
+ Each executor claims work separately,
+ performs bounded work and exits.
+ end note
+else no demand or no admissible capacity
+ ctl --> wake : no additional executor
+end
+@enduml

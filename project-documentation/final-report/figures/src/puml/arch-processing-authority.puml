@@ -1,0 +1,78 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+skinparam dpi 96
+skinparam defaultFontSize 20
+skinparam classAttributeFontSize 18
+skinparam classStereotypeFontSize 16
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam nodesep 24
+skinparam ranksep 30
+hide circle
+hide empty methods
+
+top to bottom direction
+title Execution values / cleanup · Processing
+class "lifecycle.Claim" as Claim <<frozen execution value>> $PROC {
+ job_id: UUID
+ attempt_id: UUID
+ lease_token: UUID
+ owner_id: UUID
+ source: dict
+ operations: list
+ source_url: str
+ source_url_expires_at: datetime
+ deadline_at: datetime
+}
+class "processing.models.CleanupIntent" as Cleanup <<cleanup ledger>> $INFRA {
+ attempt_id: UUID
+ job_id: UUID
+ next_try_at: datetime
+ tries: int
+ created_at: datetime
+ retired_at: datetime | None
+}
+class "processing.lifecycle" as Life <<module>> $PROC {
+ claim(factory, job_id, attempt_id, settings)
+ live(pair, token, now)
+ heartbeat(factory, work, settings)
+ finish(factory, work, *, outputs, error)
+}
+class SubmissionGuard <<independent cancellation root>> $PROC {
+ asset_id: UUID
+ owner_id: UUID
+ job_id: UUID | None
+ deleted_at: datetime | None
+}
+note bottom of SubmissionGuard
+ _guard(): create / lock; verify owner.
+ Cancel before submit: tombstone without Job.
+ Later submit cannot resurrect the asset.
+ job_id: nullable local FK, not UNIQUE.
+end note
+Claim -[hidden]down- Life
+Cleanup -[hidden]down- SubmissionGuard
+Life ..up> Claim : claim() creates;
+Life ..right> Cleanup : cleanup_intent()
+note bottom of Claim
+  Claim is local worker authority; never a queue payload.
+  Frozen fields; nested dict/list remain mutable.
+  Lease is Attempt columns, not a Lease class.
+  V1 legacy source_url is empty; Source descriptor is used.
+end note
+note bottom of Cleanup
+  Per Attempt: 0..1 intent; per Job: 0..* intents.
+  job_id + attempt_id are local FKs.
+  finish(error), retry, cancel, interrupt:
+  stage intent; recovery scans attempt prefix.
+end note
+legend bottom
+  Dashed = dependency; IDs reference Job / Attempt.
+  lock_pair() + live() enforce the heartbeat / finish fences.
+endlegend
+
+@enduml

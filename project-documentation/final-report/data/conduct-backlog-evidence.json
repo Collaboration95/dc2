@@ -1,0 +1,818 @@
+[
+  {
+    "body": "<!-- agent-orchestration:issue-key=dc2-E0 -->\n\nOutcome: Reviewed plan and auditable delivery.\n\nPersonas: Jules, Sam.\n\nChildren: G1, G2.\n\nCompletion requires all children merged with acceptance evidence and independent review. No AWS actions. Source: `docs/execution/plan.md`.\n",
+    "closedAt": "2026-10-12T16:22:29Z",
+    "createdAt": "2026-10-12T16:03:54Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79cg",
+        "name": "pre-aws",
+        "description": "Authorized local delivery; no AWS actions",
+        "color": "0e8a16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79tA",
+        "name": "planning",
+        "description": "Planning and independent review",
+        "color": "bfdadc"
+      }
+    ],
+    "number": 1,
+    "state": "CLOSED",
+    "title": "[E0] Reviewed plan and auditable delivery",
+    "url": "https://github.com/Collaboration95/dc2/issues/1"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=dc2-E1 -->\n\nOutcome: Reproducible local workspace and fast checks.\n\nPersonas: Jules, Sam.\n\nChildren: F1, F2, F3.\n\nCompletion requires all children merged with acceptance evidence and independent review. No AWS actions. Source: `docs/execution/plan.md`.\n",
+    "closedAt": "2026-10-12T17:19:37Z",
+    "createdAt": "2026-10-12T16:03:56Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79cg",
+        "name": "pre-aws",
+        "description": "Authorized local delivery; no AWS actions",
+        "color": "0e8a16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i7-NQ",
+        "name": "foundation",
+        "description": "Reproducible local setup and checks",
+        "color": "1d76db"
+      }
+    ],
+    "number": 2,
+    "state": "CLOSED",
+    "title": "[E1] Reproducible local workspace and fast checks",
+    "url": "https://github.com/Collaboration95/dc2/issues/2"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=dc2-E2 -->\n\nOutcome: Independent processing and reliable attempts.\n\nPersonas: Arun, Sam.\n\nChildren: P1, P2, P3.\n\nCompletion requires all children merged with acceptance evidence and independent review. No AWS actions. Source: `docs/execution/plan.md`.\n",
+    "closedAt": "2026-10-12T18:28:29Z",
+    "createdAt": "2026-10-12T16:03:58Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79cg",
+        "name": "pre-aws",
+        "description": "Authorized local delivery; no AWS actions",
+        "color": "0e8a16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i7-pQ",
+        "name": "processing",
+        "description": "Processing service and workers",
+        "color": "fbca04"
+      }
+    ],
+    "number": 3,
+    "state": "CLOSED",
+    "title": "[E2] Independent processing and reliable attempts",
+    "url": "https://github.com/Collaboration95/dc2/issues/3"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=dc2-E3 -->\n\nOutcome: Media ownership and compatible public workflow.\n\nPersonas: Arun, Jules.\n\nChildren: M1, M2, M3.\n\nCompletion requires all children merged with acceptance evidence and independent review. No AWS actions. Source: `docs/execution/plan.md`.\n",
+    "closedAt": "2026-10-12T19:08:05Z",
+    "createdAt": "2026-10-12T16:04:00Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79cg",
+        "name": "pre-aws",
+        "description": "Authorized local delivery; no AWS actions",
+        "color": "0e8a16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i7-9A",
+        "name": "media",
+        "description": "Media Management and data ownership",
+        "color": "d93f0b"
+      }
+    ],
+    "number": 4,
+    "state": "CLOSED",
+    "title": "[E3] Media ownership and compatible public workflow",
+    "url": "https://github.com/Collaboration95/dc2/issues/4"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=dc2-E4 -->\n\nOutcome: Web and independent Publisher CLI.\n\nPersonas: Maya, Arun, Jules.\n\nChildren: C1, C2.\n\nCompletion requires all children merged with acceptance evidence and independent review. No AWS actions. Source: `docs/execution/plan.md`.\n",
+    "closedAt": "2026-10-12T19:44:42Z",
+    "createdAt": "2026-10-12T16:04:02Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79cg",
+        "name": "pre-aws",
+        "description": "Authorized local delivery; no AWS actions",
+        "color": "0e8a16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i7_TA",
+        "name": "clients",
+        "description": "Browser and independent Publisher CLI",
+        "color": "0052cc"
+      }
+    ],
+    "number": 5,
+    "state": "CLOSED",
+    "title": "[E4] Web and independent Publisher CLI",
+    "url": "https://github.com/Collaboration95/dc2/issues/5"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=dc2-E5 -->\n\nOutcome: Integrated evidence and local release readiness.\n\nPersonas: Sam, all personas.\n\nChildren: V1, V2, V3, V4, V5.\n\nCompletion requires all children merged with acceptance evidence and independent review. No AWS actions. Source: `docs/execution/plan.md`.\n",
+    "closedAt": "2026-10-13T01:20:22Z",
+    "createdAt": "2026-10-12T16:04:04Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79cg",
+        "name": "pre-aws",
+        "description": "Authorized local delivery; no AWS actions",
+        "color": "0e8a16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i8ASw",
+        "name": "verification",
+        "description": "Integrated evidence and release acceptance",
+        "color": "006b75"
+      }
+    ],
+    "number": 6,
+    "state": "CLOSED",
+    "title": "[E5] Integrated evidence and local release readiness",
+    "url": "https://github.com/Collaboration95/dc2/issues/6"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=dc2-M1 -->\n\nAs Arun, Jules, we need **create media-owned assets and durable idempotent submission** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 2; epic E3. Paths/interfaces: `media/models/**`, `media/repositories/**`, `media/services/processing_client.py`, `media/api/uploads.py`, `media migrations`.\n\n## Acceptance\n\n- [x] Media database owns users, immutable source descriptors, Assets, request keys and pending intent; no Processing tables/imports.\n- [x] Upload/edit Idempotency-Key preserves one Asset; source size/type/owner validated before acceptance and source replay is immutable.\n- [x] Submit uses authenticated HTTP and prepared contract; temporary P failure preserves durable pending intake.\n- [x] Reverse source-access endpoint renews signed URLs only for matching owner/revision/live Asset.\n\n## Verification\n\n- make test-media\n- Real Postgres owner/request-key isolation and pending restart tests.\n\n## Dependencies and risk\n\nDependencies: F3. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #4. Dependencies: #11.\n",
+    "closedAt": "2026-10-12T19:08:04Z",
+    "createdAt": "2026-10-12T16:04:39Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79cg",
+        "name": "pre-aws",
+        "description": "Authorized local delivery; no AWS actions",
+        "color": "0e8a16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i7-9A",
+        "name": "media",
+        "description": "Media Management and data ownership",
+        "color": "d93f0b"
+      }
+    ],
+    "number": 15,
+    "state": "CLOSED",
+    "title": "[M1] Create Media-owned Assets and durable idempotent submission",
+    "url": "https://github.com/Collaboration95/dc2/issues/15"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=dc2-M2 -->\n\nAs Arun, Maya, Jules, we need **serve compatible status, retry and authorised mp4/hls playback** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 2; epic E3. Paths/interfaces: `media/api/jobs.py`, `media/api/hls.py`, `media/schemas/**`, `media/services/output_urls.py`.\n\n## Acceptance\n\n- [x] Existing web routes retain public Asset IDs; submitted status is composed from live owner-filtered P reads.\n- [x] Pending maps queued/pending without outputs; dependency outage or missing linked P job returns503.\n- [x] Stored-source retry delegates with stable request ID and does not upload again.\n- [x] Owner-only MP4 URLs and HLS manifests/segments work across local HTTPS/storage topology, including inherited formats.\n\n## Verification\n\n- make test-media\n- API compatibility + HLS/primary playback tests against controlled Processing boundary.\n\n## Dependencies and risk\n\nDependencies: M1. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #4. Dependencies: #15.\n",
+    "closedAt": "2026-10-12T19:08:04Z",
+    "createdAt": "2026-10-12T16:04:44Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79cg",
+        "name": "pre-aws",
+        "description": "Authorized local delivery; no AWS actions",
+        "color": "0e8a16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i7-9A",
+        "name": "media",
+        "description": "Media Management and data ownership",
+        "color": "d93f0b"
+      }
+    ],
+    "number": 16,
+    "state": "CLOSED",
+    "title": "[M2] Serve compatible status, retry and authorised MP4/HLS playback",
+    "url": "https://github.com/Collaboration95/dc2/issues/16"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=dc2-C1 -->\n\nAs Maya, Jules, we need **build the independent publisher cli against public apis** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 2; epic E4. Paths/interfaces: `publisher/**`, `CLI packaging`, `tests/cli/**`.\n\n## Acceptance\n\n- [x] CLI register/login, folder publish, per-file outcome/status, playback access and stored-source retry use only public API/cookie session.\n- [x] No service-code imports or DB credentials; bounded polls/timeouts and meaningful exit codes for partial batch failure.\n- [x] JSON output is machine readable; passwords/tokens excluded from output; actual implementation effort and size recorded.\n\n## Verification\n\n- make test-cli against controlled public-contract responses\n- Inspect imports/dependencies; live mixed-success batch and stored-source retry are V1 acceptance after both backends integrate.\n\n## Dependencies and risk\n\nDependencies: F3. Risk: Medium.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #5. Dependencies: #11.\n",
+    "closedAt": "2026-10-12T19:44:41Z",
+    "createdAt": "2026-10-12T16:04:52Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79cg",
+        "name": "pre-aws",
+        "description": "Authorized local delivery; no AWS actions",
+        "color": "0e8a16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i7_TA",
+        "name": "clients",
+        "description": "Browser and independent Publisher CLI",
+        "color": "0052cc"
+      }
+    ],
+    "number": 18,
+    "state": "CLOSED",
+    "title": "[C1] Build the independent Publisher CLI against public APIs",
+    "url": "https://github.com/Collaboration95/dc2/issues/18"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=dc2-C2 -->\n\nAs Arun, we need **complete browser stored-source retry and idempotent requests** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 2; epic E4. Paths/interfaces: `frontend/app.js`, `frontend/*.test.js`.\n\n## Acceptance\n\n- [x] Browser retry invokes failed job retry endpoint and never resends remembered video.\n- [x] Uploads/edits/retries use stable request IDs for transport replay; repeated user actions remain intentional new requests.\n- [x] Pending/error503 states remain understandable; preserve existing design/editor behavior and roadmap visuals.\n\n## Verification\n\n- make test-frontend\n- Browser network assertions for retry with unchanged source and no upload request.\n\n## Dependencies and risk\n\nDependencies: F3. Risk: Medium.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #5. Dependencies: #11.\n",
+    "closedAt": "2026-10-12T19:44:41Z",
+    "createdAt": "2026-10-12T16:04:55Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79cg",
+        "name": "pre-aws",
+        "description": "Authorized local delivery; no AWS actions",
+        "color": "0e8a16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i7_TA",
+        "name": "clients",
+        "description": "Browser and independent Publisher CLI",
+        "color": "0052cc"
+      }
+    ],
+    "number": 19,
+    "state": "CLOSED",
+    "title": "[C2] Complete browser stored-source retry and idempotent requests",
+    "url": "https://github.com/Collaboration95/dc2/issues/19"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=dc2-V4 -->\n\nAs Sam, we need **automate independent local processing release, smoke and rollback** to complete the approved reusable-media workflow locally.\n\n## Scope\n\nWave 4; epic E5. Paths/interfaces: `scripts/release/**`, `compose release overrides`, `docs/execution/evidence/**`.\n\n## Acceptance\n\n- [ ] Build/version per-service images; release candidate Processing independently and smoke-test within10min.\n- [ ] MM container identity/image and media_db migration revision remain unchanged; workers drain or fail visibly within bounded time.\n- [ ] Injected bad candidate fails promotion, rolls back to prior tested image and recovers smoke.\n- [ ] Scripts are local-only, repeatable and record exact images/migrations/timestamps; no AWS credentials or actions.\n- [ ] Exact candidate image digest has passing build/test and inherited zero-fixable-HIGH/CRITICAL scan evidence before promotion. A failed scan blocks promotion; shared API/worker digest needs one scan.\n\n## Verification\n\n- make evidence-release\n\n## Dependencies and risk\n\nDependencies: V1. Risk: High.\n\n## Out of scope and stop conditions\n\nNo AWS, inherited Alibaba operations, new product features, UI redesign or elaborate security infrastructure. Do not delete unrelated data or change global Docker settings. Record failing acceptance or resource limitations; keep working on in-scope fixes. Escalate only genuinely unavailable external prerequisites. Do not claim a result without evidence.\n\nA grouped PR may close multiple related issues after independent review and checks. Record commands/results and the exact tested commit. See `docs/execution/plan.md`.\n\nGitHub parent: #6. Dependencies: #20.\n",
+    "closedAt": "2026-10-13T00:49:12Z",
+    "createdAt": "2026-10-12T16:05:14Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79cg",
+        "name": "pre-aws",
+        "description": "Authorized local delivery; no AWS actions",
+        "color": "0e8a16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i8ASw",
+        "name": "verification",
+        "description": "Integrated evidence and release acceptance",
+        "color": "006b75"
+      }
+    ],
+    "number": 23,
+    "state": "CLOSED",
+    "title": "[V4] Automate independent local Processing release, smoke and rollback",
+    "url": "https://github.com/Collaboration95/dc2/issues/23"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=aws2-storage -->\n\n## Outcome\n\n[V1 epic] Visible domain APIs, ownership and S3 intake. Source: `docs/execution/aws/architecture-plan.md` and `v1/backlog.json`.\n\nDeliver the selected visible two-domain V1 with independent APIs, data/roles/migrations/releases, SQS instead of Redis/RQ, private S3 and finite Fargate encoders. Existing code/preparation is a baseline; new V1 behavior is not implemented by this plan publication.\n\nAcceptance requires relevant implementation merged with local checks and the assigned authentic cloud evidence (#63\u2013#67). This outcome remains open Blocked while cloud prerequisites/evidence are absent; offline children can still become Ready. No V2 issue is a prerequisite.\n\n## Required/current child handoffs\n\n- #81 \u2014 [V1] Freeze gateway routes, trusted identity and message contracts (Ready)\n- #82 \u2014 [V1] Package Media Lambda with native credentials and owned SQL (Backlog)\n- #83 \u2014 [V1] Package Processing Lambda API and owned job lifecycle (Backlog)\n- #85 \u2014 [V1] Replace peer calls with commands, results and owned projections (Backlog)\n- #86 \u2014 [V1] Move browser and Publisher uploads directly to authorized S3 (Backlog)\n\n## Completed historical AWS2 preparation\n\n#47, #48, #49. These remain closed Done and do not certify the new V1 target. Frozen original contracts are retained in `docs/execution/aws/readiness/backlog.json`.\n\nPlan envelope approximately $200 (USD worksheet assumption); 48-hour local integration target, three elapsed agentic days baseline/five maximum, existing October delivery anchors. No AWS/Alibaba/deployment/spend is authorized by this planning task. Preserve course documents, roadmap illustrations, evidence and local data.\n",
+    "closedAt": "2026-10-17T17:15:29Z",
+    "createdAt": "2026-10-14T17:39:42Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79tA",
+        "name": "planning",
+        "description": "Planning and independent review",
+        "color": "bfdadc"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i7-9A",
+        "name": "media",
+        "description": "Media Management and data ownership",
+        "color": "d93f0b"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9NEDyA",
+        "name": "v1",
+        "description": "Required visible microservices baseline",
+        "color": "1d76db"
+      }
+    ],
+    "number": 41,
+    "state": "CLOSED",
+    "title": "[V1 epic] Visible domain APIs, ownership and S3 intake",
+    "url": "https://github.com/Collaboration95/dc2/issues/41"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=aws2-environment -->\n\n## Outcome\n\n[V1 epic] Managed runtime, session controls and budget. Source: `docs/execution/aws/architecture-plan.md` and `v1/backlog.json`.\n\nDeliver the selected visible two-domain V1 with independent APIs, data/roles/migrations/releases, SQS instead of Redis/RQ, private S3 and finite Fargate encoders. Existing code/preparation is a baseline; new V1 behavior is not implemented by this plan publication.\n\nAcceptance requires relevant implementation merged with local checks and the assigned authentic cloud evidence (#63\u2013#67). This outcome remains open Blocked while cloud prerequisites/evidence are absent; offline children can still become Ready. No V2 issue is a prerequisite.\n\n## Required/current child handoffs\n\n- #89 \u2014 [V1] Define managed Gateway/Lambda/SQS/Aurora infrastructure offline (Backlog)\n- #91 \u2014 [V1] Adapt session open/close, cost model and evidence protocols (Backlog)\n- #45 \u2014 [V1] Record actual project account, currency and scoped cloud authorization (Blocked)\n- #46 \u2014 [V1 decision] Replace the public EC2 HTTP origin with managed HTTPS (Review)\n\n## Completed historical AWS2 preparation\n\n#50, #51, #52, #53, #61, #62. These remain closed Done and do not certify the new V1 target. Frozen original contracts are retained in `docs/execution/aws/readiness/backlog.json`.\n\nPlan envelope approximately $200 (USD worksheet assumption); 48-hour local integration target, three elapsed agentic days baseline/five maximum, existing October delivery anchors. No AWS/Alibaba/deployment/spend is authorized by this planning task. Preserve course documents, roadmap illustrations, evidence and local data.\n",
+    "closedAt": "2026-10-17T17:15:32Z",
+    "createdAt": "2026-10-14T17:39:47Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79tA",
+        "name": "planning",
+        "description": "Planning and independent review",
+        "color": "bfdadc"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i7-NQ",
+        "name": "foundation",
+        "description": "Reproducible local setup and checks",
+        "color": "1d76db"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9NEDyA",
+        "name": "v1",
+        "description": "Required visible microservices baseline",
+        "color": "1d76db"
+      }
+    ],
+    "number": 42,
+    "state": "CLOSED",
+    "title": "[V1 epic] Managed runtime, session controls and budget",
+    "url": "https://github.com/Collaboration95/dc2/issues/42"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=aws2-delivery -->\n\n## Outcome\n\n[V1 epic] Redis-free delivery, finite workers and independent releases. Source: `docs/execution/aws/architecture-plan.md` and `v1/backlog.json`.\n\nDeliver the selected visible two-domain V1 with independent APIs, data/roles/migrations/releases, SQS instead of Redis/RQ, private S3 and finite Fargate encoders. Existing code/preparation is a baseline; new V1 behavior is not implemented by this plan publication.\n\nAcceptance requires relevant implementation merged with local checks and the assigned authentic cloud evidence (#63\u2013#67). This outcome remains open Blocked while cloud prerequisites/evidence are absent; offline children can still become Ready. No V2 issue is a prerequisite.\n\n## Required/current child handoffs\n\n- #84 \u2014 [V1] Replace Redis/RQ delivery with SQS and durable SQL repair (Backlog)\n- #87 \u2014 [V1] Run finite SQS Fargate encoders and remove source callbacks (Backlog)\n- #88 \u2014 [V1] Implement bounded Lambda repair and late-output cleanup (Backlog)\n- #90 \u2014 [V1] Adapt independent releases, migrations and rollback to Lambda/Fargate (Backlog)\n\n## Completed historical AWS2 preparation\n\n#54, #55, #56, #57, #59, #60. These remain closed Done and do not certify the new V1 target. Frozen original contracts are retained in `docs/execution/aws/readiness/backlog.json`.\n\nPlan envelope approximately $200 (USD worksheet assumption); 48-hour local integration target, three elapsed agentic days baseline/five maximum, existing October delivery anchors. No AWS/Alibaba/deployment/spend is authorized by this planning task. Preserve course documents, roadmap illustrations, evidence and local data.\n",
+    "closedAt": "2026-10-17T17:15:35Z",
+    "createdAt": "2026-10-14T17:39:52Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79tA",
+        "name": "planning",
+        "description": "Planning and independent review",
+        "color": "bfdadc"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i7-pQ",
+        "name": "processing",
+        "description": "Processing service and workers",
+        "color": "fbca04"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9NEDyA",
+        "name": "v1",
+        "description": "Required visible microservices baseline",
+        "color": "1d76db"
+      }
+    ],
+    "number": 43,
+    "state": "CLOSED",
+    "title": "[V1 epic] Redis-free delivery, finite workers and independent releases",
+    "url": "https://github.com/Collaboration95/dc2/issues/43"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=aws2-acceptance -->\n\n## Outcome\n\n[V1 epic] Authentic acceptance and immutable submission baseline. Source: `docs/execution/aws/architecture-plan.md` and `v1/backlog.json`.\n\nDeliver the selected visible two-domain V1 with independent APIs, data/roles/migrations/releases, SQS instead of Redis/RQ, private S3 and finite Fargate encoders. Existing code/preparation is a baseline; new V1 behavior is not implemented by this plan publication.\n\nAcceptance requires relevant implementation merged with local checks and the assigned authentic cloud evidence (#63\u2013#67). This outcome remains open Blocked while cloud prerequisites/evidence are absent; offline children can still become Ready. No V2 issue is a prerequisite.\n\n## Required/current child handoffs\n\n- #92 \u2014 [V1] Verify the complete Redis-free workflow locally (Backlog)\n- #63 \u2014 [V1 evidence] Deploy the approved target and prove real workflow boundaries (Blocked)\n- #64 \u2014 [V1 evidence] Prove 1/2/3 encoders and bounded SQS recovery on AWS (Blocked)\n- #65 \u2014 [V1 evidence] Capture independent Lambda/Fargate release and rollback (Blocked)\n- #66 \u2014 [V1 evidence] Measure warm API latency with an independent Fargate generator (Blocked)\n- #67 \u2014 [V1 evidence] Reconcile actual spend, close state and final V1 handoff (Blocked)\n\n## Completed historical AWS2 preparation\n\n#58. These remain closed Done and do not certify the new V1 target. Frozen original contracts are retained in `docs/execution/aws/readiness/backlog.json`.\n\nPlan envelope approximately $200 (USD worksheet assumption); 48-hour local integration target, three elapsed agentic days baseline/five maximum, existing October delivery anchors. No AWS/Alibaba/deployment/spend is authorized by this planning task. Preserve course documents, roadmap illustrations, evidence and local data.\n",
+    "closedAt": "2026-10-17T17:15:37Z",
+    "createdAt": "2026-10-14T17:39:57Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79tA",
+        "name": "planning",
+        "description": "Planning and independent review",
+        "color": "bfdadc"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i8ASw",
+        "name": "verification",
+        "description": "Integrated evidence and release acceptance",
+        "color": "006b75"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9NEDyA",
+        "name": "v1",
+        "description": "Required visible microservices baseline",
+        "color": "1d76db"
+      }
+    ],
+    "number": 44,
+    "state": "CLOSED",
+    "title": "[V1 epic] Authentic acceptance and immutable submission baseline",
+    "url": "https://github.com/Collaboration95/dc2/issues/44"
+  },
+  {
+    "body": "This publishes the final evidence for the AWS preparation goal into `work/aws2-prep-20261015`. It changes documentation only; no code or AWS.\n\n**Integration state:** stack #75\u2192#74\u2192#73\u2192#72\u2192#71 merged at exact heads after every required check passed. Integration head `c82fe99` has the same tree as `57f7c5f`, the source that passed the final independent review. Main umbrella #70 stays a draft.\n\n**Added in `docs/execution/aws/prep/`:**\n- `completion.json`: scope ledger with SHAs, merge receipts, diff against planning Main `95be13a` and all 28 verified closures.\n- `completion.html`: self-contained report.\n- `summary.md`.\n- `audits/review-r1..r5.md`.\n- `evidence/`: R11 composition, preservation, protected source, ZAP disposition and findings, merge, gate and closure receipts.\n\n**Updated:** the prep README and review response now record the final status instead of \"review pending\". A worklog entry was added.\n\n**Limits stated in the docs:**\n- R11 ran on clean `53f9dca` with real local services and a synthetic AWS control plane. It was not relabeled to `57f7c5f`.\n- The 44,877-byte export has `backup_claim=false`, and no restore was run.\n- The hosted ZAP scan retained 12 alert types, all risk 0 or 1.\n- No AWS, account, spend, bill or restore result was produced or certified.\n\n**Checks:** whitespace, relative links, JSON parsing and a privacy pattern scan (DSNs, signed URLs, cookies, auth headers, keys) pass.\n",
+    "closedAt": "2026-10-14T22:03:16Z",
+    "createdAt": "2026-10-14T21:55:55Z",
+    "labels": [],
+    "number": 76,
+    "state": "MERGED",
+    "title": "Publish AWS preparation completion ledger and scoped closures",
+    "url": "https://github.com/Collaboration95/dc2/pull/76"
+  },
+  {
+    "body": "HTML-only follow-up to #76, requested in layout QA of `docs/execution/aws/prep/completion.html`.\n\n- Issue links now use the foreground colour with an underline. The accent foreground was almost white in the light theme, which hid the links.\n- The 28-row outcome table and its filter are inside a collapsed `<details>`, so the report metrics fit the first frame.\n\nThe embedded `completion.json` data, counts, scope text and evidence details are unchanged. The HTML is rebuilt by the same generator.\n",
+    "closedAt": "2026-10-14T22:10:40Z",
+    "createdAt": "2026-10-14T22:03:43Z",
+    "labels": [],
+    "number": 77,
+    "state": "MERGED",
+    "title": "Keep completion report links visible and fold the outcome table",
+    "url": "https://github.com/Collaboration95/dc2/pull/77"
+  },
+  {
+    "body": "Final HTML-only QA follow-up to #77 for `docs/execution/aws/prep/completion.html`.\n\nIn dark mode, the eight phase tiles had a light green fallback background under inherited white text, so the labels could not be read. `.phase` now uses `var(--card)` for the background, `var(--foreground)` for the text, a border and 16px padding.\n\nStatuses, counts, embedded `completion.json` data and evidence text are unchanged.\n",
+    "closedAt": "2026-10-14T22:17:10Z",
+    "createdAt": "2026-10-14T22:11:00Z",
+    "labels": [],
+    "number": 78,
+    "state": "MERGED",
+    "title": "Make completion report phase labels readable in dark mode",
+    "url": "https://github.com/Collaboration95/dc2/pull/78"
+  },
+  {
+    "body": "Required AWS/account acceptance was closed after local preparation despite still lacking authentic evidence. Reopen #45, #46, #63\u2013#67 and epics #41\u2013#44, keep their authoritative Project Workflow Blocked, and record completed local preparation separately. Sixteen preparation issues #47\u2013#62 stay closed; optional #68 stays not planned.\n\nUpdate the ledger, HTML report, summary and worklog to show the current 11 open blockers. Preserve prior closure receipts as historical snapshots and add a fresh reconciliation receipt. Main PR #70 remains a draft; no AWS/account operation or spending occurred.\n\nValidation: fresh authenticated `gh` reads confirm all 28 issue contracts unchanged, 11 OPEN/Blocked/Todo, 16 CLOSED/Done and one optional NOT_PLANNED; all 30 historical Project items unchanged. Ledger/embedded HTML parity and responsive light/dark previews pass. This change contains documentation only; application code and runtime evidence are unchanged.\n",
+    "closedAt": "2026-10-14T23:22:08Z",
+    "createdAt": "2026-10-14T23:15:20Z",
+    "labels": [],
+    "number": 79,
+    "state": "MERGED",
+    "title": "Keep required AWS evidence open and blocked after preparation",
+    "url": "https://github.com/Collaboration95/dc2/pull/79"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=aws3-v2-experiments -->\n\n## Outcome\n\n[V2 epic] Optional measured migrations after accepted V1. Source: `docs/execution/aws/architecture-plan.md` and `v1/backlog.json`.\n\nOptional after accepted immutable `project2-v1`, with remaining time and budget. Pick one measured experiment, keep V1 available and merge only demonstrated improvements. No V1 issue depends on this epic or its children. Workflow Backlog, not Ready.\n\n## Required/current child handoffs\n\n- #93 \u2014 [V2 experiment] Benchmark bounded short encodes on Lambda (Backlog)\n- #94 \u2014 [V2 experiment] Measure separate database clusters and pause behavior (Backlog)\n- #68 \u2014 [V2 experiment] Optional unattended worker starts and further cost cuts (Backlog)\n\nPlan envelope approximately $200 (USD worksheet assumption); 48-hour local integration target, three elapsed agentic days baseline/five maximum, existing October delivery anchors. No AWS/Alibaba/deployment/spend is authorized by this planning task. Preserve course documents, roadmap illustrations, evidence and local data.\n",
+    "closedAt": "2026-10-21T07:45:00Z",
+    "createdAt": "2026-10-15T05:07:58Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79tA",
+        "name": "planning",
+        "description": "Planning and independent review",
+        "color": "bfdadc"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9NEEFw",
+        "name": "v2",
+        "description": "Optional measured experiments after accepted V1",
+        "color": "bfbfbf"
+      }
+    ],
+    "number": 80,
+    "state": "CLOSED",
+    "title": "[V2 epic] Optional measured migrations after accepted V1",
+    "url": "https://github.com/Collaboration95/dc2/issues/80"
+  },
+  {
+    "body": "## Outcome\n\nTurn the operator-run V1 deploy into a pipeline that can be shown and recorded. The briefing requires scripted build, test, security checks and deployment, and asks for *a recorded pipeline run and a deployment smoke test*. The presentation demo suggests showing or running the pipeline. The proposal (\u00a72.5, \u00a73.3) promised a deploy step per service followed by an automated smoke test, plus secret scanning and published OpenAPI documents.\n\n## Children\n\n- [x] #182: GitHub Actions CD workflow wrapping the V1 deploy, release and teardown scripts\n- [x] #183: Add secret scanning to CI\n- [x] #184: Publish OpenAPI documents for the Media and Processing public APIs with a drift check\n\n## Context\n\nGap analysis of 2026-10-18: V1 (tag `project2-v1`) meets the core build. What remains for submission is the visible CD pipeline, one cloud evidence/demo session, as-built documentation, the 26 Oct presentation and the 16 Nov report. V2 (#80) is not required by the course or the proposal. Sources: `project-documentation/Team17-Proposal.docx`, `project-documentation/briefing-requirements.txt`, the report template and the presentation guidelines under `project-documentation/original-reference/`.\n",
+    "closedAt": "2026-10-18T14:28:22Z",
+    "createdAt": "2026-10-17T16:47:10Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i8ASw",
+        "name": "verification",
+        "description": "Integrated evidence and release acceptance",
+        "color": "006b75"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9tal-g",
+        "name": "closeout",
+        "description": "Post-V1 work needed for submission: pipeline, docs, presentation, report",
+        "color": "0E8A16"
+      }
+    ],
+    "number": 178,
+    "state": "CLOSED",
+    "title": "[Close-out epic] Visible DevOps pipeline: CI, deploy, smoke, release and rollback",
+    "url": "https://github.com/Collaboration95/dc2/issues/178"
+  },
+  {
+    "body": "## Outcome\n\nr1017b is torn down. Do one deploy from the tag that collects everything still missing in a single sitting: deploy through the new pipeline, an upload-to-playback smoke test, a backlog throughput run on the V1 Fargate encoders, an independent Processing release, a recorded demo, then teardown and spend reconciliation. Budget: one session of 2-3 h, about $2-5. The deploy runbook estimates $0.40-2.00 per 50-80 min deploy.\n\n## Children\n\n- [x] #185: Backlog throughput mode for the capacity proof (jobs/min at cap 1, 2, 3)\n- [ ] #186: Run the single cloud session: pipeline deploy, smoke, backlog scaling, independent release, demo recording, teardown\n\n## Context\n\nGap analysis of 2026-10-18: V1 (tag `project2-v1`) meets the core build. What remains for submission is the visible CD pipeline, one cloud evidence/demo session, as-built documentation, the 26 Oct presentation and the 16 Nov report. V2 (#80) is not required by the course or the proposal. Sources: `project-documentation/Team17-Proposal.docx`, `project-documentation/briefing-requirements.txt`, the report template and the presentation guidelines under `project-documentation/original-reference/`.\n",
+    "closedAt": "2026-10-19T18:09:32Z",
+    "createdAt": "2026-10-17T16:47:11Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i8ASw",
+        "name": "verification",
+        "description": "Integrated evidence and release acceptance",
+        "color": "006b75"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9tal-g",
+        "name": "closeout",
+        "description": "Post-V1 work needed for submission: pipeline, docs, presentation, report",
+        "color": "0E8A16"
+      }
+    ],
+    "number": 179,
+    "state": "CLOSED",
+    "title": "[Close-out epic] One cloud session from project2-v1: pipeline run, backlog scaling, demo recording",
+    "url": "https://github.com/Collaboration95/dc2/issues/179"
+  },
+  {
+    "body": "## Outcome\n\nThe proposal's DDD model and decisions (AD-01 to AD-08) describe the pre-AWS design: REST SubmitJob, Redis/RQ, containers on one host. V1 replaced these with API Gateway, two Lambda domain APIs, SQS commands/results, Aurora and finite Fargate encoders. The report template (\u00a73.1.4 Platform Design, \u00a73.2.3 Persistence) and the presentation both need the as-built view. This epic is documentation only. It adds no new services or code paths.\n\n## Children\n\n- [x] #187: As-built DDD model: language, two bounded contexts, aggregates, commands/events, context map\n- [x] #188: ADR register and proposal\u2192V1 deviation table, logical and physical diagrams\n- [x] #189: Evidence index: quality scenarios, targets and results, with local and cloud labelled\n- [x] #190: Submission repo hygiene: start-here README, historical docs labelled, stale branches and worktrees removed\n\n## Context\n\nGap analysis of 2026-10-18: V1 (tag `project2-v1`) meets the core build. What remains for submission is the visible CD pipeline, one cloud evidence/demo session, as-built documentation, the 26 Oct presentation and the 16 Nov report. V2 (#80) is not required by the course or the proposal. Sources: `project-documentation/Team17-Proposal.docx`, `project-documentation/briefing-requirements.txt`, the report template and the presentation guidelines under `project-documentation/original-reference/`.\n",
+    "closedAt": "2026-10-18T14:28:24Z",
+    "createdAt": "2026-10-17T16:47:13Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC463GCA",
+        "name": "documentation",
+        "description": "Improvements or additions to documentation",
+        "color": "0075ca"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9tal-g",
+        "name": "closeout",
+        "description": "Post-V1 work needed for submission: pipeline, docs, presentation, report",
+        "color": "0E8A16"
+      }
+    ],
+    "number": 180,
+    "state": "CLOSED",
+    "title": "[Close-out epic] As-built architecture, DDD and evidence documentation",
+    "url": "https://github.com/Collaboration95/dc2/issues/180"
+  },
+  {
+    "body": "## Outcome\n\nThe course deliverables. Neither the deck nor the report draft exists yet; the README references `project-2-report-draft.md`, but that file is not in the repository. Both follow the original template and outline, and both report the actual milestones and the effort of each member.\n\n## Children\n\n- [ ] #191: Effort and milestone ledger per member, plus progress report\n- [ ] #192: Presentation deck, demo script and rehearsal for 26 Oct\n- [ ] #193: Final report per the course template, with presentation feedback\n\n## Context\n\nGap analysis of 2026-10-18: V1 (tag `project2-v1`) meets the core build. What remains for submission is the visible CD pipeline, one cloud evidence/demo session, as-built documentation, the 26 Oct presentation and the 16 Nov report. V2 (#80) is not required by the course or the proposal. Sources: `project-documentation/Team17-Proposal.docx`, `project-documentation/briefing-requirements.txt`, the report template and the presentation guidelines under `project-documentation/original-reference/`.",
+    "closedAt": null,
+    "createdAt": "2026-10-17T16:47:15Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC463GCA",
+        "name": "documentation",
+        "description": "Improvements or additions to documentation",
+        "color": "0075ca"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79OA",
+        "name": "epic",
+        "description": "Parent delivery outcome",
+        "color": "5319e7"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79tA",
+        "name": "planning",
+        "description": "Planning and independent review",
+        "color": "bfdadc"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9tal-g",
+        "name": "closeout",
+        "description": "Post-V1 work needed for submission: pipeline, docs, presentation, report",
+        "color": "0E8A16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9tiLoQ",
+        "name": "needs-human-approval",
+        "description": "Do not start without explicit human approval",
+        "color": "B60205"
+      }
+    ],
+    "number": 181,
+    "state": "OPEN",
+    "title": "[Close-out epic] Presentation (26 Oct) and final report (16 Nov) \u2014 DO NOT START without human approval",
+    "url": "https://github.com/Collaboration95/dc2/issues/181"
+  },
+  {
+    "body": "Parent epic: #181\n\n## Outcome\nThe briefing requires actual milestones and the effort of each member in both the presentation and the report, the average effort for Project 2 and across both projects, and fortnightly progress reports. An agent cannot produce this; **it needs input from each member.**\n\n## Acceptance\n- [ ] `project-documentation/effort-ledger.md` lists hours per member for Project 1 and Project 2, plus the milestones actually reached, compared with proposal \u00a74.2.\n- [ ] The latest progress report is filed: completed work, hours, problems, and the next two weeks.\n\n## Owner\nAll three members. Due 23 Oct.",
+    "closedAt": null,
+    "createdAt": "2026-10-17T16:47:33Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79tA",
+        "name": "planning",
+        "description": "Planning and independent review",
+        "color": "bfdadc"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9tal-g",
+        "name": "closeout",
+        "description": "Post-V1 work needed for submission: pipeline, docs, presentation, report",
+        "color": "0E8A16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9tiLoQ",
+        "name": "needs-human-approval",
+        "description": "Do not start without explicit human approval",
+        "color": "B60205"
+      }
+    ],
+    "number": 191,
+    "state": "OPEN",
+    "title": "[Close-out] Effort and milestone ledger per member, plus progress report",
+    "url": "https://github.com/Collaboration95/dc2/issues/191"
+  },
+  {
+    "body": "Parent epic: #181\n\n## Outcome\nA 40-minute slot, following the guideline outline: overview 2+1, conduct 1.5+0.5, logical 7+2, physical 7+2, DevOps 6+1, demo 8+2.\n\n## Acceptance\n- [ ] The deck is built from the DDD doc, the ADRs, the evidence index and the diagrams.\n- [ ] Scope slide: clearly marks what was inherited from Project 1 and what Project 2 contributed.\n- [ ] Demo script: the primary path is the recorded session. The live option is the local V1 stack, plus the CD workflow run view on GitHub.\n- [ ] One full timed rehearsal on 25 Oct, with an owner assigned to each section.\n\n## Due\n25 Oct.",
+    "closedAt": null,
+    "createdAt": "2026-10-17T16:47:35Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC463GCA",
+        "name": "documentation",
+        "description": "Improvements or additions to documentation",
+        "color": "0075ca"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9tal-g",
+        "name": "closeout",
+        "description": "Post-V1 work needed for submission: pipeline, docs, presentation, report",
+        "color": "0E8A16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9tiLoQ",
+        "name": "needs-human-approval",
+        "description": "Do not start without explicit human approval",
+        "color": "B60205"
+      }
+    ],
+    "number": 192,
+    "state": "OPEN",
+    "title": "[Close-out] Presentation deck, demo script and rehearsal for 26 Oct",
+    "url": "https://github.com/Collaboration95/dc2/issues/192"
+  },
+  {
+    "body": "Parent epic: #181\n\n## Outcome\n`project-documentation/project-2-report.md` follows the template's sections 1\u20136, then is converted to DOCX with pandoc and the existing reference doc.\n\n## Acceptance\n- [ ] Sections 3\u20135 reuse the epic C docs; they do not duplicate them.\n- [ ] \u00a72 uses the effort ledger. \u00a74 uses the evidence index, citing actual results against the targets, including any that missed.\n- [ ] \u00a75 covers source control (branch model, PR gates), CI (jobs and scanners) and CD (the workflow and its recorded run).\n- [ ] Presentation feedback is incorporated after 26 Oct. The AI-tool declaration is included, as in the proposal.\n\n## Due\nDraft by 2 Nov, final 16 Nov.",
+    "closedAt": null,
+    "createdAt": "2026-10-17T16:47:37Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC463GCA",
+        "name": "documentation",
+        "description": "Improvements or additions to documentation",
+        "color": "0075ca"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9tal-g",
+        "name": "closeout",
+        "description": "Post-V1 work needed for submission: pipeline, docs, presentation, report",
+        "color": "0E8A16"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9tiLoQ",
+        "name": "needs-human-approval",
+        "description": "Do not start without explicit human approval",
+        "color": "B60205"
+      }
+    ],
+    "number": 193,
+    "state": "OPEN",
+    "title": "[Close-out] Final report per the course template, with presentation feedback",
+    "url": "https://github.com/Collaboration95/dc2/issues/193"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=freeze-audit-20261018-easywin-demo-recordings -->\n\n## Outcome and priority\n\n**P2, about 2\u20134 hours depending on existing capture quality.** Turn the existing technical demo material into a small durable, team-accessible fallback package with verified links, version labels and a playback check. This is a focused packaging follow-up to #186, separate from implementing a live local demo (#248) and from authoring the assessed deck/report (#181/#192/#193).\n\n## Problem and evidence\n\nAudited Main `d2070db68c6b3545881eb948046b8e57f47e078e`, 18 October 2026:\n\n- [`r1018b-results.md`](https://github.com/Collaboration95/dc2/blob/d2070db68c6b3545881eb948046b8e57f47e078e/docs/execution/aws/v1/evidence/r1018b-results.md) and [#186's session result](https://github.com/Collaboration95/dc2/issues/186#issuecomment-6243593168) describe a web recording, Publisher transcript and dashboard images held outside Git in the operator's private state directory.\n- No portable reviewer/team link was verified. The comment says the scaling/pipeline screen recordings were not made; logs/receipts do exist.\n- Web time-to-player was about 134.8 seconds; the three-clip Publisher run took 272 seconds. Replaying everything serially without planning consumes a large part of the demo segment.\n- A fresh full cloud deployment takes roughly 25 minutes. It is unsuitable as an operation the audience must wait for during the presentation.\n- #248 establishes that the advertised local interactive fallback needs technical work; keep the recording fallback independent of that change.\n\nThe audit did not inspect private capture contents or test sharing permissions. Verify them before saying the package is ready.\n\n## Suggested package\n\nUse the already chosen team-accessible storage channel. Keep large video outside Git and add a small technical index containing:\n\n1. Short labelled web register/sign-in/upload/status/playback capture.\n2. CLI publishing/result capture or a readable transcript with the published client version.\n3. Scaling result figure/receipt and the corresponding pipeline run links or capture.\n4. A failure/retry/restore segment only to the extent it was actually recorded/proven; retain the distinction between operator restore and the cancelled deliberate CD rollback.\n5. Environment, source SHA, capture date, relevant image/config identities and whether each segment is recorded or live. A V1 recording must not be relabelled as current V2 proof.\n6. Playback instructions, duration and a local offline copy or equivalent backup for the presenting machine.\n\nTrim waits without falsifying elapsed times or hiding failures; use a clearly indicated cut/time annotation if necessary. Do not invent a missing capture, target result or footage. Request access to existing private files through the established owner process rather than copying a whole deployment-state directory.\n\n## Acceptance criteria\n\n- [ ] Package includes a viewable web/CLI fallback plus traceable scaling and pipeline evidence, or an explicit list of unavailable segments.\n- [ ] Each segment has correct source/environment/date labels and a link to the supporting retained receipt/run.\n- [ ] The package has a durable team/reviewer access path and a documented local presentation backup; developer-home paths alone are insufficient.\n- [ ] A second team member opens the links and plays the recording with sound/appropriate video quality; retain the check result and date.\n- [ ] Duration is practical for the existing presentation plan and includes a clear way to recover if the live path is slow or unavailable.\n- [ ] Recorded versus live, edited waits, failed attempts and unproven steps are identified honestly.\n- [ ] Capture/index contains no credentials, cookies, signed URLs or private operator-state contents.\n- [ ] Technical package links are ready for later consumption by #192/#193 without drafting those assessed artifacts or changing the roadmap's design.\n\nRelated: #179, #186, #192, #193, #248 and the evidence-retention/results-summary tickets. This issue does not authorize a new cloud deploy, a fresh long benchmark, an upload to an arbitrary new service or sending recordings to others.\n\n<!-- agent-orchestration:note-key=freeze-audit-20261018-easywin-coordination -->\n\n## Agent coordination\n\nFull handoff: #258. Consume retained proof from #250 and the scoped results figure from #252; feed verified capture identities/links into #255. The recording fallback can be packaged independently of the interactive launcher fix #248.\n",
+    "closedAt": null,
+    "createdAt": "2026-10-18T11:06:27Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC463GCA",
+        "name": "documentation",
+        "description": "Improvements or additions to documentation",
+        "color": "0075ca"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i7_TA",
+        "name": "clients",
+        "description": "Browser and independent Publisher CLI",
+        "color": "0052cc"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i8ASw",
+        "name": "verification",
+        "description": "Integrated evidence and release acceptance",
+        "color": "006b75"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9tal-g",
+        "name": "closeout",
+        "description": "Post-V1 work needed for submission: pipeline, docs, presentation, report",
+        "color": "0E8A16"
+      }
+    ],
+    "number": 254,
+    "state": "OPEN",
+    "title": "[P2][Demo] Package durable web, CLI and pipeline recordings and verify team access",
+    "url": "https://github.com/Collaboration95/dc2/issues/254"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=freeze-audit-20261018-easywin-submission-checks -->\n\n## Outcome and priority\n\n**P2, roughly 15\u201330 minutes per member/owner with course access.** Resolve the small external-information gaps that can invalidate an otherwise ready submission: current upload cutoffs, progress-report receipt, individual peer-assessment instructions and final submission access. Record verified facts and references; this is not deck/report authoring and does not lift #181's hold.\n\n## Known source facts and unknowns\n\nThe 18 October audit read the supplied original course documents and recorded team decisions:\n\n- Team 17 presentation: **26 October 2026, 14:35\u201315:15 Singapore**. The allocated 40 minutes include Q&A. The supplied guidelines do not require a 40-minute talk or a separate official code-freeze date.\n- Final report: **16 November**, incorporating presentation feedback.\n- Exact upload times, separate slide/code cutoffs, latest Canvas changes and current individual peer-assessment deadline were not independently verified by the repository audit.\n- The briefing requires individual peer assessment with unique ranks; its submission is distinct from uploading the group report. Do not infer completion from group participation.\n- [`project-roadmap/records/project-decisions.txt:83\u201392`](https://github.com/Collaboration95/dc2/blob/d2070db68c6b3545881eb948046b8e57f47e078e/project-roadmap/records/project-decisions.txt#L83) records the user's explicit override: the first and **only** progress report is due **16 October**; no additional weekly deadlines/recurrences are authorized. Verify that receipt rather than creating a new reporting schedule from older fortnightly wording in #191.\n- #191 already owns actual member hours/milestones. The proposal's 31 person-days, commit counts and agent elapsed hours are not measured member effort.\n\nMain baseline: `d2070db68c6b3545881eb948046b8e57f47e078e`. Original sources are under `project-documentation/original-reference/`; preserve those files.\n\n## Checklist for the course-access owner\n\n1. Check current Canvas/NUS email instructions and record official date, time, timezone, destination and who uploads for the group. Keep internal team targets labelled as internal.\n2. Confirm any separate presentation slides, code/archive, video or link-sharing requirements, allowed file types and access conditions.\n3. Confirm the 16 October progress report was submitted; retain its reference/status or explicitly record a missing/unknown receipt and the actual next action.\n4. Each member checks their own peer-assessment form/deadline and submits as required. Retain confirmation privately; public project tracking needs only a completion/reference status, not individual ranks or assessment content.\n5. Check that the final source reference, pipeline/test scripts, report, evidence and recording links can be opened by the intended assessor/team account.\n6. Identify the owner who retains final upload confirmation, and the buffer/check for upload problems. Do not invent a course cutoff from a proposed team schedule.\n\n## Acceptance criteria\n\n- [ ] A small checklist records verified official presentation/report and any separate code/slides/video cutoffs with source/date/timezone, or explicitly marks unresolved facts Unknown.\n- [ ] Internal team dates are not presented as course mandates; no official code-freeze date is invented.\n- [ ] The single required progress-report receipt/status is verified against the recorded override; no unauthorized recurrence or extra report is created.\n- [ ] All three members have an explicit individual peer-assessment completion/owner check and the actual deadline is recorded from the course channel.\n- [ ] Required package contents, allowed format and assessor link-access requirements are known before the final upload.\n- [ ] Final uploader/receipt owner and a practical pre-deadline access/upload check are assigned from real member input.\n- [ ] Public tracking excludes personal assessment content and private course-account material.\n- [ ] This task does not fabricate hours, draft held deck/report content, send messages to others, or change official source documents.\n\nRelated: #181, #191, #192, #193 and the release-manifest/demo-package tickets. A human or connected session with the relevant course access supplies external facts; repository evidence alone cannot establish them. No new security infrastructure, cloud deployment or schedule automation is part of this task.\n\n<!-- agent-orchestration:note-key=freeze-audit-20261018-easywin-coordination -->\n\n## Agent coordination\n\nFull handoff: #258. Use #191 for actual member hours/progress-report ownership and #255/#254 for package/link checks. Verify the external course facts with the responsible member; the #181 assessed-authoring hold is unchanged.\n",
+    "closedAt": null,
+    "createdAt": "2026-10-18T11:06:32Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC463GCA",
+        "name": "documentation",
+        "description": "Improvements or additions to documentation",
+        "color": "0075ca"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79tA",
+        "name": "planning",
+        "description": "Planning and independent review",
+        "color": "bfdadc"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9tal-g",
+        "name": "closeout",
+        "description": "Post-V1 work needed for submission: pipeline, docs, presentation, report",
+        "color": "0E8A16"
+      }
+    ],
+    "number": 257,
+    "state": "OPEN",
+    "title": "[P2][Submission prep] Verify course cutoffs, progress-report receipt and peer assessment",
+    "url": "https://github.com/Collaboration95/dc2/issues/257"
+  },
+  {
+    "body": "<!-- agent-orchestration:issue-key=freeze-audit-20261018-easywin-handoff-index -->\n\n## Purpose\n\nOne entry point for the fixing agent: the **six bug handoffs and nine remaining easy-win handoffs** from the 18 October code-freeze/submission audit. The user requested these issue write-ups so another agent can carry out the work. This index organizes the existing tickets; it does not duplicate their implementation, approve cloud operations or lift the assessed-authoring hold in #181.\n\nAudit baseline: Main `d2070db68c6b3545881eb948046b8e57f47e078e`. Local audit `7ee3de5` has the same runtime tree. Re-read current source, issue/PR state, AGENTS.md and `docs/project2-worklog.txt` before implementing. Each child handoff contains its own evidence, scope, estimated effort, validation and acceptance criteria.\n\n## Bugs already written up\n\n- [x] **#243 \u2014 P1:** account switching exposes previous-owner Library/Admin state and captured playback capabilities. Applies to V1 and V2; repair and regressions first.\n- [x] **#244 \u2014 P1 for V2-live:** direct Processing API retry/cancel bypasses idle-marker wiring and can stall repair. Includes code, IAM/environment and quiet-start regression requirements.\n- [x] **#245 \u2014 P2:** Publisher quick-start/help uses `/api` instead of `/api/media`. Also document bounded cloud wait budgets and resuming status with the accepted job ID.\n- [x] **#246 \u2014 P2:** Library/Admin failures are shown as successful empty results.\n- [x] **#247 \u2014 P2:** clean-clone bootstrap omits pinned Moto and the Chromium required by V1.\n- [x] **#248 \u2014 P2 / conditional demo blocker:** supply an honest interactive web+worker handoff; `v1-serve` is currently API-only.\n\n## Remaining easy wins\n\n- [x] **#249 \u2014 Current documentation and links:** reconcile V1/V2 status, successful r1019a proof, shared code/limitations, operator/workflow guidance and broken source/draft pointers.\n- [x] **#250 \u2014 Evidence preservation:** archive redacted successful receipts with source/hash attribution and retain future critical artifacts through submission/review. Handle current expiry independently of future retention settings.\n- [ ] **#251 \u2014 Optional P3 CI:** scan the exact already-built V1 Media, Processing and worker artifacts; preserve identity and existing gate policies without redundant builds.\n- [x] **#252 \u2014 Results summary:** publish concise actual-versus-target data/table/figure with workload, environment, timing boundary, misses and missing measurements stated accurately.\n- [ ] **#253 \u2014 Project/epic reconciliation:** reuse Project 14, repair stale Workflow/checklists, add native relationships and real ownership, and avoid duplicate accepted implementation.\n- [ ] **#254 \u2014 Portable demo recordings:** package and verify durable web/CLI/pipeline/scaling evidence and a usable presentation-machine fallback.\n- [ ] **#255 \u2014 Release manifest:** prepare the sanitized source/image/schema/config/fixture/evidence manifest and populate/accept it for the final verified release.\n- [x] **#256 \u2014 Recovery-bound clarity:** document and locally exercise failed marker write \u2192 healthy stale read \u2192 delayed repair/sweep; keep this distinct from #244 and from unproven AWS timing claims.\n- [ ] **#257 \u2014 Course submission checks:** verify current official cutoffs, the single progress-report receipt, individual peer assessment and final package/link access with the relevant course-access owner.\n\n## Execution order and grouping\n\n1. **Fix the behavior blockers:** #243, and #244 if the selected release uses V2-live. They are reproducible local defects. Targeted regressions must demonstrate the repaired behavior; an old green full suite is not enough.\n2. **Preserve existing proof immediately in parallel:** #250 is time-sensitive because the examined 18 October artifacts expire around 1 November, before the 16 November report. No rerun of a successful cloud deploy is needed for retention.\n3. **Complete the small client/local-demo work:** #245/#246/#247/#248, with the frontend and bootstrap coordination below. Use existing frontend/engine/harnesses; avoid new architecture.\n4. **Consolidate the story and evidence:** #249/#252/#254/#256. #257 needs real course/member information; begin obtaining those facts without pretending agent time or old repo notes establish them.\n5. **Make tracking useful:** #253 re-reads live state after these issues exist and includes this index and the current bug/easy-win cards. Preserve historical and not-planned items.\n6. **Accept the final release identity:** #255 can be prepared earlier but only finalized against the integrated tested candidate and applicable proof. Keep immutable `project2-v1` intact.\n7. **Fit optional CI work around stabilization:** #251 is useful but is not a new mandatory course requirement or reason to hold an otherwise accepted V1 indefinitely.\n\nIf delegating, group several related issues per agent rather than one agent per tiny task. One practical bundle is #243\u2013#248 for runtime/client/demo stabilization, and another is the documentation/evidence/CI/tracking close-out (#249\u2013#256), with the human course checks in #257. Serialize edits to shared files and mutable live work; this is an execution suggestion, not a request to launch agents now.\n\n## Shared-file and dependency coordination\n\n- **#243 and #246:** both edit `frontend/app.js` list loaders. Apply session/privacy fencing first or combine the changes; retaining stale data must never expose another owner.\n- **#247 and #248:** clean-checkout interactive acceptance depends on the prerequisite recipe. They share README/local-runtime instructions; reuse existing setup and work-pump support.\n- **#249/#250/#252/#256:** one coordinator should own overlapping `docs/evidence-index.md`/runbook/status edits and combine the final coherent wording.\n- **#250 and #251:** artifact-retention and V1 scanning may touch the same workflows. Coordinate their CI changes, preserving selective lane behavior and current release/secret-scan gates.\n- **#244 and #256:** fix missing writer registration independently from the pre-existing best-effort-marker failure contract. Do not claim the former proves an unconditional two-minute recovery guarantee.\n- **#255:** consumes final identities, required verification, retained evidence and demo package; an incomplete draft is not an accepted release freeze.\n\n## Work already tracked elsewhere; do not duplicate it\n\n- **#229:** outstanding retained AWS security-negative acceptance. A merged harness or a generic smoke is not its completion.\n- **#238** under **#234\u2013#237:** the selected V2-live in-place update/release/scaling/pause/idle-cost checklist. Basic deploy/smoke has succeeded; this does not establish every acceptance row.\n- **#186** under **#179:** residual cloud-proof/recording/billing disposition, including unmeasured lost-message timing, duplicate outputs and deliberate CD rollback. Narrow handoffs above support its close-out; they do not silently close it.\n- **#181/#191/#192/#193:** actual member effort, deck/demo script/rehearsal and final report. Their existing explicit human authoring hold remains. Gathering technical evidence and verified facts does not invent hours or start the held artifacts.\n- **#68/#80:** optional experiments; **#93/#94** remain parked/not planned. More services, physical DB splitting, Kubernetes and a new identity/security platform are outside this close-out.\n\n## Completion discipline\n\nLink each implementation PR and exact-source verification to its issue. Reconcile merged code separately from local runtime acceptance and real AWS evidence. Preserve historical FAILs, NOT_RUNs, timing boundaries and observed workload limitations. A target miss can be an honestly accepted result; it is not automatically permission for another optimization programme.\n\nThe user's current request is to create these issue handoffs. Application code, cloud resources and Project metadata were not changed by writing them. The fixing agent must follow current repository/user authorization for implementation, merge and any live operations. All GitHub access uses authenticated `gh` exclusively.\n\n",
+    "closedAt": null,
+    "createdAt": "2026-10-18T11:08:10Z",
+    "labels": [
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i79tA",
+        "name": "planning",
+        "description": "Planning and independent review",
+        "color": "bfdadc"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC8i8ASw",
+        "name": "verification",
+        "description": "Integrated evidence and release acceptance",
+        "color": "006b75"
+      },
+      {
+        "id": "LA_kwDOUvNZ7c8AAAAC9tal-g",
+        "name": "closeout",
+        "description": "Post-V1 work needed for submission: pipeline, docs, presentation, report",
+        "color": "0E8A16"
+      }
+    ],
+    "number": 258,
+    "state": "OPEN",
+    "title": "[Close-out] Audit handoff: 6 bugs, 9 easy wins, dependencies and freeze order",
+    "url": "https://github.com/Collaboration95/dc2/issues/258"
+  },
+  {
+    "body": "Docs only; does not change the frozen code.\n\n- `docs/release/demo-release-manifest.md`: status is now **FROZEN, team-accepted 20 Oct**. The live aliases (10 functions) and `dc2-live-worker:6` were re-read and match. Adds the 100 MiB upload-cap row (enforced in the frontend, Media grant, S3 policy and Publisher). #271 is accepted as a known limitation.\n- `project-documentation/effort-ledger.md`: Project 2 effort split equally, 11 pd each (33 pd against the 31 pd estimate); milestones plan vs actual; progress-report section. Project 1 pd for Guruprasath and Long are TBD.\n\nCloses #255. Refs #191, #271.",
+    "closedAt": "2026-10-20T04:51:20Z",
+    "createdAt": "2026-10-20T04:45:12Z",
+    "labels": [],
+    "number": 278,
+    "state": "MERGED",
+    "title": "docs: freeze the demo release and add the team effort ledger",
+    "url": "https://github.com/Collaboration95/dc2/pull/278"
+  }
+]

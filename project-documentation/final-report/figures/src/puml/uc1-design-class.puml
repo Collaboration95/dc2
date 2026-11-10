@@ -1,0 +1,61 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-03, W3-06a, W3-06; upload pin / replay corrections from W3-review
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title UC-1 · implemented adoption records and functions
+top to bottom direction
+class "direct_intake\nmedia.services" as I <<module>> $MEDIA {
+ {static} + reserve(session, storage, owner_id, request)
+ {static} + finalize(session, storage, owner_id,\n reservation_id, request, *, enqueue=None)
+}
+class "Storage\nmedia.services.storage" as S <<adapter>> $MEDIA {
+ + direct_upload_grant(reservation)
+ + verify_direct_upload(reservation,\n *, check_content=True)
+}
+class "UploadReservation" as R <<ORM>> $MEDIA {
+ + id: UUID
+ + owner_id: UUID
+ + request_id: UUID
+ + asset_id: UUID
+ + version_id: str | None
+ + finalized_at: datetime | None
+}
+class "Asset\nmedia.models" as A <<ORM>> $MEDIA {
+ + id: UUID
+ + owner_id: UUID
+ + source_key: str
+ + source_sha256: str
+}
+class "MediaOutbox" as O <<outbox>> $MEDIA {
+ + message_id: UUID
+ + queue: str
+ + body: dict
+}
+I -down-> S
+I .right.> R : locks / pins
+I ..> A : inserts
+S -[hidden]down- O
+I ..> O : enqueue_submit\n→ stage
+R "0..1" -down- "0..1" A : asset_id (logical)
+legend bottom
+Selected Mapped[T] fields shown as T; underlined operations are
+module functions.
+UploadReservation: media.upload_models; MediaOutbox:
+media.messaging_models.
+Reservation asset_id is unique; it is allocated before the Asset
+exists, with no FK.
+endlegend
+@enduml

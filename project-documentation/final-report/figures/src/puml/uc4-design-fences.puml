@@ -1,0 +1,45 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-10/11/12/12a/13/13a; retry identity and independent stale fences
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title UC-4 · stale worker and stale result are separate fences
+autonumber
+participant "messaging\nprocessing" as M $PROC
+participant "lifecycle\nprocessing" as L $PROC
+database "Processing DB" as DB $INFRA
+[-> M : finish(factory, old_work, error="Late completion")
+M -> L : finish(factory, old_work, error=error,\non_change=emit_state)
+L -> DB : lock_pair(session, old job, old attempt)
+L -> L : db_now(session); live(pair, work.lease_token, now)
+alt superseded / expired / deleted authority
+ L --> M : False; no state or result change
+ M -->[ : False
+else current live authority
+ L -> DB : terminal state + result outbox; COMMIT
+ L --> M : True
+ M -->[ : True
+end
+note over M,DB
+Separate Media projection fence:
+media.projections.validate_transition.
+Older state_version or later version for an older
+attempt_number → ignore.
+Same version + identical semantic hash → no-op;
+changed content → 409 rollback.
+New stale message may commit inbox; projection stays
+unchanged.
+end note
+@enduml

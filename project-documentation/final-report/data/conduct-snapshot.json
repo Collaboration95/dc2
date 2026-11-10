@@ -1,0 +1,48 @@
+{
+  "snapshot_at": "2026-11-10T15:15:26.469769+00:00",
+  "repo": "Collaboration95/dc2",
+  "issues": 156,
+  "closed_issues": 149,
+  "epics": 19,
+  "pull_requests": {
+    "OPEN": 4,
+    "MERGED": 164,
+    "CLOSED": 5
+  },
+  "project_items": 118,
+  "project_status": {
+    "Done": 111,
+    "Todo": 6,
+    "In Progress": 1
+  },
+  "open_issues": [
+    {
+      "number": 258,
+      "title": "[Close-out] Audit handoff: 6 bugs, 9 easy wins, dependencies and freeze order"
+    },
+    {
+      "number": 257,
+      "title": "[P2][Submission prep] Verify course cutoffs, progress-report receipt and peer assessment"
+    },
+    {
+      "number": 254,
+      "title": "[P2][Demo] Package durable web, CLI and pipeline recordings and verify team access"
+    },
+    {
+      "number": 193,
+      "title": "[Close-out] Final report per the course template, with presentation feedback"
+    },
+    {
+      "number": 192,
+      "title": "[Close-out] Presentation deck, demo script and rehearsal for 26 Oct"
+    },
+    {
+      "number": 191,
+      "title": "[Close-out] Effort and milestone ledger per member, plus progress report"
+    },
+    {
+      "number": 181,
+      "title": "[Close-out epic] Presentation (26 Oct) and final report (16 Nov) \u2014 DO NOT START without human approval"
+    }
+  ]
+}
