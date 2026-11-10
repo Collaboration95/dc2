@@ -1,0 +1,39 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 20
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 230
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+title DP-1 problem: a check-then-start race
+autonumber
+control "Naive wake A" as a
+control "Naive wake B" as b
+boundary "Executor provider" as ecs
+a -> ecs : read worker count
+ecs --> a : zero; apparently three free slots
+b -> ecs : read worker count
+ecs --> b : zero; apparently three free slots
+a -> ecs : start three executors
+ecs --> a : started
+b -> ecs : start three executors
+ecs --> b : started: six total exceeds intended cap
+opt reply lost for another fresh start
+ a -> ecs : start request
+ ecs --> a : timeout, outcome unknown
+ a -> ecs : retry using a new identity
+ note over a,ecs : An extra executor can be created.
+end
+legend bottom
+ Hypothetical failing scenario; not a current execution trace.
+endlegend
+@enduml

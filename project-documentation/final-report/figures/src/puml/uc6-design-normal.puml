@@ -1,0 +1,54 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 20
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 230
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+' Adapted decisions from W1-dispatch/triggers/events; processing/launcher*.py
+title UC-6 design: reserve before RunTask
+autonumber
+participant "launcher_aws" as entry $PROC
+participant "launcher" as l $PROC
+database "Processing\nSQL" as sql $PROC
+participant "EcsPort /\nQueueDepth" as ports $INFRA
+note over entry,l
+ WakeOnWork invokes the launcher after send.
+ A minute timer is the fallback.
+end note
+entry -> l : _dispatch() -> tick(...)
+l -> sql : queued_backlog(session); read control
+opt open reservations or enabled backlog
+ l -> ports : observe() -> list_tasks / describe_tasks
+ ports --> l : Observation(workers, missing)
+ opt enabled backlog
+  l -> ports : visible()
+  ports --> l : standard queue depth
+ end
+ l -> sql : _reserve(): control FOR UPDATE
+ alt admissible demand and free slots
+  l -> sql : reconcile; add reservations; COMMIT
+ else no admissible capacity
+  l -> sql : reconcile only; COMMIT
+ end
+ loop reserved token
+  l -> sql : _send(): control FOR SHARE; row lock
+  l -> ports : run_task(row.payload)
+  ports --> l : tasks[0].taskArn
+  l -> sql : status=launched; COMMIT
+ end
+end
+note over l,ports
+ demand = min(SQL backlog, visible messages).
+ Work is claimed separately by the worker.
+end note
+@enduml

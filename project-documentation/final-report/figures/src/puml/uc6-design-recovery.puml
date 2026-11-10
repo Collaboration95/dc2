@@ -1,0 +1,49 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 20
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 230
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+' processing/launcher.py: _send, _reconcile, _reserve, set_enabled
+title UC-6 design: uncertainty and disable
+autonumber
+actor Sam
+participant "launcher" as l $PROC
+database "Processing SQL" as sql $PROC
+participant "EcsPort" as ecs $INFRA
+group Ambiguous start
+ l -> sql : _send(): shared control + row lock
+ l -> ecs : run_task(row.payload)
+ ecs --> l : uncertain reply
+ l -> sql : retain reserved; last_error; COMMIT
+ l -> ecs : next tick: observe(...)
+ alt found by startedBy
+  ecs --> l : existing task
+  l -> sql : _reconcile(): mark launched
+ else absent and replay permitted
+  l -> ecs : _send(): same token and payload
+ else inventory unreadable
+  ecs --> l : exception; abort tick
+ end
+end
+group Disable
+ Sam -> l : set_enabled(factory, False)
+ l -> sql : control FOR UPDATE; wait for send
+ sql --> l : exclusive lock acquired
+ l -> sql : enabled=False; COMMIT
+ l --> Sam : disabled
+ opt later _send of an old reservation
+  l -> sql : disabled: release row; no RunTask
+ end
+end
+@enduml

@@ -1,0 +1,45 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-03, W3-06a, W3-06; upload pin / replay corrections from W3-review
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title UC-1 · account creation and authentication
+autonumber
+actor Owner
+boundary AccountAccess as B
+control IdentityControl as C
+entity Account as A
+Owner -> B : enter credentials
+B -> C : register or authenticate
+alt new account
+ C -> A : create unique account with password proof
+ alt email already registered
+  A --> C : identity conflict
+  C --> B : refuse registration
+ else unique email
+  A --> C : account created
+  C --> B : authenticated session
+ end
+else existing account
+ C -> A : verify credentials
+ alt credentials match
+  A --> C : account identity
+  C --> B : authenticated session
+ else invalid credentials
+  C --> B : refuse authentication
+ end
+end
+B --> Owner : outcome
+@enduml

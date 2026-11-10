@@ -1,0 +1,47 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 20
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 230
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+title UC-6 analysis: uncertainty and disable
+autonumber
+actor Sam
+control "Capacity\ncontroller" as ctl
+entity "Capacity\nrecords" as records
+boundary "Executor\nprovider" as provider
+group Lost start reply
+ ctl -> provider : start executor using reserved identity
+ provider --> ctl : reply lost; execution unknown
+ ctl -> records : retain occupied slot
+ ctl -> provider : observe reserved launch identity
+ alt identity found
+  provider --> ctl : existing executor
+  ctl -> records : bind reservation to executor
+ else not yet observable
+  opt replay is permitted
+   ctl -> provider : repeat same launch identity
+   provider --> ctl : same executor identity
+  end
+ end
+end
+group Disable capacity
+ Sam -> ctl : disable new starts
+ ctl -> records : wait for any active send; disable
+ records --> ctl : no send remains in flight
+ ctl --> Sam : disabled
+ opt a previously reserved send arrives later
+  ctl -> records : release slot; do not start
+ end
+end
+@enduml

@@ -1,0 +1,44 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-10/11/12/12a/13/13a; retry identity and independent stale fences
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title UC-4 · guarded successor and request replay
+autonumber
+participant "messaging\nprocessing" as M $PROC
+database "Processing DB" as PD $INFRA
+
+[-> M : handle_command(factory, retry_body)
+group Processing transaction
+ M -> PD : accept inbox; lock guard then Job; validate identity
+ alt retry before submit
+  M -> PD : ROLLBACK inbox; raise 409 for redelivery
+ else deleted guard
+ M -> PD : COMMIT inbox; no successor
+else replayed RetryRequest
+  M -> M : _retry_locked(session, job, request_id)
+  M -> PD : retain current Attempt; COMMIT inbox
+ else non-failed Job, no replay
+ M -> PD : ROLLBACK; raise 409
+else failed, live owned job
+  M -> M : _retry_locked(session, job, request_id)
+  M -> PD : SQL: cleanup old; insert successor + RetryRequest;\nswitch current; emit_state stages work/result; COMMIT
+ end
+end
+M -->[ : bool; exceptions remain batch failures
+legend bottom
+A replay keeps the current Attempt; only a new eligible request creates a successor on this Job.
+endlegend
+@enduml

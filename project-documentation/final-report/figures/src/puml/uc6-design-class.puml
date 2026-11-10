@@ -1,0 +1,54 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 18
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 230
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+' processing/launcher.py; launcher_models.py; launcher_aws.py
+title UC-6 design: launcher capacity records
+top to bottom direction
+class "launcher" as l <<module>> $PROC {
+ tick(factory, ecs, queue, config, *,\nlaunching=True)
+ _reserve(factory, config, obs, visible, *,\nlaunching)
+ _send(factory, ecs, token, config=None)
+}
+class LauncherConfig $PROC {
+ cap: int = 3
+ lifetime_seconds: int = 1800
+ always_on: bool = False
+ slots: int {property}
+}
+class LauncherControl $PROC {
+ id: int = 1
+ enabled: bool
+ session_end_at: datetime | None
+}
+class LaunchReservation $PROC {
+ token: str
+ started_by: str
+ status: str
+ payload: dict
+ deadline_at: datetime
+ task_arn: str | None
+}
+l --> LauncherConfig : reads
+l --> LauncherControl : locks
+l --> LaunchReservation : persists
+LauncherControl "1" -- "0..*" LaunchReservation
+note bottom of LaunchReservation
+ token PK; started_by UNIQUE.
+ Application association; no control FK.
+ Selected fields; implicit self omitted.
+ Cloud ports appear in the sequences.
+end note
+@enduml

@@ -1,0 +1,45 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): publisher/cli.py; publisher/client.py; publisher/state.py
+skinparam dpi 180
+skinparam BackgroundColor white
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam ClassAttributeFontSize 16
+skinparam ClassStereotypeFontSize 14
+skinparam NoteFontSize 15
+skinparam classAttributeIconSize 0
+skinparam nodesep 22
+skinparam ranksep 24
+hide footbox
+autonumber
+skinparam maxMessageSize 180
+skinparam sequenceParticipantPadding 8
+title UC-5 · analysis partial failure and replay
+boundary "Publisher\ninterface" as UI
+control "Batch\npublication" as C
+entity "Intent\nrecord" as I
+boundary "Public media\ninterface" as API
+loop each attempted file
+ C -> I : reserve request key before sending
+ C -> API : submit current file with request key
+ alt acceptance confirmed
+  API --> C : accepted Asset reference
+  C -> I : complete intent
+  else definitive validation rejection
+  API --> C : safe rejection
+  C -> I : complete rejected intent
+  else authentication failure / delivery uncertainty
+  API --> C : session rejected / no confirmed reply
+  C -> C : report failure with retained request key
+  note over C,I : Pending intent remains durable.
+ end
+end
+C --> UI : nonzero exit if any file failed
+opt user replays after recovery
+ UI -> C : replay as same owner
+ C -> I : recover same owner/file key
+ C -> API : replay existing intent
+ API --> C : existing acceptance or explicit error
+end
+@enduml

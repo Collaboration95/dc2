@@ -1,0 +1,46 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): publisher/cli.py; publisher/client.py; publisher/state.py
+skinparam dpi 180
+skinparam BackgroundColor white
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam ClassAttributeFontSize 16
+skinparam ClassStereotypeFontSize 14
+skinparam NoteFontSize 15
+skinparam classAttributeIconSize 0
+skinparam nodesep 22
+skinparam ranksep 24
+hide footbox
+autonumber
+skinparam maxMessageSize 240
+skinparam sequenceParticipantPadding 8
+title UC-5 · mutation recovery branches
+participant "cli\n«module»" as C $CLIENT
+participant "intents: Intents" as I $CLIENT
+participant "client: PublicClient" as P $CLIENT
+C -> I : reserve(identity, explicit)
+I --> C : key persisted before call
+C -> P : upload(path, key)
+alt uncertain or HTTP 401
+ P --> C : safe exception
+ C -> C : return failure + key;\nno complete(identity)
+else definitive PublisherError
+ P --> C : safe rejection
+ C -> I : complete(identity)
+ C -> C : failed outcome; continue batch
+else accepted Asset UUID
+ P --> C : job_id
+ C -> C : create outcome with job_id + key
+ C -> I : complete(identity)
+ alt save succeeds
+  I --> C : pending entry removed
+ else OSError during save
+  I -> I : restore previous in-memory data
+  I --> C : raise OSError
+  C -> C : keep job_id; ok=false; state_error
+ end
+
+end
+note over C,I : Pending keys survive later batch writes.\nReport retains accepted IDs, including after poll failure.
+@enduml

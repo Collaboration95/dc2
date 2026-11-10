@@ -1,0 +1,60 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 20
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 230
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+' scripts/aws/v1/release.py; scripts/ci/cd.sh; .github/workflows/cd.yml
+title UC-7 design: restore and uncertain outcomes
+autonumber
+participant "cd.sh /\nrelease CLI" as cd $INFRA
+participant "release" as rel $INFRA
+participant "Journal" as j $INFRA
+participant "OperatorTransport\n/ release hooks" as aws $INFRA
+alt candidate smoke fails
+ aws --> rel : public_smoke(...) is not True
+ rel -> j : pending.phase=restoring; save(state)
+ rel --> cd : OperationError; intent retained
+ cd -> rel : restore(...)
+ rel -> j : locked(); read pending_release
+ rel -> aws : check quiescence; read current aliases
+ loop prior owner functions
+  rel -> aws : _move(): prior version with revision guard
+ end
+ rel -> aws : public_smoke(prior); peer; schema read
+ alt restore checks pass
+  rel -> j : save restored receipt; clear intent
+  rel --> cd : restored; schema_rollback=False
+ else restore check fails
+  rel --> cd : failure; recovery intent remains
+  cd -> rel : abandon(...) if provably unchanged
+  note over cd,j : If unchanged cannot be proved,\nretain intent; restore-failed.
+ end
+else publication uncertain
+ rel -> j : save publication marker before publish
+ rel -> aws : publish-version
+ aws --> rel : response lost
+ rel --> cd : publication uncertain
+ opt operator resumes same intent
+  cd -> rel : promote(...same inputs...)
+  rel -> aws : _version(): list-versions-by-function
+  note over rel,aws
+  Match persisted release description.
+  If absent, refuse blind re-publication.
+  end note
+ end
+else later playback smoke fails
+ cd -> cd : cmd_smoke fails CD
+ note over cd : Playback failure alone\ndoes not invoke restore().
+end
+@enduml
