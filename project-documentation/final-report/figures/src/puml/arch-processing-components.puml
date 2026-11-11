@@ -52,7 +52,7 @@ W ..> IS
 Store -- IS
 legend bottom
 Amber = Processing (including media_engine); slate = shared library. Circle = provided exports; dashed = dependency.
-Direct ORM persists state. Stores adapt Minio; Supervisor adapts subprocess; engine functions are pure builders.
+Direct ORM persists state. Stores wrap the MinIO S3 client; Supervisor adapts subprocess; engine functions are pure builders.
 handlers wraps SQS with processing.launcher_trigger.WakeOnWork; EcsPort/QueueDepth adapt boto3 ECS/SQS.
 endlegend
 

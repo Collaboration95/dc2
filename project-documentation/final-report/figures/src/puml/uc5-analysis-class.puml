@@ -1,16 +1,15 @@
 @startuml
 !include _style.iuml
 ' Evidence (07c7c14): publisher/cli.py; publisher/client.py; publisher/state.py
-skinparam dpi 180
 skinparam BackgroundColor white
-skinparam defaultFontSize 17
-skinparam ArrowFontSize 16
-skinparam ClassAttributeFontSize 16
-skinparam ClassStereotypeFontSize 14
-skinparam NoteFontSize 15
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
 skinparam classAttributeIconSize 0
-skinparam nodesep 22
-skinparam ranksep 24
+skinparam nodesep 30
+skinparam ranksep 40
 title UC-5 · analysis responsibilities
 class "Publisher interface" as UI <<boundary>> {
  + publish(folder)
@@ -36,6 +35,6 @@ class FileOutcome <<entity>> {
 UI ..> C
 C ..> IntegrationBatch
 C ..> PublicationIntent
-IntegrationBatch "1" *-- "0..*" FileOutcome : attempted files
-PublicationIntent "1" -- "0..1" FileOutcome : current attempt
+IntegrationBatch "1" *--- "0..*" FileOutcome : attempted files
+PublicationIntent "1" --- "0..1" FileOutcome : current attempt
 @enduml

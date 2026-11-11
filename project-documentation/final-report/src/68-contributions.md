@@ -2,85 +2,64 @@
 
 ### What Team 17 Contributed beyond the Inherited Baseline
 
-Project 2 changed how FlickPond is structured, deployed and reused. FFmpeg processing, HLS
-output, worker replicas and basic CI came from Project 1. Team 17's contribution is the platform
-built around those capabilities:
-
-- **Two bounded contexts with owned data.** Media Management and Processing have separate
-  domain models, databases, migration histories, runtime roles, images and release units
-  (Logical Architecture & Design; Platform Design).
-- **Durable asynchronous integration.** Local outbox/inbox transactions, SQS, version-fenced
-  projections and SQL-driven repair let Media accept work while Processing consumption is
-  unavailable (Availability; DP-2).
-- **An independent second client.** Publisher uses the public HTTP contract without service
-  imports or database credentials (Extensibility and Maintainability; UC-5).
-- **Managed cloud execution with bounded capacity.** Domain handlers run on Lambda, standard
-  encoders run as finite Fargate tasks and eligible short encodes use a separate Lambda lane.
-  Idle compute can return to zero (Physical Architecture & Design; UC-6).
-- **Per-owner delivery and recovery.** Immutable image evidence, candidate and retained-image
-  scans, owner readiness checks and a durable release journal support independent promotion
-  and checked restore (Continuous Delivery; UC-7; DP-1).
-- **Reproducible engineering evidence.** Tests, CI artifacts and sanitized cloud receipts connect
-  design claims to dated results and retain the proposal's original targets (Quality Attributes;
-  Evidence and How to Reproduce It below).
+Team 17 has three members and was formed with Prof Boon Kui Heng's permission. FFmpeg processing,
+HLS output, worker replicas and basic CI came from Project 1; the comparison table under
+Background in the Introduction separates them from this project's work. Team 17 built the platform
+around those capabilities: two bounded contexts with owned data, durable asynchronous integration,
+an independent Publisher client, bounded cloud execution on Lambda and finite Fargate tasks,
+per-owner delivery and restore, and retained tests and receipts that tie each design claim to a
+dated result.
 
 ### Per-Member Contribution Summary
 
-The summaries follow the proposal's work packages and the team-agreed specialisms in
-`project-documentation/effort-ledger.md`. Each member led one area and reviewed the other two.
-The use-case and design-problem allocations state responsibility for analysis and design;
-Project Plan and the Design Problems and Patterns introduction record the complete allocation.
+Each member led one specialism, is responsible for the analysis and design of the use cases and
+design problem named below, and reviewed the other two members' work. Work packages follow the
+proposal and the team-agreed specialisms in `project-documentation/effort-ledger.md`; effort per
+member is reported in Project Metrics.
 
 #### Guruprasath Gopal
 
-Guruprasath led cloud and delivery, taking the reproducible baseline through AWS deployment,
-CI quality gates, per-owner releases and release freeze. His work connects the proposal's
-independent-capacity and repeatable-release goals to the deployed runtime and its operator tools.
-He is responsible for the analysis and design of UC-6, UC-7 and DP-1.
+Guruprasath led cloud and delivery (UC-6, UC-7, DP-1). He took the reproducible baseline through
+AWS deployment, CI quality gates, per-owner releases and release freeze, which connects the
+proposal's independent-capacity and repeatable-release goals to the deployed runtime and its
+operator tools.
 
 - Led work packages 1 and 7: baseline reproducibility, the inherited scan repair, CloudFormation,
   Lambda, Fargate, Aurora, S3, CloudFront, image scanning and the deploy/release/restore workflow.
-- Led delivery and Aurora-pause repairs during integration, and coordinated the release freeze
-  and its recorded image/runtime identities.
-- Developed the capacity and release analysis for **UC-6 Scale processing capacity independently**,
-  **UC-7 Release Processing on its own and demonstrate rollback**, and **DP-1 Bounded cloud
-  capacity and safe per-owner release**.
-- Contributed to the progress report, presentation and final report, with cloud/delivery review
-  of the other specialisms.
+- Led delivery and Aurora-pause repairs during integration, coordinated the release freeze and its
+  recorded image/runtime identities, and approves promotion to Main.
+- Developed the capacity and release analysis and design for UC-6, UC-7 and DP-1.
+- Contributed to the presentation and final report, with cloud/delivery review of the other
+  specialisms.
 
 #### Ibrahim Mammadov
 
-Ibrahim led the backend service work: extracting Processing's execution model and persistence,
-adapting Media's owned-asset workflow, and enforcing security at the service and storage
-boundaries. His work turns the proposal's service split into durable acceptance, execution and
-retry behavior. He is responsible for the analysis and design of UC-1, UC-2, UC-4 and DP-2.
+Ibrahim led backend services (UC-1, UC-2, UC-4, DP-2). He extracted Processing's execution model
+and persistence, adapted Media's owned-asset workflow and enforced security at the service and
+storage boundaries, turning the proposal's service split into durable acceptance, execution and
+retry behavior.
 
-- Led work packages 3 and 4: Processing's database, migrations, worker and recovery; Media's
-  asset records, integration, web routes and retry flow.
-- Led the boundary-security implementation recorded in the effort ledger, including owner
-  checks, database-role separation, presigned storage access and negative tests.
-- Developed the analysis and design of **UC-1 Register, log in and upload an owned video**,
-  **UC-2 Process the video into playable outputs**, **UC-4 Retry from the stored source**, and
-  **DP-2 Durable asynchronous Processing handoff**.
+- Led work packages 3 and 4: Processing's database, migrations, worker and recovery; Media's asset
+  records, integration, web routes and retry flow.
+- Led the boundary-security implementation recorded in the effort ledger: owner checks,
+  database-role separation, presigned storage access and negative tests.
+- Developed the analysis and design of UC-1, UC-2, UC-4 and DP-2.
 - Contributed backend integration, design explanations and verification evidence to the
-  progress report, presentation and final report, and reviewed the other specialisms.
+  presentation and final report.
 
 #### Nguyễn Kim Long
 
-Long led domain analysis, contracts and verification. He defined the service vocabulary and
-public interfaces, built the independent Publisher client and organized experiments that connect
-the proposal's goals to observed outcomes. He is responsible for the analysis and design of
-UC-3, UC-5 and DP-3.
+Long led domain analysis, contracts and verification (UC-3, UC-5, DP-3). He defined the service
+vocabulary and public interfaces, built the independent Publisher client and organized the
+experiments that connect the proposal's goals to observed outcomes.
 
 - Led work packages 2 and 6: DDD, service contracts, OpenAPI documents, Publisher and its
   contract tests.
-- Led work package 8: scaling, load, recovery and playback experiments and their raw results;
-  contributed the queue-drain re-test during integration.
-- Developed the analysis and design of **UC-3 Track status and play the result**, **UC-5
-  Bulk-publish a folder and report results**, and **DP-3 Trusted owner identity and reusable
-  public contract**.
-- Maintained the evidence index and release-freeze documentation; contributed to the progress
-  report, presentation and final report, and reviewed the other specialisms.
+- Led work package 8: scaling, load, recovery and playback experiments and their raw results; ran
+  the queue-drain re-test during integration.
+- Developed the analysis and design of UC-3, UC-5 and DP-3.
+- Maintained the evidence index and release-freeze documentation, and contributed to the
+  presentation and final report.
 
 ### Lessons Learned
 
@@ -116,8 +95,7 @@ below identify the demonstration environment; its planned teardown is after 16 N
 | Local demonstration | `make setup-v1`, then `make v1-up V1_RUN_ID=demo1`, then `make v1-demo V1_RUN_ID=demo1 OPEN=1` |
 | Static checks and fast tests | `make lint`, `make format-check`, `make test`; frontend: `cd frontend && npm ci && npm test` |
 | Real-dependency V1 flows | With the local namespace running: `make verify-v1 V1_RUN_ID=demo1 FLOW=all` |
-| Added native-recovery and launcher unit suites | PR #327: `tests/media/test_native_recovery.py`, `tests/processing/test_launcher_tick.py`; test inventory in Extensibility and Maintainability |
-| Added advisory scanner workflow and summaries | PR #328: `.github/workflows/security-scans.yml`, `scripts/ci/SECURITY_SCANS.md`; pip-audit runtime-dependency audit and Checkov rendered-template scan |
+| Unit-test inventory and security scanners | Extensibility and Maintainability (test inventory); Continuous Integration (scanner inventory) |
 | Demonstration deployment addresses | Frontend: `https://d1e1dpefd6hp9x.cloudfront.net`; API: `https://nqxf2hclhi.execute-api.ap-southeast-1.amazonaws.com` |
 | Report sources and build instructions | `project-documentation/final-report/src/`; `project-documentation/final-report/README.md` |
 

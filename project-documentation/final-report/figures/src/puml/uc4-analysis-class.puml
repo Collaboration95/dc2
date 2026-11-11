@@ -11,8 +11,8 @@ skinparam LegendFontSize 15
 skinparam titleFontSize 20
 skinparam classAttributeIconSize 0
 skinparam maxMessageSize 165
-skinparam nodesep 18
-skinparam ranksep 24
+skinparam nodesep 36
+skinparam ranksep 56
 hide footbox
 hide circle
 title UC-4 · conceptual retry and authority
@@ -39,10 +39,10 @@ class RetryIdentity <<entity>> {
 RetryAction --> RetryControl
 RetryControl ..> OwnedAsset : checks owner / stored source
 RetryControl ..> ProcessingJob : serializes
-OwnedAsset "1" -- "1" ProcessingJob
-ProcessingJob "1" -- "1..*" ProcessingAttempt
-ProcessingJob "1" -- "0..*" RetryIdentity
-RetryIdentity "0..1" --> "1" ProcessingAttempt
+OwnedAsset "1" -down- "1" ProcessingJob : processed as
+ProcessingJob "1" -down- "1..*" ProcessingAttempt : attempts
+ProcessingJob "1" -right- "0..*" RetryIdentity : retried by
+RetryIdentity -down-> ProcessingAttempt : successor\n(0..1 to 1)
 legend bottom
 One Job retains source identity while retries replace execution authority.
 endlegend

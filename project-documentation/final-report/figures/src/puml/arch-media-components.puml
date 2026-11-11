@@ -48,7 +48,7 @@ Msg ..> SQL : inbox / outbox
 Msg ..> D : accept / stage / publish_due
 legend bottom
 Blue = Media; slate = shared library. Circle = provided exports; dashed arrow = dependency.
-Repository = module lookup/replay role; Storage adapts Minio S3. Services also query ORM directly.
+Repository = module lookup/replay role; Storage wraps the MinIO S3 client. Services also query ORM directly.
 endlegend
 
 @enduml

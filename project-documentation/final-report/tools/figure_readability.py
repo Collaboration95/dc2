@@ -27,7 +27,7 @@ def main():
             rel = match.group(1)
             width_cm = float(match.group(3) or 15.0)
             w, h = png_size(ROOT / rel)
-            label_px = 20 if Path(rel).stem.split("-")[0] not in {"conduct", "actual", "cover"} else None
+            label_px = 20 if Path(rel).stem.split("-")[0] not in {"conduct", "actual", "cover", "results"} else None
             if label_px is None:
                 continue  # matplotlib charts and logos: check by eye
             pt = label_px * (width_cm / 2.54 * 72) / w

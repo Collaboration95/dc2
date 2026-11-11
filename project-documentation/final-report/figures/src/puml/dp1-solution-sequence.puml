@@ -1,47 +1,61 @@
-!include _style.iuml
 @startuml
 !include _style.iuml
-skinparam defaultFontSize 20
-skinparam ArrowFontSize 20
-skinparam classAttributeFontSize 18
-skinparam ClassStereotypeFontSize 17
-skinparam NoteFontSize 18
-skinparam titleFontSize 21
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam classAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
+skinparam titleFontSize 17
 skinparam BoxPadding 8
-skinparam maxMessageSize 350
+skinparam maxMessageSize 400
 skinparam nodesep 22
 skinparam ranksep 22
 skinparam sequenceMessageAlign left
 hide footbox
 hide circle
+' processing/launcher.py (_reserve, _send, observe, _reconcile); launcher_models.py; launcher_aws.py
 title DP-1 solution: serialize, reserve, reconcile
 autonumber
-participant "launcher\n(wake A)" as a $PROC
-participant "launcher\n(wake B)" as b $PROC
+participant "launcher (wake A)\n«capacity gate»" as a $PROC
+participant "launcher (wake B)\n«capacity gate»" as b $PROC
 database "Processing SQL" as sql $PROC
-participant "EcsPort" as ecs $INFRA
+participant "EcsPort\n«adapter»" as ecs $INFRA
+note over sql
+ LauncherControl = «serialization root»
+ LaunchReservation = «durable reservation»
+end note
 a -> sql : _reserve(): control FOR UPDATE
-b -> sql : _reserve(): wait for control row
-a -> sql : reserve three slots with tokens; COMMIT
-sql --> b : acquire lock; read three occupied slots
+b -> sql : _reserve(): waits for the control row
+a -> sql : INSERT three reservations with tokens; COMMIT
+sql --> b : lock acquired; three slots occupied
 b -> sql : no free slot; COMMIT
-loop each reserved token
- a -> sql : _send(): shared control + reservation lock
+loop each reserved token (wake A)
+ a -> a : _send(factory, ecs, token, config)
+ a -> sql : control FOR SHARE; row lock; state checks
  a -> ecs : run_task(stored payload)
  alt acknowledged
   ecs --> a : task ARN
-  a -> sql : mark launched; COMMIT
+  a -> sql : status = launched; COMMIT
  else reply uncertain
   ecs --> a : timeout
-  a -> sql : retain slot; COMMIT; stop this tick
-  end
+  a -> sql : keep slot reserved; COMMIT; stop this tick
+ end
 end
-b -> ecs : later tick: observe known launch identities
+note over b,ecs : A later tick of wake B reconciles by token.
+b -> b : observe(ecs, config, known_arns)
+b -> ecs : list_tasks(status); describe_tasks(arns)
 alt task visible by startedBy
- ecs --> b : existing task ARN
- b -> sql : _reconcile(): bind same reservation
-else replay threshold passed with demand
- b -> ecs : _send(): same clientToken and payload
- ecs --> b : existing or newly created task for token
+ ecs --> b : existing task
+ b -> sql : _reconcile(): bind the same reservation
+else replay delay passed, demand remains
+ b -> b : _send(factory, ecs, token, config)
+ b -> sql : control FOR SHARE; row lock; state checks
+ alt reserved, enabled, session open
+  b -> ecs : run_task(stored payload; same clientToken)
+  ecs --> b : existing or new task for the token
+  b -> sql : status = launched; COMMIT
+ else closed or already settled
+  b -> sql : release or skip; COMMIT
+ end
 end
 @enduml

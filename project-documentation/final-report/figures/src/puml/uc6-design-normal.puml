@@ -1,54 +1,57 @@
-!include _style.iuml
 @startuml
 !include _style.iuml
-skinparam defaultFontSize 20
-skinparam ArrowFontSize 20
-skinparam classAttributeFontSize 18
-skinparam ClassStereotypeFontSize 17
-skinparam NoteFontSize 18
-skinparam titleFontSize 21
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam classAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
+skinparam titleFontSize 17
 skinparam BoxPadding 8
-skinparam maxMessageSize 230
+skinparam maxMessageSize 400
 skinparam nodesep 22
 skinparam ranksep 22
 skinparam sequenceMessageAlign left
 hide footbox
 hide circle
-' Adapted decisions from W1-dispatch/triggers/events; processing/launcher*.py
+' processing/launcher.py (tick, observe, _reserve, _reconcile, _send); launcher_aws.py (EcsPort, _dispatch)
 title UC-6 design: reserve before RunTask
 autonumber
-participant "launcher_aws" as entry $PROC
-participant "launcher" as l $PROC
-database "Processing\nSQL" as sql $PROC
-participant "EcsPort /\nQueueDepth" as ports $INFRA
+participant "launcher_aws\n«module»" as entry $PROC
+participant "launcher\n«module»" as l $PROC
+database "Processing SQL" as sql $PROC
+participant "EcsPort" as ecs $INFRA
+participant "QueueDepth" as q $INFRA
 note over entry,l
- WakeOnWork invokes the launcher after send.
- A minute timer is the fallback.
+ WakeOnWork wakes the launcher after a send;
+ a one-minute timer is the fallback.
 end note
-entry -> l : _dispatch() -> tick(...)
-l -> sql : queued_backlog(session); read control
-opt open reservations or enabled backlog
- l -> ports : observe() -> list_tasks / describe_tasks
- ports --> l : Observation(workers, missing)
- opt enabled backlog
-  l -> ports : visible()
-  ports --> l : standard queue depth
+entry -> l : _dispatch(...): tick(...)
+l -> sql : read control; open rows; queued_backlog()
+opt open reservations, or enabled with backlog
+ l -> l : observe(ecs, config, known_arns)
+ l -> ecs : list_tasks(status); describe_tasks(arns)
+ ecs --> l : Observation(workers, missing)
+ opt enabled with backlog
+  l -> q : visible()
+  q --> l : queue depth (unreadable: no demand)
  end
- l -> sql : _reserve(): control FOR UPDATE
+ l -> l : _reserve(factory, config, obs, visible)
+ l -> sql : control FOR UPDATE; lock open rows
+ l -> l : _reconcile(...); demand = min(backlog, visible)
  alt admissible demand and free slots
-  l -> sql : reconcile; add reservations; COMMIT
+  l -> sql : INSERT reservations; COMMIT
  else no admissible capacity
-  l -> sql : reconcile only; COMMIT
+  l -> sql : reconcile changes only; COMMIT
  end
- loop reserved token
-  l -> sql : _send(): control FOR SHARE; row lock
-  l -> ports : run_task(row.payload)
-  ports --> l : tasks[0].taskArn
-  l -> sql : status=launched; COMMIT
+ loop each reserved token
+  l -> l : _send(factory, ecs, token, config)
+  l -> sql : control FOR SHARE; row lock
+  l -> ecs : run_task(row.payload)
+  ecs --> l : tasks[0].taskArn
+  l -> sql : status = launched; COMMIT
  end
 end
-note over l,ports
- demand = min(SQL backlog, visible messages).
+note over l,q
  Work is claimed separately by the worker.
 end note
 @enduml

@@ -9,8 +9,8 @@ skinparam NoteFontSize 18
 skinparam titleFontSize 21
 skinparam BoxPadding 8
 skinparam maxMessageSize 230
-skinparam nodesep 22
-skinparam ranksep 22
+skinparam nodesep 30
+skinparam ranksep 44
 skinparam sequenceMessageAlign left
 hide footbox
 hide circle
@@ -48,9 +48,9 @@ class "Prior snapshot" as prior <<entity>> {
 }
 ops --> ctl
 ctl --> candidate : releases
-candidate "1" -- "1..*" evidence : justified by
+candidate "1" --- "1..*" evidence : justified by
 ctl --> intent : persists before mutation
-intent "1" -- "1" prior : retains
+intent "1" --- "1" prior : retains
 note bottom of prior
  Peer is observed independently.
  Restore repairs code selection;

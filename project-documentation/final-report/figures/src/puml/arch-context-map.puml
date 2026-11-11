@@ -26,13 +26,12 @@ package "Processing" $PROC {
  component "Finite encoder roles\nworker.sqs / short_encoder" as E
  P -down-> E : work (internal)\nprocessing-work /\nprocessing-work-short
 }
-M -right-> P : submit / retry / cancel\nprocessing-commands [PL]
-P -left-> M : result [PL] / media-results\nmodel dependency: Processing [U], Media [D]
+M -right-> P : submit / retry / cancel [PL]\nprocessing-commands
+P -left-> M : result [PL]\nmedia-results\nProcessing [U] → Media [D]
 legend bottom
-  U/D = inferred result-model dependency; arrows = message flow. Media translates the upstream snapshot.
-  [PL] Published Language = Envelope + Source in contracts/v1.py. Actor is API context.
-  [ACL] = Media validation + mapping into its own projection/public states. Commands use adapters.
-  Shared code is reused; no formal Customer/Supplier or Shared Kernel agreement is assumed.
-  Conformist is not asserted: Media keeps its own model. delivery/ is shared technical code.
+  Arrows = message flow. [PL] Published Language: Envelope + Source (contracts/v1.py).
+  [ACL] Media validates results and maps them into its own projection.
+  U/D: Processing upstream, Media downstream for the result model.
+  Actor is trusted API context, not part of the queue envelope.
 endlegend
 @enduml

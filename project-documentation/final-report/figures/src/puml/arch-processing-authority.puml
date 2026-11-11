@@ -33,6 +33,7 @@ class "processing.models.CleanupIntent" as Cleanup <<cleanup ledger>> $INFRA {
  job_id: UUID
  next_try_at: datetime
  tries: int
+ last_error: str | None
  created_at: datetime
  retired_at: datetime | None
 }
@@ -42,7 +43,7 @@ class "processing.lifecycle" as Life <<module>> $PROC {
  heartbeat(factory, work, settings)
  finish(factory, work, *, outputs, error)
 }
-class SubmissionGuard <<independent cancellation root>> $PROC {
+class SubmissionGuard <<cancellation root>> $PROC {
  asset_id: UUID
  owner_id: UUID
  job_id: UUID | None
@@ -58,21 +59,22 @@ Claim -[hidden]down- Life
 Cleanup -[hidden]down- SubmissionGuard
 Life ..up> Claim : claim() creates;
 Life ..right> Cleanup : cleanup_intent()
-note bottom of Claim
-  Claim is local worker authority; never a queue payload.
-  Frozen fields; nested dict/list remain mutable.
-  Lease is Attempt columns, not a Lease class.
-  V1 legacy source_url is empty; Source descriptor is used.
+note bottom of Life
+  Claim is local worker authority,
+  never a queue payload.
+  The lease is Attempt columns, not a class.
+  source_url is empty in V1; the Source
+  descriptor locates the pinned object.
 end note
 note bottom of Cleanup
-  Per Attempt: 0..1 intent; per Job: 0..* intents.
+  0..1 intent per Attempt; 0..* per Job.
   job_id + attempt_id are local FKs.
-  finish(error), retry, cancel, interrupt:
-  stage intent; recovery scans attempt prefix.
+  finish(error), retry, cancel and interrupt
+  stage intent; recovery scans the prefix.
 end note
 legend bottom
   Dashed = dependency; IDs reference Job / Attempt.
-  lock_pair() + live() enforce the heartbeat / finish fences.
+  lock_pair() + live() fence heartbeat and finish.
 endlegend
 
 @enduml

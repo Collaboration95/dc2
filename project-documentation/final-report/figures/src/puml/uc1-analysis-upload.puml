@@ -25,25 +25,25 @@ Owner -> C : declare owned video and request identity
 C -> R : reserve or replay declaration
 alt wrong owner, changed request or expired grant
  C --> Owner : refuse; no accepted asset
-else valid reservation
+else request already adopted (replay)
+ C --> Owner : no new upload permission
+ Owner -> C : finalize reservation
+ C --> Owner : same asset identity
+else pending request
  C --> Owner : scoped upload permission
  Owner -> S : upload bytes directly
  Owner -> C : finalize reservation
- alt already adopted
-  C --> Owner : same asset identity
- else pending
-  C -> S : verify exact source bytes and identity
-  alt missing, invalid or unversioned bytes
-   S --> C : verification failure
-   C --> Owner : refuse; no asset or processing request
-  else verified source
-   S --> C : immutable source identity
-   group one local acceptance
-    C -> R : recheck ownership and expiry; record pin
-    C -> C : adopt asset and retain processing intent
-   end
-   C --> Owner : accepted asset identity
+ C -> S : verify exact source bytes and identity
+ alt missing, invalid or unversioned bytes
+  S --> C : verification failure
+  C --> Owner : refuse; no asset or processing request
+ else verified source
+  S --> C : immutable source identity
+  group one local acceptance
+   C -> R : recheck ownership and expiry; record pin
+   C -> C : adopt asset and retain processing intent
   end
+  C --> Owner : accepted asset identity
  end
 end
 @enduml

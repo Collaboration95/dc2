@@ -1,50 +1,57 @@
-!include _style.iuml
 @startuml
 !include _style.iuml
-skinparam defaultFontSize 20
-skinparam ArrowFontSize 20
-skinparam classAttributeFontSize 18
-skinparam ClassStereotypeFontSize 17
-skinparam NoteFontSize 18
-skinparam titleFontSize 21
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam classAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
+skinparam titleFontSize 17
 skinparam BoxPadding 8
-skinparam maxMessageSize 230
+skinparam maxMessageSize 400
 skinparam nodesep 22
 skinparam ranksep 22
 skinparam sequenceMessageAlign left
 hide footbox
 hide circle
-' W5 release decisions expanded to function interactions; scripts/ci/cd.sh
+' scripts/aws/v1/release.py (promote, _version, _move), scripts/aws/v1/hooks.py, scripts/ci/cd.sh
 title UC-7 design: owner promotion and adoption
 autonumber
-participant "cd.sh / deploy" as cd $INFRA
-participant "release" as rel $INFRA
+participant "cd.sh /\ndeploy" as cd $INFRA
+participant "release\n«module»" as rel $INFRA
 participant "Journal" as j $INFRA
-participant "OperatorTransport\n/ release hooks" as aws $INFRA
-cd -> cd : cd_gate.admit(...)
-cd -> cd : Pipeline.\nchanged_owners()
+participant "hooks" as hk $INFRA
+participant "Operator\nTransport" as aws $INFRA
+cd -> cd : cd_gate.admit(...); Pipeline.changed_owners()
 note over cd,rel
  Processing-only release; selected images verified.
  Migration changes need additive attestation.
 end note
-cd -> rel : promote(...)
+cd -> rel : promote(config, transport, journal, ...)
 rel -> j : check_context(config); locked()
-rel -> aws : quiescent(); validate definitions;\nsnapshot / compatibility hooks
+rel -> hk : quiescent(owner); compatibility(...)
+rel -> aws : describe-task-definition; snapshot reads
 rel -> j : save(state): pending_release
 note over rel,j : Saved before migration or code mutation.
-rel -> aws : migrate(...): owning additive revision
-loop each Processing function
- rel -> aws : _version(): update code / publish version
- rel -> j : save versions / publication marker
- rel -> aws : _move(): update-alias with RevisionId
- rel -> j : save moved alias receipt
+rel -> rel : migrate(...)
+rel -> aws : run-task: owning additive revision
+loop each prior function name
+ rel -> rel : _version(...)
+ rel -> aws : update-function-code if needed; list-versions-by-function
+ opt no version has the release description
+  rel -> j : save(state): publication_started[name]
+  rel -> aws : publish-version
+ end
+ rel -> j : save(state): versions[name]
+ rel -> rel : _move(...)
+ rel -> aws : get-alias; update-alias with RevisionId
+ rel -> j : save(state): moved[name]
 end
-rel -> aws : public_smoke(); quiescent(); peer snapshot
-aws --> rel : PASS; Media unchanged
-rel -> j : save promoted receipt; clear intent
+rel -> hk : public_smoke(...); quiescent(owner)
+hk --> rel : True
+rel -> aws : peer snapshot: Media unchanged
+rel -> j : save(state): last_release; clear pending_release
 rel --> cd : promoted receipt
-cd -> cd : adopt_release(...)
-cd -> cd : deploy to applications with adopted images
+cd -> cd : adopt_release(...); deploy with adopted images
 note over cd,rel
  Adoption updates launcher worker selection.
  Messages show selected arguments.

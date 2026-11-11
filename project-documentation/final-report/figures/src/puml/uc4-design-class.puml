@@ -11,8 +11,8 @@ skinparam LegendFontSize 15
 skinparam titleFontSize 20
 skinparam classAttributeIconSize 0
 skinparam maxMessageSize 165
-skinparam nodesep 18
-skinparam ranksep 24
+skinparam nodesep 40
+skinparam ranksep 56
 hide footbox
 hide circle
 title UC-4 · retry identity and current-attempt fences
@@ -50,10 +50,10 @@ class "v1_lifecycle\nmedia.services" as V <<module>> $MEDIA {
 V ..> K : public replay
 V ..> M : asynchronous retry command
 M ..> J : locked transition
-J "1" -- "1..*" A
-J "0..1" --> "1" A : current
-J "1" -- "0..*" R : unique job / request
-R "0..1" --> "1" A : successor
+J "1" -down- "1..*" A : history
+J -down-> A : current attempt\n(0..1 to 1)
+J "1" -right- "0..*" R : unique job / request
+R -down-> A : successor\n(0..1 to 1)
 legend bottom
 Selected fields. RequestKey and RetryRequest are stored in separate databases.
 Public replay and successor creation have independent deduplication identities and transaction owners.

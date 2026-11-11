@@ -39,7 +39,7 @@ events --> selection
 gate -[hidden]down-> source
 legend bottom
 Boxes group jobs; independent lanes execute in parallel.
-Full policy runs before Main merge and repeats on Main push.
+Main protection requires Full verification; it repeats on Main push.
 Dev gate: selected dev checks + secrets; full escalation is possible.
 90/85 and 80/75 = combined / raw branch percentages.
 endlegend

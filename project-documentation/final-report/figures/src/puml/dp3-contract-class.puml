@@ -2,15 +2,17 @@
 !include _style.iuml
 ' Contract consumers: publisher/client.py; frontend/app.js; docs/api/media.openapi.json
 ' Evidence (07c7c14): media/authorizer.py; contracts/gateway.py; contracts/v1.py; media/api/deps.py; processing/auth.py; scripts/aws/v1/definitions.py
-skinparam dpi 180
 skinparam BackgroundColor white
-skinparam defaultFontSize 17
-skinparam ArrowFontSize 16
-skinparam ClassAttributeFontSize 16
-skinparam NoteFontSize 15
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
 skinparam classAttributeIconSize 0
-skinparam nodesep 24
-skinparam ranksep 28
+skinparam nodesep 20
+skinparam ranksep 22
+skinparam nodesep 90
+skinparam ranksep 44
 title DP-3 · shared wire types and public clients
 class "Envelope" as E <<published language>> $INFRA {
  + schema_version: int
@@ -20,6 +22,7 @@ class "Envelope" as E <<published language>> $INFRA {
  {static} + from_dict(value: Any): Envelope
 }
 class "Source" as S <<published language>> $INFRA {
+ ' selected fields
  + bucket: str
  + key: str
  + version_id: str
@@ -40,9 +43,9 @@ class "frontend/app.js" as F <<module>> $CLIENT {
  {static} + followJob(scope, jobId,\n handlers)
  {static} + playbackSource(job)
 }
-E "0..*" --> "0..1" S : source
-P ..up> J : HTTP schema
-F ..up> J : HTTP schema
+E "0..*" -right-> "0..1" S : source
+P ..up> J : HTTP\nschema
+F ..up> J : HTTP\nschema
 P -[hidden]right-> F
 E -[hidden]down-> J
 @enduml

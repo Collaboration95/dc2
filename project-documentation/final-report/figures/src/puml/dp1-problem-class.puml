@@ -36,7 +36,6 @@ note bottom of view
  A timeout has no stable replay identity.
 end note
 legend bottom
- Hypothetical failing design used to explain the problem.
- These are conceptual roles, not implemented class names.
+ Illustrative unprotected design: conceptual roles only.
 endlegend
 @enduml

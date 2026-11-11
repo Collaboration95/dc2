@@ -11,8 +11,8 @@ skinparam LegendFontSize 15
 skinparam titleFontSize 20
 skinparam classAttributeIconSize 0
 skinparam maxMessageSize 165
-skinparam nodesep 18
-skinparam ranksep 24
+skinparam nodesep 36
+skinparam ranksep 56
 hide footbox
 hide circle
 title UC-1 · implemented adoption records and functions
@@ -49,7 +49,7 @@ I .right.> R : locks / pins
 I ..> A : inserts
 S -[hidden]down- O
 I ..> O : enqueue_submit\n→ stage
-R "0..1" -down- "0..1" A : asset_id (logical)
+R "0..1" -down- "0..1" A : logical asset_id
 legend bottom
 Selected Mapped[T] fields shown as T; underlined operations are
 module functions.

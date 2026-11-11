@@ -11,8 +11,8 @@ skinparam LegendFontSize 15
 skinparam titleFontSize 20
 skinparam classAttributeIconSize 0
 skinparam maxMessageSize 165
-skinparam nodesep 18
-skinparam ranksep 24
+skinparam nodesep 36
+skinparam ranksep 56
 hide footbox
 hide circle
 title UC-1 · conceptual intake responsibilities
@@ -44,9 +44,9 @@ class OwnedAsset <<entity>> {
 AccountAccess --> IdentityControl
 IdentityControl --> Owner
 UploadForm --> IntakeControl
-Owner "1" -down- "0..*" UploadRequest
-Owner "1" -- "0..*" OwnedAsset
+Owner "1" -down- "0..*" UploadRequest : requests
+Owner "1" -down- "0..*" OwnedAsset : owns
 IntakeControl ..> UploadRequest : validates
 IntakeControl ..> OwnedAsset : adopts
-UploadRequest "1" -down- "0..1" OwnedAsset
+UploadRequest "1" -down- "0..1" OwnedAsset : adopted as
 @enduml

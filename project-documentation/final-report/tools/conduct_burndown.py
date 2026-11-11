@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
-"""Rebuild report issue charts from authenticated gh issue timestamps.
+"""Rebuild the report's project-conduct charts from GitHub issue timestamps.
 
 Refresh and render (all GitHub reads use gh):
-  python conduct_burndown.py --refresh
+  python tools/conduct_burndown.py --refresh
 Render the retained snapshot without network access:
-  python conduct_burndown.py
-Dependencies: matplotlib (tested with version recorded in conduct-chart-summary.json).
+  python tools/conduct_burndown.py
+Dependencies: matplotlib (version recorded in data/conduct-chart-summary.json).
 Use a disposable environment, e.g. /private/tmp/conduct-report-venv.
 
-Counts describe issue administration, not effort or accepted story points. Parent
-issues labelled epic are separate. Latest closedAt cannot recover reopen cycles.
-All days use Asia/Singapore; the snapshot day stops at the actual capture time.
+Outputs (figures/):
+  conduct-iteration-plan.png      planned iteration timeline with WBS packages and milestones
+  conduct-overall-issues.png      overall burnup: issues registered against issues closed
+  conduct-iteration-burndown.png  per iteration: registered, closed and open at iteration end
+  conduct-issue-reduction.png     open tasks and parent epics over time
+
+Counts use createdAt and the latest closedAt. Issues labelled epic are counted as
+parent epics. All days use Asia/Singapore; the snapshot day stops at the capture time.
+Charts are drawn at their printed width (15 cm) so that 8 pt text prints at 8 pt.
 """
 from __future__ import annotations
 import argparse
@@ -34,18 +40,32 @@ from matplotlib.ticker import MaxNLocator
 ROOT = Path(__file__).resolve().parents[1]
 SGT = ZoneInfo('Asia/Singapore')
 REPO = 'Collaboration95/dc2'
+# Iteration windows: (number, name, start, end, WBS packages, leads).
 PERIODS = [
-    ('1 · Baseline / domain', date(2026, 10, 5), date(2026, 10, 9)),
-    ('2 · Local services', date(2026, 10, 10), date(2026, 10, 14)),
-    ('3 · AWS delivery', date(2026, 10, 15), date(2026, 10, 20)),
-    ('4 · Hardening / presentation', date(2026, 10, 21), date(2026, 10, 26)),
-    ('5 · Feedback / report', date(2026, 10, 27), date(2026, 11, 16)),
+    (1, 'Baseline and domain', date(2026, 10, 5), date(2026, 10, 9), 'WBS 1–2', 'Guruprasath, Long'),
+    (2, 'Local services', date(2026, 10, 10), date(2026, 10, 14), 'WBS 3, 4, 6', 'Ibrahim, Long'),
+    (3, 'AWS delivery', date(2026, 10, 15), date(2026, 10, 20), 'WBS 5, 7, 8', 'Guruprasath, Ibrahim, Long'),
+    (4, 'Hardening and presentation', date(2026, 10, 21), date(2026, 10, 26), 'WBS 9–10', 'All'),
+    (5, 'Feedback and report', date(2026, 10, 27), date(2026, 11, 16), 'WBS 10', 'All'),
 ]
-BLUE, GREEN, ORANGE = '#235b85', '#22856b', '#b96c28'
+MILESTONES = [  # (date, label, label row, alignment)
+    (date(2026, 10, 4), 'Proposal', 0, 'left'),
+    (date(2026, 10, 18), 'project2-v1', 1, 'right'),
+    (date(2026, 10, 20), 'Freeze', 1, 'left'),
+    (date(2026, 10, 26), 'Presentation', 0, 'left'),
+    (date(2026, 11, 16), 'Report due', 1, 'right'),
+]
+BLUE, GREEN, ORANGE, GREY = '#235b85', '#22856b', '#b96c28', '#5b6472'
+BAND = '#eef1f5'
+WIDTH_IN = 15 / 2.54  # printed width in the report
 
 
 def instant(s):
     return datetime.fromisoformat(s.replace('Z', '+00:00')).astimezone(SGT) if s else None
+
+
+def midnight(d):
+    return datetime.combine(d, time.min, SGT)
 
 
 def refresh():
@@ -63,6 +83,91 @@ def refresh():
     (ROOT / 'data/conduct-issue-capture.json').write_text(json.dumps({
         'snapshot_at': datetime.now(timezone.utc).isoformat(), 'command': args,
         'repo': REPO, 'issues': len(rows)}, indent=2) + '\n')
+
+
+def style():
+    plt.rcParams.update({
+        'font.family': 'DejaVu Sans', 'font.size': 8.5, 'axes.titlesize': 9.5,
+        'axes.titleweight': 'bold', 'axes.labelsize': 8.5, 'xtick.labelsize': 8,
+        'ytick.labelsize': 8, 'legend.fontsize': 8, 'axes.spines.top': False,
+        'axes.spines.right': False, 'axes.linewidth': 0.6, 'lines.linewidth': 1.6,
+        'savefig.facecolor': 'white', 'figure.facecolor': 'white'})
+
+
+def save(fig, name):
+    fig.savefig(ROOT / 'figures' / name, dpi=300)
+    plt.close(fig)
+
+
+def iteration_bands(ax, top_label=True):
+    """Shade alternate iteration windows lightly and number them at the top."""
+    for i, (n, _, a, b, _, _) in enumerate(PERIODS):
+        left, right = midnight(a), midnight(b + timedelta(days=1))
+        if i % 2 == 0:
+            ax.axvspan(left, right, color=BAND, zorder=0, lw=0)
+        if top_label:
+            ax.text(left + (right - left) / 2, 1.0, f'It. {n}',
+                    transform=ax.get_xaxis_transform(), ha='center', va='bottom',
+                    fontsize=8, color=GREY)
+
+
+def date_axis(ax):
+    ax.xaxis.set_major_locator(mdates.DayLocator(bymonthday=[1, 8, 15, 22], tz=SGT))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %b', tz=SGT))
+    ax.set_xlim(midnight(PERIODS[0][2] - timedelta(days=1)),
+                midnight(PERIODS[-1][3] + timedelta(days=1)))
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.grid(axis='y', alpha=.25, lw=.5)
+    ax.set_ylim(bottom=0)
+
+
+def snapshot_line(ax, captured, label=True):
+    ax.axvline(captured, color=GREY, lw=.8, ls=':')
+    if label:
+        ax.text(captured, .97, ' Snapshot\n 10 Nov', transform=ax.get_xaxis_transform(),
+                ha='left', va='top', fontsize=8, color=GREY)
+
+
+def span(a, b):
+    if a.month == b.month:
+        return f'{a.day}–{b.day} {b:%b}'
+    return f'{a.day} {a:%b}–{b.day} {b:%b}'
+
+
+def plan_chart():
+    fig, ax = plt.subplots(figsize=(WIDTH_IN, 2.8))
+    for i, (n, name, a, b, wbs, leads) in enumerate(PERIODS):
+        y = len(PERIODS) - i
+        left, right = midnight(a), midnight(b + timedelta(days=1))
+        ax.barh(y, right - left, left=left, height=.62, color=BLUE, alpha=.85, zorder=2)
+        label = f'{wbs} · {leads}'
+        if n == 5:
+            ax.text(left + timedelta(hours=10), y, label, va='center', ha='left',
+                    fontsize=8, color='white', zorder=3)
+        else:
+            ax.text(right + timedelta(hours=8), y, label, va='center', ha='left', fontsize=8,
+                    color='#1f2937', zorder=3,
+                    bbox={'facecolor': 'white', 'edgecolor': 'none', 'pad': 1})
+    ax.set_yticks([len(PERIODS) - i for i in range(len(PERIODS))])
+    ax.set_yticklabels([f'{n}  {name}\n{span(a, b)}' for n, name, a, b, _, _ in PERIODS])
+    top = len(PERIODS) + .75
+    for d, name, row, ha in MILESTONES:
+        x = midnight(d) + timedelta(hours=12)
+        ax.axvline(x, color=ORANGE, lw=.6, ls='--', zorder=1, ymax=.93)
+        ax.plot([x], [top], marker='D', color=ORANGE, ms=4, zorder=3, clip_on=False)
+        shift = timedelta(hours=14) * (1 if ha == 'left' else -1)
+        ax.text(x + shift, top + row * .55, f'{name} {d.day} {d:%b}', fontsize=8, va='center',
+                ha=ha, color=ORANGE, clip_on=False, zorder=4,
+                bbox={'facecolor': 'white', 'edgecolor': 'none', 'pad': .5})
+    ax.set_ylim(.4, top + .75)
+    ax.spines['left'].set_visible(False)
+    ax.tick_params(axis='y', length=0)
+    ax.xaxis.set_major_locator(mdates.DayLocator(bymonthday=[1, 8, 15, 22], tz=SGT))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %b', tz=SGT))
+    ax.set_xlim(midnight(date(2026, 10, 3)), midnight(date(2026, 11, 17)))
+    ax.grid(axis='x', alpha=.25, lw=.5)
+    fig.tight_layout(pad=.4)
+    save(fig, 'conduct-iteration-plan.png')
 
 
 def main():
@@ -84,112 +189,123 @@ def main():
               for r in rows]
     assert all(x['created'] <= captured for x in issues), 'Issue created after snapshot'
     assert all(not x['closed'] or x['created'] <= x['closed'] <= captured for x in issues)
-    start, end = PERIODS[0][1], min(PERIODS[-1][2], captured.date())
-    days = [start - timedelta(days=1) + timedelta(days=i)
-            for i in range((end - start).days + 2)]
-    # Day 0 is the opening balance before the first reporting day.
-    limits = [min(datetime.combine(d + timedelta(days=1), time.min, SGT), captured) for d in days]
-    def counts(epic):
-        group = [x for x in issues if x['epic'] == epic]
+    start, end = PERIODS[0][2], min(PERIODS[-1][3], captured.date())
+    days = [start - timedelta(days=1) + timedelta(days=i) for i in range((end - start).days + 2)]
+    # Day 0 is the opening balance before the first reporting day; the last day ends at capture.
+    limits = [min(midnight(d + timedelta(days=1)), captured + timedelta(microseconds=1)) for d in days]
+
+    def counts(group):
         opened = [sum(x['created'] < t for x in group) for t in limits]
         closed = [sum(bool(x['closed'] and x['closed'] < t) for x in group) for t in limits]
-        return opened, closed, [a-b for a,b in zip(opened,closed)]
-    tasks_opened, tasks_closed, tasks_left = counts(False)
-    epics_opened, epics_closed, epics_left = counts(True)
-    total_opened = [a+b for a,b in zip(tasks_opened, epics_opened)]
-    total_closed = [a+b for a,b in zip(tasks_closed, epics_closed)]
-    total_left = [a-b for a,b in zip(total_opened, total_closed)]
-    # Include events exactly at capture time in the final observation.
-    for group, opened, closed, left in [
-        ([x for x in issues if not x['epic']], tasks_opened, tasks_closed, tasks_left),
-        ([x for x in issues if x['epic']], epics_opened, epics_closed, epics_left)]:
-        opened[-1] = len(group)
-        closed[-1] = sum(bool(x['closed']) for x in group)
-        left[-1] = opened[-1] - closed[-1]
-    total_opened[-1], total_closed[-1] = len(issues), sum(bool(x['closed']) for x in issues)
-    total_left[-1] = total_opened[-1] - total_closed[-1]
+        return opened, closed, [a - b for a, b in zip(opened, closed)]
+
+    tasks = [x for x in issues if not x['epic']]
+    epics = [x for x in issues if x['epic']]
+    tasks_opened, tasks_closed, tasks_left = counts(tasks)
+    epics_opened, epics_closed, epics_left = counts(epics)
+    total_opened, total_closed, total_left = counts(issues)
     assert total_left[-1] == sum(not x['closed'] for x in issues)
     with (ROOT / 'data/conduct-daily-issues.csv').open('w', newline='') as f:
-        w=csv.writer(f); w.writerow(['date_sgt','tasks_created','tasks_closed','tasks_remaining',
-                                    'epics_created','epics_closed','epics_remaining','all_remaining'])
-        w.writerows(zip(days,tasks_opened,tasks_closed,tasks_left,epics_opened,epics_closed,epics_left,total_left))
-    plt.rcParams.update({'font.family':'DejaVu Sans','font.size':14,'axes.spines.top':False,
-                         'axes.spines.right':False,'axes.titleweight':'bold','savefig.facecolor':'white'})
-    stamp = captured.strftime('%d %b %Y, %H:%M SGT')
-    def format_axis(ax):
-        ax.yaxis.set_major_locator(MaxNLocator(integer=True));ax.grid(axis='y',alpha=.2)
-        ax.set_ylim(bottom=0)
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %b', tz=SGT))
-        ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=4,maxticks=8))
-    def save(fig, name, bottom=.12):
-        fig.text(.07,.025,f'GitHub createdAt / latest closedAt · {stamp}\nIssue counts; closures include administrative dispositions. No story points or ideal sprint line.',
-                 fontsize=11,color='#4b5563')
-        fig.tight_layout(rect=(0,bottom,1,.98))
-        fig.savefig(ROOT/'figures'/name,dpi=190)
-        plt.close(fig)
-    fig, axes=plt.subplots(2,1,figsize=(10,7.1),sharex=True)
-    ax=axes[0]
-    ax.step(days,tasks_opened,where='post',label=f'Tasks registered ({tasks_opened[-1]})',color=BLUE)
-    ax.step(days,tasks_closed,where='post',label=f'Tasks closed ({tasks_closed[-1]})',color=GREEN)
-    ax.step(days,epics_opened,where='post',label=f'Parent epics registered ({epics_opened[-1]})',color=ORANGE,linestyle='--')
-    ax.step(days,epics_closed,where='post',label=f'Parent epics closed ({epics_closed[-1]})',color='#80627d',linestyle=':')
-    ax.set_title(f'Overall issue burnup · {start.strftime("%d %B")}–{end.strftime("%d %B %Y")}',loc='left');ax.set_ylabel('Cumulative issues')
-    ax.legend(loc='center left',bbox_to_anchor=(.55,.43),fontsize=12,frameon=False)
-    ax=axes[1]
-    ax.step(days,tasks_left,where='post',label=f'Tasks remaining ({tasks_left[-1]})',color=BLUE,linewidth=2)
-    ax.step(days,epics_left,where='post',label=f'Parent epics remaining ({epics_left[-1]})',color=ORANGE,linestyle='--')
-    ax.set_title('Overall issue burndown · scope additions remain visible',loc='left');ax.set_ylabel('Open issues')
-    ax.legend(loc='upper right',fontsize=12,frameon=False)
-    for ax in axes:format_axis(ax)
-    save(fig,'conduct-overall-issues.png')
-    fig, axes=plt.subplots(3,2,figsize=(11,11))
-    period_summary=[]
-    for ax,(title,a,b) in zip(axes.flat,PERIODS):
-        observed_end=min(b,end)
-        ids=[i for i,d in enumerate(days) if a-timedelta(days=1)<=d<=observed_end]
-        period_start = datetime.combine(a, time.min, SGT)
-        period_end = min(datetime.combine(b + timedelta(days=1), time.min, SGT), captured)
-        points = sorted({period_start, period_end} | {
-            t for x in issues for t in [x['created'], x['closed']]
-            if t and period_start <= t <= period_end})
-        for epic, color, style, label in [(False,BLUE,'-','Tasks'), (True,ORANGE,'--','Parent epics')]:
-            remaining = [sum(x['epic']==epic and x['created']<=t and
-                             (not x['closed'] or x['closed']>t) for x in issues) for t in points]
-            ax.step(points, remaining, where='post', color=color, linestyle=style, label=label)
-        ax.set_title(title+'\n'+a.strftime('%d %b')+'–'+b.strftime('%d %b'),loc='left',fontsize=14)
-        ax.set_xlim(period_start, datetime.combine(b + timedelta(days=1), time.min, SGT))
-        if b>end:
-            ax.axvspan(captured,datetime.combine(b+timedelta(days=1),time.min,SGT),color='#e8ebef',alpha=.8)
-            ax.text(.69,.76,'Not yet\nobserved',transform=ax.transAxes,fontsize=11,color='#596170')
-        format_axis(ax);ax.tick_params(axis='x',labelsize=11);ax.set_ylabel('Open issues')
-        if not any(x['created'] < period_end for x in issues):
-            ax.set_ylim(0,1);ax.text(.5,.55,'No GitHub issues registered',ha='center',transform=ax.transAxes,fontsize=11)
-        i,j=ids[0],ids[-1]
-        period_summary.append({'iteration':title,'start':str(a),'planned_end':str(b),'observed_through':str(observed_end),
-            'opening_open':total_left[i],'new_issues':total_opened[j]-total_opened[i],
-            'closures':total_closed[j]-total_closed[i],'ending_open':total_left[j],
-            'ending_tasks':tasks_left[j],'ending_epics':epics_left[j]})
-    axes.flat[5].axis('off')
-    axes.flat[5].text(0,.9,'Iteration issue burndown',weight='bold',fontsize=15)
-    axes.flat[5].text(0,.76,'Blue: tasks    Dashed: parent epics\n\nPanels use creation / latest closure times.\nOpening backlog and additions remain visible.\nIteration 5 stops at the snapshot.\nWindows summarise delivery phases.\n\nLatest timestamps cannot recover\nreopen cycles.',va='top',fontsize=12,linespacing=1.6)
-    save(fig,'conduct-iteration-burndown.png',bottom=.10)
-    fig,ax=plt.subplots(figsize=(10,4.5))
-    ax.step(days,total_left,where='post',color=BLUE,linewidth=2,label='All open issues (tasks + parent epics)')
-    ax.fill_between(days,total_left,step='post',color=BLUE,alpha=.10)
-    peak=max(total_left);idx=total_left.index(peak)
-    ax.annotate(f'Daily peak: {peak}',xy=(days[idx],peak),xytext=(12,8),textcoords='offset points',fontsize=10)
-    ax.annotate(f'{total_left[-1]} open at snapshot',xy=(days[-1],total_left[-1]),xytext=(-160,25),
-                textcoords='offset points',arrowprops={'arrowstyle':'-','color':BLUE},fontsize=10)
-    ax.set_title('Issue reduction · open issues over time',loc='left');ax.set_ylabel('Open issues')
-    format_axis(ax);ax.set_ylim(top=peak*1.22);ax.legend(frameon=False,loc='upper right',fontsize=12)
-    save(fig,'conduct-issue-reduction.png',bottom=.20)
-    summary={'snapshot_at':captured.isoformat(),'timezone':'Asia/Singapore','matplotlib':matplotlib.__version__,
-        'input_sha256':hashlib.sha256((ROOT/'data/conduct-issues.csv').read_bytes()).hexdigest(),
-        'registered':total_opened[-1],'closed':total_closed[-1],'open':total_left[-1],
-        'tasks':tasks_opened[-1],'epics':epics_opened[-1],'iterations':period_summary,
-        'semantics':'Latest createdAt/closedAt; reopening history unavailable; all closure reasons counted as administrative closure.'}
-    (ROOT/'data/conduct-chart-summary.json').write_text(json.dumps(summary,indent=2)+'\n')
-    print(json.dumps(summary,indent=2))
+        w = csv.writer(f)
+        w.writerow(['date_sgt', 'tasks_created', 'tasks_closed', 'tasks_remaining',
+                    'epics_created', 'epics_closed', 'epics_remaining', 'all_remaining'])
+        w.writerows(zip(days, tasks_opened, tasks_closed, tasks_left,
+                        epics_opened, epics_closed, epics_left, total_left))
 
-if __name__=='__main__':
+    style()
+    plan_chart()
+    # Plot each daily balance at the end of its day so that steps line up with dates.
+    xs = [midnight(d + timedelta(days=1)) for d in days[:-1]] + [captured]
+    xs[0] = midnight(days[1])
+
+    # Overall burnup: scope registered against issues closed.
+    fig, ax = plt.subplots(figsize=(WIDTH_IN, 2.9))
+    iteration_bands(ax)
+    ax.step(xs, total_opened, where='pre', color=BLUE, label='Issues registered (scope)')
+    ax.step(xs, total_closed, where='pre', color=GREEN, label='Issues closed')
+    ax.fill_between(xs, total_closed, total_opened, step='pre', color=ORANGE, alpha=.18,
+                    lw=0, label='Open (gap)')
+    ax.text(captured, total_opened[-1] + 4, f'{total_opened[-1]} registered  ', ha='right',
+            va='bottom', fontsize=8, color=BLUE)
+    ax.text(captured, total_closed[-1] - 6, f'{total_closed[-1]} closed  ', ha='right',
+            va='top', fontsize=8, color=GREEN)
+    snapshot_line(ax, captured, label=False)
+    ax.text(captured, .03, 'Snapshot  ', transform=ax.get_xaxis_transform(), ha='right',
+            va='bottom', fontsize=8, color=GREY)
+    date_axis(ax)
+    ax.set_ylim(0, total_opened[-1] * 1.18)
+    ax.set_ylabel('Cumulative issues')
+    ax.legend(loc='lower right', frameon=False, bbox_to_anchor=(.86, .14))
+    fig.tight_layout(pad=.4)
+    save(fig, 'conduct-overall-issues.png')
+
+    # Per-iteration summary: registered, closed, open at iteration end.
+    period_summary = []
+    for n, name, a, b, _, _ in PERIODS:
+        lo = midnight(a)
+        hi = min(midnight(b + timedelta(days=1)), captured + timedelta(microseconds=1))
+        opening = sum(x['created'] < lo and not (x['closed'] and x['closed'] < lo) for x in issues)
+        added = sum(lo <= x['created'] < hi for x in issues)
+        closed = sum(bool(x['closed'] and lo <= x['closed'] < hi) for x in issues)
+        ending = sum(x['created'] < hi and not (x['closed'] and x['closed'] < hi) for x in issues)
+        assert ending == opening + added - closed
+        period_summary.append({
+            'iteration': f'{n} · {name}', 'start': str(a), 'planned_end': str(b),
+            'observed_through': str(min(b, end)), 'opening_open': opening, 'new_issues': added,
+            'closures': closed, 'ending_open': ending,
+            'ending_tasks': sum(not x['epic'] and x['created'] < hi and not (x['closed'] and x['closed'] < hi) for x in issues),
+            'ending_epics': sum(x['epic'] and x['created'] < hi and not (x['closed'] and x['closed'] < hi) for x in issues)})
+    fig, ax = plt.subplots(figsize=(WIDTH_IN, 2.9))
+    width = .26
+    series = [('Registered', 'new_issues', BLUE), ('Closed', 'closures', GREEN),
+              ('Open at iteration end', 'ending_open', ORANGE)]
+    for k, (label, key, color) in enumerate(series):
+        xs_bar = [i + (k - 1) * width for i in range(len(PERIODS))]
+        vals = [p[key] for p in period_summary]
+        ax.bar(xs_bar, vals, width=width * .92, color=color, label=label, zorder=2)
+        for x, v in zip(xs_bar, vals):
+            ax.text(x, v + 2, str(v), ha='center', va='bottom', fontsize=8, color='#1f2937')
+    ax.set_xticks(range(len(PERIODS)))
+    short = {1: 'Baseline', 2: 'Local services', 3: 'AWS delivery', 4: 'Hardening', 5: 'Report'}
+    ax.set_xticklabels([f'{n} · {short[n]}\n{span(a, min(b, end))}' for n, _, a, b, _, _ in PERIODS])
+    ax.set_ylabel('Issues')
+    ax.set_ylim(0, 140)
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True, steps=[1, 2, 5, 10]))
+    ax.grid(axis='y', alpha=.25, lw=.5, zorder=0)
+    ax.tick_params(axis='x', length=0)
+    ax.legend(frameon=False, loc='upper right')
+    fig.tight_layout(pad=.4)
+    save(fig, 'conduct-iteration-burndown.png')
+
+    # Issue reduction: open tasks and open parent epics, stacked.
+    fig, ax = plt.subplots(figsize=(WIDTH_IN, 2.6))
+    iteration_bands(ax)
+    ax.stackplot(xs, tasks_left, epics_left, step='pre', colors=[BLUE, ORANGE], alpha=.75,
+                 labels=['Open tasks', 'Open parent epics'], lw=0)
+    ax.step(xs, total_left, where='pre', color='#1f2937', lw=.9)
+    peak = max(total_left)
+    idx = total_left.index(peak)
+    ax.annotate(f'Peak {peak} open', xy=(xs[idx], peak), xytext=(8, 2), textcoords='offset points',
+                fontsize=8, va='bottom')
+    ax.annotate(f'{total_left[-1]} open ({tasks_left[-1]} tasks, {epics_left[-1]} epic)',
+                xy=(captured, total_left[-1]), xytext=(-6, 10), textcoords='offset points',
+                fontsize=8, ha='right', va='bottom')
+    date_axis(ax)
+    ax.set_ylim(0, peak * 1.25)
+    ax.set_ylabel('Open issues')
+    ax.legend(frameon=False, loc='upper right', bbox_to_anchor=(1.0, .9))
+    fig.tight_layout(pad=.4)
+    save(fig, 'conduct-issue-reduction.png')
+
+    summary = {'snapshot_at': captured.isoformat(), 'timezone': 'Asia/Singapore',
+               'matplotlib': matplotlib.__version__,
+               'input_sha256': hashlib.sha256((ROOT / 'data/conduct-issues.csv').read_bytes()).hexdigest(),
+               'registered': total_opened[-1], 'closed': total_closed[-1], 'open': total_left[-1],
+               'tasks': len(tasks), 'epics': len(epics), 'iterations': period_summary,
+               'semantics': 'createdAt and latest closedAt; issues labelled epic counted as parent epics.'}
+    (ROOT / 'data/conduct-chart-summary.json').write_text(json.dumps(summary, indent=2) + '\n')
+    print(json.dumps(summary, indent=2))
+
+
+if __name__ == '__main__':
     main()

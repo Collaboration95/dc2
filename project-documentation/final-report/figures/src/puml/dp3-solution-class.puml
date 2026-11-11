@@ -1,16 +1,15 @@
 @startuml
 !include _style.iuml
 ' Evidence (07c7c14): media/authorizer.py; contracts/gateway.py; contracts/v1.py; media/api/deps.py; processing/auth.py; scripts/aws/v1/definitions.py
-skinparam dpi 180
 skinparam BackgroundColor white
-skinparam defaultFontSize 17
-skinparam ArrowFontSize 16
-skinparam ClassAttributeFontSize 16
-skinparam ClassStereotypeFontSize 14
-skinparam NoteFontSize 15
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
 skinparam classAttributeIconSize 0
-skinparam nodesep 22
-skinparam ranksep 24
+skinparam nodesep 20
+skinparam ranksep 22
 title DP-3 · implemented authorization roles
 class "media.authorizer" as A <<module>> $MEDIA {
  {static} + authorize(event: dict): dict

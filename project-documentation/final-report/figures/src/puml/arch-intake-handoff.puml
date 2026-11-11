@@ -10,8 +10,8 @@ if (new source path?) then (upload)
  :reserve -> client S3 POST -> finalize\nverify bytes / VersionId;
  :Media SQL transaction:\nrecheck reservation + adopt Asset / pin\n+ stage submit outbox;
 else (edit)
- :owned completed parent -> copy primary\npin new derived source;
- :Media SQL transaction:\nnew Asset + SourceVersion + optional RequestKey\n+ submit outbox, retire staged-object row;
+ :owned completed parent -> copy primary;
+ :Media SQL adoption transaction:\nnew Asset + verify/pin copied source + SourceVersion\n+ optional RequestKey + submit outbox,\nretire staged-object row;
 endif
 :COMMIT acceptance;
 :MediaRepair: claim outbox + COMMIT\nrelay SendMessage -> SQS\nfenced send acknowledgement;

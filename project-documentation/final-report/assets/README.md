@@ -39,7 +39,11 @@ ffmpeg -loglevel error -y -ss 18 \
   -frames:v 1 -vf scale=1440:-1 -compression_level 9 ui-library-playback.png
 ```
 
-Use `scale=1120:-1` for the D4 capacity frame. Frames are scaled uniformly with no crop, annotation,
+Use `scale=1120:-1` for the D4 capacity frame. Frames other than the cropped playback frame are scaled uniformly with no annotation
 or content replacement. Every UI PNG is below 400,000 bytes. Only the library/playback frame is
 embedded inline; the other UI frames and persona illustration are linked from the introduction.
 No GIF is included.
+
+`conduct-ui-playback.png` is the embedded playback frame: D1.mp4 at 00:14.5, a 1080×620 crop at
+offset 160,160 of the 1920×1080 frame, so the player controls stay legible in print. It replaces
+`ui-library-playback.png` as the inline image; the uncropped frame stays linked.

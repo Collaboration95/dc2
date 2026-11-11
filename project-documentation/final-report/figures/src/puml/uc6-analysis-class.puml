@@ -9,8 +9,8 @@ skinparam NoteFontSize 18
 skinparam titleFontSize 21
 skinparam BoxPadding 8
 skinparam maxMessageSize 230
-skinparam nodesep 22
-skinparam ranksep 22
+skinparam nodesep 30
+skinparam ranksep 44
 skinparam sequenceMessageAlign left
 hide footbox
 hide circle
@@ -49,9 +49,9 @@ class "Executor" as executor <<entity>> {
 ops --> ctl
 ctl --> demand : reads
 ctl --> policy : enforces
-policy "1" -- "0..*" slot : governs
+policy "1" --- "0..*" slot : governs
 ctl --> slot : reserves / reconciles
-slot "0..1" -- "0..1" executor : explained by
+slot "0..1" --- "0..1" executor : explained by
 note bottom of slot
  A reservation is capacity authority.
  Work is claimed separately.

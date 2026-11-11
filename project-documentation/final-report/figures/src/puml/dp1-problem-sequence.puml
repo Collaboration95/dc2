@@ -34,6 +34,6 @@ opt reply lost for another fresh start
  note over a,ecs : An extra executor can be created.
 end
 legend bottom
- Hypothetical failing scenario; not a current execution trace.
+ Illustrative failing scenario.
 endlegend
 @enduml

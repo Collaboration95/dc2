@@ -10,7 +10,7 @@
   "epics": 19,
   "iterations": [
     {
-      "iteration": "1 \u00b7 Baseline / domain",
+      "iteration": "1 \u00b7 Baseline and domain",
       "start": "2026-10-05",
       "planned_end": "2026-10-09",
       "observed_through": "2026-10-09",
@@ -46,7 +46,7 @@
       "ending_epics": 2
     },
     {
-      "iteration": "4 \u00b7 Hardening / presentation",
+      "iteration": "4 \u00b7 Hardening and presentation",
       "start": "2026-10-21",
       "planned_end": "2026-10-26",
       "observed_through": "2026-10-26",
@@ -58,7 +58,7 @@
       "ending_epics": 1
     },
     {
-      "iteration": "5 \u00b7 Feedback / report",
+      "iteration": "5 \u00b7 Feedback and report",
       "start": "2026-10-27",
       "planned_end": "2026-11-16",
       "observed_through": "2026-11-10",
@@ -70,5 +70,5 @@
       "ending_epics": 1
     }
   ],
-  "semantics": "Latest createdAt/closedAt; reopening history unavailable; all closure reasons counted as administrative closure."
+  "semantics": "createdAt and latest closedAt; issues labelled epic counted as parent epics."
 }

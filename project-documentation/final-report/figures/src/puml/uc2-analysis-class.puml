@@ -11,8 +11,8 @@ skinparam LegendFontSize 15
 skinparam titleFontSize 20
 skinparam classAttributeIconSize 0
 skinparam maxMessageSize 165
-skinparam nodesep 18
-skinparam ranksep 24
+skinparam nodesep 36
+skinparam ranksep 56
 hide footbox
 hide circle
 title UC-2 · conceptual processing responsibilities
@@ -45,6 +45,6 @@ ProcessingRequest --> ProcessingControl
 ProcessingControl --> Encoder
 ProcessingControl --> ResultReceiver
 ProcessingControl ..> ProcessingJob
-ProcessingJob "1" -- "1..*" ProcessingAttempt
-ProcessingAttempt "1" -- "0..2" PlayableOutput
+ProcessingJob "1" -down- "1..*" ProcessingAttempt : attempts
+ProcessingAttempt "1" -down- "0..2" PlayableOutput : produces
 @enduml

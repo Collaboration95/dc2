@@ -1,60 +1,57 @@
-!include _style.iuml
 @startuml
 !include _style.iuml
-skinparam defaultFontSize 20
-skinparam ArrowFontSize 20
-skinparam classAttributeFontSize 18
-skinparam ClassStereotypeFontSize 17
-skinparam NoteFontSize 18
-skinparam titleFontSize 21
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam classAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
+skinparam titleFontSize 17
 skinparam BoxPadding 8
-skinparam maxMessageSize 230
+skinparam maxMessageSize 400
 skinparam nodesep 22
 skinparam ranksep 22
 skinparam sequenceMessageAlign left
 hide footbox
 hide circle
-' scripts/aws/v1/release.py; scripts/ci/cd.sh; .github/workflows/cd.yml
-title UC-7 design: restore and uncertain outcomes
+' scripts/aws/v1/release.py (promote, restore, abandon, _move); scripts/ci/cd.sh
+title UC-7 design: restore after a failed candidate
 autonumber
-participant "cd.sh /\nrelease CLI" as cd $INFRA
-participant "release" as rel $INFRA
+participant "cd.sh" as cd $INFRA
+participant "release\n«module»" as rel $INFRA
 participant "Journal" as j $INFRA
-participant "OperatorTransport\n/ release hooks" as aws $INFRA
-alt candidate smoke fails
- aws --> rel : public_smoke(...) is not True
- rel -> j : pending.phase=restoring; save(state)
- rel --> cd : OperationError; intent retained
- cd -> rel : restore(...)
- rel -> j : locked(); read pending_release
- rel -> aws : check quiescence; read current aliases
- loop prior owner functions
-  rel -> aws : _move(): prior version with revision guard
+participant "hooks" as hk $INFRA
+participant "Operator\nTransport" as aws $INFRA
+cd -> rel : promote(...)
+rel -> hk : public_smoke(...)
+hk --> rel : not True
+rel -> j : save(state): phase = restoring
+rel --> cd : OperationError; intent retained
+cd -> rel : restore(...)
+rel -> j : locked(); read pending_release
+rel -> hk : quiescent(owner)
+rel -> j : save(state): phase = restoring
+loop each prior function name
+ rel -> aws : get-alias
+ alt alias is neither prior nor candidate
+  rel --> cd : OperationError: concurrent change
+ else alias still on the candidate
+  rel -> rel : _move(...): prior version
+  rel -> aws : update-alias with RevisionId
+  rel -> j : save(state)
  end
- rel -> aws : public_smoke(prior); peer; schema read
- alt restore checks pass
-  rel -> j : save restored receipt; clear intent
-  rel --> cd : restored; schema_rollback=False
- else restore check fails
-  rel --> cd : failure; recovery intent remains
-  cd -> rel : abandon(...) if provably unchanged
-  note over cd,j : If unchanged cannot be proved,\nretain intent; restore-failed.
+ rel -> aws : get-function: prior receipt unchanged
+end
+rel -> hk : public_smoke(prior versions)
+rel -> aws : peer snapshot; schema read
+rel -> hk : quiescent(owner)
+alt restore checks pass
+ rel -> j : save(state): restored receipt; clear pending_release
+ rel --> cd : restored; schema_rollback = False
+else a restore check fails
+ rel --> cd : OperationError; intent remains
+ opt nothing provably changed
+  cd -> rel : abandon(...)
  end
-else publication uncertain
- rel -> j : save publication marker before publish
- rel -> aws : publish-version
- aws --> rel : response lost
- rel --> cd : publication uncertain
- opt operator resumes same intent
-  cd -> rel : promote(...same inputs...)
-  rel -> aws : _version(): list-versions-by-function
-  note over rel,aws
-  Match persisted release description.
-  If absent, refuse blind re-publication.
-  end note
- end
-else later playback smoke fails
- cd -> cd : cmd_smoke fails CD
- note over cd : Playback failure alone\ndoes not invoke restore().
+ note over cd,j : If unchanged cannot be proved,\nretain intent: restore-failed.
 end
 @enduml

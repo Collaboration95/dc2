@@ -7,8 +7,8 @@ skinparam activityFontSize 18
 skinparam ArrowFontSize 14
 skinparam ranksep 12
 skinparam nodesep 14
-partition "GitHub · approval and admission" {
-  (*) --> "PR review → merge into Main\nMain push CI\nFull verification succeeds" as review $INFRA
+partition "GitHub · protected Main and admission" {
+  (*) --> "PR into protected Main\nRequired check: Full verification\nApproval: cloud and delivery lead\nMerge → Main push CI passes" as review $INFRA
   review --> "Exact SHA / CI run / attempt\nCheck out admitted source\naws branch policy + OIDC" as admit $INFRA
 }
 partition "AWS · persistent dc2-live" {

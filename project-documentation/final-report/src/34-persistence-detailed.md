@@ -1,10 +1,9 @@
 ### Persistence Design
 
 **Owned relational schemas.** Media and Processing each own a PostgreSQL 16 database on a separate
-Aurora Serverless v2 cluster (AD-29). Ordered migration reconstruction gives eleven application
-tables per database at heads `media_0008` and `processing_0007`, excluding `alembic_version`.
-These schemas adapt the reviewed W4 models and were checked against this checkout's SQLAlchemy
-records and migrations, rather than a live Aurora catalogue (`media/models.py`,
+Aurora Serverless v2 cluster (AD-29). Ordered migrations give eleven application tables per
+database at heads `media_0008` and `processing_0007`, excluding `alembic_version`. The schemas
+follow this checkout's SQLAlchemy records and migrations (`media/models.py`,
 `media/upload_models.py`, `media/projection_models.py`, both `messaging_models.py` files,
 `processing/models.py`, `processing/launcher_models.py` and both `migrations/versions/` folders).
 
@@ -78,52 +77,31 @@ The common delivery definition contributes two tables to **each** database:
 | `message_inbox` — Received message identity plus canonical body hash. | `message_id: uuid`; `body_hash: varchar(64)`; `received_at: timestamptz=now()` | `PK (message_id)` |
 | `message_outbox` — Canonical envelope and durable relay claim/replay schedule. | `message_id, claim_token?: uuid`; `body_hash: varchar(64)`; `queue: varchar(40)`; `body: jsonb`; `next_try_at, sent_at?: timestamptz`; `tries: integer=0`; `last_error?: varchar` | `PK (message_id)`; IX `ix_message_outbox_due(next_try_at)` |
 
-Migration DDL remains authoritative for `ix_attempts_recovery`, `ix_cleanup_intents_due` and the
-`launcher_control.id` SERIAL sequence default. The ORM omits those two index declarations and
-uses a Python default of 1 for the singleton. These representation differences do not establish
-live schema drift. `retry_intents` and `jobs.source_url/source_url_expires_at` are retained legacy
-structures; native intake writes an empty URL and database time, using the pinned JSONB source.
-Launcher-table presence alone does not establish runtime activation.
+The ORM omits the `ix_attempts_recovery` and `ix_cleanup_intents_due` declarations and uses a
+Python default of 1 for the `launcher_control.id` singleton; the dictionary follows the migration
+DDL for those indexes and the SERIAL default. `retry_intents` and
+`jobs.source_url/source_url_expires_at` are retained legacy structures; native intake writes an
+empty URL and database time, using the pinned JSONB source. The launcher tables are used only by the optional unattended launcher.
 
-**Transactions and concurrency.** The boundaries are local to one database:
+**Transactions and concurrency.** Every transaction is local to one database. SQL commits
+locally; durable outbox intent, inbox deduplication and repair bridge the SQS boundary. DP-2
+(section 6.5) gives the full relay protocol.
 
-- **Adopt and stage.** `direct_intake.finalize` verifies an explicit S3 VersionId outside row
-  locks, then locks/rechecks `UploadReservation` and commits its pin, new `Asset` and submit
-  `MediaOutbox` together. Edits pin a copied source within their adoption transaction, described
-  below. `delivery/sql.py:stage` never commits for its caller.
-- **Publish.** `publish_due` takes one due row with `FOR UPDATE SKIP LOCKED`, records a UUID
-  claim token and a DB-time reservation, and commits. SQS I/O occurs outside SQL locks. A second
-  transaction locks the row and records success/backoff only if its token still matches.
-  Uncertain sends can repeat; retained SQL intent and subsequent successful repair permit
-  replay. There is no SQL/SQS or cross-database atomic commit, or unconditional loss guarantee.
-- **Accept.** `processing/messaging.py:handle_command` commits inbox acceptance, domain changes
-  and work/result outbox rows together. `delivery.sql.accept` compares canonical body hashes:
-  same message ID/body is a no-op; same ID/different body raises `MessageConflict`. Reordered
-  retry-before-submit rolls back its inbox row, allowing later redelivery. Media similarly
-  commits `MediaInbox` and `apply_result` together (`media/messaging.py:consume_result`).
-- **Lock and lease.** Command handling locks `SubmissionGuard` before an existing `Job`;
-  native claim authorization uses the same order. Direct `messaging.retry_job` locks Job
-  directly. `lifecycle.lock_pair` locks Job and reads its current Attempt, checking membership;
-  it does not take a separate Attempt row lock. Claim sets its token, lease and deadline from
-  `clock_timestamp()`. Heartbeat and finish require the current Attempt, matching token,
-  live lease and unexpired deadline against that database clock.
-  `AttemptTask` additionally makes task names unique and permits one binding per Attempt.
-  Encoding and downloads run between these transactions.
-- **Idempotency and projection.** Reservation `(owner_id,request_id)` plus request hash protects
-  direct intake; `RequestKey(owner_id,operation,request_key)` protects edit/retry; Processing
-  `RetryRequest(job_id,request_id)` protects successor creation. Stable edit/retry/work message
-  IDs supplement inbox identity. Media checks owner, source, Job and Attempt, then applies newer
-  valid `state_version` snapshots. A new message ID with identical equal-version semantics is
-  ignored; conflicting equal-version content is rejected. Conflict rolls back inbox and
-  projection together (`media/projections.py:validate_transition`).
+| Boundary | Locks and checks | Commits together | Failure or replay |
+|:--|:--|:--|:--|
+| Media adopt (`direct_intake.finalize`) | Verifies the explicit S3 VersionId outside row locks, then locks and rechecks `UploadReservation` | Pin, new `Asset`, submit `MediaOutbox` (`delivery/sql.py:stage` never commits for its caller) | Reservation `(owner_id,request_id)` plus request hash returns the adopted Asset |
+| Media edit adoption (`v1_lifecycle.edit`) | Locks the staged row; verifies and pins the copied source inside the transaction | Derived `Asset`, `SourceVersion`, optional `RequestKey`, submit outbox; staged row removed | `RequestKey(owner_id,operation,request_key)` replays the winner; a loser discards its copy |
+| Relay (`delivery.sql.publish_due`) | One due row `FOR UPDATE SKIP LOCKED`; UUID claim token and DB-time reservation | Claim; a second transaction records success or backoff only if the token still matches | SQS I/O runs outside SQL locks; an uncertain send repeats with the same message ID |
+| Processing accept (`messaging.handle_command`) | Locks `SubmissionGuard` before an existing `Job`; `delivery.sql.accept` compares canonical body hashes | Inbox row, domain changes, work/result outbox | Same ID and body is a no-op; same ID with a different body raises `MessageConflict`; retry-before-submit rolls back for later redelivery; `RetryRequest(job_id,request_id)` fixes the successor |
+| Claim, heartbeat, finish (`processing/lifecycle.py`) | `lock_pair` locks the Job and checks its current Attempt; token, lease and deadline use `clock_timestamp()` | Lease state; terminal result and result outbox | A stale token, expired lease or passed deadline cannot heartbeat or finish; `AttemptTask` allows one task binding per Attempt |
+| Media result (`media/messaging.py:consume_result`) | Checks owner, source, Job and Attempt; accepts only a newer valid `state_version` | `MediaInbox` row and projection | Identical equal-version content is ignored; conflicting content is rejected and rolled back with the inbox (`media/projections.py:validate_transition`) |
 
-Processing's batch handler commits command consumption, attempts best-effort publication, then
-returns the batch outcome. ACK requires committed acceptance, regardless of publication success;
-`handle_command` itself does not publish. Standard workers delete work after a durable outcome
-or SQL-proved staleness; unknown/uncertain work remains retryable. The short Lambda returns
-partial batch failures to its mapping. Result ACK follows Media inbox/projection commit
+Encoding and downloads run between these transactions. Consumers acknowledge only after commit:
+command ACK follows committed acceptance, standard workers delete work after a durable outcome or
+SQL-proved staleness, the short Lambda returns partial batch failures, and result ACK follows
+Media's inbox/projection commit
 (`processing/handlers.py`, `processing/worker/sqs.py`, `processing/short_encoder.py`,
-`media/handlers.py`, `delivery/sqs.py`).
+`media/handlers.py`).
 
 **JSONB value schemas.** These are application contracts, not SQL JSONB CHECK constraints.
 
@@ -137,9 +115,8 @@ partial batch failures to its mapping. Result ACK follows Media inbox/projection
 | `launch_reservations.payload` | RunTask request: `{cluster,taskDefinition,launchType:"FARGATE",count:1,clientToken,startedBy,networkConfiguration:{awsvpcConfiguration:{subnets,securityGroups,assignPublicIp}},overrides:{containerOverrides:[{name,command}]}}`; replayed from SQL (`processing/launcher.py:run_payload`). |
 
 **SQS wire model.** `contracts/v1.py:Envelope` requires all ten keys below, even when values
-are nullable; UUIDs are JSON strings and version fields are strict integers. This checkout emits
-and accepts schema version 1. Validation and producer authority
-are separate controls.
+are nullable; UUIDs are JSON strings, version fields are strict integers, and schema version 1 is
+emitted and accepted.
 
 ```text
 Envelope = {schema_version:1, message_id:UUID, kind:submit|retry|cancel|work|result,
@@ -156,10 +133,10 @@ Envelope = {schema_version:1, message_id:UUID, kind:submit|retry|cancel|work|res
 | `result` | Processing: `{status,outputs:[Output],error:str or null,attempt_number:int≥0}` with Job/Attempt/Source. Status is queued/processing/done/failed/cancelled; cancellation derives from `Job.deleted_at`, not `jobs.status`. |
 
 Cancel-before-submit instead produces version 0 with null Job/Attempt/Source and exactly
-`{status:"cancelled",cancellation_confirmed:true,command_message_id:UUID}`. It confirms a durable
-guard. Media matches the retained cancel command before authorising source cleanup
+`{status:"cancelled",cancellation_confirmed:true,command_message_id:UUID}`, confirming a durable
+guard; Media matches the retained cancel command before authorising source cleanup
 (`processing/messaging.py:_cancel_locked`, `media/projections.py:confirm_cancellation`). DLQs
-retain the same body; they introduce no additional kind.
+retain the same body.
 
 **Object storage.** Source version pins and output Attempt namespaces serve different purposes:
 
@@ -184,7 +161,7 @@ lifecycle of this deployment as a whole is set by AD-08 (fresh demonstration dat
 |:--------------------|:----------------|:------------------------------------------------------------|
 | Session (JWT cookie) | One request | 1 hour (`jwt_ttl_seconds` 3600); not stored server-side |
 | Upload grant | One request | 15 minutes; an expired reservation is rescanned for late writes and retired after a clean scan beyond a one-day horizon |
-| Signed playback URL | One request | 900 seconds (`signed_url_ttl_seconds`) |
+| Signed playback URL | One request | At most 900 seconds (`signed_url_ttl_seconds`), shortened to remain within the signing credentials' lifetime |
 | Accounts | Session | Until environment teardown. No account deletion feature or purge schedule exists |
 | Assets, sources and outputs | Session | Until the owner deletes the asset. Deletion is a tombstone; every source and output version is then deleted asynchronously. No age-based expiry and no S3 lifecycle rule are configured |
 | Jobs, attempts and tombstone rows | Session | Until environment teardown; no hard-purge job |
@@ -194,195 +171,70 @@ lifecycle of this deployment as a whole is set by AD-08 (fresh demonstration dat
 | Aurora backups | n/a | 1-day automated backup retention on each cluster; the pre-split snapshot of the original cluster is kept, and one final snapshot is kept at teardown |
 | CI and CD artifacts | Workflow run | 7, 14 or 60 days, depending on the artifact |
 
-**Information architecture: data inventory and classification.** The team uses four
-classification levels:
+**Information architecture: data inventory and classification.** The team uses four levels:
+**Restricted** (credentials, keys and secrets), **Confidential** (personal data and owners'
+content), **Internal** (operational and processing metadata) and **Public** (published static
+assets). Shared controls (session cookie, encryption, IAM and network) are in section 4.3; the
+table keeps the controls specific to each group.
 
-- **Restricted**: credentials, keys and secrets.
-- **Confidential**: personal data and owners' content.
-- **Internal**: operational and processing metadata.
-- **Public**: published static assets.
-
-**Account and authentication data** (Confidential; Restricted for hashes and secrets)
-
-- *Data format:* `users` rows (UUID, email, bcrypt hash at cost 10, role `user` or `operator`,
-  timestamps). A stateless HS256 JWT in a host-only, `HttpOnly`, `Secure`, `SameSite=Strict`
-  cookie. The signing secret is an SSM SecureString.
-- *Storage technology:* PostgreSQL in `media_db`, chosen for unique constraints and transactional
-  joins with asset ownership.
-- *Security requirements and controls:*
-  - Only the Media roles can read the JWT secret or the Media DSN.
-  - With Gateway authorizer cache TTL 0, authorization reads the current user row for each
-    protected request (`media/authorizer.py`); role checks use that current identity.
-  - Password bytes are length-limited before hashing.
-  - Authenticated responses use `Cache-Control: private, no-store`.
-- *Trade-off considered:* A managed identity provider (Cognito) would add MFA and recovery flows,
-  but brings a new dependency and token format. The team kept the inherited account model and moved
-  verification to the edge (AD-09). There is no password reset, and no key rotation.
-
-**Owner media content: source videos and encoded outputs** (Confidential)
-
-- *Data format:* binary video objects up to 100 MiB, in the allowed video types. Outputs are an
-  MP4 primary by default, or MKV/MP3 for conversion; unedited inputs can also produce an
-  HLS ladder (`.m3u8` playlists, `.ts` segments).
-- *Storage technology:* versioned S3 buckets for sources and outputs. Object storage is the only
-  sensible store at this size. Versioning gives each source an immutable identity (VersionId),
-  which the pinned-source rule depends on.
-- *Security requirements and controls:*
-  - Public access is blocked and the bucket policies are TLS-only, with SSE-S3 encryption.
-  - Uploads use a presigned POST whose policy fixes the key, the content type and a length range.
-  - Downloads use presigned GET links that expire after 900 s, issued only after an owner check.
-  - HLS segments are served by a 307 redirect to a fresh signature.
-  - CORS allows only the frontend origin.
-  - The worker's read is limited to the source bucket, and the owner and source binding is checked
-    in code before any read.
-  - On AWS: tampered and expired URLs were refused, and an unsigned read returned 403 **[AWS]**.
-- *Trade-off considered:* Proxying bytes through the API would centralise control, but it breaks
-  Gateway and Lambda payload limits and costs compute. Presigned URLs are bearer capabilities for
-  their lifetime, so the lifetime is kept short.
-
-**Asset and upload metadata** (Internal; original filenames are Confidential)
-
-- *Data format:* `assets`, `upload_reservations`, `asset_source_versions`, `request_keys`,
-  `cleanup_intents`, `staged_objects` and `processing_projections` rows. JSONB holds operations and
-  outputs.
-- *Storage technology:* PostgreSQL in `media_db`. Check constraints enforce the pinned-source rule
-  (`ck_upload_reservations_finalized_has_pin`) and the status sets.
-- *Security requirements and controls:* Every query is filtered by owner, and a foreign ID returns
-  HTTP 404. The runtime role cannot run DDL. Idempotency keys make retries of finalize, edit and retry
-  safe.
-- *Trade-off considered:* Media keeps a projection instead of querying Processing (AD-21). That
-  removes a runtime dependency, at the cost of eventual consistency.
-
-**Processing job data** (Internal)
-
-- *Data format:* `jobs`, `attempts`, `submission_guards`, `retry_requests`, `attempt_tasks`,
-  `job_messaging`, `cleanup_intents`, `launcher_control` and `launch_reservations` rows. JSONB holds
-  the source descriptor and the outputs.
-- *Storage technology:* PostgreSQL in `processing_db`. Leases, row locks and `SKIP LOCKED` need a
-  transactional store with a trustworthy clock.
-- *Security requirements and controls:* Only Processing roles hold the DSN. Owner, asset, job and
-  source must match the stored values on every command. The worker can update only its own leased
-  attempt.
-- *Trade-off considered:* The store-choice comparison is in AD-31 (section 3.2.2); these
-  schemas retain local transactional authority.
-
-**Messages in transit** (Internal)
-
-- *Data format:* Envelope v1, as specified above. Validation rejects credential/token/media-byte-like
-  keys and HTTP(S) URL strings; IAM and queue policy establish producer authority separately.
-- *Storage technology:* SQS Standard queues and DLQs, plus the `message_outbox` and
-  `message_inbox` tables.
-- *Security requirements and controls:* SQS-managed encryption and TLS-only policies. Resource
-  policies deny `SendMessage` to every principal except the listed producer roles, and
-  receive/delete to every principal except the listed consumer roles. A direct send was refused
-  **[AWS]**.
-- *Trade-off considered:* FIFO queues would give ordering and deduplication, but at lower
-  throughput and with message-group design work. The inbox and version fences already tolerate
-  duplicates and reordering, so Standard queues are enough. The repository does not record a
-  formal FIFO evaluation.
-
-**Secrets and configuration** (Restricted)
-
-- *Data format:* four role DSNs and the JWT secret as SSM SecureStrings. The Aurora master password
-  is managed by RDS in Secrets Manager.
-- *Storage technology:* SSM Parameter Store (no per-secret monthly fee) and Secrets Manager for the
-  RDS-managed master secret. Four non-secret SSM String epochs
-  (`activity/{media,processing}/{touched,quiet}`) help repair skip idle passes; missing or malformed
-  hints trigger a full SQL pass (`runtime_support/activity.py`).
-- *Security requirements and controls:* Each handler role can read only its own domain's
-  parameters. The master secret is reachable only by the bootstrap operator. No AWS key is stored in
-  GitHub; CD uses OIDC. gitleaks runs in CI.
-- *Trade-off considered:* SSM has no automatic rotation, and rotation is out of scope. Cold starts
-  read the parameters once.
-
-**Operational telemetry and delivery evidence** (Internal)
-
-- *Data format:* CloudWatch logs (bounded, redacted failure events), metrics, alarm state; CI and
-  CD artifacts; sanitized JSON receipts committed under `docs/results/` and
-  `docs/execution/aws/v1/evidence/`.
-- *Storage technology:* CloudWatch Logs (7 days), GitHub Actions artifacts (7–60 days), Git for
-  sanitized receipts, and a private, versioned S3 state bucket for CD run state.
-- *Security requirements and controls:* Signed URLs, cookies, secrets and account IDs are stripped
-  before anything is committed. The state bucket is private because it holds the smoke account's
-  credentials.
-- *Trade-off considered:* Seven-day logs keep cost and exposure low. Incident reconstruction after
-  a week relies on the committed receipts.
-
-**Static frontend** (Public)
-
-- *Data format:* HTML, CSS and JavaScript, with content-hashed asset names.
-- *Storage technology:* private S3 bucket behind CloudFront origin access control.
-- *Security requirements and controls:* Integrity comes from the deploy pipeline. The bucket is not
-  directly public.
-- *Trade-off considered:* none material.
+| Data group (classification) | Format and store | Group-specific controls | Rationale and trade-off |
+|:--|:--|:--|:--|
+| Accounts and authentication (Confidential; hashes and secrets Restricted) | `users` rows (UUID, email, bcrypt hash at cost 10, role `user` or `operator`) in `media_db`, for unique constraints and joins with asset ownership; stateless HS256 JWT in the session cookie; signing secret as an SSM SecureString | Only Media roles read the JWT secret and Media DSN. With authorizer cache TTL 0, each protected request reads the current user row, and role checks use that identity (`media/authorizer.py`). Password bytes are length-limited before hashing. | Cognito would add MFA and recovery flows but a new dependency and token format; the inherited account model was kept, with verification at the edge (AD-09). |
+| Owner media content (Confidential) | Accepted video sources of at most 100 MiB in the allowed types. Encoded outputs have no configured 100 MiB cap: the primary is MP4 by default, or MKV/MP3 for conversion; unedited inputs can also produce HLS playlists and segments. Versioned S3 buckets. | Public access blocked, TLS-only bucket policies, SSE-S3. Presigned POST fixes key, content type and length range. Downloads use owner-checked presigned GET links valid for at most 900 s, shortened when the signing credentials expire sooner; HLS segments use a 307 redirect to a fresh signature. CORS admits only the frontend origin. The worker reads only the source bucket, after checking the owner and source binding. | S3 stores video bytes; PostgreSQL stores transactional metadata and descriptors. Versioning gives each source an immutable VersionId. Proxying bytes through the API would exceed Gateway/Lambda payload limits; presigned URLs are bearer capabilities, so their lifetime is short. |
+| Asset and upload metadata (Internal; original filenames Confidential) | `assets`, `upload_reservations`, `asset_source_versions`, `request_keys`, `cleanup_intents`, `staged_objects` and `processing_projections` in `media_db`; JSONB operations and outputs | Owner filter on every query, foreign IDs return 404. CHECK constraints enforce the pinned-source rule (`ck_upload_reservations_finalized_has_pin`) and status sets. Idempotency keys make finalize, edit and retry safe to repeat. | Media keeps a projection instead of querying Processing (AD-21): no runtime dependency, at the cost of eventual consistency. |
+| Processing job data (Internal) | `jobs`, `attempts`, `submission_guards`, `retry_requests`, `attempt_tasks`, `job_messaging`, `cleanup_intents`, `launcher_control` and `launch_reservations` in `processing_db`; JSONB source and outputs | Only Processing roles hold its runtime DSN. Commands for an existing Job must match its owner and asset; supplied Job IDs and source descriptors must also match. A cancel can instead tombstone an owner-bound `SubmissionGuard` before a Job exists. Native workers require the durable source and current-attempt binding before claiming execution. | Leases, row locks and `SKIP LOCKED` need a transactional store with a trustworthy clock; the store comparison is AD-31 (section 3.2.2). |
+| Messages in transit (Internal) | Envelope v1 (above) in SQS Standard queues and DLQs, plus `message_outbox` and `message_inbox` | Validation rejects credential/token/media-byte-like keys and HTTP(S) URL strings. Resource policies deny `SendMessage` to all but the listed producer roles, and receive/delete to all but the listed consumer roles. | FIFO queues would add ordering and deduplication at lower throughput and with message-group design; inbox and version fences already tolerate duplicates and reordering. |
+| Secrets and configuration (Restricted) | Four role DSNs and the JWT secret as SSM SecureStrings; the Aurora master password is RDS-managed in Secrets Manager. Four non-secret SSM epochs (`activity/{media,processing}/{touched,quiet}`) let repair skip idle passes (`runtime_support/activity.py`). | Each handler role reads only its own domain's parameters; only the bootstrap operator reaches the master secret. No AWS key is stored in GitHub. | SSM Parameter Store has no per-secret monthly fee but no automatic rotation; rotation is out of scope. Cold starts read the parameters once. |
+| Telemetry and delivery evidence (Internal) | CloudWatch logs (bounded, redacted failure events), metrics and alarm state; Actions artifacts (7–60 days); sanitized receipts under `docs/results/` and `docs/execution/aws/v1/evidence/`; private versioned S3 bucket for CD state | Signed URLs, cookies, secrets and account IDs are stripped before commit. The state bucket is private because it holds the smoke account's credentials. | Seven-day logs keep cost and exposure low; committed receipts cover later reconstruction. |
+| Static frontend (Public) | HTML, CSS and JavaScript with content-hashed names in a private S3 bucket behind CloudFront origin access control | Integrity comes from the deploy pipeline; the bucket is not directly public. | No material trade-off. |
 
 ### Detailed Design
 
 Three representative collaborations are summarised here at class/object level. Section 6.4
 contains the complete per-use-case analysis and design models; section 6.5 explains the design
-patterns. Python modules retain their real functions, and ORM records retain their real state.
+patterns.
 
-**Upload, process and play (UC-1–UC-3).** Figure {@fig:arch-intake-handoff} locates the handoff;
-Figures {@fig:uc1-design-class} and {@fig:uc2-design-class} in section 6.4 give the typed
-records and actual operations. The principal collaborations are:
-
-| Step | Class / function | Transaction or invariant |
-|:--|:--|:--|
-| Reserve / upload | `direct_intake.reserve`, `Storage.direct_upload_grant`, `UploadReservation` | Persist request identity; client POST goes straight to versioned S3. No video bytes pass through Gateway/Lambda. |
-| Finalize | `direct_intake.finalize`, `Storage.verify_direct_upload`, `messaging.enqueue_submit` | Verify outside locks, then atomically adopt pin + Asset + submit outbox. Direct finalize creates no `SourceVersion`. |
-| Accept / dispatch | `messaging.handle_command`, `SubmissionGuard`, `Job`, `Attempt`, `emit_state` | Processing inbox + queued state + work/result outbox commit. `short_lane.work_lane` dispatches from source size and prior executor binding; duration/height are checked after download/probe. |
-| Execute | `messaging.claim`, `lifecycle.Claim`, `worker.sqs.execute_message`, `worker.tasks.pipeline` | Persist task binding and DB-clock lease; validate source pin/size/hash. Both executors use the same pipeline. Standard launcher cap 3, short mapping cap 2; live admission refusal creates a standard-lane successor (Figures {@fig:arch-dispatch}, {@fig:arch-probe-redirect}). |
-| Finish / read | `lifecycle.finish`, `projections.apply_result`, `ProcessingProjection`, `projections.public_job`, `Storage.sign_output` | Live-token terminal commit and result intent; Media inbox/projection commit; owner-filtered signature or HLS redirects (`media/api/v1_hls.py`). HLS failure can preserve the primary. |
-
-Figures {@fig:uc1-design-upload}, {@fig:uc2-design-intake}, {@fig:uc2-design-execution} and
-{@fig:uc3-design-results} in section 6.4 expand these phases and their exceptions. Public status
-remains `accepted` until Processing's result is projected. Verification is specified by
-`test_finalize_pins_the_exact_version_it_verified`,
+**Upload, process and play (UC-1–UC-3).** Figure {@fig:arch-intake-handoff} locates the handoff.
+Bytes go straight to versioned S3 under an `UploadReservation`, and `direct_intake.finalize`
+adopts them as above. Processing accepts the command into a queued `Job` and `Attempt`,
+`short_lane.work_lane` chooses the lane, a worker claims under a DB-clock lease, and
+`lifecycle.finish` commits the terminal result; public status stays `accepted` until Media
+projects it. Figures {@fig:uc1-design-class},
+{@fig:uc1-design-upload}, {@fig:uc2-design-class}, {@fig:uc2-design-intake},
+{@fig:uc2-design-execution} and {@fig:uc3-design-results} in section 6.4 give the typed records,
+operations and exceptions. `test_finalize_pins_the_exact_version_it_verified`,
 `test_finalize_intent_rolls_back_with_adoption_and_commits_once` and
-`test_success_output_namespace_validation_and_atomic_terminal_result` in
-`tests/v1/test_direct_intake_s3.py`, `test_media_messaging_sql.py` and `test_messaging_sql.py`.
+`test_success_output_namespace_validation_and_atomic_terminal_result` verify the pin, the atomic
+adoption and the terminal commit (`tests/v1/test_direct_intake_s3.py`,
+`test_media_messaging_sql.py`, `test_messaging_sql.py`).
 
-**Edit-derived intake.** Figures {@fig:data-edit-sequence} and {@fig:data-edit-relay} adapt W3-14's
-copy/adoption/relay views. `media/api/v1_jobs.py:edit` calls `v1_lifecycle.edit`. It first resolves request replay
-and checks an owned, nondeleted completed parent with a primary output. `intake.stage` commits
-a `StagedObject` before copying. A separate copy transaction locks the parent and staged row,
-verifies/copies the primary through `Storage.copy_output_source`, then records writer completion.
-The adoption transaction locks the staged row, creates and flushes the derived `Asset`, verifies
-and pins the copied source through `direct_intake.pin_copied_source`, writes `SourceVersion`
-and optional `RequestKey`, stages submit, and removes the staged row in one commit.
+**Edit-derived intake.** `media/api/v1_jobs.py:edit` calls `v1_lifecycle.edit`, which resolves
+request replay and checks an owned, nondeleted completed parent with a primary output.
+`intake.stage` commits a `StagedObject` before copying. A copy transaction locks the parent and
+staged row, copies the primary through `Storage.copy_output_source` and records writer
+completion. The adoption transaction then locks the staged row, creates and flushes the derived
+`Asset`, verifies and pins the copied source through `direct_intake.pin_copied_source`, writes
+`SourceVersion` and the optional `RequestKey`, stages submit and removes the staged row in one
+commit (Figure {@fig:data-edit-sequence}).
 
-![Figure {#fig:data-edit-sequence}. Edit copies and pins a new source, commits Asset plus submit intent, then independently relays through SQS to the Processing inbox.](figures/data-edit-sequence.png){width=14cm}
+![Figure {#fig:data-edit-sequence}. Edit copies the parent's primary, then verifies and pins it inside the adoption transaction that commits Asset, SourceVersion and submit intent.](figures/data-edit-sequence.png){width=14cm}
 
-![Figure {#fig:data-edit-relay}. Independent relay claim/send/acknowledgement and the Processing inbox transaction; duplicates are transport-safe, conflicts roll back.](figures/data-edit-relay.png){width=15cm}
+Unlike direct finalize, pin verification happens **inside** edit adoption. The `MediaRepair`
+handler relays the submit command only after the adoption commit, possibly before HTTP 202 reaches
+the caller; Figure {@fig:dp2-solution-sequence} shows the relay and Processing inbox. A failed copy
+or adoption keeps its cleanup authority, and a losing keyed edit discards its copy and replays the
+winner (`test_edit_local_projection_adoption_and_submit` and
+`test_uncertain_copy_keeps_cleanup_and_never_submits` in `tests/media/test_v1_projection.py`).
 
-Unlike direct finalize, pin verification occurs **inside** edit adoption. The independent
-`MediaRepair` handler calls `messaging.publish_commands` → `delivery.sql.publish_due` → SQS
-only after adoption commit. It may run before HTTP 202 reaches the caller. Copy/adoption failure
-retains cleanup authority; a losing keyed edit discards its copy and replays the winner.
-`tests/media/test_v1_projection.py` covers local edit adoption and uncertain copy via
-`test_edit_local_projection_adoption_and_submit` and
-`test_uncertain_copy_keeps_cleanup_and_never_submits`.
-
-**Stored-source retry after execution authority expires (UC-4).** Under the Job lock,
-`processing/recovery.py:recover_expired` rechecks DB time, abandons the expired Attempt, fails
-the Job and stages cleanup/result intent through its callback. `v1_lifecycle.retry` checks
-owner, failed projection, stored pin and optional `RequestKey`, committing the Media retry
-command. Processing's `handle_command` acquires guard/Job locks before `_retry_locked`;
-a new `(job_id,request_id)` creates the next queued Attempt, keeps source/operations,
-clears outputs/error and commits work/result intent. Replay returns the **current** Attempt,
-which may be newer than the ledger's original Attempt. Direct Processing
-`messaging.retry_job` owns a separate transaction and omits the Media command leg.
-
-Figures {@fig:uc4-design-class}, {@fig:uc4-design-successor} and {@fig:uc4-design-fences}
-in section 6.4 show typed records, successor transaction and worker/projection fences.
-A superseded or expired `Claim` cannot finish; its token, current Attempt, lease and deadline
-must remain valid. Claim freezes field bindings, not nested dict/list contents. Job status is
-queued/processing/done/failed; `deleted_at` supplies cancelled snapshots. Lost unclaimed work
-is repaired on the same queued Attempt. Execution failure/expiry requires owner retry; live
-short-lane refusal alone creates an automatic standard-lane successor.
-`tests/v1/test_messaging_sql.py:test_retry_idempotency_and_cancel_fence_old_and_current_attempts`
-checks successor uniqueness and stale-finish rejection; `tests/media/test_v1_projection.py`
-checks equal-version conflict and Attempt/terminal fencing.
+**Stored-source retry (UC-4).** When execution authority expires,
+`processing/recovery.py:recover_expired` abandons the Attempt and fails the Job under the Job
+lock. `v1_lifecycle.retry` checks the owner, failed projection, stored pin and optional
+`RequestKey`, then commits the retry command. Processing's `_retry_locked` creates the next queued
+Attempt for a new `(job_id,request_id)`, keeping source and operations; a replay returns the
+current Attempt. Figures {@fig:uc4-design-class}, {@fig:uc4-design-successor} and
+{@fig:uc4-design-fences} in section 6.4 show the records, the successor transaction and the fences
+that stop a superseded `Claim` from finishing
+(`tests/v1/test_messaging_sql.py:test_retry_idempotency_and_cancel_fence_old_and_current_attempts`).
 
 Independent release (UC-7) is described in Continuous Delivery (section 5) and its class/object
 models in section 6.4; DP-1 in section 6.5 explains reservation and recovery-journal choices.

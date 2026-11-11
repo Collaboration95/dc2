@@ -26,26 +26,21 @@
 
 ## Use-Case Traceability Matrix
 
-Use Case Model defines the seven goals. Their descriptions, normal/exception flows and
-analysis/design diagrams are in Analysis and Design Models; the matrix provides the compact
-route from each analysis/design owner to implementation and verification. Test names below are
-selected assertions; the named suites contain the remaining cases.
+Section 6.2 defines the seven goals, and section 6.4 holds their descriptions, flows and models. The matrix gives the route from each owner to code and verification; test names are selected assertions, and the named suites hold the remaining cases.
 
-| UC | Analysis/design owner | Section | Key code modules | Key tests |
+| UC | Analysis/design owner | Model section | Key code modules | Key tests |
 |:---|:----------------------|:--------|:-----------------|:----------|
-| UC-1 | Ibrahim Mammadov | Analysis and Design Models — UC-1 Register, log in and upload an owned video | `media/services/direct_intake.py`, `media/services/storage.py`, `media/messaging.py` | `tests/media/test_direct_intake.py::test_finalize_atomic_adoption_and_replay`; `tests/v1/test_direct_intake_s3.py::test_finalize_pins_the_exact_version_it_verified` |
-| UC-2 | Ibrahim Mammadov | Analysis and Design Models — UC-2 Process the video into playable outputs | `processing/messaging.py`, `processing/lifecycle.py`, `processing/worker/tasks.py`, `media_engine/` | `tests/v1/test_messaging_sql.py::test_success_output_namespace_validation_and_atomic_terminal_result`; `tests/processing/test_worker.py::test_hls_failure_retains_primary` |
-| UC-3 | Nguyễn Kim Long | Analysis and Design Models — UC-3 Track status and play the result | `media/projections.py`, `media/repositories/assets.py`, `media/api/v1_hls.py` | `tests/media/test_v1_projection.py::test_wrong_owner_source_job_and_output_rejected`; `test_local_status_hls_and_signed_range_capability` in the same suite |
-| UC-4 | Ibrahim Mammadov | Analysis and Design Models — UC-4 Retry from the stored source | `media/services/v1_lifecycle.py`, `processing/messaging.py`, `processing/lifecycle.py` | `tests/media/test_v1_projection.py::test_retry_and_cancel_are_commands`; `tests/v1/test_messaging_sql.py::test_retry_idempotency_and_cancel_fence_old_and_current_attempts` |
-| UC-5 | Nguyễn Kim Long | Analysis and Design Models — UC-5 Bulk-publish a folder and report results | `publisher/cli.py`, `publisher/client.py`, `publisher/state.py`, `docs/api/media.openapi.json` | `tests/publisher/test_publisher.py::test_cli_mixed_batch_keeps_every_file_outcome`; `test_module_entry_and_import_boundary` in the same suite |
-| UC-6 | Guruprasath Gopal | Analysis and Design Models — UC-6 Scale processing capacity independently | `processing/launcher.py`, `processing/launcher_models.py`, `processing/launcher_trigger.py` | `tests/v1/test_launcher_sql.py::test_always_on_concurrent_wakes_never_exceed_the_cap_without_a_session_end`; `test_a_lost_runtask_response_is_resolved_by_token_without_a_second_launch` in the same suite |
-| UC-7 | Guruprasath Gopal | Analysis and Design Models — UC-7 Release Processing on its own and demonstrate rollback | `scripts/aws/v1/release.py`, `scripts/aws/v1/deploy.py`, `scripts/aws/journal.py`, `scripts/ci/cd.sh` | `tests/aws/v1/test_v1_release.py::test_failed_candidate_restores_prior_aliases_without_schema_downgrade`; `tests/aws/v1/test_persistent_environment.py::test_owners_are_released_only_when_their_images_build_inputs_changed` |
+| UC-1 | Ibrahim Mammadov | §6.4 UC-1 | `media/services/direct_intake.py`, `media/services/storage.py`, `media/messaging.py` | `tests/media/test_direct_intake.py::test_finalize_atomic_adoption_and_replay`; `tests/v1/test_direct_intake_s3.py::test_finalize_pins_the_exact_version_it_verified` |
+| UC-2 | Ibrahim Mammadov | §6.4 UC-2 | `processing/messaging.py`, `processing/lifecycle.py`, `processing/worker/tasks.py`, `media_engine/` | `tests/v1/test_messaging_sql.py::test_success_output_namespace_validation_and_atomic_terminal_result`; `tests/processing/test_worker.py::test_hls_failure_retains_primary` |
+| UC-3 | Nguyễn Kim Long | §6.4 UC-3 | `media/projections.py`, `media/repositories/assets.py`, `media/api/v1_hls.py` | `tests/media/test_v1_projection.py::test_wrong_owner_source_job_and_output_rejected`; `test_local_status_hls_and_signed_range_capability` in the same suite |
+| UC-4 | Ibrahim Mammadov | §6.4 UC-4 | `media/services/v1_lifecycle.py`, `processing/messaging.py`, `processing/lifecycle.py` | `tests/media/test_v1_projection.py::test_retry_and_cancel_are_commands`; `tests/v1/test_messaging_sql.py::test_retry_idempotency_and_cancel_fence_old_and_current_attempts` |
+| UC-5 | Nguyễn Kim Long | §6.4 UC-5 | `publisher/cli.py`, `publisher/client.py`, `publisher/state.py`, `docs/api/media.openapi.json` | `tests/publisher/test_publisher.py::test_cli_mixed_batch_keeps_every_file_outcome`; `test_module_entry_and_import_boundary` in the same suite |
+| UC-6 | Guruprasath Gopal | §6.4 UC-6 | `processing/launcher.py`, `processing/launcher_models.py`, `processing/launcher_trigger.py` | `tests/v1/test_launcher_sql.py::test_always_on_concurrent_wakes_never_exceed_the_cap_without_a_session_end`; `test_a_lost_runtask_response_is_resolved_by_token_without_a_second_launch` in the same suite |
+| UC-7 | Guruprasath Gopal | §6.4 UC-7 | `scripts/aws/v1/release.py`, `scripts/aws/v1/deploy.py`, `scripts/aws/journal.py`, `scripts/ci/cd.sh` | `tests/aws/v1/test_v1_release.py::test_failed_candidate_restores_prior_aliases_without_schema_downgrade`; `tests/aws/v1/test_persistent_environment.py::test_owners_are_released_only_when_their_images_build_inputs_changed` |
 
 ## Supporting Assets
 
-The UI frames come from retained presentation recordings documented as captured on
-23 October 2026. The [asset register](assets/README.md) records each source clip, extraction
-timecode and image size. The persona illustration represents the fictional planning personas.
+The UI frames come from retained presentation recordings captured on 23 October 2026. The [asset register](assets/README.md) records each source clip, extraction timecode and image size. The persona illustration shows the fictional planning personas.
 
 | Asset | Purpose |
 |:------|:--------|

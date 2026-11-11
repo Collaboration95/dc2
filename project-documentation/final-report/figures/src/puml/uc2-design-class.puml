@@ -11,8 +11,8 @@ skinparam LegendFontSize 15
 skinparam titleFontSize 20
 skinparam classAttributeIconSize 0
 skinparam maxMessageSize 165
-skinparam nodesep 18
-skinparam ranksep 24
+skinparam nodesep 40
+skinparam ranksep 56
 hide footbox
 hide circle
 title UC-2 · job, attempt and execution authority
@@ -52,13 +52,13 @@ class "short_lane\nprocessing" as S <<module>> $PROC {
  {static} + work_lane(session, job)
  {static} + check_probe(probe)
 }
-J "1" -- "1..*" A : job_id
-J "0..1" --> "1" A : current
-A "1" -- "0..1" T : binding
+J "1" -down- "1..*" A : history
+J -down-> A : current attempt\n(0..1 to 1)
+A "1" -down- "0..1" T : binding
 C ..> A : captured authority
 L ..> C
 L ..> J : locks / mutates
-S ..> T : prior Lambda binding
+S -right-> T : prior Lambda\nbinding
 legend bottom
 Selected fields; Claim field bindings are frozen, its dict/list
 contents are mutable.

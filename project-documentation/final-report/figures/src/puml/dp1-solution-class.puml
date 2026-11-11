@@ -9,8 +9,8 @@ skinparam NoteFontSize 18
 skinparam titleFontSize 21
 skinparam BoxPadding 8
 skinparam maxMessageSize 230
-skinparam nodesep 22
-skinparam ranksep 22
+skinparam nodesep 40
+skinparam ranksep 50
 skinparam sequenceMessageAlign left
 hide footbox
 hide circle
@@ -42,9 +42,10 @@ class EcsPort <<adapter>> $INFRA {
 }
 l --> LauncherControl : exclusive reserve / shared send
 l --> LaunchReservation : commit before start
-LauncherControl "1" -- "0..*" LaunchReservation : logical association
+LauncherControl "1" --- "0..*" LaunchReservation
 l ..> EcsPort : stable token + payload
 note bottom of LaunchReservation
+ Control-to-reservation link is logical.
  Pattern roles annotate actual types.
  Independent of Job/Attempt ownership.
  No association FK; selected signatures

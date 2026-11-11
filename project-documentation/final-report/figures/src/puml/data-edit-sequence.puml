@@ -68,10 +68,10 @@ else Copy/adoption failure
  [<-- E : winner Asset or error
 end
  deactivate E
-ref over E,DB : Independent relay after commit: see data-edit-relay
+ref over E,DB : Independent relay after commit: see DP-2 solution sequence
 legend bottom
 Blue = Media; slate = SQL. Relay may precede HTTP 202.
-The next figure expands delivery to the Processing inbox.
+DP-2 shows relay delivery to the Processing inbox.
 endlegend
 
 skinparam BackgroundColor white

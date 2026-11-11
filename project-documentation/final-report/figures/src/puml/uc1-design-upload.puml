@@ -20,13 +20,18 @@ autonumber
 actor "Client" as C
 participant "direct_intake\nmedia.services" as I $MEDIA
 participant "storage: Storage" as S $MEDIA
+participant "S3\nsource bucket" as B $INFRA
 database "session\nMedia DB" as DB $INFRA
 C -> I : reserve(...) [via reserve_upload]
 I -> DB : SQL: insert/replay UploadReservation; COMMIT
+alt reservation already finalized (replay)
+ I --> C : reservation, upload = None
+else pending reservation
  I -> S : direct_upload_grant(row)
  S --> I : POST grant
  I --> C : reservation + grant, through API
- C ->] : HTTP POST to S3 [grant]
+ C -> B : HTTP POST to S3 [grant]
+end
 C -> I : finalize(...) [via finalize_upload]
 I -> DB : SQL: preflight; end read tx
 alt wrong owner / request / expiry
@@ -50,6 +55,7 @@ else pending
  end
 end
 legend bottom
-Finalize rechecks expiry under lock; replay returns the same Asset; enqueue stages a command in the adoption transaction.
+Replay of a finalized reservation gets no new grant. Finalize rechecks expiry under lock;
+enqueue stages the command inside the adoption transaction.
 endlegend
 @enduml
