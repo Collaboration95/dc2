@@ -1,0 +1,57 @@
+name: Advisory security scans
+
+on:
+  pull_request:
+  push:
+    branches: [Main]
+  workflow_dispatch:
+  schedule:
+    - cron: '30 3 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-sca:
+    name: Python runtime dependency SCA (advisory)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: ./.github/actions/python-tools
+      - name: Install isolated pinned audit tool
+        run: |
+          uv venv --python 3.12 "$RUNNER_TEMP/pip-audit"
+          uv pip install --python "$RUNNER_TEMP/pip-audit/bin/python" pip-audit==2.10.1
+      - name: Audit locked runtime extras union
+        run: python3 -m scripts.ci.security_scans pip-audit "$RUNNER_TEMP/sca-reports" --tool "$RUNNER_TEMP/pip-audit/bin/pip-audit" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: runtime-sca
+          path: ${{ runner.temp }}/sca-reports
+          if-no-files-found: error
+          retention-days: 14
+
+  cloudformation-security:
+    name: Static CloudFormation security (advisory)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: ./.github/actions/python-tools
+      - name: Install isolated pinned IaC tool
+        run: |
+          uv venv --python 3.12 "$RUNNER_TEMP/checkov"
+          uv pip install --python "$RUNNER_TEMP/checkov/bin/python" checkov==3.4.3
+      - name: Scan disposable rendered templates without cloud access
+        env:
+          AWS_EC2_METADATA_DISABLED: 'true'
+        run: python3 -m scripts.ci.security_scans checkov "$RUNNER_TEMP/iac-reports" --tool "$RUNNER_TEMP/checkov/bin/checkov" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: cloudformation-security
+          path: ${{ runner.temp }}/iac-reports
+          if-no-files-found: error
+          retention-days: 14
