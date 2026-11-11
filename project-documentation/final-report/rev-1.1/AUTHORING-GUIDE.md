@@ -12,7 +12,7 @@ Repo: `/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-report`, branch
 - The user's coverage list and tone rules: `/private/tmp/claude-501/-Users-speedpowermac-Documents-projects-CODE-MAIN-NUS-dc2/bdfd7790-34bb-4233-90c5-6b0a4b7138a9/scratchpad/inputs/coverage-list.md`
 - Gap analysis: `R/rev-1.1/A1-GAP-MATRIX.md`. Code truth with file:line citations: `R/rev-1.1/A3-CODE-GAPS.md`. Artifacts and assets: `R/rev-1.1/A4-ARTIFACTS-INVENTORY.md`. Reference depth: `R/rev-1.1/A2-REFERENCE-DEPTH.md`.
 - Presentation feedback: `project-documentation/presentation/feedback-20261026/FEEDBACK.md`. The 42 proposed report changes: `.../REPORT-CHANGES.md`. Reviewed notes and corrections: `.../report-notes/W1..W6.md` and `.../review/W*-review.md`.
-- Reviewed PlantUML figures from the rescue: `project-documentation/presentation/site/assets/uml/W1-*..W6-*.puml`. Reuse them by copying and adapting; don't link the deck.
+- Reviewed PlantUML figures from the rescue: `project-documentation/presentation/feedback-20261026/uml-src/W1-*..W6-*.puml`. Reuse them by copying and adapting; don't link the deck.
 - The current report v1.0 is in `R/src/*.md`. `R/README.md` explains the build and figure syntax.
 - Architecture docs: `docs/architecture/` (views.md, ddd.md, decisions.md, use-case-design.md). The code is the source of truth.
 
