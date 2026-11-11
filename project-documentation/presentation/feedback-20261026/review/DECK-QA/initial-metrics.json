@@ -1,0 +1,3528 @@
+[
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "1 / 60",
+    "headingTag": false,
+    "id": "s1",
+    "imgs": [],
+    "kind": "main",
+    "n": 1,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 501.21875,
+      "w": 1180,
+      "x": 50,
+      "y": 142.78125
+    },
+    "clips": [],
+    "footer": "2 / 60",
+    "headingTag": true,
+    "id": "s2",
+    "imgs": [],
+    "kind": "main",
+    "n": 2,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "3 / 60",
+    "headingTag": true,
+    "id": "s3",
+    "imgs": [],
+    "kind": "main",
+    "n": 3,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "4 / 60",
+    "headingTag": true,
+    "id": "s4",
+    "imgs": [],
+    "kind": "main",
+    "n": 4,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "5 / 60",
+    "headingTag": true,
+    "id": "s5",
+    "imgs": [],
+    "kind": "main",
+    "n": 5,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "6 / 60",
+    "headingTag": true,
+    "id": "s6",
+    "imgs": [],
+    "kind": "main",
+    "n": 6,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "CD run 39733859422 ↗\n7 / 47",
+    "headingTag": true,
+    "id": "s7",
+    "imgs": [],
+    "kind": "main",
+    "n": 7,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Effort ledger ↗\n8 / 47",
+    "headingTag": true,
+    "id": "s8",
+    "imgs": [],
+    "kind": "main",
+    "n": 8,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Known limitations ↗\n9 / 47",
+    "headingTag": true,
+    "id": "s9",
+    "imgs": [],
+    "kind": "main",
+    "n": 9,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "10 / 60",
+    "headingTag": true,
+    "id": "s10",
+    "imgs": [],
+    "kind": "main",
+    "n": 10,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured dc2-live · Main 76282d3 · source only\n11 / 60",
+    "headingTag": true,
+    "id": "s10-views",
+    "imgs": [],
+    "kind": "main",
+    "n": 11,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Boundaries are design interpretations\n12 / 60",
+    "headingTag": true,
+    "id": "s11",
+    "imgs": [],
+    "kind": "main",
+    "n": 12,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured dc2-live · Main 76282d3 · source only\n13 / 60",
+    "headingTag": true,
+    "id": "s12",
+    "imgs": [
+      {
+        "h": 520,
+        "min": {
+          "size": 15.812502820524925,
+          "t": "Processing components and both work queues are expanded on t"
+        },
+        "ok": true,
+        "src": "assets/uml/W6-logical.svg",
+        "w": 913.546875,
+        "x": 183.21875,
+        "y": 117.1875
+      }
+    ],
+    "kind": "main",
+    "n": 13,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured dc2-live · Main 76282d3 · source only\n14 / 60",
+    "headingTag": true,
+    "id": "s12-processing",
+    "imgs": [
+      {
+        "h": 410,
+        "min": {
+          "size": 13.36244011976048,
+          "t": "Both encoders GET SourceBucket and PUT OutputBucket. Process"
+        },
+        "ok": true,
+        "src": "assets/uml/W6-processing-components.svg",
+        "w": 1093.5625,
+        "x": 93.21875,
+        "y": 114.59375
+      }
+    ],
+    "kind": "main",
+    "n": 14,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured dc2-live · Main 76282d3 · source only\n15 / 60",
+    "headingTag": true,
+    "id": "s13",
+    "imgs": [
+      {
+        "h": 513.109375,
+        "min": {
+          "size": 15.293180432622833,
+          "t": "Filled head = call; open head = async delivery; dashed = rep"
+        },
+        "ok": true,
+        "src": "assets/uml/W6-command-handoff.svg",
+        "w": 1179.96875,
+        "x": 50.015625,
+        "y": 120.640625
+      }
+    ],
+    "kind": "main",
+    "n": 15,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured dc2-live · Main 76282d3 · source only\n16 / 60",
+    "headingTag": true,
+    "id": "s14",
+    "imgs": [
+      {
+        "h": 525,
+        "min": {
+          "size": 13.482470651013873,
+          "t": "COMMIT"
+        },
+        "ok": true,
+        "src": "assets/uml/W6-work-results.svg",
+        "w": 1029.453125,
+        "x": 125.265625,
+        "y": 114.6875
+      }
+    ],
+    "kind": "main",
+    "n": 16,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured dc2-live · Main 76282d3 · source only\n17 / 60",
+    "headingTag": true,
+    "id": "s15",
+    "imgs": [
+      {
+        "h": 510,
+        "min": {
+          "size": 13.09931506849315,
+          "t": "Health and register/login/logout are public exceptions. Oper"
+        },
+        "ok": true,
+        "src": "assets/uml/W6-trust-boundary.svg",
+        "w": 1000.34375,
+        "x": 139.828125,
+        "y": 122.1875
+      }
+    ],
+    "kind": "main",
+    "n": 17,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Boundaries are design interpretations\n18 / 60",
+    "headingTag": true,
+    "id": "s16",
+    "imgs": [
+      {
+        "h": 434.203125,
+        "min": {
+          "size": 13.828125,
+          "t": "Conformist is not asserted: Media keeps its own model. deliv"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-context-map.svg",
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      }
+    ],
+    "kind": "main",
+    "n": 18,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Anaemic records; services enforce the interpreted grouping\n19 / 60",
+    "headingTag": true,
+    "id": "s17",
+    "imgs": [
+      {
+        "h": 540,
+        "min": {
+          "size": 13.775500741839762,
+          "t": "Adoption spans reservation + Asset roots. Anaemic records; r"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-media-asset.svg",
+        "w": 928.46875,
+        "x": 175.765625,
+        "y": 110.390625
+      }
+    ],
+    "kind": "main",
+    "n": 19,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Anaemic records; services enforce the interpreted grouping\n20 / 60",
+    "headingTag": true,
+    "id": "w2-job",
+    "imgs": [
+      {
+        "h": 540,
+        "min": {
+          "size": 14.361493403093721,
+          "t": "Cancellation updates independent Guard + Job together. Anaem"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-processing-job.svg",
+        "w": 1052.21875,
+        "x": 113.890625,
+        "y": 110.390625
+      }
+    ],
+    "kind": "main",
+    "n": 20,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\n21 / 60",
+    "headingTag": true,
+    "id": "w2-messages",
+    "imgs": [],
+    "kind": "main",
+    "n": 21,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured dc2-live · Main 76282d3 · source only\n22 / 60",
+    "headingTag": true,
+    "id": "s19",
+    "imgs": [
+      {
+        "h": 525,
+        "min": {
+          "size": 13.63743702770781,
+          "t": "Blue = Media-owned. Solid = call; dashed = return. Snapshot "
+        },
+        "ok": true,
+        "src": "assets/uml/W6-result-replay.svg",
+        "w": 735.59375,
+        "x": 272.203125,
+        "y": 114.6875
+      }
+    ],
+    "kind": "main",
+    "n": 22,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Source configuration · Main 76282d3\n23 / 60",
+    "headingTag": true,
+    "id": "s20",
+    "imgs": [],
+    "kind": "main",
+    "n": 23,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Application operations behind two Gateway integrations\n24 / 60",
+    "headingTag": true,
+    "id": "w1-api-surface",
+    "imgs": [],
+    "kind": "main",
+    "n": 24,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Lambda REQUEST authorizer · Cookie identity · TTL 0\n25 / 60",
+    "headingTag": true,
+    "id": "w1-authorizer",
+    "imgs": [
+      {
+        "h": 470,
+        "min": {
+          "size": 14.95883527625392,
+          "t": "Blue: Media; slate: Gateway / API. Solid call; dashed reply."
+        },
+        "ok": true,
+        "src": "assets/uml/W1-authorizer.svg",
+        "w": 624.671875,
+        "x": 327.65625,
+        "y": 113.1875
+      }
+    ],
+    "kind": "main",
+    "n": 25,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "26 / 60",
+    "headingTag": true,
+    "id": "s21",
+    "imgs": [],
+    "kind": "main",
+    "n": 26,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "dc2-live source configuration · ap-southeast-1 · 76282d3\n27 / 60",
+    "headingTag": true,
+    "id": "s22",
+    "imgs": [
+      {
+        "h": 467.953125,
+        "min": {
+          "size": 13.453226749067165,
+          "t": "Solid: labelled runtime calls; dashed: launch. A+B are place"
+        },
+        "ok": true,
+        "src": "assets/uml/W1-deployment-main.svg",
+        "w": 1179.953125,
+        "x": 50.015625,
+        "y": 112.46875
+      }
+    ],
+    "kind": "main",
+    "n": 27,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Subnet placement is a network decision; it does not distribute jobs\n28 / 60",
+    "headingTag": true,
+    "id": "s23",
+    "imgs": [],
+    "kind": "main",
+    "n": 28,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "processing/messaging.py → processing/short_lane.py\n29 / 60",
+    "headingTag": true,
+    "id": "s24",
+    "imgs": [
+      {
+        "h": 490,
+        "min": {
+          "size": 13.398715909090907,
+          "t": "[false]"
+        },
+        "ok": true,
+        "src": "assets/uml/W1-dispatch.svg",
+        "w": 916.1875,
+        "x": 181.90625,
+        "y": 114.0625
+      }
+    ],
+    "kind": "main",
+    "n": 29,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Short Lambda: 3008 MB · 2048 MB /tmp · 900 s timeout · ≤720 s pipeline\n30 / 60",
+    "headingTag": true,
+    "id": "w1-probe",
+    "imgs": [
+      {
+        "h": 475,
+        "min": {
+          "size": 13.431169212690952,
+          "t": "[true]"
+        },
+        "ok": true,
+        "src": "assets/uml/W1-probe-redirect.svg",
+        "w": 893.09375,
+        "x": 193.453125,
+        "y": 110.6875
+      }
+    ],
+    "kind": "main",
+    "n": 30,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "sl1021 result ↗\n25 / 47",
+    "headingTag": true,
+    "id": "s25",
+    "imgs": [],
+    "kind": "main",
+    "n": 31,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nWhy PostgreSQL? · backup\n32 / 60",
+    "headingTag": true,
+    "id": "w4-stores",
+    "imgs": [],
+    "kind": "main",
+    "n": 32,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n33 / 60",
+    "headingTag": true,
+    "id": "w4-media-main",
+    "imgs": [
+      {
+        "h": 403.78125,
+        "min": {
+          "size": 13.723429687500001,
+          "t": "Key columns selected; full columns and checks are in backup/"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-main.svg",
+        "w": 1179.96875,
+        "x": 50.015625,
+        "y": 175.296875
+      }
+    ],
+    "kind": "main",
+    "n": 33,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n34 / 60",
+    "headingTag": true,
+    "id": "w4-processing-main",
+    "imgs": [
+      {
+        "h": 520,
+        "min": {
+          "size": 14.225388208762888,
+          "t": "Key columns selected; full columns and checks are in backup/"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-processing-main.svg",
+        "w": 1118.203125,
+        "x": 80.890625,
+        "y": 117.1875
+      }
+    ],
+    "kind": "main",
+    "n": 34,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\n35 / 60",
+    "headingTag": true,
+    "id": "w4-keys",
+    "imgs": [],
+    "kind": "main",
+    "n": 35,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/lambda_handler.py#L1 · media/api/uploads.py#L18\n36 / 60",
+    "headingTag": true,
+    "id": "s28",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.739844903988184,
+          "t": "Repository = module lookup/replay role; Storage adapts Minio"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-01-media-components.svg",
+        "w": 1162.734375,
+        "x": 58.625,
+        "y": 125.5
+      }
+    ],
+    "kind": "main",
+    "n": 36,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/handlers.py#L25 · processing/messaging.py#L232\n37 / 60",
+    "headingTag": true,
+    "id": "w3-processing-components",
+    "imgs": [
+      {
+        "h": 499.921875,
+        "min": {
+          "size": 13.22093837535014,
+          "t": "handlers wraps SQS with processing.launcher_trigger.WakeOnWo"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-02-processing-components.svg",
+        "w": 1179.96875,
+        "x": 50.015625,
+        "y": 143.03125
+      }
+    ],
+    "kind": "main",
+    "n": 37,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/services/direct_intake.py#L99 · media/services/direct_intake.py#L149\n38 / 60",
+    "headingTag": true,
+    "id": "w3-a-classes",
+    "imgs": [
+      {
+        "h": 412.125,
+        "min": {
+          "size": 13.386826377633712,
+          "t": "Repository participant: media.repositories.assets.fingerprin"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-03-a-intake-classes.svg",
+        "w": 1179.953125,
+        "x": 50.015625,
+        "y": 186.9375
+      }
+    ],
+    "kind": "main",
+    "n": 38,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/uploads.py#L36 · media/services/direct_intake.py#L99\n39 / 60",
+    "headingTag": true,
+    "id": "s29",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.761882129277566,
+          "t": "Blue = Media; slate = SQL. Solid filled arrow = awaited call"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-06-a1-upload.svg",
+        "w": 904.84375,
+        "x": 187.578125,
+        "y": 125.5
+      }
+    ],
+    "kind": "main",
+    "n": 39,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/v1_jobs.py#L55 · media/services/v1_lifecycle.py#L105\n40 / 60",
+    "headingTag": true,
+    "id": "s30",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.191609735269001,
+          "t": "Blue = Media; slate = SQL. Independent relay may precede HTT"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-14-edit.svg",
+        "w": 858.1875,
+        "x": 210.90625,
+        "y": 125.5
+      }
+    ],
+    "kind": "main",
+    "n": 40,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/models.py#L15 · processing/models.py#L77\n41 / 60",
+    "headingTag": true,
+    "id": "s31",
+    "imgs": [
+      {
+        "h": 476,
+        "min": {
+          "size": 14,
+          "t": "Mapped[T] shown as T. Claim(A1,T1) cannot authorize A2. Muta"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-10-b-classes.svg",
+        "w": 1025,
+        "x": 127.5,
+        "y": 155
+      }
+    ],
+    "kind": "main",
+    "n": 41,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/messaging.py#L405 · processing/lifecycle.py#L184\n42 / 60",
+    "headingTag": true,
+    "id": "w3-stale",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.739829706717124,
+          "t": "Delayed result messages face a separate Media projection fen"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-13-b3-fence.svg",
+        "w": 907.6875,
+        "x": 186.15625,
+        "y": 125.5
+      }
+    ],
+    "kind": "main",
+    "n": 42,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/models.py#L15 · processing/messaging.py#L60\n43 / 60",
+    "headingTag": true,
+    "id": "w3-job-states",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.335598746612467,
+          "t": "redirect_to_long_lane is called by the NotAdmitted hook; ret"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-15-job-states.svg",
+        "w": 1157.84375,
+        "x": 61.078125,
+        "y": 125.5
+      }
+    ],
+    "kind": "main",
+    "n": 43,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "44 / 60",
+    "headingTag": true,
+    "id": "s32",
+    "imgs": [],
+    "kind": "main",
+    "n": 44,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "event selection · CI aggregate\n45 / 60",
+    "headingTag": true,
+    "id": "s33",
+    "imgs": [],
+    "kind": "main",
+    "n": 45,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "23 Oct CI passed · 25 Oct CI failed · Main settings checked 26 Oct\n46 / 60",
+    "headingTag": true,
+    "id": "s34",
+    "imgs": [
+      {
+        "h": 439.984375,
+        "min": {
+          "size": 19.44117563733553,
+          "t": "Requires scans + tests"
+        },
+        "ok": true,
+        "src": "assets/uml/W5-pipeline-main.svg",
+        "w": 1031.578125,
+        "x": 124.21875,
+        "y": 123.875
+      }
+    ],
+    "kind": "main",
+    "n": 46,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "CD admission · release scan policy\n47 / 60",
+    "headingTag": true,
+    "id": "s35",
+    "imgs": [],
+    "kind": "main",
+    "n": 47,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "CI aggregate · V1 images · ZAP execution + cleanup\n48 / 60",
+    "headingTag": true,
+    "id": "s36",
+    "imgs": [],
+    "kind": "main",
+    "n": 48,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "25 Oct · CI 40174362164 · scope / exclusions\n49 / 60",
+    "headingTag": true,
+    "id": "w5-dast",
+    "imgs": [],
+    "kind": "main",
+    "n": 49,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "retained baseline policy · image-set validation\n50 / 60",
+    "headingTag": true,
+    "id": "s37",
+    "imgs": [],
+    "kind": "main",
+    "n": 50,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Smoke 503 fail: CD 39729654137 ↗\nGreen: CD 39733859422 ↗\n38 / 47",
+    "headingTag": true,
+    "id": "s38",
+    "imgs": [],
+    "kind": "main",
+    "n": 51,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "52 / 60",
+    "headingTag": true,
+    "id": "s39",
+    "imgs": [],
+    "kind": "main",
+    "n": 52,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "53 / 60",
+    "headingTag": true,
+    "id": "s40",
+    "imgs": [],
+    "kind": "main",
+    "n": 53,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "54 / 60",
+    "headingTag": true,
+    "id": "s41",
+    "imgs": [],
+    "kind": "main",
+    "n": 54,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 501.21875,
+      "w": 1180,
+      "x": 50,
+      "y": 142.78125
+    },
+    "clips": [],
+    "footer": "55 / 60",
+    "headingTag": true,
+    "id": "s42",
+    "imgs": [],
+    "kind": "main",
+    "n": 55,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "56 / 60",
+    "headingTag": true,
+    "id": "s43",
+    "imgs": [],
+    "kind": "main",
+    "n": 56,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "57 / 60",
+    "headingTag": true,
+    "id": "s44",
+    "imgs": [],
+    "kind": "main",
+    "n": 57,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "PF-1 result ↗\n45 / 47",
+    "headingTag": true,
+    "id": "s45",
+    "imgs": [],
+    "kind": "main",
+    "n": 58,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "59 / 60",
+    "headingTag": true,
+    "id": "s46",
+    "imgs": [],
+    "kind": "main",
+    "n": 59,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 501.21875,
+      "w": 1180,
+      "x": 50,
+      "y": 142.78125
+    },
+    "clips": [],
+    "footer": "60 / 60",
+    "headingTag": false,
+    "id": "s47",
+    "imgs": [],
+    "kind": "main",
+    "n": 60,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Backup",
+    "headingTag": true,
+    "id": "s48",
+    "imgs": [],
+    "kind": "back",
+    "n": 61,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Known limitations ↗\nB01",
+    "headingTag": true,
+    "id": "s49",
+    "imgs": [],
+    "kind": "back",
+    "n": 62,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Effort ledger ↗\nB02",
+    "headingTag": true,
+    "id": "s50",
+    "imgs": [],
+    "kind": "back",
+    "n": 63,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "B03",
+    "headingTag": true,
+    "id": "s51",
+    "imgs": [],
+    "kind": "back",
+    "n": 64,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "B04",
+    "headingTag": true,
+    "id": "s52",
+    "imgs": [],
+    "kind": "back",
+    "n": 65,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "B05",
+    "headingTag": true,
+    "id": "s53",
+    "imgs": [],
+    "kind": "back",
+    "n": 66,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "B06",
+    "headingTag": true,
+    "id": "s54",
+    "imgs": [],
+    "kind": "back",
+    "n": 67,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "B07",
+    "headingTag": true,
+    "id": "s55",
+    "imgs": [],
+    "kind": "back",
+    "n": 68,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "B08",
+    "headingTag": true,
+    "id": "s56",
+    "imgs": [],
+    "kind": "back",
+    "n": 69,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Actual vs target ↗\nsl1021 result ↗\nB09",
+    "headingTag": true,
+    "id": "s57",
+    "imgs": [],
+    "kind": "back",
+    "n": 70,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Release timings DP-1..4 ↗\nCD run 39733859422 ↗\nB10",
+    "headingTag": true,
+    "id": "s58",
+    "imgs": [],
+    "kind": "back",
+    "n": 71,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "B11",
+    "headingTag": true,
+    "id": "s59",
+    "imgs": [],
+    "kind": "back",
+    "n": 72,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/services/v1_lifecycle.py#L50 · processing/v1_api.py#L77\nW3-16 · 76282d3",
+    "headingTag": true,
+    "id": "w3-retry-surfaces",
+    "imgs": [],
+    "kind": "back",
+    "n": 73,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Cost inputs ↗\nB14",
+    "headingTag": true,
+    "id": "s62",
+    "imgs": [],
+    "kind": "back",
+    "n": 74,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Folds old s23 into the deployment view · no inbound Lambda / Worker SG rules\nW1 · Network",
+    "headingTag": true,
+    "id": "s63",
+    "imgs": [
+      {
+        "h": 530,
+        "min": {
+          "size": 13.514988388200782,
+          "t": "No inbound compute SG rules. Private: no IPv4 default/NAT. W"
+        },
+        "ok": true,
+        "src": "assets/uml/W1-network.svg",
+        "w": 1005.1875,
+        "x": 137.40625,
+        "y": 112.1875
+      }
+    ],
+    "kind": "back",
+    "n": 75,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "B16",
+    "headingTag": true,
+    "id": "s64",
+    "imgs": [],
+    "kind": "back",
+    "n": 76,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B1",
+    "headingTag": true,
+    "id": "w4-media-assets",
+    "imgs": [
+      {
+        "h": 520,
+        "min": {
+          "size": 14.172299364805522,
+          "t": "All columns of coloured tables are shown; CHECKs, defaults a"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-assets.svg",
+        "w": 704.109375,
+        "x": 287.9375,
+        "y": 117.1875
+      }
+    ],
+    "kind": "back",
+    "n": 77,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "Verified 26 Oct 2026 through authenticated gh · no current alert-count audit\nB18",
+    "headingTag": true,
+    "id": "s66",
+    "imgs": [],
+    "kind": "back",
+    "n": 78,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/recovery_v1.py#L84 · processing/recovery_v1.py#L252\nW3-17 · 76282d3",
+    "headingTag": true,
+    "id": "s67",
+    "imgs": [
+      {
+        "h": 518,
+        "min": {
+          "size": 17,
+          "t": "Queued repair restores delivery intent; interruption waits f"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-17-recovery-branches.svg",
+        "w": 960,
+        "x": 160,
+        "y": 134
+      }
+    ],
+    "kind": "back",
+    "n": 79,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "Full verification · aggregate result policy\nB20",
+    "headingTag": true,
+    "id": "s68",
+    "imgs": [
+      {
+        "h": 429.984375,
+        "min": {
+          "size": 18.19399173744461,
+          "t": "Reject failed / invalid jobs"
+        },
+        "ok": true,
+        "src": "assets/uml/W5-pipeline-full.svg",
+        "w": 997.5,
+        "x": 141.25,
+        "y": 128.875
+      }
+    ],
+    "kind": "back",
+    "n": 80,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Appendix",
+    "headingTag": true,
+    "id": "appx-1",
+    "imgs": [],
+    "kind": "back",
+    "n": 81,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Processing owns 7 functions; only 6 use ProcessingImageUri\nW1 · Artifacts",
+    "headingTag": true,
+    "id": "w1-artifacts",
+    "imgs": [
+      {
+        "h": 495.828125,
+        "min": {
+          "size": 13.838234205852503,
+          "t": "All Lambdas: x86_64, own Role + Version + live Alias. Operat"
+        },
+        "ok": true,
+        "src": "assets/uml/W1-artifacts.svg",
+        "w": 1179.984375,
+        "x": 50,
+        "y": 129.28125
+      }
+    ],
+    "kind": "back",
+    "n": 82,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Queue lanes · EventBridge rules and launcher wake are in the next backup\nW1 · Queues",
+    "headingTag": true,
+    "id": "w1-triggers",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 18.077578476650412,
+          "t": "Encoders commit result SQL outbox; relays send. Command/resu"
+        },
+        "ok": true,
+        "src": "assets/uml/W1-triggers.svg",
+        "w": 1168.359375,
+        "x": 55.8125,
+        "y": 109.703125
+      }
+    ],
+    "kind": "back",
+    "n": 83,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Processing publishers also wake the launcher after standard work send\nW1 · Events",
+    "headingTag": true,
+    "id": "w1-events",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 16.220087778743864,
+          "t": "Short work never wakes Fargate. Schedules/hints are gated; m"
+        },
+        "ok": true,
+        "src": "assets/uml/W1-events.svg",
+        "w": 961.015625,
+        "x": 159.484375,
+        "y": 109.703125
+      }
+    ],
+    "kind": "back",
+    "n": 84,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "Configured resources and defaults; deployment, gates and alarm states are unverified\nW1 · Stores",
+    "headingTag": true,
+    "id": "w1-stores",
+    "imgs": [
+      {
+        "h": 475,
+        "min": {
+          "size": 14.11877431906615,
+          "t": "Blue Media · amber Processing · slate AWS · green client. Ar"
+        },
+        "ok": true,
+        "src": "assets/uml/W1-stores.svg",
+        "w": 950,
+        "x": 165,
+        "y": 110.6875
+      }
+    ],
+    "kind": "back",
+    "n": 85,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Appendix",
+    "headingTag": true,
+    "id": "appx-2",
+    "imgs": [],
+    "kind": "back",
+    "n": 86,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\nS18",
+    "headingTag": true,
+    "id": "s18",
+    "imgs": [],
+    "kind": "back",
+    "n": 87,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\nW2 · intake",
+    "headingTag": true,
+    "id": "w2-intake",
+    "imgs": [
+      {
+        "h": 499,
+        "min": {
+          "size": 15,
+          "t": "Selected source fields shown; full Source value is on the As"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-media-intake.svg",
+        "w": 818,
+        "x": 231,
+        "y": 110.390625
+      }
+    ],
+    "kind": "back",
+    "n": 88,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Boundaries are design interpretations\nB12 · DDD map",
+    "headingTag": true,
+    "id": "s60",
+    "imgs": [
+      {
+        "h": 434.203125,
+        "min": {
+          "size": 13.828125,
+          "t": "Conformist is not asserted: Media keeps its own model. deliv"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-context-map.svg",
+        "w": 1180,
+        "x": 50,
+        "y": 110.390625
+      }
+    ],
+    "kind": "back",
+    "n": 89,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 513.21875,
+      "w": 1180,
+      "x": 50,
+      "y": 158.78125
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\nW2 · Media support",
+    "headingTag": true,
+    "id": "w2-media-support",
+    "imgs": [
+      {
+        "h": 480,
+        "min": {
+          "size": 15,
+          "t": "These records support the business aggregate; none is a memb"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-media-support.svg",
+        "w": 1036,
+        "x": 122,
+        "y": 158.78125
+      }
+    ],
+    "kind": "back",
+    "n": 90,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\nW2 · Processing support",
+    "headingTag": true,
+    "id": "w2-processing-support",
+    "imgs": [
+      {
+        "h": 390,
+        "min": {
+          "size": 15,
+          "t": "All Media identities are plain UUIDs. Selected fields; suppo"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-processing-support.svg",
+        "w": 903,
+        "x": 188.5,
+        "y": 110.390625
+      }
+    ],
+    "kind": "back",
+    "n": 91,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\nW2 · execution values",
+    "headingTag": true,
+    "id": "w2-authority",
+    "imgs": [
+      {
+        "h": 400.734375,
+        "min": {
+          "size": 13.328136765813253,
+          "t": "lock_pair() + live() fence heartbeat / finish; SQL does not "
+        },
+        "ok": true,
+        "src": "assets/uml/W2-processing-authority.svg",
+        "w": 1179.984375,
+        "x": 50,
+        "y": 110.390625
+      }
+    ],
+    "kind": "back",
+    "n": 92,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\nW2 · delivery ledgers",
+    "headingTag": true,
+    "id": "w2-technical",
+    "imgs": [
+      {
+        "h": 391,
+        "min": {
+          "size": 15,
+          "t": "Technical support, not business aggregate members; message_i"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-delivery-ledgers.svg",
+        "w": 965,
+        "x": 157.5,
+        "y": 110.390625
+      }
+    ],
+    "kind": "back",
+    "n": 93,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\nW2 · launcher control",
+    "headingTag": true,
+    "id": "w2-launcher",
+    "imgs": [
+      {
+        "h": 397,
+        "min": {
+          "size": 15,
+          "t": "Application association; no FK to LauncherControl or Attempt"
+        },
+        "ok": true,
+        "src": "assets/uml/W2-launcher-control.svg",
+        "w": 916,
+        "x": 182,
+        "y": 110.390625
+      }
+    ],
+    "kind": "back",
+    "n": 94,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 561.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "As built · 76282d3 · Selected fields; rules live in service modules\nW2 · wire types",
+    "headingTag": true,
+    "id": "w2-wire",
+    "imgs": [],
+    "kind": "back",
+    "n": 95,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Appendix",
+    "headingTag": true,
+    "id": "appx-3",
+    "imgs": [],
+    "kind": "back",
+    "n": 96,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/handlers.py#L70 · processing/handlers.py#L55\nW3-09 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-submit-accept",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.843055310515174,
+          "t": "ACK depends on committed inbox/domain/outbox, independently "
+        },
+        "ok": true,
+        "src": "assets/uml/W3-07-a2-submit-execute.svg",
+        "w": 1153.859375,
+        "x": 63.0625,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 97,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/recovery_v1.py#L166 · media/messaging.py#L16\nW3-10 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-result-play",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.030031779661018,
+          "t": "Stale state commits inbox; conflict rolls back. W3-13a detai"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-08-a3-result-play.svg",
+        "w": 1130.546875,
+        "x": 74.71875,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 98,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/v1_hls.py#L25 · media/services/storage.py#L191\nW3-11 · 76282d3",
+    "headingTag": true,
+    "id": "w3-hls",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.048730755131965,
+          "t": "Both requests repeat owner + ready-output checks. Filled = a"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-22-hls-playback.svg",
+        "w": 1046.96875,
+        "x": 116.515625,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 99,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/recovery_v1.py#L183 · processing/recovery.py#L40\nW3-12 · 76282d3",
+    "headingTag": true,
+    "id": "w3-expiry",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.238637520358305,
+          "t": "v1_job_filter = Job.id.in_(select(JobMessaging.job_id)); exp"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-11-b1-expiry.svg",
+        "w": 956.296875,
+        "x": 161.84375,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 100,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/v1_jobs.py#L49 · media/services/v1_lifecycle.py#L50\nW3-13 · 76282d3",
+    "headingTag": true,
+    "id": "w3-retry",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.048531668526786,
+          "t": "Caller api.v1_jobs.retry returns HTTP 202; nonfailed project"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-12-b2-retry.svg",
+        "w": 687.734375,
+        "x": 296.125,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 101,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/messaging.py#L232 · processing/messaging.py#L155\nW3-14 · 76282d3",
+    "headingTag": true,
+    "id": "w3-retry-accept",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.162066730349345,
+          "t": "New inbox/live guard/owned Job shown. now=db_now(s); reorder"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-12a-processing-retry.svg",
+        "w": 709.203125,
+        "x": 285.390625,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 102,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/models.py#L15 · processing/lifecycle.py#L124\nW3-18 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-04-a-execution-classes",
+    "imgs": [
+      {
+        "h": 441,
+        "min": {
+          "size": 14,
+          "t": "AttemptTask.task_name is SQL UNIQUE. Functions/adapters: W3-"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-04-a-execution-classes.svg",
+        "w": 1025,
+        "x": 127.5,
+        "y": 172.5
+      }
+    ],
+    "kind": "back",
+    "n": 103,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/projections.py#L36 · media/projections.py#L69\nW3-19 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-05-a-projection-classes",
+    "imgs": [
+      {
+        "h": 427,
+        "min": {
+          "size": 14,
+          "t": "Selected attributes. Media reads its own projection. Envelop"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-05-a-projection-classes.svg",
+        "w": 844,
+        "x": 218,
+        "y": 179.5
+      }
+    ],
+    "kind": "back",
+    "n": 104,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/uploads.py#L18 · media/services/direct_intake.py#L99\nW3-20 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-06a-reserve",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.200214869826436,
+          "t": "POST length range is 1..declared size; finalize enforces exa"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-06a-reserve.svg",
+        "w": 1163.171875,
+        "x": 58.40625,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 105,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/worker/sqs.py#L166 · processing/worker/tasks.py#L16\nW3-21 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-09a-probe",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.45410447761194,
+          "t": "Awaited calls use filled arrows; check_probe is a synchronou"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-09a-probe.svg",
+        "w": 795.375,
+        "x": 242.3125,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 106,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/worker/sqs.py#L166 · processing/worker/tasks.py#L16\nW3-22 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-09b-encode",
+    "imgs": [
+      {
+        "h": 526.609375,
+        "min": {
+          "size": 13.815244059917354,
+          "t": "The next call is messaging.finish; SQL state/result commit a"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-09b-encode.svg",
+        "w": 1179.984375,
+        "x": 50,
+        "y": 129.6875
+      }
+    ],
+    "kind": "back",
+    "n": 107,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/messaging.py#L16 · delivery/sql.py#L18\nW3-23 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-13a-projection-fence",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 14.740455163043478,
+          "t": "Its return is True for a new inbox even when apply_result=Fa"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-13a-projection-fence.svg",
+        "w": 797.71875,
+        "x": 241.140625,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 108,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/models.py#L48 · processing/lifecycle.py#L136\nW3-24 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-16-attempt-states",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.79372771836007,
+          "t": "live is evaluated on lock_pair: current nondeleted Job + pro"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-16-attempt-states.svg",
+        "w": 1105.46875,
+        "x": 87.265625,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 109,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/short_lane.py#L81 · processing/short_lane.py#L94\nW3-25 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-18-lane-policy",
+    "imgs": [
+      {
+        "h": 351,
+        "min": {
+          "size": 14,
+          "t": "No GoF Strategy hierarchy exists. NotAdmitted triggers fence"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-18-lane-policy.svg",
+        "w": 817,
+        "x": 231.5,
+        "y": 217.5
+      }
+    ],
+    "kind": "back",
+    "n": 110,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/worker/tasks.py#L16 · processing/worker/supervisor.py#L25\nW3-26 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-19-execution-adapters",
+    "imgs": [
+      {
+        "h": 459.765625,
+        "min": {
+          "size": 13.162998007968127,
+          "t": "SourceStore/OutputStore adapt Minio S3. Supervisor.run adapt"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-19-execution-adapters.svg",
+        "w": 1179.96875,
+        "x": 50.015625,
+        "y": 163.109375
+      }
+    ],
+    "kind": "back",
+    "n": 111,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "contracts/v1.py#L99 · contracts/v1.py#L157\nW3-27 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-20-contract-classes",
+    "imgs": [
+      {
+        "h": 407,
+        "min": {
+          "size": 14,
+          "t": "Media commands use submit/retry/cancel. Processing work is i"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-20-contract-classes.svg",
+        "w": 987,
+        "x": 146.5,
+        "y": 189.5
+      }
+    ],
+    "kind": "back",
+    "n": 112,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/lifecycle.py#L28 · processing/messaging.py#L155\nW3-28 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-21-lease-functions",
+    "imgs": [
+      {
+        "h": 449,
+        "min": {
+          "size": 14,
+          "t": "live requires current/nondeleted Job + processing states + m"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-21-lease-functions.svg",
+        "w": 1065,
+        "x": 107.5,
+        "y": 168.5
+      }
+    ],
+    "kind": "back",
+    "n": 113,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/worker/sqs.py#L109 · processing/messaging.py#L325\nW3-29 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-23-claim-finish",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.949212712519321,
+          "t": "work=None requires work_disposition: SQL-proved stale is ACK"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-23-claim-finish.svg",
+        "w": 1061.78125,
+        "x": 109.109375,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 114,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/services/direct_intake.py#L22 · media/upload_models.py#L64\nW3-30 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-24-intake-types",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 14.508324084350722,
+          "t": "Asset 1 -- 0..1 SourceVersion via asset_id FK. Selected fiel"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-24-intake-types.svg",
+        "w": 817,
+        "x": 231.5,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 115,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/v1_jobs.py#L55 · media/services/v1_lifecycle.py#L105\nW3-31 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-14a-edit-relay",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.453967642526965,
+          "t": "SQS send is awaited outside SQL locks; token mismatch skips "
+        },
+        "ok": true,
+        "src": "assets/uml/W3-14a-edit-relay.svg",
+        "w": 1027.25,
+        "x": 126.375,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 116,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/v1_jobs.py#L55 · media/services/v1_lifecycle.py#L105\nW3-32 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-14b-edit-detail",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 15.337249208025344,
+          "t": "Copy errors invoke discard_stage; uncertain cleanup retains "
+        },
+        "ok": true,
+        "src": "assets/uml/W3-14b-edit-detail.svg",
+        "w": 854.375,
+        "x": 212.8125,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 117,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/recovery_v1.py#L166 · media/messaging.py#L16\nW3-33 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-public-read",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 15.520295516304348,
+          "t": "Primary bytes: client GET/Range to S3; not-ready jobs have n"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-08a-public-read.svg",
+        "w": 1175.890625,
+        "x": 52.046875,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 118,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/handlers.py#L70 · processing/handlers.py#L55\nW3-34 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-07a-submit-transaction",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 14.01382946210269,
+          "t": "Changed identity/content raises and rolls back. No queue sen"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-07a-submit-transaction.svg",
+        "w": 674.3125,
+        "x": 302.84375,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 119,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/worker/sqs.py#L166 · processing/worker/tasks.py#L16\nW3-35 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-09c-hls",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 14.740664103232534,
+          "t": "Ordinary HLS exception retains primary; LeaseLost / AttemptD"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-09c-hls.svg",
+        "w": 831.546875,
+        "x": 224.21875,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 120,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "media/api/v1_jobs.py#L55 · media/services/v1_lifecycle.py#L105\nW3-36 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-14c-edit-adoption",
+    "imgs": [
+      {
+        "h": 481.125,
+        "min": {
+          "size": 13.86279803040774,
+          "t": "edit returns Asset to v1_jobs.edit for HTTP 202. IntegrityEr"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-14c-edit-adoption.svg",
+        "w": 1179.96875,
+        "x": 50.015625,
+        "y": 152.4375
+      }
+    ],
+    "kind": "back",
+    "n": 121,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 566,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "processing/worker/sqs.py#L109 · processing/messaging.py#L325\nW3-37 · 76282d3",
+    "headingTag": true,
+    "id": "w3-back-23a-finish",
+    "imgs": [
+      {
+        "h": 535,
+        "min": {
+          "size": 13.73856736700077,
+          "t": "Work ACK follows finish commit; encoders stage result SQL, a"
+        },
+        "ok": true,
+        "src": "assets/uml/W3-23a-finish.svg",
+        "w": 1048.171875,
+        "x": 115.90625,
+        "y": 125.5
+      }
+    ],
+    "kind": "back",
+    "n": 122,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Appendix",
+    "headingTag": true,
+    "id": "appx-4",
+    "imgs": [],
+    "kind": "back",
+    "n": 123,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B2",
+    "headingTag": true,
+    "id": "w4-media-upload",
+    "imgs": [
+      {
+        "h": 520,
+        "min": {
+          "size": 13.05118537303665,
+          "t": "All columns of coloured tables are shown; CHECKs, defaults a"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-upload.svg",
+        "w": 621.5625,
+        "x": 329.21875,
+        "y": 117.1875
+      }
+    ],
+    "kind": "back",
+    "n": 124,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B3",
+    "headingTag": true,
+    "id": "w4-media-pins",
+    "imgs": [
+      {
+        "h": 362.078125,
+        "min": {
+          "size": 16.04546210290055,
+          "t": "All columns of coloured tables are shown; CHECKs, defaults a"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-pins.svg",
+        "w": 764.25,
+        "x": 257.875,
+        "y": 196.15625
+      }
+    ],
+    "kind": "back",
+    "n": 125,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B4",
+    "headingTag": true,
+    "id": "w4-media-projection",
+    "imgs": [
+      {
+        "h": 423.953125,
+        "min": {
+          "size": 16.04724934554974,
+          "t": "All columns of coloured tables are shown; CHECKs, defaults a"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-projection.svg",
+        "w": 764.25,
+        "x": 257.875,
+        "y": 165.21875
+      }
+    ],
+    "kind": "back",
+    "n": 126,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B5",
+    "headingTag": true,
+    "id": "w4-media-intents",
+    "imgs": [
+      {
+        "h": 396.453125,
+        "min": {
+          "size": 16.04724934554974,
+          "t": "All columns of coloured tables are shown; CHECKs, defaults a"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-intents.svg",
+        "w": 764.25,
+        "x": 257.875,
+        "y": 178.96875
+      }
+    ],
+    "kind": "back",
+    "n": 127,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B6",
+    "headingTag": true,
+    "id": "w4-media-retry",
+    "imgs": [
+      {
+        "h": 464.046875,
+        "min": {
+          "size": 16.043620622306037,
+          "t": "All columns of coloured tables are shown; CHECKs, defaults a"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-retry.svg",
+        "w": 877.671875,
+        "x": 201.15625,
+        "y": 145.171875
+      }
+    ],
+    "kind": "back",
+    "n": 128,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B7",
+    "headingTag": true,
+    "id": "w4-media-cleanup",
+    "imgs": [
+      {
+        "h": 341.453125,
+        "min": {
+          "size": 16.059904017857143,
+          "t": "All columns of coloured tables are shown; CHECKs, defaults a"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-cleanup.svg",
+        "w": 784.875,
+        "x": 247.5625,
+        "y": 206.46875
+      }
+    ],
+    "kind": "back",
+    "n": 129,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B8",
+    "headingTag": true,
+    "id": "w4-media-delivery",
+    "imgs": [
+      {
+        "h": 403.328125,
+        "min": {
+          "size": 16.055061491935483,
+          "t": "All columns of coloured tables are shown; CHECKs, defaults a"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-media-delivery.svg",
+        "w": 973.9375,
+        "x": 153.03125,
+        "y": 175.53125
+      }
+    ],
+    "kind": "back",
+    "n": 130,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B9",
+    "headingTag": true,
+    "id": "w4-processing-attempts",
+    "imgs": [
+      {
+        "h": 520,
+        "min": {
+          "size": 14.982286976959747,
+          "t": "All columns of coloured tables are shown; CHECKs, defaults a"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-processing-attempts.svg",
+        "w": 881.640625,
+        "x": 199.171875,
+        "y": 117.1875
+      }
+    ],
+    "kind": "back",
+    "n": 131,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B10",
+    "headingTag": true,
+    "id": "w4-processing-intents",
+    "imgs": [
+      {
+        "h": 520,
+        "min": {
+          "size": 13.741666712253831,
+          "t": "All columns of coloured tables are shown; CHECKs, defaults a"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-processing-intents.svg",
+        "w": 782.9375,
+        "x": 248.53125,
+        "y": 117.1875
+      }
+    ],
+    "kind": "back",
+    "n": 132,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B11",
+    "headingTag": true,
+    "id": "w4-processing-cleanup",
+    "imgs": [
+      {
+        "h": 396.453125,
+        "min": {
+          "size": 16.04724934554974,
+          "t": "All columns of coloured tables are shown; CHECKs, defaults a"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-processing-cleanup.svg",
+        "w": 764.25,
+        "x": 257.875,
+        "y": 178.96875
+      }
+    ],
+    "kind": "back",
+    "n": 133,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B12",
+    "headingTag": true,
+    "id": "w4-processing-delivery",
+    "imgs": [
+      {
+        "h": 403.328125,
+        "min": {
+          "size": 16.04724934554974,
+          "t": "All columns of coloured tables are shown; CHECKs, defaults a"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-processing-delivery.svg",
+        "w": 764.25,
+        "x": 257.875,
+        "y": 175.53125
+      }
+    ],
+    "kind": "back",
+    "n": 134,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B13",
+    "headingTag": true,
+    "id": "w4-processing-bindings",
+    "imgs": [
+      {
+        "h": 396.453125,
+        "min": {
+          "size": 16.04724934554974,
+          "t": "All columns of coloured tables are shown; CHECKs, defaults a"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-processing-bindings.svg",
+        "w": 764.25,
+        "x": 257.875,
+        "y": 178.96875
+      }
+    ],
+    "kind": "back",
+    "n": 135,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B14",
+    "headingTag": true,
+    "id": "w4-processing-launcher",
+    "imgs": [
+      {
+        "h": 520,
+        "min": {
+          "size": 15.470832479508198,
+          "t": "All columns of coloured tables are shown; CHECKs, defaults a"
+        },
+        "ok": true,
+        "src": "assets/uml/W4-processing-launcher.svg",
+        "w": 823.59375,
+        "x": 228.203125,
+        "y": 117.1875
+      }
+    ],
+    "kind": "back",
+    "n": 136,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B15",
+    "headingTag": true,
+    "id": "w4-envelope",
+    "imgs": [],
+    "kind": "back",
+    "n": 137,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B16",
+    "headingTag": true,
+    "id": "w4-kinds",
+    "imgs": [],
+    "kind": "back",
+    "n": 138,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B17",
+    "headingTag": true,
+    "id": "w4-cancel-ack",
+    "imgs": [],
+    "kind": "back",
+    "n": 139,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B18",
+    "headingTag": true,
+    "id": "w4-json-descriptors",
+    "imgs": [],
+    "kind": "back",
+    "n": 140,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B19",
+    "headingTag": true,
+    "id": "w4-operations",
+    "imgs": [],
+    "kind": "back",
+    "n": 141,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B20",
+    "headingTag": true,
+    "id": "w4-support-stores",
+    "imgs": [],
+    "kind": "back",
+    "n": 142,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nW4-B21",
+    "headingTag": true,
+    "id": "w4-support-ops",
+    "imgs": [],
+    "kind": "back",
+    "n": 143,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 533.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 110.390625
+    },
+    "clips": [],
+    "footer": "FlickPond · Main 76282d3\nReturn to stores\nW4-B22",
+    "headingTag": true,
+    "id": "w4-adr",
+    "imgs": [],
+    "kind": "back",
+    "n": 144,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 549.609375,
+      "w": 1180,
+      "x": 50,
+      "y": 94.390625
+    },
+    "clips": [],
+    "footer": "Appendix",
+    "headingTag": true,
+    "id": "appx-5",
+    "imgs": [],
+    "kind": "back",
+    "n": 145,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "manual preparation · CD scans\nW5-EXTRA-SCANS",
+    "headingTag": true,
+    "id": "w5-extra-scans",
+    "imgs": [],
+    "kind": "back",
+    "n": 146,
+    "small": []
+  },
+  {
+    "below": [],
+    "body": {
+      "h": 534,
+      "w": 1180,
+      "x": 50,
+      "y": 110
+    },
+    "clips": [],
+    "footer": "source admission · image verification · failure handling\nW5-CD",
+    "headingTag": true,
+    "id": "w5-release",
+    "imgs": [
+      {
+        "h": 459.984375,
+        "min": {
+          "size": 13.870142886513158,
+          "t": "no"
+        },
+        "ok": true,
+        "src": "assets/uml/W5-pipeline-release.svg",
+        "w": 909.96875,
+        "x": 185.015625,
+        "y": 127.875
+      }
+    ],
+    "kind": "back",
+    "n": 147,
+    "small": []
+  }
+]

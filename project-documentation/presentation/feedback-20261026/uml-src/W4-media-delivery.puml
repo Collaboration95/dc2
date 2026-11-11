@@ -1,0 +1,44 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+title Physical data view · Media durable delivery and orphan ledger · 76282d3
+hide circle
+skinparam linetype polyline
+left to right direction
+skinparam defaultFontSize 19
+skinparam ClassAttributeFontSize 18
+skinparam ClassFontSize 20
+skinparam ArrowFontSize 16
+skinparam LegendFontSize 14
+skinparam nodesep 42
+skinparam ranksep 70
+entity "message_inbox" as message_inbox $MEDIA {
+  {field} * message_id : uuid <<PK>>
+  {field} * body_hash : varchar(64)
+  {field} * received_at : timestamptz
+}
+entity "message_outbox" as message_outbox $MEDIA {
+  {field} * message_id : uuid <<PK>>
+  {field} * body_hash : varchar(64)
+  {field} * queue : varchar(40)
+  {field} * body : jsonb
+  {field} * next_try_at : timestamptz
+  {field} * tries : integer
+  {field}   claim_token ? : uuid
+  {field}   sent_at ? : timestamptz
+  {field}   last_error ? : varchar
+}
+entity "staged_objects" as staged_objects $MEDIA {
+  {field} * key : text <<PK>>
+  {field} * created_at : timestamptz
+  {field} * write_uncertain : boolean
+}
+message_inbox -[hidden]down- message_outbox
+message_outbox -[hidden]down- staged_objects
+legend bottom left
+  * = NOT NULL    ? = nullable    PK = primary key    FK = declared local foreign key
+  UK = unique column    UKn = one composite unique group    timestamptz = timestamp with time zone
+  Blue = Media; amber = Processing. Only declared SQL foreign keys are connected.
+  All columns of coloured tables are shown; CHECKs, defaults and indexes are in the report dictionary.
+endlegend
+@enduml

@@ -1,0 +1,131 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;color:#0f172a}
+#stage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;background:#fff;overflow:hidden}
+#bar{position:absolute;left:0;top:0;height:6px;width:0;background:#2563EB;z-index:5}
+.slide{position:absolute;inset:0;padding:30px 50px 0;display:flex;flex-direction:column;background:#fff;opacity:0;visibility:hidden}
+.slide.active{opacity:1;visibility:visible}
+h1{font-size:44px;line-height:1.1;margin:0 0 16px;font-weight:800;letter-spacing:-.5px;min-height:48px}
+.body{flex:1;position:relative;min-height:0;margin-bottom:76px;display:flex;flex-direction:column;justify-content:center}
+.foot{position:absolute;left:0;right:0;bottom:0;height:38px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;padding:0 50px;font-size:16px;color:#64748b;background:#fff}
+.fr{display:flex;align-items:center;gap:18px}.pl{font-size:13px;color:#64748b;text-decoration:none}.pl:hover{text-decoration:underline;color:#2563EB}
+.sec{position:absolute;top:12px;right:50px;font-size:18px;font-weight:700;color:#64748b}
+.notes{display:none}
+.row{display:flex;align-items:center;gap:14px}
+.col{display:flex;flex-direction:column;gap:14px}
+.fill{flex:1}
+.wrap{flex-wrap:wrap}
+.cc{justify-content:center;align-items:center}
+.box{border:3px solid;border-radius:12px;padding:10px 18px;font-size:26px;font-weight:700;text-align:center;line-height:1.2}
+.sub{display:block;font-size:24px;font-weight:500;opacity:.9;margin-top:2px}
+.m{border-color:#2563EB;background:#DBEAFE;color:#1e3a8a}
+.p{border-color:#D97706;background:#FEF3C7;color:#78350f}
+.c{border-color:#059669;background:#ECFDF5;color:#064e3b}
+.i{border-color:#64748B;background:#F1F5F9;color:#334155}
+.x{border-color:#D55E00;background:#fff4ec;color:#7c2d00}
+.g{border-color:#94a3b8;border-style:dashed;background:#fff;color:#64748b}
+.k{border-color:#0f172a;background:#0f172a;color:#fff}
+.chip{display:inline-block;border:3px solid;border-radius:999px;padding:6px 18px;font-size:24px;font-weight:700}
+.chip.mono,.mono{font-family:Menlo,monospace;font-weight:600}
+.ar{position:relative;width:46px;height:0;border-top:4px solid #64748b;flex:none;margin:0 6px}
+.ar::after{content:"";position:absolute;right:-3px;top:-11px;border-left:15px solid #64748b;border-top:9px solid transparent;border-bottom:9px solid transparent}
+.ar.d{border-top-style:dashed}
+.ar.o{border-top-color:#D55E00}.ar.o::after{border-left-color:#D55E00}
+.ar.gr{border-top-color:#059669}.ar.gr::after{border-left-color:#059669}
+.ar.l{transform:scaleX(-1)}
+.ar.v{width:0;height:42px;border-top:0;border-left:4px solid #64748b;margin:4px 0;align-self:center}
+.ar.v::after{right:auto;top:auto;left:-11px;bottom:-3px;border-left:9px solid transparent;border-right:9px solid transparent;border-top:15px solid #64748b;border-bottom:0}
+.ar.v.o{border-left-color:#D55E00}.ar.v.o::after{border-top-color:#D55E00}
+.cap{font-size:26px;color:#475569;line-height:1.25}
+.cap.c1{text-align:center}
+.lbl{font-size:24px;font-weight:700;color:#475569}
+.big{font-size:104px;font-weight:800;line-height:1}
+.big.pass{color:#059669}.big.miss{color:#D55E00}
+.pass{color:#059669}.miss{color:#D55E00}
+.tile{border:3px solid;border-radius:16px;padding:20px 24px;flex:1;font-size:30px;font-weight:700;line-height:1.2}
+.num{display:inline-flex;width:48px;height:48px;border-radius:50%;background:#0f172a;color:#fff;font-weight:800;font-size:28px;align-items:center;justify-content:center;margin-bottom:10px}
+.card{display:flex;flex-direction:column;gap:12px}
+.card .ad{font:700 30px Menlo,monospace;color:#475569}
+.band{display:flex;border-radius:12px;overflow:hidden;border:2px solid #cbd5e1}
+.band .kk{width:176px;flex:none;background:#0f172a;color:#fff;font-size:24px;font-weight:700;display:flex;align-items:center;padding:0 16px}
+.band .v{padding:14px 20px;font-size:30px;font-weight:700}
+.tbl{border-collapse:collapse;font-size:24px;width:100%}
+.tbl th{text-align:left;color:#475569;font-size:24px;border-bottom:3px solid #0f172a;padding:6px 12px}
+.tbl td{padding:10px 12px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+.stage-row{display:flex;gap:16px;align-items:flex-start;margin-bottom:12px}
+.stage-row .sl{width:200px;flex:none;font-size:24px;font-weight:800;color:#fff;background:#0f172a;border-radius:10px;padding:8px 12px;text-align:center}
+.stage-row .chips{display:flex;flex-wrap:wrap;gap:8px;flex:1}
+.stage-row .chips .chip{font-size:24px;padding:4px 14px;border-width:2px;border-radius:10px;font-weight:600}
+.dia{width:1180px;display:block}
+.dia text{font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:24px;fill:#0f172a;text-anchor:middle;font-weight:700}
+.dia text.s{font-size:24px;font-weight:500}
+.dia text.l{text-anchor:start}
+.dia text.mo{font-family:Menlo,monospace;font-weight:600}
+.dia .sb{stroke-width:3}
+.dia .sb.m{fill:#DBEAFE;stroke:#2563EB}.dia .sb.p{fill:#FEF3C7;stroke:#D97706}.dia .sb.c{fill:#ECFDF5;stroke:#059669}
+.dia .sb.i{fill:#F1F5F9;stroke:#64748B}.dia .sb.x{fill:#fff4ec;stroke:#D55E00}.dia .sb.g{fill:#fff;stroke:#94a3b8;stroke-dasharray:8 6}
+.dia .sb.zm{fill:#f5f9ff;stroke:#2563EB;stroke-dasharray:none}.dia .sb.zp{fill:#fffaf0;stroke:#D97706}.dia .sb.zi{fill:#f8fafc;stroke:#64748B;stroke-dasharray:10 6}
+.dia .ln{stroke:#64748B;stroke-width:3.5;fill:none}.dia .ln.d{stroke-dasharray:9 7}.dia .ln.o{stroke:#D55E00}.dia .ln.gr{stroke:#059669}.dia .ln.life{stroke:#cbd5e1;stroke-width:3;stroke-dasharray:6 6}
+.clip{position:relative;width:860px;height:484px;background:#0f172a;border-radius:12px;overflow:hidden;cursor:pointer;flex:none}
+.clip video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;display:none}
+.clip.ready video{display:block}
+.clip .ph{position:absolute;inset:14px;border:3px dashed #475569;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#e2e8f0;font-size:30px;font-weight:700;text-align:center;padding:0 40px}
+.clip .ph small{font-size:24px;font-weight:500;color:#94a3b8}
+.clip.ready .ph{display:none}
+.tri{width:0;height:0;border-left:44px solid #e2e8f0;border-top:28px solid transparent;border-bottom:28px solid transparent}
+.clip .pb{position:absolute;left:50%;top:50%;margin:-50px 0 0 -50px;width:100px;height:100px;border-radius:50%;background:rgba(15,23,42,.7);display:none;align-items:center;justify-content:center}
+.clip .pb .tri{border-left:34px solid #fff;border-top:22px solid transparent;border-bottom:22px solid transparent;margin-left:8px}
+.clip.ready:not(.playing) .pb{display:flex}
+.clip .cb{position:absolute;left:0;bottom:0;height:6px;width:0;background:#2563EB}
+.clipid{font:700 28px Menlo,monospace;color:#475569}
+#notes{position:fixed;left:0;right:0;bottom:0;height:230px;overflow:auto;background:#0f172a;color:#e2e8f0;font-size:19px;line-height:1.35;padding:12px 28px;display:none;z-index:20}
+#notes.on{display:block}
+#notes ul{margin:4px 0;padding-left:24px}#notes b{color:#fff}
+#ov{position:fixed;inset:0;background:rgba(15,23,42,.96);overflow:auto;display:none;z-index:30;padding:20px}
+#ov.on{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;align-content:start}
+#ov .th{position:relative;width:100%;aspect-ratio:16/9;background:#fff;overflow:hidden;border-radius:6px;cursor:pointer;border:3px solid transparent}
+#ov .th.cur{border-color:#2563EB}
+#ov .th .in{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;pointer-events:none}
+#ov .th .n{position:absolute;right:6px;bottom:4px;z-index:2;background:#0f172a;color:#fff;font:700 13px Menlo,monospace;padding:2px 6px;border-radius:4px}
+#ov .slide{opacity:1;visibility:visible}
+#black{position:fixed;inset:0;background:#000;display:none;z-index:40}
+#black.on{display:block}
+#hud{position:fixed;right:14px;top:10px;z-index:25;font:700 22px Menlo,monospace;color:#fff;background:rgba(15,23,42,.85);padding:4px 12px;border-radius:6px;display:none}
+.dv{align-items:center;justify-content:center;text-align:center}
+@media print{
+html,body{background:#fff;overflow:visible;height:auto}
+#stage{position:static;transform:none!important;width:1280px;height:auto;overflow:visible}
+.slide{position:relative;visibility:visible!important;opacity:1!important;width:1280px;height:720px;break-after:page;page-break-after:always;overflow:hidden}
+#notes,#ov,#black,#bar,#hud{display:none!important}
+.clip video{display:none!important}.clip .ph{display:flex!important}.clip .pb{display:none!important}
+@page{size:1280px 720px;margin:0}
+}
+
+html,body{height:auto;overflow:visible;background:white}#stage{position:relative;height:auto;overflow:visible}.slide{position:relative;inset:auto;height:720px;opacity:1;visibility:visible}.body{overflow:visible}</style></head><body><div id="stage"><section class="slide" id="w4-stores" data-kind="main" data-num="W4-M1">
+<h1>Each service owns its durable state</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">ARCHSS · Physical data view / PE · schemas</div>
+<div class="body"><table class="tbl" style="font-size:20px;line-height:1.2"><thead><tr><th style="font-size:20px;padding:8px 10px">Store / owner</th><th style="font-size:20px;padding:8px 10px">Persistent model</th><th style="font-size:20px;padding:8px 10px">Consistency / retention</th></tr></thead><tbody><tr><td style="padding:8px 10px">Aurora media cluster<br><b>Media</b></td><td style="padding:8px 10px">media_db: users, assets, upload/source pins,<br>projections, inbox/outbox</td><td style="padding:8px 10px">Local SQL transactions; result projection is eventual.<br>Rows retained; backup: 1 day.</td></tr><tr><td style="padding:8px 10px">Aurora processing cluster<br><b>Processing</b></td><td style="padding:8px 10px">processing_db: jobs, attempts, guards,<br>retry/cleanup and delivery/launcher records</td><td style="padding:8px 10px">Local SQL transactions; DB-time fenced leases.<br>Rows retained; backup: 1 day.</td></tr><tr><td style="padding:8px 10px">S3 SourceBucket<br><b>Media</b></td><td style="padding:8px 10px">Versioned source bytes; adopted staging uploads<br>and copied edit sources</td><td style="padding:8px 10px">Exact VersionId pin; asynchronous version cleanup.<br>No active-object age expiry.</td></tr><tr><td style="padding:8px 10px">S3 OutputBucket<br><b>Processing</b></td><td style="padding:8px 10px">Primary + HLS objects under attempt UUID</td><td style="padding:8px 10px">Fenced SQL publication; async version cleanup.<br>No active-object age expiry.</td></tr><tr><td style="padding:8px 10px">4 SQS queues + 4 DLQs<br><b>Media / Processing</b></td><td style="padding:8px 10px">processing-commands · processing-work<br>processing-work-short* · media-results</td><td style="padding:8px 10px">At-least-once + SQL dedupe/replay.<br>Queues 7 days; DLQs 14; redrive after 5 receives.</td></tr><tr><td style="padding:8px 10px">Supporting stores<br><b>Platform / operations</b></td><td style="padding:8px 10px">Frontend S3; SSM configuration/activity hints;<br>CloudWatch logs; local operator journals</td><td style="padding:8px 10px">Versioned static assets; hints are not job authority.<br>Logs 7 days; supporting schemas in backup.</td></tr></tbody></table><p style="font-size:23px;line-height:1.25;margin:12px 10px 0"><b>PostgreSQL commits state with inbox/outbox records;</b> JSONB embeds nested metadata.</p></div>
+<div class="sec">Data</div><div class="foot"><span>FlickPond · Main 76282d3</span><a class="pl" style="font-size:16px" href="#w4-adr" onclick="event.preventDefault();event.stopPropagation();location.hash=String([...document.querySelectorAll('#stage > section.slide')].findIndex(s=>s.id==='w4-adr')+1)">Why PostgreSQL? · backup</a><span>W4-M1</span></div>
+<aside class="notes">Point to the two SQL owners, then distinguish object bytes, transit messages and operational hints. This is the configured separate-cluster baseline with short encodes enabled, not a live-resource census. Shared-cluster configuration is also supported. SQL row retention means no general hard-purge job; it is not a backup period. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L63-L78">scripts/aws/v1/definitions.py:63-78</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L501">scripts/aws/v1/definitions.py:501</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L548-L595">scripts/aws/v1/definitions.py:548-595</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L596">scripts/aws/v1/definitions.py:596</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L632">scripts/aws/v1/definitions.py:632</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L18">delivery/sql.py:18</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L36">delivery/sql.py:36</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69">media/projections.py:69</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L24">processing/lifecycle.py:24</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L234">media/services/direct_intake.py:234</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L113-L187">processing/recovery.py:113-187</a>. *Short lane and its DLQ are conditional on ShortEncodes. Supporting-store schema and source anchors are on the operational-store backup.</aside>
+</section>
+<section class="slide" id="w4-media-main" data-kind="main" data-num="W4-M2">
+<h1>Media owns assets, pins and read projections</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">ARCHSS · Physical data view / PE · schemas</div>
+<div class="body"><img src="/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/site/assets/uml/W4-media-main.svg" alt="Physical data view · media_db · media_0008" style="max-width:1180px;max-height:520px;display:block;margin:0 auto"></div>
+<div class="sec">Data</div><div class="foot"><span>FlickPond · Main 76282d3</span><span>W4-M2</span></div>
+<aside class="notes">Point at the PKs, then follow the crow’s-foot ends from each parent to its children. A dot means NOT NULL and ? means nullable. This main figure selects key columns; every column appears in backup and the report. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0001_media.py#L16">media/migrations/versions/0001_media.py:16</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0001_media.py#L26">media/migrations/versions/0001_media.py:26</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0004_direct_uploads.py#L23">media/migrations/versions/0004_direct_uploads.py:23</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0007_finalized_requires_pin.py#L19">media/migrations/versions/0007_finalized_requires_pin.py:19</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0008_upload_cleanup_schedule.py#L19">media/migrations/versions/0008_upload_cleanup_schedule.py:19</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0008_upload_cleanup_schedule.py#L28">media/migrations/versions/0008_upload_cleanup_schedule.py:28</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0008_upload_cleanup_schedule.py#L32">media/migrations/versions/0008_upload_cleanup_schedule.py:32</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0004_direct_uploads.py#L13">media/migrations/versions/0004_direct_uploads.py:13</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/migrations/versions/0005_projection.py#L14">media/migrations/versions/0005_projection.py:14</a> UploadReservation.asset_id is unique but has no FK to assets. Finalization keeps the pin on the reservation. The diagram label asset_source_versions maps to ORM SourceVersion, not an invented class. processing_job_id and source_asset_id are plain UUIDs without local or cross-database FKs. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L43">media/services/direct_intake.py:43</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L149">media/services/direct_intake.py:149</a></aside>
+</section>
+<section class="slide" id="w4-processing-main" data-kind="main" data-num="W4-M3">
+<h1>Processing owns each job and its fenced attempts</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">ARCHSS · Physical data view / PE · schemas</div>
+<div class="body"><img src="/Users/speedpowermac/Documents/projects/CODE_MAIN/NUS/dc2-rescue/project-documentation/presentation/site/assets/uml/W4-processing-main.svg" alt="Physical data view · processing_db · processing_0007" style="max-width:1180px;max-height:520px;display:block;margin:0 auto"></div>
+<div class="sec">Data</div><div class="foot"><span>FlickPond · Main 76282d3</span><span>W4-M3</span></div>
+<aside class="notes">Point at the PKs, then follow the crow’s-foot ends from each parent to its children. A dot means NOT NULL and ? means nullable. This main figure selects key columns; every column appears in backup and the report. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0001_intake.py#L14">processing/migrations/versions/0001_intake.py:14</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0002_lifecycle.py#L14">processing/migrations/versions/0002_lifecycle.py:14</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0001_intake.py#L35">processing/migrations/versions/0001_intake.py:35</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0002_lifecycle.py#L28">processing/migrations/versions/0002_lifecycle.py:28</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0002_lifecycle.py#L29">processing/migrations/versions/0002_lifecycle.py:29</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0002_lifecycle.py#L33">processing/migrations/versions/0002_lifecycle.py:33</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/migrations/versions/0001_intake.py#L61">processing/migrations/versions/0001_intake.py:61</a> current_attempt_id is DEFERRABLE INITIALLY DEFERRED and is not UNIQUE: the SQL reverse cardinality is zero-to-many. lock_pair additionally requires the attempt to belong to that job. SubmissionGuard.job_id is nullable and not unique. Claim/finish use a lease token and database time; deadline_at is shown in full backup. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L20">processing/lifecycle.py:20</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L38">processing/lifecycle.py:38</a></aside>
+</section>
+<section class="slide" id="w4-keys" data-kind="main" data-num="W4-M4">
+<h1>Attempt UUIDs isolate each output namespace</h1>
+<div style="font:600 15px Menlo,monospace;color:#64748b;margin:-10px 0 8px">ARCHSS · Physical data view / PE · schemas</div>
+<div class="body"><table class="tbl" style="font-size:23px;line-height:1.2"><thead><tr><th style="font-size:23px;padding:8px 10px">Namespace</th><th style="font-size:23px;padding:8px 10px">Key / descriptor</th><th style="font-size:23px;padding:8px 10px">Authority</th></tr></thead><tbody><tr><td style="padding:8px 10px">Direct upload</td><td style="padding:8px 10px"><code>staging/{owner}/{reservation}/source</code></td><td style="padding:8px 10px">Adopted in place; UploadReservation<br>pins the exact S3 VersionId.</td></tr><tr><td style="padding:8px 10px">Edit-derived source</td><td style="padding:8px 10px"><code>sources/{owner}/{asset}/source</code></td><td style="padding:8px 10px">Verified parent primary copied to a new Asset;<br>asset_source_versions stores its pin.</td></tr><tr><td style="padding:8px 10px">Primary output</td><td style="padding:8px 10px"><code>jobs/{job}/attempts/{attempt_uuid}/<br>primary.{mp4,mkv,mp3}</code></td><td style="padding:8px 10px">Attempt UUID isolates writes.<br>SQL finish fences publication.</td></tr><tr><td style="padding:8px 10px">HLS output</td><td style="padding:8px 10px"><code>…/hls/master.m3u8<br>…/hls/v{n}/index.m3u8<br>…/hls/v{n}/seg%05d.ts</code></td><td style="padding:8px 10px">Plain uploads only; master uploaded last.<br>Only master is in the output descriptor list.</td></tr></tbody></table><p style="font-size:23px;line-height:1.25;margin:12px 10px 0">Deleting an Asset triggers asynchronous deletion of object versions. Cleanup horizons bound rescans; they do not expire active videos.</p></div>
+<div class="sec">Data</div><div class="foot"><span>FlickPond · Main 76282d3</span><span>W4-M4</span></div>
+<aside class="notes">Point at attempt_uuid: it is Attempt.id, never attempt_number. The prefix in output_prefix takes a UUID; the integer numbers retries. An accepted direct upload stays at staging/, and source_for_asset reads the finalized reservation before derived-source pins. HLS is attempted only with empty operations, and failure can leave the primary available. The buckets are versioned/private; physical names are deployment outputs. No S3 lifecycle rule or general active-video expiry is configured. <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L20">processing/lifecycle.py:20</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L99">media/services/direct_intake.py:99</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L43">media/services/direct_intake.py:43</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L105">media/services/v1_lifecycle.py:105</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/tasks.py#L16">processing/worker/tasks.py:16</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/hls.py#L43">media_engine/hls.py:43</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/media/recovery_v1.py#L39">media/recovery_v1.py:39</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L113-L187">processing/recovery.py:113-187</a> <a href="https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L548-L595">scripts/aws/v1/definitions.py:548-595</a></aside>
+</section></div></body></html>

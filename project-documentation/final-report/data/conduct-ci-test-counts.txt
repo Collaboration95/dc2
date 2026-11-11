@@ -1,0 +1,19 @@
+Source: gh run view 41294802851 --repo Collaboration95/dc2 --log
+SHA: 76282d3b5a141f6548056f2506f9d5aff0742692; 1 November 2026
+Overlapping job suites; do not sum counts.
+
+Legacy real integration	UNKNOWN STEP	2026-11-01T09:53:56.1958215Z 44 passed in 6.01s
+Frontend tests	UNKNOWN STEP	2026-11-01T09:50:30.4040770Z ^[[2m Test Files ^[[22m ^[[1m^[[32m3 passed^[[39m^[[22m^[[90m (3)^[[39m
+Frontend tests	UNKNOWN STEP	2026-11-01T09:50:30.4069464Z ^[[2m      Tests ^[[22m ^[[1m^[[32m177 passed^[[39m^[[22m^[[90m (177)^[[39m
+Lint and Python unit tests	UNKNOWN STEP	2026-11-01T09:52:23.5858759Z 2986 passed, 3 skipped, 1009 deselected, 2 warnings, 278 subtests passed in 116.08s (0:01:56)
+Lint and Python unit tests	UNKNOWN STEP	2026-11-01T09:52:26.8778650Z 30 passed in 0.54s
+Processing worker, recovery and database ownership	UNKNOWN STEP	2026-11-01T09:56:36.6607758Z 47 passed in 34.54s
+Media owned persistence and boundary contracts	UNKNOWN STEP	2026-11-01T09:51:00.6959518Z 39 passed in 14.22s
+Processing service (tests, images, runtime check)	UNKNOWN STEP	2026-11-01T09:50:39.9707422Z 325 passed in 17.85s
+Processing service (tests, images, runtime check)	UNKNOWN STEP	2026-11-01T09:50:41.9883686Z 105 passed in 0.17s
+V1 local verification / V1 offline control-plane and operational checks	UNKNOWN STEP	2026-11-01T09:56:20.3248135Z 1520 passed, 2 deselected in 336.36s (0:05:36)
+V1 local verification / V1 offline control-plane and operational checks	UNKNOWN STEP	2026-11-01T09:56:39.9300636Z 1 passed, 186 deselected in 18.47s
+V1 local verification / V1 offline control-plane and operational checks	UNKNOWN STEP	2026-11-01T09:56:45.1921145Z 452 passed, 2 skipped, 150 deselected in 3.90s
+Independent Publisher HTTPS and cookie persistence	UNKNOWN STEP	2026-11-01T09:50:25.2582524Z 1 passed in 0.96s
+Media service (tests, image, runtime check)	UNKNOWN STEP	2026-11-01T09:50:26.6258080Z 288 passed, 1 warning in 3.94s
+Exact-candidate DAST execution (findings report-only) / Authenticated Media and Processing V1 local APIs	UNKNOWN STEP	2026-11-01T09:50:44.5040635Z ============================= 105 passed in 1.89s ==============================

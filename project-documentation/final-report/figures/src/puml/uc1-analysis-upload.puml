@@ -1,0 +1,49 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-03, W3-06a, W3-06; upload pin / replay corrections from W3-review
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title UC-1 · normal intake and refused adoption
+autonumber
+actor Owner
+control IntakeControl as C
+entity UploadRequest as R
+boundary SourceStore as S
+Owner -> C : declare owned video and request identity
+C -> R : reserve or replay declaration
+alt wrong owner, changed request or expired grant
+ C --> Owner : refuse; no accepted asset
+else request already adopted (replay)
+ C --> Owner : no new upload permission
+ Owner -> C : finalize reservation
+ C --> Owner : same asset identity
+else pending request
+ C --> Owner : scoped upload permission
+ Owner -> S : upload bytes directly
+ Owner -> C : finalize reservation
+ C -> S : verify exact source bytes and identity
+ alt missing, invalid or unversioned bytes
+  S --> C : verification failure
+  C --> Owner : refuse; no asset or processing request
+ else verified source
+  S --> C : immutable source identity
+  group one local acceptance
+   C -> R : recheck ownership and expiry; record pin
+   C -> C : adopt asset and retain processing intent
+  end
+  C --> Owner : accepted asset identity
+ end
+end
+@enduml

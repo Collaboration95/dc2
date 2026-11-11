@@ -1,0 +1,33 @@
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+' scripts/aws/v1/definitions.py: bucket policies and per-role S3 grants
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 18
+skinparam LegendFontSize 18
+skinparam titleFontSize 21
+skinparam nodesep 30
+skinparam ranksep 45
+title Storage deployment · S3 access in Singapore
+top to bottom direction
+node "Browser / Publisher" as b <<device>> $CLIENT
+node "CloudFront\nglobal edge" as cf $INFRA
+node "MediaApi\nprivate A+B" as ma $MEDIA
+node "Processing encoders\nLambda: private\nFargate: public" as p $PROC
+storage "FrontendBucket\nstatic assets" as f $INFRA
+storage "SourceBucket\naccepted VersionId" as s $MEDIA
+storage "OutputBucket\njob/attempt namespace" as o $PROC
+b --> cf : HTTPS
+cf --> f : OAC GET
+b --> s : granted POST
+b --> o : signed GET / Range
+ma --> s : verify / copy
+ma --> o : playlist reads
+p --> s : pinned GET
+p --> o : attempt PUT
+legend bottom
+ Buckets: private, versioned, encrypted, TLS-only; outside the VPC.
+ Media signs owner-checked playback links.
+ Output descriptors stay in Processing SQL.
+endlegend
+@enduml

@@ -1,0 +1,51 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): media/projections.py; media/projection_models.py; media/api/v1_jobs.py; media/api/v1_hls.py
+skinparam BackgroundColor white
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
+skinparam classAttributeIconSize 0
+skinparam nodesep 20
+skinparam ranksep 22
+hide footbox
+autonumber
+skinparam maxMessageSize 200
+skinparam sequenceParticipantPadding 8
+title UC-3 · local read and playback
+actor "Owner / player" as O
+participant "v1_jobs\nv1_hls" as A $MEDIA
+participant "projections" as P $MEDIA
+participant "Storage" as S $MEDIA
+O -> A : GET /jobs/{asset_id}
+A -> A : get_asset(session, job_id,\n user.id)\n[repositories.assets]
+alt owner lookup fails
+ A --> O : 404
+else owned Asset
+ A -> P : public_job(session, asset,\n storage, settings)
+ P -> P : read_job(session, asset)\nlocal ProcessingProjection
+ opt projected status == done
+  P -> S : sign_output(\n primary.object_key)
+ end
+ P --> A : PublicJob (optional hls_url)
+ A --> O : 200 status; private, no-store
+end
+opt HLS requested
+ O -> A : GET /jobs/{asset_id}/hls/{path}
+ A -> A : part: get_asset(..., lock=True);\nsafe_hls_path(path)
+ A -> P : read_job(session, asset)
+ alt not submitted / not done / no HLS
+  A --> O : 404
+ else path ends .m3u8
+  A -> S : read_playlist(key)
+  S --> A : bounded bytes / exception
+  A --> O : 200 playlist / 404 on exception
+ else valid .ts path
+  A -> S : sign_output(key, inline=True)
+  A --> O : 307 redirect
+ end
+end
+note over O,S : MP4 / redirected segment GET (or Range) goes to S3.\nAfter URL expiry, repeat the authorized status read.
+@enduml

@@ -1,0 +1,46 @@
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam classAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
+skinparam titleFontSize 17
+skinparam BoxPadding 8
+skinparam maxMessageSize 400
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+' scripts/aws/v1/release.py (_version, PublicationUncertain); scripts/ci/cd.sh cmd_smoke
+title UC-7 design: uncertain publication and later smoke
+autonumber
+participant "cd.sh" as cd $INFRA
+participant "release\n«module»" as rel $INFRA
+participant "Journal" as j $INFRA
+participant "Operator\nTransport" as aws $INFRA
+group Publication reply lost
+ cd -> rel : promote(...)
+ rel -> rel : _version(...)
+ rel -> aws : list-versions-by-function: no match
+ rel -> j : save(state): publication_started[name]
+ rel -> aws : publish-version
+ aws --> rel : response lost
+ rel --> cd : PublicationUncertain
+ opt operator resumes the same intent
+  cd -> rel : promote(...same inputs...)
+  rel -> rel : _version(...)
+  rel -> aws : list-versions-by-function
+  alt one version has the release description
+   aws --> rel : version found; reused
+  else none found and marker set
+   rel --> cd : refuse blind re-publication
+  end
+ end
+end
+group Later playback smoke
+ cd -> cd : cmd_smoke
+ note over cd : A playback failure fails CD.\nIt does not call restore().
+end
+@enduml

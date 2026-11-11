@@ -1,0 +1,41 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 18
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 230
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+title DP-1 problem: no shared slot ownership
+top to bottom direction
+class "Wake handler" as handler <<naive control>> {
+ observe backlog
+ observe running count
+ launch until apparent cap
+}
+class "Local observation" as view <<transient>> {
+ observed worker count
+ observed free slots
+}
+class "Work backlog" as backlog <<entity>>
+class "Executor provider" as provider <<boundary>>
+handler "1..*" --> "1" backlog
+handler "1" *-- "1" view
+handler "1..*" --> "1" provider
+note bottom of view
+ No committed shared reservation.
+ Another caller can spend the same slots.
+ A timeout has no stable replay identity.
+end note
+legend bottom
+ Illustrative unprotected design: conceptual roles only.
+endlegend
+@enduml

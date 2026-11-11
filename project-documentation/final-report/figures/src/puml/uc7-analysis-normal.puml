@@ -1,0 +1,39 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 20
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 230
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+title UC-7 analysis: admit, promote and verify
+autonumber
+boundary "Sam through\nCD" as cd
+control "Release\ncoordinator" as ctl
+entity "Release\nrecords" as records
+boundary "Owner and\npeer runtimes" as runtime
+cd -> ctl : candidate and verification evidence
+alt evidence is ineligible or incomplete
+ ctl --> cd : reject before promotion
+else candidate admitted
+ ctl -> runtime : observe owner, peer and schema
+ runtime --> ctl : prior state
+ ctl -> records : persist recovery intent and snapshots
+ records --> ctl : intent committed
+ ctl -> runtime : migrate compatibly; select candidate
+ ctl -> runtime : public owner smoke
+ runtime --> ctl : smoke passed; peer unchanged
+ ctl -> records : record promoted versions; clear intent
+ ctl --> cd : promoted
+ cd -> records : adopt deployment baseline
+ cd -> cd : retain release receipt
+end
+@enduml

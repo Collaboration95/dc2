@@ -1,0 +1,58 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 14
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Sequence view · UC-4 fences a stale Claim before any mutation\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L405
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L28
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L16
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L18
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L36
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69
+skinparam ArrowFontSize 17
+skinparam defaultFontSize 18
+skinparam NoteFontSize 16
+skinparam LegendFontSize 16
+skinparam maxMessageSize 310
+participant "worker.sqs\n«module»" as W $PROC
+participant "messaging\n«module»" as M $PROC
+participant "lifecycle\n«module»" as L $PROC
+participant "s: AsyncSession" as DB $INFRA
+note over W,DB : Old Claim(A1,T1); A2 is current; outputs pass validation first.
+activate W
+W -> M : finish(f,work,outputs=outputs)
+activate M
+M -> L : finish(f,work,outputs=outputs,\nerror=None,on_change=emit_state)
+activate L
+group Processing stale-finish transaction
+ L -> DB : scalar(Job query WITH FOR UPDATE) [lock_pair]
+ DB --> L : job: Job (current_attempt_id=A2)
+ L -> L : db_now(s); live(None,T1,now)
+ note right of L : lock_pair returns None; live returns False.
+end
+L --> M : False
+ deactivate L
+M --> W : False
+ deactivate M
+ deactivate W
+legend bottom
+Claim is data passed by worker.sqs, not a worker object or a method owner.
+Filled arrows = awaited calls; dashed = replies. No result outbox is staged on this path.
+Delayed result messages face a separate Media projection fence (W3-13a).
+endlegend
+
+@enduml

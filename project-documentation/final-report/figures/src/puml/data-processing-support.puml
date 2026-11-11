@@ -1,0 +1,51 @@
+!include _style.iuml
+@startuml
+skinparam BackgroundColor white
+!include _style.iuml
+' Adapted from reviewed W4 models; verified against current migration-head metadata.
+title Processing database: recovery and task-binding authority
+hide circle
+skinparam linetype polyline
+skinparam nodesep 30
+skinparam ranksep 45
+skinparam defaultFontSize 18
+skinparam ClassAttributeFontSize 17
+skinparam ClassFontSize 19
+skinparam ArrowFontSize 15
+skinparam LegendFontSize 14
+entity "cleanup_intents" as cleanup_intents $PROC {
+  {field} * attempt_id : uuid <<PK,FK>>
+  {field} * job_id : uuid <<FK>>
+  {field} * next_try_at : timestamptz
+  {field}   retired_at ? : timestamptz
+  --
+  {field} IX (next_try_at, attempt_id)
+  {field} WHERE retired_at IS NULL
+}
+entity "job_messaging" as job_messaging $PROC {
+  {field} * job_id : uuid <<PK,FK>>
+  {field} * state_version : integer
+}
+entity "attempt_tasks" as attempt_tasks $PROC {
+  {field} * attempt_id : uuid <<PK,FK>>
+  {field} * task_name : varchar(256) <<UK>>
+}
+entity "jobs\n<<reference: key only>>" as jobs $INFRA {
+  {field} * id : uuid <<PK>>
+}
+entity "attempts\n<<reference: key only>>" as attempts $INFRA {
+  {field} * id : uuid <<PK>>
+}
+attempts ||--o| attempt_tasks : "attempt_id"
+attempts ||--o| cleanup_intents : "attempt_id / CASCADE"
+jobs ||--o{ cleanup_intents : "job_id / CASCADE"
+jobs ||--o| job_messaging : "job_id"
+
+
+legend bottom left
+  * = NOT NULL; ? = nullable; PK = primary; FK = declared local foreign key
+  UK = unique; UKn = one composite group; IX = explicit index
+  Selected columns; dictionaries give all fields, defaults, predicates and index names.
+endlegend
+skinparam BackgroundColor white
+@enduml

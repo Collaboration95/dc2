@@ -1,0 +1,115 @@
+{
+  "width": 1280,
+  "height": 720,
+  "deckDrift": {
+    "sha256": "19310e78cc8902889f819d66d7ae2f9aeac94fae449b470355656e9fee87d874",
+    "cssUnchanged": true,
+    "mtime_ns": 1793007858888364300
+  },
+  "slides": [
+    {
+      "slide": 1,
+      "id": "s28",
+      "image": [
+        58.625,
+        125.5,
+        1162.734375,
+        535
+      ],
+      "minFont": 13.739844903988184,
+      "inBody": true,
+      "inStage": true
+    },
+    {
+      "slide": 2,
+      "id": "w3-processing-components",
+      "image": [
+        50.015625,
+        143.03125,
+        1179.96875,
+        499.921875
+      ],
+      "minFont": 13.22093837535014,
+      "inBody": true,
+      "inStage": true
+    },
+    {
+      "slide": 3,
+      "id": "w3-a-classes",
+      "image": [
+        50.015625,
+        186.9375,
+        1179.953125,
+        412.125
+      ],
+      "minFont": 13.386826377633712,
+      "inBody": true,
+      "inStage": true
+    },
+    {
+      "slide": 4,
+      "id": "s29",
+      "image": [
+        187.578125,
+        125.5,
+        904.84375,
+        535
+      ],
+      "minFont": 13.761882129277566,
+      "inBody": true,
+      "inStage": true
+    },
+    {
+      "slide": 5,
+      "id": "s30",
+      "image": [
+        210.90625,
+        125.5,
+        858.1875,
+        535
+      ],
+      "minFont": 13.191609735269001,
+      "inBody": true,
+      "inStage": true
+    },
+    {
+      "slide": 6,
+      "id": "s31",
+      "image": [
+        127.5,
+        155,
+        1025,
+        476
+      ],
+      "minFont": 14,
+      "inBody": true,
+      "inStage": true
+    },
+    {
+      "slide": 7,
+      "id": "w3-stale",
+      "image": [
+        186.15625,
+        125.5,
+        907.6875,
+        535
+      ],
+      "minFont": 13.739829706717124,
+      "inBody": true,
+      "inStage": true
+    },
+    {
+      "slide": 8,
+      "id": "w3-job-states",
+      "image": [
+        61.078125,
+        125.5,
+        1157.84375,
+        535
+      ],
+      "minFont": 13.335598746612467,
+      "inBody": true,
+      "inStage": true
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-04, W3-07a, W3-09a/b/c, W3-17/23; W1-dispatch/probe-redirect
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 40
+skinparam ranksep 56
+hide footbox
+hide circle
+title UC-2 · job, attempt and execution authority
+top to bottom direction
+class "Job\nprocessing.models" as J <<ORM>> $PROC {
+ + id: UUID
+ + source: dict
+ + status: str
+ + current_attempt_id: UUID
+ + outputs: list
+}
+class "Attempt\nprocessing.models" as A <<ORM>> $PROC {
+ + id: UUID
+ + job_id: UUID
+ + attempt_number: int
+ + state: str
+ + lease_token: UUID | None
+}
+class "Claim\nprocessing.lifecycle" as C <<frozen dataclass>> $PROC {
+ + job_id: UUID
+ + attempt_id: UUID
+ + lease_token: UUID
+ + source: dict
+ + operations: list
+ + deadline_at: datetime
+}
+class "AttemptTask" as T <<ORM>> $PROC {
+ + attempt_id: UUID
+ + task_name: str
+}
+class "lifecycle\nprocessing" as L <<module>> $PROC {
+ {static} + lock_pair(session, job_id, attempt_id)
+ {static} + live(pair, token, now)
+ {static} + finish(factory, work, *, outputs=None,\n error=None, on_change=None)
+}
+class "short_lane\nprocessing" as S <<module>> $PROC {
+ {static} + work_lane(session, job)
+ {static} + check_probe(probe)
+}
+J "1" -down- "1..*" A : history
+J -down-> A : current attempt\n(0..1 to 1)
+A "1" -down- "0..1" T : binding
+C ..> A : captured authority
+L ..> C
+L ..> J : locks / mutates
+S -right-> T : prior Lambda\nbinding
+legend bottom
+Selected fields; Claim field bindings are frozen, its dict/list
+contents are mutable.
+AttemptTask: processing.messaging_models; task_name is unique.
+endlegend
+@enduml

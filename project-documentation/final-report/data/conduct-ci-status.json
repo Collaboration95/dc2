@@ -1,0 +1,97 @@
+{
+  "conclusion": "failure",
+  "createdAt": "2026-11-08T09:38:15Z",
+  "headSha": "76282d3b5a141f6548056f2506f9d5aff0742692",
+  "url": "https://github.com/Collaboration95/dc2/actions/runs/42468024855",
+  "failed_jobs": [
+    {
+      "name": "Secret scan (gitleaks)",
+      "failed_steps": [
+        "Install pinned gitleaks"
+      ]
+    },
+    {
+      "name": "Lint and Python unit tests",
+      "failed_steps": [
+        "Run ./.github/actions/python-tools"
+      ]
+    },
+    {
+      "name": "Media service (tests, image, runtime check)",
+      "failed_steps": [
+        "Run ./.github/actions/python-tools"
+      ]
+    },
+    {
+      "name": "Scan container image (media)",
+      "failed_steps": [
+        "Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+      ]
+    },
+    {
+      "name": "Media owned persistence and boundary contracts",
+      "failed_steps": [
+        "Run ./.github/actions/python-tools"
+      ]
+    },
+    {
+      "name": "Scan container image (processing)",
+      "failed_steps": [
+        "Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+      ]
+    },
+    {
+      "name": "V1 local verification / V1 offline control-plane and operational checks",
+      "failed_steps": [
+        "Run ./.github/actions/python-tools"
+      ]
+    },
+    {
+      "name": "V1 local verification / V1 local flows, browser leg and coverage",
+      "failed_steps": [
+        "Run ./.github/actions/python-tools"
+      ]
+    },
+    {
+      "name": "Scan container image (app)",
+      "failed_steps": [
+        "Run aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+      ]
+    },
+    {
+      "name": "Exact-candidate DAST execution (findings report-only) / Authenticated Media and Processing V1 local APIs",
+      "failed_steps": [
+        "Run ./.github/actions/python-tools",
+        "Always tear down this run and remove its local data"
+      ]
+    },
+    {
+      "name": "V1 local verification / V1 image build and verification",
+      "failed_steps": [
+        "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+        "Scan the built media image (report only; the gate step decides)",
+        "Scan the built processing image (report only; the gate step decides)",
+        "Scan the built worker image (report only; the gate step decides)",
+        "Gate fixable HIGH/CRITICAL findings per image"
+      ]
+    },
+    {
+      "name": "V1 local verification / V1 requested checks",
+      "failed_steps": [
+        "Reject failures and unexpected skips in requested V1 jobs"
+      ]
+    },
+    {
+      "name": "Dev gate",
+      "failed_steps": [
+        "Require every selected dev check; validate intentional skips"
+      ]
+    },
+    {
+      "name": "Full verification",
+      "failed_steps": [
+        "Require successful real integration, trust and package gates"
+      ]
+    }
+  ]
+}

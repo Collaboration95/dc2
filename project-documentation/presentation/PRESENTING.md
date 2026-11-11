@@ -21,30 +21,30 @@ Open Chrome at <http://127.0.0.1:8766/deck.html>. Press `F` for full screen.
 |---|---|
 | → or `D` | next slide |
 | ← or `A` | previous slide |
-| `P` or click on the clip | play / pause the clip on a demo slide |
+| `P`, or the player's own controls | play / pause a clip; drag the player's bar to scrub |
 | `N` | speaker notes (with the source of each number) |
 | `O` | overview of all slides (view only) |
 | number + Enter | jump to that slide |
 
-Mouse clicks never change the slide, so clicking a footer link or a clip is safe.
+Mouse clicks never change the slide, so clicking a footer link or the video player is safe. After clicking the player, the arrow keys still change slides.
 
 ## 3. Zoom
 
 Share screen → pick the Chrome window → tick **Optimize for video clip**. The clips have no sound.
 
-## 4. The demo section (slides 41–45)
+## 4. The demo section (slides 37–42)
 
-All clips are real runs against dc2-live on 23 Oct 2026. Only processing waits are cut. Each starts
-with a 3-second title card. Pause any time with `P` to talk over a frame.
+All clips are real runs against dc2-live. D1 is a browser recording from 23 Oct 2026; D2–D5 are screen recordings of a real iTerm window from 26 Oct 2026 (the old VHS-rendered versions are in `clips/vhs-23oct/`). Long waits are cut (D2) or play at 16× with a blue label (D4, D5). Each starts
+with a short title card (about 1 s). Pause any time with `P` or the player to talk over a frame.
 
 | Slide | Clip | What is on screen |
 |---|---|---|
-| 41 | D1, 0:33 | Owner A signs in to the web app, uploads `week1-intro.mp4`, sees "Accepted", then "Processing complete"; the Library plays the converted video. |
-| 42 | D2, 0:24 | The Publisher CLI lists three lecture files, publishes them in one command (three job IDs), then all three show `done`. |
-| 43 | D3, 0:20 | The same job ID: owner A gets the video, owner B gets "Asset absent or unavailable to this owner", no session gets HTTP 401. |
-| 44 | D4, 0:34 | Five 72 MiB uploads go to the Fargate lane. The watcher prints each change: encoders rise to 3 (the cap), fall back, start again as the launcher picks up queued work, and end at 0. All five jobs `done`. |
-| 45 | D5, 1:08 | The load generator runs 10 users for 60 s against the live API, then the report is built from its own samples and scrolled: targets vs actuals, per-route latency, histogram, throughput, lane comparison. |
-| 46 | D6 | Not recorded yet (push to production). |
+| 37 | D1, 0:24 | Starts on the upload page (owner A already signed in): uploads `week1-intro.mp4`, sees "Accepted", then "Processing complete"; the Library plays the converted video. |
+| 38 | D2, 0:31 | The Publisher CLI lists three lecture files, publishes them in one command (three job IDs), then all three show `done`. |
+| 39 | D3, 0:27 | The same job ID: owner A gets the video, owner B gets "Asset absent or unavailable to this owner", no session gets HTTP 401. |
+| 40 | D4, 1:00 | Five 72 MiB uploads go to the Fargate lane. The watcher runs at 16× from 0:25; encoders reach 3 (the cap) at about 0:33 — pause about 0:36 to walk the log — fall back, start again one at a time as the launcher picks up queued work, and end at 0. All five jobs `done` at about 0:50. |
+| 41 | D5, 1:18 | The load generator runs 10 users for 60 s against the live API (shown at 16×), result line at about 0:23 (600 status requests, 0 errors, p90 143 ms), then the report is built from its own samples and scrolled from about 0:41: targets vs actuals (pause about 0:45), per-route latency, histogram, throughput, lane comparison. |
+| 42 | D6 | Not recorded (no production change before the presentation). Until then the slide links three real runs for a live walk-through (see `SCRIPT-guruprasath.md`). |
 
 Two things people ask about D4:
 - Encoders drop to 0 and come back while work is still queued. Each Fargate task runs one attempt and
@@ -57,9 +57,9 @@ Two things people ask about D4:
 Some slides have a small link next to the slide number (CI and CD runs, workflow files, result
 files, code scanning). They open GitHub in a new tab; the repository is public.
 
-- Slide 37, "Trivy blocks release": open the failed **Deploy** step and search for `fixable`. The
+- Slide 33, "Trivy blocks release" (and the red box on slide 42): open the failed **Deploy** step and search for `fixable`. The
   line reads `media: FAIL: Trivy has 1 fixable HIGH/CRITICAL`.
-- Slide 38, "Smoke 503 fail": the failed run's log shows `processing-jobs:503`.
+- Slide 34, "Smoke 503 fail": the failed run's log shows `processing-jobs:503`.
 
 ## 6. Re-recording a clip
 

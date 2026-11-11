@@ -1,0 +1,40 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L596
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1267-L1301
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/handlers.py#L52
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L309-L345
+ title Deployment view · four physical queue lanes and consumers · dc2-live at 76282d3
+ left to right direction
+ skinparam defaultFontSize 20
+ skinparam ArrowFontSize 18
+ skinparam titleFontSize 21
+ skinparam LegendFontSize 18
+ skinparam nodesep 24
+ skinparam ranksep 22
+ node "MediaRepair" as mr $MEDIA
+ node "Processing relay\nProcessingCommands\nProcessingRepair\nProcessingEcsEvents\nProcessingS3Events" as relay $PROC
+ queue "ProcessingCommandsQueue\n+ ProcessingCommandsDlq" as cq $INFRA
+ queue "ProcessingWorkQueue\n+ ProcessingWorkDlq" as wq $INFRA
+ queue "ProcessingShortWorkQueue\n+ ProcessingShortWorkDlq" as sq $INFRA
+ queue "MediaResultsQueue\n+ MediaResultsDlq" as rq $INFRA
+ node "ProcessingCommands\ncommand_handler" as pc $PROC
+ node "Fargate worker · 0..3\nReceiveMessage / Delete" as w $PROC
+ node "ProcessingShortEncoder\nshort_encoder_handler" as sh $PROC
+ node "MediaResults\nresult_handler" as res $MEDIA
+ mr --> cq : command send
+ cq --> pc : mapping\nbatch 10 / cap 2
+ relay --> wq : standard work send
+ relay --> sq : short work send
+ relay --> rq : result send
+ wq --> w : returned work\n(no mapping)
+ sq --> sh : mapping\nbatch 1 / cap 2
+ rq --> res : mapping\nbatch 10 / cap 2
+ legend bottom
+ Blue Media · amber Processing · slate SQS outside VPC.
+ Arrows: message sends / delivery. Standard work is returned to a polling worker.
+ Every source queue → matching DLQ after 5 receives. Standard visibility 420 s; short 960 s.
+ Encoders commit result SQL outbox; relays send. Command/result mappings: window 1 s; partial failures.
+ endlegend
+@enduml

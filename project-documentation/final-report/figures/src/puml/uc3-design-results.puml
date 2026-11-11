@@ -1,0 +1,51 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): media/projections.py; media/projection_models.py; media/api/v1_jobs.py; media/api/v1_hls.py
+skinparam BackgroundColor white
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
+skinparam classAttributeIconSize 0
+skinparam nodesep 20
+skinparam ranksep 22
+hide footbox
+autonumber
+skinparam maxMessageSize 200
+skinparam sequenceParticipantPadding 8
+title UC-3 · result acceptance and ordering
+participant "handlers\n«module»" as H $MEDIA
+participant "messaging\n«module»" as M $MEDIA
+participant "projections\n«module»" as P $MEDIA
+database "Media SQL" as D $MEDIA
+H -> H : consume_results(event, factory)
+H -> M : consume_result(session, body, apply_result)
+group one inbox + projection transaction
+ M -> D : accept(session, MediaInbox, body)\n[delivery.sql]
+ alt identical inbox replay
+  D --> M : False; skip callback
+ else new inbox identity
+  M -> P : apply_result(session, body)
+  P -> D : SQL: owned Asset + source;\ncurrent projection
+  P -> P : identity / output checks;\nvalidate_transition(current, event)
+  alt valid progression
+   P -> D : flush projection + Asset
+   P --> M : True
+  else stale / replay / deleted
+   P --> M : False; no projection mutation
+  else identity / state conflict
+   P --> M : raise MediaError
+  end
+ else inbox body conflict
+  D --> M : raise MessageConflict
+ end
+ alt no exception
+  M -> D : COMMIT (stale state still commits inbox)
+  M --> H : bool (new inbox / duplicate)
+ else exception
+  M -> D : ROLLBACK inbox + projection
+ end
+end
+H -> H : consume_batch returns batchItemFailures
+@enduml

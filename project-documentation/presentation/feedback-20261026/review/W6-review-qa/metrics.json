@@ -1,0 +1,156 @@
+{
+  "slides": [
+    {
+      "body": {
+        "height": 533.609375,
+        "scrollHeight": 534
+      },
+      "figure": null,
+      "id": "s10-views",
+      "overflow": [],
+      "smallHTMLText": []
+    },
+    {
+      "body": {
+        "height": 533.609375,
+        "scrollHeight": 534
+      },
+      "figure": {
+        "box": {
+          "height": 520,
+          "width": 913.546875
+        },
+        "minTextPx": 15.812502820524925,
+        "src": "http://localhost:8796/site/assets/uml/W6-logical.svg",
+        "viewBox": [
+          0,
+          0,
+          1324,
+          753
+        ]
+      },
+      "id": "s12",
+      "overflow": [],
+      "smallHTMLText": []
+    },
+    {
+      "body": {
+        "height": 533.609375,
+        "scrollHeight": 534
+      },
+      "figure": {
+        "box": {
+          "height": 410,
+          "width": 1093.5625
+        },
+        "minTextPx": 13.36244011976048,
+        "src": "http://localhost:8796/site/assets/uml/W6-processing-components.svg",
+        "viewBox": [
+          0,
+          0,
+          1781,
+          668
+        ]
+      },
+      "id": "s12-processing",
+      "overflow": [],
+      "smallHTMLText": []
+    },
+    {
+      "body": {
+        "height": 533.609375,
+        "scrollHeight": 534
+      },
+      "figure": {
+        "box": {
+          "height": 513.109375,
+          "width": 1179.96875
+        },
+        "minTextPx": 15.293180432622833,
+        "src": "http://localhost:8796/site/assets/uml/W6-command-handoff.svg",
+        "viewBox": [
+          0,
+          0,
+          1591,
+          692
+        ]
+      },
+      "id": "s13",
+      "overflow": [],
+      "smallHTMLText": []
+    },
+    {
+      "body": {
+        "height": 533.609375,
+        "scrollHeight": 534
+      },
+      "figure": {
+        "box": {
+          "height": 525,
+          "width": 1029.453125
+        },
+        "minTextPx": 13.482470651013873,
+        "src": "http://localhost:8796/site/assets/uml/W6-work-results.svg",
+        "viewBox": [
+          0,
+          0,
+          1837,
+          937
+        ]
+      },
+      "id": "s14",
+      "overflow": [],
+      "smallHTMLText": []
+    },
+    {
+      "body": {
+        "height": 533.609375,
+        "scrollHeight": 534
+      },
+      "figure": {
+        "box": {
+          "height": 510,
+          "width": 1000.34375
+        },
+        "minTextPx": 13.09931506849315,
+        "src": "http://localhost:8796/site/assets/uml/W6-trust-boundary.svg",
+        "viewBox": [
+          0,
+          0,
+          1575,
+          803
+        ]
+      },
+      "id": "s15",
+      "overflow": [],
+      "smallHTMLText": []
+    },
+    {
+      "body": {
+        "height": 533.609375,
+        "scrollHeight": 534
+      },
+      "figure": {
+        "box": {
+          "height": 525,
+          "width": 735.59375
+        },
+        "minTextPx": 13.63743702770781,
+        "src": "http://localhost:8796/site/assets/uml/W6-result-replay.svg",
+        "viewBox": [
+          0,
+          0,
+          1112,
+          794
+        ]
+      },
+      "id": "s19",
+      "overflow": [],
+      "smallHTMLText": []
+    }
+  ],
+  "viewport": [
+    1280,
+    720
+  ]
+}

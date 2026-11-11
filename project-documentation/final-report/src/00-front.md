@@ -23,7 +23,7 @@ Nguyễn Kim Long
 ::: {custom-style="Cover Small"}
 SWE5001 Architecting Scalable Systems · SE34FT · September–November 2026
 
-Repository: github.com/Collaboration95/dc2 · Report version 1.0, 21 October 2026
+Repository: github.com/Collaboration95/dc2 · Report version 1.1 · Submitted for 16 November 2026
 :::
 
 ```{=openxml}

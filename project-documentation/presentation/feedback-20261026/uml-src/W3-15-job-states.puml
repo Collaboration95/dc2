@@ -1,0 +1,50 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+skinparam nodesep 25
+skinparam ranksep 28
+title Statechart · Job processing status and deletion are separate dimensions\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L15
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L60
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L155
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L186
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L412
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery_v1.py#L84
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L24
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+
+left to right direction
+state "Job (persisted record; not a Python state-machine class)" as J $PROC {
+ state "status" as Life {
+  [*] --> queued : submit [new live guard]
+  queued --> processing : claim [current queued pair]\n/ lease + task binding + result
+  processing --> done : finish [live, valid outputs, error is None]\n/ Attempt=succeeded
+  processing --> failed : finish [live, error is not None]\n/ Attempt=failed
+  processing --> failed : interrupt [current processing pair;\nexpired OR matched STOPPED]\n/ Attempt=abandoned
+  failed --> queued : _retry_locked [new retry identity, not deleted]\n/ NEW Attempt + result/work
+  processing --> queued : redirect_to_long_lane [live]\n/ old Attempt=abandoned; NEW Attempt
+ }
+ --
+ state "deletion flag (orthogonal)" as Retention {
+  [*] --> visible
+  visible --> tombstoned : _cancel_locked\n/ deleted_at; clear outputs; cleanup + result
+  tombstoned --> tombstoned : new cancel command\n/ may emit fresh confirmation
+ }
+}
+note bottom of J
+All shown status changes require not deleted. Cancel preserves jobs.status, clears outputs and cancels active Attempts.
+Snapshot exposes cancelled. Done is terminal for processing; retained Job can still be tombstoned (no final node).
+redirect_to_long_lane is called by the NotAdmitted hook; retry/claim cannot resurrect a tombstone.
+end note
+
+@enduml

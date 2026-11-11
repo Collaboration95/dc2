@@ -1,0 +1,30 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 18
+title Short execution · admission and fenced redirect
+start
+:claim + lambda-* binding + COMMIT;
+:download -> FFprobe -> check_probe();
+if (finite duration in (0,60] s\nAND height <=1080 px?) then (admit)
+ :encode -> fenced finish + result outbox;
+ stop
+else (NotAdmitted)
+ :redirect_to_long_lane()\nlock Job, read current Attempt;
+endif
+if (current live DB-clock lease?) then (yes)
+ :abandon old Attempt + cleanup intent\ncreate successor queued Attempt\nstage standard work + result, COMMIT;
+ :Processing relay sends standard work\nasync wake ProcessingLauncher;
+ stop
+else (no)
+ :return False, current state unchanged;
+ stop
+endif
+legend bottom
+ Runs inside ProcessingShortEncoder.
+ Prior Lambda binding keeps successor on standard.
+ Launcher reserves capacity; Fargate claims after receive.
+endlegend
+@enduml

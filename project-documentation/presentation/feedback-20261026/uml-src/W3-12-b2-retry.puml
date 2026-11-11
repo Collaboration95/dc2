@@ -1,0 +1,56 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Sequence view · UC-4 stages Media retry intent · 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_jobs.py#L49
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L50
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L70
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L232
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L155
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/v1_api.py#L77
+
+skinparam ArrowFontSize 17
+skinparam defaultFontSize 18
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+participant "v1_lifecycle\n«Media module»" as M $MEDIA
+participant "projections\n«Media module»" as P $MEDIA
+participant "s: AsyncSession" as DB $INFRA
+[-> M : retry(s,owner,asset_id,key)
+activate M
+group Media retry transaction
+ M -> DB : SQL: lock owned Asset; request-key replay lookup
+ alt matching key replay
+  note over M,DB : prior Asset selected; no new command
+ else no replay (failed projection required)
+  M -> P : source_for_asset(s,asset)
+  activate P
+  P --> M : pin: dict
+  deactivate P
+  M -> M : command(s,asset,"retry",\nmessage_id=stable_uuid5,source=pin)
+  M -> DB : SQL: optional RequestKey + retry outbox
+ end
+ M -> DB : COMMIT
+end
+[<-- M : asset: Asset
+ deactivate M
+ref over M,DB : Later MediaRepair -> SQS -> Processing successor transaction (W3-12a)
+legend bottom
+Caller api.v1_jobs.retry returns HTTP 202; nonfailed projection raises 409. Retry uses stored source.
+endlegend
+
+@enduml

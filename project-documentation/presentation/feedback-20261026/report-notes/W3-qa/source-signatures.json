@@ -1,0 +1,1362 @@
+{
+  "contracts/v1.py": [
+    {
+      "name": "accepted_versions",
+      "line": 37,
+      "signature": "accepted_versions() -> frozenset[int]"
+    },
+    {
+      "name": "accepts_version",
+      "line": 42,
+      "signature": "accepts_version(value: Any) -> bool"
+    },
+    {
+      "name": "_known",
+      "line": 47,
+      "signature": "_known(value: dict, fields) -> dict"
+    },
+    {
+      "name": "uuid_text",
+      "line": 60,
+      "signature": "uuid_text(value: Any) -> str"
+    },
+    {
+      "name": "_safe_payload",
+      "line": 132,
+      "signature": "_safe_payload(value: Any) -> None"
+    },
+    {
+      "name": "from_context",
+      "line": 75,
+      "signature": "from_context(cls, context: Any) -> 'Actor'"
+    },
+    {
+      "name": "to_context",
+      "line": 88,
+      "signature": "to_context(self) -> dict"
+    },
+    {
+      "name": "from_dict",
+      "line": 109,
+      "signature": "from_dict(cls, value: Any) -> 'Source'"
+    },
+    {
+      "name": "from_dict",
+      "line": 171,
+      "signature": "from_dict(cls, value: Any) -> 'Envelope'"
+    },
+    {
+      "name": "to_dict",
+      "line": 220,
+      "signature": "to_dict(self) -> dict"
+    },
+    {
+      "name": "fingerprint",
+      "line": 223,
+      "signature": "fingerprint(self) -> str"
+    },
+    {
+      "name": "assert_bound",
+      "line": 227,
+      "signature": "assert_bound(self, *, owner_id: str, asset_id: str, source: Source, job_id: str | None=None, attempt_id: str | None=None) -> None"
+    }
+  ],
+  "delivery/sql.py": [
+    {
+      "name": "accept",
+      "line": 18,
+      "signature": "accept(session, model, envelope)"
+    },
+    {
+      "name": "stage",
+      "line": 36,
+      "signature": "stage(session, model, envelope, queue)"
+    },
+    {
+      "name": "publish_due",
+      "line": 58,
+      "signature": "publish_due(factory, model, transport, *, limit=100, deadline=None, replay_seconds=518400, reservation_seconds=30)"
+    }
+  ],
+  "media/api/uploads.py": [
+    {
+      "name": "reserve_upload",
+      "line": 19,
+      "signature": "reserve_upload(request: direct_intake.ReserveRequest, user: CurrentUser, session: Session, storage: Store)"
+    },
+    {
+      "name": "finalize_upload",
+      "line": 36,
+      "signature": "finalize_upload(reservation_id: UUID, request: direct_intake.FinalizeRequest, user: CurrentUser, session: Session, storage: Store)"
+    }
+  ],
+  "media/api/v1_hls.py": [
+    {
+      "name": "safe_hls_path",
+      "line": 19,
+      "signature": "safe_hls_path(path)"
+    },
+    {
+      "name": "part",
+      "line": 26,
+      "signature": "part(job_id: UUID, path: str, user: CurrentUser, session: Session, storage: Store)"
+    }
+  ],
+  "media/api/v1_jobs.py": [
+    {
+      "name": "page",
+      "line": 23,
+      "signature": "page(session, owner_id, storage, settings, limit, offset)"
+    },
+    {
+      "name": "listing",
+      "line": 32,
+      "signature": "listing(user: CurrentUser, session: Session, storage: Store, settings: Config, limit: Limit=50, offset: Offset=0)"
+    },
+    {
+      "name": "read",
+      "line": 44,
+      "signature": "read(job_id: UUID, user: CurrentUser, session: Session, storage: Store, settings: Config)"
+    },
+    {
+      "name": "retry",
+      "line": 50,
+      "signature": "retry(job_id: UUID, user: CurrentUser, session: Session, key: Key=None)"
+    },
+    {
+      "name": "edit",
+      "line": 56,
+      "signature": "edit(job_id: UUID, request: EditRequest, user: CurrentUser, session: Session, storage: Store, key: Key=None)"
+    },
+    {
+      "name": "remove",
+      "line": 69,
+      "signature": "remove(job_id: UUID, user: CurrentUser, session: Session)"
+    },
+    {
+      "name": "admin_listing",
+      "line": 75,
+      "signature": "admin_listing(operator: Operator, session: Session, storage: Store, settings: Config, limit: Limit=50, offset: Offset=0)"
+    },
+    {
+      "name": "admin_remove",
+      "line": 87,
+      "signature": "admin_remove(job_id: UUID, operator: Operator, session: Session)"
+    }
+  ],
+  "media/authorizer.py": [
+    {
+      "name": "gateway_role",
+      "line": 13,
+      "signature": "gateway_role(user: User) -> str"
+    },
+    {
+      "name": "session_token",
+      "line": 23,
+      "signature": "session_token(event: dict) -> str"
+    },
+    {
+      "name": "authorize",
+      "line": 40,
+      "signature": "authorize(event: dict) -> dict"
+    },
+    {
+      "name": "handler",
+      "line": 60,
+      "signature": "handler(event, context=None)"
+    }
+  ],
+  "media/handlers.py": [
+    {
+      "name": "consume_results",
+      "line": 19,
+      "signature": "consume_results(event, factory, apply=None)"
+    },
+    {
+      "name": "invoke",
+      "line": 35,
+      "signature": "invoke(event, context, mode)"
+    },
+    {
+      "name": "result_handler",
+      "line": 85,
+      "signature": "result_handler(event, context)"
+    },
+    {
+      "name": "repair_handler",
+      "line": 90,
+      "signature": "repair_handler(event, context)"
+    },
+    {
+      "name": "handle",
+      "line": 25,
+      "signature": "handle(body)"
+    }
+  ],
+  "media/lambda_handler.py": [
+    {
+      "name": "readiness",
+      "line": 10,
+      "signature": "readiness()"
+    }
+  ],
+  "media/messaging.py": [
+    {
+      "name": "stage_command",
+      "line": 9,
+      "signature": "stage_command(session, envelope)"
+    },
+    {
+      "name": "consume_result",
+      "line": 16,
+      "signature": "consume_result(session, envelope, apply)"
+    },
+    {
+      "name": "publish_commands",
+      "line": 27,
+      "signature": "publish_commands(factory, transport, **kwargs)"
+    },
+    {
+      "name": "enqueue_submit",
+      "line": 31,
+      "signature": "enqueue_submit(session, asset, source)"
+    }
+  ],
+  "media/messaging_models.py": [],
+  "media/models.py": [
+    {
+      "name": "now",
+      "line": 22,
+      "signature": "now() -> datetime"
+    }
+  ],
+  "media/projection_models.py": [],
+  "media/projections.py": [
+    {
+      "name": "_dict",
+      "line": 28,
+      "signature": "_dict(envelope)"
+    },
+    {
+      "name": "validate_transition",
+      "line": 36,
+      "signature": "validate_transition(current, event)"
+    },
+    {
+      "name": "apply_result",
+      "line": 69,
+      "signature": "apply_result(session, envelope)"
+    },
+    {
+      "name": "confirm_cancellation",
+      "line": 139,
+      "signature": "confirm_cancellation(session, asset, event, *, no_job)"
+    },
+    {
+      "name": "source_for_asset",
+      "line": 203,
+      "signature": "source_for_asset(session, asset)"
+    },
+    {
+      "name": "_projected_job",
+      "line": 213,
+      "signature": "_projected_job(current)"
+    },
+    {
+      "name": "read_job",
+      "line": 223,
+      "signature": "read_job(session, asset)"
+    },
+    {
+      "name": "public_job",
+      "line": 227,
+      "signature": "public_job(session, asset, storage, settings)"
+    },
+    {
+      "name": "public_job_schema",
+      "line": 233,
+      "signature": "public_job_schema(asset, job)"
+    },
+    {
+      "name": "public_job_from_projection",
+      "line": 258,
+      "signature": "public_job_from_projection(asset, current, storage, settings)"
+    }
+  ],
+  "media/repositories/assets.py": [
+    {
+      "name": "fingerprint",
+      "line": 15,
+      "signature": "fingerprint(value: dict) -> str"
+    },
+    {
+      "name": "source_descriptor",
+      "line": 21,
+      "signature": "source_descriptor(asset: Asset) -> dict"
+    },
+    {
+      "name": "get_asset",
+      "line": 31,
+      "signature": "get_asset(session: AsyncSession, asset_id: UUID, owner_id: UUID | None, *, include_deleted=False, lock=False) -> Asset"
+    },
+    {
+      "name": "replay",
+      "line": 52,
+      "signature": "replay(session: AsyncSession, owner_id: UUID, operation: str, key: UUID | None, digest: str) -> Asset | None"
+    },
+    {
+      "name": "list_assets",
+      "line": 68,
+      "signature": "list_assets(session, owner_id, limit, offset, *, lock=False)"
+    },
+    {
+      "name": "list_asset_pages",
+      "line": 81,
+      "signature": "list_asset_pages(session, owner_id, limit, offset)"
+    }
+  ],
+  "media/services/direct_intake.py": [
+    {
+      "name": "source",
+      "line": 36,
+      "signature": "source(reservation)"
+    },
+    {
+      "name": "source_for_asset",
+      "line": 43,
+      "signature": "source_for_asset(session, asset_or_id)"
+    },
+    {
+      "name": "pinned_version",
+      "line": 57,
+      "signature": "pinned_version(session, asset)"
+    },
+    {
+      "name": "_stored_source",
+      "line": 63,
+      "signature": "_stored_source(session, asset_id)"
+    },
+    {
+      "name": "pin_copied_source",
+      "line": 75,
+      "signature": "pin_copied_source(session, storage, asset)"
+    },
+    {
+      "name": "reserve",
+      "line": 99,
+      "signature": "reserve(session, storage, owner_id, request)"
+    },
+    {
+      "name": "finalize",
+      "line": 149,
+      "signature": "finalize(session, storage, owner_id, reservation_id, request, *, enqueue=None)"
+    },
+    {
+      "name": "cleanup_delay",
+      "line": 213,
+      "signature": "cleanup_delay(attempts)"
+    },
+    {
+      "name": "cleanup_due",
+      "line": 218,
+      "signature": "cleanup_due(finished, attempts)"
+    },
+    {
+      "name": "cleanup_expired_uploads",
+      "line": 234,
+      "signature": "cleanup_expired_uploads(factory, storage, limit=100, *, deadline=None, horizon=CLEANUP_HORIZON)"
+    }
+  ],
+  "media/services/intake.py": [
+    {
+      "name": "safe_filename",
+      "line": 29,
+      "signature": "safe_filename(raw)"
+    },
+    {
+      "name": "inspect_upload",
+      "line": 34,
+      "signature": "inspect_upload(file)"
+    },
+    {
+      "name": "stage",
+      "line": 54,
+      "signature": "stage(session, key)"
+    },
+    {
+      "name": "assert_adoptable",
+      "line": 59,
+      "signature": "assert_adoptable(staged, storage)"
+    },
+    {
+      "name": "discard_stage",
+      "line": 71,
+      "signature": "discard_stage(session, storage, key)"
+    },
+    {
+      "name": "accept",
+      "line": 97,
+      "signature": "accept(session, storage, asset, operation, key, digest)"
+    },
+    {
+      "name": "upload",
+      "line": 134,
+      "signature": "upload(session, storage, owner_id, file, key)"
+    }
+  ],
+  "media/services/storage.py": [
+    {
+      "name": "get_storage",
+      "line": 247,
+      "signature": "get_storage(request: Request, settings: Annotated[Settings, Depends(get_settings)]) -> Storage"
+    },
+    {
+      "name": "__init__",
+      "line": 24,
+      "signature": "__init__(self, settings: Settings, *, clock=None)"
+    },
+    {
+      "name": "direct_upload_grant",
+      "line": 42,
+      "signature": "direct_upload_grant(self, reservation)"
+    },
+    {
+      "name": "verify_direct_upload",
+      "line": 62,
+      "signature": "verify_direct_upload(self, reservation, *, check_content=True)"
+    },
+    {
+      "name": "remove_source_versions",
+      "line": 105,
+      "signature": "remove_source_versions(self, bucket, key, *, preserve_version=None)"
+    },
+    {
+      "name": "delete_direct_upload",
+      "line": 126,
+      "signature": "delete_direct_upload(self, reservation, *, preserve_version=None)"
+    },
+    {
+      "name": "put_source",
+      "line": 131,
+      "signature": "put_source(self, key, stream, size, media_type)"
+    },
+    {
+      "name": "delete_source",
+      "line": 141,
+      "signature": "delete_source(self, key)"
+    },
+    {
+      "name": "_sign",
+      "line": 145,
+      "signature": "_sign(self, key, *, output=False, inline=False, version_id=None)"
+    },
+    {
+      "name": "source_grant",
+      "line": 186,
+      "signature": "source_grant(self, key, version_id=None)"
+    },
+    {
+      "name": "sign_output",
+      "line": 191,
+      "signature": "sign_output(self, key, *, inline=False)"
+    },
+    {
+      "name": "read_playlist",
+      "line": 195,
+      "signature": "read_playlist(self, key)"
+    },
+    {
+      "name": "copy_output_source",
+      "line": 209,
+      "signature": "copy_output_source(self, output, key)"
+    },
+    {
+      "name": "grant",
+      "line": 43,
+      "signature": "grant()"
+    },
+    {
+      "name": "verify",
+      "line": 63,
+      "signature": "verify()"
+    },
+    {
+      "name": "remove",
+      "line": 112,
+      "signature": "remove()"
+    },
+    {
+      "name": "read",
+      "line": 196,
+      "signature": "read()"
+    },
+    {
+      "name": "copy",
+      "line": 212,
+      "signature": "copy()"
+    }
+  ],
+  "media/services/v1_lifecycle.py": [
+    {
+      "name": "command",
+      "line": 17,
+      "signature": "command(session, asset, kind, *, message_id=None, source=None)"
+    },
+    {
+      "name": "stage_submit",
+      "line": 39,
+      "signature": "stage_submit(session, asset, source)"
+    },
+    {
+      "name": "retry",
+      "line": 50,
+      "signature": "retry(session, owner_id, asset_id, key)"
+    },
+    {
+      "name": "tombstone",
+      "line": 87,
+      "signature": "tombstone(session, owner_id, asset_id)"
+    },
+    {
+      "name": "pin_copied_source",
+      "line": 99,
+      "signature": "pin_copied_source(session, storage, asset)"
+    },
+    {
+      "name": "edit",
+      "line": 105,
+      "signature": "edit(session, storage, owner_id, parent_id, request, key)"
+    }
+  ],
+  "media/upload_models.py": [],
+  "media_engine/operations.py": [
+    {
+      "name": "_params",
+      "line": 6,
+      "signature": "_params(item) -> dict"
+    },
+    {
+      "name": "build_edit_command",
+      "line": 10,
+      "signature": "build_edit_command(operations: list[dict], *, ffmpeg_binary: str, source_path: Path, output_path: Path, preset: str, crf: int) -> list[str]"
+    }
+  ],
+  "media_engine/probe.py": [
+    {
+      "name": "probe_command",
+      "line": 16,
+      "signature": "probe_command(path: Path, binary: str='ffprobe') -> list[str]"
+    },
+    {
+      "name": "parse_probe",
+      "line": 31,
+      "signature": "parse_probe(stdout: str) -> SourceProbe"
+    }
+  ],
+  "processing/handlers.py": [
+    {
+      "name": "_heal",
+      "line": 21,
+      "signature": "_heal()"
+    },
+    {
+      "name": "invoke",
+      "line": 25,
+      "signature": "invoke(event, context, mode)"
+    },
+    {
+      "name": "command_handler",
+      "line": 79,
+      "signature": "command_handler(event, context)"
+    },
+    {
+      "name": "repair_handler",
+      "line": 84,
+      "signature": "repair_handler(event, context)"
+    },
+    {
+      "name": "ecs_handler",
+      "line": 89,
+      "signature": "ecs_handler(event, context)"
+    },
+    {
+      "name": "s3_handler",
+      "line": 94,
+      "signature": "s3_handler(event, context)"
+    },
+    {
+      "name": "launcher_handler",
+      "line": 99,
+      "signature": "launcher_handler(event, context)"
+    },
+    {
+      "name": "short_encoder_handler",
+      "line": 108,
+      "signature": "short_encoder_handler(event, context)"
+    }
+  ],
+  "processing/launcher_aws.py": [
+    {
+      "name": "_client",
+      "line": 26,
+      "signature": "_client(name)"
+    },
+    {
+      "name": "config_from_environ",
+      "line": 130,
+      "signature": "config_from_environ(environ=None)"
+    },
+    {
+      "name": "run",
+      "line": 144,
+      "signature": "run(event, context, *, ecs=None, queue=None, config=None, factory=None, activity=None)"
+    },
+    {
+      "name": "_dispatch",
+      "line": 173,
+      "signature": "_dispatch(event, factory, ecs, queue, config)"
+    },
+    {
+      "name": "__init__",
+      "line": 44,
+      "signature": "__init__(self, client=None)"
+    },
+    {
+      "name": "client",
+      "line": 48,
+      "signature": "client(self)"
+    },
+    {
+      "name": "__init__",
+      "line": 57,
+      "signature": "__init__(self, cluster, client=None)"
+    },
+    {
+      "name": "list_tasks",
+      "line": 61,
+      "signature": "list_tasks(self, desired_status)"
+    },
+    {
+      "name": "describe_tasks",
+      "line": 78,
+      "signature": "describe_tasks(self, arns)"
+    },
+    {
+      "name": "run_task",
+      "line": 81,
+      "signature": "run_task(self, payload)"
+    },
+    {
+      "name": "__init__",
+      "line": 99,
+      "signature": "__init__(self, url, client=None)"
+    },
+    {
+      "name": "visible",
+      "line": 103,
+      "signature": "visible(self)"
+    },
+    {
+      "name": "__init__",
+      "line": 119,
+      "signature": "__init__(self, queue, *, attempts=5, interval=1.0)"
+    },
+    {
+      "name": "visible",
+      "line": 122,
+      "signature": "visible(self)"
+    }
+  ],
+  "processing/launcher_trigger.py": [
+    {
+      "name": "invoke_async",
+      "line": 19,
+      "signature": "invoke_async(function)"
+    },
+    {
+      "name": "wrap",
+      "line": 56,
+      "signature": "wrap(transport, environ=None)"
+    },
+    {
+      "name": "__init__",
+      "line": 35,
+      "signature": "__init__(self, transport, function, *, invoke=invoke_async)"
+    },
+    {
+      "name": "send",
+      "line": 39,
+      "signature": "send(self, queue, envelope)"
+    },
+    {
+      "name": "__getattr__",
+      "line": 52,
+      "signature": "__getattr__(self, name)"
+    }
+  ],
+  "processing/lifecycle.py": [
+    {
+      "name": "output_prefix",
+      "line": 20,
+      "signature": "output_prefix(job_id: UUID, attempt_id: UUID) -> str"
+    },
+    {
+      "name": "db_now",
+      "line": 24,
+      "signature": "db_now(session)"
+    },
+    {
+      "name": "lock_pair",
+      "line": 28,
+      "signature": "lock_pair(session, job_id, attempt_id)"
+    },
+    {
+      "name": "live",
+      "line": 38,
+      "signature": "live(pair, token, now)"
+    },
+    {
+      "name": "cleanup_intent",
+      "line": 51,
+      "signature": "cleanup_intent(session, job_id, attempt_id, now)"
+    },
+    {
+      "name": "retry_job",
+      "line": 59,
+      "signature": "retry_job(session, owner_id, job_id, request_id)"
+    },
+    {
+      "name": "cancel_asset",
+      "line": 93,
+      "signature": "cancel_asset(session, owner_id, asset_id, *, on_change=None)"
+    },
+    {
+      "name": "claim",
+      "line": 136,
+      "signature": "claim(factory, job_id, attempt_id, settings, *, on_change=None, before_claim=None)"
+    },
+    {
+      "name": "heartbeat",
+      "line": 170,
+      "signature": "heartbeat(factory, work, settings)"
+    },
+    {
+      "name": "finish",
+      "line": 184,
+      "signature": "finish(factory, work, *, outputs=None, error=None, on_change=None)"
+    }
+  ],
+  "processing/messaging.py": [
+    {
+      "name": "work_message_id",
+      "line": 42,
+      "signature": "work_message_id(attempt_id, version)"
+    },
+    {
+      "name": "assert_owned_source",
+      "line": 47,
+      "signature": "assert_owned_source(body)"
+    },
+    {
+      "name": "snapshot",
+      "line": 60,
+      "signature": "snapshot(job, attempt, version)"
+    },
+    {
+      "name": "envelope",
+      "line": 78,
+      "signature": "envelope(job, attempt, version, kind)"
+    },
+    {
+      "name": "emit_state",
+      "line": 102,
+      "signature": "emit_state(session, job, attempt)"
+    },
+    {
+      "name": "_guard",
+      "line": 131,
+      "signature": "_guard(session, owner_id, asset_id)"
+    },
+    {
+      "name": "validate_identity",
+      "line": 145,
+      "signature": "validate_identity(body, job, *, require_source=False)"
+    },
+    {
+      "name": "_retry_locked",
+      "line": 155,
+      "signature": "_retry_locked(session, job, request_id)"
+    },
+    {
+      "name": "_cancel_locked",
+      "line": 186,
+      "signature": "_cancel_locked(session, guard, *, command_message_id=None)"
+    },
+    {
+      "name": "handle_command",
+      "line": 232,
+      "signature": "handle_command(factory, message)"
+    },
+    {
+      "name": "retry_job",
+      "line": 308,
+      "signature": "retry_job(session, owner_id, job_id, request_id)"
+    },
+    {
+      "name": "cancel_asset",
+      "line": 319,
+      "signature": "cancel_asset(session, owner_id, asset_id)"
+    },
+    {
+      "name": "claim",
+      "line": 325,
+      "signature": "claim(factory, job_id, attempt_id, settings, *, envelope=None, task_name)"
+    },
+    {
+      "name": "work_disposition",
+      "line": 380,
+      "signature": "work_disposition(factory, job_id, attempt_id)"
+    },
+    {
+      "name": "finish",
+      "line": 405,
+      "signature": "finish(factory, work, *, outputs=None, error=None)"
+    },
+    {
+      "name": "redirect_to_long_lane",
+      "line": 412,
+      "signature": "redirect_to_long_lane(factory, work)"
+    },
+    {
+      "name": "publish_outbox",
+      "line": 446,
+      "signature": "publish_outbox(factory, transport, **kwargs)"
+    },
+    {
+      "name": "consume_commands",
+      "line": 450,
+      "signature": "consume_commands(event, factory, *, guard=None)"
+    },
+    {
+      "name": "authorize",
+      "line": 337,
+      "signature": "authorize(session)"
+    },
+    {
+      "name": "changed",
+      "line": 356,
+      "signature": "changed(session, job, attempt)"
+    },
+    {
+      "name": "handle",
+      "line": 456,
+      "signature": "handle(body)"
+    }
+  ],
+  "processing/messaging_models.py": [],
+  "processing/models.py": [
+    {
+      "name": "utcnow",
+      "line": 11,
+      "signature": "utcnow() -> datetime"
+    }
+  ],
+  "processing/recovery.py": [
+    {
+      "name": "interrupt",
+      "line": 24,
+      "signature": "interrupt(session, job, attempt, now, message, on_change=None)"
+    },
+    {
+      "name": "recover_expired",
+      "line": 40,
+      "signature": "recover_expired(factory, *, limit=100, on_change=None, job_filter=None)"
+    },
+    {
+      "name": "cleanup_delay",
+      "line": 108,
+      "signature": "cleanup_delay(tries)"
+    },
+    {
+      "name": "cleanup_outputs",
+      "line": 113,
+      "signature": "cleanup_outputs(factory, settings, *, store=None, limit=100, horizon_seconds=CLEANUP_HORIZON_SECONDS)"
+    },
+    {
+      "name": "delete_prefix",
+      "line": 89,
+      "signature": "delete_prefix(self, prefix)"
+    },
+    {
+      "name": "remove",
+      "line": 92,
+      "signature": "remove()"
+    }
+  ],
+  "processing/recovery_v1.py": [
+    {
+      "name": "repair_work",
+      "line": 84,
+      "signature": "repair_work(factory, *, limit=50, deadline=None)"
+    },
+    {
+      "name": "reemit_result",
+      "line": 152,
+      "signature": "reemit_result(factory, job_id)"
+    },
+    {
+      "name": "run_once",
+      "line": 166,
+      "signature": "run_once(factory, settings, transport, *, store=None, limit=25, deadline=None)"
+    },
+    {
+      "name": "next_due",
+      "line": 203,
+      "signature": "next_due(factory)"
+    },
+    {
+      "name": "stopped_task_names",
+      "line": 238,
+      "signature": "stopped_task_names(event)"
+    },
+    {
+      "name": "terminal_event",
+      "line": 252,
+      "signature": "terminal_event(factory, event)"
+    },
+    {
+      "name": "__init__",
+      "line": 28,
+      "signature": "__init__(self, settings, *, client=None)"
+    },
+    {
+      "name": "delete_prefix",
+      "line": 59,
+      "signature": "delete_prefix(self, prefix)"
+    }
+  ],
+  "processing/short_encoder.py": [
+    {
+      "name": "remaining_seconds",
+      "line": 44,
+      "signature": "remaining_seconds(context)"
+    },
+    {
+      "name": "_line",
+      "line": 49,
+      "signature": "_line(**fields)"
+    },
+    {
+      "name": "encode_record",
+      "line": 54,
+      "signature": "encode_record(record, context, *, factory, settings, source=None, store=None, clock=time.monotonic, hooks=None)"
+    },
+    {
+      "name": "invoke",
+      "line": 104,
+      "signature": "invoke(event, context, *, factory=None, settings=None, source=None, store=None, clock=time.monotonic, hooks=None)"
+    },
+    {
+      "name": "_identity",
+      "line": 168,
+      "signature": "_identity(record)"
+    },
+    {
+      "name": "redirect",
+      "line": 77,
+      "signature": "redirect(factory, work)"
+    }
+  ],
+  "processing/short_lane.py": [
+    {
+      "name": "enabled",
+      "line": 81,
+      "signature": "enabled(environ=None)"
+    },
+    {
+      "name": "admit_source",
+      "line": 88,
+      "signature": "admit_source(source)"
+    },
+    {
+      "name": "check_probe",
+      "line": 94,
+      "signature": "check_probe(probe)"
+    },
+    {
+      "name": "previously_ran_on_lambda",
+      "line": 103,
+      "signature": "previously_ran_on_lambda(session, job_id)"
+    },
+    {
+      "name": "work_lane",
+      "line": 124,
+      "signature": "work_lane(session, job)"
+    },
+    {
+      "name": "executor_name",
+      "line": 133,
+      "signature": "executor_name(request_id)"
+    },
+    {
+      "name": "__init__",
+      "line": 76,
+      "signature": "__init__(self, reason)"
+    }
+  ],
+  "processing/v1_api.py": [
+    {
+      "name": "publisher",
+      "line": 34,
+      "signature": "publisher(actor: Identity) -> Actor"
+    },
+    {
+      "name": "public_job",
+      "line": 43,
+      "signature": "public_job(job, attempt) -> dict"
+    },
+    {
+      "name": "owned_pair",
+      "line": 67,
+      "signature": "owned_pair(session, owner_id, job_id)"
+    },
+    {
+      "name": "retry_owned",
+      "line": 77,
+      "signature": "retry_owned(session, owner_id, job_id, request_id)"
+    },
+    {
+      "name": "cancel_owned",
+      "line": 85,
+      "signature": "cancel_owned(session, owner_id, job_id)"
+    },
+    {
+      "name": "parse_ids",
+      "line": 95,
+      "signature": "parse_ids(asset_ids: Annotated[str, Query()]) -> list[UUID]"
+    },
+    {
+      "name": "create_app",
+      "line": 105,
+      "signature": "create_app() -> FastAPI"
+    },
+    {
+      "name": "domain_error",
+      "line": 115,
+      "signature": "domain_error(_request: Request, exc: ProcessingError)"
+    },
+    {
+      "name": "invalid_request",
+      "line": 120,
+      "signature": "invalid_request(_request: Request, _exc)"
+    },
+    {
+      "name": "unavailable",
+      "line": 123,
+      "signature": "unavailable(_request: Request, _exc)"
+    },
+    {
+      "name": "record_activity",
+      "line": 130,
+      "signature": "record_activity(request: Request, call_next)"
+    },
+    {
+      "name": "health",
+      "line": 139,
+      "signature": "health(settings: Configuration)"
+    },
+    {
+      "name": "batch",
+      "line": 150,
+      "signature": "batch(actor: Identity, session: Session, asset_ids: Annotated[list[UUID], Depends(parse_ids)])"
+    },
+    {
+      "name": "read",
+      "line": 163,
+      "signature": "read(job_id: UUID, actor: Identity, session: Session)"
+    },
+    {
+      "name": "retry",
+      "line": 167,
+      "signature": "retry(job_id: UUID, request: RetryJob, actor: Publisher, session: Session)"
+    },
+    {
+      "name": "cancel",
+      "line": 171,
+      "signature": "cancel(job_id: UUID, actor: Publisher, session: Session)"
+    }
+  ],
+  "processing/worker/source.py": [
+    {
+      "name": "__init__",
+      "line": 13,
+      "signature": "__init__(self, settings, *, client=None)"
+    },
+    {
+      "name": "download",
+      "line": 27,
+      "signature": "download(self, _client, work, _settings, path)"
+    },
+    {
+      "name": "_download",
+      "line": 31,
+      "signature": "_download(self, source, path)"
+    }
+  ],
+  "processing/worker/sqs.py": [
+    {
+      "name": "native_sqs",
+      "line": 46,
+      "signature": "native_sqs(region)"
+    },
+    {
+      "name": "decode_work",
+      "line": 98,
+      "signature": "decode_work(body)"
+    },
+    {
+      "name": "execute_message",
+      "line": 109,
+      "signature": "execute_message(factory, envelope, settings, *, renew, deadline, claim=None, finish=None, source=None, store=None, task_name='local', disposition=None, admit=None, redirect=None)"
+    },
+    {
+      "name": "run",
+      "line": 233,
+      "signature": "run(factory, settings, sqs, queue_url, *, end_epoch, name, empty_polls=2, decode=decode_work, execute=execute_message, stop=None, max_messages=25, max_stale=500, drain_disposition=None)"
+    },
+    {
+      "name": "load_configuration",
+      "line": 385,
+      "signature": "load_configuration()"
+    },
+    {
+      "name": "connect_engine",
+      "line": 409,
+      "signature": "connect_engine(settings)"
+    },
+    {
+      "name": "async_main",
+      "line": 439,
+      "signature": "async_main(args)"
+    },
+    {
+      "name": "main",
+      "line": 478,
+      "signature": "main()"
+    },
+    {
+      "name": "__bool__",
+      "line": 87,
+      "signature": "__bool__(self)"
+    },
+    {
+      "name": "call",
+      "line": 257,
+      "signature": "call(method, **kwargs)"
+    },
+    {
+      "name": "drain",
+      "line": 263,
+      "signature": "drain()"
+    },
+    {
+      "name": "shutdown",
+      "line": 451,
+      "signature": "shutdown()"
+    },
+    {
+      "name": "bounded",
+      "line": 488,
+      "signature": "bounded()"
+    },
+    {
+      "name": "renew",
+      "line": 330,
+      "signature": "renew(receipt=message['ReceiptHandle'])"
+    }
+  ],
+  "processing/worker/storage.py": [
+    {
+      "name": "__init__",
+      "line": 14,
+      "signature": "__init__(self, handle)"
+    },
+    {
+      "name": "read",
+      "line": 19,
+      "signature": "read(self, size=-1)"
+    },
+    {
+      "name": "__init__",
+      "line": 27,
+      "signature": "__init__(self, settings)"
+    },
+    {
+      "name": "put",
+      "line": 42,
+      "signature": "put(self, key, path, media_type, kind)"
+    },
+    {
+      "name": "_put",
+      "line": 47,
+      "signature": "_put(self, key, path, media_type, kind)"
+    }
+  ],
+  "processing/worker/supervisor.py": [
+    {
+      "name": "__init__",
+      "line": 25,
+      "signature": "__init__(self, factory, work, settings, *, renew=None, deadline=None)"
+    },
+    {
+      "name": "__aenter__",
+      "line": 36,
+      "signature": "__aenter__(self)"
+    },
+    {
+      "name": "__aexit__",
+      "line": 40,
+      "signature": "__aexit__(self, *_)"
+    },
+    {
+      "name": "check",
+      "line": 45,
+      "signature": "check(self)"
+    },
+    {
+      "name": "renew_authority",
+      "line": 51,
+      "signature": "renew_authority(self)"
+    },
+    {
+      "name": "_heartbeat",
+      "line": 65,
+      "signature": "_heartbeat(self)"
+    },
+    {
+      "name": "guard",
+      "line": 91,
+      "signature": "guard(self, awaitable)"
+    },
+    {
+      "name": "run",
+      "line": 111,
+      "signature": "run(self, command)"
+    }
+  ],
+  "processing/worker/tasks.py": [
+    {
+      "name": "pipeline",
+      "line": 16,
+      "signature": "pipeline(work, settings, supervisor, client, store, directory, *, downloader, admit=None)"
+    }
+  ],
+  "scripts/aws/v1/definitions.py": [
+    {
+      "name": "gate_of",
+      "line": 106,
+      "signature": "gate_of(name)"
+    },
+    {
+      "name": "ref",
+      "line": 115,
+      "signature": "ref(name)"
+    },
+    {
+      "name": "sub",
+      "line": 119,
+      "signature": "sub(value)"
+    },
+    {
+      "name": "attr",
+      "line": 123,
+      "signature": "attr(name, key='Arn')"
+    },
+    {
+      "name": "policy",
+      "line": 127,
+      "signature": "policy(statements)"
+    },
+    {
+      "name": "allow",
+      "line": 131,
+      "signature": "allow(actions, resources, condition=None)"
+    },
+    {
+      "name": "prefixes",
+      "line": 138,
+      "signature": "prefixes(*values)"
+    },
+    {
+      "name": "db_ca_env",
+      "line": 143,
+      "signature": "db_ca_env(domain)"
+    },
+    {
+      "name": "references",
+      "line": 159,
+      "signature": "references(value, found, conditions)"
+    },
+    {
+      "name": "version_description",
+      "line": 182,
+      "signature": "version_description(domain, image, properties, parameters, resources)"
+    },
+    {
+      "name": "template",
+      "line": 208,
+      "signature": "template(database=None)"
+    },
+    {
+      "name": "main",
+      "line": 2150,
+      "signature": "main()"
+    },
+    {
+      "name": "__post_init__",
+      "line": 77,
+      "signature": "__post_init__(self)"
+    },
+    {
+      "name": "clusters",
+      "line": 99,
+      "signature": "clusters(self)"
+    },
+    {
+      "name": "as_dict",
+      "line": 102,
+      "signature": "as_dict(self)"
+    },
+    {
+      "name": "add",
+      "line": 300,
+      "signature": "add(name, kind, properties, *, app=False, retain=False, depends=None, gate=None)"
+    },
+    {
+      "name": "queue_arn",
+      "line": 704,
+      "signature": "queue_arn(name)"
+    },
+    {
+      "name": "lambda_series",
+      "line": 1386,
+      "signature": "lambda_series(metric, functions)"
+    },
+    {
+      "name": "sqs_series",
+      "line": 1392,
+      "signature": "sqs_series(metric, queues, suffix='Queue')"
+    },
+    {
+      "name": "panel",
+      "line": 1406,
+      "signature": "panel(title, metrics, *, stat, x, width, y, period=300)"
+    },
+    {
+      "name": "marker",
+      "line": 899,
+      "signature": "marker(kind, domain=domain)"
+    }
+  ],
+  "superseded_by": "../../review/W3-qa/class-signature-audit.json"
+}

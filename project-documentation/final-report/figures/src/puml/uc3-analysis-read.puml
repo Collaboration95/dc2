@@ -1,0 +1,40 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): media/projections.py; media/projection_models.py; media/api/v1_jobs.py; media/api/v1_hls.py
+skinparam BackgroundColor white
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
+skinparam classAttributeIconSize 0
+skinparam nodesep 20
+skinparam ranksep 22
+hide footbox
+autonumber
+skinparam maxMessageSize 180
+skinparam sequenceParticipantPadding 8
+title UC-3 · analysis normal flow
+actor Owner as O
+boundary "Viewing\ninterface" as UI
+control "Status /\nplayback" as C
+entity "Owned video\n+ snapshot" as V
+O -> UI : inspect asset
+loop until terminal state or owner stops
+ UI -> C : requestStatus(owner, asset)
+ C -> V : find owned video and current snapshot
+ V --> C : submission / processing state
+ alt completed
+  C --> UI : state + expiring MP4 access
+  opt HLS available
+   UI -> C : request playlist / segment
+   C -> V : check owner and completed output
+   C --> UI : playlist / expiring segment access
+  end
+ else accepted, queued or processing
+  C --> UI : current state; no playback
+ end
+ UI --> O : display current result
+end
+note over UI,V : Playback bytes come from object storage.\nStatus reads do not change domain state.
+@enduml

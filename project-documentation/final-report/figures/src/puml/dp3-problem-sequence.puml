@@ -1,0 +1,30 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): media/authorizer.py; contracts/gateway.py; contracts/v1.py; media/api/deps.py; processing/auth.py; scripts/aws/v1/definitions.py
+skinparam BackgroundColor white
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
+skinparam classAttributeIconSize 0
+skinparam nodesep 20
+skinparam ranksep 22
+hide footbox
+autonumber
+skinparam maxMessageSize 180
+skinparam sequenceParticipantPadding 8
+title DP-3 · failure of unverified forwarding
+actor "Caller A" as C
+participant "Forwarding endpoint\n«candidate»" as F
+participant "Peer endpoint\n«candidate»" as P
+entity "Owner B job" as J
+C -> F : request B's job; X-Owner-Id = B
+F -> P : copied owner B + shared service secret
+P -> P : shared service secret is valid
+P -> J : query job with owner_id = B
+J --> P : B's record
+P --> F : private record
+F --> C : B's result disclosed to A
+note over F,P : Failing precondition: the forwarder copies identity\nwithout deriving it from an authenticated account.\nA correct forwarder would need an additional owner decision.
+@enduml

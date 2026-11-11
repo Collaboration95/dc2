@@ -1,0 +1,38 @@
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+' scripts/aws/v1/definitions.py: queues, DLQs and event source mappings
+' processing/handlers.py; processing/worker/sqs.py
+ title Deployment view · four queue lanes and consumers · dc2-live
+ left to right direction
+ skinparam defaultFontSize 20
+ skinparam ArrowFontSize 18
+ skinparam titleFontSize 21
+ skinparam LegendFontSize 18
+ skinparam nodesep 24
+ skinparam ranksep 16
+ node "MediaRepair" as mr $MEDIA
+ node "Processing relays\nCommands, Repair,\nEcsEvents, S3Events" as relay $PROC
+ queue "ProcessingCommandsQueue\n+ DLQ" as cq $INFRA
+ queue "ProcessingWorkQueue\n+ DLQ" as wq $INFRA
+ queue "ProcessingShortWorkQueue\n+ DLQ" as sq $INFRA
+ queue "MediaResultsQueue\n+ DLQ" as rq $INFRA
+ node "ProcessingCommands\ncommand_handler" as pc $PROC
+ node "Fargate worker 0..3\nReceive / Delete" as w $PROC
+ node "ProcessingShortEncoder\nshort_encoder_handler" as sh $PROC
+ node "MediaResults\nresult_handler" as res $MEDIA
+ mr --> cq : commands
+ cq --> pc : mapping\n10 / cap 2
+ relay --> wq : standard
+ relay --> sq : short
+ relay --> rq : results
+ wq --> w : polled\n(no mapping)
+ sq --> sh : mapping\n1 / cap 2
+ rq --> res : mapping\n10 / cap 2
+ legend bottom
+ Blue Media · amber Processing · slate SQS (outside the VPC).
+ Arrows: send and delivery. "10 / cap 2" = batch size / concurrency.
+ Each queue moves a message to its DLQ after 5 receives.
+ Visibility: 420 s (short work 960 s). Encoders write SQL; relays send.
+ endlegend
+@enduml

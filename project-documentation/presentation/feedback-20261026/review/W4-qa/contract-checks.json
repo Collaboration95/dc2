@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "submit shape accepted",
+    "retry shape accepted",
+    "cancel shape accepted",
+    "actual work producer accepted by contract",
+    "actual result producer accepted by contract",
+    "no-job cancel acknowledgement accepted",
+    "missing nullable key and extra cancellation key rejected",
+    "output prefix uses Attempt UUID",
+    "actual HLS command paths match documented layout"
+  ],
+  "scope": "Pure contract/path functions only; no database, AWS or FFmpeg execution."
+}

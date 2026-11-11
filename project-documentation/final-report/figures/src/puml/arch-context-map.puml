@@ -1,0 +1,37 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+skinparam dpi 96
+skinparam defaultFontSize 20
+skinparam classAttributeFontSize 18
+skinparam classStereotypeFontSize 16
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam nodesep 24
+skinparam ranksep 30
+hide circle
+hide empty methods
+
+
+top to bottom direction
+title Strategic context map · as built
+package "Media Management" $MEDIA {
+ component "Asset / ownership / public view\nCommand adapters: enqueue_submit(), command()\n[ACL] apply_result(), public_job_schema()" as M
+}
+package "Processing" $PROC {
+ component "Job / Attempt / cancellation gate\nTranslation: handle_command()\nState publication: emit_state()" as P
+ component "Finite encoder roles\nworker.sqs / short_encoder" as E
+ P -down-> E : work (internal)\nprocessing-work /\nprocessing-work-short
+}
+M -right-> P : submit / retry / cancel [PL]\nprocessing-commands
+P -left-> M : result [PL]\nmedia-results\nProcessing [U] → Media [D]
+legend bottom
+  Arrows = message flow. [PL] Published Language: Envelope + Source (contracts/v1.py).
+  [ACL] Media validates results and maps them into its own projection.
+  U/D: Processing upstream, Media downstream for the result model.
+  Actor is trusted API context, not part of the queue envelope.
+endlegend
+@enduml

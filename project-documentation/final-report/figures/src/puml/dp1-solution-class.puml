@@ -1,0 +1,54 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 18
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 230
+skinparam nodesep 40
+skinparam ranksep 50
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+' processing/launcher.py; processing/launcher_models.py; processing/launcher_aws.py
+title DP-1 solution: durable capacity roles
+top to bottom direction
+class "launcher" as l <<module / capacity gate>> $PROC {
+ _reserve(factory, config, obs, visible, *, launching)
+ _send(factory, ecs, token, config=None)
+ observe(ecs, config, known_arns=())
+}
+class LauncherControl <<serialization root>> $PROC {
+ id: int = 1
+ enabled: bool
+ enabled_at: datetime | None
+}
+class LaunchReservation <<durable reservation>> $PROC {
+ token: str
+ started_by: str
+ payload: dict
+ status: str
+ deadline_at: datetime
+ task_arn: str | None
+}
+class EcsPort <<adapter>> $INFRA {
+ run_task(payload)
+ list_tasks(desired_status)
+ describe_tasks(arns)
+}
+l --> LauncherControl : exclusive reserve / shared send
+l --> LaunchReservation : commit before start
+LauncherControl "1" --- "0..*" LaunchReservation
+l ..> EcsPort : stable token + payload
+note bottom of LaunchReservation
+ Control-to-reservation link is logical.
+ Pattern roles annotate actual types.
+ Independent of Job/Attempt ownership.
+ No association FK; selected signatures
+ omit implicit self.
+end note
+@enduml

@@ -1,0 +1,61 @@
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam classAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
+skinparam titleFontSize 17
+skinparam BoxPadding 8
+skinparam maxMessageSize 400
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+' processing/launcher.py (_reserve, _send, observe, _reconcile); launcher_models.py; launcher_aws.py
+title DP-1 solution: serialize, reserve, reconcile
+autonumber
+participant "launcher (wake A)\n«capacity gate»" as a $PROC
+participant "launcher (wake B)\n«capacity gate»" as b $PROC
+database "Processing SQL" as sql $PROC
+participant "EcsPort\n«adapter»" as ecs $INFRA
+note over sql
+ LauncherControl = «serialization root»
+ LaunchReservation = «durable reservation»
+end note
+a -> sql : _reserve(): control FOR UPDATE
+b -> sql : _reserve(): waits for the control row
+a -> sql : INSERT three reservations with tokens; COMMIT
+sql --> b : lock acquired; three slots occupied
+b -> sql : no free slot; COMMIT
+loop each reserved token (wake A)
+ a -> a : _send(factory, ecs, token, config)
+ a -> sql : control FOR SHARE; row lock; state checks
+ a -> ecs : run_task(stored payload)
+ alt acknowledged
+  ecs --> a : task ARN
+  a -> sql : status = launched; COMMIT
+ else reply uncertain
+  ecs --> a : timeout
+  a -> sql : keep slot reserved; COMMIT; stop this tick
+ end
+end
+note over b,ecs : A later tick of wake B reconciles by token.
+b -> b : observe(ecs, config, known_arns)
+b -> ecs : list_tasks(status); describe_tasks(arns)
+alt task visible by startedBy
+ ecs --> b : existing task
+ b -> sql : _reconcile(): bind the same reservation
+else replay delay passed, demand remains
+ b -> b : _send(factory, ecs, token, config)
+ b -> sql : control FOR SHARE; row lock; state checks
+ alt reserved, enabled, session open
+  b -> ecs : run_task(stored payload; same clientToken)
+  ecs --> b : existing or new task for the token
+  b -> sql : status = launched; COMMIT
+ else closed or already settled
+  b -> sql : release or skip; COMMIT
+ end
+end
+@enduml

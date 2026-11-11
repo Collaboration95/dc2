@@ -1,0 +1,43 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam NoteFontSize 14
+skinparam maxMessageSize 400
+hide footbox
+autonumber
+title Sequence view · UC-4 commits one successor · 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L232
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L155
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L102
+
+skinparam ArrowFontSize 17
+skinparam defaultFontSize 18
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+participant "messaging\n«Processing module»" as M $PROC
+participant "lifecycle\n«Processing module»" as L $PROC
+participant "s: AsyncSession" as DB $INFRA
+[-> M : handle_command(f,retry_body)
+activate M
+group Processing retry transaction
+ M -> DB : SQL: accept inbox; lock Guard then Job; validate identity
+ M -> M : _retry_locked(s,job,request_id)
+ alt RetryRequest exists
+  note over M,DB : Return current Attempt (no successor)
+ else failed and not deleted
+  M -> L : cleanup_intent(s,job.id,A1.id,now)
+  M -> DB : SQL: add/flush A2; add RetryRequest;\ncurrent_attempt_id=A2; status=queued
+  M -> M : emit_state(s,job,A2)
+  M -> DB : SQL: increment version; stage result + work
+ end
+ M -> DB : COMMIT inbox + changes (if any)
+end
+[<-- M : True
+ deactivate M
+legend bottom
+New inbox/live guard/owned Job shown. now=db_now(s); reordered/invalid retry rolls back. Source is preserved.
+endlegend
+
+@enduml

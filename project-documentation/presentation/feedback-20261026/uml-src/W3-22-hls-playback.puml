@@ -1,0 +1,50 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+hide footbox
+autonumber
+skinparam maxMessageSize 320
+skinparam ArrowFontSize 15
+skinparam LegendFontSize 14
+
+title Sequence view · HLS segments redirect from Media to private S3\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_hls.py#L25
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L191
+
+skinparam ArrowFontSize 17
+skinparam defaultFontSize 18
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+actor "owner player" as C $CLIENT
+participant "v1_hls\n«Media module»" as H $MEDIA
+participant "s: AsyncSession" as DB $INFRA
+participant "storage: Storage" as S $MEDIA
+collections "output: S3" as B $INFRA
+C -> H : GET /jobs/{job_id}/hls/master.m3u8
+activate H
+H -> DB : SQL: lock owned Asset; read projection
+note over H,DB : safe_hls_path; submitted Asset; done projection; hls_manifest required, else 404.
+H -> S : read_playlist(key)
+activate S
+S -> B : GET object [internal.get_object(output_bucket,key)]
+B --> S : response stream
+S --> H : playlist bytes (bounded to 1 MiB)
+deactivate S
+H --> C : HTTP 200 playlist; private, no-store
+deactivate H
+C -> H : GET /jobs/{job_id}/hls/v0/seg00000.ts
+activate H
+H -> S : sign_output(key,inline=True)
+activate S
+S --> H : signed segment URL: str
+deactivate S
+H --> C : RedirectResponse(url,status_code=307)
+deactivate H
+C -> B : GET redirected URL (optional Range)
+B --> C : HTTP 200 / 206 segment bytes
+legend bottom
+Both requests repeat owner + ready-output checks. Filled = awaited request; dashed = reply.
+endlegend
+
+@enduml

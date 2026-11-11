@@ -1,0 +1,47 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+skinparam nodesep 25
+skinparam ranksep 28
+title Statechart · Each Attempt ends once; retry creates another identity\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L48
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L170
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L24
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L186
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L412
+
+top to bottom direction
+state queued $PROC
+state processing $PROC
+state "Terminal Attempt states (persisted rows)" as End $PROC {
+ state succeeded <<terminal>>
+ state failed <<terminal>>
+ state abandoned <<terminal>>
+ state cancelled <<terminal>>
+ succeeded -[hidden]right-> failed
+ failed -[hidden]right-> abandoned
+ abandoned -[hidden]right-> cancelled
+}
+[*] --> queued : create / new UUID
+queued --> processing : claim [current, queued, not deleted]\n/ token + lease + task binding
+processing --> processing : heartbeat [live]\n/ renew lease capped by deadline
+processing --> succeeded : finish [live, valid outputs, error is None]\n/ Job=done
+processing --> failed : finish [live, error is not None]\n/ Job=failed
+processing --> abandoned : interrupt [interrupted]\n/ Job=failed
+processing --> abandoned : redirect_to_long_lane [live]\n/ NEW Attempt; Job=queued
+queued --> cancelled : _cancel_locked\n/ finished_at + expired lease
+processing --> cancelled : _cancel_locked\n/ finished_at + expired lease
+legend bottom
+Terminal rows never return to queued. Rows are retained; no final node is drawn. Retry creates a new UUID/number.
+interrupted = current nondeleted processing pair AND (expired lease/deadline OR matched STOPPED).
+live is evaluated on lock_pair: current nondeleted Job + processing states + same token + DB now before lease/deadline.
+endlegend
+
+@enduml

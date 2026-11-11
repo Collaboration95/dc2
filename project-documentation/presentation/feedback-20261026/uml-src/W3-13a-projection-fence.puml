@@ -1,0 +1,41 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam NoteFontSize 14
+skinparam maxMessageSize 400
+hide footbox
+autonumber
+title Sequence view · UC-4 independently fences delayed result snapshots\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L16
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L18
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L36
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+skinparam maxMessageSize 380
+participant "projections\n«Media module»" as P $MEDIA
+participant "s: AsyncSession" as DB $INFRA
+[-> P : apply_result(s,body) [consume_result callback]
+activate P
+P -> DB : SQL: lock owned Asset; read accepted source + projection
+P -> P : validate_transition(current,event)
+alt older version OR newer version with older attempt number
+ [<-- P : False
+else same version + identical semantic hash
+ [<-- P : False
+else same version + conflicting semantic hash
+ [<-- P : raise MediaError(409)
+else valid progression (remaining attempt/state guards pass)
+ P -> DB : SQL: flush projection + Asset metadata
+ [<-- P : True
+end
+deactivate P
+legend bottom
+Caller messaging.consume_result owns inbox + transaction: normal callback return commits, exception rolls back.
+Its return is True for a new inbox even when apply_result=False; identical inbox replay returns False before callback.
+endlegend
+@enduml

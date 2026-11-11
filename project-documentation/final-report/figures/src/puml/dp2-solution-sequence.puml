@@ -1,0 +1,55 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W2-delivery-ledgers, W3-07a; separate SQL commit / relay / consumer
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 135
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title DP-2 · lost-send reply, replay and atomic acceptance
+autonumber
+database "Media DB\nMediaOutbox" as MD <<outbox>> $MEDIA
+participant "sql\ndelivery" as D <<relay>> $INFRA
+participant "SQS\nprocessing-commands" as Q <<queue>> $INFRA
+participant "messaging\nprocessing" as P <<consumer>> $PROC
+database "Processing DB\nProcessingInbox" as PD <<idempotent inbox>> $PROC
+note over MD : direct_intake.finalize has committed\npin + Asset + MediaOutbox row.
+... MediaRepair calls publish_commands → publish_due ...
+loop each due outbox row, bounded by limit / deadline
+ D -> MD : lock SKIP LOCKED; save claim token; COMMIT
+ D -> Q : transport.send(queue, body)\n[SQS.send → send_message]
+ alt send reply lost / network error
+  D -> MD : fence matching claim token; retain row;\nretry the SAME message_id
+ else acknowledged send
+  D -> MD : fence matching token; sent_at;\nnext replay; COMMIT
+ end
+end
+... event-source mapping delivers the record (first delivery or redelivery) ...
+Q -> P : consume_batch → handle_command(factory, body)
+group one Processing transaction
+ P -> PD : accept: insert message_id + body_hash
+ alt duplicate ID and identical body hash
+  P --> Q : False; no domain mutation
+ else conflicting body hash
+  P -> PD : ROLLBACK; MessageConflict
+  P --> Q : batch failure; redrive / DLQ
+ else new command
+  P -> PD : guard + Job + Attempt +\nwork/result outboxes; COMMIT
+  P --> Q : True; record counts as success
+ end
+end
+note over Q,PD
+The relay never calls Processing directly. The event-source mapping
+deletes only successful records. Processing's result outbox and
+Media's inbox repeat the same local pattern.
+end note
+@enduml

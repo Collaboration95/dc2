@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="410" viewBox="0 0 800 410" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#1a1a1a">
+<!-- Report copy of docs/results/actual-vs-target.svg (values from docs/results/actual-vs-target.csv:
+     SC-AWS-4/5, SC-LOC-1/2, DP-1, DP-3, DP-4), redrawn with 14 px minimum text for print at 15-16 cm. -->
+<rect width="800" height="410" fill="#ffffff"/>
+<!-- Panel A: speedup, 80 px per 1x, axis y=330 -->
+<text x="20" y="40" font-size="16" font-weight="bold">A. Speedup over one worker (x)</text>
+<line x1="20" y1="330" x2="380" y2="330" stroke="#333"/>
+<rect x="30" y="214.1" width="60" height="115.9" fill="#d55e00"/>
+<text x="60" y="236" text-anchor="middle" fill="#fff" font-weight="bold">1.449</text>
+<rect x="100" y="167.4" width="60" height="162.6" fill="#0072b2"/>
+<text x="130" y="189" text-anchor="middle" fill="#fff" font-weight="bold">2.032</text>
+<line x1="22" y1="202" x2="168" y2="202" stroke="#000" stroke-width="2" stroke-dasharray="6 4"/>
+<rect x="210" y="142.2" width="60" height="187.8" fill="#0072b2"/>
+<text x="240" y="186" text-anchor="middle" fill="#fff" font-weight="bold">2.347</text>
+<rect x="280" y="99.2" width="60" height="230.8" fill="#0072b2"/>
+<text x="310" y="121" text-anchor="middle" fill="#fff" font-weight="bold">2.885</text>
+<line x1="202" y1="162" x2="348" y2="162" stroke="#000" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="60" y="350" text-anchor="middle">AWS V1</text>
+<text x="130" y="350" text-anchor="middle">local</text>
+<text x="240" y="350" text-anchor="middle">AWS V1</text>
+<text x="310" y="350" text-anchor="middle">local</text>
+<text x="95" y="372" text-anchor="middle" font-weight="bold">2 workers, target 1.6</text>
+<text x="275" y="372" text-anchor="middle" font-weight="bold">3 workers, target 2.1</text>
+<!-- Panel B: release minutes, 15 px per minute, target 10 min at y=180 -->
+<text x="420" y="40" font-size="16" font-weight="bold">B. Processing release time (min)</text>
+<line x1="415" y1="330" x2="785" y2="330" stroke="#333"/>
+<rect x="425" y="175.5" width="56" height="154.5" fill="#d55e00"/>
+<text x="453" y="197" text-anchor="middle" fill="#fff" font-weight="bold">10.3</text>
+<rect x="497" y="177" width="56" height="153" fill="#d55e00"/>
+<text x="525" y="199" text-anchor="middle" fill="#fff" font-weight="bold">10.2</text>
+<rect x="569" y="178.5" width="56" height="151.5" fill="#d55e00"/>
+<text x="597" y="200" text-anchor="middle" fill="#fff" font-weight="bold">10.1</text>
+<rect x="641" y="185.25" width="56" height="144.75" fill="#0072b2"/>
+<text x="669" y="207" text-anchor="middle" fill="#fff" font-weight="bold">9.65</text>
+<rect x="713" y="95.55" width="56" height="234.45" fill="#d55e00"/>
+<text x="741" y="117" text-anchor="middle" fill="#fff" font-weight="bold">15.63</text>
+<line x1="417" y1="180" x2="777" y2="180" stroke="#000" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="453" y="350" text-anchor="middle">r1018b</text>
+<text x="525" y="350" text-anchor="middle">r1018b</text>
+<text x="597" y="350" text-anchor="middle">r1018b</text>
+<text x="669" y="350" text-anchor="middle">r1019a</text>
+<text x="741" y="350" text-anchor="middle">r1019a</text>
+<text x="453" y="368" text-anchor="middle">round 1</text>
+<text x="525" y="368" text-anchor="middle">round 2</text>
+<text x="597" y="368" text-anchor="middle">round 3</text>
+<text x="669" y="368" text-anchor="middle">release</text>
+<text x="741" y="368" text-anchor="middle">+ smoke</text>
+<text x="600" y="390" text-anchor="middle" font-weight="bold">target 10 min</text>
+<!-- Legend -->
+<rect x="20" y="392" width="14" height="14" fill="#0072b2"/>
+<text x="40" y="404">meets target</text>
+<rect x="140" y="392" width="14" height="14" fill="#d55e00"/>
+<text x="160" y="404">misses target</text>
+<line x1="270" y1="399" x2="300" y2="399" stroke="#000" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="306" y="404">target</text>
+</svg>

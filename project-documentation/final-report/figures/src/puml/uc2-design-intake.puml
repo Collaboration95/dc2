@@ -1,0 +1,51 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-04, W3-07a, W3-09a/b/c, W3-17/23; W1-dispatch/probe-redirect
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title UC-2 · command transaction and dispatch
+autonumber
+participant "handlers\nprocessing" as H $PROC
+participant "messaging\nprocessing" as M $PROC
+database "Processing DB" as DB $INFRA
+participant "short_lane\nprocessing" as L $PROC
+[-> H : invoke(event, context, "command")
+H -> M : consume_commands(event, factory, guard=_heal)
+note over H,M : consume_batch invokes handle_command per record
+M -> M : handle_command(factory, message)
+group one Processing transaction
+ M -> DB : SQL: accept ProcessingInbox; lock SubmissionGuard
+ alt same message ID and body
+  M --> M : return False; no domain change
+ else conflicting identity / request
+  M -> DB : ROLLBACK inbox and state; raise
+ else new submit (live guard, no existing Job)
+  M -> DB : SQL: insert Job + Attempt; bind guard
+  M -> M : emit_state(session, job, attempt)
+  M -> L : work_lane(session, job)
+  L --> M : processing-work or processing-work-short
+  M -> DB : SQL: stage result + routed work; COMMIT
+ end
+end
+M --> H : batchItemFailures response
+H -> M : publish_outbox(factory, transport,\ndeadline=deadline, limit=25)
+alt publication unavailable
+ M --> H : retained intent / caught error
+else published
+ M --> H : count
+end
+H -->[ : partial-batch response
+note over H,DB : Event-source mapping deletes successful records.\nACK depends on committed intent, not a successful send.
+@enduml

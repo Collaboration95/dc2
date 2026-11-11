@@ -1,0 +1,58 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+hide footbox
+autonumber
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 400
+skinparam sequenceMessageSpan true
+skinparam sequence {
+  MessageSpacing 2
+  GroupBorderThickness 1
+}
+title Sequence view · UC-2 uploads optional HLS with the master last\n76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L166
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/tasks.py#L16
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/source.py#L12
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/storage.py#L26
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/supervisor.py#L51
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/probe.py#L10
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/operations.py#L10
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/hls.py#L23
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+skinparam maxMessageSize 350
+participant "tasks\n«module»" as T $PROC
+participant "media_engine.hls\n«module»" as E $PROC
+participant "sup: Supervisor" as S $PROC
+participant "store: OutputStore" as O $PROC
+activate T
+opt not work.operations
+ T -> E : variants_for(probe.height)
+ E --> T : heights: tuple[int, ...]
+ T -> E : build_ladder_command(source,hls,heights=heights,\nffmpeg_binary=cfg.ffmpeg_binary,preset=cfg.ffmpeg_preset)
+ E --> T : command: list[str]
+ T -> S : run(command)
+ activate S
+ S --> T : stdout: str (unused)
+ deactivate S
+ loop each file, master.m3u8 last
+  T -> O : put(prefix+"hls/"+relative_path,path,\ncontent_type_for(path.name),"hls_manifest") [guarded]
+  activate O
+  O --> T : item: dict
+  deactivate O
+ end
+end
+deactivate T
+legend bottom
+Continuation inside tasks.pipeline. Only the master descriptor is appended to outputs when present.
+Ordinary HLS exception retains primary; LeaseLost / AttemptDeadline / CancelledError propagate.
+endlegend
+@enduml

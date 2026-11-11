@@ -1,0 +1,38 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+title Physical data view · Media request identity · 76282d3
+hide circle
+skinparam linetype polyline
+left to right direction
+skinparam defaultFontSize 19
+skinparam ClassAttributeFontSize 18
+skinparam ClassFontSize 20
+skinparam ArrowFontSize 16
+skinparam LegendFontSize 14
+skinparam nodesep 42
+skinparam ranksep 70
+entity "request_keys" as request_keys $MEDIA {
+  {field} * owner_id : uuid <<PK,FK>>
+  {field} * operation : varchar(20) <<PK>>
+  {field} * request_key : uuid <<PK>>
+  {field} * request_hash : varchar(64)
+  {field} * asset_id : uuid <<FK>>
+  {field} * created_at : timestamptz
+}
+entity "users\n<<reference: key only>>" as users $INFRA {
+  {field} * id : uuid <<PK>>
+}
+entity "assets\n<<reference: key only>>" as assets $INFRA {
+  {field} * id : uuid <<PK>>
+}
+assets ||--o{ request_keys : "asset_id"
+users ||--o{ request_keys : "owner_id"
+
+legend bottom left
+  * = NOT NULL    ? = nullable    PK = primary key    FK = declared local foreign key
+  UK = unique column    UKn = one composite unique group    timestamptz = timestamp with time zone
+  Blue = Media; amber = Processing; grey = reference key on another sheet
+  All columns of coloured tables are shown; CHECKs, defaults and indexes are in the report dictionary.
+endlegend
+@enduml

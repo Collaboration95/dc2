@@ -1,0 +1,33 @@
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam classAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
+skinparam titleFontSize 17
+skinparam BoxPadding 8
+skinparam maxMessageSize 400
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+' processing/launcher.py: set_enabled, _send
+title UC-6 design: disable interlock
+autonumber
+actor Sam
+participant "launcher\n«module»" as l $PROC
+database "Processing SQL" as sql $PROC
+participant "EcsPort" as ecs $INFRA
+Sam -> l : set_enabled(factory, False)
+l -> sql : control FOR UPDATE (waits for any in-flight send)
+sql --> l : exclusive lock acquired
+l -> sql : enabled = False; COMMIT
+l --> Sam : disabled
+opt a later _send of an old reservation
+ l -> sql : control FOR SHARE; enabled is False
+ l -> sql : status = released; COMMIT
+ note over l,ecs : No RunTask is sent.
+end
+@enduml

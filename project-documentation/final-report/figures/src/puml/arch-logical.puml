@@ -1,0 +1,46 @@
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+title Logical view · service interfaces and owned data
+top to bottom direction
+skinparam defaultFontSize 22
+skinparam ArrowFontSize 20
+skinparam LegendFontSize 19
+skinparam titleFontSize 23
+skinparam componentStyle uml2
+skinparam nodesep 30
+skinparam ranksep 30
+skinparam packageStyle rectangle
+component "frontend/ + publisher/" as clients <<clients>> $CLIENT
+component "HttpApi\nGatewayAuthorizer" as gateway <<HTTP API>> $INFRA
+component "MediaAuthorizer\nHS256 + current User" as auth $MEDIA
+component "media/\n----\nMediaApi\nMediaRepair\nMediaResults" as media <<composite service>> $MEDIA
+component "processing/\n----\nProcessingApi\nCommands / repair\nEncoders / launcher" as processing <<composite service>> $PROC
+database "media_db" as md $MEDIA
+database "processing_db" as pd $PROC
+component "SourceBucket\nOutputBucket" as s3 <<S3>> $INFRA
+interface "/api/media/*" as media_http
+interface "/api/processing/*" as processing_http
+' scripts/aws/v1/definitions.py (HttpApi, GatewayAuthorizer, integrations)
+clients .down.> gateway : HTTPS
+gateway .right.> auth : REQUEST
+gateway ..> media_http : requires
+gateway ..> processing_http : requires
+media_http -- media
+processing_http -- processing
+' delivery/sqs.py queue lanes
+media .right.> processing : <<flow>>\ncommands queue\nsubmit / retry / cancel
+processing .left.> media : <<flow>>\nresults queue
+auth ..> md : User lookup
+media ..> md : owned SQL
+processing ..> pd : owned SQL
+md -[hidden]right-> s3
+s3 -[hidden]right-> pd
+legend bottom
+ Blue Media · amber Processing · green clients · slate infrastructure.
+ Circle + line = provided HTTP interface; dashed arrow = dependency.
+ <<flow>> = asynchronous message through SQS, not peer HTTP.
+ Media writes sources and reads outputs;
+ Processing reads sources and writes outputs.
+endlegend
+@enduml

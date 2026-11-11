@@ -1,0 +1,577 @@
+[
+  {
+    "target": "contracts/v1.py#L157",
+    "line_text": "@dataclass(frozen=True)",
+    "nonempty_target": true
+  },
+  {
+    "target": "contracts/v1.py#L170",
+    "line_text": "@classmethod",
+    "nonempty_target": true
+  },
+  {
+    "target": "contracts/v1.py#L99",
+    "line_text": "@dataclass(frozen=True)",
+    "nonempty_target": true
+  },
+  {
+    "target": "delivery/sql.py#L18",
+    "line_text": "async def accept(session, model, envelope):",
+    "nonempty_target": true
+  },
+  {
+    "target": "delivery/sql.py#L36",
+    "line_text": "async def stage(session, model, envelope, queue):",
+    "nonempty_target": true
+  },
+  {
+    "target": "delivery/sql.py#L58",
+    "line_text": "async def publish_due(",
+    "nonempty_target": true
+  },
+  {
+    "target": "delivery/sql.py#L77",
+    "line_text": "async with factory() as session, session.begin():",
+    "nonempty_target": true
+  },
+  {
+    "target": "delivery/sqs.py#L112",
+    "line_text": "async def consume_batch(event, queue, handler):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/api/uploads.py#L18",
+    "line_text": "@router.post(\"/uploads/reservations\", status_code=201)",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/api/uploads.py#L36",
+    "line_text": "async def finalize_upload(",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/api/v1_hls.py#L25",
+    "line_text": "@router.get(\"/{job_id}/hls/{path:path}\")",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/api/v1_jobs.py#L43",
+    "line_text": "@router.get(\"/{job_id}\", response_model=PublicJob, response_model_exclude_none=True)",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/api/v1_jobs.py#L49",
+    "line_text": "@router.post(\"/{job_id}/retry\", status_code=202, response_model=Accepted)",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/api/v1_jobs.py#L55",
+    "line_text": "@router.post(\"/{job_id}/edit\", status_code=202, response_model=Accepted)",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/authorizer.py#L40",
+    "line_text": "async def authorize(event: dict) -> dict:",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/handlers.py#L35",
+    "line_text": "async def invoke(event, context, mode):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/handlers.py#L70",
+    "line_text": "published = await publish_commands(",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/lambda_handler.py#L1",
+    "line_text": "\"\"\"Media HTTP API payload-v2 entrypoint, sharing the canonical Gateway adapter.\"\"\"",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/messaging.py#L16",
+    "line_text": "async def consume_result(session, envelope, apply):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/messaging.py#L31",
+    "line_text": "async def enqueue_submit(session, asset, source):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/messaging.py#L9",
+    "line_text": "async def stage_command(session, envelope):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/messaging_models.py#L22",
+    "line_text": "class MediaOutbox(Base):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/models.py#L36",
+    "line_text": "class Asset(Base):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/projection_models.py#L12",
+    "line_text": "class ProcessingProjection(Base):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/projections.py#L116",
+    "line_text": "current = await session.get(ProcessingProjection, asset.id)",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/projections.py#L258",
+    "line_text": "async def public_job_from_projection(asset, current, storage, settings):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/projections.py#L261",
+    "line_text": "if job and job.status == \"done\":",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/projections.py#L36",
+    "line_text": "def validate_transition(current, event):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/projections.py#L69",
+    "line_text": "async def apply_result(session, envelope):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/repositories/assets.py#L31",
+    "line_text": "async def get_asset(",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/direct_intake.py#L139",
+    "line_text": "upload = None if row.finalized_at else await storage.direct_upload_grant(row)",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/direct_intake.py#L149",
+    "line_text": "async def finalize(session, storage, owner_id, reservation_id, request, *, enqueue=None):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/direct_intake.py#L22",
+    "line_text": "class ReserveRequest(BaseModel):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/direct_intake.py#L75",
+    "line_text": "async def pin_copied_source(session, storage, asset):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/direct_intake.py#L99",
+    "line_text": "async def reserve(session, storage, owner_id, request):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/intake.py#L54",
+    "line_text": "async def stage(session, key):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/intake.py#L71",
+    "line_text": "async def discard_stage(session, storage, key):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/storage.py#L191",
+    "line_text": "async def sign_output(self, key, *, inline=False):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/storage.py#L209",
+    "line_text": "async def copy_output_source(self, output, key):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/storage.py#L23",
+    "line_text": "class Storage:",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/storage.py#L42",
+    "line_text": "async def direct_upload_grant(self, reservation):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/storage.py#L62",
+    "line_text": "async def verify_direct_upload(self, reservation, *, check_content=True):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/v1_lifecycle.py#L105",
+    "line_text": "async def edit(session, storage, owner_id, parent_id, request, key):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/v1_lifecycle.py#L145",
+    "line_text": "async with session.begin():",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/v1_lifecycle.py#L170",
+    "line_text": "except IntegrityError:",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/v1_lifecycle.py#L39",
+    "line_text": "async def stage_submit(session, asset, source):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/v1_lifecycle.py#L50",
+    "line_text": "async def retry(session, owner_id, asset_id, key):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/v1_lifecycle.py#L6",
+    "line_text": "from sqlalchemy import delete",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/services/v1_lifecycle.py#L87",
+    "line_text": "async def tombstone(session, owner_id, asset_id):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/upload_models.py#L25",
+    "line_text": "class UploadReservation(Base):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/upload_models.py#L31",
+    "line_text": "asset_id: Mapped[UUID] = mapped_column(Uuid, unique=True)",
+    "nonempty_target": true
+  },
+  {
+    "target": "media/upload_models.py#L64",
+    "line_text": "class SourceVersion(Base):",
+    "nonempty_target": true
+  },
+  {
+    "target": "media_engine/hls.py#L23",
+    "line_text": "\"\"\"The rungs a source of this height should get, shortest first.",
+    "nonempty_target": true
+  },
+  {
+    "target": "media_engine/operations.py#L10",
+    "line_text": "def build_edit_command(",
+    "nonempty_target": true
+  },
+  {
+    "target": "media_engine/probe.py#L10",
+    "line_text": "class SourceProbe:",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/handlers.py#L25",
+    "line_text": "async def invoke(event, context, mode):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/handlers.py#L55",
+    "line_text": "result = await consume_commands(event, factory, guard=_heal)",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/launcher.py#L238",
+    "line_text": "async def _reserve(factory, config, obs, visible, *, launching):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/launcher.py#L379",
+    "line_text": "async def tick(factory, ecs, queue, config, *, launching=True):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/launcher_aws.py#L54",
+    "line_text": "class EcsPort(_Lazy):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/launcher_aws.py#L81",
+    "line_text": "async def run_task(self, payload):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/launcher_aws.py#L96",
+    "line_text": "class QueueDepth(_Lazy):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/launcher_trigger.py#L32",
+    "line_text": "class WakeOnWork:",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/lifecycle.py#L123",
+    "line_text": "@dataclass(frozen=True)",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/lifecycle.py#L124",
+    "line_text": "class Claim:",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/lifecycle.py#L136",
+    "line_text": "async def claim(factory, job_id, attempt_id, settings, *, on_change=None, before_claim=None):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/lifecycle.py#L170",
+    "line_text": "async def heartbeat(factory, work, settings):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/lifecycle.py#L184",
+    "line_text": "async def finish(factory, work, *, outputs=None, error=None, on_change=None):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/lifecycle.py#L28",
+    "line_text": "async def lock_pair(session, job_id, attempt_id):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/messaging.py#L102",
+    "line_text": "async def emit_state(session, job, attempt):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/messaging.py#L155",
+    "line_text": "async def _retry_locked(session, job, request_id):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/messaging.py#L186",
+    "line_text": "async def _cancel_locked(session, guard, *, command_message_id=None):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/messaging.py#L215",
+    "line_text": "if was_deleted and job.deleted_at is not None:",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/messaging.py#L232",
+    "line_text": "async def handle_command(factory, message):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/messaging.py#L308",
+    "line_text": "async def retry_job(session, owner_id, job_id, request_id):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/messaging.py#L319",
+    "line_text": "async def cancel_asset(session, owner_id, asset_id):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/messaging.py#L325",
+    "line_text": "async def claim(factory, job_id, attempt_id, settings, *, envelope=None, task_name):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/messaging.py#L33",
+    "line_text": "LOST_WORK_GATE_SECONDS = 120",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/messaging.py#L337",
+    "line_text": "async def authorize(session):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/messaging.py#L405",
+    "line_text": "async def finish(factory, work, *, outputs=None, error=None):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/messaging.py#L412",
+    "line_text": "async def redirect_to_long_lane(factory, work):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/messaging.py#L60",
+    "line_text": "def snapshot(job, attempt, version):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/messaging_models.py#L42",
+    "line_text": "class AttemptTask(Base):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/models.py#L15",
+    "line_text": "class Job(Base):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/models.py#L48",
+    "line_text": "class Attempt(Base):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/models.py#L77",
+    "line_text": "class RetryRequest(Base):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/recovery.py#L24",
+    "line_text": "async def interrupt(session, job, attempt, now, message, on_change=None):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/recovery.py#L40",
+    "line_text": "async def recover_expired(factory, *, limit=100, on_change=None, job_filter=None):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/recovery_v1.py#L166",
+    "line_text": "async def run_once(factory, settings, transport, *, store=None, limit=25, deadline=None):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/recovery_v1.py#L183",
+    "line_text": "result[\"expired\"] = await recover_expired(",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/recovery_v1.py#L192",
+    "line_text": "result[\"published\"] = await publish_outbox(",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/recovery_v1.py#L252",
+    "line_text": "async def terminal_event(factory, event):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/recovery_v1.py#L84",
+    "line_text": "async def repair_work(factory, *, limit=50, deadline=None):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/short_encoder.py#L54",
+    "line_text": "async def encode_record(",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/short_encoder.py#L82",
+    "line_text": "result = await worker.execute_message(",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/short_encoder.py#L95",
+    "line_text": "if result is worker.STALE:",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/short_lane.py#L103",
+    "line_text": "async def previously_ran_on_lambda(session, job_id):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/short_lane.py#L124",
+    "line_text": "async def work_lane(session, job):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/short_lane.py#L81",
+    "line_text": "def enabled(environ=None):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/short_lane.py#L94",
+    "line_text": "def check_probe(probe):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/v1_api.py#L77",
+    "line_text": "async def retry_owned(session, owner_id, job_id, request_id):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/worker/source.py#L12",
+    "line_text": "class SourceStore:",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/worker/source.py#L27",
+    "line_text": "async def download(self, _client, work, _settings, path):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/worker/sqs.py#L109",
+    "line_text": "async def execute_message(",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/worker/sqs.py#L166",
+    "line_text": "with tempfile.TemporaryDirectory(prefix=\"processing-v1-\") as temporary:",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/worker/sqs.py#L180",
+    "line_text": "finished = await finish(factory, work, outputs=outputs)",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/worker/sqs.py#L343",
+    "line_text": "if complete is STALE or complete:",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/worker/storage.py#L26",
+    "line_text": "class OutputStore:",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/worker/storage.py#L42",
+    "line_text": "async def put(self, key, path, media_type, kind):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/worker/supervisor.py#L111",
+    "line_text": "async def run(self, command):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/worker/supervisor.py#L25",
+    "line_text": "def __init__(self, factory, work, settings, *, renew=None, deadline=None):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/worker/supervisor.py#L51",
+    "line_text": "async def renew_authority(self):",
+    "nonempty_target": true
+  },
+  {
+    "target": "processing/worker/tasks.py#L16",
+    "line_text": "async def pipeline(work, settings, supervisor, client, store, directory, *, downloader, admit=None):",
+    "nonempty_target": true
+  },
+  {
+    "target": "scripts/aws/v1/definitions.py#L1766",
+    "line_text": "props[\"ScheduleExpression\"] = \"rate(1 minute)\"",
+    "nonempty_target": true
+  },
+  {
+    "target": "scripts/aws/v1/definitions.py#L863",
+    "line_text": "producers = {",
+    "nonempty_target": true
+  }
+]

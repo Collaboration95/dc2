@@ -1,0 +1,40 @@
+@startuml
+!include _style.iuml
+title Trust view · protected routes · 76282d3
+left to right direction
+skinparam defaultFontSize 22
+skinparam ArrowFontSize 20
+skinparam LegendFontSize 18
+skinparam titleFontSize 23
+skinparam BackgroundColor #ffffff
+skinparam componentStyle uml2
+skinparam nodesep 25
+skinparam ranksep 28
+skinparam packageStyle rectangle
+component "frontend/\npublisher/" as client <<untrusted>> $CLIENT
+component "HttpApi\nGatewayAuthorizer\nREQUEST\nCookie · TTL 0" as gateway $INFRA
+' https://github.com/Collaboration95/dc2/blob/76282d3/contracts/gateway.py#L3-L5
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1546-L1621
+package "Backend invocation boundary" as backend <<trust boundary>> $INFRA {
+ package "Media identity authority" as authority $MEDIA {
+  component "MediaAuthorizer\nHS256\nsub / exp / iat" as auth
+  database "media_db\nusers" as users
+  auth ..> users : current User
+ }
+ component "MediaApi\n----\nGatewayAdapter\ncurrent_user(): cookie + User\ncompare Actor" as media $MEDIA
+ component "ProcessingApi\n----\nGatewayAdapter\ngateway_actor(): Actor" as processing $PROC
+ media ..> users : recheck User
+}
+client ..> gateway : access_token\ncookie
+ gateway ..> auth : CUSTOM\nroutes
+ auth ..> gateway : <<flow>>\nboolean + Actor
+ gateway ..> media : AWS_PROXY\ncookie + Actor
+ gateway ..> processing : AWS_PROXY\ncookie + Actor
+legend bottom
+ Blue = Media; amber = Processing; green = client; slate = infrastructure.
+ Dashed = required dependency; <<flow>> returns authorization context. Boundary is not a subnet.
+ Lambda resource policies restrict Gateway invocation. The Actor marker is a schema fence, not a secret.
+ Each API runs GatewayAdapter: strips x-owner-id / x-role, validates / injects Actor, preserves cookies.
+ Health and register/login/logout are public exceptions. Operator/readiness invokes use separate IAM authority.
+endlegend
+@enduml

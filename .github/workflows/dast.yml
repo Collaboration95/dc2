@@ -92,6 +92,9 @@ jobs:
       - name: Summarize DAST findings
         if: always()
         run: python3 -m scripts.ci.sarif summary 'OWASP ZAP authenticated DAST (report-only)' "$RUNNER_TEMP/v1-dast-reports/zap.sarif" >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish ZAP severity counts and scan scope
+        if: always()
+        run: python3 -m scripts.ci.quality_summary zap "$RUNNER_TEMP/v1-dast-reports" >> "$GITHUB_STEP_SUMMARY"
       - name: Publish DAST findings to code scanning
         if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         continue-on-error: true

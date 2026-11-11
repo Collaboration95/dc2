@@ -1,0 +1,59 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 18
+skinparam classAttributeFontSize 18
+skinparam ClassStereotypeFontSize 17
+skinparam NoteFontSize 18
+skinparam titleFontSize 21
+skinparam BoxPadding 8
+skinparam maxMessageSize 230
+skinparam nodesep 30
+skinparam ranksep 44
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+title UC-7 analysis: independent release authority
+top to bottom direction
+class "Release operations" as ops <<boundary>> {
+ request owner release
+ request recovery
+}
+class "Release coordinator" as ctl <<control>> {
+ admit evidence
+ prepare candidate
+ promote and verify
+ restore prior version
+}
+class "Release candidate" as candidate <<entity>> {
+ owner
+ source identity
+ immutable artifact
+}
+class "Admission evidence" as evidence <<entity>> {
+ tested source
+ scan result
+ schema compatibility
+}
+class "Recovery intent" as intent <<entity>> {
+ release identity
+ phase
+ pending actions
+}
+class "Prior snapshot" as prior <<entity>> {
+ owner versions
+ peer versions
+ schema revision
+}
+ops --> ctl
+ctl --> candidate : releases
+candidate "1" --- "1..*" evidence : justified by
+ctl --> intent : persists before mutation
+intent "1" --- "1" prior : retains
+note bottom of prior
+ Peer is observed independently.
+ Restore repairs code selection;
+ schema downgrade is excluded.
+end note
+@enduml

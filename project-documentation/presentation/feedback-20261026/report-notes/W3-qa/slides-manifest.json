@@ -1,0 +1,436 @@
+{
+  "superseded_by": "../../review/W3-qa/verification.json",
+  "producer_record": [
+    {
+      "section": "s28",
+      "figure": "03-a-intake-classes",
+      "placement": "REPLACES s28",
+      "kind": "main",
+      "title": "One source adoption commits its command",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L21",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L149",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/upload_models.py#L25",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/models.py#L36",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L31",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L22",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging_models.py#L20"
+      ]
+    },
+    {
+      "section": "w3-media-components",
+      "figure": "01-media-components",
+      "placement": "NEW after s28",
+      "kind": "main",
+      "title": "Media separates acceptance from publication",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/lambda_handler.py#L1",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/api/uploads.py#L18",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_jobs.py#L43",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_hls.py#L25",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L105",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L9",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L35",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L22",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/repositories/assets.py#L29",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/authorizer.py#L40"
+      ]
+    },
+    {
+      "section": "w3-processing-components",
+      "figure": "02-processing-components",
+      "placement": "NEW after s28",
+      "kind": "main",
+      "title": "Processing owns routing and execution authority",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/handlers.py#L24",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L232",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L109",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/tasks.py#L16",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/supervisor.py#L124",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher_aws.py#L49",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher_trigger.py#L32"
+      ]
+    },
+    {
+      "section": "s29",
+      "figure": "06-a1-upload",
+      "placement": "REPLACES s29",
+      "kind": "main",
+      "title": "Finalize adopts the bytes it verified",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/api/uploads.py#L18",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L99",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L149",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L62",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L31"
+      ]
+    },
+    {
+      "section": "s30",
+      "figure": "07-a2-submit-execute",
+      "placement": "REPLACES s30",
+      "kind": "main",
+      "title": "Command acceptance commits before work is sent",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L58",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/handlers.py#L52",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L232",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L102",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L325",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L338",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher_aws.py#L81"
+      ]
+    },
+    {
+      "section": "s31",
+      "figure": "08-a3-result-play",
+      "placement": "REPLACES s31",
+      "kind": "main",
+      "title": "Playback reads the accepted result projection",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery_v1.py#L166",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L16",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L246",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_jobs.py#L43",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_hls.py#L25",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L190"
+      ]
+    },
+    {
+      "section": "w3-hls",
+      "figure": "22-hls-playback",
+      "placement": "NEW after s31",
+      "kind": "main",
+      "title": "Media returns the HLS segment redirect",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_hls.py#L25",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L190"
+      ]
+    },
+    {
+      "section": "w3-edit",
+      "figure": "14-edit",
+      "placement": "NEW after s31",
+      "kind": "main",
+      "title": "Editing commits a new Asset before SQS",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_jobs.py#L55",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L105",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L145",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L75",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L209",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/intake.py#L54",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L58",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L58",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1765"
+      ]
+    },
+    {
+      "section": "w3-b-classes",
+      "figure": "10-b-classes",
+      "placement": "NEW after s31",
+      "kind": "main",
+      "title": "Retry preserves the Job and replaces the Attempt",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L15",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L77",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging_models.py#L36",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L28",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L155",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L24"
+      ]
+    },
+    {
+      "section": "w3-expiry",
+      "figure": "11-b1-expiry",
+      "placement": "NEW after s31",
+      "kind": "main",
+      "title": "Expired authority produces a failed Job",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery_v1.py#L184",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L40",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L24",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L28",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L102",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69"
+      ]
+    },
+    {
+      "section": "w3-retry",
+      "figure": "12-b2-retry",
+      "placement": "NEW after s31",
+      "kind": "main",
+      "title": "Owner retry stages intent over the stored source",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/api/v1_jobs.py#L49",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L50",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L58",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L232",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L155",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/v1_api.py#L77"
+      ]
+    },
+    {
+      "section": "w3-retry-accept",
+      "figure": "12a-processing-retry",
+      "placement": "NEW after s31",
+      "kind": "main",
+      "title": "Processing commits one successor per retry identity",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L232",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L155",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L102"
+      ]
+    },
+    {
+      "section": "w3-stale",
+      "figure": "13-b3-fence",
+      "placement": "NEW after s31",
+      "kind": "main",
+      "title": "The old Claim cannot finish the new Attempt",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L405",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L28",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L16",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L18",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L36",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69"
+      ]
+    },
+    {
+      "section": "s61",
+      "figure": "15-job-states",
+      "placement": "REPLACES s61",
+      "kind": "back",
+      "title": "Cancellation overlays the persisted Job status",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L15",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L60",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L155",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L186",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L412",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery_v1.py#L84",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L24",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184"
+      ]
+    },
+    {
+      "section": "w3-retry-surfaces",
+      "figure": null,
+      "placement": "NEW backup",
+      "kind": "back",
+      "title": "The two retry APIs enter different transactions",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L50",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/v1_api.py#L77",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L308",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/v1_lifecycle.py#L87",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L319"
+      ]
+    },
+    {
+      "section": "s67",
+      "figure": "17-recovery-branches",
+      "placement": "REPLACES s67",
+      "kind": "back",
+      "title": "Queued delivery repair differs from encoder recovery",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery_v1.py#L84",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery_v1.py#L252",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L40",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L24",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L155",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L26"
+      ]
+    },
+    {
+      "section": "w3-back-04-a-execution-classes",
+      "figure": "04-a-execution-classes",
+      "placement": "NEW backup",
+      "kind": "back",
+      "title": "A Claim carries immutable execution authority",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L15",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L122",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/tasks.py#L16",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/supervisor.py#L25",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/source.py#L12",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/storage.py#L28",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_lane.py#L124"
+      ]
+    },
+    {
+      "section": "w3-back-05-a-projection-classes",
+      "figure": "05-a-projection-classes",
+      "placement": "NEW backup",
+      "kind": "back",
+      "title": "Media owns the public result model",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L36",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L246",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/projection_models.py#L12",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L99",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L157",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L190"
+      ]
+    },
+    {
+      "section": "w3-back-06a-reserve",
+      "figure": "06a-reserve",
+      "placement": "NEW backup",
+      "kind": "back",
+      "title": "The upload grant fixes the writable key",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/api/uploads.py#L18",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L99",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L42"
+      ]
+    },
+    {
+      "section": "w3-back-09a-probe",
+      "figure": "09a-probe",
+      "placement": "NEW backup",
+      "kind": "back",
+      "title": "Claim precedes download and source admission",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L166",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/tasks.py#L16",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/source.py#L12",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/storage.py#L28",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/supervisor.py#L51",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/probe.py#L10",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/operations.py#L10"
+      ]
+    },
+    {
+      "section": "w3-back-09b-encode",
+      "figure": "09b-encode",
+      "placement": "NEW backup",
+      "kind": "back",
+      "title": "Verified output descriptors precede fenced finish",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L166",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/tasks.py#L16",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/source.py#L12",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/storage.py#L28",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/supervisor.py#L51",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/probe.py#L10",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/operations.py#L10"
+      ]
+    },
+    {
+      "section": "w3-back-13a-projection-fence",
+      "figure": "13a-projection-fence",
+      "placement": "NEW backup",
+      "kind": "back",
+      "title": "Media separately fences delayed result snapshots",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L16",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L18",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L36",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/projections.py#L69"
+      ]
+    },
+    {
+      "section": "w3-back-16-attempt-states",
+      "figure": "16-attempt-states",
+      "placement": "NEW backup",
+      "kind": "back",
+      "title": "A terminal Attempt never returns to queued",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/models.py#L50",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L170",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L24",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L186",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L412"
+      ]
+    },
+    {
+      "section": "w3-back-18-lane-policy",
+      "figure": "18-lane-policy",
+      "placement": "NEW backup",
+      "kind": "back",
+      "title": "Dispatch and admission use different facts",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_lane.py#L81",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_lane.py#L94",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_lane.py#L103",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_lane.py#L124",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_encoder.py#L54",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L412",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media_engine/probe.py#L10"
+      ]
+    },
+    {
+      "section": "w3-back-19-execution-adapters",
+      "figure": "19-execution-adapters",
+      "placement": "NEW backup",
+      "kind": "back",
+      "title": "The pipeline injects storage and supervision",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/tasks.py#L16",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/supervisor.py#L25",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/source.py#L12",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/storage.py#L28"
+      ]
+    },
+    {
+      "section": "w3-back-20-contract-classes",
+      "figure": "20-contract-classes",
+      "placement": "NEW backup",
+      "kind": "back",
+      "title": "Messages carry source identity and state versions",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L99",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/contracts/v1.py#L157"
+      ]
+    },
+    {
+      "section": "w3-back-21-lease-functions",
+      "figure": "21-lease-functions",
+      "placement": "NEW backup",
+      "kind": "back",
+      "title": "Lease policy lives in functions over owned records",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L28",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L155",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/recovery.py#L24"
+      ]
+    },
+    {
+      "section": "w3-back-23-claim-finish",
+      "figure": "23-claim-finish",
+      "placement": "NEW backup",
+      "kind": "back",
+      "title": "Claim and finish each commit under SQL authority",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L109",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L325",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L136",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/lifecycle.py#L184",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/processing/worker/sqs.py#L338"
+      ]
+    },
+    {
+      "section": "w3-back-24-intake-types",
+      "figure": "24-intake-types",
+      "placement": "NEW backup",
+      "kind": "back",
+      "title": "Uploads and edits retain different source pins",
+      "sources": [
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L22",
+        "https://github.com/Collaboration95/dc2/blob/76282d3/media/upload_models.py#L64"
+      ]
+    }
+  ]
+}

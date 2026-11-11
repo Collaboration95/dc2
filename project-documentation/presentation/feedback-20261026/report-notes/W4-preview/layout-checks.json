@@ -1,0 +1,952 @@
+[
+  {
+    "id": "w4-stores",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-stores\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"TABLE\",\"top\":102.328125,\"bottom\":611.328125,\"width\":1180},{\"tag\":\"P\",\"top\":623.328125,\"bottom\":652.078125,\"width\":1160}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-stores",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "TABLE",
+            "top": 102.328125,
+            "bottom": 611.328125,
+            "width": 1180
+          },
+          {
+            "tag": "P",
+            "top": 623.328125,
+            "bottom": 652.078125,
+            "width": 1160
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-media-main",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-media-main\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":175.296875,\"bottom\":579.078125,\"width\":1179.96875}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-media-main",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 175.296875,
+            "bottom": 579.078125,
+            "width": 1179.96875
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-processing-main",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-processing-main\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":117.1875,\"bottom\":637.1875,\"width\":1118.203125}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-processing-main",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 117.1875,
+            "bottom": 637.1875,
+            "width": 1118.203125
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-keys",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-keys\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"TABLE\",\"top\":144.671875,\"bottom\":540.203125,\"width\":1180},{\"tag\":\"P\",\"top\":552.203125,\"bottom\":609.703125,\"width\":1160}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-keys",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "TABLE",
+            "top": 144.671875,
+            "bottom": 540.203125,
+            "width": 1180
+          },
+          {
+            "tag": "P",
+            "top": 552.203125,
+            "bottom": 609.703125,
+            "width": 1160
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-media-assets",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-media-assets\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":117.1875,\"bottom\":637.1875,\"width\":704.109375}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-media-assets",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 117.1875,
+            "bottom": 637.1875,
+            "width": 704.109375
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-media-upload",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-media-upload\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":117.1875,\"bottom\":637.1875,\"width\":621.5625}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-media-upload",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 117.1875,
+            "bottom": 637.1875,
+            "width": 621.5625
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-media-pins",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-media-pins\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":196.15625,\"bottom\":558.234375,\"width\":764.25}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-media-pins",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 196.15625,
+            "bottom": 558.234375,
+            "width": 764.25
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-media-projection",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-media-projection\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":165.21875,\"bottom\":589.171875,\"width\":764.25}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-media-projection",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 165.21875,
+            "bottom": 589.171875,
+            "width": 764.25
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-media-intents",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-media-intents\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":178.96875,\"bottom\":575.421875,\"width\":764.25}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-media-intents",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 178.96875,
+            "bottom": 575.421875,
+            "width": 764.25
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-media-retry",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-media-retry\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":145.171875,\"bottom\":609.21875,\"width\":877.671875}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-media-retry",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 145.171875,
+            "bottom": 609.21875,
+            "width": 877.671875
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-media-cleanup",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-media-cleanup\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":206.46875,\"bottom\":547.921875,\"width\":784.875}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-media-cleanup",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 206.46875,
+            "bottom": 547.921875,
+            "width": 784.875
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-media-delivery",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-media-delivery\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":175.53125,\"bottom\":578.859375,\"width\":973.9375}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-media-delivery",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 175.53125,
+            "bottom": 578.859375,
+            "width": 973.9375
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-processing-attempts",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-processing-attempts\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":117.1875,\"bottom\":637.1875,\"width\":881.640625}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-processing-attempts",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 117.1875,
+            "bottom": 637.1875,
+            "width": 881.640625
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-processing-intents",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-processing-intents\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":117.1875,\"bottom\":637.1875,\"width\":782.9375}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-processing-intents",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 117.1875,
+            "bottom": 637.1875,
+            "width": 782.9375
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-processing-cleanup",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-processing-cleanup\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":178.96875,\"bottom\":575.421875,\"width\":764.25}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-processing-cleanup",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 178.96875,
+            "bottom": 575.421875,
+            "width": 764.25
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-processing-delivery",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-processing-delivery\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":175.53125,\"bottom\":578.859375,\"width\":764.25}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-processing-delivery",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 175.53125,
+            "bottom": 578.859375,
+            "width": 764.25
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-processing-bindings",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-processing-bindings\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":178.96875,\"bottom\":575.421875,\"width\":764.25}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-processing-bindings",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 178.96875,
+            "bottom": 575.421875,
+            "width": 764.25
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-processing-launcher",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-processing-launcher\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"IMG\",\"top\":129.125,\"bottom\":625.265625,\"width\":892.59375}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-processing-launcher",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "IMG",
+            "top": 129.125,
+            "bottom": 625.265625,
+            "width": 892.59375
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-envelope",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-envelope\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"DIV\",\"top\":205.265625,\"bottom\":467.609375,\"width\":1180},{\"tag\":\"P\",\"top\":479.609375,\"bottom\":508.359375,\"width\":1160},{\"tag\":\"P\",\"top\":520.359375,\"bottom\":549.109375,\"width\":1160}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-envelope",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "DIV",
+            "top": 205.265625,
+            "bottom": 467.609375,
+            "width": 1180
+          },
+          {
+            "tag": "P",
+            "top": 479.609375,
+            "bottom": 508.359375,
+            "width": 1160
+          },
+          {
+            "tag": "P",
+            "top": 520.359375,
+            "bottom": 549.109375,
+            "width": 1160
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-kinds",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-kinds\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"TABLE\",\"top\":129.09375,\"bottom\":555.78125,\"width\":1180},{\"tag\":\"P\",\"top\":567.78125,\"bottom\":625.28125,\"width\":1160}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-kinds",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "TABLE",
+            "top": 129.09375,
+            "bottom": 555.78125,
+            "width": 1180
+          },
+          {
+            "tag": "P",
+            "top": 567.78125,
+            "bottom": 625.28125,
+            "width": 1160
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-cancel-ack",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-cancel-ack\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"PRE\",\"top\":198.4375,\"bottom\":486.4375,\"width\":1156},{\"tag\":\"P\",\"top\":498.4375,\"bottom\":555.9375,\"width\":1160}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-cancel-ack",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "PRE",
+            "top": 198.4375,
+            "bottom": 486.4375,
+            "width": 1156
+          },
+          {
+            "tag": "P",
+            "top": 498.4375,
+            "bottom": 555.9375,
+            "width": 1160
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-json-descriptors",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-json-descriptors\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"TABLE\",\"top\":153.46875,\"bottom\":560.15625,\"width\":1180},{\"tag\":\"P\",\"top\":572.15625,\"bottom\":600.90625,\"width\":1160}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-json-descriptors",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "TABLE",
+            "top": 153.46875,
+            "bottom": 560.15625,
+            "width": 1180
+          },
+          {
+            "tag": "P",
+            "top": 572.15625,
+            "bottom": 600.90625,
+            "width": 1160
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-operations",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-operations\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"TABLE\",\"top\":187.1875,\"bottom\":428.1875,\"width\":1180},{\"tag\":\"P\",\"top\":440.1875,\"bottom\":497.6875,\"width\":1160},{\"tag\":\"P\",\"top\":509.6875,\"bottom\":567.1875,\"width\":1160}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-operations",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "TABLE",
+            "top": 187.1875,
+            "bottom": 428.1875,
+            "width": 1180
+          },
+          {
+            "tag": "P",
+            "top": 440.1875,
+            "bottom": 497.6875,
+            "width": 1160
+          },
+          {
+            "tag": "P",
+            "top": 509.6875,
+            "bottom": 567.1875,
+            "width": 1160
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-support-stores",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-support-stores\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"TABLE\",\"top\":215.25,\"bottom\":539.125,\"width\":1180}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-support-stores",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "TABLE",
+            "top": 215.25,
+            "bottom": 539.125,
+            "width": 1180
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-adr",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-adr\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"TABLE\",\"top\":102.265625,\"bottom\":541.890625,\"width\":1180},{\"tag\":\"P\",\"top\":553.890625,\"bottom\":582.640625,\"width\":1160},{\"tag\":\"P\",\"top\":594.640625,\"bottom\":652.140625,\"width\":1160}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-adr",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "TABLE",
+            "top": 102.265625,
+            "bottom": 541.890625,
+            "width": 1180
+          },
+          {
+            "tag": "P",
+            "top": 553.890625,
+            "bottom": 582.640625,
+            "width": 1160
+          },
+          {
+            "tag": "P",
+            "top": 594.640625,
+            "bottom": 652.140625,
+            "width": 1160
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  },
+  {
+    "id": "w4-support-ops",
+    "width": 1280,
+    "contentHeight": 720,
+    "capturedHeight": 720,
+    "consoleMessages": [
+      {
+        "level": "log",
+        "text": "{\"id\":\"w4-support-ops\",\"titleBottom\":78.390625,\"tagBottom\":102.390625,\"footTop\":682,\"content\":[{\"tag\":\"TABLE\",\"top\":227,\"bottom\":527.375,\"width\":1180}],\"overlap\":false}"
+      }
+    ],
+    "screenshot": {
+      "mimeType": "image/png",
+      "width": 1280,
+      "height": 720
+    },
+    "checks": [
+      {
+        "id": "w4-support-ops",
+        "titleBottom": 78.390625,
+        "tagBottom": 102.390625,
+        "footTop": 682,
+        "content": [
+          {
+            "tag": "TABLE",
+            "top": 227,
+            "bottom": 527.375,
+            "width": 1180
+          }
+        ],
+        "overlap": false
+      }
+    ]
+  }
+]

@@ -1,0 +1,39 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/messaging.py#L101-L130
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/short_lane.py#L81-L130
+' https://github.com/Collaboration95/dc2/blob/76282d3/processing/launcher_trigger.py#L39-L51
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1267-L1301
+title Activity view · queue selection for a queued Job / Attempt · 76282d3
+skinparam defaultFontSize 22
+skinparam ArrowFontSize 21
+skinparam activityFontSize 22
+skinparam titleFontSize 22
+skinparam LegendFontSize 22
+skinparam swimlaneWidth 310
+|$PROC|Processing transaction|
+start
+:messaging.emit_state\n→ short_lane.work_lane;
+if (enabled AND integer size\n0 < bytes ≤64 MiB\nAND no lambda-* binding?) then ([true])
+ :stage short work;
+else ([false])
+ :stage standard work;
+endif
+:caller COMMITs outbox;
+|$PROC|Processing publisher|
+:publish_outbox → SQS;
+if (outbox lane = short?) then ([true])
+ |$INFRA|Lambda event-source mapping|
+ :invoke ProcessingShortEncoder\nbatch 1; concurrency ≤2;
+ stop
+else ([false])
+ |Processing publisher|
+ :WakeOnWork.send\nasync wake ProcessingLauncher;
+ stop
+endif
+legend bottom
+ Amber = Processing; slate = managed Lambda mapping. Guards are in brackets.
+ Initial dispatch uses size and Job history. Launcher capacity: see the load-distribution view.
+endlegend
+@enduml

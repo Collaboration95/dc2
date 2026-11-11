@@ -1,0 +1,64 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam classAttributeIconSize 0
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+skinparam nodesep 25
+skinparam ranksep 28
+title Class view · UC-1 adopts one verified source and its command\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L99
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L149
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/upload_models.py#L25
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/models.py#L36
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging.py#L31
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L23
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/messaging_models.py#L22
+
+top to bottom direction
+class "direct_intake (media.services)" as I <<module>> $MEDIA {
+ {static} + reserve(session, storage, owner_id, request)
+ {static} + finalize(session, storage, owner_id, reservation_id, request, *, enqueue=None)
+}
+class "Storage (media.services.storage)" as S <<Adapter>> $MEDIA {
+ + direct_upload_grant(reservation)
+ + verify_direct_upload(reservation, *, check_content=True)
+}
+class "UploadReservation" as U <<ORM>> $MEDIA {
+ + id: UUID
+ + asset_id: UUID
+ + request_hash: str
+ + version_id: str | None
+ + finalized_at: datetime | None
+ + expires_at: datetime
+}
+class "Asset (media.models)" as A <<ORM>> $MEDIA {
+ + id: UUID
+ + owner_id: UUID
+ + source_key: str
+ + source_sha256: str
+ + source_size_bytes: int
+ + operations: list
+}
+class "MediaOutbox" as O <<Transactional Outbox>> $MEDIA {
+ + message_id: UUID
+ + queue: str
+ + body: dict
+}
+I -right-> S : uses
+I ..> U : locks / pins
+I ..> A : creates
+I ..> O : enqueue_submit -> stage
+U "0..1" -right- "0..1" A : asset_id (logical, no FK)
+A -[hidden]right- O
+legend bottom
++ public; - internal by Python convention; underlined = class/module scope.
+Selected Mapped[T] attributes shown as T. Real untyped function signatures retained; no invented service classes.
+UploadReservation and MediaOutbox are media.upload_models / media.messaging_models classes.
+Repository participant: media.repositories.assets.fingerprint(value: dict): str hashes reservation input.
+endlegend
+
+@enduml

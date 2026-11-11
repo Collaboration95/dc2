@@ -1,0 +1,49 @@
+@startuml
+!include _style.iuml
+title Logical view · service interfaces and owned data · 76282d3
+top to bottom direction
+skinparam defaultFontSize 24
+skinparam ArrowFontSize 21
+skinparam LegendFontSize 20
+skinparam titleFontSize 24
+skinparam BackgroundColor #ffffff
+skinparam componentStyle uml2
+skinparam nodesep 22
+skinparam ranksep 25
+skinparam packageStyle rectangle
+component "frontend/ + publisher/" as clients <<clients>> $CLIENT
+component "HttpApi / GatewayAuthorizer" as gateway <<HTTP API>> $INFRA
+component "MediaAuthorizer\nHS256 + current User" as auth $MEDIA
+component "media/\n----\nMediaApi\nMediaRepair\nMediaResults" as media <<composite service>> $MEDIA
+component "processing/\n----\nProcessingApi\nCommand / repair / encoding\ncomponents: next slide" as processing <<composite service>> $PROC
+ database "media_db" as md $MEDIA
+ database "processing_db" as pd $PROC
+component "SourceBucket / OutputBucket" as s3 <<S3>> $INFRA
+interface "/api/media/*" as media_http
+interface "/api/processing/*" as processing_http
+' https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1560-L1621
+clients .right.> gateway : HTTPS
+ gateway .right.> auth : REQUEST
+ gateway ..> media_http : requires
+ gateway ..> processing_http : requires
+ media_http -- media
+ processing_http -- processing
+ gateway -[hidden]down-> media_http
+ gateway -[hidden]down-> processing_http
+ media_http -[hidden]down-> media
+ processing_http -[hidden]down-> processing
+' https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sqs.py#L12-L26
+ media .right.> processing : <<flow>>\nProcessingCommandsQueue\nsubmit / retry / cancel
+ processing .left.> media : <<flow>>\nMediaResultsQueue · result
+ media ..> md : owned SQL
+ processing ..> pd : owned SQL
+ md -[hidden]right-> s3
+ s3 -[hidden]right-> pd
+legend bottom
+ Blue = Media; amber = Processing; green = clients; slate = infrastructure.
+ Circle + solid line = provided HTTP interface; dashed arrow = required dependency.
+ <<flow>> labels asynchronous message flow through the named queue, not peer HTTP.
+ Media writes sources and reads outputs. Processing reads sources and writes outputs.
+ Processing components and both work queues are expanded on the next slide.
+endlegend
+@enduml

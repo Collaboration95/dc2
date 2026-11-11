@@ -1,0 +1,38 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+title Physical data view · Media retained legacy retry ledger · 76282d3
+hide circle
+skinparam linetype polyline
+left to right direction
+skinparam defaultFontSize 19
+skinparam ClassAttributeFontSize 18
+skinparam ClassFontSize 20
+skinparam ArrowFontSize 16
+skinparam LegendFontSize 14
+skinparam nodesep 42
+skinparam ranksep 70
+entity "retry_intents" as retry_intents $MEDIA {
+  {field} * id : uuid <<PK>>
+  {field} * asset_id : uuid <<FK>>
+  {field}   confirmed_at ? : timestamptz
+  {field}   rejected_at ? : timestamptz
+  {field} * created_at : timestamptz
+  {field} * next_try_at : timestamptz
+  {field} * attempts : integer
+  {field}   last_error ? : text
+}
+entity "assets\n<<reference: key only>>" as assets $INFRA {
+  {field} * id : uuid <<PK>>
+}
+assets ||--o{ retry_intents : "asset_id"
+note bottom of retry_intents
+Native V1 retry stages a command outbox row.
+end note
+legend bottom left
+  * = NOT NULL    ? = nullable    PK = primary key    FK = declared local foreign key
+  UK = unique column    UKn = one composite unique group    timestamptz = timestamp with time zone
+  Blue = Media; amber = Processing; grey = reference key on another sheet
+  All columns of coloured tables are shown; CHECKs, defaults and indexes are in the report dictionary.
+endlegend
+@enduml

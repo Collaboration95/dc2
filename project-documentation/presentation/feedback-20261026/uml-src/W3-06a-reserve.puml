@@ -1,0 +1,50 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam NoteFontSize 14
+skinparam maxMessageSize 400
+hide footbox
+autonumber
+title Sequence view · UC-1 reserves a key before direct upload\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/api/uploads.py#L18
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/direct_intake.py#L99
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/services/storage.py#L42
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+skinparam maxMessageSize 350
+actor owner as C $CLIENT
+participant "api.uploads\n«module»" as A $MEDIA
+participant "direct_intake\n«module»" as I $MEDIA
+participant "s: AsyncSession" as DB $INFRA
+participant "storage: Storage" as S $MEDIA
+collections "source: S3" as B $INFRA
+C -> A : POST /uploads/reservations (request JSON)
+activate A
+A -> I : reserve(s,storage,user.id,request)
+activate I
+group Media reservation transaction
+ I -> DB : SQL: owner/request lookup; add/flush row if absent; COMMIT
+end
+opt pending, unexpired, matching request hash
+ I -> S : direct_upload_grant(row)
+ activate S
+ S --> I : upload: dict (method/url/fields)
+ deactivate S
+end
+I --> A : reservation dict (upload=None if finalized)
+deactivate I
+A --> C : HTTP 201 response
+deactivate A
+opt upload grant returned
+ C -> B : POST exact staging key
+ B --> C : upload response
+end
+legend bottom
+Hash conflict raises 409; expired pending row raises 410. IntegrityError re-reads the winning row.
+POST length range is 1..declared size; finalize enforces exact size/hash. Max 100 MiB; expiry 15 minutes.
+endlegend
+@enduml

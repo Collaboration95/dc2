@@ -2,9 +2,9 @@
 
 ## Project Plan
 
-The briefing expects about 10 person-days (pd) per participant. The submitted proposal estimated
-**31 pd** for three members across ten work packages (WBS). Each package had a lead member
-(proposal §4.1).
+The briefing expects about 10 person-days (pd) per participant. The proposal (§4.1) estimated
+**31 pd** for three members across ten work packages (WBS), each with a lead member. Project
+Metrics gives the effort per member against these estimates.
 
 | # | Work package | Lead | Estimate (pd) |
 |:--|:--------------------------------------------------------------|:------------|------:|
@@ -17,146 +17,205 @@ The briefing expects about 10 person-days (pd) per participant. The submitted pr
 | 7 | AWS environment, per-service deployment, pipeline updates, smoke test | Guruprasath | 4 |
 | 8 | Experiments: scaling, load, recovery and playback; raw results | Long | 3 |
 | 9 | Integration fixes and repeat checks | All | 2 |
-| 10 | Progress report, presentation and final report | All | 3 |
+| 10 | Presentation and final report | All | 3 |
 | | **Total** | | **31** |
 
-The proposal's schedule had six periods:
+### Responsibility for analysis and design
 
-- 5–7 October: baseline and domain model.
-- 8–14 October: extraction and the web app end to end.
-- 15–20 October: security, AWS, pipeline and experiments.
-- 21–25 October: fixes and rehearsal.
-- 26 October: the presentation.
-- 27 October – 16 November: the final report.
+Each use case's **analysis and design**, and each design problem, has one responsible member,
+following the team's three specialisms.
 
-The plan recorded four main risks:
+| Item | Analysis and design responsibility |
+|:---|:---|
+| UC-1 Register, log in and upload an owned video | Ibrahim Mammadov |
+| UC-2 Process the video into playable outputs | Ibrahim Mammadov |
+| UC-3 Track status and play the result | Nguyễn Kim Long |
+| UC-4 Retry from the stored source | Ibrahim Mammadov |
+| UC-5 Bulk-publish a folder and report results | Nguyễn Kim Long |
+| UC-6 Scale processing capacity independently | Guruprasath Gopal |
+| UC-7 Release Processing on its own and demonstrate rollback | Guruprasath Gopal |
+| DP-1 Bounded cloud capacity and safe per-owner release | Guruprasath Gopal |
+| DP-2 Durable asynchronous Processing handoff | Ibrahim Mammadov |
+| DP-3 Trusted owner identity and reusable public contract | Nguyễn Kim Long |
 
-- Tangled shared code.
-- AWS account or cost issues.
-- Little scaling gain.
-- A three-member team.
+### Product backlog
 
-Each had a mitigation: extract first; set up AWS in week 1 with cost alerts; cap CPU per worker
-and report honestly; narrow the scope.
+[GitHub Project 14](https://github.com/users/Collaboration95/projects/14) holds the delivery
+backlog. Each issue states an outcome, acceptance criteria and verification; the local contracts
+are also kept in `docs/execution/backlog.json` and the versioned AWS backlog directories. On
+10 November the board held **118 items: 111 Done, 6 Todo and 1 In Progress**.
 
-**Way of working.**
+| Field | Values and purpose |
+|:---|:---|
+| Workflow | Backlog, Ready, In progress, Review, Blocked, Done; authoritative delivery state |
+| Wave | Wave 0–4; dependency order for local delivery, followed by AWS bundles and close-out |
+| Priority | P0, P1, P2; implementation ordering |
+| Persona | Maya, Arun, Jules, Sam, or combinations; intended beneficiary |
+| Risk / Area / Sequence | Delivery risk, affected component and execution order |
+| Status | GitHub's Todo / In Progress / Done summary |
 
-- **Backlog.** Work was planned as GitHub issues with outcome, acceptance and verification
-  sections. The issues sat on a GitHub Project board (Project 14) with Workflow, Wave, Priority,
-  Risk and Area fields.
-- **Delivery waves, not timeboxed sprints.** Wave 0–4 locally, then the AWS V1 bundles, then
-  close-out.
-- **Integration.** Pull requests went into integration branches (section 5.1), with CI on every
-  change.
-- **Decisions.** Recorded as ADRs and project decisions (F-01, D-01 to D-07).
-- **Reporting.** One progress report was due on 16 October (decision D-06).
+The Wave field orders the work, and the iterations below give it a calendar. The epic index is:
 
-There were no formal sprint reviews or retrospectives. Their place was taken by:
+| Delivery group | Epics and acceptance focus |
+|:---|:---|
+| Local baseline and integration | [E0 #1](https://github.com/Collaboration95/dc2/issues/1) reviewed plan; [E1 #2](https://github.com/Collaboration95/dc2/issues/2) reproducible workspace; [E2 #3](https://github.com/Collaboration95/dc2/issues/3) Processing; [E3 #4](https://github.com/Collaboration95/dc2/issues/4) Media; [E4 #5](https://github.com/Collaboration95/dc2/issues/5) web/Publisher; [E5 #6](https://github.com/Collaboration95/dc2/issues/6) integrated evidence |
+| Required AWS V1 | [#41](https://github.com/Collaboration95/dc2/issues/41) domain APIs and S3 intake; [#42](https://github.com/Collaboration95/dc2/issues/42) managed runtime and budget; [#43](https://github.com/Collaboration95/dc2/issues/43) Redis-free delivery and releases; [#44](https://github.com/Collaboration95/dc2/issues/44) acceptance and immutable baseline |
+| Close-out | [#178](https://github.com/Collaboration95/dc2/issues/178) visible pipeline; [#179](https://github.com/Collaboration95/dc2/issues/179) cloud proof; [#180](https://github.com/Collaboration95/dc2/issues/180) as-built documentation; [#181](https://github.com/Collaboration95/dc2/issues/181) presentation/report; [#195](https://github.com/Collaboration95/dc2/issues/195) microservice hardening |
+| Persistent demonstration environment | [#234](https://github.com/Collaboration95/dc2/issues/234) always-on in-place delivery and scale-to-zero, with #235–#238 for supporting delivery and verification |
+| Measured improvements | [E6 #33](https://github.com/Collaboration95/dc2/issues/33) performance experiments; [#159](https://github.com/Collaboration95/dc2/issues/159) selective CI and full verification |
+| Optional experiments | [#80](https://github.com/Collaboration95/dc2/issues/80) optional migrations (closed as not planned); [#68](https://github.com/Collaboration95/dc2/issues/68) launcher task, adopted into V2-live |
 
-- the 9 October planning review;
-- independent plan reviews (`docs/execution/reviews/`);
-- the 18 October audit and board reconciliation (#253, #258);
-- the 20 October freeze, with its acceptance checklist.
+### User stories
+
+The stories come from the backlog and the planning personas in
+`project-roadmap/business-scope.json`. Section 6.2 describes the use cases and section 6.4 gives
+the detailed models.
+
+| Use case | Persona story | Backlog link |
+|:---|:---|:---|
+| UC-1 | As a content owner (Arun), I want to register, log in and upload my video, so that I can prepare my own content for playback. | Media [#15](https://github.com/Collaboration95/dc2/issues/15), epic [#4](https://github.com/Collaboration95/dc2/issues/4) |
+| UC-2 | As a content owner (Arun), I want the platform to convert my video to playable outputs, so that I can use it without running a converter myself. | Processing [#13](https://github.com/Collaboration95/dc2/issues/13), epic [#3](https://github.com/Collaboration95/dc2/issues/3) |
+| UC-3 | As a course coordinator (Maya), I want to follow status and play my completed recordings, so that I can check each result while keeping access restricted to my account. | Media [#16](https://github.com/Collaboration95/dc2/issues/16), epic [#4](https://github.com/Collaboration95/dc2/issues/4) |
+| UC-4 | As a content owner (Arun), I want to retry a failed encode from its stored source, so that I can recover without uploading the video again. | Media [#16](https://github.com/Collaboration95/dc2/issues/16), browser retry [#19](https://github.com/Collaboration95/dc2/issues/19) |
+| UC-5 | As a course coordinator (Maya), I want to bulk-publish a folder and receive an outcome for every file, so that I can prepare a course's recordings with one command; Jules integrates this workflow through the published API. | Publisher [#18](https://github.com/Collaboration95/dc2/issues/18), epic [#5](https://github.com/Collaboration95/dc2/issues/5) |
+| UC-6 | As a platform operator (Sam), I want to change Processing capacity independently, so that a backlog can be handled without scaling or redeploying Media. | Scaling [#22](https://github.com/Collaboration95/dc2/issues/22), launcher [#68](https://github.com/Collaboration95/dc2/issues/68) |
+| UC-7 | As a platform operator (Sam), I want to release Processing separately and restore a failed candidate, so that I can change it while preserving Media's release. | Release [#23](https://github.com/Collaboration95/dc2/issues/23), pipeline epic [#178](https://github.com/Collaboration95/dc2/issues/178) |
+
+### Iterations and sprint plans
+
+The team delivered in five iterations that follow the proposal schedule (§4.2) and the delivery
+waves. The sprint plans, reviews and retrospectives below are compiled from the dated worklog
+(`docs/project2-worklog.txt`), review records, release manifest and issue register. Figure
+{@fig:conduct-iteration-plan} shows the plan.
+
+![Figure {#fig:conduct-iteration-plan}. Iteration plan: windows, proposal work packages and leads, with the main milestones.](figures/conduct-iteration-plan.png){width=15cm}
+
+| Iteration | Goal | Committed issues and epics | Outcome |
+|:---|:---|:---|:---|
+| 1 Baseline and domain, 5–9 Oct | Freeze the baseline, define ownership boundaries and agree the seven use cases | WBS 1–2; decisions F-01 and D-01–D-07; later tracked by epics [#1](https://github.com/Collaboration95/dc2/issues/1) and [#7](https://github.com/Collaboration95/dc2/issues/7) | Baseline and domain/design pack completed 7–9 Oct; personas, contracts and build preparation ready |
+| 2 Local services, 10–14 Oct | Deliver the independently owned services, the browser flow and an API-only Publisher, verified locally | E0–E5 (#1–#6); foundation #9–#11, Processing #12–#14, Media #15–#17, clients #18–#19, verification #20–#24 | Processing 12 Oct; Media and Publisher 13 Oct; integrated local workflow, fault, release and experiment evidence to 14 Oct |
+| 3 AWS delivery, 15–20 Oct | Deploy both services on AWS, prove security and independent operations, freeze a demonstration release | V1 #41–#44; cloud proof #63–#67; close-out #178–#180; hardening #195; audit [#258](https://github.com/Collaboration95/dc2/issues/258); manifest #255 | Cloud proofs `r1017b`, `r1018b`, `r1019a`; `project2-v1` and `dc2-live` 18 Oct; CI/CD; security, scaling and rollback evidence; freeze 20 Oct |
+| 4 Hardening and presentation, 21–26 Oct | Resolve release blockers, record the workflows and present | Presentation #192, recordings #254; repairs #285/#287 via PRs #286/#288; short lane #93 and per-service databases #94 | Verified repair `c7c489c` 21 Oct; short lane and database split 21–22 Oct; D1–D5 recorded; presented 26 Oct |
+| 5 Feedback and report, 27 Oct–16 Nov | Incorporate the presentation feedback and complete the final report | Report [#193](https://github.com/Collaboration95/dc2/issues/193), epic #181, effort #191, recordings #254, course checks #257 | W1–W6 feedback packets and report v1.1, submitted for 16 Nov |
+
+| Iteration | Review: increment and evidence | Went well | Improvement and action |
+|:---|:---|:---|:---|
+| 1 | Decision record of 9 Oct: frozen baseline accepted; lecturer asked for detailed domain analysis | Domain and contract decisions gave implementation a shared starting point | Carry acceptance and environment prerequisites into executable issue contracts; Wave 0 planning review (`docs/execution/reviews/planning-rereview.md`) |
+| 2 | PRs [#28](https://github.com/Collaboration95/dc2/pull/28)–[#30](https://github.com/Collaboration95/dc2/pull/30); mixed batch of 30 valid files plus one refusal and a stored-source retry; experiment review of 14 Oct | Separate service branches and public-contract tests made integration straightforward | Preserve request identity and fence delayed responses when users change assets or sessions; client regressions kept (`clients-fixes.md`) |
+| 3 | PR [#194](https://github.com/Collaboration95/dc2/pull/194) V1 acceptance baseline; audit #258; PR [#278](https://github.com/Collaboration95/dc2/pull/278) freeze and effort ledger | Cloud receipts tied each operational claim to its environment and source | Test duplicate messages, idle database behaviour and deployment scripts as operating behaviours; #270/#272 drain re-test, #273 idle fix, #265/#267 pipeline regressions |
+| 4 | PRs [#286](https://github.com/Collaboration95/dc2/pull/286), [#288](https://github.com/Collaboration95/dc2/pull/288) and CD run [39545554380](https://github.com/Collaboration95/dc2/actions/runs/39545554380); D1–D5 clips; feedback of 26 Oct | A frozen baseline and recorded workflows made the presentation repeatable | Show object responsibilities, lane selection and security tools in diagrams; carried into the W1–W6 packets |
+| 5 | Feedback mapped in `feedback-20261026/REPORT-CHANGES.md`; response in section 6.1 | Retained source, receipts and feedback made the revision traceable | Keep issue bookkeeping in step with delivery; close tracking issues at submission |
+
+### Burndown, burnup and issue reduction
+
+Figures {@fig:conduct-overall-issues} to {@fig:conduct-issue-reduction} are derived from GitHub
+issue timestamps captured on **10 November 2026 at 23:15 SGT**. The register holds 156 issues:
+137 tasks and 19 parent epics. Counts use each issue's creation time and latest closure time.
+
+![Figure {#fig:conduct-overall-issues}. Overall burnup: issues registered (scope) against issues closed, with iteration windows shaded. The gap between the lines is the open work.](figures/conduct-overall-issues.png){width=15cm}
+
+![Figure {#fig:conduct-iteration-burndown}. Per-iteration burndown: issues registered and closed in each iteration, and issues open at its end. Iteration 5 is counted to 10 November.](figures/conduct-iteration-burndown.png){width=15cm}
+
+![Figure {#fig:conduct-issue-reduction}. Issue reduction: open tasks and open parent epics over time. Seven remain open on 10 November.](figures/conduct-issue-reduction.png){width=15cm}
+
+Issues were registered from 13 October, once the wave plan existed, so Iteration 1 work appears
+under its later planning epics. Scope peaked during the AWS iteration, when 126 issues were
+registered and 117 closed. The seven open records are tracking issues for the presentation and
+report (#181, #191, #192, #193), recordings (#254), course checks (#257) and the audit index
+(#258). The data is in [conduct-issues.csv](data/conduct-issues.csv) and
+[conduct-daily-issues.csv](data/conduct-daily-issues.csv); `python tools/conduct_burndown.py`
+regenerates the four figures, and `--refresh` captures a new snapshot through `gh`.
 
 ## Project Status
 
-**As of 21 October 2026, the project is complete for its committed scope, and is in the
-presentation and report phase.**
+Report v1.1 is submitted for **16 November 2026**. All seven use cases are implemented and the
+release is frozen; status data was captured on 10 November.
 
 | Area | Status |
-|:----------------|:--------------------------------------------------------------------------|
-| Use cases UC-1 to UC-7 | All implemented and tested; cloud evidence for each (section 4) |
-| Architecture | Two bounded contexts; asynchronous contracts; persistent AWS environment (AD-27) |
-| Live environment | `dc2-live` up since 18 October; scales to zero; torn down once, after 16 November |
-| Release identity | Team-accepted demo freeze at `daee44b` (20 October). Engineering release `629119c` (20 October). The current verified release is **`c7c489c` (21 October)**: the certifi remediation plus two delivery fixes, delivered by CD 39545554380 with an upload-to-playback smoke and a read-back of all images and aliases. The manifest records it as a post-freeze addendum. |
-| CI | Every `Main` run green. Code release `c7c489c`: CI 39544952625 (Full verification); latest documentation push `1d68eff`: CI 39550093697 |
-| CD | Two runs failed on 21 October, at the scan of the retained rollback image (39532075705) and at a cold-database login in the deploy smoke (39542434067). Both were fixed without weakening a gate (AD-28; PRs #285–#288) and redelivered by run 39545554380 (section 5.3). CD run 39644028238 (green) then delivered the Lambda short-encode lane and the per-service database split. `Main` and `dev/closeout` are both at `1d68eff`. |
-| Evidence | Results against every proposal target, including three measured misses (section 4) |
-| Submission | Presentation 26 October 14:35–15:15 SGT; code submission 31 October (internal date); final report 16 November |
+|:---|:---|
+| Implementation | UC-1 to UC-7 implemented; tests and dated local and AWS experiments indexed in `docs/evidence-index.md`. |
+| Release freeze | Demo freeze accepted 20 October at `daee44b`; `project2-v1` is immutable. Later engineering deliveries have their own verification addenda in `docs/release/demo-release-manifest.md`. |
+| Live demonstration | `dc2-live` runs with finite standard encoders and separate short-lane admission. On 10 November the frontend, Media health and Processing health returned 200; these are liveness checks, and the health endpoints neither query nor wake Aurora, so they do not establish database readiness. |
+| Presentation and report | Presented 26 October. v1.1 adds the requested DDD, deployment, component, schema, analysis/design and pipeline views; section 6.1 maps each remark to its response. |
+| CI | The scheduled run on Main at `76282d3` passed on 1 November ([41294802851](https://github.com/Collaboration95/dc2/actions/runs/41294802851)). The scheduled run of 8 November ([42468024855](https://github.com/Collaboration95/dc2/actions/runs/42468024855)) stopped in its tool-installation steps; Full verification passed again on 11 November for PR #326 into Main ([42949129268](https://github.com/Collaboration95/dc2/actions/runs/42949129268)). |
+| Outstanding | Close the seven tracking issues at submission; tear down `dc2-live` once after 16 November. Open measurement items are in section 3.4 (AISS-01, AISS-05). |
 
-**Outstanding issues.**
-
-| Item | Disposition |
-|:------------------------------------------|:------------------------------------------------------------|
-| Three measured misses: two-worker scaling 1.449× (target 1.6×); Processing release 10.1–10.3 min (target 10 min); queue wait about 37 s on the standard lane (target 20 s; met on the Lambda short lane at 0.26 s) and end-to-end latency still above 20 s | Reported against the unchanged targets. Improvement options are in AISS-01 (section 3.4). |
-| Evidence not established on AWS: lost-queue-entry timing, duplicate-output check after a worker kill, a restore drill, actual spend | AISS-05. The final October bill is read before 16 November. |
-| Optional V2 experiments #68 and #80 | Closed on 21 October. #68 (unattended launcher) was adopted into V2-live, so it was closed as completed. #80 (the optional V2 migration epic) was closed as not planned, because the experiments live behind template flags (AD-22). |
-| Presentation deck and rehearsal (#192), recordings (#254) | Prepared from this report and the frozen demo release before 26 October |
-| Presentation feedback | Incorporated into the final submission after 26 October, as the briefing requires |
-| Course administration (#257) | Canvas checks for the progress-report receipt, peer assessment and the final upload; owned by Guruprasath Gopal |
+Status is tracked in the effort ledger (`project-documentation/effort-ledger.md`, issue #191) and
+GitHub Project 14. The measured quality results are in section 4.
 
 ## Project Metrics
 
-**Milestones: planned against actual.**
-
-![Figure {#fig:schedule}. Planned (proposal §4.2) and actual milestones.](figures/report-schedule.png){width=15.5cm}
+### Milestones planned against actual
 
 | Planned (proposal §4.2) | Milestone | Actual | Evidence |
-|:-------------|:----------------------------------------------|:--------------------------------------|:--------------------|
-| 4 Oct | Proposal submitted | 4 Oct | `Team17-Proposal.docx` |
-| 5–7 Oct | Baseline frozen; domain model and contracts drafted; lecturer review | 7–9 Oct (lecturer accepted; F-01, D-01 to D-07) | `project-roadmap/records/project-decisions.txt` |
-| 8–14 Oct | Processing extracted with its own data; web app end to end; CLI started | Processing 12 Oct; Media and Publisher 13 Oct (PRs #28–#30) | `processing/`, `media/`, `publisher/` |
-| 15–20 Oct | Security controls; AWS deployment and pipeline; experiments | AWS template and deploy tooling 15 Oct; CD workflow 18–19 Oct; cloud proof `r1017b` 17 Oct, `r1018b` and `r1019a` 18 Oct; tag `project2-v1` 18 Oct; `dc2-live` 18 Oct; security negatives and V2-live scaling 19 Oct; freeze 20 Oct | `docs/evidence-index.md`, `docs/release/demo-release-manifest.md` |
-| 21–25 Oct | Fixes, rehearsal, presentation preparation | Engineering release `629119c` 20 Oct; final report v1.0 and CD scan fix 21 Oct; rehearsal 22–25 Oct | `docs/release/engineering-handoff.md`; this report |
-| 26 Oct | Team 17 presentation, 14:35–15:15 | Scheduled | Presentation guide p. 2 |
-| 27 Oct – 16 Nov | Final report with presentation feedback | Report v1.0 complete 21 Oct; feedback revision after 26 Oct | This report |
+|:---|:---|:---|:---|
+| 4 Oct | Proposal | Submitted 4 Oct | `Team17-Proposal.docx` |
+| 5–7 Oct | Baseline, domain/contracts and lecturer review | Completed 7–9 Oct | `project-roadmap/records/project-decisions.txt` |
+| 8–14 Oct | Local Processing, Media, web and Publisher | Processing 12 Oct; Media/Publisher 13 Oct; integrated evidence 14 Oct | PRs #28–#32; worklog |
+| 15–20 Oct | Security, AWS, pipeline and experiments | AWS tooling 15 Oct; cloud proofs 17–18 Oct; `project2-v1` and `dc2-live` 18 Oct; CD 18–19 Oct; freeze 20 Oct | Evidence index; PR #278; release manifest |
+| 21–25 Oct | Hardening and presentation preparation | Verified repair 21 Oct; short lane and database split 21–22 Oct; clips recorded 23 Oct | Engineering receipts; release addendum |
+| 26 Oct | Team 17 presentation | Presented 26 Oct; feedback recorded the same day | `presentation/feedback-20261026/FEEDBACK.md` |
+| 27 Oct–16 Nov | Feedback revision and final report | Report v1.1 submitted for 16 Nov | Section 6.1; report sources; #193 |
 
-Baseline and design finished two days late, on 9 October, because the full design pack was
-completed before any code changed. Extraction still landed inside its planned window (12–13
-October), helped by parallel integration branches. The AWS work grew from one deployment to three
-proof runs plus a persistent environment, and still finished inside the planned 15–20 October
-period.
+Baseline and design finished on 9 October, two days after the proposal's window. Every later
+milestone landed within its planned window.
 
-**Effort per member.** The team agreed to split Project 2 effort **equally** across the three
-members (effort ledger, issue #191). The allocation below maps the proposal's work packages onto
-that split; it is not a timesheet. One person-day is 8 hours. GG is Guruprasath Gopal, IM is Ibrahim
-Mammadov and NKL is Nguyễn Kim Long.
+### Effort per member
 
-| # | Work package | Planned | GG | IM | NKL | Actual |
-|:--|:--------------------------------------------------|----:|----:|----:|----:|----:|
-| 1 | Baseline, reproducible setup, inherited scan fix | 2 | 2 | | | 2 |
-| 2 | Domain analysis, contracts, OpenAPI | 3 | | | 3 | 3 |
-| 3 | Extract Processing (database, migrations, worker, recovery) | 6 | | 5 | | 5 |
-| 4 | Adapt Media (asset records, Processing integration, retry) | 3 | | 3 | | 3 |
-| 5 | Boundary security | 3 | | 2 | | 2 |
-| 6 | Publisher CLI and contract tests | 2 | | | 2 | 2 |
-| 7 | AWS environment, per-service deployment, CI/CD (deploy, release, rollback), smoke | 4 | 6 | | | 6 |
-| 8 | Experiments: scaling, load, recovery, playback | 3 | | | 3 | 3 |
-| 9 | Integration fixes and re-tests (close-out #265–#273) | 2 | 2 | | 1 | 3 |
-| 10 | Progress report, presentation and final report (to 20 Oct) | 3 | 1 | 1 | 1 | 3 |
-| 11 | Release freeze and evidence index (not in the proposal) | 0 | | | 1 | 1 |
-| | **Recorded to 20 October** | **31** | **11** | **11** | **11** | **33** |
-| 10 | Remaining: rehearsal, presentation and feedback revision (forecast) | | 1 | 1 | 1 | 3 |
-| | **Total at submission (forecast)** | **31** | **12** | **12** | **12** | **36** |
+Team 17 was formed with the professor's special permission as a team different from the Project 1
+teams, so these figures cover Project 2 only. Estimates come from the proposal WBS (§4.1), with
+each package assigned to its lead and shared packages split evenly. Actual hours follow the work
+allocation in the team's effort ledger (#191). One person-day is 8 hours.
 
-**Total effort.**
+| Member | # | Work package | Estimated hours | Actual (rough, team-agreed) hours |
+|:---|:--|:---|---:|---:|
+| Guruprasath Gopal | 1 | Baseline, setup and inherited scan fix | 16 | 14 |
+| | 2 | Domain, contracts and OpenAPI (review) | 0 | 2 |
+| | 5 | Boundary security | 24 | 5 |
+| | 7 | AWS environment, CI/CD pipeline and smoke test | 32 | 46 |
+| | 8 | Experiments (cloud runs) | 0 | 3 |
+| | 9 | Integration fixes and repeat checks | 5 | 12 |
+| | 10 | Presentation and final report | 8 | 14 |
+| | 11 | Release freeze and evidence index | 0 | 1 |
+| Ibrahim Mammadov | 1 | Baseline, setup and inherited scan fix | 0 | 2 |
+| | 2 | Domain, contracts and OpenAPI (review) | 0 | 2 |
+| | 3 | Processing extraction | 48 | 36 |
+| | 4 | Media adaptation | 24 | 22 |
+| | 5 | Boundary security | 0 | 13 |
+| | 7 | AWS environment (service images) | 0 | 2 |
+| | 9 | Integration fixes and repeat checks | 5 | 4 |
+| | 10 | Presentation and final report | 8 | 14 |
+| Nguyễn Kim Long | 2 | Domain, contracts and OpenAPI | 24 | 22 |
+| | 3 | Processing extraction (contract review) | 0 | 2 |
+| | 4 | Media adaptation (contract review) | 0 | 2 |
+| | 6 | Publisher CLI and contract tests | 16 | 16 |
+| | 8 | Scaling, recovery and playback experiments | 24 | 22 |
+| | 9 | Integration fixes and repeat checks | 6 | 8 |
+| | 10 | Presentation and final report | 8 | 17 |
+| | 11 | Release freeze and evidence index | 0 | 7 |
+| **Guruprasath Gopal total** | | | **85** | **97** |
+| **Ibrahim Mammadov total** | | | **85** | **95** |
+| **Nguyễn Kim Long total** | | | **78** | **96** |
+| **Team total** | | | **248 (31 pd)** | **288 (36 pd)** |
+| **Team average per member** | | | **82.7** | **96.0** |
 
-- **Recorded to 20 October:** 33 pd (264 h), 11 pd (88 h) per member. This is 2 pd over the
-  31 pd estimate, because the CD workflow (#178) and the close-out fixes (CD script bugs, Aurora
-  pause, queue drain) were added.
-- **Forecast at submission:** 36 pd (288 h), 12 pd (96 h) per member, about 16 % over the estimate.
-- **Project 1 effort.** Each member's Project 1 effort is reported with their own Project 1. For
-  Ibrahim Mammadov, that is FlickPond itself. The inherited FlickPond capabilities are credited to
-  the FlickPond team and are not counted here.
+The team spent about 16% more than the estimate. Work package 7 grew because the CD workflow
+(#178) was added on 18–19 October, and package 10 grew with the feedback revision of the report.
+Boundary security moved from Guruprasath to Ibrahim, next to the service code it protects, and
+package 11 (release freeze and evidence index) was added after the proposal.
 
-**Delivery metrics (GitHub and CI, collected on 21 October before PRs #285–#290).** All commits, pull requests and issues in the
-repository were made through one GitHub account, `Collaboration95`, which owns the repository. The
-git history therefore cannot attribute work to individual members; the effort table above is the
-attribution of record.
+### Delivery and verification counts
 
-| Metric | Value |
-|:-------------------------------------------|:------------------------------------------------------------|
-| Pull requests | 128 opened, **123 merged** over 9 days (12–21 Oct): 27 into `Main`, 42 into `dev/closeout`, 39 into `dev/v1-integration`, 4 into `dev/v1`, 11 into short-lived `work/*` and `quality/*` integration branches |
-| Issues | **156** created (12–19 Oct); 147 closed, 9 open (deck, report, recordings, Canvas checks, audit index, two optional V2 items) |
-| Project board | 118 items: 109 Done, 8 Todo, 1 In Progress |
-| Commits on `Main` | 533 (140 merge commits), 28 September – 21 October |
-| CI runs | 246 runs of the CI workflow: 201 pull request, 32 push, 12 manual, 1 weekly |
-| Automated tests | 3,982 Python tests collected (2,452 test functions in 197 files) plus 177 frontend tests; full offline regression 3,697 passed **[Local]** |
-| Coverage | Media 93.91 %, Processing 93.90 % (statements plus branches); all packages pass the 80 % floor; frontend 96.24 % of statements |
-| Code size | Service and client code 10,062 lines of Python (Media, Processing, engine, contracts, delivery, runtime support, Publisher) plus 1,822 lines of frontend JavaScript; operator and CI tooling 42,075 lines; tests 54,011 lines |
+Repository and Project counts were refreshed through `gh` on **10 November 2026**; the snapshot,
+board items and PR records are under `data/conduct-*`. Overlapping test suites are not summed.
 
-![Figure {#fig:burnup}. Issue burn-up derived from GitHub issue timestamps: scope (opened) grew in steps as the AWS readiness and close-out backlogs were added, and closure tracked it within one to two days.](figures/report-burnup.png){width=15.5cm}
-
-The burn-up counts issues, not estimates; the issues carry no story points. The scope steps on
-14–15 and 17 October are the AWS readiness backlog and the close-out backlog. The nine open issues
-are submission tasks and two optional experiments.
+| Metric | Value and evidence |
+|:---|:---|
+| Issues | **156 total: 149 closed, 7 open**; 137 tasks and 19 parent epics |
+| Pull requests | **173 total: 164 merged, 5 closed unmerged, 4 open** |
+| Project 14 | **118 items: 111 Done, 6 Todo, 1 In Progress** |
+| Python fast suite | **2,986 passed, 3 skipped, 278 subtests** in the scheduled 1 Nov CI run at `76282d3`; real integrations passed 44 inherited, 47 Processing and 39 Media tests |
+| V1 operational checks | **1,520 passed** in the 1 Nov offline control-plane job |
+| Frontend | **177 passed** in the same 1 Nov CI run |
+| Complete local regression | **3,697 Python tests plus 177 frontend tests passed**, 20 Oct validation at `514914a` |
+| Coverage | Media 93.91%, Processing 93.90% combined statement/branch coverage; frontend statements 96.24% (`docs/results/engineering-20261020/local-validation-514914a.json`) |

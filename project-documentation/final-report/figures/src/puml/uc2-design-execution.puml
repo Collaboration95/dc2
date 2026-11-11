@@ -1,0 +1,50 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-04, W3-07a, W3-09a/b/c, W3-17/23; W1-dispatch/probe-redirect
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title UC-2 · successful claimed execution
+autonumber
+participant "worker.sqs" as W $PROC
+participant "messaging" as M $PROC
+participant "worker.tasks" as T $PROC
+participant "supervisor:\nSupervisor" as S $PROC
+[-> W : execute_message(...)
+W -> M : claim(factory, job_id, attempt_id, settings,\nenvelope=envelope, task_name=task_name)
+M --> W : work: Claim, after commit
+W -> S : renew_authority()
+W -> T : pipeline(work, settings, supervisor, None,\nstore, directory, downloader=source.download, admit=admit)
+T -> S : guard(downloader(...))
+note over T,S : SourceStore.download checks pinned\nVersionId, size and SHA-256.
+T -> S : run(probe_command(...))
+S --> T : stdout → parse_probe(...)
+opt short executor
+ T -> T : admit(probe) [short_lane.check_probe]
+end
+T -> S : run(build_edit_command(...))
+T -> S : guard(store.put(...)) [primary]
+opt no edit operations
+ T -> S : run(build_ladder_command(...))
+ loop each HLS file, master last
+  T -> S : guard(store.put(...))
+ end
+end
+T --> W : outputs
+W -> S : renew_authority(); check()
+W -> M : finish(factory, work, outputs=outputs)
+M --> W : True after state + result outbox commit
+W -->[ : True; caller may acknowledge
+note over W,S : Functions/adapters belong to processing, except\nprobe/edit/HLS command builders in media_engine.
+@enduml

@@ -1,0 +1,50 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-04, W3-07a, W3-09a/b/c, W3-17/23; W1-dispatch/probe-redirect
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 36
+skinparam ranksep 56
+hide footbox
+hide circle
+title UC-2 · conceptual processing responsibilities
+top to bottom direction
+class ProcessingRequest <<boundary>> {
+ + acceptSource()
+}
+class ProcessingControl <<control>> {
+ + scheduleAttempt()
+ + recordOutcome()
+}
+class Encoder <<boundary>> {
+ + transformSource()
+}
+class ResultReceiver <<boundary>> {
+ + receiveOutcome()
+}
+class ProcessingJob <<entity>> {
+ + source: SourceIdentity
+ + status: JobState
+}
+class ProcessingAttempt <<entity>> {
+ + number: Integer
+ + authority: ExecutionAuthority
+}
+class PlayableOutput <<entity>> {
+ + identity: OutputIdentity
+}
+ProcessingRequest --> ProcessingControl
+ProcessingControl --> Encoder
+ProcessingControl --> ResultReceiver
+ProcessingControl ..> ProcessingJob
+ProcessingJob "1" -down- "1..*" ProcessingAttempt : attempts
+ProcessingAttempt "1" -down- "0..2" PlayableOutput : produces
+@enduml

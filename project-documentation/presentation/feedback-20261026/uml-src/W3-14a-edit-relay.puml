@@ -1,0 +1,51 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 17
+skinparam ArrowFontSize 16
+skinparam maxMessageSize 185
+hide footbox
+autonumber
+title Sequence view · A scheduled relay publishes committed edit intent\nAs built at 76282d3
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/media/handlers.py#L70
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/delivery/sql.py#L58
+' Evidence: https://github.com/Collaboration95/dc2/blob/76282d3/scripts/aws/v1/definitions.py#L1766
+skinparam maxMessageSize 300
+skinparam ArrowFontSize 16
+skinparam NoteFontSize 15
+skinparam LegendFontSize 14
+skinparam ArrowFontSize 17
+skinparam defaultFontSize 18
+skinparam NoteFontSize 17
+skinparam LegendFontSize 17
+participant "handlers\n«Media module»" as H $MEDIA
+participant "messaging\n«Media module»" as M $MEDIA
+participant "delivery.sql\n«module»" as D $INFRA
+participant "s: AsyncSession" as DB $INFRA
+participant "t: SQS" as T $INFRA
+activate H
+H -> M : publish_commands(f,t,limit=25,deadline=deadline)
+activate M
+M -> D : publish_due(f,MediaOutbox,t,\nlimit=25,deadline=deadline)
+activate D
+ group SQL reservation
+  D -> DB : SQL: due row FOR UPDATE SKIP LOCKED;\nclaim_token; tries++; next_try_at; COMMIT
+ end
+ D -> T : send(queue,body)
+ activate T
+ T --> D : SDK response (or exception)
+ deactivate T
+ group SQL acknowledgement
+  D -> DB : SQL: lock row; match claim_token;\nclear token; reschedule; sent_at only on success; COMMIT
+ end
+D --> M : published count
+deactivate D
+M --> H : published count
+deactivate M
+deactivate H
+legend bottom
+EventBridge invokes handlers separately; one due-row pass shown, repeated to limit/deadline.
+SQS send is awaited outside SQL locks; token mismatch skips ACK; uncertain sends can replay.
+endlegend
+
+@enduml

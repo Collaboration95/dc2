@@ -1,0 +1,25 @@
+!include _style.iuml
+@startuml W5-pipeline-release
+!include _style.iuml
+skinparam defaultFontSize 25
+skinparam activityFontSize 25
+skinparam ArrowFontSize 18
+skinparam titleFontSize 25
+skinparam ranksep 12
+skinparam nodesep 12
+title Activity view · executed CD owner release · as built at 76282d3
+partition "CD workflow" {
+  (*) --> "Exact-source full CI admission\nMain push or manual full dispatch" as admit $INFRA
+  admit --> "Verify selected image set\nTrivy + ECR policy\nBLOCK failures before promotion" as scan #F3E8FF
+}
+partition "AWS operations via CD" {
+  scan -right->[admitted and verified] "Promote owner digest\nPublic owner smoke" as promote $INFRA
+  promote --> if "Promotion succeeds?" then
+    -->[yes] "Upload-to-playback smoke\nFailure fails CD" as playback $INFRA
+    playback --> (*)
+  else
+    -->[no] "Attempt restore / abandon\nRecord disposition; CD fails" as restore $INFRA
+    restore --> (*)
+  endif
+}
+@enduml

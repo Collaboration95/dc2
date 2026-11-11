@@ -1,0 +1,33 @@
+!include _style.iuml
+@startuml devops-cd
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+skinparam defaultFontSize 18
+skinparam activityFontSize 18
+skinparam ArrowFontSize 14
+skinparam ranksep 12
+skinparam nodesep 14
+partition "GitHub · protected Main and admission" {
+  (*) --> "PR into protected Main\nRequired check: Full verification\nApproval: cloud and delivery lead\nMerge → Main push CI passes" as review $INFRA
+  review --> "Exact SHA / CI run / attempt\nCheck out admitted source\naws branch policy + OIDC" as admit $INFRA
+}
+partition "AWS · persistent dc2-live" {
+  admit -right-> "Preflight + in-place stack update\nBuild changed-owner images\nTrivy source / config identity\nECR digest + completed scan" as scan #F3E8FF
+  scan --> "Journal prior owner + peer\nQuiesce / migrate / publish\nMove aliases; owner smoke\nVerify peer + quiescence" as promote $INFRA
+  promote --> if "Owner promotion succeeded?" then
+    -->[yes] "Adopt release; playback smoke\nUpload → done → MP4 + HLS\nSave journal + receipts" as playback $CLIENT
+    playback --> (*)
+  else
+    -->[no] "Automatic restore attempt\nPrior aliases / worker + smoke\nRecord outcome; CD fails\nSave journal + receipts" as restore $PROC
+    restore --> (*)
+  endif
+}
+legend bottom
+Manual: exact-source full CI dispatch can admit deploy/release.
+Image-policy errors stop before owner promotion.
+Candidates + kept images: strict. Replaced restore targets:
+Trivy RETAINED_FIXABLE only; ECR policy still applies to all.
+Later playback smoke fails CD, without its own restore hook.
+Schema migrations are additive; restore does not downgrade.
+endlegend
+@enduml

@@ -1,0 +1,48 @@
+@startuml
+!include _style.iuml
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam classAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
+skinparam titleFontSize 17
+skinparam BoxPadding 8
+skinparam maxMessageSize 400
+skinparam nodesep 22
+skinparam ranksep 22
+skinparam sequenceMessageAlign left
+hide footbox
+hide circle
+' processing/launcher.py: _send, _reconcile, _reserve, set_enabled; launcher_aws.py: EcsPort
+title UC-6 design: ambiguous start and replay
+autonumber
+participant "launcher\n«module»" as l $PROC
+database "Processing SQL" as sql $PROC
+participant "EcsPort" as ecs $INFRA
+ l -> l : _send(factory, ecs, token, config)
+ l -> sql : control FOR SHARE; row lock
+ l -> ecs : run_task(row.payload)
+ ecs --> l : timeout; outcome unknown
+ l -> sql : keep status = reserved; last_error; COMMIT
+ note over l,ecs : A later tick observes the cluster before any replay.
+ l -> l : observe(ecs, config, known_arns)
+ l -> ecs : list_tasks(status); describe_tasks(arns)
+ alt inventory unreadable
+  ecs --> l : exception; abort tick (fail closed)
+ else task found by startedBy
+  ecs --> l : existing task
+  l -> sql : _reconcile(): task_arn; status = launched
+ else not found; demand, before deadline, replay delay passed
+  l -> l : _reserve() lists the token for resend
+  l -> l : _send(factory, ecs, token, config)
+  l -> sql : control FOR SHARE; row lock
+  alt reserved, enabled and session open
+   l -> ecs : run_task(stored payload; same clientToken)
+   ecs --> l : existing or new task for the token
+   l -> sql : status = launched; COMMIT
+  else disabled, ended or already settled
+   l -> sql : status = released, or skipped; COMMIT
+   note over l,ecs : No RunTask is sent.
+  end
+ end
+@enduml

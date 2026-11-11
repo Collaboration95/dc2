@@ -46,3 +46,29 @@ targetRules = ["generic-api-key"]
 condition = "AND"
 paths = ['''^tests/integration/test_media_persistence\.py$''']
 regexes = ['''integration-signing-secret-32bytes-long''']
+
+# The 26 October feedback review records the sha256 of each file it protected
+# ("media/api/auth.py": "<64 hex>"). Reviewed by hand on 2026-11-10; digests, not credentials.
+[[allowlists]]
+description = "File sha256 digests in the 26 October feedback review records"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^project-documentation/presentation/feedback-20261026/review/W[0-9]-qa/[a-z-]+hashes\.json$''']
+regexes = ['''[0-9a-f]{64}''']
+
+# The feedback tracker page names its browser localStorage slot "flickpond-rescue-v2".
+[[allowlists]]
+description = "localStorage key name in the feedback tracker page"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^project-documentation/presentation/feedback-20261026/tracker(_template)?\.html$''']
+regexes = ['''flickpond-rescue-v2''']
+
+# The report's backlog snapshot copies GitHub issue bodies, which carry hidden
+# "issue-key=<backlog id>" markers (e.g. aws2-delivery, dc2-E1). Identifiers, not credentials.
+[[allowlists]]
+description = "Backlog issue-key markers in the report's GitHub snapshot data"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^project-documentation/final-report/data/conduct-[a-z-]+\.json$''']
+regexes = ['''(aws[23]|dc2)-[A-Za-z0-9]+(-[A-Za-z0-9]+)*''']

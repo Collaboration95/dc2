@@ -1,0 +1,40 @@
+@startuml
+!include _style.iuml
+' Evidence (07c7c14): media/projections.py; media/projection_models.py; media/api/v1_jobs.py; media/api/v1_hls.py
+skinparam BackgroundColor white
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 15
+skinparam ClassAttributeFontSize 15
+skinparam ClassStereotypeFontSize 13
+skinparam NoteFontSize 14
+skinparam classAttributeIconSize 0
+skinparam nodesep 20
+skinparam ranksep 22
+hide footbox
+autonumber
+skinparam maxMessageSize 180
+skinparam sequenceParticipantPadding 8
+title UC-3 · analysis exception flows
+actor Owner as O
+boundary "Viewing\ninterface" as UI
+control "Status /\nplayback" as C
+entity "Owned video\n+ snapshot" as V
+O -> UI : inspect asset / renew expired access
+UI -> C : requestStatus(owner, asset)
+alt unknown, deleted or foreign asset
+ C --> UI : not found; no playback capability
+else owned completed asset; old URL expired
+ C -> V : read current completed output
+ C --> UI : fresh expiring access
+end
+[-> C : processing result arrives
+C -> V : compare identity, source, version, attempt
+alt valid newer state
+ C -> V : replace snapshot
+else duplicate or older state
+ C -->] : acknowledge; keep snapshot
+else conflicting identity or state
+ C -->] : reject; keep snapshot
+end
+note over C,V : A failed/cancelled result is visible as terminal state.\nAbsent HLS does not remove the primary output.
+@enduml

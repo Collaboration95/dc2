@@ -2,184 +2,178 @@
 
 ## Source Control Strategy
 
-**Repository strategy: one monorepo.** Everything lives in one public GitHub repository,
-`Collaboration95/dc2`, with default branch `Main`: both services, both clients, the shared kernel,
-infrastructure as code, pipelines, tests, evidence and documentation. One repository keeps a
-contract change and both of its consumers in a single pull request, which the contract policy
-requires. Service independence is enforced inside the repository by path-filtered CI lanes,
-per-service images and CODEOWNERS, not by separate repositories.
+FlickPond uses the `Collaboration95/dc2` GitHub monorepo, with `Main` as the default branch.
+A contract change and its consumer tests can be reviewed together, while service images,
+CODEOWNERS and path-selected CI preserve ownership boundaries.
 
-| Path | Contents | Release unit |
-|:------------------|:----------------------------------------------------------|:---------------|
-| `media/` | Media Management service, its Alembic migrations | Media image |
-| `processing/`, `media_engine/` | Processing service, finite worker, FFmpeg command builders | Processing and worker images |
-| `contracts/`, `delivery/`, `runtime_support/` | Shared kernel: published language, outbox/inbox and SQS adapters, Lambda runtime | Copied into both images; a change releases both |
-| `frontend/`, `publisher/` | The two clients | Frontend bucket; Publisher package |
-| `deploy/`, `scripts/aws/` | Image recipes, CloudFormation generator and template, deploy, session, release and evidence CLIs | Stack and operator tooling |
-| `.github/workflows/`, `scripts/ci/` | CI, CD, DAST, V1 verification and Pages workflows; CI policy and CD scripts | Pipeline |
-| `tests/` | Unit, integration, contract, AWS-offline, CI-policy and browser tests (3,982 Python tests) | n/a |
-| `docs/`, `project-documentation/` | Architecture, ADRs, runbooks, sanitized receipts, course documents, this report | n/a |
-| `app/`, `legacy/`, `migrations/` | Inherited Project 1 application and retired peer-HTTP/Redis code, kept testable but excluded from images | Not deployed |
+| Path | Responsibility / release unit |
+|:---------------------------------------|:-------------------------------------------------------|
+| `media/` | Media API, application services, persistence and migrations; Media image |
+| `processing/`, `media_engine/` | Processing API, orchestration and encode pipeline; Processing and Worker images |
+| `contracts/`, `delivery/`, `runtime_support/` | Shared contracts and technical libraries copied into service images |
+| `frontend/`, `publisher/` | Browser client and independent Publisher CLI |
+| `deploy/`, `scripts/aws/` | Image recipes, CloudFormation generation, deploy/release/operator tooling |
+| `.github/workflows/`, `scripts/ci/` | CI selection, verification, security, delivery and publication |
+| `tests/` | Unit, contract, integration, infrastructure, pipeline and browser checks |
+| `docs/`, `project-documentation/` | Architecture decisions, runbooks, sanitized evidence and report sources |
+| `app/`, `legacy/`, `migrations/` | Inherited/regression paths, excluded from V1 runtime images |
 
-**Branching strategy: trunk plus short-lived integration branches.**
+**Branches and pull requests.** Feature/fix branches such as `fix/*`, `v2/*`, `ci/*` and `docs/*`
+merge by PR into `dev/closeout`, then an integration PR promotes the combined change to `Main`.
+The earlier V1 build used `dev/v1-integration` → `dev/v1` → `Main`. A PR records the problem,
+technical decisions and verification; CODEOWNERS identifies the relevant reviewer. Commit messages
+use short action-oriented descriptions, with `feat:` and `fix:` prefixes where appropriate.
+Source SHAs and image digests identify releases in receipts; `project2-v1` marks the V1 release.
 
-- `Main` is the trunk. A push to `Main` triggers full CI, and a green run deploys automatically.
-- Feature and fix branches (`fix/*`, `docs/*`, `v1/*`, `v2/*`, `ci/*`, `release/*`) are
-  short-lived. They merge by pull request into an **integration branch**: `dev/v1-integration`
-  then `dev/v1` for the V1 build (16–17 October), and `dev/closeout` for close-out (17–21
-  October).
-- Each integration branch merges into `Main` through one release-style pull request that runs
-  the full verification.
-- Merge commits are used throughout, so each PR's history stays visible on `Main`
-  (140 merge commits).
-- Every PR body records its "Tech decisions".
-- The only tag is `project2-v1`, which marks the V1 release (18 October). Later releases are
-  identified by source SHA and image digest in sanitized receipts.
+A PR into `dev/closeout` normally uses changed-input selection and **Dev gate**; workflow,
+dependency or unknown inputs escalate it to full verification. PRs into other bases, including
+`Main`, run **Full verification**. `Main` is a protected branch: a merge requires a pull request
+and the required status check **Full verification**. Guruprasath Gopal, the cloud and delivery
+lead, approves promotion to `Main`. Main push CI then verifies the merged source again before
+automatic CD.
 
-| Era | Branch flow | Example PRs |
-|:-------------|:------------------------------------------------------|:------------|
-| Local waves (12–14 Oct) | `wave/*`, `fix/*` → `Main` | #28–#30 (Processing, Media, clients) |
-| AWS preparation (14–15 Oct) | `work/aws2-*` → `work/aws2-prep` → `Main` | #70 |
-| V1 build (16–17 Oct) | `v1/*` → `dev/v1-integration` → `dev/v1` → `Main` | #112, #136, #194 |
-| Close-out (17–21 Oct) | `fix/*`, `v2/*`, `docs/*` → `dev/closeout` → `Main` | #239, #264, #269, #274, #277 |
-| Quality and hand-off (20–21 Oct) | `quality/*`, `docs/*` → `Main` | #278–#284 |
+**Developer authentication and protected secrets.** Developers authenticate to GitHub with their
+GitHub accounts and use SSH keys or authenticated HTTPS credentials for Git transport.
+Repository credentials grant source access; AWS delivery uses a separate OIDC trust boundary.
+Secrets belong in protected GitHub Actions secrets or scoped AWS parameter/secret storage, and
+only sanitized evidence is committed. Push protection and full-history gitleaks provide secret
+checks; `.gitleaks.toml` holds the reviewed allowlist.
 
-**Pull-request checks.** CI runs on every pull request:
-
-- Into `dev/closeout`, it runs only the lanes whose inputs changed. The aggregate check is
-  **Dev gate**.
-- Into `Main`, it runs every lane. The aggregate check is **Full verification**.
-
-Since 15 October, every first-parent commit on `Main` is a PR merge. Up to #284, 26 of the 27 PRs
-into `Main` merged with all checks green. The exception, #194, merged with the advisory third-party
-GitGuardian check failing.
-
-**Authentication and access of developers.**
-
-- The repository is owned by one personal GitHub account (`Collaboration95`), which is its only
-  collaborator. All commits, PRs and issues were made through it, by the team and by the AI coding
-  agents it ran.
-- **Branch protection and rulesets are not configured.** "Dev gate" and "Full verification" are
-  stable, enforceable check names, but nothing in the repository settings requires them, and no
-  reviewer approval is required. Pull-request discipline was a team practice, not a setting.
-- Secret scanning with push protection is enabled, gitleaks runs in CI, and Dependabot alerts are on.
-- Scanner results reach GitHub code scanning as SARIF, so the Security tab is the single place to
-  triage them: CodeQL default setup (Python, JavaScript/TypeScript, GitHub Actions), Trivy per image,
-  authenticated OWASP ZAP, Ruff security rules (Bandit) and gitleaks. Triage on 22 October dismissed
-  12 High CodeQL alerts with reasons; all were in test, proof or developer-script code, none in
-  deployed code (`docs/ci/policy.md`). CVE-2025-52290 (`ffmpeg`, no Debian 13 fix) is accepted unfixed
-  for a finite worker with no inbound network.
-- Cloud access is separate from repository access:
-  - Human operators use IAM users with an MFA session helper (`make aws-mfa-session`).
-  - The automation agent uses a dedicated IAM user (`flickpond-agent`, profile `dc2-agent`).
-  - GitHub Actions uses **OIDC only**. No AWS key is stored in GitHub. The deploy role trusts only
-    the immutable subject of this repository's `aws` environment, and that environment admits only
-    `Main` and `dev/closeout`.
-
-The missing protection is recorded as AISS-04. For a multi-account team, the next steps are:
-
-- add the members as collaborators;
-- require "Full verification" and one review on `Main` and `dev/closeout` through a ruleset;
-- require reviewers on the `aws` environment.
+**Submitted scripts.** The repository is submitted with this report. The pipeline scripts are in
+`.github/workflows/` (CI, CD, DAST and advisory security scans), `scripts/ci/` (selection policy,
+CD admission and delivery) and `scripts/aws/v1/` (template generation, deploy, release and
+restore). The test scripts are in `tests/` (unit, contract, integration, infrastructure and
+pipeline tests) and the frontend Vitest suites in `frontend/*.test.js`.
 
 ## Continuous Integration
 
-`.github/workflows/ci.yml` is the integration pipeline. Its reusable parts are `v1.yml` (V1 local
-verification) and `dast.yml`.
+`.github/workflows/ci.yml` selects and verifies the candidate source. It calls `v1.yml` for V1
+verification and `dast.yml` for authenticated local-stack DAST. Figure {@fig:devops-ci} places
+security tools inside the verification pipeline and distinguishes independent advisory workflows.
 
-**Triggers.**
+![Figure {#fig:devops-ci}. CI triggers, parallel verification lanes, security stages and aggregates. CodeQL and advisory scans execute independently of Full verification.](figures/devops-ci.png){width=15cm}
 
-| Trigger | Mode | Purpose |
-|:----------------|:---------|:----------------------------------------------------------|
-| Pull request into `dev/closeout` or another integration branch | dev (selected) | Fast feedback: only lanes whose path inputs changed; aggregate check **Dev gate** |
-| Pull request into `Main` | full | Every lane before integration; aggregate check **Full verification** |
-| Push to `Main` | full | Verifies the exact merged source; a green run is CD's admission ticket |
-| Manual dispatch (`candidate_sha`) | full | Verify an exact candidate |
-| Weekly schedule (Sunday 03:00 UTC) | full | Catches drift: new advisories, dependency and tool changes |
+| Trigger | Selection / purpose |
+|:------------------------------------------|:-------------------------------------------------------|
+| PR into `dev/closeout` | Changed-input dev selection, with conservative full escalation |
+| PR into any other base, including Main | Full verification of the PR merge source; required to merge into Main |
+| Push to Main | Full verification of the exact merged source; eligible for automatic CD |
+| Manual CI dispatch with `candidate_sha` | Full verification; exact SHA must match the dispatched ref |
+| Sunday 03:00 UTC | Full scheduled regression on the default branch |
 
-`scripts/ci/policy.py classify` decides the mode and the selected lanes, and writes them to a
-`ci-selection` artifact. It has its own offline tests. The final gate job requires every selected
-check to pass and validates every intentional skip, so a lane cannot silently disappear.
+`scripts/ci/policy.py` emits a source-bound `ci-selection` artifact. Both aggregates validate job
+results and intentional skips. Dev gate requires the selected dev checks and an unconditional
+secret scan. Full verification additionally requires selected image security, DAST execution and
+combined coverage. Failed, cancelled or unexpectedly skipped required checks fail the aggregate.
+CodeQL, SonarCloud and `security-scans.yml` are outside its dependency list.
 
-**Jobs.**
+**Verification and security stages.** “Selected/full” means the lane is selected by policy and
+always included in full mode. Independent workflows have their own triggers.
 
-| Job | What it runs |
-|:----------------------------|:--------------------------------------------------------------------|
-| Select verification policy; CI policy offline tests; planning validation | Lane selection and its tests |
-| Lint and Python unit tests | Locked `uv` environment; Ruff lint and security rules; format check; the fast pytest tier with coverage |
-| Frontend tests | `npm audit --audit-level=high`; Vitest with V8 coverage (90 % floors) |
-| Legacy real integration | PostgreSQL 16, MinIO and FFmpeg integration of the inherited app |
-| Processing worker, recovery and database ownership | Owned PostgreSQL and storage acceptance in Docker |
-| Media owned persistence and boundary contracts | Media migrations and integration tests on PostgreSQL |
-| Media service; Processing service | Per-service tests, then **build the exact service image** and verify its runtime (no opposite domain, no legacy modules, handlers start) |
-| Independent Publisher HTTPS and cookie persistence | The Publisher against real TLS |
-| Local HTTPS and browser trust | Playwright and Chromium against the local HTTPS stack: browser, public API and Publisher acceptance |
-| V1 local verification (`v1.yml`) | cfn-lint (required); offline control-plane tests (template, IAM, release, launcher); V1 flows on PostgreSQL, Moto and FFmpeg with a browser leg; build of all three images, then **Trivy on the exact images**, failing on any fixable HIGH/CRITICAL |
-| Combined backend package coverage | Merges five coverage tiers; at least 80 % per package |
-| Scan container image (app / media / processing) | Trivy image scan matrix; reports kept 60 days and published as SARIF |
-| Secret scan (gitleaks) | Full history with an allow-list; SARIF to code scanning |
-| CodeQL (default setup) | Python, JavaScript/TypeScript and GitHub Actions; results in the Security tab |
-| Exact-candidate DAST (`dast.yml`) | Authenticated OWASP ZAP against the local Media and Processing APIs; findings report-only, published as SARIF |
-| SonarCloud SAST (advisory) | Skipped while Sonar is unconfigured |
-| Dev gate / Full verification | Policy gate over the selected checks |
+| Stage | Tool | What it checks | Trigger | Blocking or advisory |
+|:-------------------|:----------------|:-----------------------------------------|:--------------------|:--------------------------|
+| Selection and policy | Python policy/planning tests | Changed inputs, full/dev selection and aggregate rules | Every CI event | Blocking |
+| Lint and source security (SAST) | Ruff, format check, explicit Ruff S rules | Maintained Python code and bootstrap; S rules are Bandit-derived | Lint selected/full | Blocking findings |
+| Fast unit tests | pytest | Service/module behavior; fast coverage fragment | Lint/unit selected/full | Blocking |
+| Frontend and dependency SCA | Vitest, npm audit | UI behavior/coverage and locked frontend test-tool dependencies | Frontend selected/full | Blocking; audit HIGH/CRITICAL |
+| Real integration and public flows | pytest, PostgreSQL, storage, FFmpeg, Publisher HTTPS, browser trust | Owned persistence/recovery, migrations, TLS/cookies and browser/client acceptance; service image/runtime checks | Relevant lane selected/full | Blocking |
+| V1 infrastructure validation | cfn-lint and offline tests | Generated shared/separate/split template schema, freshness, IAM and control-plane rules | V1 offline selected/full; manual V1 | Blocking |
+| V1 local flows | V1 harness, PostgreSQL, Moto, FFmpeg, browser | Current intake, processing, recovery and playback behavior | V1 live selected/full; manual V1 | Blocking |
+| Image security | Trivy; V1 scan validator | Inherited app/Media/Processing matrix and exact V1 Media/Processing/Worker images; source/config identity | Image lanes selected/full; manual V1 `images=true` | Blocking: zero fixable HIGH/CRITICAL; malformed/wrong-image reports fail |
+| Secrets | gitleaks | Full Git history against the reviewed allowlist | Every CI event | Blocking; required by both aggregates |
+| Dynamic security (DAST) | OWASP ZAP | Authenticated seven-route scan of the disposable local V1 stack | DAST selected/full; `dast.yml` exact-SHA dispatch; Monday 03:00 UTC | Execution, coverage and cleanup block; findings advisory |
+| Combined coverage | coverage.py, Vitest | Five source-matched backend tiers; 80% package floor, Media/Processing 90/85 and recovery 80/75; frontend 90% | Backend coverage selected/full; frontend lane | Blocking; exact gates in section 4.4 |
+| Managed source security (SAST) | CodeQL default setup | Python, JavaScript/TypeScript and GitHub Actions | GitHub-managed push/PR analysis and weekly schedule | Independent; outside Full verification |
+| Source/coverage analysis | SonarCloud | Conditional source-only or full-coverage analysis | Configured dev/full analysis jobs | Advisory; skipped in audited runs |
+| Python runtime dependency SCA | pip-audit 2.10.1 | Frozen lockfile export: union of V1 Media/Processing/Worker runtime extras | `security-scans.yml` job “Python runtime dependency SCA (advisory)”: PR, Main push, dispatch, Monday 03:30 UTC | Advisory findings; execution/report errors fail its job |
+| Static infrastructure security | Checkov 3.4.3 | Disposable shared/separate/split CloudFormation renders plus OIDC template | Same workflow, job “Static CloudFormation security (advisory)” | Advisory findings; execution/report errors fail its job |
+| Aggregate | Dev gate / Full verification | Required selected job results and permitted skips | After dependencies complete | Blocking workflow verdict |
 
-On a representative full `Main` run (39531399249, source `4ae6a0b`, 21 October), all 25 selected
-jobs passed and the 3 skips were intentional. Wall-clock time was 7 min 9 s, because the jobs run in parallel; the
-longest job, the browser trust suite, took 405 s. By the morning of 21 October, CI had run 246 times. Artifacts
-are bound to their source SHA: coverage fragments, image scan reports, DAST findings and selection
-records.
+`coverage-gate` combines the five backend fragments (fast, legacy, Processing, Media and V1
+integration), and Full verification checks it with the other lanes (`ci.yml:581–643`,
+`scripts/dev/coverage.py`).
+
+The two `security-scans.yml` jobs run without AWS credentials and retain JSON reports with
+source, lock-file and tool identity for 14 days (`scripts/ci/security_scans.py`). The recorded
+scan found **0 pip-audit findings in 40 applicable packages**. Checkov reported failed-check
+counts of **shared 26 / separate 31 / split 31 / OIDC 1**; these overlap across the templates and
+are advisory.
+
+ZAP drives the actual API handlers and authorizer through a disposable HTTPS loopback bridge with
+PostgreSQL and Moto S3/SQS (routes in section 4.3). Sanitized ZAP findings are kept for 14 days and
+coverage and image receipts for 60 days; supported SARIF results are published to code scanning
+(`dast.yml`, `v1.yml`).
+
+**Dated verification evidence.** The 21 October full Main run 39531399249 (`4ae6a0b`) passed
+25 selected jobs with three intentional skips in 7 min 9 s.
+
+| Run / date | Source and event | Outcome |
+|:---------------------------------|:---------------------------|:------------------------------------------------|
+| CI 39931072197, 23 October | `76282d3`, Main push | Full CI passed |
+| CI 40174362164, 25 October | `76282d3`, scheduled regression on Main | Inherited app/Processing Trivy and Full verification failed; V1 images and local ZAP passed |
+| CodeQL 40189407647, 25 October | `76282d3`, managed analysis | Python, JavaScript/TypeScript and Actions analyses completed |
+| CI 41294802851, 1 November | `76282d3`, scheduled regression on Main | Full verification, coverage, secrets, images and CI-called local DAST passed |
+| CI 42468024855, 8 November | `76282d3`, scheduled regression on Main | Failed after setup/download HTTP 504s; coverage skipped |
+| CI 42949129268, 11 November | `3d75dd9`, PR #326 into Main | Full verification passed, including coverage, image scans, secrets and CI-called local DAST |
+
+The two October ZAP receipts recorded seven routes, 16 findings, 146 out-of-scope requests blocked
+and successful cleanup.
 
 ## Continuous Delivery
 
-`.github/workflows/cd.yml` and `scripts/ci/cd.sh` automate delivery.
+`.github/workflows/cd.yml` invokes `scripts/ci/cd.sh`, which uses the existing deploy and
+per-owner release tools, including `scripts/aws/v1/release.py`. Figure {@fig:devops-cd} shows the
+automatic path and owner-release recovery boundary.
 
-![Figure {#fig:cicd}. CI/CD pipeline: pull-request lanes, full verification on Main, exact-source admission, in-place stack update, per-owner release with scan, smoke and restore, and the receipts it retains.](figures/report-cicd.png){width=12cm}
+![Figure {#fig:devops-cd}. Delivery from the protected Main merge and exact-source CI admission through OIDC, image admission, journaled owner release, smoke/restore and playback verification.](figures/devops-cd.png){width=15cm}
 
-**Environments.**
+| Environment | Purpose and lifecycle |
+|:--------------------------|:---------------------------------------------------------------|
+| Local V1 | Developer and CI disposable PostgreSQL/Moto/FFmpeg stack; fast and full public flows (`make setup-v1`, `make v1-up`, `make v1-demo`) |
+| Per-run AWS V1 proof stacks | Disposable `r1017b`, `r1018b`, `r1019a` deployments for bounded cloud proofs, followed by teardown (AD-19) |
+| Persistent `dc2-live` | Production-demo stack, updated in place after eligible Main CI (AD-27) |
 
-| Environment | Purpose | How it is created |
-|:-------------|:-------------------------------------------------------|:-----------------------------|
-| Developer machine | Fast checks; the full local V1 stack on PostgreSQL, Moto and FFmpeg, with the same images | `make setup-v1`, `make v1-up`, `make v1-demo` |
-| CI (ephemeral) | Exact-source verification, image builds and scans, DAST | Every pull request and push |
-| AWS V1 per-run stacks (historical) | The proof runs `r1017b`, `r1018b`, `r1019a`, each deleted afterwards | Dispatched deploy and teardown (AD-19) |
-| **AWS `dc2-live` (production demo)** | The one persistent environment, updated in place | First deploy by a human dispatch; then automatically after every green CI run on `Main` (AD-27) |
+**Promotion approval.** Guruprasath Gopal, the cloud and delivery lead, approves the pull request
+that promotes a change to the protected `Main` branch; the merge also requires a green **Full
+verification**. CD then deploys automatically after a green Full verification on the Main push
+source, with no second human approval. The admission job binds the triggering repository, source
+SHA, run and attempt; PR and scheduled CI runs cannot admit this automatic path
+(`scripts/ci/cd_gate.py`). The `run` job checks out the admitted SHA and assumes the AWS role
+through GitHub OIDC in the branch-restricted **`aws` environment** (Main and `dev/closeout`).
+A concurrency group serializes deliveries. A manual deploy or release can instead use an eligible
+exact-source full CI dispatch.
 
-There is no separate staging environment (AISS-04). Two things stand in for it: the local V1 stack
-and CI's exact-image verification exercise the same images before promotion, and every release
-smoke-tests production with an automatic restore on failure.
+**Deployment verification.**
 
-**Promotion and who approves it.**
+1. **Admission and preflight.** Retain the exact-source admission record, read stack/journal
+   state and inspect the change set; replacement of Aurora, buckets or the distribution is
+   rejected.
+2. **Image admission.** Release only owners whose image build inputs changed. Build and scan the
+   promoted bytes, bind config/source identity to immutable registry digests, and require completed
+   matching ECR scans. Candidate and kept-running image sets require zero fixable HIGH/CRITICAL
+   Trivy findings. ECR separately rejects unaccepted HIGH/CRITICAL findings
+   (`scripts/aws/v1/artifacts.py`, `scripts/aws/v1/proof/release_plan.py`).
+3. **Journaled owner release.** Record prior owner and peer state, quiesce the owning work,
+   run the migration task, publish Lambda versions, move live aliases (and, for Processing, the
+   worker definition), journal each step and verify the peer is unchanged
+   (`scripts/aws/v1/release.py:240–394`).
+4. **Owner smoke and automatic restore.** The public owner smoke checks the candidate's contracts,
+   including health/authentication and quiescence. On promotion failure, `cd.sh` restores the
+   prior aliases/worker and smoke-tests the restored state. The journal records `restored`,
+   `abandoned` when nothing changed, or `restore-failed`. Schema migrations are additive and are
+   not downgraded (`scripts/ci/cd.sh:600–640`, `release.py:397–464`).
+5. **Upload-to-playback smoke.** After deploy/release, upload a real clip through the public API,
+   wait for `done`, then read MP4, HLS playlist and segment. Failure fails CD; this later smoke
+   is outside the owner restore boundary (`cd.yml:230–241`).
+6. **Receipts.** Retain sanitized admission, scan, release and playback results for 60 days.
+   Save resumable private journal state to versioned S3, including after failed runs.
 
-- Promotion **into `Main` is the approval**. The person merging the release PR is the approver; in
-  this project that was the repository owner, Guruprasath Gopal, the cloud and delivery lead.
-- After that, promotion to `dc2-live` is automatic, with no manual gate:
-  1. CI on `Main` completes and triggers CD (`workflow_run`).
-  2. The **admission gate** job refuses the commit unless that exact SHA had a successful push CI
-     run in this repository, then retains an admission record.
-  3. The `deploy` job assumes the AWS role through OIDC, only from the `aws` environment.
-- Manual dispatch remains available for `preflight`, `deploy`, `release` (including a deliberate
-  `bad_candidate`), and `teardown`. `teardown` requires `confirm=live`.
-- A concurrency group prevents two deliveries running at once.
-
-**Deployment steps and verification.**
-
-1. **Preflight** (reads only): account and region, stack state, a change set that must not
-   replace Aurora, a bucket or the distribution, and the release journal.
-2. **Stack update**: a CloudFormation `UPDATE` change set from the checked-out template. For the `live` environment this step also applies the Lambda short-encode lane and the per-service database split (AD-29: snapshot, clone, smoke, then cleanup); run 39644028238 delivered both.
-3. **Per-owner release**, only for owners whose image build inputs changed:
-   - build the image;
-   - scan the candidate, and scan the retained rollback image (AD-28);
-   - push it, and bind the registry manifest to the scanned config;
-   - run the migration task if attested;
-   - publish versions and move the `live` aliases;
-   - run the owner's health and authentication smoke;
-   - **restore the previous versions** if anything fails;
-   - adopt the images into the stack.
-4. **Upload-to-playback smoke**: a real clip is uploaded through the public API. The job must
-   reach `done`, and the MP4, HLS playlist and segment must be playable.
-5. **Receipts**: redacted results are uploaded as an artifact. Run state is saved to a private,
-   versioned S3 bucket. Sanitized delivery receipts are then committed (for example
-   `docs/results/engineering-20261020/delivery-629119c.json`).
+The Trivy-only `RETAINED_FIXABLE` exception (AD-28) applies to a replaced image held solely as a
+restore target: its findings are recorded without blocking remediation of that baseline. New
+candidates and kept-running companions stay strict, every image set still needs completed
+matching ECR validation, and wrong-image reports or scanner errors block. The manual
+`aws-prep.yml` workflow scans selected inherited-owner images under the same threshold and is
+separate from automatic Main CI/CD.
 
 **Recorded deliveries.**
 
@@ -190,60 +184,11 @@ smoke-tests production with an automatic restore on failure.
 | 39271754470 | `7928b7c` | Deliberate bad Processing candidate: smoke failed (503) and the previous aliases were **restored** automatically |
 | 39286933644 | `daee44b` | Deploy of the team-accepted frozen demo release |
 | 39416747925 | `629119c` | Both owners promoted, deployed-image scans clean, upload-to-playback smoke passed, read-back of 3 images, 10 aliases and the worker definition |
-| 39532075705 | `4ae6a0b` | **Failed**: the scan of the retained Media rollback image found 1 fixable HIGH/CRITICAL (see below) |
-| 39542434067 | `6155951` | **Failed**: the stack-level public smoke met a paused Aurora cluster; login answered 503 (see below) |
-| 39545554380 | `c7c489c` | **Success**: both owners promoted, with the old images' advisory recorded; zero fixable HIGH/CRITICAL in the deployed images; upload-to-playback smoke PASS, job `done` in 101.2 s; 3 images, 10 aliases and the worker definition read back (`docs/results/engineering-20261021/delivery-c7c489c.json`) |
+| 39532075705 | `4ae6a0b` | **Failed**: the scan of the retained Media rollback image found 1 fixable HIGH/CRITICAL |
+| 39542434067 | `6155951` | **Failed**: the stack-level public smoke met a paused Aurora cluster; login answered 503 |
+| 39545554380 | `c7c489c` | **Success**: both owners promoted; zero fixable HIGH/CRITICAL in the deployed images; upload-to-playback smoke PASS, job `done` in 101.2 s; 3 images, 10 aliases and the worker definition read back (`docs/results/engineering-20261021/delivery-c7c489c.json`) |
 
-**The 21 October scan incident.** This was the only time the release gate blocked a correct
-release. The handling shows how the pipeline is meant to be operated.
-
-1. **Detection.** CD run 39532075705, for `Main` at `4ae6a0b` (which bumped `certifi` for a new
-   advisory), failed in `Deploy` with `media: FAIL: Trivy has 1 fixable HIGH/CRITICAL`. The
-   upload-to-playback smoke was skipped. The live environment kept running the previous verified
-   release, `629119c`, untouched.
-2. **Root cause, from the run log and the saved reports.** The candidate image passed its scan.
-   The failing scan was the rescan of the image running at the time, the rollback baseline
-   (`sha256:24bd78a8…`, built from `629119c`). It carried GHSA-6q48-6c7w-9gw2 in `certifi
-   2026.7.22`: emSign root CAs with compromised intermediate keys. The advisory was published on
-   20 October at 19:35 UTC, after that image shipped. The candidate's `certifi 2026.10.19` fixes
-   it. So the gate refused to replace a vulnerable image *because* it was vulnerable, and the fix
-   could never ship.
-3. **Fix without weakening the gate (AD-28, PR #285 into `dev/closeout`, PR #286 into `Main`).**
-   The rules are now:
-   - The candidate must still scan clean first.
-   - Images that the release **keeps** are rescanned strictly.
-   - Images that the release **replaces** are rescanned in a *retained* mode. A fixable finding
-     there becomes `RETAINED_FIXABLE`: it is listed in the release receipt, annotated on the run
-     and shown in the job summary, and it does not block.
-   - Only the baseline role accepts that status. Promotion, publication and the good and bad
-     image sets still require `PASS`.
-   - Scanner errors and wrong-image reports fail in both modes.
-   - Tests pin each rule. The real failing report, replayed through the scanner, fails in strict
-     mode and is recorded in retained mode.
-4. **A second, latent defect.** With the scan fixed, CD run 39542434067 (`6155951`) reached the
-   stack-level public smoke and failed with `login:503`. The update changed no migration, so
-   nothing had touched the database before the smoke. Aurora had auto-paused at 0 ACU. The login
-   is the smoke's first database-backed call, and it met a cluster that was still resuming:
-   MediaApi gave up after about 10.7 s and answered 503, and capacity read 1.0 ACU moments later.
-   PRs #287 and #288 let the deploy's smoke retry **only the login**, only on 502/503/504 or a
-   transport failure, after 5, 10 and 15 s, within a 180 s deadline. Every attempt is recorded.
-   Any other status, or a 503 that outlasts the pauses, still fails. The release smoke, which
-   runs after its migration has woken the database, is not retried.
-5. **Redelivery.** CD run 39545554380, on `c7c489c` and admitted by `Main` CI 39544952625,
-   succeeded:
-   - gate job 7 s; Deploy step, including both owner releases and stack adoption, 22 min 56 s;
-     upload-to-playback smoke 2 min 27 s;
-   - the smoke job reached `done` 101.2 s after acceptance, with MP4 and HLS served;
-   - the release receipts list the certifi advisory against the three *replaced* images;
-   - read-back confirmed the deployed digests: Media `sha256:dafbb19d…`, Processing
-     `sha256:3c83e4ba…` and worker `sha256:eed6fbbb…`, with the ten `live` aliases and
-     `dc2-live-worker:12` matching.
-
-   The receipt is `docs/results/engineering-20261021/delivery-c7c489c.json`. The documentation
-   follow-up (#289, #290) redeployed with no releases, and its smoke passed in 116.1 s. Two things
-   remain unexercised: the wake retry did not fire in the live run, and the replaced image's
-   rollback was not run. The receipt records both.
-
-A scheduled weekly rescan of retained images would surface such advisories before a release meets
-them.
-
+The two 21 October failures led to two changes: AD-28 added the restore-target exception above,
+and the public smoke now retries its first Media login and Processing read on 502/503/504 or
+transport failure, pausing 5, 10 and 15 s while an Aurora cluster resumes
+(`scripts/aws/v1/public_smoke.py`). The next delivery, `c7c489c`, succeeded.

@@ -1,0 +1,28 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 18
+title Media acceptance -> relay -> Processing inbox
+start
+if (new source path?) then (upload)
+ :reserve -> client S3 POST -> finalize\nverify bytes / VersionId;
+ :Media SQL transaction:\nrecheck reservation + adopt Asset / pin\n+ stage submit outbox;
+else (edit)
+ :owned completed parent -> copy primary;
+ :Media SQL adoption transaction:\nnew Asset + verify/pin copied source + SourceVersion\n+ optional RequestKey + submit outbox,\nretire staged-object row;
+endif
+:COMMIT acceptance;
+:MediaRepair: claim outbox + COMMIT\nrelay SendMessage -> SQS\nfenced send acknowledgement;
+:ProcessingCommands receives from mapping;
+:Processing SQL transaction:\ninbox + guard + Job / Attempt\n+ work / result outboxes, COMMIT;
+:handler attempts publication after commit;
+:ACK depends on committed inbox / state / intent;
+stop
+legend bottom
+ HTTP response and relay scheduling are independent.
+ SQS sends are outside the adoption transaction.
+ Relay/repair can repeat; inbox and lifecycle fences deduplicate.
+endlegend
+@enduml

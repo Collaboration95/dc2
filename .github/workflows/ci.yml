@@ -110,6 +110,19 @@ jobs:
       - run: make lint
       - run: make format-check
       - run: .venv/bin/python -m scripts.dev.checks coverage-fast
+        env:
+          PYTEST_ADDOPTS: --junitxml=artifacts/unit-tests.xml
+      - name: Publish fast unit-test counts
+        continue-on-error: true
+        if: always()
+        run: python3 -m scripts.ci.quality_summary junit artifacts/unit-tests.xml >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: fast-unit-junit
+          path: artifacts/unit-tests.xml
+          if-no-files-found: warn
+          retention-days: 14
       # The no-legacy V1 offline suite deliberately excludes these AWS2 contracts;
       # coverage-fast excludes unmeasured tooling too. Keep their owner tests here.
       - name: Legacy-only offline operator contracts (network guarded)
@@ -583,6 +596,10 @@ jobs:
       - run: >-
           make coverage-report
           COVERAGE_INPUTS='artifacts/coverage/.coverage.fast artifacts/coverage/.coverage.legacy-integration artifacts/coverage/.coverage.processing-integration artifacts/coverage/.coverage.media-integration artifacts/coverage/.coverage.v1-integration'
+      - name: Publish existing coverage gate results
+        continue-on-error: true
+        if: always()
+        run: python3 -m scripts.ci.quality_summary coverage artifacts/coverage/gate.json >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: python-coverage

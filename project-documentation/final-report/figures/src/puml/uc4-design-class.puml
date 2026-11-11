@@ -1,0 +1,61 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-10/11/12/12a/13/13a; retry identity and independent stale fences
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 40
+skinparam ranksep 56
+hide footbox
+hide circle
+title UC-4 · retry identity and current-attempt fences
+top to bottom direction
+class "Job\nprocessing.models" as J <<ORM>> $PROC {
+ + id: UUID
+ + current_attempt_id: UUID
+ + status: str
+ + deleted_at: datetime | None
+}
+class "Attempt\nprocessing.models" as A <<ORM>> $PROC {
+ + id: UUID
+ + job_id: UUID
+ + attempt_number: int
+ + lease_token: UUID | None
+ + lease_expires_at: datetime | None
+}
+class "RetryRequest\nprocessing.models" as R <<ORM>> $PROC {
+ + job_id: UUID
+ + request_id: UUID
+ + attempt_id: UUID
+}
+class "messaging\nprocessing" as M <<module>> $PROC {
+ {static} - _retry_locked(session, job, request_id)
+}
+class "RequestKey\nmedia.models" as K <<ORM>> $MEDIA {
+ + owner_id: UUID
+ + operation: str
+ + request_key: UUID
+ + asset_id: UUID
+}
+class "v1_lifecycle\nmedia.services" as V <<module>> $MEDIA {
+ {static} + retry(session, owner_id, asset_id, key)
+}
+V ..> K : public replay
+V ..> M : asynchronous retry command
+M ..> J : locked transition
+J "1" -down- "1..*" A : history
+J -down-> A : current attempt\n(0..1 to 1)
+J "1" -right- "0..*" R : unique job / request
+R -down-> A : successor\n(0..1 to 1)
+legend bottom
+Selected fields. RequestKey and RetryRequest are stored in separate databases.
+Public replay and successor creation have independent deduplication identities and transaction owners.
+endlegend
+@enduml

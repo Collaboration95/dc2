@@ -1,0 +1,37 @@
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+' scripts/aws/v1/definitions.py: image parameters, Lambda functions, task definitions
+title Deployment view · images and runtime configuration
+left to right direction
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 18
+skinparam titleFontSize 21
+skinparam LegendFontSize 18
+skinparam nodesep 14
+skinparam ranksep 30
+node "GitHub Actions\nOIDC → deploy role" as ci $INFRA
+artifact "MediaImageUri\nmedia@digest" as mi $MEDIA
+artifact "ProcessingImageUri\nprocessing@digest" as pi $PROC
+artifact "WorkerImageUri\nworker@digest" as wi $PROC
+node "4 Media Lambdas · private\nMediaApi, MediaAuthorizer\nMediaResults, MediaRepair" as ml <<executionEnvironment>> $MEDIA
+node "Media migration task · public\nAlembic · 256 / 512 MiB" as mt <<executionEnvironment>> $MEDIA
+node "6 Processing Lambdas · private\nApi, Commands, Repair,\nEcsEvents, S3Events, Launcher" as pl <<executionEnvironment>> $PROC
+node "Processing migration task\npublic · Alembic · 256 / 512 MiB" as pt <<executionEnvironment>> $PROC
+node "ProcessingShortEncoder\nprivate · 3008 MB / 900 s\n2048 MB tmp\npython -m awslambdaric" as sl <<executionEnvironment>> $PROC
+node "Finite tasks · public\nWorkerTaskDefinition\n2 vCPU / 4 GiB\nBootstrap 256 / 512 MiB" as wt <<executionEnvironment>> $PROC
+ci --> mi : push / pin
+ci --> pi : push / pin
+ci --> wi : push / pin
+mi ..> ml : <<deploy>>
+mi ..> mt : <<deploy>>
+pi ..> pl : <<deploy>>
+pi ..> pt : <<deploy>>
+wi ..> sl : <<deploy>>
+wi ..> wt : <<deploy>>
+legend bottom
+ Blue Media · amber Processing. Dashed «deploy»: image → runtime.
+ Every Lambda: x86_64, own role, version and live alias.
+ Operations tasks are one-off.
+endlegend
+@enduml

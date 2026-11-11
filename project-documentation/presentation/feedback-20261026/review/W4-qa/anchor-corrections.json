@@ -1,0 +1,134 @@
+[
+  {
+    "path": "contracts/v1.py",
+    "old_line": 18,
+    "start": 20,
+    "end": 44
+  },
+  {
+    "path": "contracts/v1.py",
+    "old_line": 98,
+    "start": 100,
+    "end": 106
+  },
+  {
+    "path": "contracts/v1.py",
+    "old_line": 108,
+    "start": 109,
+    "end": 129
+  },
+  {
+    "path": "contracts/v1.py",
+    "old_line": 118,
+    "start": 132,
+    "end": 154
+  },
+  {
+    "path": "contracts/v1.py",
+    "old_line": 151,
+    "start": 158,
+    "end": 218
+  },
+  {
+    "path": "contracts/v1.py",
+    "old_line": 190,
+    "start": 192,
+    "end": 212
+  },
+  {
+    "path": "media/models.py",
+    "old_line": 35,
+    "start": 36,
+    "end": 66
+  },
+  {
+    "path": "processing/models.py",
+    "old_line": 47,
+    "start": 48,
+    "end": 95
+  },
+  {
+    "path": "processing/schemas.py",
+    "old_line": 18,
+    "start": 15,
+    "end": 20
+  },
+  {
+    "path": "processing/schemas.py",
+    "old_line": 25,
+    "start": 23,
+    "end": 77
+  },
+  {
+    "path": "processing/schemas.py",
+    "old_line": 111,
+    "start": 90,
+    "end": 95
+  },
+  {
+    "path": "processing/messaging.py",
+    "old_line": 35,
+    "start": 260,
+    "end": 271
+  },
+  {
+    "path": "processing/recovery.py",
+    "old_line": 123,
+    "start": 113,
+    "end": 187
+  },
+  {
+    "path": "processing/migrations/versions/0001_intake.py",
+    "old_line": 29,
+    "start": 30,
+    "end": 32
+  },
+  {
+    "path": "processing/migrations/versions/0006_cleanup_retirement.py",
+    "old_line": 22,
+    "start": 23,
+    "end": 29
+  },
+  {
+    "path": "media/migrations/versions/0008_upload_cleanup_schedule.py",
+    "old_line": 12,
+    "start": 10,
+    "end": null
+  },
+  {
+    "path": "scripts/aws/v1/definitions.py",
+    "old_line": 51,
+    "start": 63,
+    "end": 78
+  },
+  {
+    "path": "scripts/aws/v1/definitions.py",
+    "old_line": 550,
+    "start": 548,
+    "end": 595
+  },
+  {
+    "path": "scripts/aws/v1/definitions.py",
+    "old_line": 546,
+    "start": 548,
+    "end": 595
+  },
+  {
+    "path": "scripts/aws/v1/bootstrap.py",
+    "old_line": 180,
+    "start": 171,
+    "end": 262
+  },
+  {
+    "path": "scripts/aws/v1/frontend.py",
+    "old_line": 30,
+    "start": 96,
+    "end": 125
+  },
+  {
+    "path": "media/repositories/assets.py",
+    "old_line": 31,
+    "start": 81,
+    "end": 93
+  }
+]

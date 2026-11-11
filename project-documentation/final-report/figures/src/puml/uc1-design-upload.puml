@@ -1,0 +1,61 @@
+@startuml
+!include _style.iuml
+' Adapted from reviewed presentation sources: W3-03, W3-06a, W3-06; upload pin / replay corrections from W3-review
+skinparam dpi 110
+skinparam defaultFontSize 18
+skinparam ArrowFontSize 17
+skinparam ClassAttributeFontSize 17
+skinparam ClassStereotypeFontSize 15
+skinparam NoteFontSize 16
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam classAttributeIconSize 0
+skinparam maxMessageSize 165
+skinparam nodesep 18
+skinparam ranksep 24
+hide footbox
+hide circle
+title UC-1 · reservation, direct upload and finalize
+autonumber
+actor "Client" as C
+participant "direct_intake\nmedia.services" as I $MEDIA
+participant "storage: Storage" as S $MEDIA
+participant "S3\nsource bucket" as B $INFRA
+database "session\nMedia DB" as DB $INFRA
+C -> I : reserve(...) [via reserve_upload]
+I -> DB : SQL: insert/replay UploadReservation; COMMIT
+alt reservation already finalized (replay)
+ I --> C : reservation, upload = None
+else pending reservation
+ I -> S : direct_upload_grant(row)
+ S --> I : POST grant
+ I --> C : reservation + grant, through API
+ C -> B : HTTP POST to S3 [grant]
+end
+C -> I : finalize(...) [via finalize_upload]
+I -> DB : SQL: preflight; end read tx
+alt wrong owner / request / expiry
+ I --> C : MediaError(404 / 409 / 410)
+else finalized replay
+ I --> C : existing Asset → Accepted
+else pending
+ I -> S : verify_direct_upload(row)
+ note over I,S : Verify outside SQL row locks
+ alt missing / invalid / unversioned bytes
+  S --> I : MediaError; no adoption
+  I --> C : error, through API
+ else verified
+  S --> I : version_id
+  group adoption transaction
+   I -> DB : SQL: lock/recheck; pin + Asset
+   I -> I : enqueue(session, asset, source(row))
+   I -> DB : SQL: stage MediaOutbox; COMMIT
+  end
+  I --> C : Asset → HTTP 202 Accepted
+ end
+end
+legend bottom
+Replay of a finalized reservation gets no new grant. Finalize rechecks expiry under lock;
+enqueue stages the command inside the adoption transaction.
+endlegend
+@enduml

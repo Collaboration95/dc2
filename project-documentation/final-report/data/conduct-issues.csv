@@ -1,0 +1,157 @@
+number,createdAt,closedAt,labels,title
+1,2026-10-12T16:03:54Z,2026-10-12T16:22:29Z,"[""epic"", ""pre-aws"", ""planning""]",[E0] Reviewed plan and auditable delivery
+2,2026-10-12T16:03:56Z,2026-10-12T17:19:37Z,"[""epic"", ""pre-aws"", ""foundation""]",[E1] Reproducible local workspace and fast checks
+3,2026-10-12T16:03:58Z,2026-10-12T18:28:29Z,"[""epic"", ""pre-aws"", ""processing""]",[E2] Independent processing and reliable attempts
+4,2026-10-12T16:04:00Z,2026-10-12T19:08:05Z,"[""epic"", ""pre-aws"", ""media""]",[E3] Media ownership and compatible public workflow
+5,2026-10-12T16:04:02Z,2026-10-12T19:44:42Z,"[""epic"", ""pre-aws"", ""clients""]",[E4] Web and independent Publisher CLI
+6,2026-10-12T16:04:04Z,2026-10-13T01:20:22Z,"[""epic"", ""pre-aws"", ""verification""]",[E5] Integrated evidence and local release readiness
+7,2026-10-12T16:04:07Z,2026-10-12T16:22:28Z,"[""pre-aws"", ""planning""]","[G1] Define epics, persona stories, issue contracts and waves"
+8,2026-10-12T16:04:10Z,2026-10-12T16:22:29Z,"[""pre-aws"", ""planning""]",[G2] Independently review and correct the delivery plan
+9,2026-10-12T16:04:14Z,2026-10-12T17:09:09Z,"[""pre-aws"", ""foundation""]",[F1] Install a reproducible root workspace with Make and environment doctor
+10,2026-10-12T16:04:18Z,2026-10-12T17:10:15Z,"[""pre-aws"", ""foundation""]",[F2] Establish fast deterministic test tiers and required CI checks
+11,2026-10-12T16:04:22Z,2026-10-12T17:09:10Z,"[""pre-aws"", ""foundation""]","[F3] Provide isolated local services, storage and trusted HTTPS topology"
+12,2026-10-12T16:04:26Z,2026-10-12T18:28:27Z,"[""pre-aws"", ""processing""]","[P1] Implement attempt lifecycle, stored-source retry and cancellation"
+13,2026-10-12T16:04:31Z,2026-10-12T18:28:28Z,"[""pre-aws"", ""processing""]",[P2] Run attempt-aware FFmpeg workers with private source and output access
+14,2026-10-12T16:04:35Z,2026-10-12T18:28:28Z,"[""pre-aws"", ""processing""]",[P3] Recover worker interruptions and lost queue deliveries
+15,2026-10-12T16:04:39Z,2026-10-12T19:08:04Z,"[""pre-aws"", ""media""]",[M1] Create Media-owned Assets and durable idempotent submission
+16,2026-10-12T16:04:44Z,2026-10-12T19:08:04Z,"[""pre-aws"", ""media""]","[M2] Serve compatible status, retry and authorised MP4/HLS playback"
+17,2026-10-12T16:04:48Z,2026-10-12T19:08:05Z,"[""pre-aws"", ""media""]",[M3] Reconcile pending submissions and preserve edit/delete/operator behavior
+18,2026-10-12T16:04:52Z,2026-10-12T19:44:41Z,"[""pre-aws"", ""clients""]",[C1] Build the independent Publisher CLI against public APIs
+19,2026-10-12T16:04:55Z,2026-10-12T19:44:41Z,"[""pre-aws"", ""clients""]",[C2] Complete browser stored-source retry and idempotent requests
+20,2026-10-12T16:05:00Z,2026-10-13T00:49:04Z,"[""pre-aws"", ""verification""]",[V1] Integrate full local workflow and contract regression evidence
+21,2026-10-12T16:05:05Z,2026-10-13T00:49:07Z,"[""pre-aws"", ""verification""]",[V2] Exercise recovery faults across both services
+22,2026-10-12T16:05:09Z,2026-10-13T00:49:09Z,"[""pre-aws"", ""verification""]",[V3] Measure local performance and worker scaling without misleading claims
+23,2026-10-12T16:05:14Z,2026-10-13T00:49:12Z,"[""pre-aws"", ""verification""]","[V4] Automate independent local Processing release, smoke and rollback"
+24,2026-10-12T16:05:17Z,2026-10-13T01:20:21Z,"[""pre-aws"", ""verification""]",[V5] Review final delivery and publish evidence-based morning handoff
+33,2026-10-13T03:25:43Z,2026-10-14T14:13:27Z,"[""enhancement"", ""epic"", ""pre-aws""]",[E6] Measured performance improvements within demo budget
+34,2026-10-13T03:26:08Z,2026-10-13T03:45:28Z,"[""enhancement"", ""media""]",[PERF] Media API and data access: investigate and remove avoidable work
+35,2026-10-13T03:26:12Z,2026-10-13T03:45:29Z,"[""enhancement"", ""processing""]",[PERF] Processing worker and media engine: investigate and remove avoidable work
+36,2026-10-13T03:26:15Z,2026-10-13T03:45:29Z,"[""enhancement"", ""clients""]",[PERF] Frontend and Publisher: investigate and remove avoidable work
+38,2026-10-13T03:38:49Z,2026-10-14T14:13:25Z,"[""enhancement"", ""verification""]",[PERF] Measure CPU quota redistribution under mixed workloads
+39,2026-10-13T03:39:21Z,2026-10-14T14:13:26Z,"[""enhancement"", ""processing""]",[PERF] Validate bounded worker scheduling and demo run windows
+41,2026-10-14T17:39:42Z,2026-10-17T17:15:29Z,"[""epic"", ""planning"", ""media"", ""v1""]","[V1 epic] Visible domain APIs, ownership and S3 intake"
+42,2026-10-14T17:39:47Z,2026-10-17T17:15:32Z,"[""epic"", ""planning"", ""foundation"", ""v1""]","[V1 epic] Managed runtime, session controls and budget"
+43,2026-10-14T17:39:52Z,2026-10-17T17:15:35Z,"[""epic"", ""planning"", ""processing"", ""v1""]","[V1 epic] Redis-free delivery, finite workers and independent releases"
+44,2026-10-14T17:39:57Z,2026-10-17T17:15:37Z,"[""epic"", ""planning"", ""verification"", ""v1""]",[V1 epic] Authentic acceptance and immutable submission baseline
+45,2026-10-14T17:40:03Z,2026-10-16T19:27:22Z,"[""planning"", ""v1""]","[V1] Record actual project account, currency and scoped cloud authorization"
+46,2026-10-14T17:40:10Z,2026-10-15T05:44:03Z,"[""planning"", ""v1""]",[V1 decision] Replace the public EC2 HTTP origin with managed HTTPS
+47,2026-10-14T17:40:19Z,2026-10-14T21:49:52Z,"[""enhancement""]",[AWS2] Wire refreshing ECS credentials into Media storage
+48,2026-10-14T17:40:25Z,2026-10-14T21:49:59Z,"[""enhancement""]",[AWS2] Wire ECS writer and cleanup credentials into Processing
+49,2026-10-14T17:40:31Z,2026-10-14T21:50:08Z,"[""enhancement""]",[AWS2] Bound signed URL lifetime to the credentials actually used
+50,2026-10-14T17:40:40Z,2026-10-14T21:50:18Z,"[""enhancement""]","[AWS2] Define one-subnet state, storage and IAM infrastructure offline"
+51,2026-10-14T17:40:46Z,2026-10-14T21:50:25Z,"[""enhancement""]","[AWS2] Bootstrap only PostgreSQL, Redis and nginx on retained EBS"
+52,2026-10-14T17:40:52Z,2026-10-14T21:50:32Z,"[""enhancement""]","[AWS2] Define three services, owner migrations and disposable worker tasks"
+53,2026-10-14T17:41:01Z,2026-10-14T21:50:39Z,"[""enhancement""]",[AWS2] Configure CloudFront and nginx for private authenticated API traffic
+54,2026-10-14T17:41:09Z,2026-10-14T21:50:46Z,"[""enhancement""]","[AWS2] Bind amd64 owner artifacts to tests, scans and ECR digest receipts"
+55,2026-10-14T17:41:16Z,2026-10-14T21:50:54Z,"[""enhancement""]",[AWS2] Cover extracted services in delivery scans and report execution honestly
+56,2026-10-14T17:41:22Z,2026-10-14T21:51:01Z,"[""enhancement""]",[AWS2] Start at most three worker tasks with one serialized operator
+57,2026-10-14T17:41:28Z,2026-10-14T21:51:08Z,"[""enhancement""]",[AWS2] Bound cloud worker lifetime and warm-drain before StopTask
+58,2026-10-14T17:41:35Z,2026-10-14T21:51:15Z,"[""enhancement""]",[AWS2] Add a small cloud client and safe evidence context
+59,2026-10-14T17:41:42Z,2026-10-14T21:51:22Z,"[""enhancement""]",[AWS2] Promote and roll back Processing alone on ECS
+60,2026-10-14T17:41:51Z,2026-10-14T21:51:30Z,"[""enhancement""]",[AWS2] Release Media API and reconciler without changing Processing
+61,2026-10-14T17:41:58Z,2026-10-14T21:51:37Z,"[""enhancement""]",[AWS2] Open and close sessions with complete task and IP accounting
+62,2026-10-14T17:42:09Z,2026-10-14T21:51:44Z,"[""enhancement""]",[AWS2] Export both owned databases at one quiescent boundary
+63,2026-10-14T17:42:16Z,2026-10-17T12:08:37Z,"[""planning"", ""verification"", ""v1""]",[V1 evidence] Deploy the approved target and prove real workflow boundaries
+64,2026-10-14T17:42:29Z,2026-10-17T12:08:39Z,"[""planning"", ""verification"", ""v1""]",[V1 evidence] Prove 1/2/3 encoders and bounded SQS recovery on AWS
+65,2026-10-14T17:42:36Z,2026-10-17T12:08:41Z,"[""planning"", ""verification"", ""v1""]",[V1 evidence] Capture independent Lambda/Fargate release and rollback
+66,2026-10-14T17:42:46Z,2026-10-17T16:36:16Z,"[""verification"", ""v1""]",[V1 evidence] Measure warm API latency with an independent Fargate generator
+67,2026-10-14T17:42:53Z,2026-10-17T17:15:08Z,"[""planning"", ""verification"", ""v1""]","[V1 evidence] Reconcile actual spend, close state and final V1 handoff"
+68,2026-10-14T17:43:45Z,2026-10-21T07:45:02Z,"[""enhancement"", ""processing"", ""v2""]",[V2 experiment] Optional unattended worker starts and further cost cuts
+80,2026-10-15T05:07:58Z,2026-10-21T07:45:00Z,"[""epic"", ""planning"", ""v2""]",[V2 epic] Optional measured migrations after accepted V1
+81,2026-10-15T05:08:00Z,2026-10-16T19:16:45Z,"[""planning"", ""v1""]","[V1] Freeze gateway routes, trusted identity and message contracts"
+82,2026-10-15T05:08:04Z,2026-10-16T19:16:48Z,"[""media"", ""v1""]",[V1] Package Media Lambda with native credentials and owned SQL
+83,2026-10-15T05:08:08Z,2026-10-16T19:16:51Z,"[""processing"", ""v1""]",[V1] Package Processing Lambda API and owned job lifecycle
+84,2026-10-15T05:08:11Z,2026-10-16T19:16:54Z,"[""processing"", ""v1""]",[V1] Replace Redis/RQ delivery with SQS and durable SQL repair
+85,2026-10-15T05:08:14Z,2026-10-16T19:16:57Z,"[""media"", ""v1""]","[V1] Replace peer calls with commands, results and owned projections"
+86,2026-10-15T05:08:18Z,2026-10-16T19:17:00Z,"[""clients"", ""v1""]",[V1] Move browser and Publisher uploads directly to authorized S3
+87,2026-10-15T05:08:21Z,2026-10-16T19:17:03Z,"[""processing"", ""v1""]",[V1] Run finite SQS Fargate encoders and remove source callbacks
+88,2026-10-15T05:08:25Z,2026-10-16T19:17:06Z,"[""processing"", ""v1""]",[V1] Implement bounded Lambda repair and late-output cleanup
+89,2026-10-15T05:08:28Z,2026-10-16T19:17:09Z,"[""foundation"", ""v1""]",[V1] Define managed Gateway/Lambda/SQS/Aurora infrastructure offline
+90,2026-10-15T05:08:32Z,2026-10-16T19:17:11Z,"[""verification"", ""v1""]","[V1] Adapt independent releases, migrations and rollback to Lambda/Fargate"
+91,2026-10-15T05:08:35Z,2026-10-16T19:17:14Z,"[""foundation"", ""v1""]","[V1] Adapt session open/close, cost model and evidence protocols"
+92,2026-10-15T05:08:38Z,2026-10-16T19:17:17Z,"[""verification"", ""v1""]",[V1] Verify the complete Redis-free workflow locally
+93,2026-10-15T05:10:25Z,2026-10-17T17:00:15Z,"[""processing"", ""v2""]",[V2 experiment] Benchmark bounded short encodes on Lambda
+94,2026-10-15T05:10:28Z,2026-10-17T17:00:18Z,"[""foundation"", ""v2""]",[V2 experiment] Measure separate database clusters and pause behavior
+96,2026-10-15T06:38:45Z,2026-10-17T18:21:57Z,"[""bug"", ""enhancement""]",Prevent unattended local VM resource use; replace 8 CPU / 8 GiB defaults
+107,2026-10-16T17:08:51Z,2026-10-16T17:22:20Z,"[""bug"", ""v1""]",[V1] Documented local DLQ redrive crashes on pinned Moto
+108,2026-10-16T17:08:53Z,2026-10-16T17:22:22Z,"[""bug"", ""v1""]",[V1] Primary handoff still describes implemented local runtime as pending
+111,2026-10-16T17:43:14Z,2026-10-16T18:15:55Z,"[""bug"", ""v1""]",[V1] Latency window validation rejects exact 180s windows on float clock values
+113,2026-10-16T17:54:03Z,2026-10-16T18:15:40Z,"[""bug"", ""v1""]",[V1] Deploy resume publishes DB passwords that bootstrap never applied
+114,2026-10-16T17:54:05Z,2026-10-16T18:15:44Z,"[""bug"", ""v1""]",[V1] Adopted-bucket teardown deletes other runs' template object versions
+115,2026-10-16T17:54:07Z,2026-10-16T18:24:57Z,"[""bug"", ""v1""]","[V1] Processing cleanup roles lack s3:ListBucketVersions, so outputs are never cleaned"
+116,2026-10-16T17:54:09Z,2026-10-16T18:25:00Z,"[""bug"", ""v1""]",[V1] SQS queue policies block native DLQ redrive and operator poison injection
+117,2026-10-16T17:54:11Z,2026-10-16T18:25:03Z,"[""bug"", ""v1""]",[V1] Failed edits leave permanent staged source-object orphans
+118,2026-10-16T17:54:14Z,2026-10-16T18:15:46Z,"[""bug"", ""v1""]",[V1] Teardown empties storage before writers are quiescent
+119,2026-10-16T17:54:16Z,2026-10-16T18:25:06Z,"[""bug"", ""v1""]",[V1] Queued-work repair backoff exceeds the 120-second recovery bound
+120,2026-10-16T17:54:18Z,2026-10-16T18:15:49Z,"[""bug"", ""v1""]",[V1] Cloud workflow evidence cannot resume after finalization
+121,2026-10-16T17:54:20Z,2026-10-16T18:15:51Z,"[""bug"", ""v1""]",[V1] Standalone DLQ commands can fall back to the wrong AWS account
+124,2026-10-16T18:34:41Z,2026-10-16T18:47:28Z,"[""bug"", ""v1""]",[V1] Bootstrap password-loss recovery forgets a possibly live bootstrap task
+125,2026-10-16T18:34:43Z,2026-10-16T18:47:31Z,"[""bug"", ""v1""]",[V1] Bootstrap resume crashes when ECS no longer lists the stopped task
+126,2026-10-16T18:34:45Z,2026-10-16T18:47:33Z,"[""bug"", ""v1""]",[V1] Teardown cannot recover from late writes via still-valid presigned grants
+127,2026-10-16T18:34:47Z,2026-10-16T18:54:30Z,"[""bug"", ""v1""]",[V1] Stale repair duplicates can exhaust an encoder's whole message allowance
+128,2026-10-16T18:34:49Z,2026-10-16T18:54:33Z,"[""bug"", ""v1""]",[V1] Staged-object cleanup timeout releases the adoption lock before S3 deletion finishes
+131,2026-10-16T18:59:17Z,2026-10-16T19:10:32Z,"[""bug"", ""v1""]",[V1] Unjournaled bootstrap tasks found via startedBy are not awaited until STOPPED
+134,2026-10-16T19:20:21Z,2026-10-16T19:38:39Z,"[""bug"", ""v1""]",[V1] Image verifier expects pre-sanitization handler errors; 4 RIE checks fail (LOCAL_ARTIFACT_FAIL)
+137,2026-10-16T19:52:21Z,2026-10-16T20:43:10Z,"[""bug"", ""v1""]",[V1] Browser acceptance leg is flaky in CI and its failure detail is not surfaced
+138,2026-10-16T19:53:04Z,2026-10-16T20:55:17Z,"[""bug"", ""v1""]",[V1] deploy --dry-run always fails at images when given real build evidence
+143,2026-10-17T01:05:26Z,2026-10-17T01:22:54Z,"[""bug"", ""v1""]",[V1] Browser acceptance still flaky after #139: native HLS leg 'No redirected segment read'
+147,2026-10-17T02:08:41Z,2026-10-17T03:17:59Z,"[""bug"", ""v1""]",[V1] Teardown receipt reports ITEMS_REMAIN for resources the tagging API still lists after deletion
+150,2026-10-17T03:18:29Z,2026-10-17T03:53:38Z,"[""bug"", ""v1""]",[V1] Release proof (#65) needs an in-VPC SQL station that V1 does not have; read schema revision via a finite task
+151,2026-10-17T03:41:05Z,2026-10-17T12:08:44Z,"[""bug"", ""v1""]",[V1] #66 latency harness: cold-wake gives up instead of waiting for pause; generator runs against the 5 rps session gate
+156,2026-10-17T10:12:59Z,2026-10-17T15:28:12Z,"[""v1""]",[V1] release abandon: accept a migration task ECS has forgotten when it is provably not running
+159,2026-10-17T12:27:49Z,2026-10-17T14:31:08Z,"[""enhancement"", ""epic""]",[Improvement] Reduce development CI wait with selective checks and staged full verification
+160,2026-10-17T12:28:02Z,2026-10-17T14:30:45Z,"[""enhancement""]",[CI improvement] Define a small dev gate and preserve strict full-mode coverage
+161,2026-10-17T12:28:05Z,2026-10-17T14:30:49Z,"[""enhancement""]",[CI improvement] Select dev checks by changed paths with conservative fallbacks
+162,2026-10-17T12:28:09Z,2026-10-17T14:30:53Z,"[""enhancement""]",[CI improvement] Run V1 offline checks and live acceptance in parallel
+163,2026-10-17T12:28:12Z,2026-10-17T14:30:57Z,"[""enhancement""]",[CI improvement] Move inherited full browser acceptance out of routine dev PRs
+164,2026-10-17T12:28:16Z,2026-10-17T14:31:00Z,"[""enhancement""]",[CI improvement] Schedule expensive scans appropriately and report inactive checks honestly
+165,2026-10-17T12:28:20Z,2026-10-17T14:31:04Z,"[""enhancement""]",[CI improvement] Measure the new dev gate and document agent wait behavior
+178,2026-10-17T16:47:10Z,2026-10-18T14:28:22Z,"[""epic"", ""verification"", ""closeout""]","[Close-out epic] Visible DevOps pipeline: CI, deploy, smoke, release and rollback"
+179,2026-10-17T16:47:11Z,2026-10-19T18:09:32Z,"[""epic"", ""verification"", ""closeout""]","[Close-out epic] One cloud session from project2-v1: pipeline run, backlog scaling, demo recording"
+180,2026-10-17T16:47:13Z,2026-10-18T14:28:24Z,"[""documentation"", ""epic"", ""closeout""]","[Close-out epic] As-built architecture, DDD and evidence documentation"
+181,2026-10-17T16:47:15Z,,"[""documentation"", ""epic"", ""planning"", ""closeout"", ""needs-human-approval""]",[Close-out epic] Presentation (26 Oct) and final report (16 Nov) — DO NOT START without human approval
+182,2026-10-17T16:47:17Z,2026-10-18T02:52:36Z,"[""enhancement"", ""verification"", ""closeout""]","[Close-out] GitHub Actions CD workflow wrapping the V1 deploy, release and teardown scripts"
+183,2026-10-17T16:47:18Z,2026-10-17T17:30:23Z,"[""verification"", ""closeout""]",[Close-out] Add secret scanning to CI
+184,2026-10-17T16:47:20Z,2026-10-17T17:30:25Z,"[""documentation"", ""verification"", ""closeout""]",[Close-out] Publish OpenAPI documents for the Media and Processing public APIs with a drift check
+185,2026-10-17T16:47:22Z,2026-10-17T17:24:27Z,"[""processing"", ""verification"", ""closeout""]","[Close-out] Backlog throughput mode for the capacity proof (jobs/min at cap 1, 2, 3)"
+186,2026-10-17T16:47:24Z,2026-10-19T18:09:29Z,"[""verification"", ""closeout""]","[Close-out] Run the single cloud session: pipeline deploy, smoke, backlog scaling, independent release, demo recording, teardown"
+187,2026-10-17T16:47:25Z,2026-10-17T18:06:55Z,"[""documentation"", ""closeout""]","[Close-out] As-built DDD model: language, two bounded contexts, aggregates, commands/events, context map"
+188,2026-10-17T16:47:27Z,2026-10-17T18:06:57Z,"[""documentation"", ""closeout""]","[Close-out] ADR register and proposal→V1 deviation table, logical and physical diagrams"
+189,2026-10-17T16:47:29Z,2026-10-18T00:29:54Z,"[""documentation"", ""verification"", ""closeout""]","[Close-out] Evidence index: quality scenarios, targets and results, with local and cloud labelled"
+190,2026-10-17T16:47:31Z,2026-10-17T18:20:34Z,"[""documentation"", ""closeout""]","[Close-out] Submission repo hygiene: start-here README, historical docs labelled, stale branches and worktrees removed"
+191,2026-10-17T16:47:33Z,,"[""planning"", ""closeout"", ""needs-human-approval""]","[Close-out] Effort and milestone ledger per member, plus progress report"
+192,2026-10-17T16:47:35Z,,"[""documentation"", ""closeout"", ""needs-human-approval""]","[Close-out] Presentation deck, demo script and rehearsal for 26 Oct"
+193,2026-10-17T16:47:37Z,,"[""documentation"", ""closeout"", ""needs-human-approval""]","[Close-out] Final report per the course template, with presentation feedback"
+195,2026-10-17T17:05:42Z,2026-10-18T14:28:26Z,"[""epic"", ""closeout""]",[Close-out epic] Microservices hardening from the architecture audit
+196,2026-10-17T17:05:44Z,2026-10-18T00:12:42Z,"[""processing"", ""verification"", ""closeout""]",[Close-out] Prove failure isolation: Media accepts uploads while Processing is down
+197,2026-10-17T17:05:46Z,2026-10-17T17:55:53Z,"[""processing"", ""media"", ""closeout""]",[Close-out] Remove legacy peer-HTTP code from the V1 service images
+198,2026-10-17T17:05:47Z,2026-10-17T17:55:56Z,"[""verification"", ""closeout""]",[Close-out] Contract versioning policy and consumer-driven contract tests per service
+199,2026-10-17T17:05:49Z,2026-10-17T17:40:07Z,"[""verification"", ""closeout""]","[Close-out] Per-service CI: path-filtered Media and Processing jobs, plus CODEOWNERS"
+200,2026-10-17T17:05:51Z,2026-10-17T17:55:58Z,"[""foundation"", ""closeout""]","[Close-out] Per-service observability: DLQ and error alarms, dashboard, least-privilege environment"
+210,2026-10-17T18:06:59Z,2026-10-18T00:37:44Z,"[""processing"", ""media"", ""closeout""]",[Close-out] Remove peer-era leftovers from the V1 packages (found by the architecture docs review)
+223,2026-10-17T23:22:38Z,2026-10-18T02:52:33Z,[],CD smoke: the single encoder can start before the command reaches the work queue (race after a Processing release)
+225,2026-10-18T00:06:10Z,2026-10-18T02:52:30Z,[],CD teardown fails at td-session-close on a stack with the unattended launcher (laptop close works)
+229,2026-10-18T00:30:18Z,2026-10-19T13:32:45Z,"[""verification"", ""closeout""]","[Close-out] AWS security-negatives proof: cross-owner, tampered/expired URLs, oversize upload, external port scan"
+234,2026-10-18T02:25:35Z,2026-10-19T18:09:35Z,"[""epic"", ""v2"", ""v2-live""]",[V2 epic] One always-on environment that updates in place and scales to zero
+235,2026-10-18T02:25:37Z,2026-10-18T14:28:27Z,"[""v2"", ""closeout"", ""v2-live""]",[V2-live] Persistent named environment: CD updates one stack in place
+236,2026-10-18T02:25:39Z,2026-10-18T14:28:29Z,"[""v2"", ""closeout"", ""v2-live""]",[V2-live] Remove booked sessions from the normal path: always-on API and consumers
+237,2026-10-18T02:25:41Z,2026-10-19T18:09:27Z,"[""v2"", ""closeout"", ""v2-live""]","[V2-live] Encoders scale 0→3→0 with the queue, started on enqueue"
+238,2026-10-18T02:25:42Z,2026-10-19T18:09:24Z,"[""v2"", ""closeout"", ""v2-live""]","[V2-live] Deploy dc2-live once, verify, and keep it running"
+243,2026-10-18T10:55:34Z,2026-10-18T13:32:05Z,"[""bug"", ""media"", ""clients"", ""closeout""]",[P1][Clients] Account switching exposes prior-owner library cards and playback capabilities
+244,2026-10-18T10:55:36Z,2026-10-18T13:32:14Z,"[""bug"", ""processing"", ""v2"", ""closeout"", ""v2-live""]",[P1][V2-live] Processing API retry/cancel bypass idle activity markers and can stall repair
+245,2026-10-18T10:55:37Z,2026-10-18T13:32:08Z,"[""bug"", ""documentation"", ""clients"", ""closeout""]",[P2][Publisher] Quick-start and CLI help use /api instead of the V1 /api/media base
+246,2026-10-18T10:55:39Z,2026-10-18T13:32:11Z,"[""bug"", ""clients"", ""closeout""]",[P2][Clients] Library and Admin list failures are shown as successful empty results
+247,2026-10-18T10:55:41Z,2026-10-18T13:32:19Z,"[""bug"", ""documentation"", ""foundation"", ""verification"", ""closeout""]",[P2][Local V1] Clean-checkout quick-start omits pinned Moto and required Chromium
+248,2026-10-18T10:55:43Z,2026-10-18T13:32:22Z,"[""bug"", ""documentation"", ""foundation"", ""verification"", ""closeout""]",[P2][Demo] Local V1 fallback has no interactive web/worker entry point; v1-serve is API-only
+249,2026-10-18T11:06:18Z,2026-10-18T13:32:24Z,"[""documentation"", ""closeout""]","[P2][Docs] Refresh V1/V2 status, as-built limitations and broken documentation links"
+250,2026-10-18T11:06:20Z,2026-10-18T13:32:26Z,"[""documentation"", ""verification"", ""closeout""]",[P2][Evidence] Archive redacted proof receipts and retain CI artifacts through submission
+251,2026-10-18T11:06:22Z,2026-10-18T14:49:15Z,"[""enhancement"", ""verification"", ""closeout""]","[P3][CI] Scan exact V1 Media, Processing and encoder images with source/image identities"
+252,2026-10-18T11:06:24Z,2026-10-18T13:32:29Z,"[""documentation"", ""verification"", ""closeout""]",[P2][Evidence] Publish actual-versus-target results with correct workload and source attribution
+253,2026-10-18T11:06:26Z,2026-10-18T14:30:52Z,"[""planning"", ""closeout""]","[P2][Planning] Reconcile Project 14, native issue relationships and stale epic acceptance"
+254,2026-10-18T11:06:27Z,,"[""documentation"", ""clients"", ""verification"", ""closeout""]","[P2][Demo] Package durable web, CLI and pipeline recordings and verify team access"
+255,2026-10-18T11:06:29Z,2026-10-20T04:51:21Z,"[""planning"", ""verification"", ""closeout""]",[P2][Release] Pin a sanitized demo release manifest and final freeze checklist
+256,2026-10-18T11:06:31Z,2026-10-18T13:32:17Z,"[""documentation"", ""processing"", ""verification"", ""v2"", ""closeout"", ""v2-live""]",[P2][V2-live] Clarify lost-marker recovery bounds and test the degraded dependency path
+257,2026-10-18T11:06:32Z,,"[""documentation"", ""planning"", ""closeout""]","[P2][Submission prep] Verify course cutoffs, progress-report receipt and peer assessment"
+258,2026-10-18T11:08:10Z,,"[""planning"", ""verification"", ""closeout""]","[Close-out] Audit handoff: 6 bugs, 9 easy wins, dependencies and freeze order"
+270,2026-10-19T15:06:27Z,2026-10-19T15:33:07Z,"[""closeout""]","[V2-live] Duplicate ProcessingWork sends: 21 messages for 9 jobs, 10 left visible after all jobs finished"
+271,2026-10-19T15:06:30Z,2026-10-20T10:57:26Z,"[""closeout""]",[Media] Finalize returns 503 when S3 refused an oversized upload; should be 4xx

@@ -1,129 +1,104 @@
 # Quality Attributes
 
-Each attribute below gives the design tactics first, then the evidence against the proposal's
-targets (proposal §3.4, unchanged). Results keep their environment, source, workload and timing
-boundary. Local results never stand in for AWS results, and misses stay misses. The complete record
-is in `docs/results/actual-vs-target.md` (with its CSV) and `docs/evidence-index.md`.
+The results below keep the proposal's targets, workloads and timing boundaries; Figure
+{@fig:results} charts the speedup and release-time results. The measurement record is in
+`docs/results/actual-vs-target.md` and `docs/evidence-index.md`.
 
-![Figure {#fig:results}. Speedup and Processing release time against target (AWS V1 and V2-live; misses shown as misses).](figures/actual-vs-target.png){width=15.5cm}
+![Figure {#fig:results}. Speedup and Processing release time against the proposal targets (AWS V1 and local pre-V1 speedup; r1018b and r1019a release times).](figures/results-actual-vs-target.png){width=15cm}
 
 | Attribute | Scenario (proposal target) | Result | Verdict |
 |:----------|:------------------------------------|:------------------------------------------|:---------|
 | Scalability | 2 workers ≥ 1.6× and 3 workers ≥ 2.1× the jobs/min of 1 worker | AWS V1 (6 clips, one run per cap): 0.483 / 0.700 / 1.134 jobs/min → **1.449×** and **2.347×** | **FAIL** at 2; PASS at 3 |
 | Scalability | Median queue wait falls at each step; 0 failed jobs | 274.3 s → 135.7 s → 9.6 s; 0 failed; 0 encoders left running | PASS |
-| Scalability | (same, local pre-V1 design, 30 clips × 3 repeats) | 2.032× and 2.885× | PASS (different design; not AWS) |
-| Scalability | V2-live automatic scale 0 → 3 → 0 | 0 → 3 → 0 with 3 concurrent clips; 9-clip backlog at cap 3 in 239 s (2.26 jobs/min) | PASS (no 1/2/3 comparison) |
+| Scalability | (same, local pre-V1 design, 30 clips × 3 repeats) | 2.032× and 2.885× | PASS (pre-V1 design) |
+| Scalability | V2-live automatic scale 0 → 3 → 0 | 0 → 3 → 0 with 3 concurrent clips; 9-clip backlog at cap 3 in 239 s (2.26 jobs/min) | PASS |
 | Performance | 50 users polling status for 3 min: p90 ≤ 700 ms, < 1 % errors | p90 **58.2 ms**, 9,000 requests, 0 errors (in-region generator) | PASS |
 | Performance | 20 concurrent logins: p90 < 2 s | p90 **178 ms** (20 samples) | PASS |
-| Performance | Warm-job queue wait ≤ 20 s (V2-live), standard Fargate lane | about **37 s**; Fargate start median 25.6 s (5-job `sl1021` Fargate arm: 32.6 s median) | **FAIL** |
-| Performance | Same wait on the Lambda short-encode lane (≤ 60 s clips, `sl1021`, 5 jobs, 24 s clip) | median **0.26 s** (max 2.6 s) against 32.6 s on Fargate; processing 5.3 s against 8.0 s; billed compute USD 0.0003 against 0.0021 per encode; 0 failures | PASS (queue wait) |
-| Performance | Submit-to-done, same run (no proposal target; 20 s end to end is the aim) | Lambda cold 92.0 s (n = 1), warm median 45.2 s; Fargate median 87.7 s | **FAIL** against 20 s on both lanes |
-| Availability | Worker killed mid-encode: re-queued or failed within 5 min | Stop detected in **5.8 s**; lease expiry marks the job `failed`; retry creates a new attempt | PASS (reaction time only) |
+| Performance | Warm-job queue wait ≤ 20 s (V2-live), standard Fargate lane | about **37 s**; Fargate start median 25.6 s | **FAIL** |
+| Performance | Same wait on the Lambda short-encode lane (≤ 60 s clips, `sl1021`, 5 jobs per arm, one 24 s clip) | median **0.26 s** (max 2.6 s) against 32.6 s on Fargate; processing 5.3 s against 8.0 s; billed compute USD 0.0003 against 0.0021 per encode; 0 failures | PASS |
+| Performance | Submit-to-done, same run (20 s aim; no proposal target) | Lambda cold 92.0 s (n = 1), warm median **45.2 s**; Fargate median 87.7 s | Above the 20 s aim |
+| Availability | Worker killed mid-encode: re-queued or failed within 5 min | Stop detected in **5.8 s**; lease expiry marks the job `failed`; retry creates a new attempt | PASS |
 | Availability | Lost queue entry re-enqueued within 2 min | 23.5 s (local pre-V1); ≤ 120 s asserted on a simulated clock (local V1) | PASS locally; **NOT_RUN** on AWS |
-| Availability | Processing temporarily unavailable while Media accepts uploads | Command consumer off for 48 s: Media answered 202 and held the command; job `done` 58.9 s after re-enable | PASS (consumer only) |
-| Deployability | Release Processing alone, smoke-tested, in ≤ 10 min; Media unchanged | Operator promote 322.5 s; CD `Release` step 10.1–10.3 min (`r1018b`) and 9 m 39 s (`r1019a`); release plus a separate upload smoke 15 m 38 s; Media unchanged at every snapshot | **FAIL** (marginal); not established with the smoke |
+| Availability | Processing temporarily unavailable while Media accepts uploads | Command consumer off for 48 s: Media answered 202 and held the command; job `done` 58.9 s after re-enable | PASS |
+| Deployability | Release Processing alone, smoke-tested, in ≤ 10 min; Media unchanged | Operator promote 322.5 s; CD `Release` step **10.1–10.3 min** (`r1018b`) and 9 min 39 s (`r1019a`); release plus the separate upload smoke **15 min 38 s**; Media unchanged at every snapshot | **FAIL** for `r1018b` and release + smoke; PASS for the `r1019a` step |
 | Deployability | Bad candidate restores automatically | CD run 39271754470 (`bad_candidate=true`) → `restored` | PASS (source `7928b7c`) |
-| Security | Negative tests 100 % rejected; 0 fixable HIGH/CRITICAL at release | All selected negatives rejected on AWS V1 and on `dc2-live` (#229); 0 fixable HIGH/CRITICAL at each release | PASS (checks run) |
-| Reusability | Publisher CLI: 0 service imports, 0 database credentials, ≤ 2 person-days | 0 and 0, enforced by a test; 491 lines; effort not timed | PASS; effort **NOT_MEASURED** |
+| Security | Negative tests 100 % rejected; 0 fixable HIGH/CRITICAL at release | Selected negatives rejected on AWS V1 and on `dc2-live` (#229, 19 October); recorded releases met the fixable-image policy | PASS |
+| Reusability | Publisher CLI: 0 service imports, 0 database credentials, ≤ 2 person-days | 0 and 0, enforced by a test; 495 physical Python lines across five files; effort not timed | PASS; effort **NOT_MEASURED** |
 
 ## Performance
 
-**Tactics in the design.**
+HTTP distribution, queue buffering and bounded encoding are separated, as recorded in **AD-30**
+(section 3.2). API Gateway routes requests to Media or Processing Lambda aliases with a stage
+throttle of 20 requests/s and a burst of 50. SQS buffers encode work; the Processing launcher
+reserves capacity under a database lock and starts at most three finite Fargate tasks. Sources of
+at most 64 MiB, 60 s and 1080 pixels can use the short Lambda lane (batch size one, concurrency two,
+3008 MB), which avoids a Fargate task start for small encodes; a refused probe redirects to the
+standard lane (`processing/short_lane.py`, `processing/short_encoder.py`; UC-2 in section 6.4).
 
-- **No bytes through the API.** Uploads go straight to S3 by presigned POST. Playback reads MP4
-  (with range requests) and HLS segments straight from S3 by presigned URL. Lambda handles only
-  small JSON requests, and there is no payload limit to hit.
-- **Caching where it is safe.** CloudFront caches the content-hashed frontend at the edge. API
-  responses deliberately use the AWS managed *caching-disabled* policy, and authenticated responses
-  carry `Cache-Control: private, no-store`: status and signed URLs are per-owner and short-lived,
-  so caching them would leak or go stale. HLS playlists are never cached.
-- **Load balancing is managed.** API Gateway and Lambda spread requests across concurrent
-  executions. SQS distributes work across up to three encoders, and each encoder pulls one attempt
-  at a time.
-- **Reads come from a local projection.** Status is answered from Media's own projection in one
-  owner-local query (an earlier N+1 lookup was replaced by one outer join). There is no
-  cross-service call per poll.
-- **Bounded, predictable encoding.** Each encoder is a 2 vCPU / 4 GiB task. FFmpeg uses every core
-  it sees, so the per-task cap is what makes the 1/2/3 comparison fair. The HLS ladder never
-  exceeds the source height, so no work is wasted upscaling.
-- **Connections suited to a pausing database.** Per-invocation sessions (`NullPool`) let Aurora
-  pause at 0 ACU. The first read after a pause costs about 4.7 s; later reads take about 263 ms
-  **[AWS]**.
+Other tactics keep the API path short:
 
-**Results and explanation.**
-
-- **Latency.** Status p90 was 58.2 ms against 700 ms, and login p90 was 178 ms against 2 s
-  **[AWS]**. The generator was a Fargate task in the same region, so these numbers exclude
-  internet latency to end users.
-- **Two-worker miss.** The 1.449× result is measured on six clips with one run per cap.
-  Fargate task-time variability against a fast single-worker baseline is the most probable cause,
-  but no per-task CPU profile was captured, so the cause is an inference. The three-worker result
-  (2.347×) passed, and the median queue wait fell at each step.
-- **Queue-wait miss, and the short lane.** The standard-lane wait of about 37 s is a deliberate
-  trade-off of scale-to-zero: no encoder runs idle, so each burst pays a Fargate start (median
-  25.6 s) plus image pull. On 21 October the Lambda short-encode lane (#93, AD-22) was enabled on
-  `dc2-live`: clips of at most 60 s, 64 MiB and 1080p are read by a Lambda (3008 MB, concurrency 2)
-  and the queue wait fell to 0.26 s in a five-job comparison **[AWS]**. That is one 24 s clip, five
-  jobs per arm (the Fargate arm used the same streams padded to route to the standard lane), so
-  it shows the effect but not its spread. The end-to-end target is still missed: 35–80 s per job
-  outside queue wait and encode is unexplained on both lanes. The target was not revised, and
-  AISS-01 records the options.
+- Upload bytes go directly to S3 using presigned POST; MP4 range requests and HLS segments use
+  signed object URLs. Lambda carries JSON control requests.
+- CloudFront caches the content-hashed frontend. API caching is disabled and authenticated
+  responses carry `Cache-Control: private, no-store`; playlists and signed URLs remain fresh.
+- Media answers status from its own projection without a Processing business API call. Listing
+  joins owned assets and projections in one query; a single-job read loads the owned asset and
+  then its projection (`media/repositories/assets.py`, `media/projections.py`).
+- Standard encoders use 2 vCPU / 4 GiB tasks. The HLS ladder stays within the source height.
+- Warm Lambda environments reuse one pooled SQL connection; a 60 s server-side idle-session
+  timeout releases idle connections so Aurora can auto-pause (`runtime_support/lambda_db.py`).
+  The recorded first read after a pause took about 4.7 s; later reads took about 263 ms **[AWS]**.
 
 ## Availability
 
-**Tactics in the design.**
+Media commits accepted work and its outbox intent together, and Processing commits its inbox,
+job state and outboxes before acknowledging a command, so queue buffering separates accepted work
+from the moment an encoder can run (DP-2). Pending outbox rows are republished and missing queued
+work is rebuilt from SQL by a one-minute repair tick and by ECS `STOPPED` and S3 object events
+(`delivery/sql.py`, `processing/recovery_v1.py`). The command/result mappings each allow at most
+two concurrent Lambda invocations and report partial batch failures. With the standard cap of
+three and the short cap of two, a burst becomes backlog rather than an unbounded fleet. In the
+consumer-interruption experiment Media kept accepting uploads while Processing consumption was
+paused.
 
-- **Durable state first.** SQL is the source of truth, and the outbox commits every message with
-  its state change. A lost queue therefore delays work but cannot lose it: `repair_work` rebuilds
-  queued work from `jobs` and `attempts` on the one-minute repair tick. ECS `STOPPED` and S3
-  `Object Created` events trigger the same pass early.
-- **Failure isolation between services.** Media never calls Processing. While Processing's
-  command consumer was off, Media kept accepting uploads (202), and the job completed after
-  re-enable **[AWS]**.
-- **Fenced, disposable workers.** Leases on the database clock, task binding and a hard deadline
-  mean a dead or stuck worker cannot finish late. Its attempt is visibly `abandoned`/`failed`, and
-  the owner retries from the stored source. The worker cannot send messages, so a dying worker
-  cannot publish a half-finished result.
-- **Poison-message containment.** Each queue redrives to a DLQ after five receives. A poison
-  message reached the DLQ after 2,101 s and was removed **[AWS]**. A DLQ runbook covers redrive.
-- **Managed redundancy where it is free.** Lambda, SQS, S3, API Gateway and CloudFront are
-  regional or global managed services spanning multiple AZs. The subnets cover two AZs.
-- **Self-healing deploys.** A failed release smoke restores the previous images automatically
-  (section 5.3). Stateful resources use `DeletionPolicy: Retain`, and CloudFormation refuses a
-  change set that would replace Aurora, a bucket or the distribution.
-- **Observability.** Per-service alarms (DLQ depth per queue, errors per function: 13 in V2-live) and one dashboard. 13
-  of 13 alarms were `OK` after the backlog tests **[AWS]**.
+Database-clock leases, task bindings and deadlines fence stale workers. A failed attempt becomes
+visible, and owner retry creates a new attempt over the stored source. Workers cannot publish
+queue messages. DLQs hold poison messages after five receives; the recorded poison message
+reached its DLQ after 2,101 s **[AWS]**. Managed services and subnets across two availability zones
+provide the infrastructure boundary. Each service's Aurora cluster is a single instance in one
+region, with one-day backups (AD-29).
 
-**Limits, stated plainly.**
-
-- The platform is **not highly available** in the strict sense. Each service now has its own
-  Aurora cluster (AD-29), so a database failure no longer takes both services down, but each
-  cluster is one instance in one region with no replica; zone and region failover are out of
-  scope (section 1.4.2).
-- Backups are kept one day, and no restore drill was run.
-- No uptime SLA is claimed.
-- The lost-queue-entry timing was not measured on AWS (AISS-05).
+Owner-release smoke failure starts automatic restore (section 5.3). Stateful resources use
+`DeletionPolicy: Retain`, and deployment rejects replacement of Aurora, buckets or the
+distribution. The enabled configuration defines 15 alarms and a services dashboard
+(`scripts/aws/v1/definitions.py`).
 
 ## Security
 
-**Controls in the solution.**
+Every protected request passes the Media-owned Lambda REQUEST authorizer and then service-side
+checks of the current user and trusted Actor (section 3.1 and DP-3), so each service acts only
+for a verified current owner. Health and the Media register/login/logout routes are the only
+public exceptions.
 
-| Area | Control |
-|:-----------|:----------------------------------------------------------------------------------|
-| Identity and access | Media-owned Lambda authorizer on every route except health, register, login and logout. It verifies the HS256 session JWT and re-reads the current user and role. The Gateway adapter strips caller-supplied `x-owner-id`, `x-role` and cookie headers and builds the actor only from the authorizer context. Owner filters apply in both services, and a foreign ID returns 404. Admin routes need the `operator` role. |
-| Session | Host-only, `HttpOnly`, `Secure`, `SameSite=Strict` cookie through CloudFront; 1-hour token; `private, no-store` on authenticated responses |
-| Hashing | bcrypt (cost 10) with a password byte limit; SHA-256 over every uploaded source and every output |
-| Encryption | TLS everywhere: CloudFront HTTPS only (TLS 1.2+ to the origin), TLS-only S3 and SQS policies, `rds.force_ssl=1` with verified CA. At rest: Aurora storage encryption, SSE-S3, SQS-managed encryption, SecureString parameters. |
-| IAM (least privilege) | One role per Lambda, migration task and worker (17 roles at default flags). Queue resource policies deny unlisted producers and consumers. Separate database roles; native role credentials; no static keys anywhere. GitHub reaches AWS only through OIDC. |
-| Input validation | Type allow-list and a 100 MiB cap, enforced at four points: the frontend, the grant, the S3 POST policy and the Publisher. Finalize checks size, hash and file signature at a pinned version. Envelope validation rejects secret- or URL-like payloads. HLS file names are allow-listed. |
-| Network | No inbound security-group rules except the database's internal rule; no NAT; private subnets for Lambdas and Aurora; only ports 80/443 public (80 redirects) |
-| Secrets | SSM SecureStrings scoped per role; RDS-managed master secret; gitleaks secret scanning; receipts sanitized before commit |
-| Supply chain and testing | Ruff security lint (flake8-bandit rules); Trivy on all three exact images in CI and again on the deployed builds in CD (zero *fixable* HIGH/CRITICAL gate); ECR scan on push; authenticated OWASP ZAP DAST; CodeQL (Python, JavaScript/TypeScript, GitHub Actions); gitleaks; dependency audits (npm audit: 0 findings); Dependabot alerts enabled |
-| Scanner results and triage | Every scanner publishes SARIF to GitHub code scanning (the repository's Security tab). On 22 October the 12 High CodeQL alerts were triaged: all are in test, proof-harness or developer-script code, none in deployed code, and each was dismissed with a recorded reason. The open alerts are ZAP low and informational findings on the OpenAPI documentation pages. One CVE is accepted unfixed: CVE-2025-52290 in `ffmpeg` (no fix in Debian 13; the worker is a finite task with no inbound network), recorded in `docs/execution/aws/v1/scan-accepted-unfixed-20261017.json` |
-| Intrusion detection and prevention | Not deployed. There is no WAF, GuardDuty or IDS/IPS (AISS-02). The compensating controls are the authorizer, the stage throttle (20 rps, burst 50), the budget alarm and the per-service error alarms. |
+| Area | Implemented control |
+|:----------------|:--------------------------------------------------------------|
+| Owner scoping | Both services filter by the trusted owner; foreign job/asset IDs return 404. Administrative operations require the operator role. |
+| Session and validation | Host-only `HttpOnly`, `Secure`, `SameSite=Strict` cookie; one-hour token; authenticated responses use `private, no-store`. bcrypt cost 10 hashes passwords. Upload validation enforces allowed types and 100 MiB; adoption verifies size, hash, signature and pinned S3 version. |
+| Least-privilege IAM | Separate function, migration and worker roles; resource-scoped S3, queue and parameter permissions; queue policies restrict producers/consumers; separate database identities and no runtime DDL. The enabled configuration defines 19 IAM roles (17 at default flags). |
+| Developer and delivery credentials | GitHub Actions assumes the AWS deploy role through OIDC and the branch-restricted `aws` environment, without long-lived AWS keys in GitHub. Runtime access uses AWS roles and scoped SSM SecureStrings. |
+| Encryption | In transit: CloudFront HTTPS, TLS 1.2 to the API origin, TLS-only S3/SQS policies and Aurora `rds.force_ssl=1` with CA verification. At rest: encrypted Aurora storage, SSE-S3, SQS-managed encryption and SSM SecureStrings. |
+| Network | Lambda and Aurora use private subnets. Media database ingress on TCP 5432 permits the Lambda and migration security groups; Processing additionally permits the worker security group. Worker tasks have no inbound application listener. |
+| Source and supply chain | Ruff S and CodeQL provide SAST; gitleaks scans history; npm audit, pip-audit and Trivy check dependencies and images; cfn-lint and Checkov inspect generated infrastructure. Section 5.2 gives triggers and dispositions. |
+| Dynamic checks | Authenticated OWASP ZAP runs against the disposable local V1 stack in CI and weekly (`dast.yml`); execution, coverage and cleanup are required, and findings are reported for triage. |
+| Operations | Gateway throttles, service/DLQ alarms and a budget alarm support detection and containment; WAF/GuardDuty/IDS are tracked in AISS-02. |
 
-**Verification.** The proposal's negative tests were run on AWS: on V1 stacks `r1017b`/`r1018b`,
-and in full on the persistent `dc2-live` environment for issue #229 on 19 October **[AWS]**.
+Infrastructure controls are generated in `scripts/aws/v1/definitions.py`; CI credential trust is
+specified in `deploy/aws/v1/github-oidc.yaml`. The 22 October CodeQL dismissals and the
+accepted-unfixed FFmpeg CVE-2025-52290 are dated triage records
+(`docs/execution/aws/v1/scan-accepted-unfixed-20261017.json`).
+
+**Verification.** The following negative tests were recorded on AWS V1 stacks `r1017b`/`r1018b`
+and on `dc2-live` for issue #229 on 19 October **[AWS]**.
 
 | Control (proposal §3.3) | Result |
 |:----------------------------------------|:-----------------------------------------------------------|
@@ -136,69 +111,79 @@ and in full on the persistent `dc2-live` environment for issue #229 on 19 Octobe
 | Invalid and oversized uploads | 100 MiB + 1 byte refused by S3 (400) and never adopted |
 | External port scan; private datastores | Only 80 and 443 open; Aurora `PubliclyAccessible=false`; no `0.0.0.0/0` ingress |
 | Secrets out of git and images | gitleaks green in CI |
-| Zero fixable HIGH/CRITICAL image findings at release | Met at every release, with the retained-image incident described in section 5.3 |
+| Zero fixable HIGH/CRITICAL image findings at release | Met at the recorded releases; retained-image handling is described in section 5.3 |
 
-**Scope limits.**
-
-- "Zero fixable HIGH/CRITICAL" never means zero vulnerabilities. The images still carry unfixed
-  findings (44/44/208 rows at the last scan), and an earlier accepted set included one CRITICAL
-  with no fix available.
-- DAST findings are report-only, cover seven selected routes, and ran against the local gateway,
-  not the AWS edge. Eight low and eight informational entries remain, mostly missing hardening
-  headers on the local bridge.
-- SonarCloud analysis is advisory and was not configured with a token.
-- The #229 negatives ran before the final frozen source and were not repeated on it.
+The ZAP scope is seven GET operations on the local bridge: Media `auth/me`, `health`, `jobs`,
+`jobs/{job_id}` and Processing `health`, `jobs`, `jobs/{job_id}`, under `/api/<service>/`. The
+harness caps requests at 1,600, seeds two users and uploads, and invokes no workers. The 25 October
+run retained 16 findings and passed cleanup; ownership-negative fixtures are separate checks
+(`scripts/dev/v1_dast.py`).
 
 ## Extensibility and Maintainability
 
-**How the platform is extended.**
+Media separates routes (`media/api/`), application services (`media/services/`), repositories,
+owned models/migrations and projection, messaging and recovery modules. Processing separates
+API/authentication, lifecycle and messaging, launcher/adapters, recovery and worker execution
+(`processing/worker/`); `media_engine/` holds validation, probes and FFmpeg command builders. The
+services share only contract and technical libraries (`contracts/`, `delivery/`,
+`runtime_support/`).
 
-- **A new client application.** It uses only the two OpenAPI 1.0.0 documents and the public flow:
-  reserve, upload, finalize, status, retry. The Publisher CLI is the worked example: 491 lines of
-  Python in 6 files, using only the standard library and `httpx`. It has 0 imports from service
-  code and 0 database credentials, enforced by an AST test, and it is validated against the
-  published OpenAPI schema in CI.
-- **A new processing capability.** Add an operation to `media_engine/` (pure command builders) and
-  to the operation list carried in `submit`. Additive payload fields need no contract version
-  change, because consumers ignore unknown fields. The edit feature (clip, crop, scale, convert)
-  was added this way without touching the transport.
-- **A contract change.** The policy in `contracts/README.md` applies. Changes are additive within a
-  version. Consumers accept versions N and N-1, and producers emit the lower version until every
-  consumer reads the new one. Each consumer owns a fixture of the fields it reads, and the
-  producer's tests check its real messages against that fixture. A breaking change takes two
-  releases, in either service order.
-- **More capacity.** Raise the encoder cap behind the budget alarm. Media is unaffected.
+A new operation extends `media_engine/` and the submit payload without changing queue transport.
+A new client uses the published OpenAPI contract and reserve/upload/finalize/status flow. The
+Publisher demonstrates this with 495 physical Python lines across five files, no service imports
+and no database credentials, checked by AST and public-contract tests. Image checks reject
+opposite-domain and legacy imports; generated-template freshness and IAM-shape tests protect
+infrastructure boundaries.
 
-**What keeps it maintainable.**
+Contract changes are additive within a version, with consumer-owned fixtures. A breaking change
+first releases readers for N and N-1, then raises the emitted version after both readers are ready.
+`contracts/v1.py` accepts only positive supported versions, so the current N=1 accepts version 1;
+the rolling-upgrade policy is exercised with raised-version fixtures (`contracts/README.md`).
 
-- **Boundaries are enforced by tests and builds.**
-  - Image builds fail if the opposite domain or a legacy module is importable.
-  - IAM permissions are generated from a code-to-permission map and asserted in
-    `tests/aws/v1/test_infrastructure.py`.
-  - The checked-in template is byte-compared with its generator.
-- **Per-service CI lanes.** Path filters select tests and builds per service. `CODEOWNERS` maps
-  the directories to the specialism leads.
-- **Tests and coverage.** The complete offline regression is 3,697 tests (plus 177 frontend tests)
-  **[Local]**. The five backend coverage tiers pass their floors (Media 93.91 % combined, Processing
-  93.90 %). Frontend coverage is 96.24 % of statements against a 90 % floor.
-- **Recent maintainability work.**
-  - Shared storage-credential policy: 253 → 175 lines.
-  - Owner-image dependency exports: 44 → 40/36/33 packages.
-  - The frontend dependency tree went from 214 to 171 packages, with 9 npm audit findings removed.
-  - An obsolete 300-line Compose file and unused CI services were deleted.
-  - Ruff formatting was applied everywhere except released migrations, whose bytes are protected by
-    a release guard.
-- **Retired code is quarantined, not deleted.** The `legacy/` package keeps the Project 1 and
-  proposal-era paths testable without shipping them (AD-26).
-- **Documentation sits next to the code.** The ADR register, DDD model, views, use-case catalogue,
-  runbooks and sanitized receipts are all in the repository. A study guide is published from the
-  same sources (GitHub Pages).
+### Unit tests for complex classes and modules
 
-**Limits.**
+The modules below hold the most complex behavior. Counts are static `test_` definitions in each
+named file; the two parameterized files report collected cases. Shared files support several
+modules, so rows are not additive.
 
-- `contracts/` is still a shared kernel copied into both images.
-- There is one lockfile and one CloudFormation stack for both services (AD-23).
-- Only contract version 1 exists, so the N-1 path is exercised by tests rather than by a real
-  second version.
-- The Publisher's two person-day build-effort target was not measured. Its first commit was on
-  13 October, with changes on 15 and 18 October.
+| Complex module / class | What it does | Unit test file(s) | Number of tests |
+|:----------------------------|:----------------------------------|:-------------------------------------------|:-----------|
+| Media projections / `ProjectedJob`; `v1_lifecycle.edit` | Orders result snapshots, fences terminal state, adopts edits and handles replay | `tests/media/test_v1_projection.py` | 12 definitions |
+| Media `direct_intake` | Reserves and verifies uploads, adopts pinned versions, schedules late-write cleanup | `tests/media/test_direct_intake.py` | 26 definitions |
+| Media `Storage` | Signs, streams, verifies, copies and removes versioned objects | `tests/media/test_media_storage.py`; source-verification cases in `test_direct_intake.py` above | 7 storage definitions |
+| Media native recovery | Stops at deadlines, orders cleanup phases and caps batches | `tests/media/test_native_recovery.py` | 13 cases |
+| Processing launcher / `LauncherConfig`, `Observation` | Observes ECS/queue demand and controls bounded reservations | `tests/aws/v1/test_unattended_launch.py` | 40 definitions |
+| Processing launcher `tick()` | Avoids idle I/O, preserves unknown demand and stops refused/ambiguous sends | `tests/processing/test_launcher_tick.py` | 12 cases |
+| Processing messaging | Validates durable work identity and lane routing | `tests/processing/test_v1_delivery_rules.py` | 10 definitions |
+| Processing SQS worker | Bounds polling and fences claim, acknowledgement and visibility loss | `tests/processing/test_v1_worker.py` | 32 definitions |
+| Processing lifecycle / `Claim` | Claims, heartbeats and finishes under lease/attempt fences | `tests/processing/test_lifecycle.py` | 10 definitions |
+| Processing recovery helpers | Expiry and output-cleanup rules used by native recovery | `tests/processing/test_recovery.py` | 10 definitions |
+| Short-lane admission and encoder | Enforces size/probe bounds, redirects and handles partial batch failure | `tests/processing/test_short_lane.py`; `test_short_encoder.py` | 16 + 16 definitions |
+| Engine validation, commands, HLS / `SourceProbe` | Rejects invalid operations and builds safe FFmpeg/probe/HLS commands | `tests/media_engine/test_validation.py`; `test_commands.py`; `test_hls.py` | 10 + 3 + 12 definitions |
+| Publisher `PublicClient`, `Intents`, CLI | Persists cookies and upload/file identity; maps CLI outcomes | `tests/publisher/test_publisher.py`; `test_direct_upload.py`; `test_file_identity.py` | 26 + 4 + 3 definitions |
+| `Actor`, `Source`, `Envelope`, `GatewayAdapter`, delivery | Validates trusted boundaries, frozen messages, partial failures and poison handling | `tests/contracts/test_prepared_contracts.py`; `tests/v1/test_contract_fixtures.py`; `test_delivery.py` | 7 + 17 + 5 definitions |
+
+All 25 native-recovery and launcher-tick cases passed, and eight deliberate mutations (deadlines,
+cleanup failure ordering, batch bounds, idle I/O, unknown demand and send termination) were each
+detected. Real PostgreSQL suites verify transactions, locking and concurrency
+(`tests/v1/test_media_cleanup_sql.py`, `test_launcher_sql.py`, `test_messaging_sql.py`,
+`test_delivery_recovery_sql.py`).
+
+### Test inventory and coverage gates
+
+The 10 November audit recorded **1,316 offline cases passed** across two runs (820 service cases
+and 496 V1/launcher cases), with two skips; integration and e2e cases were deselected. Its
+static service inventory was **386 unit test definitions** across Media 150, Processing 167,
+engine 25, Publisher 34, contracts 7 and runtime support 3, before the 25 cases above were added.
+
+| Scope | Combined statement/branch minimum | Raw branch minimum | Enforcement |
+|:------------------------------|:---------------------|:------------------|:-----------------------------|
+| Every measured backend package | 80% | Reported | Per-package gate; missing production files fail |
+| Media and Processing packages | 90% | 85% | Additional gate with the complete five backend tiers |
+| `media/recovery_v1.py`, `processing/recovery_v1.py` | 80% | 75% | Additional module gate with the complete five tiers |
+| Frontend `app.js` | 90% each for statements, branches, functions and lines | 90% | Vitest coverage job |
+
+The exact gates are in `scripts/dev/coverage.py:19–39,97–202` and `frontend/package.json`.
+Backend evidence combines source-fingerprint-matched fast, legacy integration, Processing
+integration, Media integration and V1 integration fragments; CI retains XML, JSON and `gate.json`,
+plus JUnit and coverage summaries (`scripts/ci/quality_summary.py`).

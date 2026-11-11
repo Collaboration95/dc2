@@ -1,0 +1,118 @@
+contracts/v1.py:18 -> 
+contracts/v1.py:98 -> 
+contracts/v1.py:108 ->     @classmethod
+contracts/v1.py:118 ->             ):
+contracts/v1.py:151 ->         for child in value:
+contracts/v1.py:190 ->         if data["kind"] in ("submit", "work") and data["source"] is None:
+delivery/envelope.py:1 -> """Shared canonical message validation and deterministic SQL dedupe hashes."""
+delivery/sql.py:18 -> async def accept(session, model, envelope):
+delivery/sql.py:36 -> async def stage(session, model, envelope, queue):
+delivery/sql.py:58 -> async def publish_due(
+delivery/sqs.py:1 -> """Native credential SQS adapter with explicit producer and consumer lanes."""
+deploy/v1/media.Dockerfile:16 -> COPY contracts ./contracts
+deploy/v1/processing.Dockerfile:16 -> COPY contracts ./contracts
+deploy/v1/worker.Dockerfile:16 -> COPY contracts ./contracts
+legacy/media_peer/lifecycle.py:156 ->             intent = await session.get(RetryIntent, retry_id)
+media/messaging.py:16 -> async def consume_result(session, envelope, apply):
+media/messaging.py:31 -> async def enqueue_submit(session, asset, source):
+media/migrations/versions/0001_media.py:11 ->     """CREATE TABLE staged_objects (
+media/migrations/versions/0001_media.py:16 ->     """CREATE TABLE users (
+media/migrations/versions/0001_media.py:26 ->     """CREATE TABLE assets (
+media/migrations/versions/0001_media.py:53 ->     """CREATE TABLE cleanup_intents (
+media/migrations/versions/0001_media.py:63 ->     """CREATE TABLE request_keys (
+media/migrations/versions/0001_media.py:74 ->     """CREATE TABLE retry_intents (
+media/migrations/versions/0002_uncertain_writes.py:14 ->     op.add_column(
+media/migrations/versions/0004_direct_uploads.py:13 ->     op.create_table(
+media/migrations/versions/0004_direct_uploads.py:23 ->     op.create_table(
+media/migrations/versions/0005_projection.py:14 ->     op.create_table(
+media/migrations/versions/0006_messaging.py:14 ->     op.create_table(
+media/migrations/versions/0006_messaging.py:22 ->     op.create_table(
+media/migrations/versions/0007_finalized_requires_pin.py:14 -> CONSTRAINT = "ck_upload_reservations_finalized_has_pin"
+media/migrations/versions/0007_finalized_requires_pin.py:19 ->     op.create_check_constraint(CONSTRAINT, "upload_reservations", sa.text(PREDICATE))
+media/migrations/versions/0008_upload_cleanup_schedule.py:12 -> branch_labels = None
+media/migrations/versions/0008_upload_cleanup_schedule.py:19 ->     op.add_column(
+media/migrations/versions/0008_upload_cleanup_schedule.py:28 ->     op.add_column(
+media/migrations/versions/0008_upload_cleanup_schedule.py:32 ->     op.add_column(
+media/models.py:35 -> 
+media/projection_models.py:12 -> class ProcessingProjection(Base):
+media/projections.py:36 -> def validate_transition(current, event):
+media/projections.py:69 -> async def apply_result(session, envelope):
+media/projections.py:139 -> async def confirm_cancellation(session, asset, event, *, no_job):
+media/recovery_v1.py:39 -> async def cleanup_tombstones(
+media/repositories/assets.py:31 -> async def get_asset(
+media/repositories/assets.py:81 -> async def list_asset_pages(session, owner_id, limit, offset):
+media/schemas/edit.py:1 -> # Edit validation extracted from app/schemas/edit.py; no legacy domain imports.
+media/services/direct_intake.py:43 -> async def source_for_asset(session, asset_or_id):
+media/services/direct_intake.py:99 -> async def reserve(session, storage, owner_id, request):
+media/services/direct_intake.py:149 -> async def finalize(session, storage, owner_id, reservation_id, request, *, enqueue=None):
+media/services/direct_intake.py:234 -> async def cleanup_expired_uploads(
+media/services/v1_lifecycle.py:17 -> async def command(session, asset, kind, *, message_id=None, source=None):
+media/services/v1_lifecycle.py:50 -> async def retry(session, owner_id, asset_id, key):
+media/services/v1_lifecycle.py:105 -> async def edit(session, storage, owner_id, parent_id, request, key):
+media_engine/hls.py:43 -> def build_ladder_command(
+media_engine/validation.py:1 -> """Track C's source-aware checks, called by B before constructing FFmpeg args.
+processing/launcher.py:90 -> def run_payload(config, token, deadline_epoch):
+processing/launcher.py:238 -> async def _reserve(factory, config, obs, visible, *, launching):
+processing/launcher.py:337 -> async def _send(factory, ecs, token, config=None):
+processing/lifecycle.py:20 -> def output_prefix(job_id: UUID, attempt_id: UUID) -> str:
+processing/lifecycle.py:24 -> async def db_now(session):
+processing/lifecycle.py:28 -> async def lock_pair(session, job_id, attempt_id):
+processing/lifecycle.py:38 -> def live(pair, token, now):
+processing/lifecycle.py:136 -> async def claim(factory, job_id, attempt_id, settings, *, on_change=None, before_claim=None):
+processing/lifecycle.py:184 -> async def finish(factory, work, *, outputs=None, error=None, on_change=None):
+processing/messaging.py:35 -> REPAIR_SCHEDULING_SLACK_SECONDS = 15  # EventBridge delivery plus Lambda start-up
+processing/messaging.py:47 -> def assert_owned_source(body):
+processing/messaging.py:78 -> def envelope(job, attempt, version, kind):
+processing/messaging.py:102 -> async def emit_state(session, job, attempt):
+processing/messaging.py:186 -> async def _cancel_locked(session, guard, *, command_message_id=None):
+processing/messaging.py:232 -> async def handle_command(factory, message):
+processing/messaging.py:281 ->         job = Job(
+processing/messaging.py:325 -> async def claim(factory, job_id, attempt_id, settings, *, envelope=None, task_name):
+processing/migrations/versions/0001_intake.py:14 ->     op.create_table(
+processing/migrations/versions/0001_intake.py:29 ->         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
+processing/migrations/versions/0001_intake.py:35 ->     op.create_table(
+processing/migrations/versions/0001_intake.py:61 ->     op.create_table(
+processing/migrations/versions/0002_lifecycle.py:14 ->     op.add_column(
+processing/migrations/versions/0002_lifecycle.py:28 ->         op.add_column("attempts", sa.Column(name, kind, nullable=True))
+processing/migrations/versions/0002_lifecycle.py:29 ->     op.add_column(
+processing/migrations/versions/0002_lifecycle.py:32 ->     op.create_index("ix_attempts_recovery", "attempts", ["state", "next_dispatch_at"])
+processing/migrations/versions/0002_lifecycle.py:33 ->     op.create_table(
+processing/migrations/versions/0002_lifecycle.py:48 ->     op.create_table(
+processing/migrations/versions/0003_messaging.py:14 ->     op.create_table(
+processing/migrations/versions/0003_messaging.py:22 ->     op.create_table(
+processing/migrations/versions/0003_messaging.py:35 ->     op.create_table(
+processing/migrations/versions/0005_task_binding.py:13 ->     op.create_table(
+processing/migrations/versions/0006_cleanup_retirement.py:16 ->     op.add_column(
+processing/migrations/versions/0006_cleanup_retirement.py:22 ->     op.add_column("cleanup_intents", sa.Column("retired_at", sa.DateTime(timezone=True)))
+processing/migrations/versions/0007_launch_reservations.py:1 -> """Add the opt-in launcher's control row and launch reservations (additive only).
+processing/migrations/versions/0007_launch_reservations.py:11 -> revision = "processing_0007"
+processing/migrations/versions/0007_launch_reservations.py:18 ->     op.create_table(
+processing/migrations/versions/0007_launch_reservations.py:29 ->     op.create_table(
+processing/models.py:15 -> class Job(Base):
+processing/models.py:47 -> 
+processing/recovery.py:123 ->                 .limit(limit)
+processing/recovery_v1.py:84 -> async def repair_work(factory, *, limit=50, deadline=None):
+processing/schemas.py:18 ->     sha256: Digest
+processing/schemas.py:25 ->     end: Annotated[float, Field(strict=True, gt=0, allow_inf_nan=False)]
+processing/schemas.py:111 -> class RetryJob(StrictObject):
+processing/worker/source.py:31 ->     def _download(self, source, path):
+processing/worker/tasks.py:16 -> async def pipeline(work, settings, supervisor, client, store, directory, *, downloader, admit=None):
+project-documentation/final-report/src/34-persistence-detailed.md:3 -> **Relational data.** Each service owns one PostgreSQL 16 database on its own Aurora Serverless v2 cluster (AD-29), with
+project-documentation/presentation/site/deck.html:257 -> <section class="slide" id="s65" data-kind="back" data-num="B17"><h1>Show the tables</h1><div class="body"><div class="cap" style="font-size:28px;font-weight:600;color:#0f172a;margin-bottom:14px">Media tables first; the next click shows Processing.</div><div style="position:relative;height:440px"><div style="position:absolute;left:0;top:0;width:1180px;height:440px;background:#fff"><img src="assets/img/views-er-media.svg" style="width:1000px" alt=""></div><div style="position:absolute;left:0;top:0;width:1180px;height:440px;background:#fff"><img src="assets/img/views-er-processing.svg" style="width:1000px" alt=""></div></div></div><div class="sec">Backup</div><div class="foot"><span></span><span>B17</span></div><aside class="notes"><b>B17 · Q&A backup</b><ul><li>Source: views.md section 4. Mermaid text is small by design; backup only</li></ul></aside></section>
+project-documentation/presentation/site/deck.html:284 -> function go(i,noHash){if(i<0||i>=N)return;
+runtime_support/activity.py:1 -> """Let an idle domain's minute ticks skip SQL, so Aurora can pause (V2-live, AD-27).
+runtime_support/lambda_db.py:1 -> """One SQL engine and one event loop per warm Lambda execution environment.
+scripts/aws/journal.py:14 -> class Journal:
+scripts/aws/v1/bootstrap.py:180 ->             if current is not None and current != f"{domain}_owner":
+scripts/aws/v1/definitions.py:51 -> DEFAULT_AUTO_PAUSE_SECONDS, DEFAULT_MAX_CAPACITY = 300, 2
+scripts/aws/v1/definitions.py:501 ->     for stem in stems:
+scripts/aws/v1/definitions.py:546 ->             retain=True,
+scripts/aws/v1/definitions.py:550 ->             "BucketEncryption": {
+scripts/aws/v1/definitions.py:596 ->     for name in ("ProcessingCommands", "ProcessingWork", "MediaResults"):
+scripts/aws/v1/definitions.py:632 ->     # The short lane's own queue and dead-letter queue (V2, #93). Its visibility timeout is
+scripts/aws/v1/definitions.py:823 ->                 {"LogGroupName": sub(f"/dc2/${{EnvironmentId}}/{name}"), "RetentionInDays": 7},
+scripts/aws/v1/definitions.py:899 ->         def marker(kind, domain=domain):
+scripts/aws/v1/definitions.py:1795 ->         {"LogGroupName": sub("/dc2/${EnvironmentId}/tasks"), "RetentionInDays": 7},
+scripts/aws/v1/deploy.py:506 -> class DeployJournal(Journal):
+scripts/aws/v1/frontend.py:30 ->     ".svg": "image/svg+xml",
+scripts/aws/v1/frontend.py:63 -> def build(source=SOURCE, out=None):

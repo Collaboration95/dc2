@@ -1,0 +1,69 @@
+@startuml
+!include _style.iuml
+skinparam dpi 96
+skinparam defaultFontSize 20
+skinparam classAttributeFontSize 18
+skinparam classStereotypeFontSize 16
+skinparam ArrowFontSize 17
+skinparam NoteFontSize 17
+skinparam LegendFontSize 15
+skinparam titleFontSize 20
+skinparam nodesep 80
+skinparam ranksep 60
+hide circle
+hide empty methods
+
+top to bottom direction
+title Tactical DDD · Processing Job / Attempt · 76282d3
+package "Job business consistency grouping (interpretation)" $PROC {
+ class Job <<principal root>> {
+  id: UUID
+  asset_id: UUID
+  owner_id: UUID
+  source: dict
+  operations: list
+  status: str
+  current_attempt_id: UUID
+  outputs: list
+  deleted_at: datetime | None
+ }
+ class Attempt <<member entity>> {
+  id: UUID
+  job_id: UUID
+  attempt_number: int
+  state: str
+  lease_token: UUID | None
+  heartbeat_at: datetime | None
+  lease_expires_at: datetime | None
+  deadline_at: datetime | None
+ }
+ Job "1" *-left- "1..*" Attempt
+}
+class "processing.schemas.Output" as Output <<value DTO; JSON>> $PROC {
+ kind: Literal[primary, hls_manifest]
+ object_key: str
+ media_type: str
+ size_bytes: NonnegativeInt | None
+ sha256: Digest | None
+}
+Job "1" *-right- "0..2" Output
+note bottom of Job
+  UNIQUE jobs.asset_id: at most 1 Job per Asset.
+  current_attempt_id: 1 member (deferred FK).
+  handle_command(): validate submit hash.
+  _retry_locked(): failed -> new queued Attempt.
+end note
+note bottom of Attempt
+  UNIQUE(job_id, attempt_number), number >= 1.
+  lock_pair(): current; live(): state/token/times.
+  finish(): 1 primary, optional HLS; attempt keys.
+end note
+legend bottom
+  Job.asset_id / owner_id: Media identities; no cross-context FK. Source is validated dict data.
+  Attempt is an entity with its own ID/history; Output is a mutable DTO stored as JSON values.
+  Diamonds = Attempt history and owned output values; there is no Output table.
+  Output 0..2 is the accepted V1 lifecycle bound; JSONB has no length CHECK.
+  Cancellation updates independent Guard + Job together. Anaemic records; rules live in modules.
+endlegend
+
+@enduml

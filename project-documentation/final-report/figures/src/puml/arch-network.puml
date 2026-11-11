@@ -1,0 +1,52 @@
+@startuml
+!include _style.iuml
+skinparam BackgroundColor #ffffff
+' scripts/aws/v1/definitions.py: Vpc, subnets, route tables, S3 gateway endpoint, security groups
+title Deployment view · subnet placement and egress · dc2-live
+top to bottom direction
+skinparam defaultFontSize 20
+skinparam ArrowFontSize 18
+skinparam titleFontSize 21
+skinparam LegendFontSize 18
+skinparam nodesep 25
+skinparam ranksep 45
+package "ap-southeast-1" {
+ node "Vpc · 10.62.0.0/16 + IPv6" {
+  node "Private · all 11 Lambdas" as lp $PROC {
+   node "PrivateASubnet\n10.62.0.0/24" as pa $INFRA
+   node "PrivateBSubnet\n10.62.1.0/24" as pb $INFRA
+   pa -[hidden]down- pb
+  }
+  node "Public · Fargate tasks" as wp $PROC {
+   node "PublicASubnet\n10.62.2.0/24" as ua $INFRA
+   node "PublicBSubnet\n10.62.3.0/24" as ub $INFRA
+   ua -[hidden]down- ub
+  }
+  rectangle "Route targets" as rt {
+   node "EgressOnly\nGateway" as eg $INFRA
+   node "S3 gateway\nendpoint" as sg $INFRA
+   node "Internet\nGateway" as ig $INFRA
+  }
+ }
+ node "AWS API endpoints\nSQS / SSM / ECS / Lambda" as aws $INFRA
+ storage "S3 source + output\nECR layers (GET)" as s3 $INFRA
+}
+lp -[hidden]right- wp
+pb -[hidden]down- eg
+ub -[hidden]down- ig
+eg -[hidden]right- sg
+sg -[hidden]right- ig
+lp --> eg : IPv6 443
+lp --> sg : S3 IPv4
+wp --> sg : S3 IPv4
+wp --> ig : IPv4 HTTPS
+eg --> aws : dual-stack
+ig --> aws : HTTPS
+sg --> s3 : endpoint policy
+legend bottom
+ Amber compute placement · slate AWS network. Arrows = allowed egress.
+ Each subnet also has an IPv6 /64. No compute group admits inbound traffic.
+ Private subnets: no IPv4 default route, no NAT. Workers: no IPv6 HTTPS.
+ S3 endpoint is on all four route tables.
+endlegend
+@enduml

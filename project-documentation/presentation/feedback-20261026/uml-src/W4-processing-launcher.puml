@@ -1,0 +1,49 @@
+!include _style.iuml
+@startuml
+!include _style.iuml
+title Physical data view · Optional unattended launcher · 76282d3
+hide circle
+skinparam linetype polyline
+left to right direction
+skinparam defaultFontSize 19
+skinparam ClassAttributeFontSize 18
+skinparam ClassFontSize 20
+skinparam ArrowFontSize 16
+skinparam LegendFontSize 14
+skinparam nodesep 42
+skinparam ranksep 70
+entity "launcher_control" as launcher_control $PROC {
+  {field} * id : integer <<PK>>
+  {field} * enabled : boolean
+  {field}   enabled_at ? : timestamptz
+  {field}   session_end_at ? : timestamptz
+  {field} * updated_at : timestamptz
+}
+entity "launch_reservations" as launch_reservations $PROC {
+  {field} * token : varchar(64) <<PK>>
+  {field} * started_by : varchar(36) <<UK>>
+  {field} * status : varchar(16)
+  {field} * payload : jsonb
+  {field} * deadline_at : timestamptz
+  {field} * reserved_at : timestamptz
+  {field}   sent_at ? : timestamptz
+  {field}   launched_at ? : timestamptz
+  {field}   settled_at ? : timestamptz
+  {field}   task_arn ? : varchar(512)
+  {field}   claimed ? : boolean
+  {field}   last_error ? : varchar(120)
+}
+launcher_control -[hidden]down- launch_reservations
+note bottom of launcher_control
+id: integer; migration DDL uses SERIAL.
+Sequence default; ORM supplies 1 instead.
+CHECK id = 1 does not insert a row.
+No FK; optional UnattendedLaunch feature.
+end note
+legend bottom left
+  * = NOT NULL    ? = nullable    PK = primary key    FK = declared local foreign key
+  UK = unique column    UKn = one composite unique group    timestamptz = timestamp with time zone
+  Blue = Media; amber = Processing. Only declared SQL foreign keys are connected.
+  All columns of coloured tables are shown; CHECKs, defaults and indexes are in the report dictionary.
+endlegend
+@enduml
