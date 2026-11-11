@@ -19,8 +19,8 @@ member is reported in Project Metrics.
 
 #### Guruprasath Gopal
 
-Guruprasath led cloud and delivery (UC-6, UC-7, DP-1). He took the reproducible baseline through
-AWS deployment, CI quality gates, per-owner releases and release freeze, which connects the
+Guruprasath led cloud and delivery (UC-6, UC-7, DP-1). This work took the reproducible baseline
+through AWS deployment, CI quality gates, per-owner releases and release freeze, connecting the
 proposal's independent-capacity and repeatable-release goals to the deployed runtime and its
 operator tools.
 
@@ -34,9 +34,9 @@ operator tools.
 
 #### Ibrahim Mammadov
 
-Ibrahim led backend services (UC-1, UC-2, UC-4, DP-2). He extracted Processing's execution model
-and persistence, adapted Media's owned-asset workflow and enforced security at the service and
-storage boundaries, turning the proposal's service split into durable acceptance, execution and
+Ibrahim led backend services (UC-1, UC-2, UC-4, DP-2): extracting Processing's execution model
+and persistence, adapting Media's owned-asset workflow and enforcing security at the service and
+storage boundaries. This turned the proposal's service split into durable acceptance, execution and
 retry behavior.
 
 - Led work packages 3 and 4: Processing's database, migrations, worker and recovery; Media's asset
@@ -49,8 +49,8 @@ retry behavior.
 
 #### Nguyễn Kim Long
 
-Long led domain analysis, contracts and verification (UC-3, UC-5, DP-3). He defined the service
-vocabulary and public interfaces, built the independent Publisher client and organized the
+Long led domain analysis, contracts and verification (UC-3, UC-5, DP-3): defining the service
+vocabulary and public interfaces, building the independent Publisher client and organizing the
 experiments that connect the proposal's goals to observed outcomes.
 
 - Led work packages 2 and 6: DDD, service contracts, OpenAPI documents, Publisher and its

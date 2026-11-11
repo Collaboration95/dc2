@@ -114,6 +114,7 @@ coverage and image receipts for 60 days; supported SARIF results are published t
 | CodeQL 40189407647, 25 October | `76282d3`, managed analysis | Python, JavaScript/TypeScript and Actions analyses completed |
 | CI 41294802851, 1 November | `76282d3`, scheduled regression on Main | Full verification, coverage, secrets, images and CI-called local DAST passed |
 | CI 42468024855, 8 November | `76282d3`, scheduled regression on Main | Failed after setup/download HTTP 504s; coverage skipped |
+| CI 42949129268, 11 November | `3d75dd9`, PR #326 into Main | Full verification passed, including coverage, image scans, secrets and CI-called local DAST |
 
 The two October ZAP receipts recorded seven routes, 16 findings, 146 out-of-scope requests blocked
 and successful cleanup.

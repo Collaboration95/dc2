@@ -16,7 +16,7 @@ Ibrahim Mammadov is responsible for the analysis and design of UC-1, UC-2 and UC
 
 Figure {@fig:uc1-analysis-class} separates identity control from intake control. An upload request exists before an owned asset, so a reservation is not an accepted video.
 
-![Figure {#fig:uc1-analysis-class}. UC-1 conceptual account and intake responsibilities.](figures/uc1-analysis-class.png){width=15cm}
+![Figure {#fig:uc1-analysis-class}. UC-1 conceptual account and intake responsibilities.](figures/uc1-analysis-class.png){width=14cm}
 
 #### Analysis sequence diagrams
 
@@ -24,7 +24,7 @@ Authentication and source adoption have different failure boundaries. Figure {@f
 
 ![Figure {#fig:uc1-analysis-identity}. UC-1 account creation, login and credential refusal.](figures/uc1-analysis-identity.png){width=15cm}
 
-![Figure {#fig:uc1-analysis-upload}. UC-1 direct upload, verification and refused adoption.](figures/uc1-analysis-upload.png){width=15cm}
+![Figure {#fig:uc1-analysis-upload}. UC-1 direct upload, verification and refused adoption.](figures/uc1-analysis-upload.png){width=13.5cm}
 
 #### Design class diagram
 
@@ -38,7 +38,7 @@ Figure {@fig:uc1-design-identity} follows the account functions through their re
 
 ![Figure {#fig:uc1-design-identity}. UC-1 real account functions and secure-cookie response.](figures/uc1-design-identity.png){width=15cm}
 
-![Figure {#fig:uc1-design-upload}. UC-1 reservation, direct S3 transport and atomic finalization.](figures/uc1-design-upload.png){width=15cm}
+![Figure {#fig:uc1-design-upload}. UC-1 reservation, direct S3 transport and atomic finalization.](figures/uc1-design-upload.png){width=13.5cm}
 
 The assertions in `tests/media/test_direct_intake.py::test_finalize_atomic_adoption_and_replay` check adoption and replay; `test_finalize_rechecks_expiry_after_slow_storage` checks the second expiry gate. SQL/S3 integration coverage in `tests/v1/test_direct_intake_s3.py` includes `test_finalize_pins_the_exact_version_it_verified`, wrong-owner refusal and `test_missing_object_is_retryable_not_adopted`.
 
@@ -80,7 +80,7 @@ Figure {@fig:uc2-design-intake} distinguishes `handle_command` from `handlers.in
 
 ![Figure {#fig:uc2-design-intake}. UC-2 atomic command acceptance and subsequent publication.](figures/uc2-design-intake.png){width=15cm}
 
-Lane choice is made by `short_lane.work_lane` and re-checked by `check_probe` after download; a refusal calls `redirect_to_long_lane` and the new Attempt runs on the standard lane. The thresholds are in AD-30 and Figures {@fig:arch-dispatch} and {@fig:arch-probe-redirect}, and they are independent of the standard launcher's capacity decision (`processing/short_lane.py`, `processing/short_encoder.py`).
+Lane choice is made by `short_lane.work_lane` and re-checked by `check_probe` after download; a refusal calls `redirect_to_long_lane` and the new Attempt runs on the standard lane. The thresholds are in the lane-decision table of section 3.2.1 and Figures {@fig:arch-dispatch} and {@fig:arch-probe-redirect}, and they are independent of the standard launcher's capacity decision (`processing/short_lane.py`, `processing/short_encoder.py`).
 
 ![Figure {#fig:uc2-design-execution}. UC-2 claimed execution and optional HLS under live authority.](figures/uc2-design-execution.png){width=15cm}
 

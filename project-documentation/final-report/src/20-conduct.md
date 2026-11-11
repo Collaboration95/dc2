@@ -137,8 +137,8 @@ release is frozen; status data was captured on 10 November.
 | Release freeze | Demo freeze accepted 20 October at `daee44b`; `project2-v1` is immutable. Later engineering deliveries have their own verification addenda in `docs/release/demo-release-manifest.md`. |
 | Live demonstration | `dc2-live` runs with finite standard encoders and separate short-lane admission. On 10 November the frontend, Media health and Processing health returned 200; these are liveness checks, and the health endpoints neither query nor wake Aurora, so they do not establish database readiness. |
 | Presentation and report | Presented 26 October. v1.1 adds the requested DDD, deployment, component, schema, analysis/design and pipeline views; section 6.1 maps each remark to its response. |
-| CI | The scheduled run on Main at `76282d3` passed on 1 November ([41294802851](https://github.com/Collaboration95/dc2/actions/runs/41294802851)). The scheduled run of 8 November ([42468024855](https://github.com/Collaboration95/dc2/actions/runs/42468024855)) failed in its tool-installation and image-scan steps. |
-| Outstanding | Rerun scheduled CI after the tool-installation failure; close the seven tracking issues at submission; tear down `dc2-live` once after 16 November. Open measurement items are in section 3.4 (AISS-05). |
+| CI | The scheduled run on Main at `76282d3` passed on 1 November ([41294802851](https://github.com/Collaboration95/dc2/actions/runs/41294802851)). The scheduled run of 8 November ([42468024855](https://github.com/Collaboration95/dc2/actions/runs/42468024855)) stopped in its tool-installation steps; Full verification passed again on 11 November for PR #326 into Main ([42949129268](https://github.com/Collaboration95/dc2/actions/runs/42949129268)). |
+| Outstanding | Close the seven tracking issues at submission; tear down `dc2-live` once after 16 November. Open measurement items are in section 3.4 (AISS-01, AISS-05). |
 
 Status is tracked in the effort ledger (`project-documentation/effort-ledger.md`, issue #191) and
 GitHub Project 14. The measured quality results are in section 4.

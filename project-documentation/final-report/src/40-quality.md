@@ -1,7 +1,8 @@
 # Quality Attributes
 
-The results below keep the proposal's targets, workloads and timing boundaries. The measurement
-record is in `docs/results/actual-vs-target.md` and `docs/evidence-index.md`.
+The results below keep the proposal's targets, workloads and timing boundaries; Figure
+{@fig:results} charts the speedup and release-time results. The measurement record is in
+`docs/results/actual-vs-target.md` and `docs/evidence-index.md`.
 
 ![Figure {#fig:results}. Speedup and Processing release time against the proposal targets (AWS V1 and local pre-V1 speedup; r1018b and r1019a release times).](figures/results-actual-vs-target.png){width=15cm}
 

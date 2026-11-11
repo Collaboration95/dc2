@@ -6,7 +6,7 @@ Analysis and design: Guruprasath Gopal. Sam, the operator, enables and observes 
 
 In the normal flow, a successful standard-work send wakes the launcher, and a one-minute schedule recovers a lost wake. The launcher reads queued current Attempts, visible standard-queue messages and worker inventory, reconciles earlier reservations, reserves available slots in one transaction, then starts finite workers. Each worker claims work separately and exits after its bounded execution. The postcondition is capacity between zero and three standard workers; unresolved starts still consume slots and excess work stays queued (`processing/launcher_trigger.py`, `processing/launcher.py`).
 
-Exception flows cover zero visible demand, disabled control, unreadable inventory and uncertain RunTask replies; they prevent new reservations or preserve existing ones. A later observation can identify an uncertain task by its persisted launch identity; otherwise a permitted replay uses the same token and payload. Workers that repeatedly exit without claiming trigger a cooldown and then an idle breaker. Disabling waits for in-flight sends. Short-lane dispatch is a separate decision (AD-30, UC-2).
+Exception flows cover zero visible demand, disabled control, unreadable inventory and uncertain RunTask replies; they prevent new reservations or preserve existing ones. A later observation can identify an uncertain task by its persisted launch identity; otherwise a permitted replay uses the same token and payload. Workers that repeatedly exit without claiming trigger a cooldown and then an idle breaker. Disabling waits for in-flight sends. Short-lane dispatch is a separate decision (section 3.2.1, UC-2).
 
 #### Analysis class diagram
 
